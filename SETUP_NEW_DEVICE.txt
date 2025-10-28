@@ -1,0 +1,353 @@
+================================================================================
+  HƯỚNG DẪN SETUP LẠI DỰ ÁN TRÊN THIẾT BỊ MỚI
+================================================================================
+
+📅 Last Updated: 2025-10-28
+🔧 Python Version: 3.10
+🌐 Repository: https://github.com/SkastVnT/AI-Assistant.git
+
+================================================================================
+  1. CLONE PROJECT
+================================================================================
+
+git clone https://github.com/SkastVnT/AI-Assistant.git
+cd AI-Assistant
+
+# Chuyển sang branch phát triển (nếu cần)
+git checkout ChatBotCoding
+
+================================================================================
+  2. CÀI ĐẶT DEPENDENCIES
+================================================================================
+
+--- ChatBot Service ---
+cd ChatBot
+pip install Flask==3.0.0
+pip install openai
+pip install google-generativeai==0.8.5
+
+--- Speech2Text Service (Quan trọng: version cố định!) ---
+cd "Speech2Text Services"
+pip install torch==2.0.1
+pip install torchaudio==2.0.2
+pip install pytorch-lightning==2.0.0
+pip install "numpy<2.0"
+pip install pyannote.audio
+pip install ffmpeg-python
+pip install faster-whisper
+
+--- Text2SQL Service ---
+cd "Text2SQL Services"
+pip install -r requirements.txt
+
+--- Hub Gateway ---
+cd "Hub Gateway"
+pip install Flask==3.0.0
+pip install requests
+
+================================================================================
+  3. TẠO FILE .env (ROOT FOLDER)
+================================================================================
+
+Tạo file .env ở thư mục gốc (d:\WORK\AI assistant\.env):
+
+# Hub Gateway Configuration
+HUB_PORT=3000
+FLASK_ENV=development
+FLASK_SECRET_KEY=ai-assistant-hub-2025-thanhnguyen-secure-key-change-in-production
+
+# Service Ports
+CHATBOT_PORT=5000
+SPEECH2TEXT_PORT=5001
+TEXT2SQL_PORT=5002
+
+# OpenAI API (GPT-4o-mini: $0.15/$0.60 per 1M tokens)
+OPENAI_API_KEY=sk-proj-SZNV...YOUR_KEY_HERE...
+
+# DeepSeek API (DeepSeek: $0.14/$0.28 per 1M tokens)
+DEEPSEEK_API_KEY=sk-1f010...YOUR_KEY_HERE...
+
+# Gemini API (FREE tier with gemini-2.0-flash)
+GEMINI_API_KEY_1=AIzaSyB0h_O7...YOUR_KEY_HERE...
+GEMINI_API_KEY_2=AIzaSyCba...YOUR_KEY_HERE...
+
+# HuggingFace (for Speech2Text models)
+HUGGINGFACE_TOKEN=hf_...YOUR_TOKEN_HERE...
+
+# Optional: Google Search API (chưa dùng)
+GOOGLE_SEARCH_API_KEY=your_key_here
+GOOGLE_CSE_ID=your_cse_id_here
+
+# Optional: GitHub API (chưa dùng)
+GITHUB_TOKEN=ghp_your_token_here
+
+================================================================================
+  4. TẠO FILE .env CHO CHATBOT
+================================================================================
+
+Tạo file ChatBot/.env:
+
+OPENAI_API_KEY=sk-proj-SZNV...YOUR_KEY_HERE...
+DEEPSEEK_API_KEY=sk-1f010...YOUR_KEY_HERE...
+GEMINI_API_KEY_1=AIzaSyB0h_O7...YOUR_KEY_HERE...
+GEMINI_API_KEY_2=AIzaSyCba...YOUR_KEY_HERE...
+
+================================================================================
+  5. KHỞI ĐỘNG CÁC SERVICE
+================================================================================
+
+--- Terminal 1: Hub Gateway ---
+cd "Hub Gateway"
+python src/hub.py
+# Running on: http://127.0.0.1:3000
+
+--- Terminal 2: ChatBot ---
+cd ChatBot
+python app.py
+# Running on: http://127.0.0.1:5000
+
+--- Terminal 3: Speech2Text (nếu cần) ---
+cd "Speech2Text Services"
+python app/web_ui.py
+# Running on: http://127.0.0.1:5001
+
+--- Terminal 4: Text2SQL (nếu cần) ---
+cd "Text2SQL Services"
+python app.py
+# Running on: http://127.0.0.1:5002
+
+================================================================================
+  6. QUAN TRỌNG - VERSION DEPENDENCIES
+================================================================================
+
+*** SPEECH2TEXT SERVICE - PHẢI CỐ ĐỊNH VERSION ***
+Lý do: Incompatibility giữa torch 2.5.1 và pyannote.audio
+
+torch==2.0.1
+torchaudio==2.0.2
+pytorch-lightning==2.0.0
+numpy<2.0 (tức là numpy==1.26.4)
+
+KHÔNG được dùng:
+- torch >= 2.1.0 (lỗi torch.compiler)
+- torchaudio >= 2.1.0 (lỗi torchaudio.compliance.kaldi)
+- pytorch-lightning >= 2.1.0 (lỗi compatibility)
+- numpy >= 2.0.0 (lỗi dtype)
+
+*** CHATBOT SERVICE ***
+Flask==3.0.0
+openai (latest - SDK v1.0+ với cú pháp mới)
+google-generativeai==0.8.5
+
+================================================================================
+  7. THAY ĐỔI QUAN TRỌNG SO VỚI TRƯỚC
+================================================================================
+
+--- Cấu trúc thư mục ---
+✅ Đã tổ chức theo Generative AI template
+✅ Hub Gateway có config/, src/, examples/, notebooks/, docs/
+✅ Tất cả .md files đã chuyển vào docs/
+
+--- Port Changes ---
+❌ Cũ: Hub Gateway port 8080
+✅ Mới: Hub Gateway port 3000 (tránh conflict với Kafka UI)
+
+--- Environment Files ---
+❌ Cũ: Mỗi service có .env riêng, không đồng bộ
+✅ Mới: File .env master ở root + file .env local cho ChatBot
+
+--- API Models ---
+❌ Cũ: gemini-pro (404 error), GPT-3.5-turbo
+✅ Mới: gemini-2.0-flash (FREE), GPT-4o-mini
+
+--- OpenAI SDK ---
+❌ Cũ: openai.ChatCompletion.create() (deprecated)
+✅ Mới: client.chat.completions.create() (v1.0+)
+
+--- DeepSeek API ---
+❌ Cũ: openai.api_base = "https://api.deepseek.com"
+✅ Mới: OpenAI(base_url="https://api.deepseek.com")
+
+================================================================================
+  8. TÍNH NĂNG MỚI - CHATBOT
+================================================================================
+
+✅ Sidebar Chat History (góc trái)
+   - Lưu chat trong localStorage
+   - Chuyển đổi giữa các chat
+   - Xóa chat không cần thiết
+
+✅ Gemini Auto-Generate Title
+   - Tự động tạo title 3-5 từ tiếng Việt
+   - Trigger sau tin nhắn đầu tiên
+   - FREE (gemini-2.0-flash)
+
+✅ Copy Buttons
+   - Copy tin nhắn AI (plain text)
+   - Copy bảng (TSV format cho Excel)
+
+✅ Dark Mode
+   - Toggle 🌙/☀️
+   - Lưu preference trong localStorage
+
+✅ Deep Thinking Mode
+   - Checkbox "🧠 Suy luận sâu"
+   - Tăng max_tokens 100%, giảm temperature 0.2
+
+✅ Download Chat
+   - Export .txt với timestamp
+   - Format đẹp, dễ đọc
+
+✅ File Upload
+   - Support: .txt, .pdf, .doc, .docx, .json
+   - AI đọc và trả lời dựa trên nội dung
+
+✅ Programming Mode
+   - Context mới: "💻 Hỗ trợ lập trình"
+   - Tối ưu cho code generation
+
+================================================================================
+  9. API KEYS - LƯU Ý
+================================================================================
+
+*** OpenAI API ***
+- Model: gpt-4o-mini
+- Cost: Input $0.15, Output $0.60 per 1M tokens
+- Funded: $5 (đủ cho ~8M tokens input)
+
+*** DeepSeek API ***
+- Model: deepseek-chat
+- Cost: Input $0.14, Output $0.28 per 1M tokens
+- Funded: $5 (đủ cho ~35M tokens input)
+
+*** Gemini API ***
+- Model: gemini-2.0-flash
+- Cost: FREE (60 requests/minute)
+- 2 API keys để dự phòng
+
+*** HuggingFace ***
+- Dùng cho Speech2Text models
+- Token miễn phí (đăng ký tại huggingface.co)
+
+================================================================================
+  10. TROUBLESHOOTING
+================================================================================
+
+--- Lỗi: "ModuleNotFoundError: No module named 'torch'" ---
+pip install torch==2.0.1 torchaudio==2.0.2
+
+--- Lỗi: "gemini-pro not found (404)" ---
+✅ Đã fix: Dùng gemini-2.0-flash thay vì gemini-pro
+
+--- Lỗi: "openai.error.InvalidRequestError" ---
+✅ Đã fix: Cập nhật SDK v1.0+ với cú pháp mới
+
+--- Lỗi: "torch.compiler not found" ---
+✅ Đã fix: Downgrade torch==2.0.1
+
+--- Lỗi: "Cannot redeclare block-scoped variable" ---
+✅ Đã fix: Di chuyển DOM elements lên đầu script
+
+--- ChatBot không gửi được tin nhắn ---
+1. Refresh browser (Ctrl+R)
+2. Clear browser cache
+3. Check console (F12) xem lỗi gì
+4. Restart Flask server
+
+================================================================================
+  11. TESTING
+================================================================================
+
+--- Test ChatBot ---
+cd ChatBot
+python test_gemini.py        # List available Gemini models
+python test_tools.py          # Test Google Search & GitHub APIs
+
+--- Test Hub Gateway ---
+curl http://127.0.0.1:3000/health
+
+--- Test Speech2Text ---
+cd "Speech2Text Services"
+python test_system.bat
+
+================================================================================
+  12. USEFUL COMMANDS
+================================================================================
+
+# Check Python version
+python --version
+
+# List installed packages
+pip list
+
+# Freeze current environment
+pip freeze > requirements_backup.txt
+
+# Install from backup
+pip install -r requirements_backup.txt
+
+# Git status
+git status
+git branch
+git log --oneline -10
+
+# Kill all Python processes (Windows)
+taskkill /F /IM python.exe
+
+================================================================================
+  13. FILE STRUCTURE
+================================================================================
+
+AI assistant/
+├── .env                              # Master environment file
+├── Hub Gateway/
+│   ├── src/hub.py                   # Main hub (port 3000)
+│   └── config/
+├── ChatBot/
+│   ├── app.py                       # Flask app (port 5000)
+│   ├── .env                         # ChatBot local env
+│   ├── templates/index.html         # UI with sidebar, dark mode
+│   ├── USAGE_GUIDE.md              # User guide
+│   ├── CHAT_HISTORY_FEATURE.md     # Technical docs
+│   └── TOOLS_INTEGRATION_GUIDE.md  # API integration guide
+├── Speech2Text Services/
+│   ├── app/web_ui.py               # Speech2Text service (port 5001)
+│   └── requirements.txt
+├── Text2SQL Services/
+│   ├── app.py                       # Text2SQL service (port 5002)
+│   └── requirements.txt
+└── docs/                            # Documentation folder
+
+================================================================================
+  14. QUICK START (TL;DR)
+================================================================================
+
+# 1. Clone
+git clone https://github.com/SkastVnT/AI-Assistant.git
+cd AI-Assistant
+
+# 2. Install (ChatBot only)
+cd ChatBot
+pip install Flask==3.0.0 openai google-generativeai==0.8.5
+
+# 3. Create .env
+# Copy từ section 4 bên trên, thay YOUR_KEY_HERE bằng API key thật
+
+# 4. Run
+python app.py
+
+# 5. Open
+http://127.0.0.1:5000
+
+DONE! 🎉
+
+================================================================================
+  CONTACTS & SUPPORT
+================================================================================
+
+Repository: https://github.com/SkastVnT/AI-Assistant
+Branch: ChatBotCoding (development) | master (stable)
+Developer: Thanh Nguyen
+Last Commit: feat: Add Chat History Sidebar with localStorage persistence
+
+================================================================================
