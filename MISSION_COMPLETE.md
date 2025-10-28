@@ -173,7 +173,7 @@ Text2SQL Services/
 ### Start Hub Gateway
 ```bash
 python hub.py
-# Access at http://localhost:8080
+# Access at http://localhost:3000
 ```
 
 ### Start All Services
@@ -192,7 +192,7 @@ python chain_prompts.py
 ### Docker Deployment
 ```bash
 docker build -t ai-assistant-hub .
-docker run -p 8080:8080 ai-assistant-hub
+docker run -p 3000:3000 ai-assistant-hub
 ```
 
 ## 📈 Impact

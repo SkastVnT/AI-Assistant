@@ -10,7 +10,7 @@ import json
 import time
 
 
-HUB_URL = "http://localhost:8080"
+HUB_URL = "http://localhost:3000"
 CHATBOT_URL = "http://localhost:5000"
 SPEECH2TEXT_URL = "http://localhost:5001"
 TEXT2SQL_URL = "http://localhost:5002"

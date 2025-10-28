@@ -32,11 +32,11 @@ COPY . .
 RUN mkdir -p logs data/cache data/prompts data/outputs
 
 # Expose port
-EXPOSE 8080
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8080/api/health')"
+    CMD python -c "import requests; requests.get('http://localhost:3000/api/health')"
 
 # Run application
 CMD ["python", "hub.py"]

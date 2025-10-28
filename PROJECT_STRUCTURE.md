@@ -279,7 +279,7 @@ Text2SQL Services/
 ```bash
 cd AI-Assistant
 python hub.py
-# Runs on http://localhost:8080
+# Runs on http://localhost:3000
 ```
 
 ### ChatBot

@@ -30,7 +30,7 @@ class HubConfig:
     DEBUG = os.getenv("DEBUG", "True") == "True"
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
     HOST = os.getenv("HUB_HOST", "0.0.0.0")
-    PORT = int(os.getenv("HUB_PORT", "8080"))
+    PORT = int(os.getenv("HUB_PORT", "3000"))
     
     # CORS Configuration
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")

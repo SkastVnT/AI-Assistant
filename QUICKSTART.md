@@ -6,7 +6,7 @@
 ```bash
 python hub.py
 ```
-Sau đó truy cập: **http://localhost:8080**
+Sau đó truy cập: **http://localhost:3000**
 
 ### Cách 2: Khởi động tất cả services (Windows)
 ```bash
@@ -26,7 +26,7 @@ chmod +x start_all.sh
 - [ ] Đã cài Python 3.8+
 - [ ] Đã cài đặt dependencies: `pip install -r requirements.txt`
 - [ ] Đã cấu hình API keys trong file `.env`
-- [ ] Ports 5000, 5001, 5002, 8080 chưa bị sử dụng
+- [ ] Ports 5000, 5001, 5002, 3000 chưa bị sử dụng
 
 ---
 
@@ -74,10 +74,10 @@ python app.py --port 5002
 
 ```bash
 # Windows
-netstat -ano | findstr "5000 5001 5002 8080"
+netstat -ano | findstr "5000 5001 5002 3000"
 
 # Linux/Mac
-lsof -i :5000,5001,5002,8080
+lsof -i :5000,5001,5002,3000
 ```
 
 ---

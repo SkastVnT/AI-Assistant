@@ -8,7 +8,7 @@ import requests
 import json
 
 # Hub Gateway URL
-HUB_URL = "http://localhost:8080"
+HUB_URL = "http://localhost:3000"
 
 
 def test_health_check():
@@ -89,6 +89,6 @@ if __name__ == "__main__":
         
     except requests.exceptions.ConnectionError:
         print("❌ Error: Cannot connect to Hub Gateway")
-        print("   Make sure the hub is running on http://localhost:8080")
+        print("   Make sure the hub is running on http://localhost:3000")
     except Exception as e:
         print(f"❌ Error: {e}")

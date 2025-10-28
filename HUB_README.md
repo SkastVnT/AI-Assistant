@@ -90,7 +90,7 @@ FLASK_SECRET_KEY=your_secret_key
 python hub.py
 ```
 
-Gateway sẽ chạy tại: http://localhost:8080
+Gateway sẽ chạy tại: http://localhost:3000
 
 ### Bước 4: Khởi động các Services (riêng lẻ)
 
@@ -113,13 +113,13 @@ python app.py --port 5002
 ```
 
 ### Bước 5: Truy cập
-Mở trình duyệt và truy cập: **http://localhost:8080**
+Mở trình duyệt và truy cập: **http://localhost:3000**
 
 ---
 
 ## 🎯 Sử dụng
 
-1. **Truy cập Hub Gateway** tại http://localhost:8080
+1. **Truy cập Hub Gateway** tại http://localhost:3000
 2. **Chọn service** bạn muốn sử dụng từ giao diện
 3. **Click vào card** để mở service trong tab mới
 4. **Tương tác** với service theo nhu cầu
@@ -129,7 +129,7 @@ Mở trình duyệt và truy cập: **http://localhost:8080**
 ## 🏗️ Kiến trúc
 
 ```
-AI Assistant Hub (Port 8080)
+AI Assistant Hub (Port 3000)
 │
 ├── ChatBot Service (Port 5000)
 │   ├── Gemini AI

@@ -73,7 +73,7 @@ pip install -r requirements.txt
 python hub.py
 ```
 
-Truy cập: **http://localhost:8080**
+Truy cập: **http://localhost:3000**
 
 ### Cách 2: Khởi động tất cả services
 
@@ -94,7 +94,7 @@ chmod +x start_all.sh
 
 ```
 ┌─────────────────────────────────────────┐
-│   AI Assistant Hub (Port 8080)          │
+│   AI Assistant Hub (Port 3000)          │
 │   - Gateway & UI                        │
 │   - Service discovery                   │
 └──────────────┬──────────────────────────┘
@@ -186,7 +186,7 @@ Copy `.env` vào các thư mục services tương ứng.
 python hub.py
 ```
 
-Truy cập **http://localhost:8080** để xem dashboard và chọn service.
+Truy cập **http://localhost:3000** để xem dashboard và chọn service.
 
 ### Khởi động từng service riêng
 
@@ -210,7 +210,7 @@ python app.py --port 5002
 
 ### Sử dụng services
 
-1. Mở **http://localhost:8080**
+1. Mở **http://localhost:3000**
 2. Click vào card của service bạn muốn dùng
 3. Service sẽ mở trong tab mới
 4. Bắt đầu sử dụng!
