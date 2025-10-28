@@ -219,11 +219,22 @@ python app.py --port 5002
 
 ## 📚 Documentation
 
-- 📘 [Hub README](HUB_README.md) - Chi tiết về Hub Gateway
-- 📗 [Quick Start](QUICKSTART.md) - Hướng dẫn khởi động nhanh
+### Quick Start Guides
+- � [Quick Start](QUICKSTART.md) - Hướng dẫn khởi động nhanh
+- 🎯 [Quick Reference](QUICK_REFERENCE.md) - Cheat sheet & commands
+
+### Architecture & Design
+- 📘 [Hub Gateway Guide](docs/HUB_README.md) - Chi tiết về Hub Gateway
+- 🏗️ [Project Structure](docs/PROJECT_STRUCTURE.md) - Cấu trúc project đầy đủ
+- 🔄 [Refactoring Summary](docs/REFACTORING_SUMMARY.md) - Quá trình refactor
+
+### Service Documentation
 - 📙 [ChatBot README](ChatBot/README.md) - Hướng dẫn ChatBot service
 - 📕 [Speech2Text README](Speech2Text%20Services/README.md) - Hướng dẫn Speech2Text
 - 📓 [Text2SQL README](Text2SQL%20Services/README) - Hướng dẫn Text2SQL
+
+### Project Info
+- 🎉 [Mission Complete](docs/MISSION_COMPLETE.md) - Tổng kết hoàn thành
 
 ---
 

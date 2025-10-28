@@ -93,9 +93,12 @@ Hub Gateway có giao diện web đẹp với:
 
 ---
 
-## 📞 Hỗ trợ
+## 📞 Hỗ trợ & Documentation
 
-Nếu gặp vấn đề, xem chi tiết trong `HUB_README.md`
+- 📘 [Hub Gateway Guide](docs/HUB_README.md) - Hướng dẫn chi tiết
+- 🎯 [Quick Reference](QUICK_REFERENCE.md) - Cheat sheet nhanh
+- 🏗️ [Project Structure](docs/PROJECT_STRUCTURE.md) - Cấu trúc project
+- 📚 [All Documentation](docs/README.md) - Tất cả tài liệu
 
 ---
 

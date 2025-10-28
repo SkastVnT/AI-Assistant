@@ -185,9 +185,10 @@ kill -9 <PID>
 | Document | Description |
 |----------|-------------|
 | [README.md](README.md) | Main overview |
-| [HUB_README.md](HUB_README.md) | Hub Gateway details |
 | [QUICKSTART.md](QUICKSTART.md) | Quick setup guide |
-| [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | Complete structure |
+| [Hub Gateway Guide](docs/HUB_README.md) | Hub Gateway details |
+| [Project Structure](docs/PROJECT_STRUCTURE.md) | Complete structure |
+| [All Docs](docs/README.md) | Documentation hub |
 
 ---
 
