@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI ChatBot Assistant</title>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -19,15 +24,217 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            transition: background 0.3s ease;
         }
+        
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        .main-wrapper {
+            display: flex;
+            gap: 0;
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 20px 0 0 20px;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        body.dark-mode .sidebar {
+            background: #1e1e1e;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        body.dark-mode .sidebar-header {
+            border-bottom-color: #444;
+        }
+        
+        .sidebar-header h3 {
+            font-size: 16px;
+            margin: 0;
+            color: #333;
+        }
+        
+        body.dark-mode .sidebar-header h3 {
+            color: #e0e0e0;
+        }
+        
+        .new-chat-btn {
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .chat-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        body.dark-mode .chat-item {
+            background: #2a2a2a;
+        }
+        
+        .chat-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        body.dark-mode .chat-item:hover {
+            background: #333;
+        }
+        
+        .chat-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .chat-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .chat-item-preview {
+            font-size: 12px;
+            opacity: 0.7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .chat-item-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+        
+        .chat-item-actions {
+            display: none;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        
+        .chat-item:hover .chat-item-actions {
+            display: flex;
+        }
+        
+        .chat-item-btn {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .chat-item-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .sidebar-toggle {
+            background: #1e1e1e;
+            border-color: #ffd700;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                z-index: 999;
+                border-radius: 0;
+            }
+            
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: flex;
+            }
+        }
+        
         
         .container {
             width: 100%;
-            max-width: 900px;
             background: white;
-            border-radius: 20px;
+            border-radius: 0 20px 20px 0;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        body.dark-mode .container {
+            background: #1e1e1e;
+            color: #e0e0e0;
         }
         
         .header {
@@ -51,12 +258,19 @@
             padding: 20px;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .controls {
+            background: #2a2a2a;
+            border-bottom: 1px solid #444;
         }
         
         .control-group {
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
+            align-items: center;
         }
         
         .control-group label {
@@ -73,6 +287,14 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
+            background: white;
+        }
+        
+        body.dark-mode select,
+        body.dark-mode button {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
         }
         
         select:focus {
@@ -91,11 +313,92 @@
             transform: translateY(-2px);
         }
         
+        /* Dark mode toggle button */
+        .dark-mode-toggle {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 8px 15px;
+            font-size: 18px;
+        }
+        
+        body.dark-mode .dark-mode-toggle {
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+        
+        .dark-mode-toggle:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* Download button */
+        .download-btn {
+            background: transparent;
+            border: 2px solid #28a745;
+            color: #28a745;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        body.dark-mode .download-btn {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+        
+        .download-btn:hover {
+            background: rgba(40, 167, 69, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        body.dark-mode .download-btn:hover {
+            background: rgba(74, 222, 128, 0.1);
+        }
+        
+        /* Checkbox styling */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .checkbox-container {
+            background: #333;
+            border-color: #555;
+        }
+        
+        .checkbox-container:hover {
+            border-color: #667eea;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        
+        .checkbox-container label {
+            cursor: pointer;
+            margin: 0;
+            font-size: 14px;
+        }
+        
         .chat-container {
             height: 500px;
             overflow-y: auto;
             padding: 20px;
             background: #f8f9fa;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .chat-container {
+            background: #252525;
         }
         
         .message {
@@ -143,30 +446,308 @@
             border-bottom-left-radius: 5px;
         }
         
+        body.dark-mode .message.assistant .message-content {
+            background: #333;
+            color: #e0e0e0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Markdown Styling */
+        .message-content strong {
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .message-content em {
+            font-style: italic;
+        }
+        
+        .message-content u {
+            text-decoration: underline;
+        }
+        
+        .message-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .message-content pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .message-content ul, .message-content ol {
+            margin-left: 20px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .message-content li {
+            margin: 4px 0;
+        }
+        
+        .message-content p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin-top: 12px;
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+        
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 12px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .message-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 15px 0;
+        }
+        
+        .message-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Copy table button */
+        .copy-table-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .copy-table-btn {
+            background: #5568d3;
+        }
+        
+        .copy-table-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .copy-table-btn:hover {
+            background: #667eea;
+        }
+        
+        .copy-table-btn.copied {
+            background: #28a745;
+        }
+        
+        body.dark-mode .copy-table-btn.copied {
+            background: #4ade80;
+        }
+        
+        /* Copy message button */
+        .copy-message-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 12px;
+            background: transparent;
+            color: #667eea;
+            border: 1px solid #667eea;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .copy-message-btn {
+            color: #ffd700;
+            border-color: #ffd700;
+        }
+        
+        .copy-message-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .copy-message-btn:hover {
+            background: #ffd700;
+            color: #1a1a2e;
+        }
+        
+        .copy-message-btn.copied {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        
+        body.dark-mode .copy-message-btn.copied {
+            background: #4ade80;
+            border-color: #4ade80;
+        }
+        
+        /* Table styling in dark mode */
+        body.dark-mode .message-content table {
+            border-color: #555;
+        }
+        
+        body.dark-mode .message-content th,
+        body.dark-mode .message-content td {
+            border-color: #555;
+        }
+        
+        body.dark-mode .message-content th {
+            background: #333;
+        }
+        
+        body.dark-mode .message-content tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
         .message-info {
             font-size: 11px;
             opacity: 0.7;
             margin-top: 5px;
         }
         
+        .message-timestamp {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 3px;
+            font-style: italic;
+        }
+        
         .input-container {
             padding: 20px;
             background: white;
             border-top: 1px solid #dee2e6;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .input-container {
+            background: #1e1e1e;
+            border-top: 1px solid #444;
+        }
+        
+        .input-tools {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .tool-btn {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .tool-btn:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        
+        .tool-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-label {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        body.dark-mode .file-label {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        .file-label:hover {
+            background: #e9ecef;
+        }
+        
+        body.dark-mode .file-label:hover {
+            background: #444;
+        }
+        
+        .file-name {
+            font-size: 12px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        body.dark-mode .file-name {
+            color: #aaa;
         }
         
         .input-group {
             display: flex;
             gap: 10px;
+            align-items: flex-end;
         }
         
         #messageInput {
             flex: 1;
             padding: 12px 18px;
             border: 2px solid #e9ecef;
-            border-radius: 25px;
+            border-radius: 15px;
             font-size: 14px;
             transition: all 0.3s;
+            resize: vertical;
+            min-height: 45px;
+            max-height: 200px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        body.dark-mode #messageInput {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
         }
         
         #messageInput:focus {
@@ -223,7 +804,25 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Sidebar Toggle (Mobile) -->
+    <div class="sidebar-toggle" id="sidebarToggle">
+        ☰
+    </div>
+    
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>💬 Lịch sử Chat</h3>
+                <button class="new-chat-btn" id="newChatBtn">+ Mới</button>
+            </div>
+            <div class="chat-list" id="chatList">
+                <!-- Chat items will be dynamically added here -->
+            </div>
+        </div>
+        
+        <!-- Main Chat Container -->
+        <div class="container">
         <div class="header">
             <h1>🤖 AI ChatBot Assistant</h1>
             <p>Hỗ trợ tâm lý, tâm sự và giải pháp đời sống</p>
@@ -234,9 +833,9 @@
                 <label>
                     Model:
                     <select id="modelSelect">
-                        <option value="gemini">Gemini (Google)</option>
-                        <option value="openai">GPT-3.5 (OpenAI)</option>
-                        <option value="deepseek">DeepSeek</option>
+                        <option value="gemini">Gemini (Google) - FREE</option>
+                        <option value="openai">GPT-4o-mini (OpenAI)</option>
+                        <option value="deepseek">DeepSeek (Rẻ nhất)</option>
                     </select>
                 </label>
                 
@@ -246,9 +845,19 @@
                         <option value="casual">Trò chuyện vui vẻ</option>
                         <option value="psychological">Tâm lý - Tâm sự</option>
                         <option value="lifestyle">Giải pháp đời sống</option>
+                        <option value="programming">💻 Hỗ trợ lập trình</option>
                     </select>
                 </label>
                 
+                <div class="checkbox-container" id="deepThinkingContainer">
+                    <input type="checkbox" id="deepThinkingCheck">
+                    <label for="deepThinkingCheck">🧠 Suy luận sâu</label>
+                </div>
+                
+                <button class="download-btn" id="downloadBtn" title="Tải xuống lịch sử chat">
+                    📥 Tải chat
+                </button>
+                <button class="dark-mode-toggle" id="darkModeBtn" title="Toggle Dark Mode">🌙</button>
                 <button id="clearBtn">🗑️ Xóa lịch sử</button>
             </div>
         </div>
@@ -268,19 +877,36 @@
         </div>
         
         <div class="input-container">
+            <div class="input-tools">
+                <button class="tool-btn" id="googleSearchBtn" title="Tìm kiếm Google">
+                    🔍 Google Search
+                </button>
+                <button class="tool-btn" id="githubBtn" title="Kết nối GitHub">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </button>
+                <label class="file-label">
+                    📎 Upload File
+                    <input type="file" class="file-input" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json">
+                </label>
+                <span class="file-name" id="fileName"></span>
+            </div>
             <div class="input-group">
-                <input 
-                    type="text" 
+                <textarea 
                     id="messageInput" 
-                    placeholder="Nhập tin nhắn của bạn..."
-                    autocomplete="off"
-                >
+                    placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng)"
+                    rows="1"
+                ></textarea>
                 <button id="sendBtn">Gửi</button>
             </div>
         </div>
-    </div>
+        </div> <!-- Close container -->
+    </div> <!-- Close main-wrapper -->
     
     <script>
+        // DOM elements - DECLARE FIRST
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -288,57 +914,171 @@
         const modelSelect = document.getElementById('modelSelect');
         const contextSelect = document.getElementById('contextSelect');
         const loading = document.getElementById('loading');
+        const googleSearchBtn = document.getElementById('googleSearchBtn');
+        const githubBtn = document.getElementById('githubBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const deepThinkingCheck = document.getElementById('deepThinkingCheck');
+        const darkModeBtn = document.getElementById('darkModeBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
         
-        const modelNames = {
-            'gemini': 'Gemini',
-            'openai': 'GPT-3.5',
-            'deepseek': 'DeepSeek'
-        };
+        let activeTools = new Set();
+        let uploadedFile = null;
+        let conversationActive = false;
+        let chatHistory = []; // Store full chat history for download
         
-        const contextNames = {
-            'casual': 'Trò chuyện vui vẻ',
-            'psychological': 'Tâm lý - Tâm sự',
-            'lifestyle': 'Giải pháp đời sống'
-        };
+        // Chat Session Management
+        let currentChatId = null;
+        let chatSessions = {};
         
-        function addMessage(content, isUser, model, context) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            
-            const textDiv = document.createElement('div');
-            textDiv.textContent = content;
-            contentDiv.appendChild(textDiv);
-            
-            if (!isUser) {
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'message-info';
-                infoDiv.textContent = `${modelNames[model]} • ${contextNames[context]}`;
-                contentDiv.appendChild(infoDiv);
+        class ChatSession {
+            constructor(id) {
+                this.id = id;
+                this.title = 'Cuộc trò chuyện mới';
+                this.messages = [];
+                this.createdAt = new Date();
+                this.updatedAt = new Date();
             }
-            
-            messageDiv.appendChild(contentDiv);
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
         
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
+        // Load sessions from localStorage
+        function loadSessions() {
+            const saved = localStorage.getItem('chatSessions');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                chatSessions = {};
+                Object.keys(parsed).forEach(id => {
+                    const session = parsed[id];
+                    chatSessions[id] = session;
+                    chatSessions[id].createdAt = new Date(session.createdAt);
+                    chatSessions[id].updatedAt = new Date(session.updatedAt);
+                });
+            }
             
-            const model = modelSelect.value;
-            const context = contextSelect.value;
+            // If no sessions exist, create first one
+            if (Object.keys(chatSessions).length === 0) {
+                newChat();
+            } else {
+                // Load the most recent chat
+                const sortedIds = Object.keys(chatSessions).sort((a, b) => 
+                    chatSessions[b].updatedAt - chatSessions[a].updatedAt
+                );
+                currentChatId = sortedIds[0];
+                loadChat(currentChatId);
+            }
             
-            // Add user message
-            addMessage(message, true);
-            messageInput.value = '';
+            renderChatList();
+        }
+        
+        // Save sessions to localStorage
+        function saveSessions() {
+            localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+        }
+        
+        // Create new chat session
+        function newChat() {
+            const id = 'chat_' + Date.now();
+            const session = new ChatSession(id);
+            chatSessions[id] = session;
+            currentChatId = id;
             
-            // Show loading
-            loading.classList.add('active');
-            sendBtn.disabled = true;
+            // Clear chat container and add welcome message
+            chatContainer.innerHTML = `
+                <div class="message assistant">
+                    <div class="message-content">
+                        <div>Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
+                        <div class="message-info">Gemini • Trò chuyện vui vẻ</div>
+                    </div>
+                </div>
+            `;
             
+            chatHistory = [];
+            saveSessions();
+            renderChatList();
+        }
+        
+        // Switch to existing chat
+        function switchChat(chatId) {
+            if (chatId === currentChatId) return;
+            
+            // Save current chat before switching
+            if (currentChatId && chatSessions[currentChatId]) {
+                chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
+                chatSessions[currentChatId].updatedAt = new Date();
+            }
+            
+            currentChatId = chatId;
+            loadChat(chatId);
+            saveSessions();
+            renderChatList();
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('show');
+            }
+        }
+        
+        // Load chat from session
+        function loadChat(chatId) {
+            const session = chatSessions[chatId];
+            if (!session) return;
+            
+            if (session.messages.length > 0) {
+                chatContainer.innerHTML = session.messages.join('');
+            } else {
+                chatContainer.innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <div>Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
+                            <div class="message-info">Gemini • Trò chuyện vui vẻ</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Rebuild chatHistory for download
+            chatHistory = [];
+            Array.from(chatContainer.children).forEach(msgEl => {
+                const isUser = msgEl.classList.contains('user');
+                const content = msgEl.querySelector('.message-content > div:first-child')?.textContent || '';
+                chatHistory.push({
+                    role: isUser ? 'user' : 'assistant',
+                    content: content
+                });
+            });
+        }
+        
+        // Delete chat session
+        function deleteChat(chatId, event) {
+            event.stopPropagation();
+            
+            if (Object.keys(chatSessions).length === 1) {
+                alert('Không thể xóa cuộc trò chuyện cuối cùng!');
+                return;
+            }
+            
+            if (!confirm('Bạn có chắc muốn xóa cuộc trò chuyện này?')) {
+                return;
+            }
+            
+            delete chatSessions[chatId];
+            
+            // If deleting current chat, switch to another
+            if (chatId === currentChatId) {
+                const remainingIds = Object.keys(chatSessions);
+                if (remainingIds.length > 0) {
+                    switchChat(remainingIds[0]);
+                } else {
+                    newChat();
+                }
+            }
+            
+            saveSessions();
+            renderChatList();
+        }
+        
+        // Generate title using Gemini
+        async function generateTitle(firstMessage) {
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
@@ -346,30 +1086,409 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: message,
-                        model: model,
-                        context: context
+                        message: `Generate a concise 3-5 word Vietnamese title for this conversation. Only return the title, nothing else: "${firstMessage.substring(0, 100)}"`,
+                        model: 'gemini',
+                        context: 'casual',
+                        tools: [],
+                        deep_thinking: false
                     })
                 });
                 
                 const data = await response.json();
-                
-                if (data.error) {
-                    addMessage(`Lỗi: ${data.error}`, false, model, context);
-                } else {
-                    addMessage(data.response, false, model, context);
+                if (data.response) {
+                    return data.response.trim().replace(/['"]/g, '');
                 }
             } catch (error) {
-                addMessage(`Lỗi kết nối: ${error.message}`, false, model, context);
+                console.error('Failed to generate title:', error);
+            }
+            
+            // Fallback: use first few words
+            return firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '');
+        }
+        
+        // Render chat list in sidebar
+        function renderChatList() {
+            const chatList = document.getElementById('chatList');
+            const sortedChats = Object.keys(chatSessions).sort((a, b) => 
+                chatSessions[b].updatedAt - chatSessions[a].updatedAt
+            );
+            
+            chatList.innerHTML = sortedChats.map(id => {
+                const session = chatSessions[id];
+                const isActive = id === currentChatId;
+                const preview = session.messages.length > 0 
+                    ? (session.messages[1] || session.messages[0]).replace(/<[^>]*>/g, '').substring(0, 50) + '...'
+                    : 'Chưa có tin nhắn';
+                
+                return `
+                    <div class="chat-item ${isActive ? 'active' : ''}" onclick="switchChat('${id}')">
+                        <div class="chat-item-title">${session.title}</div>
+                        <div class="chat-item-preview">${preview}</div>
+                        <div class="chat-item-footer">
+                            <span class="chat-item-time">${formatTimestamp(session.updatedAt)}</span>
+                            <button class="chat-delete-btn" onclick="deleteChat('${id}', event)" title="Xóa">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+        
+        document.getElementById('newChatBtn').addEventListener('click', newChat);
+        
+        // Initialize sessions on page load
+        loadSessions();
+        
+        // Dark Mode
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            darkModeBtn.textContent = '☀️';
+        }
+        
+        darkModeBtn.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            darkModeBtn.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+        
+        // Configure marked.js
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            }
+        });
+        
+        const modelNames = {
+            'gemini': 'Gemini',
+            'openai': 'GPT-4o-mini',
+            'deepseek': 'DeepSeek'
+        };
+        
+        const contextNames = {
+            'casual': 'Trò chuyện vui vẻ',
+            'psychological': 'Tâm lý - Tâm sự',
+            'lifestyle': 'Giải pháp đời sống',
+            'programming': '💻 Hỗ trợ lập trình'
+        };
+        
+        function formatTimestamp(date) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+        
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+        
+        // Tool buttons
+        googleSearchBtn.addEventListener('click', function() {
+            toggleTool('google-search', this);
+        });
+        
+        githubBtn.addEventListener('click', function() {
+            toggleTool('github', this);
+        });
+        
+        function toggleTool(tool, btn) {
+            if (activeTools.has(tool)) {
+                activeTools.delete(tool);
+                btn.classList.remove('active');
+            } else {
+                activeTools.add(tool);
+                btn.classList.add('active');
+            }
+        }
+        
+        // File upload
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                uploadedFile = this.files[0];
+                fileName.textContent = `📄 ${uploadedFile.name}`;
+            } else {
+                uploadedFile = null;
+                fileName.textContent = '';
+            }
+        });
+        
+        function addMessage(content, isUser, model, context, timestamp) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            const textDiv = document.createElement('div');
+            if (isUser) {
+                textDiv.textContent = content;
+            } else {
+                // Parse markdown for assistant messages
+                textDiv.innerHTML = marked.parse(content);
+                // Highlight code blocks
+                textDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+                
+                // Add copy button for tables
+                textDiv.querySelectorAll('table').forEach((table) => {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-table-btn';
+                    copyBtn.textContent = '📋 Copy bảng';
+                    copyBtn.onclick = function() {
+                        copyTableToClipboard(table, copyBtn);
+                    };
+                    table.parentNode.insertBefore(copyBtn, table.nextSibling);
+                });
+            }
+            contentDiv.appendChild(textDiv);
+            
+            if (!isUser && model && context) {
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'message-info';
+                infoDiv.textContent = `${modelNames[model]} • ${contextNames[context]}`;
+                contentDiv.appendChild(infoDiv);
+            }
+            
+            // Add timestamp
+            const timestampDiv = document.createElement('div');
+            timestampDiv.className = 'message-timestamp';
+            timestampDiv.textContent = timestamp || formatTimestamp(new Date());
+            contentDiv.appendChild(timestampDiv);
+            
+            // Add copy button for assistant messages
+            if (!isUser) {
+                const copyMsgBtn = document.createElement('button');
+                copyMsgBtn.className = 'copy-message-btn';
+                copyMsgBtn.textContent = '📋 Copy';
+                copyMsgBtn.onclick = function() {
+                    copyMessageToClipboard(content, copyMsgBtn);
+                };
+                contentDiv.appendChild(copyMsgBtn);
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Save to history
+            chatHistory.push({
+                content: content,
+                isUser: isUser,
+                model: model,
+                context: context,
+                timestamp: timestamp || formatTimestamp(new Date())
+            });
+            
+            // Save to current chat session
+            if (currentChatId && chatSessions[currentChatId]) {
+                chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
+                chatSessions[currentChatId].updatedAt = new Date();
+                
+                // Generate title for first user message
+                if (isUser && chatSessions[currentChatId].messages.length === 2 && chatSessions[currentChatId].title === 'Cuộc trò chuyện mới') {
+                    generateTitle(content).then(title => {
+                        chatSessions[currentChatId].title = title;
+                        saveSessions();
+                        renderChatList();
+                    });
+                }
+                
+                saveSessions();
+                renderChatList();
+            }
+        }
+        
+        function copyMessageToClipboard(content, button) {
+            // Copy plain text content
+            const plainText = content.replace(/<[^>]*>/g, '').trim();
+            
+            navigator.clipboard.writeText(plainText).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✅ Đã copy!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Không thể copy. Vui lòng thử lại!');
+            });
+        }
+        
+        function copyTableToClipboard(table, button) {
+            // Convert table to TSV (Tab-separated values) for Excel compatibility
+            let tsv = '';
+            const rows = table.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('th, td');
+                const rowData = [];
+                cells.forEach(cell => {
+                    rowData.push(cell.textContent.trim());
+                });
+                tsv += rowData.join('\t') + '\n';
+            });
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(tsv).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✅ Đã copy!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Không thể copy bảng. Vui lòng thử lại.');
+            });
+        }
+        
+        function downloadChat() {
+            if (chatHistory.length === 0) {
+                alert('Chưa có lịch sử chat để tải xuống!');
+                return;
+            }
+            
+            // Create formatted text content
+            let content = '='.repeat(60) + '\n';
+            content += '  AI CHATBOT - LỊCH SỬ HỘI THOẠI\n';
+            content += '  Xuất lúc: ' + new Date().toLocaleString('vi-VN') + '\n';
+            content += '='.repeat(60) + '\n\n';
+            
+            chatHistory.forEach((msg, index) => {
+                if (msg.isUser) {
+                    content += `[${msg.timestamp}] 👤 USER:\n`;
+                    content += msg.content + '\n\n';
+                } else {
+                    content += `[${msg.timestamp}] 🤖 ${msg.model ? modelNames[msg.model].toUpperCase() : 'ASSISTANT'}`;
+                    if (msg.context) {
+                        content += ` (${msg.context})`;
+                    }
+                    content += ':\n';
+                    content += msg.content + '\n\n';
+                }
+                content += '-'.repeat(60) + '\n\n';
+            });
+            
+            // Create download
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            a.href = url;
+            a.download = `chat-history-${timestamp}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        downloadBtn.addEventListener('click', downloadChat);
+        
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            const model = modelSelect.value;
+            const context = contextSelect.value;
+            const deepThinking = deepThinkingCheck.checked;
+            const userTimestamp = formatTimestamp(new Date());
+            
+            // Build message with tools
+            let fullMessage = message;
+            
+            // Add deep thinking instruction
+            if (deepThinking) {
+                fullMessage += '\n\n[Deep Thinking Mode: Please think carefully and provide detailed analysis]';
+            }
+            
+            if (activeTools.size > 0) {
+                fullMessage += '\n\n[Tools: ' + Array.from(activeTools).join(', ') + ']';
+            }
+            if (uploadedFile) {
+                fullMessage += `\n\n[File attached: ${uploadedFile.name}]`;
+            }
+            
+            // Add user message
+            addMessage(message, true, null, null, userTimestamp);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // Show loading
+            loading.classList.add('active');
+            sendBtn.disabled = true;
+            conversationActive = true;
+            
+            try {
+                const startTime = new Date();
+                
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: fullMessage,
+                        model: model,
+                        context: context,
+                        deep_thinking: deepThinking,
+                        tools: Array.from(activeTools)
+                    })
+                });
+                
+                const data = await response.json();
+                const responseTimestamp = formatTimestamp(new Date());
+                
+                if (data.error) {
+                    addMessage(`❌ **Lỗi:** ${data.error}`, false, model, context, responseTimestamp);
+                } else {
+                    addMessage(data.response, false, model, context, responseTimestamp);
+                }
+                
+                // If tools were used, keep conversation active
+                if (activeTools.size > 0) {
+                    addMessage('💡 *Tools đang hoạt động. Tiếp tục hội thoại hoặc bấm Cancel để dừng.*', 
+                              false, model, context, formatTimestamp(new Date()));
+                }
+                
+            } catch (error) {
+                addMessage(`❌ **Lỗi kết nối:** ${error.message}`, false, model, context, 
+                          formatTimestamp(new Date()));
             } finally {
                 loading.classList.remove('active');
                 sendBtn.disabled = false;
                 messageInput.focus();
+                
+                // Clear file if not using tools
+                if (activeTools.size === 0) {
+                    uploadedFile = null;
+                    fileInput.value = '';
+                    fileName.textContent = '';
+                    conversationActive = false;
+                }
             }
         }
         
         async function clearHistory() {
-            if (!confirm('Bạn có chắc muốn xóa lịch sử chat?')) return;
+            if (!confirm('Bạn có chắc muốn xóa lịch sử chat hiện tại?')) return;
             
             try {
                 await fetch('/clear', {
@@ -377,8 +1496,26 @@
                 });
                 
                 chatContainer.innerHTML = '';
+                chatHistory = []; // Clear history array
+                
                 addMessage('Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊', 
-                          false, 'gemini', 'casual');
+                          false, 'gemini', 'casual', formatTimestamp(new Date()));
+                
+                // Reset tools and conversation state
+                activeTools.clear();
+                googleSearchBtn.classList.remove('active');
+                githubBtn.classList.remove('active');
+                conversationActive = false;
+                
+                // Update current session
+                if (currentChatId && chatSessions[currentChatId]) {
+                    chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
+                    chatSessions[currentChatId].title = 'Cuộc trò chuyện mới';
+                    chatSessions[currentChatId].updatedAt = new Date();
+                    saveSessions();
+                    renderChatList();
+                }
+                
             } catch (error) {
                 alert('Lỗi khi xóa lịch sử: ' + error.message);
             }
@@ -393,6 +1530,10 @@
                 sendMessage();
             }
         });
+        
+        // Initialize with welcome message
+        addMessage('Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊', 
+                  false, 'gemini', 'casual', formatTimestamp(new Date()));
     </script>
 </body>
 </html>

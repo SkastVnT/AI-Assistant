@@ -22,9 +22,13 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY_1')
+GEMINI_API_KEY_2 = os.getenv('GEMINI_API_KEY_2')
 
-# Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
+# Configure Gemini - try both keys
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+except:
+    genai.configure(api_key=GEMINI_API_KEY_2)
 
 # System prompts for different purposes
 SYSTEM_PROMPTS = {
@@ -40,7 +44,22 @@ SYSTEM_PROMPTS = {
     
     'casual': """Bạn là một người bạn thân thiết, vui vẻ và dễ gần. 
     Bạn sẵn sàng trò chuyện về mọi chủ đề, chia sẻ câu chuyện và tạo không khí thoải mái.
-    Hãy trả lời bằng tiếng Việt với giọng điệu thân mật."""
+    Hãy trả lời bằng tiếng Việt với giọng điệu thân mật.""",
+    
+    'programming': """Bạn là một Senior Software Engineer và Programming Mentor chuyên nghiệp.
+    Bạn có kinh nghiệm sâu về nhiều ngôn ngữ lập trình (Python, JavaScript, Java, C++, Go, etc.)
+    và frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
+    
+    Nhiệm vụ của bạn:
+    - Giải thích code rõ ràng, dễ hiểu
+    - Debug và fix lỗi hiệu quả
+    - Đề xuất best practices và design patterns
+    - Review code và tối ưu performance
+    - Hướng dẫn architecture và system design
+    - Trả lời câu hỏi về algorithms, data structures
+    
+    Luôn format code với markdown (```language), giải thích từng bước logic, 
+    và đưa ra ví dụ cụ thể. Có thể trả lời bằng tiếng Việt hoặc English."""
 }
 
 
@@ -51,11 +70,16 @@ class ChatbotAgent:
         self.conversation_history = []
         self.current_model = 'gemini'  # Default model
         
-    def chat_with_gemini(self, message, context='casual'):
+    def chat_with_gemini(self, message, context='casual', deep_thinking=False):
         """Chat using Google Gemini"""
         try:
-            model = genai.GenerativeModel('gemini-pro')
+            # Use gemini-2.0-flash (newest stable model)
+            model = genai.GenerativeModel('gemini-2.0-flash')
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            # Add deep thinking instruction
+            if deep_thinking:
+                system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
             
             # Build conversation context
             conversation = f"{system_prompt}\n\n"
@@ -69,11 +93,15 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi Gemini: {str(e)}"
     
-    def chat_with_openai(self, message, context='casual'):
+    def chat_with_openai(self, message, context='casual', deep_thinking=False):
         """Chat using OpenAI"""
         try:
-            openai.api_key = OPENAI_API_KEY
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            # Add deep thinking instruction
+            if deep_thinking:
+                system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
             
             messages = [{"role": "system", "content": system_prompt}]
             
@@ -84,10 +112,11 @@ class ChatbotAgent:
             
             messages.append({"role": "user", "content": message})
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # Rẻ nhất: $0.15/$0.60 per 1M tokens
                 messages=messages,
-                temperature=0.7
+                temperature=0.7 if not deep_thinking else 0.5,  # Lower temp for deep thinking
+                max_tokens=2000 if deep_thinking else 1000  # More tokens for deep thinking
             )
             
             return response.choices[0].message.content
@@ -95,14 +124,20 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi OpenAI: {str(e)}"
     
-    def chat_with_deepseek(self, message, context='casual'):
+    def chat_with_deepseek(self, message, context='casual', deep_thinking=False):
         """Chat using DeepSeek (via OpenAI compatible API)"""
         try:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
             
+            # Add deep thinking instruction
+            if deep_thinking:
+                system_prompt += "\n\nIMPORTANT: Analyze deeply with comprehensive reasoning."
+            
             # DeepSeek uses OpenAI compatible API
-            openai.api_key = DEEPSEEK_API_KEY
-            openai.api_base = "https://api.deepseek.com/v1"
+            client = openai.OpenAI(
+                api_key=DEEPSEEK_API_KEY,
+                base_url="https://api.deepseek.com/v1"
+            )
             
             messages = [{"role": "system", "content": system_prompt}]
             
@@ -113,10 +148,11 @@ class ChatbotAgent:
             
             messages.append({"role": "user", "content": message})
             
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="deepseek-chat",
                 messages=messages,
-                temperature=0.7
+                temperature=0.7 if not deep_thinking else 0.5,
+                max_tokens=2000 if deep_thinking else 1000
             )
             
             return response.choices[0].message.content
@@ -124,14 +160,14 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi DeepSeek: {str(e)}"
     
-    def chat(self, message, model='gemini', context='casual'):
+    def chat(self, message, model='gemini', context='casual', deep_thinking=False):
         """Main chat method"""
         if model == 'gemini':
-            response = self.chat_with_gemini(message, context)
+            response = self.chat_with_gemini(message, context, deep_thinking)
         elif model == 'openai':
-            response = self.chat_with_openai(message, context)
+            response = self.chat_with_openai(message, context, deep_thinking)
         elif model == 'deepseek':
-            response = self.chat_with_deepseek(message, context)
+            response = self.chat_with_deepseek(message, context, deep_thinking)
         else:
             response = "Model không được hỗ trợ."
         
@@ -141,7 +177,8 @@ class ChatbotAgent:
             'assistant': response,
             'timestamp': datetime.now().isoformat(),
             'model': model,
-            'context': context
+            'context': context,
+            'deep_thinking': deep_thinking
         })
         
         return response
@@ -178,6 +215,8 @@ def chat():
         message = data.get('message', '')
         model = data.get('model', 'gemini')
         context = data.get('context', 'casual')
+        deep_thinking = data.get('deep_thinking', False)
+        tools = data.get('tools', [])
         
         if not message:
             return jsonify({'error': 'Tin nhắn trống'}), 400
@@ -185,12 +224,14 @@ def chat():
         session_id = session.get('session_id')
         chatbot = get_chatbot(session_id)
         
-        response = chatbot.chat(message, model, context)
+        response = chatbot.chat(message, model, context, deep_thinking)
         
         return jsonify({
             'response': response,
             'model': model,
             'context': context,
+            'deep_thinking': deep_thinking,
+            'tools': tools,
             'timestamp': datetime.now().isoformat()
         })
         
