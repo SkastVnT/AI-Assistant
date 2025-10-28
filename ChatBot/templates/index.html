@@ -776,6 +776,245 @@
             cursor: not-allowed;
         }
         
+        /* Image Generation Button */
+        .image-gen-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .image-gen-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+        }
+        
+        /* Image Generation Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+        
+        body.dark-mode .modal-content {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        body.dark-mode .modal-header {
+            border-bottom-color: #444;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #667eea;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: #f5576c;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        body.dark-mode .form-group label {
+            color: #e0e0e0;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group select,
+        body.dark-mode .form-group textarea {
+            background: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .sd-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .sd-status.online {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .sd-status.offline {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        body.dark-mode .sd-status.online {
+            background: #1e4620;
+            color: #8fff8f;
+            border-color: #2d5f2f;
+        }
+        
+        body.dark-mode .sd-status.offline {
+            background: #4a1f1f;
+            color: #ff8f8f;
+            border-color: #5f2d2d;
+        }
+        
+        .generated-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .image-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .image-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .copy-to-chat-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .copy-to-chat-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .download-image-btn {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .download-image-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+        
         .loading {
             display: none;
             text-align: center;
@@ -815,6 +1054,9 @@
             <div class="sidebar-header">
                 <h3>💬 Lịch sử Chat</h3>
                 <button class="new-chat-btn" id="newChatBtn">+ Mới</button>
+            </div>
+            <div style="padding: 10px; font-size: 11px; color: #888; border-bottom: 1px solid #333;">
+                <span id="storageInfo">Đang tính...</span>
             </div>
             <div class="chat-list" id="chatList">
                 <!-- Chat items will be dynamically added here -->
@@ -857,6 +1099,9 @@
                 <button class="download-btn" id="downloadBtn" title="Tải xuống lịch sử chat">
                     📥 Tải chat
                 </button>
+                <button class="image-gen-btn" id="imageGenBtn" title="Tạo ảnh bằng AI">
+                    🎨 Tạo ảnh
+                </button>
                 <button class="dark-mode-toggle" id="darkModeBtn" title="Toggle Dark Mode">🌙</button>
                 <button id="clearBtn">🗑️ Xóa lịch sử</button>
             </div>
@@ -887,6 +1132,9 @@
                     </svg>
                     GitHub
                 </button>
+                <button class="tool-btn" id="imageGenToolBtn" title="Tạo ảnh từ mô tả">
+                    🎨 Tạo ảnh
+                </button>
                 <label class="file-label">
                     📎 Upload File
                     <input type="file" class="file-input" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json">
@@ -916,6 +1164,7 @@
         const loading = document.getElementById('loading');
         const googleSearchBtn = document.getElementById('googleSearchBtn');
         const githubBtn = document.getElementById('githubBtn');
+        const imageGenToolBtn = document.getElementById('imageGenToolBtn');
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
         const deepThinkingCheck = document.getElementById('deepThinkingCheck');
@@ -972,25 +1221,129 @@
         
         // Save sessions to localStorage
         function saveSessions() {
-            localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+            try {
+                const sessionsData = JSON.stringify(chatSessions);
+                const sizeInMB = (new Blob([sessionsData]).size / 1024 / 1024).toFixed(2);
+                
+                console.log(`[STORAGE] Saving ${Object.keys(chatSessions).length} sessions, size: ${sizeInMB}MB`);
+                
+                localStorage.setItem('chatSessions', sessionsData);
+            } catch (e) {
+                if (e.name === 'QuotaExceededError' || e.code === 22) {
+                    console.error('[STORAGE] Quota exceeded! Cleaning up old sessions...');
+                    
+                    // Show error to user
+                    alert('⚠️ Bộ nhớ đầy!\n\nĐang tự động xóa các chat cũ để giải phóng dung lượng...');
+                    
+                    // Keep only the 5 most recent sessions
+                    const sortedIds = Object.keys(chatSessions).sort((a, b) => 
+                        chatSessions[b].updatedAt - chatSessions[a].updatedAt
+                    );
+                    
+                    const idsToKeep = sortedIds.slice(0, 5);
+                    const newSessions = {};
+                    
+                    idsToKeep.forEach(id => {
+                        newSessions[id] = chatSessions[id];
+                    });
+                    
+                    chatSessions = newSessions;
+                    
+                    // Try saving again
+                    try {
+                        localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+                        console.log(`[STORAGE] Successfully cleaned up. Kept ${idsToKeep.length} sessions.`);
+                        renderChatList();
+                        
+                        // If current chat was deleted, switch to most recent
+                        if (!chatSessions[currentChatId]) {
+                            switchChat(idsToKeep[0]);
+                        }
+                    } catch (e2) {
+                        console.error('[STORAGE] Still failed after cleanup:', e2);
+                        alert('❌ Không thể lưu chat.\n\nVui lòng:\n1. Export chat quan trọng\n2. Xóa bớt chat cũ\n3. Hoặc clear localStorage');
+                    }
+                } else {
+                    console.error('[STORAGE] Error saving sessions:', e);
+                }
+            }
+            // Update storage display after save
+            updateStorageDisplay();
+        }
+        
+        // Update storage usage display
+        function updateStorageDisplay() {
+            try {
+                const sessionsData = JSON.stringify(chatSessions);
+                const sizeInMB = (new Blob([sessionsData]).size / 1024 / 1024).toFixed(2);
+                const maxSizeMB = 200; // Increased limit for 4K images
+                const percentage = ((sizeInMB / maxSizeMB) * 100).toFixed(0);
+                
+                const storageInfo = document.getElementById('storageInfo');
+                const color = percentage > 80 ? '#ff4444' : percentage > 50 ? '#ffa500' : '#4CAF50';
+                
+                storageInfo.innerHTML = `
+                    <span style="color: ${color};">📊 Lưu trữ: ${sizeInMB}MB / ${maxSizeMB}MB (${percentage}%)</span>
+                    <button onclick="manualCleanup()" style="
+                        margin-left: 10px;
+                        padding: 2px 6px;
+                        font-size: 10px;
+                        background: #444;
+                        border: 1px solid #666;
+                        border-radius: 3px;
+                        color: #fff;
+                        cursor: pointer;
+                    " title="Xóa các chat cũ (giữ lại 5 gần nhất)">🗑️ Dọn dẹp</button>
+                `;
+            } catch (e) {
+                console.error('[STORAGE] Error updating storage display:', e);
+            }
+        }
+        
+        // Manual cleanup function
+        function manualCleanup() {
+            const sessionCount = Object.keys(chatSessions).length;
+            if (sessionCount <= 5) {
+                alert('Chỉ còn ' + sessionCount + ' chat, không cần dọn dẹp.');
+                return;
+            }
+            
+            if (confirm(`Xóa các chat cũ và chỉ giữ lại 5 chat gần nhất?\nHiện tại có ${sessionCount} chat.`)) {
+                const sortedSessions = Object.entries(chatSessions)
+                    .sort((a, b) => new Date(b[1].updatedAt) - new Date(a[1].updatedAt))
+                    .slice(0, 5);
+                
+                const oldCount = sessionCount;
+                chatSessions = Object.fromEntries(sortedSessions);
+                
+                // Update current chat if it was deleted
+                if (!chatSessions[currentChatId]) {
+                    currentChatId = sortedSessions[0][0];
+                    loadChat(currentChatId);
+                }
+                
+                saveSessions(); // This will also update storage display
+                renderChatList();
+                
+                alert(`✅ Đã xóa ${oldCount - 5} chat cũ!\nGiữ lại 5 chat gần nhất.`);
+            }
         }
         
         // Create new chat session
         function newChat() {
+            // Save current chat before creating new one
+            if (currentChatId && chatSessions[currentChatId]) {
+                chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
+                chatSessions[currentChatId].updatedAt = new Date();
+            }
+            
             const id = 'chat_' + Date.now();
             const session = new ChatSession(id);
             chatSessions[id] = session;
             currentChatId = id;
             
-            // Clear chat container and add welcome message
-            chatContainer.innerHTML = `
-                <div class="message assistant">
-                    <div class="message-content">
-                        <div>Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
-                        <div class="message-info">Gemini • Trò chuyện vui vẻ</div>
-                    </div>
-                </div>
-            `;
+            // Clear chat container - start clean without welcome message
+            chatContainer.innerHTML = '';
             
             chatHistory = [];
             saveSessions();
@@ -1026,14 +1379,8 @@
             if (session.messages.length > 0) {
                 chatContainer.innerHTML = session.messages.join('');
             } else {
-                chatContainer.innerHTML = `
-                    <div class="message assistant">
-                        <div class="message-content">
-                            <div>Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
-                            <div class="message-info">Gemini • Trò chuyện vui vẻ</div>
-                        </div>
-                    </div>
-                `;
+                // Start with empty chat
+                chatContainer.innerHTML = '';
             }
             
             // Rebuild chatHistory for download
@@ -1143,6 +1490,9 @@
         // Initialize sessions on page load
         loadSessions();
         
+        // Update storage display on page load
+        updateStorageDisplay();
+        
         // Dark Mode
         const savedTheme = localStorage.getItem('theme') || 'light';
         if (savedTheme === 'dark') {
@@ -1202,6 +1552,10 @@
         
         githubBtn.addEventListener('click', function() {
             toggleTool('github', this);
+        });
+        
+        imageGenToolBtn.addEventListener('click', function() {
+            toggleTool('image-generation', this);
         });
         
         function toggleTool(tool, btn) {
@@ -1412,6 +1766,12 @@
             const deepThinking = deepThinkingCheck.checked;
             const userTimestamp = formatTimestamp(new Date());
             
+            // Check if image generation tool is active
+            if (activeTools.has('image-generation')) {
+                await handleImageGenerationTool(message, model, context, deepThinking, userTimestamp);
+                return;
+            }
+            
             // Build message with tools
             let fullMessage = message;
             
@@ -1531,9 +1891,662 @@
             }
         });
         
-        // Initialize with welcome message
-        addMessage('Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊', 
-                  false, 'gemini', 'casual', formatTimestamp(new Date()));
+        // Welcome message removed - chat starts clean
+    </script>
+    
+    <!-- Image Generation Modal -->
+    <div id="imageGenModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎨 Tạo ảnh bằng AI</h2>
+                <button class="close-modal" onclick="closeImageModal()">&times;</button>
+            </div>
+            
+            <div id="sdStatus" class="sd-status offline">
+                Đang kiểm tra Stable Diffusion...
+            </div>
+            
+            <div class="form-group">
+                <label>Model Checkpoint:</label>
+                <select id="modelCheckpoint">
+                    <option value="">Đang tải...</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Prompt (Mô tả ảnh bạn muốn tạo):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    <button onclick="randomPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                </div>
+                <textarea id="imagePrompt" rows="4" placeholder="1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Negative Prompt (Những gì KHÔNG muốn có):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    <button onclick="randomNegativePrompt()" style="padding: 5px 15px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                </div>
+                <textarea id="negativePrompt" rows="3" placeholder="bad quality, blurry, distorted, ugly, worst quality"></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Width:</label>
+                    <select id="imageWidth">
+                        <option value="512" selected>512</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Height:</label>
+                    <select id="imageHeight">
+                        <option value="512" selected>512</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Steps <span id="stepsLabel">(20-50 khuyến nghị)</span>:</label>
+                    <input type="number" id="imageSteps" value="20" min="1" max="150">
+                </div>
+                
+                <div class="form-group">
+                    <label>CFG Scale <span id="cfgLabel">(7-12 khuyến nghị)</span>:</label>
+                    <input type="number" id="cfgScale" value="7" min="1" max="30" step="0.5">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Sampler:</label>
+                <select id="samplerSelect">
+                    <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                    <option value="Euler a">Euler a</option>
+                    <option value="Euler">Euler</option>
+                    <option value="DDIM">DDIM</option>
+                    <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="restoreFaces">
+                        Restore Faces (GFPGAN)
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableHR">
+                        Hires. Fix (Chất lượng cao)
+                    </label>
+                </div>
+            </div>
+            
+            <button class="generate-btn" id="generateImageBtn" onclick="generateImage()">
+                🎨 Tạo ảnh
+            </button>
+            
+            <div id="generatedImageContainer" style="display: none;">
+                <img id="generatedImage" class="generated-image" alt="Generated Image">
+                <div class="image-actions">
+                    <button class="copy-to-chat-btn" onclick="copyImageToChat()">
+                        💬 Gửi vào Chat
+                    </button>
+                    <button class="download-image-btn" onclick="downloadGeneratedImage()">
+                        📥 Tải xuống
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Image Generation Functions
+        let currentGeneratedImage = null;
+        let sdModels = [];
+        
+        async function openImageModal() {
+            const modal = document.getElementById('imageGenModal');
+            modal.classList.add('active');
+            
+            // Check SD status
+            await checkSDStatus();
+            
+            // Load models
+            await loadSDModels();
+            
+            // Load samplers
+            await loadSamplers();
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageGenModal');
+            modal.classList.remove('active');
+        }
+        
+        async function checkSDStatus() {
+            const statusDiv = document.getElementById('sdStatus');
+            
+            try {
+                const response = await fetch('/api/sd-health');
+                const data = await response.json();
+                
+                if (data.status === 'online') {
+                    statusDiv.className = 'sd-status online';
+                    statusDiv.textContent = `✅ Stable Diffusion đang chạy | Model: ${data.current_model.model}`;
+                } else {
+                    statusDiv.className = 'sd-status offline';
+                    statusDiv.textContent = `❌ ${data.message}. Vui lòng khởi động Stable Diffusion WebUI với flag --api`;
+                }
+            } catch (error) {
+                statusDiv.className = 'sd-status offline';
+                statusDiv.textContent = `❌ Không thể kết nối tới Stable Diffusion API`;
+            }
+        }
+        
+        async function loadSDModels() {
+            const select = document.getElementById('modelCheckpoint');
+            
+            try {
+                const response = await fetch('/api/sd-models');
+                const data = await response.json();
+                
+                sdModels = data.models;
+                select.innerHTML = '';
+                
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.title;
+                    option.textContent = model.model_name;
+                    if (model.title === data.current_model) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                
+                // Add change event
+                select.addEventListener('change', async (e) => {
+                    const selectedModel = e.target.value;
+                    if (selectedModel) {
+                        await changeSDModel(selectedModel);
+                    }
+                });
+                
+            } catch (error) {
+                select.innerHTML = '<option>Lỗi khi tải models</option>';
+            }
+        }
+        
+        async function changeSDModel(modelName) {
+            try {
+                // Show loading state
+                const statusDiv = document.querySelector('.sd-status');
+                if (statusDiv) {
+                    statusDiv.innerHTML = '⏳ Đang thay đổi model...';
+                    statusDiv.style.color = '#ff9800';
+                }
+                
+                const response = await fetch('/api/sd-change-model', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({model_name: modelName})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update status immediately without refresh
+                    await checkSDStatus();
+                    
+                    // Show success message briefly
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `✅ Model: ${modelName}`;
+                        statusDiv.style.color = '#4caf50';
+                    }
+                }
+            } catch (error) {
+                console.error('Error changing model:', error);
+                const statusDiv = document.querySelector('.sd-status');
+                if (statusDiv) {
+                    statusDiv.innerHTML = '❌ Lỗi thay đổi model';
+                    statusDiv.style.color = '#f44336';
+                }
+            }
+        }
+        
+        function randomPrompt() {
+            const prompts = [
+                "1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality",
+                "anime girl, cyberpunk city, neon lights, rain, futuristic, highly detailed, 4k, best quality",
+                "beautiful landscape, mountains, lake, sunrise, dramatic clouds, photorealistic, 8k",
+                "fantasy castle, dragons flying, magical atmosphere, epic scene, detailed architecture",
+                "cute cat, fluffy, big eyes, sitting on windowsill, sunlight, cozy room, adorable",
+                "warrior, armor, sword, battle scene, dramatic lighting, heroic pose, fantasy art",
+                "portrait, elegant woman, victorian dress, garden, flowers, soft lighting, painting style",
+                "sci-fi spaceship, space station, stars, nebula, futuristic design, detailed interior",
+                "underwater scene, coral reef, tropical fish, clear water, sunbeams, vibrant colors",
+                "steampunk, mechanical, gears, brass, victorian era, industrial, detailed machinery"
+            ];
+            
+            const randomIndex = Math.floor(Math.random() * prompts.length);
+            document.getElementById('imagePrompt').value = prompts[randomIndex];
+        }
+        
+        function randomNegativePrompt() {
+            const negativePrompts = [
+                "bad quality, blurry, distorted, ugly, worst quality",
+                "low quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits",
+                "worst quality, low quality, normal quality, lowres, low details, oversaturated, undersaturated",
+                "cropped, out of frame, blurry, bad art, deformed, poorly drawn, extra limbs, close up",
+                "grainy, jpeg artifacts, watermark, signature, username, artist name, logo, text",
+                "duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face",
+                "ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, mutation",
+                "disfigured, deformed, cross-eye, body out of frame, bad anatomy, watermark, grainy, signature"
+            ];
+            
+            const randomIndex = Math.floor(Math.random() * negativePrompts.length);
+            document.getElementById('negativePrompt').value = negativePrompts[randomIndex];
+        }
+        
+        // Handle image generation tool
+        async function handleImageGenerationTool(userMessage, model, context, deepThinking, userTimestamp) {
+            // Add user message to chat
+            addMessage(userMessage, true, null, null, userTimestamp);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // Show loading
+            loading.classList.add('active');
+            sendBtn.disabled = true;
+            
+            try {
+                // Step 1: Get AI to generate improved prompt
+                addMessage('🤔 Đang phân tích và tạo prompt cho ảnh...', false, model, context, formatTimestamp(new Date()));
+                
+                let promptInstruction = `Based on this user request: "${userMessage}"
+
+Generate an optimized Stable Diffusion prompt following these rules:
+1. Write in English, comma-separated tags
+2. Include quality tags: masterpiece, best quality, highly detailed
+3. Be descriptive about: subject, style, lighting, composition, colors
+4. Keep it concise but detailed (max 100 words)
+5. Focus on visual elements only
+
+${deepThinking ? 'Use deep thinking to create the most creative and detailed prompt possible.' : ''}
+
+Return ONLY the prompt, nothing else.`;
+
+                const promptResponse = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: promptInstruction,
+                        model: model,
+                        context: context,
+                        deep_thinking: deepThinking,
+                        tools: []
+                    })
+                });
+                
+                const promptData = await promptResponse.json();
+                const generatedPrompt = promptData.response.trim();
+                
+                // Show generated prompt
+                addMessage(`✨ **Prompt được tạo:**\n\`\`\`\n${generatedPrompt}\n\`\`\``, false, model, context, formatTimestamp(new Date()));
+                
+                // Step 2: Generate negative prompts (random)
+                const negativePrompts = [
+                    "bad quality, blurry, distorted, ugly, worst quality, r18, nsfw, nude, explicit, sexual",
+                    "low quality, bad anatomy, bad hands, r18, nsfw, explicit content, nude, sexual, adult",
+                    "worst quality, lowres, r18, nsfw, porn, hentai, explicit, nude, sexual content",
+                    "cropped, out of frame, r18, nsfw, nude, sexual, explicit, adult content, porn",
+                    "grainy, jpeg artifacts, r18, nsfw, explicit, sexual, nude, adult, porn, hentai"
+                ];
+                const negativePrompt = negativePrompts[Math.floor(Math.random() * negativePrompts.length)];
+                
+                // Step 3: Change to AnythingV4 model
+                addMessage('⚙️ Đang chuẩn bị model AnythingV4...', false, model, context, formatTimestamp(new Date()));
+                
+                try {
+                    await fetch('/api/sd-change-model', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({model_name: 'AnythingV4_v45.safetensors'})
+                    });
+                } catch (e) {
+                    console.log('Model already set or failed to change:', e);
+                }
+                
+                // Step 4: Generate image with specified parameters
+                addMessage('🎨 Đang tạo ảnh... (có thể mất 10-30 giây)', false, model, context, formatTimestamp(new Date()));
+                
+                const imageParams = {
+                    prompt: generatedPrompt,
+                    negative_prompt: negativePrompt,
+                    width: 1024,
+                    height: 1280,
+                    steps: 10,
+                    cfg_scale: 8,
+                    sampler_name: 'DPM++ 2M Karras',
+                    seed: -1,
+                    restore_faces: false,
+                    enable_hr: false
+                };
+                
+                console.log('Generating image with params:', imageParams);
+                
+                const imageResponse = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(imageParams)
+                });
+                
+                const imageData = await imageResponse.json();
+                console.log('Image response:', imageData);
+                
+                if (imageData.success && imageData.images && imageData.images.length > 0) {
+                    // Display image in chat
+                    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    const imageHtml = `
+                        <div class="message assistant-message">
+                            <div class="message-header">
+                                <strong>🎨 Ảnh được tạo thành công!</strong>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                            <div class="message-content">
+                                <img src="data:image/png;base64,${imageData.images[0]}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
+                                <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                    <strong>📝 Prompt:</strong> ${generatedPrompt}<br>
+                                    <strong>❌ Negative:</strong> ${negativePrompt}<br>
+                                    <strong>🖼️ Kích thước:</strong> 1024x1280 | <strong>Steps:</strong> 10 | <strong>CFG:</strong> 8<br>
+                                    <strong>🎲 Sampler:</strong> DPM++ 2M Karras | <strong>🤖 Model:</strong> AnythingV4_v45
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const chatMessages = document.getElementById('chatContainer');
+                    if (chatMessages) {
+                        chatMessages.insertAdjacentHTML('beforeend', imageHtml);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        // Save to current chat session immediately
+                        if (currentChatId && chatSessions[currentChatId]) {
+                            chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
+                            chatSessions[currentChatId].updatedAt = new Date();
+                            saveSessions();
+                        }
+                    }
+                    
+                    // Deactivate tool after successful generation
+                    activeTools.delete('image-generation');
+                    imageGenToolBtn.classList.remove('active');
+                    
+                } else {
+                    addMessage(`❌ **Lỗi tạo ảnh:** ${imageData.error || 'Không rõ nguyên nhân'}`, false, model, context, formatTimestamp(new Date()));
+                }
+                
+            } catch (error) {
+                console.error('Error in image generation:', error);
+                addMessage(`❌ **Lỗi:** ${error.message}`, false, model, context, formatTimestamp(new Date()));
+            } finally {
+                loading.classList.remove('active');
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
+        }
+        
+        async function loadSamplers() {
+            try {
+                const response = await fetch('/api/sd-samplers');
+                const data = await response.json();
+                
+                const select = document.getElementById('samplerSelect');
+                select.innerHTML = '';
+                
+                data.samplers.forEach(sampler => {
+                    const option = document.createElement('option');
+                    option.value = sampler;
+                    option.textContent = sampler;
+                    select.appendChild(option);
+                });
+                
+                // Set default
+                select.value = 'DPM++ 2M Karras';
+                
+            } catch (error) {
+                console.error('Error loading samplers:', error);
+            }
+        }
+        
+        // Auto-adjust steps and CFG based on image size
+        function adjustStepsAndCFG() {
+            const width = parseInt(document.getElementById('imageWidth').value);
+            const height = parseInt(document.getElementById('imageHeight').value);
+            const stepsInput = document.getElementById('imageSteps');
+            const cfgInput = document.getElementById('cfgScale');
+            const stepsLabel = document.getElementById('stepsLabel');
+            const cfgLabel = document.getElementById('cfgLabel');
+            
+            // Calculate max dimension and megapixels
+            const maxDim = Math.max(width, height);
+            const megapixels = (width * height) / 1_000_000;
+            
+            // Warning for 4K images
+            if (megapixels >= 4) {
+                const currentSteps = parseInt(stepsInput.value);
+                const estimatedTime = Math.ceil((currentSteps * (2 + megapixels * 1.5)) / 60);
+                
+                alert(`⚠️ CẢNH BÁO 4K:\n\n` +
+                      `Kích thước ${width}x${height} (${megapixels.toFixed(1)}MP) với ${currentSteps} steps\n` +
+                      `Thời gian ước tính: ${estimatedTime} phút\n\n` +
+                      `Lưu ý:\n` +
+                      `- Không có timeout - sẽ chờ cho đến khi hoàn tất\n` +
+                      `- Bạn có thể cancel request bằng cách refresh trang\n` +
+                      `- Hoặc giảm steps xuống 30-40 để nhanh hơn\n` +
+                      `- Đảm bảo GPU có đủ VRAM (cần ~8GB)`);
+            }
+            
+            // If size >= 1440, enforce minimum steps=50, cfg=12
+            if (maxDim >= 1440) {
+                // Update minimum values
+                const currentSteps = parseInt(stepsInput.value);
+                const currentCfg = parseFloat(cfgInput.value);
+                
+                if (currentSteps < 50) {
+                    stepsInput.value = 50;
+                }
+                if (currentCfg < 12) {
+                    cfgInput.value = 12;
+                }
+                
+                // Update labels with time warning
+                stepsLabel.textContent = `(Tối thiểu 50 cho HD/4K - ~${Math.ceil(megapixels * 2)}min)`;
+                stepsLabel.style.color = '#ff9800';
+                cfgLabel.textContent = '(Tối thiểu 12 cho HD/4K)';
+                cfgLabel.style.color = '#ff9800';
+                
+                // Set minimum attributes
+                stepsInput.min = 50;
+                cfgInput.min = 12;
+            } else {
+                // Reset to default for smaller sizes
+                stepsLabel.textContent = '(20-50 khuyến nghị)';
+                stepsLabel.style.color = '';
+                cfgLabel.textContent = '(7-12 khuyến nghị)';
+                cfgLabel.style.color = '';
+                
+                stepsInput.min = 1;
+                cfgInput.min = 1;
+            }
+        }
+        
+        async function generateImage() {
+            const btn = document.getElementById('generateImageBtn');
+            const container = document.getElementById('generatedImageContainer');
+            
+            console.log('generateImage called');
+            
+            // Get form values
+            const params = {
+                prompt: document.getElementById('imagePrompt').value,
+                negative_prompt: document.getElementById('negativePrompt').value,
+                width: parseInt(document.getElementById('imageWidth').value),
+                height: parseInt(document.getElementById('imageHeight').value),
+                steps: parseInt(document.getElementById('imageSteps').value),
+                cfg_scale: parseFloat(document.getElementById('cfgScale').value),
+                sampler_name: document.getElementById('samplerSelect').value,
+                restore_faces: document.getElementById('restoreFaces').checked,
+                enable_hr: document.getElementById('enableHR').checked,
+                seed: -1
+            };
+            
+            console.log('Params:', params);
+            
+            if (!params.prompt) {
+                alert('Vui lòng nhập prompt!');
+                return;
+            }
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.textContent = '⏳ Đang tạo ảnh...';
+            container.style.display = 'none';
+            
+            try {
+                console.log('Sending request to /api/generate-image');
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(params)
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success && data.images && data.images.length > 0) {
+                    // Display image
+                    currentGeneratedImage = data.images[0];
+                    const img = document.getElementById('generatedImage');
+                    img.src = 'data:image/png;base64,' + currentGeneratedImage;
+                    container.style.display = 'block';
+                    
+                    // Auto-add to chat conversation
+                    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    const imageHtml = `
+                        <div class="message assistant-message">
+                            <div class="message-header">
+                                <strong>🎨 Ảnh được tạo</strong>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                            <div class="message-content">
+                                <img src="data:image/png;base64,${currentGeneratedImage}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
+                                <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                    <strong>Prompt:</strong> ${params.prompt}<br>
+                                    ${params.negative_prompt ? `<strong>Negative:</strong> ${params.negative_prompt}<br>` : ''}
+                                    <strong>Model:</strong> ${params.model || 'Default'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add to chat - use correct element ID
+                    const chatMessages = document.getElementById('chatContainer');
+                    if (chatMessages) {
+                        chatMessages.insertAdjacentHTML('beforeend', imageHtml);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        // Save to current chat session immediately
+                        if (currentChatId && chatSessions[currentChatId]) {
+                            chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
+                            chatSessions[currentChatId].updatedAt = new Date();
+                            saveSessions();
+                        }
+                    }
+                    
+                    btn.textContent = '✅ Ảnh đã tạo xong!';
+                    setTimeout(() => {
+                        btn.textContent = '🎨 Tạo ảnh';
+                    }, 2000);
+                } else {
+                    console.error('Failed to generate image:', data);
+                    alert('Lỗi: ' + (data.error || 'Không thể tạo ảnh'));
+                    btn.textContent = '🎨 Tạo ảnh';
+                }
+                
+            } catch (error) {
+                console.error('Error generating image:', error);
+                alert('Lỗi khi tạo ảnh: ' + error.message);
+                btn.textContent = '🎨 Tạo ảnh';
+            } finally {
+                console.log('Re-enabling button');
+                btn.disabled = false;
+            }
+        }
+        
+        function copyImageToChat() {
+            if (!currentGeneratedImage) return;
+            
+            // Add image to chat
+            const timestamp = formatTimestamp(new Date());
+            const imageHtml = `<img src="data:image/png;base64,${currentGeneratedImage}" style="max-width: 400px; border-radius: 10px; margin-top: 10px;">`;
+            
+            addMessage(imageHtml, false, 'stable-diffusion', 'image-generation', timestamp);
+            
+            // Close modal
+            closeImageModal();
+            
+            // Show success message
+            alert('Ảnh đã được thêm vào chat! 🎨');
+        }
+        
+        function downloadGeneratedImage() {
+            if (!currentGeneratedImage) return;
+            
+            const link = document.createElement('a');
+            link.href = 'data:image/png;base64,' + currentGeneratedImage;
+            link.download = `ai-generated-${Date.now()}.png`;
+            link.click();
+        }
+        
+        // Add event listener for image gen button
+        document.getElementById('imageGenBtn').addEventListener('click', openImageModal);
+        
+        // Add event listeners for width/height to auto-adjust steps and CFG
+        document.getElementById('imageWidth').addEventListener('change', adjustStepsAndCFG);
+        document.getElementById('imageHeight').addEventListener('change', adjustStepsAndCFG);
+        
+        // Add event listener for model select to auto-update
+        if (modelSelect) {
+            modelSelect.addEventListener('change', async (e) => {
+                const selectedModel = e.target.value;
+                if (selectedModel) {
+                    await changeSDModel(selectedModel);
+                }
+            });
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('imageGenModal').addEventListener('click', (e) => {
+            if (e.target.id === 'imageGenModal') {
+                closeImageModal();
+            }
+        });
     </script>
 </body>
 </html>

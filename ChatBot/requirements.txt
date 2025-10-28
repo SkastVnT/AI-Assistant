@@ -1,4 +1,6 @@
 flask==3.0.0
 python-dotenv==1.0.0
-openai==0.28.1
-google-generativeai==0.3.2
+openai
+google-generativeai==0.8.5
+requests
+Pillow
