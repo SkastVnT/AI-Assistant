@@ -15,7 +15,26 @@
 
 ---
 
-## 📋 Giới thiệu
+## 🚀 Quick Start
+
+**New to this project?** Read [`GETTING_STARTED.md`](GETTING_STARTED.md) first!
+
+```bash
+# Launch ChatBot with Stable Diffusion (Auto)
+.\scripts\startup\start_chatbot.bat
+
+# ChatBot only (No image generation)
+.\scripts\startup\start_chatbot_only.bat
+```
+
+**Documentation:**
+- Setup: `docs/setup/SETUP_NEW_DEVICE.txt`
+- Image Gen: `docs/guides/IMAGE_GENERATION_GUIDE.md`
+- Troubleshooting: `docs/guides/FIX_*.md`
+
+---
+
+## �📋 Giới thiệu
 
 **AI Assistant Hub** là một nền tảng tổng hợp các dịch vụ AI tiên tiến, bao gồm:
 

@@ -72,3 +72,17 @@ desktop.ini
 *.pyo
 *.class
 node_modules/
+
+# ============================================
+# STABLE DIFFUSION
+# ============================================
+# Loại trừ models (file lớn)
+stable-diffusion-webui/models/
+# Giữ lại các file config và scripts
+!stable-diffusion-webui/models/.gitkeep
+
+# Loại trừ outputs và logs
+stable-diffusion-webui/outputs/
+stable-diffusion-webui/log/
+stable-diffusion-webui/tmp/
+stable-diffusion-webui/cache.json

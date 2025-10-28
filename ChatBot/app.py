@@ -5,11 +5,14 @@ Sử dụng Gemini, DeepSeek, và OpenAI
 
 import os
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_file
 import openai
 import google.generativeai as genai
 from datetime import datetime
 import uuid
+import base64
+import io
+from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -262,6 +265,208 @@ def history():
         
         return jsonify({
             'history': chatbot.conversation_history
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# STABLE DIFFUSION IMAGE GENERATION ROUTES
+# ============================================================================
+
+@app.route('/api/sd-health', methods=['GET'])
+def sd_health():
+    """Kiểm tra xem Stable Diffusion API có đang chạy không"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        is_running = sd_client.check_health()
+        
+        if is_running:
+            current_model = sd_client.get_current_model()
+            return jsonify({
+                'status': 'online',
+                'api_url': sd_api_url,
+                'current_model': current_model
+            })
+        else:
+            return jsonify({
+                'status': 'offline',
+                'api_url': sd_api_url,
+                'message': 'Stable Diffusion WebUI chưa chạy hoặc chưa enable API'
+            }), 503
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/sd-models', methods=['GET'])
+def sd_models():
+    """Lấy danh sách tất cả checkpoint models"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        models = sd_client.get_models()
+        current = sd_client.get_current_model()
+        
+        return jsonify({
+            'models': models,
+            'current_model': current['model']
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sd-change-model', methods=['POST'])
+def sd_change_model():
+    """Đổi checkpoint model"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        data = request.json
+        model_name = data.get('model_name')
+        
+        if not model_name:
+            return jsonify({'error': 'model_name is required'}), 400
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        success = sd_client.change_model(model_name)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Đã đổi model thành {model_name}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Không thể đổi model'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/generate-image', methods=['POST'])
+def generate_image():
+    """
+    Tạo ảnh từ text prompt bằng Stable Diffusion
+    
+    Body params:
+        - prompt (str): Text prompt mô tả ảnh
+        - negative_prompt (str): Những gì không muốn có
+        - width (int): Chiều rộng (default: 512)
+        - height (int): Chiều cao (default: 512)
+        - steps (int): Số steps (default: 20)
+        - cfg_scale (float): CFG scale (default: 7.0)
+        - sampler_name (str): Tên sampler (default: "DPM++ 2M Karras")
+        - seed (int): Random seed (default: -1)
+        - batch_size (int): Số ảnh tạo (default: 1)
+        - restore_faces (bool): Restore faces (default: False)
+        - enable_hr (bool): Hires fix (default: False)
+        - hr_scale (float): HR scale (default: 2.0)
+        - save_images (bool): Lưu ảnh vào disk (default: False)
+    """
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        data = request.json
+        prompt = data.get('prompt', '')
+        
+        if not prompt:
+            return jsonify({'error': 'Prompt không được để trống'}), 400
+        
+        # Lấy parameters từ request
+        params = {
+            'prompt': prompt,
+            'negative_prompt': data.get('negative_prompt', ''),
+            'width': int(data.get('width', 512)),
+            'height': int(data.get('height', 512)),
+            'steps': int(data.get('steps', 20)),
+            'cfg_scale': float(data.get('cfg_scale', 7.0)),
+            'sampler_name': data.get('sampler_name', 'DPM++ 2M Karras'),
+            'seed': int(data.get('seed', -1)),
+            'batch_size': int(data.get('batch_size', 1)),
+            'restore_faces': data.get('restore_faces', False),
+            'enable_hr': data.get('enable_hr', False),
+            'hr_scale': float(data.get('hr_scale', 2.0)),
+            'save_images': data.get('save_images', False)
+        }
+        
+        # Get SD client
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        # Tạo ảnh
+        print(f"[DEBUG] Calling txt2img with params: {params}")
+        result = sd_client.txt2img(**params)
+        print(f"[DEBUG] txt2img result: {result}")
+        
+        # Kiểm tra lỗi
+        if 'error' in result:
+            print(f"[ERROR] SD Error: {result['error']}")
+            return jsonify(result), 500
+        
+        # Trả về kết quả
+        return jsonify({
+            'success': True,
+            'images': result.get('images', []),
+            'info': result.get('info', ''),
+            'parameters': result.get('parameters', {})
+        })
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
+        print(f"[ERROR] {error_msg}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sd-samplers', methods=['GET'])
+def sd_samplers():
+    """Lấy danh sách samplers"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        samplers = sd_client.get_samplers()
+        
+        return jsonify({
+            'samplers': samplers
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sd-interrupt', methods=['POST'])
+def sd_interrupt():
+    """Dừng việc tạo ảnh đang chạy"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        success = sd_client.interrupt()
+        
+        return jsonify({
+            'success': success
         })
         
     except Exception as e:
