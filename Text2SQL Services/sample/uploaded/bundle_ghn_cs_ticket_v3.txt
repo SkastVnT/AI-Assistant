@@ -1,0 +1,33 @@
+-- FILE: ghn_cs_ticket_v3.txt
+create table ghn_cs_ticket_v3
+(
+    _id             String,
+    created_by      Nullable(String),
+    deleted_at      Nullable(DateTime64(3, 'UTC')),
+    shop_id         Nullable(String),
+    conversation_id Nullable(String),
+    external_id     Nullable(String),
+    source          Nullable(String),
+    order_code      Nullable(String),
+    type            Nullable(String),
+    subject         Nullable(String),
+    description     Nullable(String),
+    status          Nullable(String),
+    status_id       Nullable(Int32),
+    email           Nullable(String),
+    reason          Nullable(String),
+    client_id       Nullable(String),
+    customer_type   Nullable(String),
+    hub_name        Nullable(String),
+    old_client_id   Nullable(String),
+    priority        Nullable(String),
+    actor           Nullable(String),
+    actor_type      Nullable(String),
+    origin_ghn      String,
+    customer_id     Nullable(String),
+    created_at      DateTime64(3, 'UTC'),
+    updated_at      DateTime64(3, 'UTC')
+)
+    engine = MergeTree PARTITION BY toYYYYMM(created_at)
+        ORDER BY (created_at, _id)
+        SETTINGS index_granularity = 8192;

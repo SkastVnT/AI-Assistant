@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chatbot Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-3xl bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden">
+    <!-- Header -->
+    <div class="bg-blue-600 px-6 py-4 text-white flex justify-between items-center">
+      <h1 class="text-xl font-semibold">🤖 Chatbot Demo</h1>
+      <div class="flex gap-3 text-sm">
+        <label class="inline-flex items-center gap-2">
+          <input type="checkbox" id="clearChatTick" class="accent-blue-500">
+          Xóa chat
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input type="checkbox" id="autoCloseRequests" class="accent-blue-500" checked>
+          Tự đóng yêu cầu
+        </label>
+        <button id="btnShowPretrain" class="bg-violet-200 text-violet-800 px-4 py-2 rounded-lg shadow hover:bg-violet-300 transition">
+          Xem pretrain
+        </button>
+        <button id="btnPretrainMore" class="bg-violet-200 text-violet-800 px-4 py-2 rounded-lg shadow hover:bg-violet-300 transition">
+          Pretrain thêm
+        </button>
+      </div>
+    </div>
+
+    <!-- Upload schema -->
+    <div class="p-5 border-b space-y-3 bg-slate-50">
+      <div class="flex items-center gap-2">
+        <input id="schemaFile" type="file" multiple accept=".txt,.csv,.json,.jsonl,.sql"
+               class="flex-1 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+        <button id="btnUpload" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">Upload</button>
+        <button id="btnShowSchema" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg shadow hover:bg-gray-300 transition">Xem schema</button>
+      </div>
+      <div id="uploadStatus" class="text-sm text-gray-600"></div>
+      <details class="bg-white rounded-lg p-3 shadow-inner">
+        <summary class="cursor-pointer font-medium text-gray-800">Xem nhanh schema</summary>
+        <pre id="schemaPreview" class="whitespace-pre-wrap text-xs mt-2 max-h-64 overflow-y-auto p-2 border rounded bg-slate-50"></pre>
+      </details>
+    </div>
+
+    <!-- Chat window -->
+    <div id="chat" class="flex-1 p-5 space-y-3 overflow-y-auto bg-gradient-to-br from-white to-slate-50" style="min-height:400px; max-height:520px;"></div>
+
+    <!-- Input -->
+    <div class="flex items-center gap-2 border-t p-4 bg-slate-50">
+      <input id="input" type="text" placeholder="Nhập tin nhắn..." class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <button id="btnSend" class="bg-blue-600 text-white px-5 py-2 rounded-lg shadow hover:bg-blue-700 transition">Gửi</button>
+    </div>
+  </div>
+
+  <script>
+  // ---------- Helpers ----------
+  const chatBox = document.getElementById("chat");
+  const inputEl = document.getElementById("input");
+  const btnSend = document.getElementById("btnSend");
+
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return "";
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  function prettySource(src) {
+    if (!src) return "Không rõ";
+    const s = String(src).toLowerCase();
+    if (s === "sqlcoder") return "SQLCoder-7B-2";
+    if (s === "gemini") return "Gemini";
+    if (s === "sqlcoder+gemini") return "SQLCoder-7B-2 → Gemini (cascade)";
+    if (s === "refined") return "Refine";
+    if (s === "dataset") return "Dataset";
+    if (s === "refined_gemini") return "Gemini (Refine)";
+    if (s === "refined_sqlcoder") return "SQLCoder-7B-2 (Refine)";
+    if (s === "refined_sqlcoder+gemini") return "SQLCoder-7B-2 → Gemini (Refine)";
+    return src;
+  }
+
+  function renderPretrainItem(it, idx) {
+    const q = it.question || "(no question)";
+    const sql = it.sql || "(NO_SQL)";
+    const model = prettySource(it.source || "");
+    const status = it.exec_status || "";
+    const saved = it.saved ? "✓" : "×";
+    const raw = it.raw || "";
+
+    return `
+<div class="mb-3 p-3 rounded-lg border bg-slate-50">
+  <div class="text-xs text-gray-500 mb-1">#${idx}</div>
+  <div><b>Q:</b> ${escapeHtml(q)}</div>
+  <div class="mt-1"><b>SQL:</b></div>
+  <pre class="bg-white border rounded p-2 whitespace-pre-wrap">${escapeHtml(sql)}</pre>
+  <div><b>Model:</b> ${escapeHtml(model)}</div>
+  <div><b>Status:</b> ${escapeHtml(status)}</div>
+  <div><b>Saved:</b> ${escapeHtml(saved)}</div>
+  <div class="mt-1"><b>Raw:</b></div>
+  <pre class="bg-white border rounded p-2 whitespace-pre-wrap">${escapeHtml(raw)}</pre>
+</div>`;
+  }
+
+  function appendMsg(text, who="bot") {
+    const wrap = document.createElement("div");
+    wrap.className = who === "user" ? "flex justify-end" : "flex justify-start";
+    const bubble = document.createElement("div");
+    bubble.className = who==="user"
+      ? "bg-blue-500 text-white px-4 py-2 rounded-xl max-w-[80%] text-right"
+      : "bg-gray-200 text-gray-800 px-4 py-2 rounded-xl max-w-[80%]";
+    bubble.textContent = text;
+    wrap.appendChild(bubble);
+    chatBox.appendChild(wrap);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function appendConfirm(question) {
+    const wrap = document.createElement("div");
+    wrap.className = "flex justify-start";
+    wrap.setAttribute("data-card","request");
+    wrap.innerHTML = `
+      <div class="bg-yellow-50 text-gray-800 px-4 py-3 rounded-xl max-w-[80%]">
+        ❓ Câu hỏi này chưa có trong dataset. Bạn có muốn tôi tạo câu truy vấn SQL dựa trên schema đã upload không?
+        <div class="mt-2 flex gap-2">
+          <button class="px-3 py-1 rounded bg-green-600 text-white" data-action="confirm-yes" data-question="${encodeURIComponent(question)}">Có</button>
+          <button class="px-3 py-1 rounded bg-gray-500 text-white" data-action="confirm-no" data-question="${encodeURIComponent(question)}">Không</button>
+        </div>
+      </div>`;
+    chatBox.appendChild(wrap); chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function appendApprove(question, sql, result, source) {
+    const wrap = document.createElement("div");
+    wrap.className = "flex justify-start";
+    wrap.setAttribute("data-card","request");
+    const resultText = result ? JSON.stringify(result, null, 2) : "null";
+    const srcLabel = prettySource(source);
+    wrap.innerHTML = `
+      <div class="bg-blue-50 text-gray-800 px-4 py-3 rounded-xl max-w-[80%]">
+        <div class="text-xs text-gray-500 mb-1">Nguồn: <span class="font-medium">${srcLabel}</span></div>
+        <div class="font-semibold mb-1">SQL được tạo:</div>
+        <pre class="text-xs whitespace-pre-wrap bg-white border rounded p-2 max-h-64 overflow-y-auto">${escapeHtml(sql||"")}</pre>
+        <div class="font-semibold mt-3 mb-1">Result:</div>
+        <pre class="text-xs whitespace-pre-wrap bg-white border rounded p-2 max-h-64 overflow-y-auto">${escapeHtml(resultText)}</pre>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button class="px-3 py-1 rounded bg-blue-600 text-white" data-action="approve-save" data-question="${encodeURIComponent(question)}" data-sql="${encodeURIComponent(sql)}">Lưu</button>
+          <button class="px-3 py-1 rounded bg-gray-500 text-white" data-action="approve-skip">Bỏ qua</button>
+          <button class="px-3 py-1 rounded bg-amber-600 text-white" data-action="refine-open" data-question="${encodeURIComponent(question)}" data-sql="${encodeURIComponent(sql)}">Tạo lại (chưa đúng)</button>
+        </div>
+      </div>`;
+    chatBox.appendChild(wrap); chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function appendRefineForm(question, sql) {
+    const wrap = document.createElement("div");
+    wrap.className = "flex justify-start";
+    wrap.setAttribute("data-card","request");
+    wrap.innerHTML = `
+      <div class="bg-amber-50 text-gray-900 px-4 py-3 rounded-xl max-w-[80%]">
+        <div class="mb-2 font-semibold">Mô tả ngắn lý do chưa đúng (ví dụ: "thiếu join brands", "lọc sai điều kiện ngày"):</div>
+        <textarea class="w-full border rounded p-2 text-sm" rows="3" data-role="refine-feedback"></textarea>
+        <div class="mt-3 mb-2 font-semibold">Chi tiết bổ sung / ràng buộc mong muốn:</div>
+        <textarea class="w-full border rounded p-2 text-sm" rows="4" data-role="refine-extra" placeholder="Thêm cột/group/điều kiện..."></textarea>
+        <div class="mt-3 flex gap-2">
+          <button class="px-3 py-1 rounded bg-amber-700 text-white" data-action="refine-submit" data-question="${encodeURIComponent(question)}" data-sql="${encodeURIComponent(sql)}">Tạo lại</button>
+          <button class="px-3 py-1 rounded bg-gray-400 text-white" data-action="refine-cancel">Hủy</button>
+        </div>
+      </div>`;
+    chatBox.appendChild(wrap); chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // ---------- Delegation for buttons inside chat ----------
+  chatBox.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const question = btn.dataset.question ? decodeURIComponent(btn.dataset.question) : null;
+    const sql = btn.dataset.sql ? decodeURIComponent(btn.dataset.sql) : null;
+
+    const autoClose = document.getElementById("autoCloseRequests")?.checked;
+
+    try {
+      if (action === "confirm-yes") {
+        appendMsg("có", "user"); await sendRaw("có");
+        if (autoClose) btn.closest('[data-card="request"]')?.remove();
+      } else if (action === "confirm-no") {
+        appendMsg("không", "user"); await sendRaw("không");
+        if (autoClose) btn.closest('[data-card="request"]')?.remove();
+      } else if (action === "approve-save") {
+        const res = await fetch("/check",{method:"POST",headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({question, sql, approve:true})});
+        const data = await res.json(); appendMsg(data.message || "Đã lưu.", "bot");
+        if (autoClose) btn.closest('[data-card="request"]')?.remove();
+      } else if (action === "approve-skip") {
+        const res = await fetch("/check",{method:"POST",headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({question, sql, approve:false})});
+        const data = await res.json(); appendMsg(data.message || "Đã bỏ qua.", "bot");
+        if (autoClose) btn.closest('[data-card="request"]')?.remove();
+      } else if (action === "refine-open") {
+        appendRefineForm(question, sql);
+      } else if (action === "refine-cancel") {
+        appendMsg("Đã hủy tạo lại.", "bot");
+        if (autoClose) btn.closest('[data-card="request"]')?.remove();
+      } else if (action === "refine-submit") {
+        const container = btn.closest("div").parentElement;
+        const feedback = container.querySelector('[data-role="refine-feedback"]').value.trim();
+        const extra_context = container.querySelector('[data-role="refine-extra"]').value.trim();
+        appendMsg("Tạo lại SQL...", "bot");
+        const res = await fetch("/refine", {method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({question, sql, feedback, extra_context})});
+        const data = await res.json();
+        appendMsg(data.response || data.error || "(no response)", "bot");
+        const sqlNew = data.sql || "";
+        const result = ("result" in data) ? data.result : null;
+        const source = data.source || "refined";
+        appendApprove(question, sqlNew, result, source);
+        if (autoClose) btn.closest('[data-card="request"]')?.remove();
+      }
+    } catch (err) {
+      appendMsg("Lỗi: " + err.message, "bot");
+    }
+  });
+
+  // ---------- Upload ----------
+  document.getElementById('btnUpload').addEventListener('click', async () => {
+    const input = document.getElementById('schemaFile');
+    const st = document.getElementById('uploadStatus');
+    const preview = document.getElementById('schemaPreview');
+    if (!input.files || !input.files.length) {
+      st.textContent = 'Vui lòng chọn ít nhất 1 file.'; st.className = 'text-sm text-red-600'; return;
+    }
+    const fd = new FormData(); for (const f of input.files) fd.append('file', f);
+    st.textContent = 'Đang tải và xử lý...'; st.className = 'text-sm text-gray-600';
+    try {
+      const res = await fetch('/upload-schema',{method:'POST', body:fd});
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload thất bại');
+      st.textContent = data.message || 'Đã cập nhật schema.'; st.className = 'text-sm text-green-700';
+      preview.textContent = data.schema_text || '';
+    } catch (e) {
+      st.textContent = 'Lỗi: ' + e.message; st.className = 'text-sm text-red-600';
+    }
+  });
+
+  // ---------- Show schema ----------
+  document.getElementById('btnShowSchema').addEventListener('click', async () => {
+    const preview = document.getElementById('schemaPreview');
+    try {
+      const data = await fetch('/schema').then(r=>r.json());
+      const files = (data.files || []).join(', ');
+      const tables = (data.tables || []).join(', ');
+      const idMap = data.id_map || {};
+      const mapText = Object.keys(idMap).length ? Object.entries(idMap).map(([t,id]) => `${id}=${t}`).join(', ') : '';
+      const header = `📁 Files: ${files || '(chưa có)'}\n🗂  Tables: ${tables || '(chưa có)'}\n`
+                   + (mapText ? `🔢 Mapping: ${mapText}\n` : '')
+                   + (data.memories_filename ? `📝 Memories file: ${data.memories_filename}\n` : '')
+                   + (data.active_primary_table ? `⭐ Active table: ${data.active_primary_table}\n` : '');
+      preview.textContent = header + '\n' + (data.schema_text || '');
+    } catch (e) {
+      preview.textContent = '(Không lấy được schema) ' + e.message;
+    }
+  });
+
+  // ---------- Chat ----------
+  let sending = false;
+  document.getElementById('btnSend').addEventListener('click', sendMsg);
+  inputEl.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); sendMsg(); } });
+
+  async function sendMsg() {
+    if (sending) return;
+    const msg = inputEl.value.trim(); if (!msg) return;
+    sending = true; btnSend.disabled = true;
+    appendMsg(msg, "user"); inputEl.value = "";
+    try {
+      const data = await fetch("/chat",{method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({message: msg})}).then(r=>r.json());
+      handleChatResponse(data);
+    } catch (e) {
+      appendMsg("Lỗi mạng: " + e.message, "bot");
+    } finally {
+      sending = false; btnSend.disabled = false;
+    }
+  }
+
+  async function sendRaw(text) {
+    try {
+      const data = await fetch("/chat",{method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({message: text})}).then(r=>r.json());
+      handleChatResponse(data);
+    } catch (e) {
+      appendMsg("Lỗi mạng: " + e.message, "bot");
+    }
+  }
+
+  function extractSQLFromText(txt) {
+    if (!txt) return "";
+    const fence = txt.match(/```(?:sql)?\s*([\s\S]*?)```/i);
+    let t = fence ? fence[1] : txt;
+    t = t.replace(/^\s*Status\s*:.+$/gim,"").replace(/^\s*Result\s*:.+$/gim,"");
+    t = t.replace(/^\s*(sql\s*được\s*tạo|sql|query)\s*[:\-]*/i,"").trim();
+    const m = t.match(/(select|insert|update|delete)[\s\S]*$/i);
+    return (m ? m[0] : t).trim();
+  }
+
+  function handleChatResponse(data) {
+    if (data.needs_confirmation) { appendConfirm(data.question); return; }
+    appendMsg(data.response || data.error || "(no response)", "bot");
+    if (data.needs_check && data.question) {
+      const sql = data.sql || extractSQLFromText(data.response) || "";
+      const result = ("result" in data) ? data.result : null;
+      const source = data.source || "";
+      appendApprove(data.question, sql, result, source);
+    }
+  }
+
+  // ---------- Pretrain viewer ----------
+  document.getElementById('btnShowPretrain').addEventListener('click', async () => {
+    const preview = document.getElementById('schemaPreview');
+    preview.innerHTML = "⏳ Đang tải pretrain...";
+    try {
+      const file = await fetch('/pretrain-file').then(r=>r.json());
+      if (file && file.exists && file.content) {
+        preview.innerHTML = `<pre class="whitespace-pre-wrap bg-slate-50 p-3 rounded-lg">${escapeHtml(file.content)}</pre>`;
+        return;
+      }
+      const rep = await fetch('/pretrain-report?max_lines=100').then(r=>r.json());
+      if (!rep.items || !rep.items.length) { preview.textContent="(không có mục pretrain)"; return; }
+      let html = `<div class="font-semibold mb-2">Pretrain items: ${rep.count}</div>`;
+      rep.items.forEach((it, i) => html += renderPretrainItem(it, i+1));
+      preview.innerHTML = html;
+    } catch (e) {
+      preview.textContent = "Lỗi khi tải pretrain: " + e.message;
+    }
+  });
+
+  // ---------- Pretrain more ----------
+  document.getElementById('btnPretrainMore').addEventListener('click', async () => {
+    const rounds = parseInt(prompt("Bạn muốn sinh thêm bao nhiêu Q&A?","10")||"0",10);
+    if (!rounds) return;
+    const preview = document.getElementById('schemaPreview');
+    preview.textContent = "⏳ Đang pretrain thêm...";
+    try {
+      const data = await fetch('/pretrain',{method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({rounds, strategy:'cascade'})}).then(r=>r.json());
+      const msg = `Đã pretrain: tried=${data.tried||0}, saved=${data.saved||0}\n`+(data.log_file?`Log: ${data.log_file}\n`:"");
+      const items = (data.preview||[]).map((it,i)=>`#${i+1}\nQ: ${it.question}\nSQL: ${it.sql||"(NO_SQL)"}\nStatus: ${it.exec_status||""}\nSaved: ${it.saved?"✓":"×"}\nSource: ${it.source||""}`).join("\n\n");
+      preview.textContent = msg + "\n\n" + (items || "(không có mục xem nhanh)");
+    } catch (e) {
+      preview.textContent = "Lỗi gọi /pretrain: " + e.message;
+    }
+  });
+
+  // ---------- Misc ----------
+  document.getElementById("clearChatTick")?.addEventListener("change", e => {
+    if (e.target.checked) { chatBox.innerHTML=""; e.target.checked=false; }
+  });
+  </script>
+</body> 
+</html>
