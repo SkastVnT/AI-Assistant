@@ -9,6 +9,9 @@
     <!-- Highlight.js for code syntax -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -609,6 +612,246 @@
             border-color: #4ade80;
         }
         
+        /* Edit message button */
+        .edit-message-btn {
+            display: inline-block;
+            margin-top: 8px;
+            margin-left: 8px;
+            padding: 5px 12px;
+            background: transparent;
+            color: #ffa500;
+            border: 1px solid #ffa500;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .edit-message-btn {
+            color: #ff6b35;
+            border-color: #ff6b35;
+        }
+        
+        .edit-message-btn:hover {
+            background: #ffa500;
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .edit-message-btn:hover {
+            background: #ff6b35;
+            color: white;
+        }
+        
+        /* Edit form */
+        .edit-form {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 165, 0, 0.1);
+            border: 2px solid #ffa500;
+            border-radius: 8px;
+        }
+        
+        body.dark-mode .edit-form {
+            background: rgba(255, 107, 53, 0.1);
+            border-color: #ff6b35;
+        }
+        
+        .edit-form textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 8px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        body.dark-mode .edit-form textarea {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        .edit-form-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .edit-form-buttons button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .edit-save-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .edit-save-btn:hover {
+            background: #218838;
+        }
+        
+        .edit-cancel-btn {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .edit-cancel-btn:hover {
+            background: #5a6268;
+        }
+        
+        /* Memory/Learning styles */
+        .memory-btn {
+            background: transparent;
+            border: 2px solid #9c27b0;
+            color: #9c27b0;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        body.dark-mode .memory-btn {
+            border-color: #ba68c8;
+            color: #ba68c8;
+        }
+        
+        .memory-btn:hover {
+            background: rgba(156, 39, 176, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        body.dark-mode .memory-btn:hover {
+            background: rgba(186, 104, 200, 0.1);
+        }
+        
+        .memory-panel {
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        body.dark-mode .memory-panel {
+            background: #2a2a2a;
+            border-top-color: #444;
+        }
+        
+        .memory-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .memory-item {
+            background: #333;
+            border-color: #555;
+        }
+        
+        .memory-item:hover {
+            border-color: #9c27b0;
+            transform: translateX(3px);
+        }
+        
+        .memory-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .memory-item-content {
+            flex: 1;
+        }
+        
+        .memory-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        body.dark-mode .memory-item-title {
+            color: #e0e0e0;
+        }
+        
+        .memory-item-preview {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        body.dark-mode .memory-item-preview {
+            color: #999;
+        }
+        
+        .memory-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .memory-delete-btn {
+            padding: 4px 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .memory-delete-btn:hover {
+            background: #c82333;
+        }
+        
+        /* File upload multi-file support */
+        .file-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .file-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            background: #e7f3ff;
+            border: 1px solid #2196f3;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #1976d2;
+        }
+        
+        body.dark-mode .file-tag {
+            background: rgba(33, 150, 243, 0.2);
+            border-color: #2196f3;
+            color: #64b5f6;
+        }
+        
+        .file-tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            color: #d32f2f;
+            margin-left: 3px;
+        }
+        
+        .file-tag-remove:hover {
+            color: #b71c1c;
+        }
+        
         /* Table styling in dark mode */
         body.dark-mode .message-content table {
             border-color: #555;
@@ -1071,13 +1314,20 @@
         </div>
         
         <div class="controls">
-            <div class="control-group">
+            <div class="control-group"> 
                 <label>
                     Model:
                     <select id="modelSelect">
                         <option value="gemini">Gemini (Google) - FREE</option>
                         <option value="openai">GPT-4o-mini (OpenAI)</option>
                         <option value="deepseek">DeepSeek (Rẻ nhất)</option>
+                        <option value="qwen">Qwen1.5b (Alibaba Cloud)</option>
+                        <option value="bloomvn">BloomVN-8B API (Tiếng Việt) - FREE</option>
+                        <optgroup label="🖥️ Local Models (FREE - No Internet)">
+                            <option value="qwen1.5-local">🖥️ Qwen1.5-1.8B Local</option>
+                            <option value="bloomvn-local">🖥️ BloomVN-8B Local</option>
+                            <option value="qwen2.5-local">🖥️ Qwen2.5-14B Local ⭐</option>
+                        </optgroup>
                     </select>
                 </label>
                 
@@ -1102,6 +1352,9 @@
                 <button class="image-gen-btn" id="imageGenBtn" title="Tạo ảnh bằng AI">
                     🎨 Tạo ảnh
                 </button>
+                <button class="memory-btn" id="memoryBtn" title="Quản lý bộ nhớ AI">
+                    🧠 AI học tập
+                </button>
                 <button class="dark-mode-toggle" id="darkModeBtn" title="Toggle Dark Mode">🌙</button>
                 <button id="clearBtn">🗑️ Xóa lịch sử</button>
             </div>
@@ -1113,6 +1366,19 @@
                     <div>Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
                     <div class="message-info">Gemini • Trò chuyện vui vẻ</div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Memory Panel (hidden by default) -->
+        <div class="memory-panel" id="memoryPanel" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong>📚 Bài học đã lưu (chọn để kích hoạt):</strong>
+                <button class="new-chat-btn" id="saveMemoryBtn" style="padding: 5px 12px; font-size: 12px;">
+                    💾 Lưu chat này
+                </button>
+            </div>
+            <div id="memoryList">
+                <!-- Memory items will be loaded here -->
             </div>
         </div>
         
@@ -1136,15 +1402,17 @@
                     🎨 Tạo ảnh
                 </button>
                 <label class="file-label">
-                    📎 Upload File
-                    <input type="file" class="file-input" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json">
+                    📎 Upload Files
+                    <input type="file" class="file-input" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css" multiple>
                 </label>
-                <span class="file-name" id="fileName"></span>
+            </div>
+            <div class="file-list" id="fileList">
+                <!-- Uploaded files will appear here -->
             </div>
             <div class="input-group">
                 <textarea 
                     id="messageInput" 
-                    placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng)"
+                    placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng, Ctrl+V để paste)"
                     rows="1"
                 ></textarea>
                 <button id="sendBtn">Gửi</button>
@@ -1166,15 +1434,21 @@
         const githubBtn = document.getElementById('githubBtn');
         const imageGenToolBtn = document.getElementById('imageGenToolBtn');
         const fileInput = document.getElementById('fileInput');
-        const fileName = document.getElementById('fileName');
+        const fileList = document.getElementById('fileList');
         const deepThinkingCheck = document.getElementById('deepThinkingCheck');
         const darkModeBtn = document.getElementById('darkModeBtn');
         const downloadBtn = document.getElementById('downloadBtn');
+        const memoryBtn = document.getElementById('memoryBtn');
+        const memoryPanel = document.getElementById('memoryPanel');
+        const saveMemoryBtn = document.getElementById('saveMemoryBtn');
+        const memoryListEl = document.getElementById('memoryList');
         
         let activeTools = new Set();
-        let uploadedFile = null;
+        let uploadedFiles = []; // Changed from single file to array
         let conversationActive = false;
         let chatHistory = []; // Store full chat history for download
+        let selectedMemories = new Set(); // Store selected memory IDs
+        let allMemories = []; // Store all available memories
         
         // Chat Session Management
         let currentChatId = null;
@@ -1219,9 +1493,86 @@
             renderChatList();
         }
         
+        // Compress base64 images to reduce storage size
+        function compressBase64Image(base64String, quality = 0.6) {
+            return new Promise((resolve) => {
+                // If not a base64 image, return as-is
+                if (!base64String || !base64String.includes('data:image')) {
+                    resolve(base64String);
+                    return;
+                }
+                
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas size (max 800x800 for storage)
+                    const maxSize = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxSize || height > maxSize) {
+                        if (width > height) {
+                            height = (height / width) * maxSize;
+                            width = maxSize;
+                        } else {
+                            width = (width / height) * maxSize;
+                            height = maxSize;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Compress to JPEG with quality
+                    const compressed = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressed);
+                };
+                img.onerror = function() {
+                    resolve(base64String); // Return original if error
+                };
+                img.src = base64String;
+            });
+        }
+        
+        // Compress all images in HTML content
+        async function compressImagesInHTML(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const images = doc.querySelectorAll('img[src^="data:image"]');
+            
+            for (let img of images) {
+                const compressed = await compressBase64Image(img.src, 0.6);
+                img.src = compressed;
+            }
+            
+            return doc.documentElement.outerHTML;
+        }
+        
         // Save sessions to localStorage
-        function saveSessions() {
+        async function saveSessions() {
             try {
+                // First, try to compress images in current session if it has images
+                if (currentChatId && chatSessions[currentChatId] && chatSessions[currentChatId].messages) {
+                    const messages = chatSessions[currentChatId].messages;
+                    const hasImages = messages.some(msg => typeof msg === 'string' && msg.includes('data:image'));
+                    
+                    if (hasImages) {
+                        console.log('[STORAGE] Compressing images in current session...');
+                        const compressedMessages = [];
+                        for (let msg of messages) {
+                            if (typeof msg === 'string' && msg.includes('data:image')) {
+                                compressedMessages.push(await compressImagesInHTML(msg));
+                            } else {
+                                compressedMessages.push(msg);
+                            }
+                        }
+                        chatSessions[currentChatId].messages = compressedMessages;
+                    }
+                }
+                
                 const sessionsData = JSON.stringify(chatSessions);
                 const sizeInMB = (new Blob([sessionsData]).size / 1024 / 1024).toFixed(2);
                 
@@ -1378,6 +1729,32 @@
             
             if (session.messages.length > 0) {
                 chatContainer.innerHTML = session.messages.join('');
+                
+                // Re-attach event listeners for edit and copy buttons
+                chatContainer.querySelectorAll('.edit-message-btn').forEach(btn => {
+                    const messageDiv = btn.closest('.message');
+                    const textContent = messageDiv.querySelector('.message-text')?.textContent || '';
+                    btn.onclick = function() {
+                        showEditForm(messageDiv, textContent);
+                    };
+                });
+                
+                chatContainer.querySelectorAll('.copy-message-btn').forEach(btn => {
+                    const messageDiv = btn.closest('.message');
+                    const textContent = messageDiv.querySelector('.message-text')?.textContent || '';
+                    btn.onclick = function() {
+                        copyMessageToClipboard(textContent, btn);
+                    };
+                });
+                
+                chatContainer.querySelectorAll('.copy-table-btn').forEach(btn => {
+                    const table = btn.previousElementSibling;
+                    if (table && table.tagName === 'TABLE') {
+                        btn.onclick = function() {
+                            copyTableToClipboard(table, btn);
+                        };
+                    }
+                });
             } else {
                 // Start with empty chat
                 chatContainer.innerHTML = '';
@@ -1387,7 +1764,7 @@
             chatHistory = [];
             Array.from(chatContainer.children).forEach(msgEl => {
                 const isUser = msgEl.classList.contains('user');
-                const content = msgEl.querySelector('.message-content > div:first-child')?.textContent || '';
+                const content = msgEl.querySelector('.message-text')?.textContent || '';
                 chatHistory.push({
                     role: isUser ? 'user' : 'assistant',
                     content: content
@@ -1493,6 +1870,44 @@
         // Update storage display on page load
         updateStorageDisplay();
         
+        // Check local models status
+        checkLocalModelsStatus();
+        
+        async function checkLocalModelsStatus() {
+            try {
+                const response = await fetch('/api/local-models-status');
+                const data = await response.json();
+                
+                if (data.available && data.models) {
+                    console.log('Local models status:', data.models);
+                    
+                    // Disable options for unavailable models
+                    const modelSelect = document.getElementById('modelSelect');
+                    const options = modelSelect.querySelectorAll('option');
+                    
+                    options.forEach(option => {
+                        const value = option.value;
+                        if (value.endsWith('-local')) {
+                            const modelKey = value === 'bloomvn-local' ? 'bloomvn' : 
+                                            value === 'qwen1.5-local' ? 'qwen1.5' :
+                                            value === 'qwen2.5-local' ? 'qwen2.5' : null;
+                            
+                            if (modelKey && data.models[modelKey]) {
+                                if (!data.models[modelKey].available) {
+                                    option.disabled = true;
+                                    option.textContent += ' (Chưa tải)';
+                                } else if (data.models[modelKey].loaded) {
+                                    option.textContent = option.textContent.replace(' ⭐', '') + ' ✅';
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Local models check failed:', error);
+            }
+        }
+        
         // Dark Mode
         const savedTheme = localStorage.getItem('theme') || 'light';
         if (savedTheme === 'dark') {
@@ -1522,7 +1937,12 @@
         const modelNames = {
             'gemini': 'Gemini',
             'openai': 'GPT-4o-mini',
-            'deepseek': 'DeepSeek'
+            'deepseek': 'DeepSeek',
+            'qwen': 'Qwen1.5b',
+            'bloomvn': 'BloomVN-8B API',
+            'bloomvn-local': 'BloomVN-8B Local',
+            'qwen1.5-local': 'Qwen1.5 Local',
+            'qwen2.5-local': 'Qwen2.5-14B Local'
         };
         
         const contextNames = {
@@ -1568,25 +1988,72 @@
             }
         }
         
-        // File upload
+        // File upload - support multiple files
         fileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
-                uploadedFile = this.files[0];
-                fileName.textContent = `📄 ${uploadedFile.name}`;
-            } else {
-                uploadedFile = null;
-                fileName.textContent = '';
+                // Add new files to the array
+                for (let file of this.files) {
+                    uploadedFiles.push(file);
+                }
+                renderFileList();
+            }
+        });
+        
+        // Render uploaded files
+        function renderFileList() {
+            fileList.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'file-tag';
+                tag.innerHTML = `
+                    📄 ${file.name}
+                    <span class="file-tag-remove" onclick="removeFile(${index})">✕</span>
+                `;
+                fileList.appendChild(tag);
+            });
+        }
+        
+        // Remove file from list
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            renderFileList();
+        }
+        
+        // Handle paste event for text/files
+        messageInput.addEventListener('paste', async function(e) {
+            const items = e.clipboardData.items;
+            
+            for (let item of items) {
+                // Handle text paste (default behavior)
+                if (item.type === 'text/plain') {
+                    // Let default paste happen
+                    continue;
+                }
+                
+                // Handle file paste
+                if (item.kind === 'file') {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        uploadedFiles.push(file);
+                        renderFileList();
+                    }
+                }
             }
         });
         
         function addMessage(content, isUser, model, context, timestamp) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            messageDiv.dataset.timestamp = timestamp || formatTimestamp(new Date());
+            messageDiv.dataset.model = model || '';
+            messageDiv.dataset.context = context || '';
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
             
             const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
             if (isUser) {
                 textDiv.textContent = content;
             } else {
@@ -1623,8 +2090,9 @@
             timestampDiv.textContent = timestamp || formatTimestamp(new Date());
             contentDiv.appendChild(timestampDiv);
             
-            // Add copy button for assistant messages
+            // Add buttons
             if (!isUser) {
+                // Copy button for assistant messages
                 const copyMsgBtn = document.createElement('button');
                 copyMsgBtn.className = 'copy-message-btn';
                 copyMsgBtn.textContent = '📋 Copy';
@@ -1632,6 +2100,15 @@
                     copyMessageToClipboard(content, copyMsgBtn);
                 };
                 contentDiv.appendChild(copyMsgBtn);
+            } else {
+                // Edit button for user messages
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-message-btn';
+                editBtn.textContent = '✏️ Edit';
+                editBtn.onclick = function() {
+                    showEditForm(messageDiv, content);
+                };
+                contentDiv.appendChild(editBtn);
             }
             
             messageDiv.appendChild(contentDiv);
@@ -1685,6 +2162,158 @@
             });
         }
         
+        // Show edit form for user message
+        function showEditForm(messageDiv, originalContent) {
+            // Check if edit form already exists
+            if (messageDiv.querySelector('.edit-form')) {
+                return;
+            }
+            
+            // Create edit form
+            const editForm = document.createElement('div');
+            editForm.className = 'edit-form';
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = originalContent;
+            textarea.placeholder = 'Chỉnh sửa tin nhắn...';
+            
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'edit-form-buttons';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'edit-save-btn';
+            saveBtn.textContent = '💾 Lưu & Tạo lại response';
+            saveBtn.onclick = function() {
+                handleEditSave(messageDiv, textarea.value, originalContent);
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'edit-cancel-btn';
+            cancelBtn.textContent = '❌ Hủy';
+            cancelBtn.onclick = function() {
+                editForm.remove();
+            };
+            
+            buttonsDiv.appendChild(saveBtn);
+            buttonsDiv.appendChild(cancelBtn);
+            editForm.appendChild(textarea);
+            editForm.appendChild(buttonsDiv);
+            
+            messageDiv.querySelector('.message-content').appendChild(editForm);
+            textarea.focus();
+        }
+        
+        // Handle edit save and re-generate response
+        async function handleEditSave(messageDiv, newContent, originalContent) {
+            if (!newContent.trim()) {
+                alert('Tin nhắn không được để trống!');
+                return;
+            }
+            
+            if (newContent === originalContent) {
+                alert('Nội dung không thay đổi!');
+                return;
+            }
+            
+            // Get all messages before this one
+            const allMessages = Array.from(chatContainer.children);
+            const messageIndex = allMessages.indexOf(messageDiv);
+            
+            // Build conversation history up to this point
+            const historyBeforeEdit = [];
+            for (let i = 0; i < messageIndex; i++) {
+                const msg = allMessages[i];
+                const isUser = msg.classList.contains('user');
+                const textContent = msg.querySelector('.message-text')?.textContent || '';
+                
+                historyBeforeEdit.push({
+                    role: isUser ? 'user' : 'assistant',
+                    content: textContent
+                });
+            }
+            
+            // Update the message text
+            const textDiv = messageDiv.querySelector('.message-text');
+            textDiv.textContent = newContent;
+            
+            // Remove edit form
+            messageDiv.querySelector('.edit-form')?.remove();
+            
+            // Remove all messages after this one
+            for (let i = allMessages.length - 1; i > messageIndex; i--) {
+                allMessages[i].remove();
+            }
+            
+            // Get model and context from message data or use current settings
+            const model = messageDiv.dataset.model || modelSelect.value;
+            const context = messageDiv.dataset.context || contextSelect.value;
+            const deepThinking = deepThinkingCheck.checked;
+            
+            // Show loading
+            loading.classList.add('active');
+            sendBtn.disabled = true;
+            
+            try {
+                // Call backend to regenerate response with edited input
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: newContent,
+                        model: model,
+                        context: context,
+                        deep_thinking: deepThinking,
+                        tools: [],
+                        history: historyBeforeEdit
+                    })
+                });
+                
+                const data = await response.json();
+                const responseTimestamp = formatTimestamp(new Date());
+                
+                if (data.error) {
+                    addMessage(`❌ **Lỗi:** ${data.error}`, false, model, context, responseTimestamp);
+                } else {
+                    addMessage(data.response, false, model, context, responseTimestamp);
+                }
+                
+                // Update chat history
+                chatHistory = [];
+                Array.from(chatContainer.children).forEach(msgEl => {
+                    const isUser = msgEl.classList.contains('user');
+                    const content = msgEl.querySelector('.message-text')?.textContent || '';
+                    const msgModel = msgEl.dataset.model || '';
+                    const msgContext = msgEl.dataset.context || '';
+                    const msgTimestamp = msgEl.dataset.timestamp || '';
+                    
+                    chatHistory.push({
+                        content: content,
+                        isUser: isUser,
+                        model: msgModel,
+                        context: msgContext,
+                        timestamp: msgTimestamp
+                    });
+                });
+                
+                // Save to session
+                if (currentChatId && chatSessions[currentChatId]) {
+                    chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
+                    chatSessions[currentChatId].updatedAt = new Date();
+                    saveSessions();
+                    renderChatList();
+                }
+                
+            } catch (error) {
+                addMessage(`❌ **Lỗi kết nối:** ${error.message}`, false, model, context, 
+                          formatTimestamp(new Date()));
+            } finally {
+                loading.classList.remove('active');
+                sendBtn.disabled = false;
+            }
+        }
+        
         function copyTableToClipboard(table, button) {
             // Convert table to TSV (Tab-separated values) for Excel compatibility
             let tsv = '';
@@ -1715,47 +2344,452 @@
             });
         }
         
-        function downloadChat() {
-            if (chatHistory.length === 0) {
+        async function downloadChat() {
+            const messages = Array.from(chatContainer.children);
+            if (messages.length === 0) {
                 alert('Chưa có lịch sử chat để tải xuống!');
                 return;
             }
             
-            // Create formatted text content
-            let content = '='.repeat(60) + '\n';
-            content += '  AI CHATBOT - LỊCH SỬ HỘI THOẠI\n';
-            content += '  Xuất lúc: ' + new Date().toLocaleString('vi-VN') + '\n';
-            content += '='.repeat(60) + '\n\n';
+            // Show loading
+            const loadingMsg = addMessage('🔄 Đang tạo PDF...', false, 'System', 'casual');
             
-            chatHistory.forEach((msg, index) => {
-                if (msg.isUser) {
-                    content += `[${msg.timestamp}] 👤 USER:\n`;
-                    content += msg.content + '\n\n';
-                } else {
-                    content += `[${msg.timestamp}] 🤖 ${msg.model ? modelNames[msg.model].toUpperCase() : 'ASSISTANT'}`;
-                    if (msg.context) {
-                        content += ` (${msg.context})`;
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 15;
+                const maxWidth = pageWidth - (margin * 2);
+                let yOffset = margin;
+                
+                // Helper function to add text as image (for Unicode support)
+                async function addTextAsImage(text, fontSize, isBold, xPos, yPos, maxW) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set font
+                    ctx.font = `${isBold ? 'bold' : 'normal'} ${fontSize}px Arial, sans-serif`;
+                    
+                    // Measure text
+                    const metrics = ctx.measureText(text);
+                    const textWidth = metrics.width;
+                    
+                    // Set canvas size
+                    canvas.width = Math.min(textWidth + 10, maxW * 3.78); // mm to px
+                    canvas.height = fontSize * 1.5;
+                    
+                    // Redraw with proper size
+                    ctx.font = `${isBold ? 'bold' : 'normal'} ${fontSize}px Arial, sans-serif`;
+                    ctx.fillStyle = '#000000';
+                    ctx.textBaseline = 'top';
+                    
+                    // Word wrap if needed
+                    const words = text.split(' ');
+                    const lines = [];
+                    let currentLine = words[0];
+                    
+                    for (let i = 1; i < words.length; i++) {
+                        const testLine = currentLine + ' ' + words[i];
+                        const testWidth = ctx.measureText(testLine).width;
+                        
+                        if (testWidth > maxW * 3.78) {
+                            lines.push(currentLine);
+                            currentLine = words[i];
+                        } else {
+                            currentLine = testLine;
+                        }
                     }
-                    content += ':\n';
-                    content += msg.content + '\n\n';
+                    lines.push(currentLine);
+                    
+                    // Adjust canvas height for multiple lines
+                    canvas.height = lines.length * fontSize * 1.5;
+                    ctx.font = `${isBold ? 'bold' : 'normal'} ${fontSize}px Arial, sans-serif`;
+                    ctx.fillStyle = '#000000';
+                    ctx.textBaseline = 'top';
+                    
+                    // Draw text lines
+                    lines.forEach((line, idx) => {
+                        ctx.fillText(line, 5, idx * fontSize * 1.5);
+                    });
+                    
+                    // Convert to image
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = Math.min(maxW, canvas.width / 3.78);
+                    const imgHeight = canvas.height / 3.78;
+                    
+                    return { imgData, imgWidth, imgHeight, lineCount: lines.length };
                 }
-                content += '-'.repeat(60) + '\n\n';
-            });
-            
-            // Create download
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            a.href = url;
-            a.download = `chat-history-${timestamp}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+                
+                // Title
+                const titleData = await addTextAsImage('AI CHATBOT - LỊCH SỬ HỘI THOẠI', 24, true, 0, 0, maxWidth);
+                pdf.addImage(titleData.imgData, 'PNG', (pageWidth - titleData.imgWidth) / 2, yOffset, titleData.imgWidth, titleData.imgHeight);
+                yOffset += titleData.imgHeight + 5;
+                
+                // Timestamp
+                const timestampText = 'Xuất lúc: ' + new Date().toLocaleString('vi-VN');
+                const timestampData = await addTextAsImage(timestampText, 12, false, 0, 0, maxWidth);
+                pdf.addImage(timestampData.imgData, 'PNG', (pageWidth - timestampData.imgWidth) / 2, yOffset, timestampData.imgWidth, timestampData.imgHeight);
+                yOffset += timestampData.imgHeight + 10;
+                
+                // Process each message
+                for (let i = 0; i < messages.length; i++) {
+                    const msg = messages[i];
+                    const isUser = msg.classList.contains('user');
+                    const textEl = msg.querySelector('.message-text');
+                    const imageEl = msg.querySelector('img');
+                    
+                    // Check if need new page
+                    if (yOffset > pageHeight - 40) {
+                        pdf.addPage();
+                        yOffset = margin;
+                    }
+                    
+                    // Message header
+                    const header = isUser ? '👤 USER' : '🤖 AI';
+                    const headerData = await addTextAsImage(header, 14, true, 0, 0, maxWidth);
+                    pdf.addImage(headerData.imgData, 'PNG', margin, yOffset, headerData.imgWidth, headerData.imgHeight);
+                    yOffset += headerData.imgHeight + 3;
+                    
+                    // Message text
+                    if (textEl) {
+                        const text = textEl.textContent || '';
+                        
+                        // Split into chunks for better pagination
+                        const maxCharsPerChunk = 500;
+                        const chunks = [];
+                        for (let j = 0; j < text.length; j += maxCharsPerChunk) {
+                            chunks.push(text.substring(j, j + maxCharsPerChunk));
+                        }
+                        
+                        for (const chunk of chunks) {
+                            const textData = await addTextAsImage(chunk, 12, false, 0, 0, maxWidth);
+                            
+                            // Check pagination
+                            if (yOffset + textData.imgHeight > pageHeight - margin) {
+                                pdf.addPage();
+                                yOffset = margin;
+                            }
+                            
+                            pdf.addImage(textData.imgData, 'PNG', margin, yOffset, textData.imgWidth, textData.imgHeight);
+                            yOffset += textData.imgHeight + 2;
+                        }
+                    }
+                    
+                    // Check if this message has images (multiple possible)
+                    const allImages = msg.querySelectorAll('img');
+                    for (const imgEl of allImages) {
+                        if (imgEl && imgEl.src) {
+                            yOffset += 5;
+                            
+                            try {
+                                // Convert image to canvas then to dataURL
+                                const canvas = await html2canvas(imgEl, {
+                                    scale: 1,
+                                    logging: false,
+                                    backgroundColor: null
+                                });
+                                
+                                const imgData = canvas.toDataURL('image/jpeg', 0.7);
+                                const imgWidth = Math.min(maxWidth, 100);
+                                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                
+                                // Check if need new page for image
+                                if (yOffset + imgHeight > pageHeight - margin) {
+                                    pdf.addPage();
+                                    yOffset = margin;
+                                }
+                                
+                                pdf.addImage(imgData, 'JPEG', margin, yOffset, imgWidth, imgHeight);
+                                yOffset += imgHeight + 5;
+                                
+                                // Look for metadata in parent message
+                                const metadataDiv = imgEl.closest('.message')?.querySelector('div[style*="background: rgba(76, 175, 80"]');
+                                if (metadataDiv) {
+                                    const metadataText = metadataDiv.textContent || '';
+                                    // Clean up metadata text
+                                    const cleanMetadata = metadataText
+                                        .replace(/\s+/g, ' ')
+                                        .replace(/📝|❌|🖼️|🎲|💾/g, '')
+                                        .trim();
+                                    
+                                    if (cleanMetadata) {
+                                        const metadataData = await addTextAsImage('⚙️ ' + cleanMetadata, 9, false, 0, 0, maxWidth);
+                                        
+                                        // Check pagination
+                                        if (yOffset + metadataData.imgHeight > pageHeight - margin) {
+                                            pdf.addPage();
+                                            yOffset = margin;
+                                        }
+                                        
+                                        pdf.addImage(metadataData.imgData, 'PNG', margin, yOffset, metadataData.imgWidth, metadataData.imgHeight);
+                                        yOffset += metadataData.imgHeight + 5;
+                                    }
+                                }
+                            } catch (imgError) {
+                                console.warn('Cannot add image to PDF:', imgError);
+                                const placeholderData = await addTextAsImage('[Hình ảnh]', 11, false, 0, 0, maxWidth);
+                                pdf.addImage(placeholderData.imgData, 'PNG', margin, yOffset, placeholderData.imgWidth, placeholderData.imgHeight);
+                                yOffset += placeholderData.imgHeight + 3;
+                            }
+                        }
+                    }
+                    
+                    // Separator
+                    yOffset += 5;
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.line(margin, yOffset, pageWidth - margin, yOffset);
+                    yOffset += 10;
+                }
+                
+                // Save PDF
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                pdf.save(`chat-history-${timestamp}.pdf`);
+                
+                // Remove loading message
+                chatContainer.removeChild(loadingMsg);
+                
+            } catch (error) {
+                console.error('Error creating PDF:', error);
+                chatContainer.removeChild(loadingMsg);
+                alert('❌ Lỗi khi tạo PDF: ' + error.message);
+            }
         }
         
         downloadBtn.addEventListener('click', downloadChat);
+        
+        // ============================================================================
+        // MEMORY / AI LEARNING FUNCTIONS
+        // ============================================================================
+        
+        // Toggle memory panel
+        memoryBtn.addEventListener('click', function() {
+            const isVisible = memoryPanel.style.display !== 'none';
+            memoryPanel.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                loadMemories();
+            }
+        });
+        
+        // Load all memories
+        async function loadMemories() {
+            try {
+                const response = await fetch('/api/memory/list');
+                const data = await response.json();
+                
+                if (data.memories) {
+                    allMemories = data.memories;
+                    renderMemoryList();
+                }
+            } catch (error) {
+                console.error('Error loading memories:', error);
+                alert('Lỗi khi tải memories: ' + error.message);
+            }
+        }
+        
+        // Render memory list
+        function renderMemoryList() {
+            if (allMemories.length === 0) {
+                memoryListEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Chưa có bài học nào được lưu.</div>';
+                return;
+            }
+            
+            memoryListEl.innerHTML = allMemories.map(mem => {
+                const isChecked = selectedMemories.has(mem.id);
+                const preview = mem.content.substring(0, 100) + (mem.content.length > 100 ? '...' : '');
+                
+                return `
+                    <div class="memory-item">
+                        <input type="checkbox" 
+                               id="mem-${mem.id}" 
+                               ${isChecked ? 'checked' : ''}
+                               onchange="toggleMemory('${mem.id}')">
+                        <div class="memory-item-content">
+                            <div class="memory-item-title">${mem.title}</div>
+                            <div class="memory-item-preview">${preview}</div>
+                        </div>
+                        <div class="memory-item-actions">
+                            <button class="memory-delete-btn" onclick="deleteMemory('${mem.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Toggle memory selection
+        function toggleMemory(memoryId) {
+            if (selectedMemories.has(memoryId)) {
+                selectedMemories.delete(memoryId);
+            } else {
+                selectedMemories.add(memoryId);
+            }
+            console.log('Selected memories:', Array.from(selectedMemories));
+        }
+        
+        // Save current chat as memory
+        saveMemoryBtn.addEventListener('click', async function() {
+            // Get all messages from chat
+            const messages = Array.from(chatContainer.children);
+            if (messages.length === 0) {
+                alert('Không có nội dung để lưu!');
+                return;
+            }
+            
+            // Build content and collect images
+            let content = '';
+            const images = [];
+            
+            messages.forEach(msg => {
+                const isUser = msg.classList.contains('user');
+                const textEl = msg.querySelector('.message-text');
+                
+                // Add text content
+                if (textEl) {
+                    const text = textEl.textContent || '';
+                    content += `${isUser ? 'User' : 'AI'}: ${text}\n\n`;
+                }
+                
+                // Collect images - search in all child elements
+                const allImages = msg.querySelectorAll('img');
+                allImages.forEach(imageEl => {
+                    if (imageEl && imageEl.src) {
+                        const imgSrc = imageEl.src;
+                        console.log('Found image:', imgSrc);
+                        
+                        if (imgSrc.startsWith('http') && imgSrc.includes('/storage/images/')) {
+                            // Server-stored image
+                            const relativePath = imgSrc.substring(imgSrc.indexOf('/storage/images/'));
+                            images.push({ url: relativePath });
+                            console.log('Added server image:', relativePath);
+                        } else if (imgSrc.startsWith('data:image')) {
+                            // Base64 image
+                            images.push({ base64: imgSrc });
+                            console.log('Added base64 image');
+                        }
+                    }
+                });
+            });
+            
+            console.log('Total images collected:', images.length);
+            console.log('Images array:', images);
+            
+            // Show loading
+            const loadingMsg = addMessage('🤖 Đang tạo tiêu đề...', false, 'System', 'casual');
+            
+            try {
+                // Ask AI to generate title
+                const model = modelSelect.value;
+                const titlePrompt = `Based on this conversation, generate a short, descriptive title (max 30 characters, in Vietnamese).
+
+Conversation:
+${content.substring(0, 500)}...
+
+Return ONLY the title, nothing else.`;
+
+                const titleResponse = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: titlePrompt,
+                        model: model,
+                        context: 'casual',
+                        deep_thinking: false,
+                        tools: []
+                    })
+                });
+                
+                const titleData = await titleResponse.json();
+                let title = titleData.response.trim();
+                
+                // Clean up title (remove quotes, limit length)
+                title = title.replace(/["']/g, '').substring(0, 30);
+                
+                // Remove loading message safely
+                if (loadingMsg && loadingMsg.parentNode === chatContainer) {
+                    chatContainer.removeChild(loadingMsg);
+                }
+                
+                // Show confirmation dialog with AI-generated title
+                const confirmMsg = images.length > 0 
+                    ? `Tiêu đề AI tạo: "${title}"\n\nBài học có ${images.length} ảnh.\nẢnh sẽ được lưu vào:\n./ChatBot/data/memory/${title}_[timestamp]/image_gen/\n\nTiếp tục?`
+                    : `Tiêu đề AI tạo: "${title}"\n\nLưu bài học này?`;
+                    
+                if (!confirm(confirmMsg)) return;
+                
+                // Auto-generate tags from content (simple keyword extraction)
+                const tags = [];
+                const contentLower = content.toLowerCase();
+                const commonKeywords = ['python', 'javascript', 'java', 'react', 'vue', 'angular', 'node', 'api', 'database', 'sql', 'docker', 'git', 'linux', 'windows', 'programming', 'code', 'bug', 'error', 'fix', 'anime', 'art', 'design', 'image', 'photo'];
+                commonKeywords.forEach(keyword => {
+                    if (contentLower.includes(keyword)) {
+                        tags.push(keyword);
+                    }
+                });
+                
+                // Save to backend
+                const saveResponse = await fetch('/api/memory/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        title: title,
+                        content: content,
+                        tags: tags.slice(0, 5), // Max 5 tags
+                        images: images
+                    })
+                });
+                
+                const saveData = await saveResponse.json();
+                
+                if (saveData.success) {
+                    const imgMsg = images.length > 0 ? ` (với ${images.length} ảnh)` : '';
+                    alert('✅ Đã lưu bài học thành công' + imgMsg + '!\n\nTiêu đề: ' + title);
+                    loadMemories(); // Reload list
+                } else {
+                    alert('❌ Lỗi: ' + (saveData.error || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                console.error('Error saving memory:', error);
+                // Remove loading message safely if it exists
+                if (loadingMsg && loadingMsg.parentNode === chatContainer) {
+                    chatContainer.removeChild(loadingMsg);
+                }
+                alert('❌ Lỗi khi lưu: ' + error.message);
+            }
+        });
+        
+        // Delete memory
+        async function deleteMemory(memoryId) {
+            console.log('Attempting to delete memory:', memoryId);
+            
+            if (!confirm('Bạn có chắc muốn xóa bài học này?')) return;
+            
+            try {
+                console.log('Sending DELETE request to:', `/api/memory/delete/${memoryId}`);
+                
+                const response = await fetch(`/api/memory/delete/${memoryId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                console.log('Delete response:', data);
+                
+                if (data.success) {
+                    selectedMemories.delete(memoryId); // Remove from selected
+                    loadMemories(); // Reload list
+                    alert('✅ Đã xóa bài học thành công!');
+                } else {
+                    alert('❌ Lỗi: ' + (data.error || 'Unknown error'));
+                    console.error('Delete failed:', data);
+                }
+            } catch (error) {
+                console.error('Error deleting memory:', error);
+                alert('❌ Lỗi khi xóa: ' + error.message);
+            }
+        }
+        
+        // Load memories on page load
+        loadMemories();
         
         async function sendMessage() {
             const message = messageInput.value.trim();
@@ -1772,7 +2806,7 @@
                 return;
             }
             
-            // Build message with tools
+            // Build message with tools and files
             let fullMessage = message;
             
             // Add deep thinking instruction
@@ -1783,8 +2817,25 @@
             if (activeTools.size > 0) {
                 fullMessage += '\n\n[Tools: ' + Array.from(activeTools).join(', ') + ']';
             }
-            if (uploadedFile) {
-                fullMessage += `\n\n[File attached: ${uploadedFile.name}]`;
+            
+            // Add file information
+            if (uploadedFiles.length > 0) {
+                fullMessage += `\n\n[${uploadedFiles.length} file(s) attached: ${uploadedFiles.map(f => f.name).join(', ')}]`;
+                
+                // Read file contents (for text files)
+                for (let file of uploadedFiles) {
+                    if (file.type.includes('text') || file.name.endsWith('.txt') || 
+                        file.name.endsWith('.py') || file.name.endsWith('.js') || 
+                        file.name.endsWith('.html') || file.name.endsWith('.css') || 
+                        file.name.endsWith('.json')) {
+                        try {
+                            const content = await readFileAsText(file);
+                            fullMessage += `\n\n--- File: ${file.name} ---\n${content}\n--- End of ${file.name} ---\n`;
+                        } catch (err) {
+                            console.error('Error reading file:', err);
+                        }
+                    }
+                }
             }
             
             // Add user message
@@ -1810,7 +2861,8 @@
                         model: model,
                         context: context,
                         deep_thinking: deepThinking,
-                        tools: Array.from(activeTools)
+                        tools: Array.from(activeTools),
+                        memory_ids: Array.from(selectedMemories)  // Send selected memories
                     })
                 });
                 
@@ -1837,14 +2889,24 @@
                 sendBtn.disabled = false;
                 messageInput.focus();
                 
-                // Clear file if not using tools
+                // Clear files if not using tools
                 if (activeTools.size === 0) {
-                    uploadedFile = null;
+                    uploadedFiles = [];
+                    fileList.innerHTML = '';
                     fileInput.value = '';
-                    fileName.textContent = '';
                     conversationActive = false;
                 }
             }
+        }
+        
+        // Helper function to read file as text
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
         }
         
         async function clearHistory() {
@@ -1866,6 +2928,11 @@
                 googleSearchBtn.classList.remove('active');
                 githubBtn.classList.remove('active');
                 conversationActive = false;
+                
+                // Clear files
+                uploadedFiles = [];
+                fileList.innerHTML = '';
+                fileInput.value = '';
                 
                 // Update current session
                 if (currentChatId && chatSessions[currentChatId]) {
@@ -2174,10 +3241,24 @@
             sendBtn.disabled = true;
             
             try {
+                // Get selected memories for context
+                let memoryContext = '';
+                if (selectedMemories.size > 0) {
+                    const memoryIds = Array.from(selectedMemories);
+                    const memories = allMemories.filter(m => memoryIds.includes(m.id));
+                    
+                    if (memories.length > 0) {
+                        memoryContext = '\n\n**Kiến thức có sẵn (bài học đã lưu):**\n';
+                        memories.forEach(mem => {
+                            memoryContext += `- ${mem.title}: ${mem.content.substring(0, 200)}...\n`;
+                        });
+                    }
+                }
+                
                 // Step 1: Get AI to generate improved prompt
                 addMessage('🤔 Đang phân tích và tạo prompt cho ảnh...', false, model, context, formatTimestamp(new Date()));
                 
-                let promptInstruction = `Based on this user request: "${userMessage}"
+                let promptInstruction = `Based on this user request: "${userMessage}"${memoryContext}
 
 Generate an optimized Stable Diffusion prompt following these rules:
 1. Write in English, comma-separated tags
@@ -2185,6 +3266,7 @@ Generate an optimized Stable Diffusion prompt following these rules:
 3. Be descriptive about: subject, style, lighting, composition, colors
 4. Keep it concise but detailed (max 100 words)
 5. Focus on visual elements only
+${memoryContext ? '6. Use knowledge from the lessons above to create more accurate and detailed prompt' : ''}
 
 ${deepThinking ? 'Use deep thinking to create the most creative and detailed prompt possible.' : ''}
 
@@ -2198,7 +3280,8 @@ Return ONLY the prompt, nothing else.`;
                         model: model,
                         context: context,
                         deep_thinking: deepThinking,
-                        tools: []
+                        tools: [],
+                        memory_ids: Array.from(selectedMemories)
                     })
                 });
                 
@@ -2208,15 +3291,39 @@ Return ONLY the prompt, nothing else.`;
                 // Show generated prompt
                 addMessage(`✨ **Prompt được tạo:**\n\`\`\`\n${generatedPrompt}\n\`\`\``, false, model, context, formatTimestamp(new Date()));
                 
-                // Step 2: Generate negative prompts (random)
-                const negativePrompts = [
-                    "bad quality, blurry, distorted, ugly, worst quality, r18, nsfw, nude, explicit, sexual",
-                    "low quality, bad anatomy, bad hands, r18, nsfw, explicit content, nude, sexual, adult",
-                    "worst quality, lowres, r18, nsfw, porn, hentai, explicit, nude, sexual content",
-                    "cropped, out of frame, r18, nsfw, nude, sexual, explicit, adult content, porn",
-                    "grainy, jpeg artifacts, r18, nsfw, explicit, sexual, nude, adult, porn, hentai"
-                ];
-                const negativePrompt = negativePrompts[Math.floor(Math.random() * negativePrompts.length)];
+                // Step 2: Generate negative prompt with AI
+                addMessage('🚫 Đang tạo negative prompt...', false, model, context, formatTimestamp(new Date()));
+                
+                const negativeInstruction = `Based on this positive prompt, generate a detailed negative prompt to avoid common issues in AI image generation:
+
+Positive prompt: "${generatedPrompt}"
+
+Create a negative prompt that includes:
+1. Common quality issues (bad quality, blurry, distorted, ugly, worst quality)
+2. Anatomy issues (bad anatomy, bad hands, missing fingers, extra digit, fewer digits)
+3. Unwanted content (r18, nsfw, nude, explicit, sexual, porn)
+4. Technical issues (lowres, jpeg artifacts, cropped, out of frame)
+5. Other common problems relevant to this image
+
+Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
+
+                const negativeResponse = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: negativeInstruction,
+                        model: model,
+                        context: context,
+                        deep_thinking: false,
+                        tools: []
+                    })
+                });
+                
+                const negativeData = await negativeResponse.json();
+                const negativePrompt = negativeData.response.trim();
+                
+                // Show generated negative prompt
+                addMessage(`🚫 **Negative prompt được tạo:**\n\`\`\`\n${negativePrompt}\n\`\`\``, false, model, context, formatTimestamp(new Date()));
                 
                 // Step 3: Change to AnythingV4 model
                 addMessage('⚙️ Đang chuẩn bị model AnythingV4...', false, model, context, formatTimestamp(new Date()));
@@ -2237,9 +3344,9 @@ Return ONLY the prompt, nothing else.`;
                 const imageParams = {
                     prompt: generatedPrompt,
                     negative_prompt: negativePrompt,
-                    width: 1024,
-                    height: 1280,
-                    steps: 10,
+                    width: 768,
+                    height: 768,
+                    steps: 15,
                     cfg_scale: 8,
                     sampler_name: 'DPM++ 2M Karras',
                     seed: -1,
@@ -2259,36 +3366,99 @@ Return ONLY the prompt, nothing else.`;
                 console.log('Image response:', imageData);
                 
                 if (imageData.success && imageData.images && imageData.images.length > 0) {
-                    // Display image in chat
-                    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                    const imageHtml = `
-                        <div class="message assistant-message">
-                            <div class="message-header">
-                                <strong>🎨 Ảnh được tạo thành công!</strong>
-                                <span class="timestamp">${timestamp}</span>
-                            </div>
-                            <div class="message-content">
-                                <img src="data:image/png;base64,${imageData.images[0]}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
-                                <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                    <strong>📝 Prompt:</strong> ${generatedPrompt}<br>
-                                    <strong>❌ Negative:</strong> ${negativePrompt}<br>
-                                    <strong>🖼️ Kích thước:</strong> 1024x1280 | <strong>Steps:</strong> 10 | <strong>CFG:</strong> 8<br>
-                                    <strong>🎲 Sampler:</strong> DPM++ 2M Karras | <strong>🤖 Model:</strong> AnythingV4_v45
+                    // Save image to server first
+                    try {
+                        const saveResponse = await fetch('/api/save-image', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                image: imageData.images[0],
+                                metadata: {
+                                    prompt: generatedPrompt,
+                                    negative_prompt: negativePrompt,
+                                    width: 768,
+                                    height: 768,
+                                    steps: 15,
+                                    cfg_scale: 8,
+                                    sampler_name: 'DPM++ 2M Karras',
+                                    model: 'AnythingV4_v45',
+                                    source: 'text2image_tool'
+                                }
+                            })
+                        });
+                        
+                        const saveData = await saveResponse.json();
+                        console.log('Image saved:', saveData);
+                        
+                        // Use server URL for display
+                        const imageUrl = saveData.success ? saveData.url : `data:image/png;base64,${imageData.images[0]}`;
+                        
+                        // Display image in chat
+                        const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                        const imageHtml = `
+                            <div class="message assistant-message">
+                                <div class="message-header">
+                                    <strong>🎨 Ảnh được tạo thành công!</strong>
+                                    <span class="timestamp">${timestamp}</span>
+                                </div>
+                                <div class="message-content">
+                                    <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;" loading="lazy">
+                                    <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                        <strong>📝 Prompt:</strong> ${generatedPrompt}<br>
+                                        <strong>❌ Negative:</strong> ${negativePrompt}<br>
+                                        <strong>🖼️ Kích thước:</strong> 768x768 | <strong>Steps:</strong> 15 | <strong>CFG:</strong> 8<br>
+                                        <strong>🎲 Sampler:</strong> DPM++ 2M Karras | <strong>🤖 Model:</strong> AnythingV4_v45
+                                        ${saveData.success ? `<br><strong>💾 Saved:</strong> ${saveData.filename}` : ''}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                    
-                    const chatMessages = document.getElementById('chatContainer');
-                    if (chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', imageHtml);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        `;
                         
-                        // Save to current chat session immediately
-                        if (currentChatId && chatSessions[currentChatId]) {
-                            chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
-                            chatSessions[currentChatId].updatedAt = new Date();
-                            saveSessions();
+                        const chatMessages = document.getElementById('chatContainer');
+                        if (chatMessages) {
+                            chatMessages.insertAdjacentHTML('beforeend', imageHtml);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            
+                            // Save to current chat session immediately
+                            if (currentChatId && chatSessions[currentChatId]) {
+                                chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
+                                chatSessions[currentChatId].updatedAt = new Date();
+                                saveSessions();
+                            }
+                        }
+                    } catch (saveError) {
+                        console.error('Error saving image:', saveError);
+                        // Fallback to base64 if save fails
+                        const imageUrl = `data:image/png;base64,${imageData.images[0]}`;
+                        const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                        const imageHtml = `
+                            <div class="message assistant-message">
+                                <div class="message-header">
+                                    <strong>🎨 Ảnh được tạo thành công!</strong>
+                                    <span class="timestamp">${timestamp}</span>
+                                </div>
+                                <div class="message-content">
+                                    <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
+                                    <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                        <strong>📝 Prompt:</strong> ${generatedPrompt}<br>
+                                        <strong>❌ Negative:</strong> ${negativePrompt}<br>
+                                        <strong>🖼️ Kích thước:</strong> 768x768 | <strong>Steps:</strong> 15 | <strong>CFG:</strong> 8<br>
+                                        <strong>🎲 Sampler:</strong> DPM++ 2M Karras | <strong>🤖 Model:</strong> AnythingV4_v45
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        const chatMessages = document.getElementById('chatContainer');
+                        if (chatMessages) {
+                            chatMessages.insertAdjacentHTML('beforeend', imageHtml);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            
+                            if (currentChatId && chatSessions[currentChatId]) {
+                                chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
+                                chatSessions[currentChatId].updatedAt = new Date();
+                                saveSessions();
+                            }
                         }
                     }
                     
@@ -2440,43 +3610,80 @@ Return ONLY the prompt, nothing else.`;
                 console.log('Response data:', data);
                 
                 if (data.success && data.images && data.images.length > 0) {
-                    // Display image
+                    // Save image to server first
                     currentGeneratedImage = data.images[0];
-                    const img = document.getElementById('generatedImage');
-                    img.src = 'data:image/png;base64,' + currentGeneratedImage;
-                    container.style.display = 'block';
                     
-                    // Auto-add to chat conversation
-                    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                    const imageHtml = `
-                        <div class="message assistant-message">
-                            <div class="message-header">
-                                <strong>🎨 Ảnh được tạo</strong>
-                                <span class="timestamp">${timestamp}</span>
-                            </div>
-                            <div class="message-content">
-                                <img src="data:image/png;base64,${currentGeneratedImage}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
-                                <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                    <strong>Prompt:</strong> ${params.prompt}<br>
-                                    ${params.negative_prompt ? `<strong>Negative:</strong> ${params.negative_prompt}<br>` : ''}
-                                    <strong>Model:</strong> ${params.model || 'Default'}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Add to chat - use correct element ID
-                    const chatMessages = document.getElementById('chatContainer');
-                    if (chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', imageHtml);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    try {
+                        const saveResponse = await fetch('/api/save-image', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                image: currentGeneratedImage,
+                                metadata: {
+                                    prompt: params.prompt,
+                                    negative_prompt: params.negative_prompt,
+                                    width: params.width,
+                                    height: params.height,
+                                    steps: params.steps,
+                                    cfg_scale: params.cfg_scale,
+                                    sampler_name: params.sampler_name
+                                }
+                            })
+                        });
                         
-                        // Save to current chat session immediately
-                        if (currentChatId && chatSessions[currentChatId]) {
-                            chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
-                            chatSessions[currentChatId].updatedAt = new Date();
-                            saveSessions();
+                        const saveData = await saveResponse.json();
+                        console.log('Image saved:', saveData);
+                        
+                        if (saveData.success) {
+                            // Use server URL instead of base64
+                            const imageUrl = saveData.url;
+                            
+                            // Display image in modal
+                            const img = document.getElementById('generatedImage');
+                            img.src = imageUrl;
+                            container.style.display = 'block';
+                            
+                            // Auto-add to chat conversation with server URL
+                            const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                            const imageHtml = `
+                                <div class="message assistant-message">
+                                    <div class="message-header">
+                                        <strong>🎨 Ảnh được tạo</strong>
+                                        <span class="timestamp">${timestamp}</span>
+                                    </div>
+                                    <div class="message-content">
+                                        <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;" loading="lazy">
+                                        <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                            <strong>📝 Prompt:</strong> ${params.prompt}<br>
+                                            ${params.negative_prompt ? `<strong>❌ Negative:</strong> ${params.negative_prompt}<br>` : ''}
+                                            <strong>🖼️ Size:</strong> ${params.width}x${params.height} | <strong>Steps:</strong> ${params.steps} | <strong>CFG:</strong> ${params.cfg_scale}<br>
+                                            <strong>🎲 Sampler:</strong> ${params.sampler_name}<br>
+                                            <strong>💾 Saved:</strong> ${saveData.filename}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Add to chat
+                            const chatMessages = document.getElementById('chatContainer');
+                            if (chatMessages) {
+                                chatMessages.insertAdjacentHTML('beforeend', imageHtml);
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                                
+                                // Save to current chat session immediately
+                                if (currentChatId && chatSessions[currentChatId]) {
+                                    chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
+                                    chatSessions[currentChatId].updatedAt = new Date();
+                                    saveSessions();
+                                }
+                            }
                         }
+                    } catch (saveError) {
+                        console.error('Error saving image to server:', saveError);
+                        // Fallback: Use base64 if save fails
+                        const img = document.getElementById('generatedImage');
+                        img.src = 'data:image/png;base64,' + currentGeneratedImage;
+                        container.style.display = 'block';
                     }
                     
                     btn.textContent = '✅ Ảnh đã tạo xong!';
