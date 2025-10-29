@@ -1,6 +1,6 @@
 """
 AI ChatBot Agent - Hỗ trợ tâm lý, tâm sự và giải pháp đời sống
-Sử dụng Gemini, DeepSeek, và OpenAI
+Sử dụng Gemini, DeepSeek, OpenAI, Qwen, BloomVN và Local Models
 """
 
 import os
@@ -13,19 +13,64 @@ import uuid
 import base64
 import io
 from PIL import Image
+import requests
+import logging
+import json
+from pathlib import Path
+import shutil
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Enable werkzeug logging for request details
+werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger.setLevel(logging.INFO)
 
 # Load environment variables
 load_dotenv()
 
-# Initialize Flask app
-app = Flask(__name__)
+# Import local model loader
+try:
+    from src.utils.local_model_loader import model_loader
+    LOCALMODELS_AVAILABLE = True
+    logger.info("✅ Local model loader imported successfully")
+except Exception as e:
+    LOCALMODELS_AVAILABLE = False
+    logger.warning(f"⚠️ Local models not available: {e}")
+
+# Initialize Flask app with static folder
+app = Flask(__name__, 
+            static_folder='static',
+            static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
+
+# Memory storage path
+MEMORY_DIR = Path(__file__).parent / 'data' / 'memory'
+MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+
+# Image storage path
+IMAGE_STORAGE_DIR = Path(__file__).parent / 'Storage' / 'Image_Gen'
+IMAGE_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configure API keys
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY_1')
 GEMINI_API_KEY_2 = os.getenv('GEMINI_API_KEY_2')
+QWEN_API_KEY = os.getenv('QWEN_API_KEY')
+HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
+
+# Google Search API
+GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1')
+GOOGLE_SEARCH_API_KEY_2 = os.getenv('GOOGLE_SEARCH_API_KEY_2')
+GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
+
+# GitHub API
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 # Configure Gemini - try both keys
 try:
@@ -73,7 +118,7 @@ class ChatbotAgent:
         self.conversation_history = []
         self.current_model = 'gemini'  # Default model
         
-    def chat_with_gemini(self, message, context='casual', deep_thinking=False):
+    def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None):
         """Chat using Google Gemini"""
         try:
             # Use gemini-2.0-flash (newest stable model)
@@ -84,10 +129,35 @@ class ChatbotAgent:
             if deep_thinking:
                 system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
             
+            # Add memories to system prompt
+            if memories and len(memories) > 0:
+                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                for mem in memories:
+                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+            
             # Build conversation context
             conversation = f"{system_prompt}\n\n"
-            for hist in self.conversation_history[-5:]:  # Last 5 messages
-                conversation += f"User: {hist['user']}\nAssistant: {hist['assistant']}\n\n"
+            
+            # Use provided history or conversation history
+            history_to_use = history if history is not None else self.conversation_history[-5:]
+            
+            if history:
+                # Use provided history (from edit feature)
+                for hist in history:
+                    role = hist.get('role', 'user')
+                    content = hist.get('content', '')
+                    if role == 'user':
+                        conversation += f"User: {content}\n"
+                    else:
+                        conversation += f"Assistant: {content}\n"
+                conversation += "\n"
+            else:
+                # Use conversation history
+                for hist in history_to_use:
+                    conversation += f"User: {hist['user']}\nAssistant: {hist['assistant']}\n\n"
+            
             conversation += f"User: {message}\nAssistant:"
             
             response = model.generate_content(conversation)
@@ -96,7 +166,7 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi Gemini: {str(e)}"
     
-    def chat_with_openai(self, message, context='casual', deep_thinking=False):
+    def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None):
         """Chat using OpenAI"""
         try:
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
@@ -106,12 +176,28 @@ class ChatbotAgent:
             if deep_thinking:
                 system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
             
+            # Add memories to system prompt
+            if memories and len(memories) > 0:
+                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                for mem in memories:
+                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+            
             messages = [{"role": "system", "content": system_prompt}]
             
-            # Add conversation history
-            for hist in self.conversation_history[-5:]:
-                messages.append({"role": "user", "content": hist['user']})
-                messages.append({"role": "assistant", "content": hist['assistant']})
+            # Use provided history or conversation history
+            if history:
+                # Use provided history (from edit feature)
+                for hist in history:
+                    role = hist.get('role', 'user')
+                    content = hist.get('content', '')
+                    messages.append({"role": role, "content": content})
+            else:
+                # Add conversation history
+                for hist in self.conversation_history[-5:]:
+                    messages.append({"role": "user", "content": hist['user']})
+                    messages.append({"role": "assistant", "content": hist['assistant']})
             
             messages.append({"role": "user", "content": message})
             
@@ -127,7 +213,7 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi OpenAI: {str(e)}"
     
-    def chat_with_deepseek(self, message, context='casual', deep_thinking=False):
+    def chat_with_deepseek(self, message, context='casual', deep_thinking=False, history=None, memories=None):
         """Chat using DeepSeek (via OpenAI compatible API)"""
         try:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
@@ -135,6 +221,14 @@ class ChatbotAgent:
             # Add deep thinking instruction
             if deep_thinking:
                 system_prompt += "\n\nIMPORTANT: Analyze deeply with comprehensive reasoning."
+            
+            # Add memories to system prompt
+            if memories and len(memories) > 0:
+                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                for mem in memories:
+                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
             
             # DeepSeek uses OpenAI compatible API
             client = openai.OpenAI(
@@ -144,10 +238,18 @@ class ChatbotAgent:
             
             messages = [{"role": "system", "content": system_prompt}]
             
-            # Add conversation history
-            for hist in self.conversation_history[-5:]:
-                messages.append({"role": "user", "content": hist['user']})
-                messages.append({"role": "assistant", "content": hist['assistant']})
+            # Use provided history or conversation history
+            if history:
+                # Use provided history (from edit feature)
+                for hist in history:
+                    role = hist.get('role', 'user')
+                    content = hist.get('content', '')
+                    messages.append({"role": role, "content": content})
+            else:
+                # Add conversation history
+                for hist in self.conversation_history[-5:]:
+                    messages.append({"role": "user", "content": hist['user']})
+                    messages.append({"role": "assistant", "content": hist['assistant']})
             
             messages.append({"role": "user", "content": message})
             
@@ -163,26 +265,186 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi DeepSeek: {str(e)}"
     
-    def chat(self, message, model='gemini', context='casual', deep_thinking=False):
+    def chat_with_qwen(self, message, context='casual', deep_thinking=False):
+        """Chat using Qwen 1.5b"""
+        try:
+            system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            if not QWEN_API_KEY:
+                return "Lỗi: Chưa cấu hình QWEN_API_KEY. Vui lòng thêm API key vào file .env"
+            
+            # Use OpenAI-compatible API for Qwen (Alibaba Cloud DashScope)
+            headers = {
+                "Authorization": f"Bearer {QWEN_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Add conversation history
+            for hist in self.conversation_history[-5:]:
+                messages.append({"role": "user", "content": hist['user']})
+                messages.append({"role": "assistant", "content": hist['assistant']})
+            
+            messages.append({"role": "user", "content": message})
+            
+            data = {
+                "model": "qwen-turbo",  # or "qwen-plus", "qwen-max"
+                "messages": messages,
+                "temperature": 0.7 if not deep_thinking else 0.5,
+                "max_tokens": 2000 if deep_thinking else 1000
+            }
+            
+            response = requests.post(
+                "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content']
+            else:
+                return f"Lỗi Qwen API: {response.status_code} - {response.text}"
+            
+        except Exception as e:
+            return f"Lỗi Qwen: {str(e)}"
+    
+    def chat_with_bloomvn(self, message, context='casual', deep_thinking=False):
+        """Chat using BloomVN-8B (Hugging Face Inference API)"""
+        try:
+            system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            if not HUGGINGFACE_API_KEY:
+                return "Lỗi: Chưa cấu hình HUGGINGFACE_API_KEY. Vui lòng thêm API key vào file .env"
+            
+            # Use Hugging Face Inference API
+            headers = {
+                "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            
+            # Build conversation text
+            conversation = f"{system_prompt}\n\n"
+            for hist in self.conversation_history[-3:]:  # Use 3 for smaller context
+                conversation += f"User: {hist['user']}\nAssistant: {hist['assistant']}\n\n"
+            conversation += f"User: {message}\nAssistant:"
+            
+            data = {
+                "inputs": conversation,
+                "parameters": {
+                    "max_new_tokens": 2000 if deep_thinking else 1000,
+                    "temperature": 0.7 if not deep_thinking else 0.5,
+                    "top_p": 0.9,
+                    "do_sample": True,
+                    "return_full_text": False
+                }
+            }
+            
+            response = requests.post(
+                "https://api-inference.huggingface.co/models/BlossomsAI/BloomVN-8B-chat",
+                headers=headers,
+                json=data,
+                timeout=60  # BloomVN có thể chậm hơn
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    return result[0].get('generated_text', 'Không nhận được phản hồi')
+                elif isinstance(result, dict):
+                    return result.get('generated_text', 'Không nhận được phản hồi')
+                else:
+                    return str(result)
+            elif response.status_code == 503:
+                return "⏳ Model BloomVN đang khởi động (loading), vui lòng thử lại sau 20-30 giây."
+            else:
+                return f"Lỗi BloomVN API: {response.status_code} - {response.text}"
+            
+        except Exception as e:
+            return f"Lỗi BloomVN: {str(e)}"
+    
+    def chat_with_local_model(self, message, model, context='casual', deep_thinking=False):
+        """Chat with local models (BloomVN, Qwen1.5, Qwen2.5)"""
+        if not LOCALMODELS_AVAILABLE:
+            return "❌ Local models không khả dụng. Vui lòng cài đặt: pip install torch transformers accelerate"
+        
+        try:
+            # Map model names to model keys
+            model_map = {
+                'bloomvn-local': 'bloomvn',
+                'qwen1.5-local': 'qwen1.5',
+                'qwen2.5-local': 'qwen2.5'
+            }
+            
+            model_key = model_map.get(model)
+            if not model_key:
+                return f"Model không được hỗ trợ: {model}"
+            
+            # Get system prompt
+            system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            # Build messages array
+            messages = []
+            
+            # Add conversation history
+            for hist in self.conversation_history[-5:]:
+                messages.append({'role': 'user', 'content': hist['user']})
+                messages.append({'role': 'assistant', 'content': hist['assistant']})
+            
+            # Add current message
+            messages.append({'role': 'user', 'content': message})
+            
+            # Set parameters
+            temperature = 0.5 if deep_thinking else 0.7
+            max_tokens = 2000 if deep_thinking else 1000
+            
+            # Generate response
+            logger.info(f"Generating with local model: {model_key}")
+            response = model_loader.generate(
+                model_key=model_key,
+                messages=messages,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            
+            return response
+            
+        except FileNotFoundError as e:
+            return f"❌ Model chưa được download. Vui lòng kiểm tra thư mục models/: {str(e)}"
+        except Exception as e:
+            logger.error(f"Local model error ({model}): {e}")
+            return f"❌ Lỗi local model: {str(e)}"
+    
+    def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None):
         """Main chat method"""
         if model == 'gemini':
-            response = self.chat_with_gemini(message, context, deep_thinking)
+            response = self.chat_with_gemini(message, context, deep_thinking, history, memories)
         elif model == 'openai':
-            response = self.chat_with_openai(message, context, deep_thinking)
+            response = self.chat_with_openai(message, context, deep_thinking, history, memories)
         elif model == 'deepseek':
-            response = self.chat_with_deepseek(message, context, deep_thinking)
+            response = self.chat_with_deepseek(message, context, deep_thinking, history, memories)
+        elif model == 'qwen':
+            response = self.chat_with_qwen(message, context, deep_thinking)
+        elif model == 'bloomvn':
+            response = self.chat_with_bloomvn(message, context, deep_thinking)
+        elif model in ['bloomvn-local', 'qwen1.5-local', 'qwen2.5-local']:
+            response = self.chat_with_local_model(message, model, context, deep_thinking)
         else:
             response = "Model không được hỗ trợ."
         
-        # Save to conversation history
-        self.conversation_history.append({
-            'user': message,
-            'assistant': response,
-            'timestamp': datetime.now().isoformat(),
-            'model': model,
-            'context': context,
-            'deep_thinking': deep_thinking
-        })
+        # Only save to conversation history if no custom history provided
+        if history is None:
+            self.conversation_history.append({
+                'user': message,
+                'assistant': response,
+                'timestamp': datetime.now().isoformat(),
+                'model': model,
+                'context': context,
+                'deep_thinking': deep_thinking
+            })
         
         return response
     
@@ -202,12 +464,145 @@ def get_chatbot(session_id):
     return chatbots[session_id]
 
 
+# ============================================================================
+# TOOL FUNCTIONS
+# ============================================================================
+
+def google_search_tool(query):
+    """Google Custom Search API"""
+    try:
+        import requests
+        
+        if not GOOGLE_SEARCH_API_KEY_1 or not GOOGLE_CSE_ID:
+            return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
+        
+        # Log config for debugging
+        logger.info(f"[GOOGLE SEARCH] API Key (first 10 chars): {GOOGLE_SEARCH_API_KEY_1[:10]}...")
+        logger.info(f"[GOOGLE SEARCH] CSE ID: {GOOGLE_CSE_ID}")
+        logger.info(f"[GOOGLE SEARCH] Query: {query}")
+        
+        url = "https://www.googleapis.com/customsearch/v1"
+        
+        # Try with first API key
+        params = {
+            'key': GOOGLE_SEARCH_API_KEY_1,
+            'cx': GOOGLE_CSE_ID,
+            'q': query,
+            'num': 5  # Number of results
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        
+        # Log full response for debugging
+        logger.info(f"[GOOGLE SEARCH] Response status: {response.status_code}")
+        if response.status_code != 200:
+            logger.error(f"[GOOGLE SEARCH] Response body: {response.text}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            results = []
+            
+            if 'items' in data:
+                for item in data['items'][:5]:
+                    title = item.get('title', 'No title')
+                    link = item.get('link', '')
+                    snippet = item.get('snippet', 'No description')
+                    results.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                
+                return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+            else:
+                return "Không tìm thấy kết quả nào."
+        elif response.status_code == 429:
+            # Quota exceeded, try second key
+            if GOOGLE_SEARCH_API_KEY_2:
+                params['key'] = GOOGLE_SEARCH_API_KEY_2
+                response = requests.get(url, params=params, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    results = []
+                    if 'items' in data:
+                        for item in data['items'][:5]:
+                            title = item.get('title', 'No title')
+                            link = item.get('link', '')
+                            snippet = item.get('snippet', 'No description')
+                            results.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                        return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+            return "❌ Đã hết quota Google Search API. Vui lòng thử lại sau."
+        else:
+            return f"❌ Lỗi Google Search API: {response.status_code}"
+    
+    except Exception as e:
+        logger.error(f"[GOOGLE SEARCH] Error: {e}")
+        return f"❌ Lỗi: {str(e)}"
+
+
+def github_search_tool(query):
+    """GitHub Repository Search"""
+    try:
+        import requests
+        
+        if not GITHUB_TOKEN:
+            return "❌ GitHub Token chưa được cấu hình. Vui lòng thêm GITHUB_TOKEN vào file .env"
+        
+        url = "https://api.github.com/search/repositories"
+        headers = {
+            'Authorization': f'token {GITHUB_TOKEN}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        params = {
+            'q': query,
+            'sort': 'stars',
+            'order': 'desc',
+            'per_page': 5
+        }
+        
+        logger.info(f"[GITHUB SEARCH] Query: {query}")
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            results = []
+            
+            if 'items' in data and len(data['items']) > 0:
+                for repo in data['items']:
+                    name = repo.get('full_name', 'Unknown')
+                    desc = repo.get('description', 'No description')
+                    stars = repo.get('stargazers_count', 0)
+                    url = repo.get('html_url', '')
+                    language = repo.get('language', 'N/A')
+                    
+                    results.append(f"**{name}** ⭐ {stars}\n{desc}\n💻 {language} | 🔗 {url}")
+                
+                return "🐙 **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
+            else:
+                return "Không tìm thấy repository nào."
+        else:
+            return f"❌ Lỗi GitHub API: {response.status_code}"
+    
+    except Exception as e:
+        logger.error(f"[GITHUB SEARCH] Error: {e}")
+        return f"❌ Lỗi: {str(e)}"
+
+
+# ============================================================================
+# ROUTES
+# ============================================================================
+
+
 @app.route('/')
 def index():
-    """Home page"""
+    """Home page - Original beautiful UI"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
     return render_template('index.html')
+
+
+@app.route('/new')
+def index_new():
+    """New Tailwind version (experimental)"""
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
+    return render_template('index_new.html')
 
 
 @app.route('/chat', methods=['POST'])
@@ -220,6 +615,8 @@ def chat():
         context = data.get('context', 'casual')
         deep_thinking = data.get('deep_thinking', False)
         tools = data.get('tools', [])
+        history = data.get('history', None)  # New parameter for edit feature
+        memory_ids = data.get('memory_ids', [])  # New parameter for AI learning
         
         if not message:
             return jsonify({'error': 'Tin nhắn trống'}), 400
@@ -227,7 +624,57 @@ def chat():
         session_id = session.get('session_id')
         chatbot = get_chatbot(session_id)
         
-        response = chatbot.chat(message, model, context, deep_thinking)
+        # Handle tools
+        tool_results = []
+        if tools and len(tools) > 0:
+            logger.info(f"[TOOLS] Active tools: {tools}")
+            
+            if 'google-search' in tools:
+                logger.info(f"[TOOLS] Running Google Search for: {message}")
+                search_result = google_search_tool(message)
+                tool_results.append(f"## 🔍 Google Search Results\n\n{search_result}")
+            
+            if 'github' in tools:
+                logger.info(f"[TOOLS] Running GitHub Search for: {message}")
+                github_result = github_search_tool(message)
+                tool_results.append(f"## 🐙 GitHub Search Results\n\n{github_result}")
+        
+        # If tools were used, return tool results
+        if tool_results:
+            combined_results = "\n\n---\n\n".join(tool_results)
+            return jsonify({
+                'response': combined_results,
+                'model': 'tools',
+                'context': context,
+                'deep_thinking': False,
+                'tools': tools,
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        # Load selected memories
+        memories = []
+        if memory_ids:
+            for mem_id in memory_ids:
+                memory_file = MEMORY_DIR / f"{mem_id}.json"
+                if memory_file.exists():
+                    try:
+                        with open(memory_file, 'r', encoding='utf-8') as f:
+                            memory = json.load(f)
+                            memories.append(memory)
+                    except Exception as e:
+                        logger.error(f"Error loading memory {mem_id}: {e}")
+        
+        # If history is provided, temporarily clear conversation history
+        # and use the provided history instead
+        if history:
+            # Save current history
+            original_history = chatbot.conversation_history.copy()
+            # Use provided history for context
+            response = chatbot.chat(message, model, context, deep_thinking, history, memories)
+            # Restore original history (since we don't want to save edit responses to history)
+            chatbot.conversation_history = original_history
+        else:
+            response = chatbot.chat(message, model, context, deep_thinking, None, memories)
         
         return jsonify({
             'response': response,
@@ -239,6 +686,7 @@ def chat():
         })
         
     except Exception as e:
+        logger.error(f"[CHAT] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -473,5 +921,440 @@ def sd_interrupt():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/local-models-status', methods=['GET'])
+def local_models_status():
+    """Check which local models are available and loaded"""
+    try:
+        if not LOCALMODELS_AVAILABLE:
+            return jsonify({
+                'available': False,
+                'error': 'Local models not available. Install: pip install torch transformers accelerate'
+            })
+        
+        status = model_loader.get_available_models()
+        
+        return jsonify({
+            'available': True,
+            'models': status
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/unload-model', methods=['POST'])
+def unload_model():
+    """Unload a local model to free memory"""
+    try:
+        if not LOCALMODELS_AVAILABLE:
+            return jsonify({'error': 'Local models not available'}), 400
+        
+        data = request.json
+        model_key = data.get('model_key')
+        
+        if not model_key:
+            return jsonify({'error': 'model_key required'}), 400
+        
+        model_loader.unload_model(model_key)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Model {model_key} unloaded'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# AI MEMORY / LEARNING ROUTES
+# ============================================================================
+
+@app.route('/api/memory/save', methods=['POST'])
+def save_memory():
+    """Save a conversation as a learning memory with images"""
+    try:
+        data = request.json
+        title = data.get('title', '')
+        content = data.get('content', '')
+        tags = data.get('tags', [])
+        images = data.get('images', [])  # Array of {url: str, base64: str}
+        
+        if not title or not content:
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        # Create memory object
+        memory_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # Sanitize title for folder name
+        safe_title = title[:30].replace('/', '-').replace('\\', '-')
+        folder_name = f"{safe_title}_{timestamp}"
+        
+        # Create memory folder structure
+        memory_folder = MEMORY_DIR / folder_name
+        memory_folder.mkdir(parents=True, exist_ok=True)
+        
+        image_folder = memory_folder / 'image_gen'
+        image_folder.mkdir(parents=True, exist_ok=True)
+        
+        # Save images
+        saved_images = []
+        for idx, img_data in enumerate(images):
+            try:
+                # Get image source (URL or base64)
+                img_url = img_data.get('url', '')
+                img_base64 = img_data.get('base64', '')
+                
+                if img_url and img_url.startswith('/storage/images/'):
+                    # Copy from existing storage
+                    source_filename = img_url.split('/')[-1]
+                    source_path = IMAGE_STORAGE_DIR / source_filename
+                    
+                    if source_path.exists():
+                        dest_filename = f"image_{idx + 1}_{source_filename}"
+                        dest_path = image_folder / dest_filename
+                        
+                        import shutil
+                        shutil.copy2(source_path, dest_path)
+                        saved_images.append(dest_filename)
+                        
+                        # Copy metadata if exists
+                        meta_source = source_path.with_suffix('.json')
+                        if meta_source.exists():
+                            meta_dest = dest_path.with_suffix('.json')
+                            shutil.copy2(meta_source, meta_dest)
+                            
+                elif img_base64:
+                    # Save base64 image
+                    if ',' in img_base64:
+                        img_base64 = img_base64.split(',')[1]
+                    
+                    image_bytes = base64.b64decode(img_base64)
+                    dest_filename = f"image_{idx + 1}.png"
+                    dest_path = image_folder / dest_filename
+                    
+                    with open(dest_path, 'wb') as f:
+                        f.write(image_bytes)
+                    
+                    saved_images.append(dest_filename)
+                    
+            except Exception as img_error:
+                logger.error(f"Error saving image {idx}: {img_error}")
+        
+        # Create memory object
+        memory = {
+            'id': memory_id,
+            'folder_name': folder_name,
+            'title': title,
+            'content': content,
+            'tags': tags,
+            'images': saved_images,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Save to JSON file
+        memory_file = memory_folder / 'memory.json'
+        with open(memory_file, 'w', encoding='utf-8') as f:
+            json.dump(memory, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'memory': memory,
+            'message': f'Saved with {len(saved_images)} images'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error saving memory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/memory/list', methods=['GET'])
+def list_memories():
+    """List all saved memories (supports both old and new format)"""
+    try:
+        memories = []
+        
+        # Check for old format (direct .json files)
+        for memory_file in MEMORY_DIR.glob('*.json'):
+            try:
+                with open(memory_file, 'r', encoding='utf-8') as f:
+                    memory = json.load(f)
+                    memories.append(memory)
+            except Exception as e:
+                logger.error(f"Error loading memory {memory_file}: {e}")
+        
+        # Check for new format (folders with memory.json)
+        for memory_folder in MEMORY_DIR.iterdir():
+            if memory_folder.is_dir():
+                memory_file = memory_folder / 'memory.json'
+                if memory_file.exists():
+                    try:
+                        with open(memory_file, 'r', encoding='utf-8') as f:
+                            memory = json.load(f)
+                            memories.append(memory)
+                    except Exception as e:
+                        logger.error(f"Error loading memory {memory_file}: {e}")
+        
+        # Sort by created_at descending
+        memories.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return jsonify({
+            'memories': memories
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/memory/get/<memory_id>', methods=['GET'])
+def get_memory(memory_id):
+    """Get a specific memory by ID"""
+    try:
+        memory_file = MEMORY_DIR / f"{memory_id}.json"
+        
+        if not memory_file.exists():
+            return jsonify({'error': 'Memory not found'}), 404
+        
+        with open(memory_file, 'r', encoding='utf-8') as f:
+            memory = json.load(f)
+        
+        return jsonify({
+            'memory': memory
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/memory/delete/<memory_id>', methods=['DELETE'])
+def delete_memory(memory_id):
+    """Delete a memory (supports both old and new format)"""
+    try:
+        logger.info(f"[DELETE] Attempting to delete memory ID: {memory_id}")
+        
+        # List all available memories first for debugging
+        all_memories = []
+        for mf in MEMORY_DIR.iterdir():
+            if mf.is_dir():
+                mjson = mf / 'memory.json'
+                if mjson.exists():
+                    try:
+                        with open(mjson, 'r', encoding='utf-8') as f:
+                            m = json.load(f)
+                            all_memories.append(f"{m.get('id')} ({mf.name})")
+                    except:
+                        pass
+        logger.info(f"[DELETE] Available memory IDs: {all_memories}")
+        
+        # Try old format first (direct .json file)
+        memory_file = MEMORY_DIR / f"{memory_id}.json"
+        if memory_file.exists():
+            logger.info(f"Found old format memory: {memory_file}")
+            memory_file.unlink()
+            return jsonify({
+                'success': True,
+                'message': 'Memory deleted (old format)'
+            })
+        
+        # Try new format (folder with memory.json)
+        deleted = False
+        for memory_folder in MEMORY_DIR.iterdir():
+            if memory_folder.is_dir():
+                memory_json = memory_folder / 'memory.json'
+                if memory_json.exists():
+                    try:
+                        with open(memory_json, 'r', encoding='utf-8') as f:
+                            memory = json.load(f)
+                            logger.info(f"Checking folder {memory_folder.name}, ID: {memory.get('id')}")
+                            
+                            if memory.get('id') == memory_id:
+                                # Delete entire folder
+                                logger.info(f"Deleting folder: {memory_folder}")
+                                shutil.rmtree(memory_folder)
+                                deleted = True
+                                return jsonify({
+                                    'success': True,
+                                    'message': 'Memory deleted (new format)'
+                                })
+                    except Exception as e:
+                        logger.error(f"Error reading memory {memory_json}: {e}")
+        
+        if not deleted:
+            logger.warning(f"Memory not found: {memory_id}")
+            logger.info(f"Available folders: {[f.name for f in MEMORY_DIR.iterdir() if f.is_dir()]}")
+            return jsonify({'error': f'Memory not found: {memory_id}'}), 404
+        
+    except Exception as e:
+        logger.error(f"Error deleting memory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/memory/update/<memory_id>', methods=['PUT'])
+def update_memory(memory_id):
+    """Update a memory"""
+    try:
+        memory_file = MEMORY_DIR / f"{memory_id}.json"
+        
+        if not memory_file.exists():
+            return jsonify({'error': 'Memory not found'}), 404
+        
+        # Load existing memory
+        with open(memory_file, 'r', encoding='utf-8') as f:
+            memory = json.load(f)
+        
+        # Update fields
+        data = request.json
+        if 'title' in data:
+            memory['title'] = data['title']
+        if 'content' in data:
+            memory['content'] = data['content']
+        if 'tags' in data:
+            memory['tags'] = data['tags']
+        
+        memory['updated_at'] = datetime.now().isoformat()
+        
+        # Save
+        with open(memory_file, 'w', encoding='utf-8') as f:
+            json.dump(memory, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'memory': memory
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# IMAGE STORAGE ROUTES
+# ============================================================================
+
+@app.route('/api/save-image', methods=['POST'])
+def save_image():
+    """Save generated image to disk and return URL"""
+    try:
+        data = request.json
+        image_base64 = data.get('image')
+        metadata = data.get('metadata', {})
+        
+        if not image_base64:
+            return jsonify({'error': 'No image data provided'}), 400
+        
+        # Remove data URL prefix if present
+        if 'base64,' in image_base64:
+            image_base64 = image_base64.split('base64,')[1]
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"generated_{timestamp}.png"
+        filepath = IMAGE_STORAGE_DIR / filename
+        
+        # Decode and save image
+        image_data = base64.b64decode(image_base64)
+        with open(filepath, 'wb') as f:
+            f.write(image_data)
+        
+        # Save metadata
+        metadata_file = IMAGE_STORAGE_DIR / f"generated_{timestamp}.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump({
+                'filename': filename,
+                'created_at': datetime.now().isoformat(),
+                'metadata': metadata
+            }, f, ensure_ascii=False, indent=2)
+        
+        # Return URL path
+        image_url = f"/storage/images/{filename}"
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'url': image_url,
+            'path': str(filepath)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error saving image: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/storage/images/<filename>')
+def serve_image(filename):
+    """Serve saved images"""
+    try:
+        filepath = IMAGE_STORAGE_DIR / filename
+        if not filepath.exists():
+            return jsonify({'error': 'Image not found'}), 404
+        
+        return send_file(filepath, mimetype='image/png')
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/list-images', methods=['GET'])
+def list_images():
+    """List all saved images"""
+    try:
+        images = []
+        
+        for img_file in IMAGE_STORAGE_DIR.glob('generated_*.png'):
+            # Try to load metadata
+            metadata_file = img_file.with_suffix('.json')
+            metadata = {}
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                except Exception as e:
+                    logger.error(f"Error loading metadata for {img_file}: {e}")
+            
+            images.append({
+                'filename': img_file.name,
+                'url': f"/storage/images/{img_file.name}",
+                'created_at': metadata.get('created_at', ''),
+                'metadata': metadata.get('metadata', {})
+            })
+        
+        # Sort by created_at descending
+        images.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return jsonify({
+            'images': images,
+            'count': len(images)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/delete-image/<filename>', methods=['DELETE'])
+def delete_image(filename):
+    """Delete saved image"""
+    try:
+        filepath = IMAGE_STORAGE_DIR / filename
+        metadata_file = filepath.with_suffix('.json')
+        
+        if not filepath.exists():
+            return jsonify({'error': 'Image not found'}), 404
+        
+        # Delete image and metadata
+        filepath.unlink()
+        if metadata_file.exists():
+            metadata_file.unlink()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Image deleted'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # debug=False: Tắt auto-reload và debugger (dùng cho production)
+    # debug=True: Bật auto-reload khi sửa code (dùng khi develop)
+    app.run(debug=False, host='0.0.0.0', port=5000)
