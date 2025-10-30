@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    
+    <style>
+        /* Tailwind customization and fixes */
+        @layer components {
+            /* Improved text visibility - FIXED for white background */
+            .light-text {
+                @apply text-gray-800;
+            }
+            
+            .dark .light-text {
+                @apply text-gray-200;
+            }
+            
+            /* Message content text - high contrast for light mode */
+            .message-content {
+                @apply text-gray-900;
+            }
+            
+            .dark .message-content {
+                @apply text-gray-100;
+            }
+            
+            /* Sidebar text - better contrast */
+            .sidebar-text {
+                @apply text-gray-900;
+            }
+            
+            .dark .sidebar-text {
+                @apply text-gray-100;
+            }
+            
+            /* Chat item text */
+            .chat-item-text {
+                @apply text-gray-800;
+            }
+            
+            .dark .chat-item-text {
+                @apply text-gray-100;
+            }
+            
+            /* Tool buttons */
+            .tool-btn {
+                @apply px-3 py-1.5 bg-gray-100 border border-gray-300 rounded-lg text-sm cursor-pointer transition-all flex items-center gap-1.5 text-gray-700;
+            }
+            
+            .dark .tool-btn {
+                @apply bg-gray-800 border-gray-600 text-gray-200;
+            }
+            
+            .tool-btn:hover {
+                @apply bg-gray-200 border-purple-500;
+            }
+            
+            .dark .tool-btn:hover {
+                @apply bg-gray-700;
+            }
+            
+            .tool-btn.active {
+                @apply bg-purple-600 text-white border-purple-600;
+            }
+        }
+        
+        /* Code blocks styling */
+        .message-content pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        
+        /* Markdown styling in messages */
+        .message-content strong {
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .message-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .dark .message-content code {
+            background: #2a2a2a;
+        }
+        
+        .message-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Table styling */
+        .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .message-content th,
+        .message-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .dark .message-content th,
+        .dark .message-content td {
+            border-color: #555;
+        }
+        
+        .message-content th {
+            background: #f2f2f2;
+            font-weight: 600;
+        }
+        
+        .dark .message-content th {
+            background: #333;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message {
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-500 to-purple-700 min-h-screen flex justify-center items-center p-5">
+    <!-- Sidebar Toggle (Mobile) -->
+    <div id="sidebarToggle" class="fixed left-5 top-1/2 transform -translate-y-1/2 z-50 bg-white dark:bg-gray-800 border-2 border-purple-500 dark:border-yellow-400 rounded-full w-10 h-10 hidden md:flex items-center justify-center cursor-pointer transition-all hover:scale-110">
+        ☰
+    </div>
+    
+    <div class="flex gap-0 w-full max-w-7xl h-[90vh]">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-72 bg-white dark:bg-gray-800 rounded-l-2xl shadow-xl flex flex-col transition-all overflow-hidden">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-base font-semibold sidebar-text">💬 Lịch sử Chat</h3>
+                <button id="newChatBtn" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-lg text-sm cursor-pointer transition-all hover:scale-105">
+                    + Mới
+                </button>
+            </div>
+            
+            <div class="px-2.5 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <span id="storageInfo">Đang tính...</span>
+            </div>
+            
+            <div id="chatList" class="flex-1 overflow-y-auto p-2.5">
+                <!-- Chat items will be dynamically added here -->
+            </div>
+        </div>
+        
+        <!-- Main Chat Container -->
+        <div class="flex-1 bg-white dark:bg-gray-800 rounded-r-2xl shadow-xl overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-500 to-purple-700 text-white p-6 text-center">
+                <h1 class="text-3xl font-bold mb-2">🤖 AI ChatBot Assistant</h1>
+                <p class="opacity-90 text-sm">Hỗ trợ tâm lý, tâm sự và giải pháp đời sống</p>
+            </div>
+            
+            <!-- Controls -->
+            <div class="p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex gap-4 flex-wrap items-center">
+                    <label class="flex items-center gap-2 light-text">
+                        <span class="font-semibold">Model:</span>
+                        <select id="modelSelect" class="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm cursor-pointer transition-all bg-white dark:bg-gray-800 light-text">
+                            <option value="gemini">Gemini (Google) - FREE</option>
+                            <option value="openai">GPT-4o-mini (OpenAI)</option>
+                            <option value="deepseek">DeepSeek (Rẻ nhất)</option>
+                            <option value="qwen">Qwen1.5b (Alibaba Cloud)</option>
+                            <option value="bloomvn">BloomVN-8B API (Tiếng Việt) - FREE</option>
+                            <optgroup label="🖥️ Local Models (FREE - No Internet)">
+                                <option value="qwen1.5-local">🖥️ Qwen1.5-1.8B Local</option>
+                                <option value="bloomvn-local">🖥️ BloomVN-8B Local</option>
+                                <option value="qwen2.5-local">🖥️ Qwen2.5-14B Local ⭐</option>
+                            </optgroup>
+                        </select>
+                    </label>
+                    
+                    <label class="flex items-center gap-2 light-text">
+                        <span class="font-semibold">Chế độ:</span>
+                        <select id="contextSelect" class="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm cursor-pointer transition-all bg-white dark:bg-gray-800 light-text">
+                            <option value="casual">Trò chuyện vui vẻ</option>
+                            <option value="psychological">Tâm lý - Tâm sự</option>
+                            <option value="lifestyle">Giải pháp đời sống</option>
+                            <option value="programming">💻 Hỗ trợ lập trình</option>
+                        </select>
+                    </label>
+                    
+                    <label class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer transition-all hover:border-purple-500">
+                        <input type="checkbox" id="deepThinkingCheck" class="cursor-pointer w-4 h-4">
+                        <span class="light-text text-sm">🧠 Suy luận sâu</span>
+                    </label>
+                    
+                    <button id="downloadBtn" class="px-4 py-2 bg-transparent border-2 border-green-500 text-green-500 dark:text-green-400 rounded-lg text-sm cursor-pointer transition-all hover:bg-green-50 dark:hover:bg-green-900/20" title="Tải xuống lịch sử chat">
+                        📥 Tải chat
+                    </button>
+                    
+                    <button id="imageGenBtn" class="px-4 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-lg text-sm cursor-pointer transition-all hover:scale-105" title="Tạo ảnh bằng AI">
+                        🎨 Tạo ảnh
+                    </button>
+                    
+                    <button id="memoryBtn" class="px-4 py-2 bg-transparent border-2 border-purple-600 text-purple-600 dark:text-purple-400 rounded-lg text-sm cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-purple-900/20" title="Quản lý bộ nhớ AI">
+                        🧠 AI học tập
+                    </button>
+                    
+                    <button id="darkModeBtn" class="px-4 py-2 bg-transparent border-2 border-purple-500 text-purple-500 dark:border-yellow-400 dark:text-yellow-400 rounded-lg text-lg cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-yellow-900/20" title="Toggle Dark Mode">
+                        🌙
+                    </button>
+                    
+                    <button id="clearBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm cursor-pointer transition-all hover:bg-purple-700">
+                        🗑️ Xóa lịch sử
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Container -->
+            <div id="chatContainer" class="flex-1 overflow-y-auto p-5 bg-gray-50 dark:bg-gray-900">
+                <!-- Messages will be dynamically added here -->
+            </div>
+            
+            <!-- Memory Panel (hidden by default) -->
+            <div id="memoryPanel" class="hidden p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 max-h-72 overflow-y-auto">
+                <div class="flex justify-between items-center mb-2.5">
+                    <strong class="light-text">📚 Bài học đã lưu (chọn để kích hoạt):</strong>
+                    <button id="saveMemoryBtn" class="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-lg text-xs cursor-pointer transition-all hover:scale-105">
+                        💾 Lưu chat này
+                    </button>
+                </div>
+                <div id="memoryList">
+                    <!-- Memory items will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="loading" class="hidden p-2.5 text-center">
+                <div class="spinner"></div>
+                <span class="ml-2 light-text">Đang suy nghĩ...</span>
+            </div>
+            
+            <!-- Input Container -->
+            <div class="p-5 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex gap-2.5 mb-2.5 flex-wrap">
+                    <button id="googleSearchBtn" class="tool-btn" title="Tìm kiếm Google">
+                        🔍 Google Search
+                    </button>
+                    <button id="githubBtn" class="tool-btn" title="Kết nối GitHub">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                        GitHub
+                    </button>
+                    <button id="imageGenToolBtn" class="tool-btn" title="Tạo ảnh từ mô tả">
+                        🎨 Tạo ảnh
+                    </button>
+                    <label class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm cursor-pointer transition-all hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-1.5 light-text">
+                        📎 Upload Files
+                        <input type="file" id="fileInput" class="hidden" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css" multiple>
+                    </label>
+                </div>
+                
+                <div id="fileList" class="flex flex-wrap gap-2 mb-2">
+                    <!-- Uploaded files will appear here -->
+                </div>
+                
+                <div class="flex gap-2.5 items-end">
+                    <textarea id="messageInput" class="flex-1 px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm transition-all resize-none min-h-[45px] max-h-[200px] bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500" placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng, Ctrl+V để paste)" rows="1"></textarea>
+                    <button id="sendBtn" class="px-8 py-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-700 text-white font-semibold cursor-pointer transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Gửi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Generation Modal -->
+    <div id="imageGenModal" class="modal">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl w-11/12 max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideIn_0.3s]">
+            <div class="flex justify-between items-center mb-5 pb-4 border-b-2 border-gray-200 dark:border-gray-700">
+                <h2 class="text-2xl font-bold text-purple-600 dark:text-purple-400">🎨 Tạo ảnh bằng AI</h2>
+                <button onclick="closeImageModal()" class="bg-transparent border-none text-3xl cursor-pointer text-gray-400 hover:text-red-500 transition-colors">
+                    &times;
+                </button>
+            </div>
+            
+            <div id="sdStatus" class="p-2.5 rounded-lg mb-4 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
+                Đang kiểm tra Stable Diffusion...
+            </div>
+            
+            <div class="mb-5">
+                <label class="block mb-2 font-semibold light-text">Model Checkpoint:</label>
+                <select id="modelCheckpoint" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500">
+                    <option value="">Đang tải...</option>
+                </select>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block mb-2 font-semibold light-text">Prompt (Mô tả ảnh bạn muốn tạo):</label>
+                <div class="flex gap-2.5 mb-1">
+                    <button onclick="randomPrompt()" class="px-4 py-1.5 bg-blue-500 text-white rounded cursor-pointer text-xs transition-all hover:bg-blue-600">
+                        🎲 Random
+                    </button>
+                </div>
+                <textarea id="imagePrompt" rows="4" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500" placeholder="1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality"></textarea>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block mb-2 font-semibold light-text">Negative Prompt (Những gì KHÔNG muốn có):</label>
+                <div class="flex gap-2.5 mb-1">
+                    <button onclick="randomNegativePrompt()" class="px-4 py-1.5 bg-red-500 text-white rounded cursor-pointer text-xs transition-all hover:bg-red-600">
+                        🎲 Random
+                    </button>
+                </div>
+                <textarea id="negativePrompt" rows="3" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500" placeholder="bad quality, blurry, distorted, ugly, worst quality"></textarea>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <div>
+                    <label class="block mb-2 font-semibold light-text">Width:</label>
+                    <select id="imageWidth" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500">
+                        <option value="512" selected>512</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block mb-2 font-semibold light-text">Height:</label>
+                    <select id="imageHeight" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500">
+                        <option value="512" selected>512</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <div>
+                    <label class="block mb-2 font-semibold light-text">Steps <span id="stepsLabel" class="text-xs">(20-50 khuyến nghị)</span>:</label>
+                    <input type="number" id="imageSteps" value="20" min="1" max="150" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500">
+                </div>
+                
+                <div>
+                    <label class="block mb-2 font-semibold light-text">CFG Scale <span id="cfgLabel" class="text-xs">(7-12 khuyến nghị)</span>:</label>
+                    <input type="number" id="cfgScale" value="7" min="1" max="30" step="0.5" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500">
+                </div>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block mb-2 font-semibold light-text">Sampler:</label>
+                <select id="samplerSelect" class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm transition-all bg-white dark:bg-gray-700 light-text focus:outline-none focus:border-purple-500">
+                    <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                    <option value="Euler a">Euler a</option>
+                    <option value="Euler">Euler</option>
+                    <option value="DDIM">DDIM</option>
+                    <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                </select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <label class="flex items-center gap-2 light-text">
+                    <input type="checkbox" id="restoreFaces" class="w-4 h-4">
+                    Restore Faces (GFPGAN)
+                </label>
+                
+                <label class="flex items-center gap-2 light-text">
+                    <input type="checkbox" id="enableHR" class="w-4 h-4">
+                    Hires. Fix (Chất lượng cao)
+                </label>
+            </div>
+            
+            <button id="generateImageBtn" onclick="generateImage()" class="w-full px-4 py-4 bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-xl text-base font-semibold cursor-pointer transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                🎨 Tạo ảnh
+            </button>
+            
+            <div id="generatedImageContainer" class="hidden mt-4">
+                <img id="generatedImage" alt="Generated Image" class="max-w-full rounded-xl shadow-lg">
+                <div class="flex gap-2.5 mt-4">
+                    <button onclick="copyImageToChat()" class="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-lg font-semibold cursor-pointer transition-all hover:bg-green-600">
+                        💬 Gửi vào Chat
+                    </button>
+                    <button onclick="downloadGeneratedImage()" class="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-lg font-semibold cursor-pointer transition-all hover:bg-blue-600">
+                        📥 Tải xuống
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- External JavaScript - ALL FUNCTIONS FROM ORIGINAL -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

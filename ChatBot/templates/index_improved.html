@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant - Improved</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            500: '#667eea',
+                            600: '#5568d3',
+                            700: '#764ba2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        /* Custom CSS for features not covered by Tailwind */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .message {
+            animation: fadeIn 0.3s;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        /* High contrast text colors for accessibility */
+        .text-high-contrast {
+            color: #1f2937 !important; /* gray-800 */
+        }
+        
+        .dark .text-high-contrast {
+            color: #f3f4f6 !important; /* gray-100 */
+        }
+        
+        /* Message styling */
+        .message-content {
+            color: #1f2937;
+        }
+        
+        .dark .message-content {
+            color: #f3f4f6;
+        }
+        
+        /* Code blocks */
+        .message-content pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        
+        /* Ensure good contrast on all text elements */
+        body:not(.dark) * {
+            color: #1f2937;
+        }
+        
+        body.dark * {
+            color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-500 to-purple-700 min-h-screen flex justify-center items-center p-5 transition-colors duration-300">
+    
+    <!-- IMPORTANT NOTE -->
+    <div class="fixed top-4 right-4 z-50 bg-yellow-100 border-2 border-yellow-500 rounded-lg p-4 max-w-md shadow-xl">
+        <div class="font-bold text-yellow-800 mb-2">⚠️ HUỚNGforce DẪN</div>
+        <div class="text-sm text-yellow-800">
+            <p class="mb-2">File này là TEMPLATE với Tailwind CSS.</p>
+            <p class="mb-2"><strong>Để hoàn thành:</strong></p>
+            <ol class="list-decimal ml-4 space-y-1">
+                <li>Copy TOÀN BỘ JavaScript từ file <code class="bg-yellow-200 px-1">index.html</code> gốc (lines 1430-3760)</li>
+                <li>Paste vào section <code class="bg-yellow-200 px-1">&lt;script&gt;</code> ở cuối file này</li>
+                <li>File gốc có TẤT CẢ tính năng: chat, memory, PDF export, image gen, etc.</li>
+                <li>Hoặc dùng file gốc và chỉ thêm Tailwind CDN vào đó</li>
+            </ol>
+            <button onclick="this.parentElement.parentElement.remove()" class="mt-3 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+                Đã hiểu, đóng thông báo
+            </button>
+        </div>
+    </div>
+    
+    <!-- Rest of HTML structure here -->
+    <div class="text-center text-white">
+        <h1 class="text-4xl font-bold mb-4">🚧 File Template</h1>
+        <p class="text-xl mb-8">Vui lòng copy JavaScript từ file gốc để hoàn thành</p>
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 max-w-2xl mx-auto">
+            <p class="mb-4">File gốc (<code>index.html</code>) có:</p>
+            <ul class="text-left space-y-2">
+                <li>✅ Tool buttons (Google Search, GitHub, Tạo ảnh)</li>
+                <li>✅ Image Generation modal + tool integration</li>
+                <li>✅ Memory/AI Learning system with images</li>
+                <li>✅ PDF export with Unicode support</li>
+                <li>✅ Edit message & re-response</li>
+                <li>✅ File upload (multiple files + paste)</li>
+                <li>✅ Chat session management</li>
+                <li>✅ Storage compression for 4K images</li>
+                <li>✅ Deep thinking mode</li>
+                <li>✅ Dark mode</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- TO BE ADDED: Copy full HTML structure from index.html lines 1250-1430 -->
+    <!-- TO BE ADDED: Copy all JavaScript from index.html lines 1430-3760 -->
+    
+</body>
+</html>

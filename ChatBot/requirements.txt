@@ -4,3 +4,9 @@ openai
 google-generativeai==0.8.5
 requests
 Pillow
+numpy<2.0  # Required for PyTorch compatibility
+torch>=2.0.0
+transformers>=4.37.0
+accelerate>=0.20.0
+sentencepiece>=0.1.99
+bitsandbytes>=0.41.0
