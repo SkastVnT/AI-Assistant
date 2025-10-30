@@ -841,16 +841,16 @@ def generate_image():
         params = {
             'prompt': prompt,
             'negative_prompt': data.get('negative_prompt', ''),
-            'width': int(data.get('width', 512)),
-            'height': int(data.get('height', 512)),
-            'steps': int(data.get('steps', 20)),
-            'cfg_scale': float(data.get('cfg_scale', 7.0)),
-            'sampler_name': data.get('sampler_name', 'DPM++ 2M Karras'),
-            'seed': int(data.get('seed', -1)),
-            'batch_size': int(data.get('batch_size', 1)),
+            'width': int(data.get('width') or 512),
+            'height': int(data.get('height') or 512),
+            'steps': int(data.get('steps') or 20),
+            'cfg_scale': float(data.get('cfg_scale') or 7.0),
+            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
+            'seed': int(data.get('seed') or -1),
+            'batch_size': int(data.get('batch_size') or 1),
             'restore_faces': data.get('restore_faces', False),
             'enable_hr': data.get('enable_hr', False),
-            'hr_scale': float(data.get('hr_scale', 2.0)),
+            'hr_scale': float(data.get('hr_scale') or 2.0),
             'save_images': data.get('save_images', False)
         }
         
@@ -941,13 +941,13 @@ def img2img():
             'init_images': [image],  # SD API expects list of images
             'prompt': prompt,
             'negative_prompt': data.get('negative_prompt', ''),
-            'denoising_strength': float(data.get('denoising_strength', 0.8)),  # 80% new, 20% keep
-            'width': int(data.get('width', 512)),
-            'height': int(data.get('height', 512)),
-            'steps': int(data.get('steps', 30)),  # img2img needs more steps
-            'cfg_scale': float(data.get('cfg_scale', 7.0)),
-            'sampler_name': data.get('sampler_name', 'DPM++ 2M Karras'),
-            'seed': int(data.get('seed', -1)),
+            'denoising_strength': float(data.get('denoising_strength') or 0.8),  # 80% new, 20% keep
+            'width': int(data.get('width') or 512),
+            'height': int(data.get('height') or 512),
+            'steps': int(data.get('steps') or 30),  # img2img needs more steps
+            'cfg_scale': float(data.get('cfg_scale') or 7.0),
+            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
+            'seed': int(data.get('seed') or -1),
             'restore_faces': data.get('restore_faces', False),
         }
         
@@ -1316,13 +1316,13 @@ def img2img_advanced():
             'init_images': [source_image],
             'prompt': final_prompt,
             'negative_prompt': data.get('negative_prompt', 'bad quality, blurry, distorted'),
-            'denoising_strength': float(data.get('denoising_strength', 0.6)),
-            'width': int(data.get('width', 768)),
-            'height': int(data.get('height', 768)),
-            'steps': int(data.get('steps', 30)),
-            'cfg_scale': float(data.get('cfg_scale', 7.0)),
-            'sampler_name': data.get('sampler_name', 'DPM++ 2M Karras'),
-            'seed': int(data.get('seed', -1)),
+            'denoising_strength': float(data.get('denoising_strength') or 0.6),
+            'width': int(data.get('width') or 768),
+            'height': int(data.get('height') or 768),
+            'steps': int(data.get('steps') or 30),
+            'cfg_scale': float(data.get('cfg_scale') or 7.0),
+            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
+            'seed': int(data.get('seed') or -1),
             'restore_faces': data.get('restore_faces', False),
         }
         
