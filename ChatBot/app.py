@@ -602,7 +602,7 @@ def index_new():
     """New Tailwind version (experimental)"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
-    return render_template('index_new.html')
+    return render_template('index_tailwind.html')
 
 
 @app.route('/chat', methods=['POST'])
@@ -902,6 +902,84 @@ def sd_samplers():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/img2img', methods=['POST'])
+def img2img():
+    """
+    Tạo ảnh từ ảnh gốc bằng Stable Diffusion Img2Img
+    
+    Body params:
+        - image (str): Base64 encoded image
+        - prompt (str): Text prompt mô tả ảnh muốn tạo
+        - negative_prompt (str): Những gì không muốn có
+        - denoising_strength (float): Tỉ lệ thay đổi (0.0-1.0, default: 0.75)
+            - 0.0 = giữ nguyên ảnh gốc 100%
+            - 1.0 = tạo mới hoàn toàn
+            - 0.8 = 80% mới, 20% giữ lại (recommended)
+        - width (int): Chiều rộng
+        - height (int): Chiều cao  
+        - steps (int): Số steps
+        - cfg_scale (float): CFG scale
+        - sampler_name (str): Tên sampler
+        - seed (int): Random seed
+        - restore_faces (bool): Restore faces
+    """
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        data = request.json
+        image = data.get('image', '')
+        prompt = data.get('prompt', '')
+        
+        if not image:
+            return jsonify({'error': 'Image không được để trống'}), 400
+        
+        if not prompt:
+            return jsonify({'error': 'Prompt không được để trống'}), 400
+        
+        # Lấy parameters từ request
+        params = {
+            'init_images': [image],  # SD API expects list of images
+            'prompt': prompt,
+            'negative_prompt': data.get('negative_prompt', ''),
+            'denoising_strength': float(data.get('denoising_strength', 0.8)),  # 80% new, 20% keep
+            'width': int(data.get('width', 512)),
+            'height': int(data.get('height', 512)),
+            'steps': int(data.get('steps', 30)),  # img2img needs more steps
+            'cfg_scale': float(data.get('cfg_scale', 7.0)),
+            'sampler_name': data.get('sampler_name', 'DPM++ 2M Karras'),
+            'seed': int(data.get('seed', -1)),
+            'restore_faces': data.get('restore_faces', False),
+        }
+        
+        # Get SD client
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        # Tạo ảnh với img2img
+        logger.info(f"[IMG2IMG] Calling img2img with denoising_strength={params['denoising_strength']}")
+        result = sd_client.img2img(**params)
+        logger.info(f"[IMG2IMG] Result received")
+        
+        # Kiểm tra lỗi
+        if 'error' in result:
+            logger.error(f"[IMG2IMG] SD Error: {result['error']}")
+            return jsonify(result), 500
+        
+        # Trả về kết quả
+        return jsonify({
+            'success': True,
+            'images': result.get('images', []),
+            'info': result.get('info', ''),
+            'parameters': result.get('parameters', {})
+        })
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
+        logger.error(f"[IMG2IMG] {error_msg}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/sd-interrupt', methods=['POST'])
 def sd_interrupt():
     """Dừng việc tạo ảnh đang chạy"""
@@ -918,6 +996,376 @@ def sd_interrupt():
         })
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/extract-anime-features-multi', methods=['POST'])
+def extract_anime_features_multi():
+    """
+    🎯 MULTI-MODEL EXTRACTION - Sử dụng nhiều model để trích xuất chính xác hơn
+    
+    Models hỗ trợ:
+        - deepdanbooru: Anime-specific, tag-based (mặc định)
+        - clip: General purpose, natural language
+        - wd14: WD14 Tagger, anime-focused, newer
+    
+    Body params:
+        - image (str): Base64 encoded image
+        - deep_thinking (bool): More tags
+        - models (list): ['deepdanbooru', 'clip', 'wd14'] - Chọn models muốn dùng
+    
+    Returns:
+        - tags: Merged tags with confidence voting
+        - categories: Categorized tags
+        - model_results: Stats từ từng model
+    """
+    try:
+        import requests
+        from collections import Counter
+        
+        data = request.json
+        image_b64 = data.get('image', '')
+        deep_thinking = data.get('deep_thinking', False)
+        selected_models = data.get('models', ['deepdanbooru'])  # Mặc định chỉ dùng DeepDanbooru
+        
+        if not image_b64:
+            return jsonify({'error': 'Image không được để trống'}), 400
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
+        
+        logger.info(f"[MULTI-EXTRACT] Models: {selected_models} | Deep: {deep_thinking}")
+        
+        all_tags = []
+        model_results = {}
+        
+        # Gọi từng model
+        for model_name in selected_models:
+            try:
+                payload = {'image': image_b64, 'model': model_name}
+                
+                logger.info(f"[MULTI-EXTRACT] Calling {model_name}...")
+                response = requests.post(interrogate_url, json=payload, timeout=120)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    caption = result.get('caption', '')
+                    tags = [tag.strip() for tag in caption.split(',') if tag.strip()]
+                    
+                    model_results[model_name] = tags
+                    all_tags.extend(tags)
+                    
+                    logger.info(f"[MULTI-EXTRACT] {model_name}: {len(tags)} tags ✅")
+                else:
+                    logger.warning(f"[MULTI-EXTRACT] {model_name} failed: {response.status_code}")
+                    model_results[model_name] = []
+            except Exception as e:
+                logger.error(f"[MULTI-EXTRACT] {model_name} error: {str(e)}")
+                model_results[model_name] = []
+        
+        # Merge tags với confidence voting (càng nhiều model đồng ý = confidence càng cao)
+        tag_counter = Counter(all_tags)
+        num_models = len(selected_models)
+        merged_tags = []
+        
+        for tag, vote_count in tag_counter.most_common():
+            # Confidence = (số model đồng ý / tổng model) * 0.95
+            confidence = (vote_count / num_models) * 0.95
+            
+            merged_tags.append({
+                'name': tag,
+                'confidence': round(confidence, 2),
+                'votes': vote_count,
+                'sources': [m for m, tags in model_results.items() if tag in tags]
+            })
+        
+        # Giới hạn số tag
+        max_tags = 50 if deep_thinking else 30
+        merged_tags = merged_tags[:max_tags]
+        
+        # Categorize (giống single model)
+        CATEGORY_KEYWORDS = {
+            'hair': ['hair', 'ahoge', 'bangs', 'braid', 'ponytail', 'twintails', 'bun', 'hairband', 'hairclip', 'hair_ornament', 'hair_ribbon', 'hair_bow'],
+            'eyes': ['eyes', 'eye', 'eyelashes', 'eyebrows', 'eyepatch', 'heterochromia', 'pupils'],
+            'mouth': ['mouth', 'lips', 'smile', 'smirk', 'frown', 'teeth', 'tongue', 'open_mouth', 'closed_mouth'],
+            'face': ['face', 'facial', 'cheeks', 'nose', 'chin', 'forehead', 'blush', 'freckles', 'mole', 'scar', 'makeup'],
+            'accessories': ['glasses', 'earrings', 'necklace', 'choker', 'hat', 'bow', 'ribbon', 'jewelry', 'crown', 'tiara', 'mask', 'piercing'],
+            'clothing': ['dress', 'shirt', 'skirt', 'uniform', 'jacket', 'coat', 'tie', 'collar', 'sleeve'],
+            'body': ['breasts', 'chest', 'shoulders', 'arms', 'hands', 'fingers', 'legs', 'thighs', 'feet'],
+            'pose': ['standing', 'sitting', 'lying', 'looking_at_viewer', 'from_side', 'from_behind', 'arms_up', 'hand_on_hip'],
+            'background': ['background', 'outdoors', 'indoors', 'sky', 'clouds', 'tree', 'flower', 'water', 'room'],
+            'style': ['anime', 'realistic', 'masterpiece', 'best_quality', 'high_resolution', 'detailed', 'beautiful']
+        }
+        
+        def categorize_tag(tag_name):
+            tag_lower = tag_name.lower().replace(' ', '_')
+            for category, keywords in CATEGORY_KEYWORDS.items():
+                for keyword in keywords:
+                    if keyword in tag_lower:
+                        return category
+            return 'other'
+        
+        categories_dict = {
+            'hair': [], 'eyes': [], 'mouth': [], 'face': [], 'accessories': [],
+            'clothing': [], 'body': [], 'pose': [], 'background': [], 'style': [], 'other': []
+        }
+        
+        for tag_obj in merged_tags:
+            category = categorize_tag(tag_obj['name'])
+            tag_obj['category'] = category
+            categories_dict[category].append(tag_obj)
+        
+        logger.info(f"[MULTI-EXTRACT] ✅ Final: {len(merged_tags)} tags from {num_models} models")
+        
+        return jsonify({
+            'success': True,
+            'tags': merged_tags,
+            'categories': categories_dict,
+            'model_results': {k: len(v) for k, v in model_results.items()},
+            'models_used': selected_models,
+            'extraction_mode': 'multi-model'
+        })
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
+        logger.error(f"[MULTI-EXTRACT] ERROR: {error_msg}")
+        return jsonify({'error': error_msg}), 500
+
+
+@app.route('/api/extract-anime-features', methods=['POST'])
+def extract_anime_features():
+    """
+    Trích xuất đặc trưng anime từ ảnh bằng DeepDanbooru với categorization
+    
+    Body params:
+        - image (str): Base64 encoded image (without data:image prefix)
+        - deep_thinking (bool): Chế độ Deep Thinking (threshold thấp hơn, chi tiết hơn)
+    
+    Returns:
+        - tags (list): List of {name, confidence, category} objects
+        - categories (dict): Tags grouped by category for filtering
+    """
+    try:
+        import requests
+        
+        data = request.json
+        image_b64 = data.get('image', '')
+        deep_thinking = data.get('deep_thinking', False)
+        
+        if not image_b64:
+            return jsonify({'error': 'Image không được để trống'}), 400
+        
+        # Call SD WebUI interrogate API with DeepDanbooru
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
+        
+        payload = {
+            'image': image_b64,
+            'model': 'deepdanbooru'
+        }
+        
+        logger.info(f"[EXTRACT] Calling DeepDanbooru interrogate API (deep_thinking={deep_thinking})")
+        response = requests.post(interrogate_url, json=payload, timeout=60)
+        
+        if response.status_code != 200:
+            logger.error(f"[EXTRACT] API Error: {response.status_code} - {response.text}")
+            return jsonify({'error': f'SD API Error: {response.status_code}'}), 500
+        
+        result = response.json()
+        caption = result.get('caption', '')
+        
+        logger.info(f"[EXTRACT] Raw caption: {caption}")
+        
+        # Parse caption into tags with confidence
+        raw_tags = [tag.strip() for tag in caption.split(',') if tag.strip()]
+        
+        # In deep thinking mode, keep more tags
+        max_tags = 50 if deep_thinking else 30
+        
+        # Category mappings for filtering
+        CATEGORY_KEYWORDS = {
+            'hair': ['hair', 'ahoge', 'bangs', 'braid', 'ponytail', 'twintails', 'bun', 'hairband', 'hairclip', 'hair_ornament', 'hair_ribbon', 'hair_bow'],
+            'eyes': ['eyes', 'eye', 'eyelashes', 'eyebrows', 'eyepatch', 'heterochromia', 'pupils'],
+            'mouth': ['mouth', 'lips', 'smile', 'smirk', 'frown', 'teeth', 'tongue', 'open_mouth', 'closed_mouth'],
+            'face': ['face', 'facial', 'cheeks', 'nose', 'chin', 'forehead', 'blush', 'freckles', 'mole', 'scar', 'makeup'],
+            'accessories': ['glasses', 'earrings', 'necklace', 'choker', 'hat', 'bow', 'ribbon', 'jewelry', 'crown', 'tiara', 'mask', 'piercing'],
+            'clothing': ['dress', 'shirt', 'skirt', 'uniform', 'jacket', 'coat', 'tie', 'collar', 'sleeve'],
+            'body': ['breasts', 'chest', 'shoulders', 'arms', 'hands', 'fingers', 'legs', 'thighs', 'feet'],
+            'pose': ['standing', 'sitting', 'lying', 'looking_at_viewer', 'from_side', 'from_behind', 'arms_up', 'hand_on_hip'],
+            'background': ['background', 'outdoors', 'indoors', 'sky', 'clouds', 'tree', 'flower', 'water', 'room'],
+            'style': ['anime', 'realistic', 'masterpiece', 'best_quality', 'high_resolution', 'detailed', 'beautiful']
+        }
+        
+        def categorize_tag(tag_name):
+            """Phân loại tag vào category phù hợp"""
+            tag_lower = tag_name.lower().replace(' ', '_')
+            
+            for category, keywords in CATEGORY_KEYWORDS.items():
+                for keyword in keywords:
+                    if keyword in tag_lower:
+                        return category
+            
+            return 'other'
+        
+        tags = []
+        categories_dict = {
+            'hair': [],
+            'eyes': [],
+            'mouth': [],
+            'face': [],
+            'accessories': [],
+            'clothing': [],
+            'body': [],
+            'pose': [],
+            'background': [],
+            'style': [],
+            'other': []
+        }
+        
+        for i, tag_name in enumerate(raw_tags[:max_tags]):
+            # Fake confidence: decreases from 0.95 to 0.30
+            confidence = 0.95 - (i / max_tags) * 0.65
+            category = categorize_tag(tag_name)
+            
+            tag_obj = {
+                'name': tag_name,
+                'confidence': round(confidence, 2),
+                'category': category
+            }
+            
+            tags.append(tag_obj)
+            categories_dict[category].append(tag_obj)
+        
+        logger.info(f"[EXTRACT] Extracted {len(tags)} tags across {len([c for c in categories_dict.values() if c])} categories")
+        
+        return jsonify({
+            'success': True,
+            'tags': tags,
+            'categories': categories_dict,
+            'raw_caption': caption
+        })
+        
+    except requests.exceptions.Timeout:
+        logger.error("[EXTRACT] Timeout calling SD API")
+        return jsonify({'error': 'Timeout: SD API không phản hồi'}), 504
+    except Exception as e:
+        import traceback
+        error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
+        logger.error(f"[EXTRACT] {error_msg}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/img2img-advanced', methods=['POST'])
+def img2img_advanced():
+    """
+    Tạo ảnh nâng cao từ ảnh gốc với feature extraction
+    
+    Body params:
+        - source_image (str): Base64 encoded source image
+        - extracted_tags (list): List of tag names from DeepDanbooru
+        - user_prompt (str): User's additional prompt (20% weight)
+        - feature_weight (float): Weight for extracted features (0.0-1.0, default: 0.8)
+        - negative_prompt (str): Negative prompt
+        - denoising_strength (float): Denoising strength (default: 0.6)
+        - steps (int): Steps (default: 30)
+        - cfg_scale (float): CFG scale (default: 7.0)
+        - model (str): Model checkpoint name
+    
+    Returns:
+        - image (str): Base64 encoded generated image
+        - info (str): Generation info
+    """
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        data = request.json
+        source_image = data.get('source_image', '')
+        extracted_tags = data.get('extracted_tags', [])
+        user_prompt = data.get('user_prompt', '').strip()
+        feature_weight = float(data.get('feature_weight', 0.8))
+        
+        if not source_image:
+            return jsonify({'error': 'Source image không được để trống'}), 400
+        
+        if not extracted_tags:
+            return jsonify({'error': 'Chưa trích xuất đặc trưng. Vui lòng nhấn nút trích xuất trước!'}), 400
+        
+        # Mix prompts: features (80%) + user prompt (20%)
+        # Convert tags list to comma-separated string
+        features_prompt = ', '.join(extracted_tags)
+        
+        if user_prompt:
+            # Boost user prompt with emphasis syntax
+            user_weight_boost = int((1 - feature_weight) * 10)  # 0.2 -> boost of 2
+            if user_weight_boost > 1:
+                boosted_user_prompt = f"({user_prompt}:{1 + user_weight_boost * 0.1})"
+            else:
+                boosted_user_prompt = user_prompt
+            
+            final_prompt = f"{features_prompt}, {boosted_user_prompt}"
+        else:
+            final_prompt = features_prompt
+        
+        logger.info(f"[IMG2IMG-ADVANCED] Features: {len(extracted_tags)} tags")
+        logger.info(f"[IMG2IMG-ADVANCED] User prompt: '{user_prompt}'")
+        logger.info(f"[IMG2IMG-ADVANCED] Final prompt (first 200 chars): {final_prompt[:200]}...")
+        
+        # Prepare img2img parameters
+        params = {
+            'init_images': [source_image],
+            'prompt': final_prompt,
+            'negative_prompt': data.get('negative_prompt', 'bad quality, blurry, distorted'),
+            'denoising_strength': float(data.get('denoising_strength', 0.6)),
+            'width': int(data.get('width', 768)),
+            'height': int(data.get('height', 768)),
+            'steps': int(data.get('steps', 30)),
+            'cfg_scale': float(data.get('cfg_scale', 7.0)),
+            'sampler_name': data.get('sampler_name', 'DPM++ 2M Karras'),
+            'seed': int(data.get('seed', -1)),
+            'restore_faces': data.get('restore_faces', False),
+        }
+        
+        # Get SD client
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        # Change model if specified
+        model_name = data.get('model')
+        if model_name:
+            logger.info(f"[IMG2IMG-ADVANCED] Switching to model: {model_name}")
+            try:
+                sd_client.change_model(model_name)
+            except Exception as e:
+                logger.warning(f"[IMG2IMG-ADVANCED] Failed to change model: {e}")
+        
+        # Generate image
+        logger.info(f"[IMG2IMG-ADVANCED] Calling img2img with denoising_strength={params['denoising_strength']}")
+        result = sd_client.img2img(**params)
+        logger.info(f"[IMG2IMG-ADVANCED] Generation complete")
+        
+        # Check for errors
+        if 'error' in result:
+            logger.error(f"[IMG2IMG-ADVANCED] SD Error: {result['error']}")
+            return jsonify(result), 500
+        
+        # Return result
+        images = result.get('images', [])
+        if not images:
+            return jsonify({'error': 'Không có ảnh được tạo'}), 500
+        
+        return jsonify({
+            'success': True,
+            'image': images[0],  # Return first image
+            'info': result.get('info', ''),
+            'parameters': result.get('parameters', {}),
+            'final_prompt': final_prompt
+        })
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
+        logger.error(f"[IMG2IMG-ADVANCED] {error_msg}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1357,4 +1805,4 @@ def delete_image(filename):
 if __name__ == '__main__':
     # debug=False: Tắt auto-reload và debugger (dùng cho production)
     # debug=True: Bật auto-reload khi sửa code (dùng khi develop)
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
