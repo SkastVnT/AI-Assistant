@@ -1,0 +1,146 @@
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# ============================================
+# VIRTUAL ENVIRONMENT - VERY LARGE!
+# ============================================
+app/s2t/
+s2t/
+env/
+venv/
+.venv/
+
+# ============================================
+# ENVIRONMENT & SECRETS - SECURITY!
+# ============================================
+app/config/.env
+app/config/.env.*
+.env
+.env.*
+*.key
+*.pem
+
+# ============================================
+# IDE & EDITOR
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# DATA & OUTPUT FILES - LARGE!
+# ============================================
+# Data directories
+app/data/audio/raw/*
+app/data/audio/processed/*
+app/data/results/sessions/*
+!app/data/audio/raw/.gitkeep
+!app/data/audio/processed/.gitkeep
+!app/data/results/sessions/.gitkeep
+
+# Logs
+app/logs/*.log
+app/logs/*.txt
+logs/old_installations/
+!app/logs/.gitkeep
+!logs/.gitkeep
+
+# Archive & Old Files
+docs/archive/
+BACKUP_REORGANIZE/
+
+# Text files (except docs)
+*.txt
+!requirements.txt
+!README.md
+!docs/**/*.md
+
+# Audio/Video files
+*.wav
+*.mp3
+*.mp4
+*.m4a
+*.flac
+
+# ============================================
+# AI MODELS - VERY LARGE!
+# ============================================
+app/models/
+app/data/models/
+*.pb
+*.onnx
+*.bin
+*.safetensors
+*.msgpack
+*.h5
+*.pkl
+*.pth
+*.pt
+
+# ============================================
+# CACHE & TEMP
+# ============================================
+app/temp/
+app/data/cache/*.json
+app/data/prompts/*.txt
+app/.ruff_cache/
+app/.pytest_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.log
+
+# Keep folder structure but not content
+!app/data/cache/.gitkeep
+!app/data/prompts/.gitkeep
+
+# ============================================
+# JUPYTER NOTEBOOKS
+# ============================================
+.ipynb_checkpoints/
+*.ipynb
+!app/notebooks/README.md
+!app/notebooks/.gitkeep
+
+# ============================================
+# TESTS
+# ============================================
+.tox/
+.coverage.*
+coverage.xml
+*.cover
+
+# ============================================
+# DOCKER
+# ============================================
+app/docker/volumes/
+*.env.docker.local
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# BUILD & DEPLOYMENT
+# ============================================
+*.pyc
+*.pyo
+*.class
+node_modules/

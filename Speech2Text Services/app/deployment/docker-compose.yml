@@ -1,0 +1,236 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # MAIN API SERVICE - FastAPI Web Interface
+  # =============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: s2t-api
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://s2t_user:s2t_password@postgres:5432/s2t_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MODEL_CACHE_DIR=/app/models
+    volumes:
+      - ./data/audio:/app/audio
+      - ./data/results:/app/result
+      - model_cache:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+      - t5-service
+      - phowhisper-service
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # =============================================================================
+  # T5 MODEL SERVICE - Offline AI Fusion
+  # =============================================================================
+  t5-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.t5
+    container_name: s2t-t5
+    ports:
+      - "8001:8001"
+    environment:
+      - MODEL_CACHE_DIR=/app/models
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+    volumes:
+      - model_cache:/app/models
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # =============================================================================
+  # PHOWHISPER SERVICE - Vietnamese Specialized
+  # =============================================================================
+  phowhisper-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.phowhisper
+    container_name: s2t-phowhisper
+    ports:
+      - "8002:8002"
+    environment:
+      - MODEL_CACHE_DIR=/app/models
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+    volumes:
+      - model_cache:/app/models
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # =============================================================================
+  # WHISPER SERVICE - Fast Baseline
+  # =============================================================================
+  whisper-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.whisper
+    container_name: s2t-whisper
+    ports:
+      - "8003:8003"
+    environment:
+      - MODEL_CACHE_DIR=/app/models
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+    volumes:
+      - model_cache:/app/models
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # =============================================================================
+  # GEMINI PROXY SERVICE - Cloud AI Integration
+  # =============================================================================
+  gemini-proxy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gemini
+    container_name: s2t-gemini
+    ports:
+      - "8004:8004"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # =============================================================================
+  # SUPPORTING SERVICES
+  # =============================================================================
+  
+  # Redis - Caching & Job Queue
+  redis:
+    image: redis:7-alpine
+    container_name: s2t-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # PostgreSQL - Results Storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: s2t-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=s2t_db
+      - POSTGRES_USER=s2t_user
+      - POSTGRES_PASSWORD=s2t_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # Nginx - Load Balancer & Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: s2t-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # =============================================================================
+  # MONITORING & HEALTH
+  # =============================================================================
+  
+  # Health Check Service
+  health-monitor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.health
+    container_name: s2t-health
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://s2t_user:s2t_password@postgres:5432/s2t_db
+    depends_on:
+      - redis
+      - postgres
+      - api
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+  # Log Aggregator (Optional)
+  log-collector:
+    image: fluentd:v1.16-1
+    container_name: s2t-logs
+    volumes:
+      - ./logs:/fluentd/log
+      - ./docker/fluentd.conf:/fluentd/etc/fluent.conf
+    ports:
+      - "24224:24224"
+    restart: unless-stopped
+    networks:
+      - s2t-network
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  model_cache:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  s2t-network:
+    driver: bridge

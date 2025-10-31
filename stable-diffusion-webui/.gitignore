@@ -1,0 +1,129 @@
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# ============================================
+# VIRTUAL ENVIRONMENT - VERY LARGE!
+# ============================================
+/venv/
+/venv_sd/
+env/
+.venv/
+
+# ============================================
+# ENVIRONMENT & SECRETS
+# ============================================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ============================================
+# IDE & EDITOR
+# ============================================
+/.idea
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# STABLE DIFFUSION MODELS - VERY LARGE!
+# ============================================
+# Model files
+*.ckpt
+*.safetensors
+*.pth
+*.pt
+*.bin
+
+# Model directories
+/models/Stable-diffusion/*.safetensors
+/models/Stable-diffusion/*.ckpt
+/models/Lora/*.safetensors
+/models/VAE/*.safetensors
+/models/VAE/*.pt
+/models/ESRGAN/**/*.pth
+/models/GFPGAN/**/*.pth
+/models/Codeformer/**/*.pth
+/models/deepbooru/**/*.ckpt
+/models/karlo/**/*.pth
+/models/LDSR/**/*.pth
+/models/SwinIR/**/*.pth
+/models/torch_deepdanbooru/**/*.pth
+
+# Keep model folder structure
+!/models/.gitkeep
+!/models/**/.gitkeep
+!/models/**/Put*.txt
+
+# ============================================
+# OUTPUTS & LOGS
+# ============================================
+/outputs/**/*.png
+/outputs/**/*.jpg
+/outputs/**/*.jpeg
+/log/
+/tmp/
+/cache.json*
+/ui-config.json
+/config.json
+/params.txt
+
+# ============================================
+# REPOSITORIES
+# ============================================
+/repositories/
+
+# ============================================
+# EMBEDDINGS & CUSTOM
+# ============================================
+/embeddings/*.pt
+/embeddings/*.safetensors
+!/embeddings/*.txt
+
+# ============================================
+# USER CONFIG
+# ============================================
+/webui.settings.bat
+/webui-user.bat
+/webui-user.sh
+/user.css
+/styles.csv
+/styles.csv.bak
+
+# ============================================
+# EXTENSIONS
+# ============================================
+/extensions/*/
+!/extensions/put*.txt
+
+# ============================================
+# CACHE & TEMP
+# ============================================
+.pytest_cache/
+.mypy_cache/
+.coverage*
+/test/stdout.txt
+/test/stderr.txt
+
+# ============================================
+# OTHER
+# ============================================
+notification.mp3
+/interrogate
+/textual_inversion
+/config_states/
+/node_modules/
+/package-lock.json
