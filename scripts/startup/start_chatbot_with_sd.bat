@@ -64,7 +64,7 @@ echo.
 
 REM Start Stable Diffusion in new window with venv_sd
 echo [1/2] Dang khoi dong Stable Diffusion API (venv_sd - PyTorch 2.0.1)...
-start "Stable Diffusion API" cmd /k "cd /d i:\AI-Assistant\stable-diffusion-webui && call venv_sd\Scripts\activate.bat && python webui.py --api --xformers --no-half-vae --disable-safe-unpickle --skip-prepare-environment --skip-version-check --skip-torch-cuda-test"
+start "Stable Diffusion API" cmd /k "cd /d i:\AI-Assistant\stable-diffusion-webui && call venv_sd\Scripts\activate.bat && python webui.py --api --xformers --no-half-vae --disable-safe-unpickle --skip-prepare-environment --skip-version-check"
 
 echo Doi 15 giay de Stable Diffusion khoi dong hoan tat...
 timeout /t 15 /nobreak > nul

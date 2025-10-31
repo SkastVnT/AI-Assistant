@@ -1,0 +1,15 @@
+{
+  "filename": "generated_20251030_141312.png",
+  "created_at": "2025-10-30T14:13:12.724435",
+  "metadata": {
+    "prompt": "masterpiece, best quality, highly detailed, teenage girl, katana, school uniform, action pose, fighting eldritch monsters, post-apocalyptic city, ruins, debris, dynamic angle, intense volumetric lighting, cinematic composition, muted colors, gritty, realistic textures, long flowing hair, determined face, wind, dust, sparks, depth of field, sharp focus, dramatic lighting, post-processing",
+    "negative_prompt": "bad quality, blurry, distorted, ugly, worst quality, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, r18, nsfw, nude, explicit, sexual, porn, lowres, jpeg artifacts, cropped, out of frame, mutated hands, fused fingers, poorly drawn face, poorly drawn eyes, unrealistic eyes, unrealistic skin, text, watermark, signature, username, error, incorrect number of limbs, duplicate, cloned face, disfigured, malformed, unnatural pose, static pose, bad proportions, gross proportions, poorly rendered background, artifacts, noise, oversaturated, bright colors, soft focus, fake, unreal, child, loli, monster with human features, clean city, peaceful scene, weapon out of proportion, student card, holding phone, modern building, bad composition, too much focus on background, bad lighting, helmet obscuring face",
+    "width": 768,
+    "height": 768,
+    "steps": 15,
+    "cfg_scale": 8,
+    "sampler_name": "DPM++ 2M Karras",
+    "model": "AnythingV4_v45",
+    "source": "text2image_tool"
+  }
+}

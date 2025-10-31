@@ -118,7 +118,9 @@ class StableDiffusionClient:
         hr_scale: float = 2.0,
         hr_upscaler: str = "Latent",
         denoising_strength: float = 0.7,
-        save_images: bool = False
+        save_images: bool = False,
+        lora_models: Optional[List[Dict]] = None,
+        vae: Optional[str] = None
     ) -> Dict:
         """
         Tạo ảnh từ text prompt
@@ -140,12 +142,23 @@ class StableDiffusionClient:
             hr_upscaler: Upscaler dùng cho Hires. fix
             denoising_strength: Độ mạnh denoising cho Hires. fix
             save_images: Có lưu ảnh vào outputs/ không
+            lora_models: List of Lora models to apply [{"name": "lora_name", "weight": 0.8}]
+            vae: VAE model name (None = Automatic)
         
         Returns:
             Dict với keys: images (list base64), parameters, info
         """
+        # Apply Lora to prompt
+        final_prompt = prompt
+        if lora_models:
+            for lora in lora_models:
+                lora_name = lora.get('name', '')
+                lora_weight = lora.get('weight', 1.0)
+                # Add Lora syntax to prompt: <lora:name:weight>
+                final_prompt = f"<lora:{lora_name}:{lora_weight}> {final_prompt}"
+        
         payload = {
-            "prompt": prompt,
+            "prompt": final_prompt,
             "negative_prompt": negative_prompt,
             "width": width,
             "height": height,
@@ -164,6 +177,12 @@ class StableDiffusionClient:
             "send_images": True,
             "do_not_save_samples": not save_images
         }
+        
+        # Add VAE override if specified
+        if vae:
+            payload["override_settings"] = {
+                "sd_vae": vae
+            }
         
         # No timeout - wait until completion or manual cancellation
         timeout = None
@@ -196,6 +215,127 @@ class StableDiffusionClient:
         except Exception as e:
             print(f"Error getting samplers: {e}")
             return ["Euler a", "Euler", "DPM++ 2M Karras", "DPM++ SDE Karras", "DDIM"]
+    
+    def get_loras(self) -> List[Dict]:
+        """
+        Lấy danh sách tất cả các Lora models
+        
+        Returns:
+            List of Lora dicts với keys: name, alias, path, metadata
+        """
+        try:
+            response = requests.get(f"{self.api_url}/sdapi/v1/loras", timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error getting loras: {e}")
+            return []
+    
+    def get_vaes(self) -> List[Dict]:
+        """
+        Lấy danh sách tất cả các VAE models
+        
+        Returns:
+            List of VAE names
+        """
+        try:
+            response = requests.get(f"{self.api_url}/sdapi/v1/sd-vae", timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error getting VAEs: {e}")
+            return []
+    
+    def img2img(
+        self,
+        init_images: List[str],
+        prompt: str,
+        negative_prompt: str = "",
+        denoising_strength: float = 0.75,
+        width: int = 512,
+        height: int = 512,
+        steps: int = 30,
+        cfg_scale: float = 7.0,
+        sampler_name: str = "DPM++ 2M Karras",
+        seed: int = -1,
+        restore_faces: bool = False,
+        resize_mode: int = 0,  # 0=Just resize, 1=Crop and resize, 2=Resize and fill
+        lora_models: Optional[List[Dict]] = None,
+        vae: Optional[str] = None
+    ) -> Dict:
+        """
+        Tạo ảnh từ ảnh gốc (img2img)
+        
+        Args:
+            init_images: List of base64 encoded images
+            prompt: Text prompt mô tả ảnh muốn tạo
+            negative_prompt: Những gì KHÔNG muốn có
+            denoising_strength: Tỉ lệ thay đổi so với ảnh gốc (0.0-1.0)
+                - 0.0 = giữ nguyên 100%
+                - 1.0 = tạo mới hoàn toàn
+                - 0.75-0.85 = recommended (75-85% mới, 15-25% giữ lại)
+            width: Chiều rộng
+            height: Chiều cao
+            steps: Số bước sampling (img2img thường cần nhiều steps hơn txt2img)
+            cfg_scale: Độ tuân theo prompt
+            sampler_name: Tên sampler
+            seed: Random seed (-1 = random)
+            restore_faces: Có restore faces không
+            resize_mode: Cách resize ảnh input
+            lora_models: List of Lora models to apply [{"name": "lora_name", "weight": 0.8}]
+            vae: VAE model name (None = Automatic)
+        
+        Returns:
+            Dict với keys: images (list base64), parameters, info
+        """
+        # Apply Lora to prompt
+        final_prompt = prompt
+        if lora_models:
+            for lora in lora_models:
+                lora_name = lora.get('name', '')
+                lora_weight = lora.get('weight', 1.0)
+                final_prompt = f"<lora:{lora_name}:{lora_weight}> {final_prompt}"
+        
+        payload = {
+            "init_images": init_images,
+            "prompt": final_prompt,
+            "negative_prompt": negative_prompt,
+            "denoising_strength": denoising_strength,
+            "width": width,
+            "height": height,
+            "steps": steps,
+            "cfg_scale": cfg_scale,
+            "sampler_name": sampler_name,
+            "seed": seed,
+            "restore_faces": restore_faces,
+            "resize_mode": resize_mode,
+            "send_images": True,
+            "save_images": False
+        }
+        
+        # Add VAE override if specified
+        if vae:
+            payload["override_settings"] = {
+                "sd_vae": vae
+            }
+        
+        # No timeout - wait until completion
+        timeout = None
+        print(f"[INFO] Img2Img: {width}x{height}, {steps} steps, denoising={denoising_strength}")
+        
+        try:
+            response = requests.post(
+                f"{self.api_url}/sdapi/v1/img2img",
+                json=payload,
+                timeout=timeout
+            )
+            response.raise_for_status()
+            print(f"[SUCCESS] Img2Img generated successfully!")
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            return {"error": f"Network error: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Lỗi khi tạo ảnh: {str(e)}"}
     
     def interrupt(self) -> bool:
         """Dừng việc tạo ảnh đang chạy"""

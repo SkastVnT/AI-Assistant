@@ -851,7 +851,9 @@ def generate_image():
             'restore_faces': data.get('restore_faces', False),
             'enable_hr': data.get('enable_hr', False),
             'hr_scale': float(data.get('hr_scale') or 2.0),
-            'save_images': data.get('save_images', False)
+            'save_images': data.get('save_images', False),
+            'lora_models': data.get('lora_models', []),
+            'vae': data.get('vae', None)
         }
         
         # Get SD client
@@ -896,6 +898,44 @@ def sd_samplers():
         
         return jsonify({
             'samplers': samplers
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sd-loras', methods=['GET'])
+def sd_loras():
+    """Lấy danh sách Lora models"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        loras = sd_client.get_loras()
+        
+        return jsonify({
+            'loras': loras
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sd-vaes', methods=['GET'])
+def sd_vaes():
+    """Lấy danh sách VAE models"""
+    try:
+        from src.utils.sd_client import get_sd_client
+        
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_client = get_sd_client(sd_api_url)
+        
+        vaes = sd_client.get_vaes()
+        
+        return jsonify({
+            'vaes': vaes
         })
         
     except Exception as e:
@@ -949,6 +989,8 @@ def img2img():
             'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
             'seed': int(data.get('seed') or -1),
             'restore_faces': data.get('restore_faces', False),
+            'lora_models': data.get('lora_models', []),
+            'vae': data.get('vae', None)
         }
         
         # Get SD client
@@ -1324,6 +1366,8 @@ def img2img_advanced():
             'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
             'seed': int(data.get('seed') or -1),
             'restore_faces': data.get('restore_faces', False),
+            'lora_models': data.get('lora_models', []),
+            'vae': data.get('vae', None)
         }
         
         # Get SD client

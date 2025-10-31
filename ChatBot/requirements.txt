@@ -1,12 +1,40 @@
+# ============================================================================
+# ChatBot Service - AI Assistant Project
+# Python: 3.10.6
+# Description: Multi-model chatbot with local LLM support and image generation
+# ============================================================================
+
+# ============= WEB FRAMEWORK =============
 flask==3.0.0
+flask-cors==4.0.0
 python-dotenv==1.0.0
-openai
+
+# ============= AI APIs =============
+openai>=1.0.0
 google-generativeai==0.8.5
-requests
-Pillow
+
+# ============= IMAGE PROCESSING =============
+Pillow>=9.5.0
+requests>=2.31.0
+
+# ============= LOCAL MODEL SUPPORT =============
+# PyTorch (CUDA 11.8)
 numpy<2.0  # Required for PyTorch compatibility
 torch>=2.0.0
+torchaudio>=2.0.0
 transformers>=4.37.0
 accelerate>=0.20.0
 sentencepiece>=0.1.99
+
+# Quantization (for efficient local models)
 bitsandbytes>=0.41.0
+
+# ============= ADDITIONAL UTILITIES =============
+# PDF export (if needed)
+reportlab>=4.0.0
+
+# Progress bars
+tqdm>=4.65.0
+
+# JSON handling
+jsonschema>=4.17.0

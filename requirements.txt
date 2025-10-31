@@ -1,3 +1,24 @@
+# ============================================================================
+# AI-Assistant Root Project
+# Python: 3.10.6
+# Description: Unified AI Assistant Hub with multiple services
+# Services: ChatBot, Text2SQL, Speech2Text, Stable Diffusion WebUI
+# ============================================================================
+
+# ============= WEB FRAMEWORK =============
 flask==3.0.0
 flask-cors==4.0.0
 python-dotenv==1.0.0
+
+# ============= UTILITIES =============
+requests>=2.31.0
+
+# ============= NOTE =============
+# Each service has its own virtual environment and requirements.txt:
+# - ChatBot/requirements.txt        : Multi-model chatbot with local LLM
+# - Text2SQL Services/requirements.txt : NL to SQL conversion
+# - Speech2Text Services/requirements.txt : Vietnamese speech-to-text
+# - stable-diffusion-webui/requirements.txt : Image generation
+#
+# This root requirements.txt is for the main hub/coordinator only.
+# Install service-specific dependencies in their respective virtual environments.

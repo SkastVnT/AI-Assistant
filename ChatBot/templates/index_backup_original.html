@@ -12,8 +12,1278 @@
     <!-- jsPDF and html2canvas for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        .main-wrapper {
+            display: flex;
+            gap: 0;
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 20px 0 0 20px;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        body.dark-mode .sidebar {
+            background: #1e1e1e;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        body.dark-mode .sidebar-header {
+            border-bottom-color: #444;
+        }
+        
+        .sidebar-header h3 {
+            font-size: 16px;
+            margin: 0;
+            color: #333;
+        }
+        
+        body.dark-mode .sidebar-header h3 {
+            color: #e0e0e0;
+        }
+        
+        .new-chat-btn {
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .chat-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        body.dark-mode .chat-item {
+            background: #2a2a2a;
+        }
+        
+        .chat-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        body.dark-mode .chat-item:hover {
+            background: #333;
+        }
+        
+        .chat-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .chat-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .chat-item-preview {
+            font-size: 12px;
+            opacity: 0.7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .chat-item-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+        
+        .chat-item-actions {
+            display: none;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        
+        .chat-item:hover .chat-item-actions {
+            display: flex;
+        }
+        
+        .chat-item-btn {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .chat-item-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .sidebar-toggle {
+            background: #1e1e1e;
+            border-color: #ffd700;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                z-index: 999;
+                border-radius: 0;
+            }
+            
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: flex;
+            }
+        }
+        
+        
+        .container {
+            width: 100%;
+            background: white;
+            border-radius: 0 20px 20px 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        body.dark-mode .container {
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .controls {
+            background: #2a2a2a;
+            border-bottom: 1px solid #444;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        select, button {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        body.dark-mode select,
+        body.dark-mode button {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        /* Dark mode toggle button */
+        .dark-mode-toggle {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 8px 15px;
+            font-size: 18px;
+        }
+        
+        body.dark-mode .dark-mode-toggle {
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+        
+        .dark-mode-toggle:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* Download button */
+        .download-btn {
+            background: transparent;
+            border: 2px solid #28a745;
+            color: #28a745;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        body.dark-mode .download-btn {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+        
+        .download-btn:hover {
+            background: rgba(40, 167, 69, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        body.dark-mode .download-btn:hover {
+            background: rgba(74, 222, 128, 0.1);
+        }
+        
+        /* Checkbox styling */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .checkbox-container {
+            background: #333;
+            border-color: #555;
+        }
+        
+        .checkbox-container:hover {
+            border-color: #667eea;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        
+        .checkbox-container label {
+            cursor: pointer;
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .chat-container {
+            background: #252525;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message.assistant {
+            justify-content: flex-start;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 15px;
+            position: relative;
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 5px;
+        }
+        
+        body.dark-mode .message.assistant .message-content {
+            background: #333;
+            color: #e0e0e0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Markdown Styling */
+        .message-content strong {
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .message-content em {
+            font-style: italic;
+        }
+        
+        .message-content u {
+            text-decoration: underline;
+        }
+        
+        .message-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .message-content pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .message-content ul, .message-content ol {
+            margin-left: 20px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .message-content li {
+            margin: 4px 0;
+        }
+        
+        .message-content p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin-top: 12px;
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+        
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 12px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .message-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 15px 0;
+        }
+        
+        .message-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Copy table button */
+        .copy-table-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .copy-table-btn {
+            background: #5568d3;
+        }
+        
+        .copy-table-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .copy-table-btn:hover {
+            background: #667eea;
+        }
+        
+        .copy-table-btn.copied {
+            background: #28a745;
+        }
+        
+        body.dark-mode .copy-table-btn.copied {
+            background: #4ade80;
+        }
+        
+        /* Copy message button */
+        .copy-message-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 12px;
+            background: transparent;
+            color: #667eea;
+            border: 1px solid #667eea;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .copy-message-btn {
+            color: #ffd700;
+            border-color: #ffd700;
+        }
+        
+        .copy-message-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .copy-message-btn:hover {
+            background: #ffd700;
+            color: #1a1a2e;
+        }
+        
+        .copy-message-btn.copied {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        
+        body.dark-mode .copy-message-btn.copied {
+            background: #4ade80;
+            border-color: #4ade80;
+        }
+        
+        /* Edit message button */
+        .edit-message-btn {
+            display: inline-block;
+            margin-top: 8px;
+            margin-left: 8px;
+            padding: 5px 12px;
+            background: transparent;
+            color: #ffa500;
+            border: 1px solid #ffa500;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .edit-message-btn {
+            color: #ff6b35;
+            border-color: #ff6b35;
+        }
+        
+        .edit-message-btn:hover {
+            background: #ffa500;
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .edit-message-btn:hover {
+            background: #ff6b35;
+            color: white;
+        }
+        
+        /* Edit form */
+        .edit-form {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 165, 0, 0.1);
+            border: 2px solid #ffa500;
+            border-radius: 8px;
+        }
+        
+        body.dark-mode .edit-form {
+            background: rgba(255, 107, 53, 0.1);
+            border-color: #ff6b35;
+        }
+        
+        .edit-form textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 8px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        body.dark-mode .edit-form textarea {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        .edit-form-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .edit-form-buttons button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .edit-save-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .edit-save-btn:hover {
+            background: #218838;
+        }
+        
+        .edit-cancel-btn {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .edit-cancel-btn:hover {
+            background: #5a6268;
+        }
+        
+        /* Memory/Learning styles */
+        .memory-btn {
+            background: transparent;
+            border: 2px solid #9c27b0;
+            color: #9c27b0;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        body.dark-mode .memory-btn {
+            border-color: #ba68c8;
+            color: #ba68c8;
+        }
+        
+        .memory-btn:hover {
+            background: rgba(156, 39, 176, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        body.dark-mode .memory-btn:hover {
+            background: rgba(186, 104, 200, 0.1);
+        }
+        
+        .memory-panel {
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        body.dark-mode .memory-panel {
+            background: #2a2a2a;
+            border-top-color: #444;
+        }
+        
+        .memory-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        
+        body.dark-mode .memory-item {
+            background: #333;
+            border-color: #555;
+        }
+        
+        .memory-item:hover {
+            border-color: #9c27b0;
+            transform: translateX(3px);
+        }
+        
+        .memory-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .memory-item-content {
+            flex: 1;
+        }
+        
+        .memory-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        body.dark-mode .memory-item-title {
+            color: #e0e0e0;
+        }
+        
+        .memory-item-preview {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        body.dark-mode .memory-item-preview {
+            color: #999;
+        }
+        
+        .memory-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .memory-delete-btn {
+            padding: 4px 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .memory-delete-btn:hover {
+            background: #c82333;
+        }
+        
+        /* File upload multi-file support */
+        .file-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .file-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            background: #e7f3ff;
+            border: 1px solid #2196f3;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #1976d2;
+        }
+        
+        body.dark-mode .file-tag {
+            background: rgba(33, 150, 243, 0.2);
+            border-color: #2196f3;
+            color: #64b5f6;
+        }
+        
+        .file-tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            color: #d32f2f;
+            margin-left: 3px;
+        }
+        
+        .file-tag-remove:hover {
+            color: #b71c1c;
+        }
+        
+        /* Table styling in dark mode */
+        body.dark-mode .message-content table {
+            border-color: #555;
+        }
+        
+        body.dark-mode .message-content th,
+        body.dark-mode .message-content td {
+            border-color: #555;
+        }
+        
+        body.dark-mode .message-content th {
+            background: #333;
+        }
+        
+        body.dark-mode .message-content tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .message-info {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        .message-timestamp {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 3px;
+            font-style: italic;
+        }
+        
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .input-container {
+            background: #1e1e1e;
+            border-top: 1px solid #444;
+        }
+        
+        .input-tools {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .tool-btn {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .tool-btn:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        
+        .tool-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-label {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        body.dark-mode .file-label {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        .file-label:hover {
+            background: #e9ecef;
+        }
+        
+        body.dark-mode .file-label:hover {
+            background: #444;
+        }
+        
+        .file-name {
+            font-size: 12px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        body.dark-mode .file-name {
+            color: #aaa;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            font-size: 14px;
+            transition: all 0.3s;
+            resize: vertical;
+            min-height: 45px;
+            max-height: 200px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        body.dark-mode #messageInput {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        #messageInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        #sendBtn {
+            padding: 12px 30px;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #sendBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Image Generation Button */
+        .image-gen-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .image-gen-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+        }
+        
+        /* Image Generation Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+        
+        body.dark-mode .modal-content {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        body.dark-mode .modal-header {
+            border-bottom-color: #444;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #667eea;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: #f5576c;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        body.dark-mode .form-group label {
+            color: #e0e0e0;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group select,
+        body.dark-mode .form-group textarea {
+            background: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .sd-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .sd-status.online {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .sd-status.offline {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        body.dark-mode .sd-status.online {
+            background: #1e4620;
+            color: #8fff8f;
+            border-color: #2d5f2f;
+        }
+        
+        body.dark-mode .sd-status.offline {
+            background: #4a1f1f;
+            color: #ff8f8f;
+            border-color: #5f2d2d;
+        }
+        
+        .generated-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .image-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .image-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .copy-to-chat-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .copy-to-chat-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .download-image-btn {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .download-image-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar Toggle (Mobile) -->
@@ -120,22 +1390,19 @@
         <div class="input-container">
             <div class="input-tools">
                 <button class="tool-btn" id="googleSearchBtn" title="Tìm kiếm Google">
-                    🔍 Search
+                    🔍 Google Search
                 </button>
                 <button class="tool-btn" id="githubBtn" title="Kết nối GitHub">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
                     </svg>
                     GitHub
                 </button>
-                <button class="tool-btn" id="imageGenToolBtn" title="Tạo ảnh từ text prompt (Text2Img)">
-                    🎨 Text2Img
+                <button class="tool-btn" id="imageGenToolBtn" title="Tạo ảnh từ mô tả">
+                    🎨 Tạo ảnh
                 </button>
-                <button class="tool-btn" id="img2imgToolBtn" title="Tạo ảnh từ upload (Img2Img)">
-                    🖼️ Img2Img
-                </button>
-                <label class="file-label" title="Upload tài liệu (txt, pdf, doc, code files)">
-                    📎 Files
+                <label class="file-label">
+                    📎 Upload Files
                     <input type="file" class="file-input" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css" multiple>
                 </label>
             </div>
@@ -488,17 +1755,6 @@
                         };
                     }
                 });
-                
-                // Re-attach event listeners for history buttons
-                chatContainer.querySelectorAll('.message-history-btn').forEach(btn => {
-                    const messageDiv = btn.closest('.message');
-                    const messageId = messageDiv.dataset.messageId;
-                    if (messageId) {
-                        btn.onclick = function() {
-                            showMessageHistory(messageId);
-                        };
-                    }
-                });
             } else {
                 // Start with empty chat
                 chatContainer.innerHTML = '';
@@ -514,14 +1770,6 @@
                     content: content
                 });
             });
-            
-            // Make images clickable after loading chat
-            setTimeout(() => {
-                if (window.makeImagesClickable) {
-                    console.log('[Image Preview] Making images clickable after loading chat');
-                    window.makeImagesClickable();
-                }
-            }, 200);
         }
         
         // Delete chat session
@@ -729,19 +1977,6 @@
         imageGenToolBtn.addEventListener('click', function() {
             toggleTool('image-generation', this);
         });
-
-        // Img2Img tool button - open modal directly with Img2Img tab
-        const img2imgToolBtn = document.getElementById('img2imgToolBtn');
-        if (img2imgToolBtn) {
-            img2imgToolBtn.addEventListener('click', async function() {
-                console.log('[Img2Img Tool] Opening modal...');
-                await openImageModal();
-                // Switch to img2img tab after modal opens
-                setTimeout(() => {
-                    switchImageGenTab('img2img');
-                }, 100);
-            });
-        }
         
         function toggleTool(tool, btn) {
             if (activeTools.has(tool)) {
@@ -813,11 +2048,6 @@
             messageDiv.dataset.timestamp = timestamp || formatTimestamp(new Date());
             messageDiv.dataset.model = model || '';
             messageDiv.dataset.context = context || '';
-            
-            // Assign unique message ID for user messages (for history tracking)
-            if (isUser) {
-                messageDiv.dataset.messageId = `msg_${Date.now()}_${Math.random()}`;
-            }
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
@@ -899,36 +2129,18 @@
                 chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
                 chatSessions[currentChatId].updatedAt = new Date();
                 
-                // Generate title for first user message using Gemini
-                // Check if this is the first user message and title is still default
-                if (isUser && chatSessions[currentChatId].title === 'Cuộc trò chuyện mới') {
+                // Generate title for first user message
+                if (isUser && chatSessions[currentChatId].messages.length === 2 && chatSessions[currentChatId].title === 'Cuộc trò chuyện mới') {
                     generateTitle(content).then(title => {
-                        if (currentChatId && chatSessions[currentChatId]) {
-                            chatSessions[currentChatId].title = title || content.substring(0, 30);
-                            saveSessions();
-                            renderChatList();
-                        }
-                    }).catch(err => {
-                        console.error('Failed to generate title:', err);
-                        // Fallback to first few words of content
-                        if (currentChatId && chatSessions[currentChatId]) {
-                            chatSessions[currentChatId].title = content.substring(0, 30) + (content.length > 30 ? '...' : '');
-                            saveSessions();
-                            renderChatList();
-                        }
+                        chatSessions[currentChatId].title = title;
+                        saveSessions();
+                        renderChatList();
                     });
                 }
                 
                 saveSessions();
                 renderChatList();
             }
-            
-            // Make images clickable after adding message
-            setTimeout(() => {
-                if (window.makeImagesClickable) {
-                    window.makeImagesClickable();
-                }
-            }, 100);
         }
         
         function copyMessageToClipboard(content, button) {
@@ -955,15 +2167,6 @@
             // Check if edit form already exists
             if (messageDiv.querySelector('.edit-form')) {
                 return;
-            }
-            
-            // Save current content to history before editing (if not already saved)
-            const messageId = messageDiv.dataset.messageId || `msg_${Date.now()}_${Math.random()}`;
-            messageDiv.dataset.messageId = messageId;
-            
-            // Only save to history if this is the first edit
-            if (!messageHistory.has(messageId)) {
-                addMessageVersion(messageId, originalContent, new Date().toISOString());
             }
             
             // Create edit form
@@ -1012,13 +2215,6 @@
                 return;
             }
             
-            // Save the current content to history before updating
-            const messageId = messageDiv.dataset.messageId;
-            if (messageId) {
-                const currentText = messageDiv.querySelector('.message-text')?.textContent || originalContent;
-                addMessageVersion(messageId, currentText, new Date().toISOString());
-            }
-            
             // Get all messages before this one
             const allMessages = Array.from(chatContainer.children);
             const messageIndex = allMessages.indexOf(messageDiv);
@@ -1042,25 +2238,6 @@
             
             // Remove edit form
             messageDiv.querySelector('.edit-form')?.remove();
-            
-            // Add or update history button
-            let historyBtn = messageDiv.querySelector('.message-history-btn');
-            if (!historyBtn && messageHistory.has(messageId)) {
-                historyBtn = document.createElement('button');
-                historyBtn.className = 'message-history-btn';
-                historyBtn.textContent = '📜 Xem lịch sử';
-                historyBtn.onclick = function() {
-                    showMessageHistory(messageId);
-                };
-                
-                // Insert after edit button
-                const editBtn = messageDiv.querySelector('.edit-message-btn');
-                if (editBtn) {
-                    editBtn.parentNode.insertBefore(historyBtn, editBtn.nextSibling);
-                } else {
-                    messageDiv.querySelector('.message-content').appendChild(historyBtn);
-                }
-            }
             
             // Remove all messages after this one
             for (let i = allMessages.length - 1; i > messageIndex; i--) {
@@ -1758,7 +2935,6 @@ Return ONLY the title, nothing else.`;
                 fileInput.value = '';
                 
                 // Update current session
-                // Title will be auto-generated by addMessage() when user sends first message
                 if (currentChatId && chatSessions[currentChatId]) {
                     chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
                     chatSessions[currentChatId].title = 'Cuộc trò chuyện mới';
@@ -1796,27 +2972,13 @@ Return ONLY the title, nothing else.`;
             <div id="sdStatus" class="sd-status offline">
                 Đang kiểm tra Stable Diffusion...
             </div>
-
-            <!-- Tab Navigation -->
-            <div class="image-gen-tabs">
-                <button class="tab-btn active" onclick="switchImageGenTab('text2img')">
-                    ✍️ Tạo ảnh từ prompt
-                </button>
-                <button class="tab-btn" onclick="switchImageGenTab('img2img')">
-                    🖼️ Tạo ảnh theo hình ảnh
-                </button>
-            </div>
-
-            <!-- Shared Model Selection -->
+            
             <div class="form-group">
                 <label>Model Checkpoint:</label>
                 <select id="modelCheckpoint">
                     <option value="">Đang tải...</option>
                 </select>
             </div>
-
-            <!-- Text2Img Tab Content -->
-            <div id="text2imgTab" class="tab-content active">
             
             <div class="form-group">
                 <label>Prompt (Mô tả ảnh bạn muốn tạo):</label>
@@ -1838,7 +3000,7 @@ Return ONLY the title, nothing else.`;
                 <div class="form-group">
                     <label>Width:</label>
                     <select id="imageWidth">
-                        <option value="512" selected>512 (Safe)</option>
+                        <option value="512" selected>512</option>
                         <option value="768">768</option>
                         <option value="1024">1024</option>
                         <option value="1280">1280</option>
@@ -1851,7 +3013,7 @@ Return ONLY the title, nothing else.`;
                 <div class="form-group">
                     <label>Height:</label>
                     <select id="imageHeight">
-                        <option value="512" selected>512 (Safe)</option>
+                        <option value="512" selected>512</option>
                         <option value="768">768</option>
                         <option value="1024">1024</option>
                         <option value="1280">1280</option>
@@ -1901,190 +3063,9 @@ Return ONLY the title, nothing else.`;
                 </div>
             </div>
             
-            <!-- Lora Selection Section -->
-            <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
-                <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                    <button type="button" id="addLoraBtn" class="secondary-btn" onclick="addLoraSelection()">
-                        ➕ Thêm Lora
-                    </button>
-                </div>
-            </div>
-            
-            <!-- VAE Selection -->
-            <div class="form-group">
-                <label>🔧 VAE Model:</label>
-                <select id="vaeSelect">
-                    <option value="">Automatic (Mặc định)</option>
-                </select>
-            </div>
-            
             <button class="generate-btn" id="generateImageBtn" onclick="generateImage()">
                 🎨 Tạo ảnh
             </button>
-
-            </div>
-            <!-- End Text2Img Tab -->
-
-            <!-- Img2Img Tab Content -->
-            <div id="img2imgTab" class="tab-content" style="display: none;">
-                
-                <!-- Upload Image Section -->
-                <div class="form-group">
-                    <label>📤 Upload hình ảnh gốc (Bắt buộc):</label>
-                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('sourceImage').click()">
-                        <div id="uploadPlaceholder">
-                            <span style="font-size: 48px;">📷</span>
-                            <p>Click để chọn ảnh hoặc kéo thả vào đây</p>
-                            <p style="font-size: 12px; color: #999;">Hỗ trợ: JPG, PNG, WebP</p>
-                        </div>
-                        <img id="sourceImagePreview" style="display: none; max-width: 100%; max-height: 300px; border-radius: 8px;">
-                    </div>
-                    <input type="file" id="sourceImage" accept="image/*" style="display: none;" onchange="handleSourceImageUpload(event)">
-                </div>
-
-                <!-- Extract Features Section -->
-                <div id="featureExtractionSection" style="display: none;">
-                    <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <label style="font-weight: 600;">🔍 Trích xuất đặc trưng:</label>
-                            <label style="font-size: 13px;">
-                                <input type="checkbox" id="deepThinkingMode">
-                                🧠 Deep Thinking Mode (Chi tiết hơn)
-                            </label>
-                        </div>
-                        
-                        <!-- Multi-Model Selection -->
-                        <div style="margin-bottom: 10px; padding: 10px; background: rgba(255, 152, 0, 0.1); border-radius: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">
-                                🎯 Extraction Models (Chọn nhiều model = chính xác hơn nhưng chậm hơn):
-                            </label>
-                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                                <label style="font-size: 12px; cursor: pointer;">
-                                    <input type="checkbox" id="modelDeepDanbooru" value="deepdanbooru" checked>
-                                    DeepDanbooru (Anime) 🎨
-                                </label>
-                                <label style="font-size: 12px; cursor: pointer;">
-                                    <input type="checkbox" id="modelCLIP" value="clip">
-                                    CLIP (General) 🌐
-                                </label>
-                                <label style="font-size: 12px; cursor: pointer;">
-                                    <input type="checkbox" id="modelWD14" value="wd14">
-                                    WD14 Tagger (Anime+) ⭐
-                                </label>
-                            </div>
-                            <p style="font-size: 11px; color: #666; margin-top: 5px;">
-                                💡 Tip: Chọn nhiều model để ensemble extraction (tags được nhiều model đồng ý = confidence cao hơn)
-                            </p>
-                        </div>
-                        
-                        <button class="extract-btn" onclick="extractFeatures()" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                            🔬 Trích xuất đặc trưng
-                        </button>
-                        <div id="extractedTags" style="display: none;">
-                            <div style="margin-bottom: 10px; padding: 8px; background: rgba(255, 152, 0, 0.1); border-radius: 4px; font-size: 13px;">
-                                💡 <strong>Tip:</strong> Click vào checkbox để loại bỏ toàn bộ category, hoặc click từng tag để loại bỏ riêng lẻ
-                            </div>
-                            <div id="tagsList" style="max-height: 350px; overflow-y: auto; padding: 10px; background: #2a2a2a; border-radius: 4px; margin-bottom: 10px;">
-                                <!-- Tags will be populated here by category -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Prompt Section for Img2Img -->
-                <div class="form-group">
-                    <label>Prompt bổ sung (có thể tùy chỉnh % bên dưới):</label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                        <button onclick="randomImg2ImgPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
-                    </div>
-                    <textarea id="img2imgPrompt" rows="3" placeholder="Nhập prompt bổ sung để điều chỉnh ảnh..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Negative Prompt:</label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                        <button onclick="randomImg2ImgNegativePrompt()" style="padding: 5px 15px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
-                    </div>
-                    <textarea id="img2imgNegativePrompt" rows="2" placeholder="bad quality, blurry, distorted"></textarea>
-                </div>
-
-                <!-- Image Size for Img2Img -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Width:</label>
-                        <select id="img2imgWidth">
-                            <option value="512">512</option>
-                            <option value="768" selected>768</option>
-                            <option value="1024">1024</option>
-                            <option value="1280">1280</option>
-                            <option value="1440">1440 (HD)</option>
-                            <option value="1920">1920 (FHD)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Height:</label>
-                        <select id="img2imgHeight">
-                            <option value="512">512</option>
-                            <option value="768" selected>768</option>
-                            <option value="1024">1024</option>
-                            <option value="1280">1280</option>
-                            <option value="1440">1440 (HD)</option>
-                            <option value="1920">1920 (FHD)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Generation Settings for Img2Img -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Denoising Strength:</label>
-                        <input type="number" id="denoisingStrength" value="0.6" min="0" max="1" step="0.05">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Feature Weight (%):</label>
-                        <input type="number" id="featureWeight" value="80" min="0" max="100" step="5">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Steps:</label>
-                        <input type="number" id="img2imgSteps" value="30" min="1" max="150">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>CFG Scale:</label>
-                        <input type="number" id="img2imgCfgScale" value="7" min="1" max="30" step="0.5">
-                    </div>
-                </div>
-                
-                <!-- Lora Selection for Img2Img -->
-                <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                    <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
-                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <button type="button" id="addImg2imgLoraBtn" class="secondary-btn" onclick="addImg2imgLoraSelection()">
-                            ➕ Thêm Lora
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- VAE Selection for Img2Img -->
-                <div class="form-group">
-                    <label>🔧 VAE Model:</label>
-                    <select id="img2imgVaeSelect">
-                        <option value="">Automatic (Mặc định)</option>
-                    </select>
-                </div>
-
-                <button class="generate-btn" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>
-                    🎨 Tạo ảnh từ hình ảnh
-                </button>
-
-            </div>
-            <!-- End Img2Img Tab -->
             
             <div id="generatedImageContainer" style="display: none;">
                 <img id="generatedImage" class="generated-image" alt="Generated Image">
@@ -2106,7 +3087,6 @@ Return ONLY the title, nothing else.`;
         let sdModels = [];
         
         async function openImageModal() {
-            console.log('[Image Modal] Opening modal...');
             const modal = document.getElementById('imageGenModal');
             modal.classList.add('active');
             
@@ -2118,446 +3098,11 @@ Return ONLY the title, nothing else.`;
             
             // Load samplers
             await loadSamplers();
-            
-            // Load Loras and VAEs
-            await loadLoras();
-            await loadVaes();
-            
-            // Initialize tabs (make sure text2img is visible)
-            const text2imgTab = document.getElementById('text2imgTab');
-            const img2imgTab = document.getElementById('img2imgTab');
-            console.log('[Image Modal] text2imgTab:', text2imgTab);
-            console.log('[Image Modal] img2imgTab:', img2imgTab);
-            
-            if (text2imgTab) text2imgTab.style.display = 'block';
-            if (img2imgTab) img2imgTab.style.display = 'none';
         }
         
         function closeImageModal() {
             const modal = document.getElementById('imageGenModal');
             modal.classList.remove('active');
-        }
-
-        // Tab Switching
-        function switchImageGenTab(tabName) {
-            const text2imgTab = document.getElementById('text2imgTab');
-            const img2imgTab = document.getElementById('img2imgTab');
-            
-            // Hide all tabs
-            text2imgTab.style.display = 'none';
-            text2imgTab.classList.remove('active');
-            img2imgTab.style.display = 'none';
-            img2imgTab.classList.remove('active');
-            
-            // Remove active from all tab buttons
-            document.querySelectorAll('.image-gen-tabs .tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Show selected tab
-            if (tabName === 'text2img') {
-                text2imgTab.style.display = 'block';
-                text2imgTab.classList.add('active');
-                document.querySelectorAll('.image-gen-tabs .tab-btn')[0].classList.add('active');
-            } else if (tabName === 'img2img') {
-                img2imgTab.style.display = 'block';
-                img2imgTab.classList.add('active');
-                document.querySelectorAll('.image-gen-tabs .tab-btn')[1].classList.add('active');
-            }
-            
-            console.log(`[Tab Switch] Switched to ${tabName}`);
-        }
-
-        // Img2Img Variables
-        let sourceImageFile = null;
-        let sourceImageBase64 = null;
-        let extractedTags = [];
-        let extractedCategories = {};
-        let filteredTags = new Set();
-        let filteredCategories = new Set(); // Filter entire categories
-
-        // Handle Source Image Upload
-        function handleSourceImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                alert('⚠️ Vui lòng chọn file hình ảnh!');
-                return;
-            }
-            
-            sourceImageFile = file;
-            
-            // Preview image
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                sourceImageBase64 = e.target.result;
-                const preview = document.getElementById('sourceImagePreview');
-                const placeholder = document.getElementById('uploadPlaceholder');
-                
-                preview.src = sourceImageBase64;
-                preview.style.display = 'block';
-                placeholder.style.display = 'none';
-                
-                // Auto-detect image size and set width/height
-                const img = new Image();
-                img.onload = function() {
-                    console.log(`[Img2Img] Detected image size: ${this.width}x${this.height}`);
-                    document.getElementById('img2imgWidth').value = this.width;
-                    document.getElementById('img2imgHeight').value = this.height;
-                };
-                img.src = sourceImageBase64;
-                
-                // Show feature extraction section
-                document.getElementById('featureExtractionSection').style.display = 'block';
-                
-                // Reset extracted tags
-                extractedTags = [];
-                filteredTags.clear();
-                filteredCategories.clear();
-                document.getElementById('extractedTags').style.display = 'none';
-                
-                // Disable generate button until features extracted
-                document.getElementById('generateImg2ImgBtn').disabled = true;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // Drag and Drop for Upload Area
-        const uploadArea = document.getElementById('uploadArea');
-        if (uploadArea) {
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const file = files[0];
-                    if (file.type.startsWith('image/')) {
-                        document.getElementById('sourceImage').files = files;
-                        handleSourceImageUpload({ target: { files: [file] } });
-                    }
-                }
-            });
-        }
-
-        // Extract Features using Single or Multi Models
-        async function extractFeatures() {
-            if (!sourceImageBase64) {
-                alert('⚠️ Vui lòng upload ảnh trước!');
-                return;
-            }
-            
-            const extractBtn = document.querySelector('.extract-btn');
-            extractBtn.disabled = true;
-            
-            try {
-                const deepThinking = document.getElementById('deepThinkingMode').checked;
-                
-                // Get selected models
-                const selectedModels = [];
-                if (document.getElementById('modelDeepDanbooru').checked) selectedModels.push('deepdanbooru');
-                if (document.getElementById('modelCLIP').checked) selectedModels.push('clip');
-                if (document.getElementById('modelWD14').checked) selectedModels.push('wd14');
-                
-                if (selectedModels.length === 0) {
-                    alert('⚠️ Vui lòng chọn ít nhất 1 model!');
-                    extractBtn.disabled = false;
-                    return;
-                }
-                
-                // Use multi-model endpoint if more than 1 model selected
-                const useMultiModel = selectedModels.length > 1;
-                const endpoint = useMultiModel ? '/api/extract-anime-features-multi' : '/api/extract-anime-features';
-                
-                extractBtn.textContent = useMultiModel 
-                    ? `⏳ Đang trích xuất (${selectedModels.length} models)...` 
-                    : '⏳ Đang trích xuất...';
-                
-                const requestBody = {
-                    image: sourceImageBase64.split(',')[1],
-                    deep_thinking: deepThinking
-                };
-                
-                if (useMultiModel) {
-                    requestBody.models = selectedModels;
-                }
-                
-                console.log(`[Extract] Using ${useMultiModel ? 'multi-model' : 'single-model'} endpoint with:`, selectedModels);
-                
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
-                
-                const data = await response.json();
-                
-                if (data.tags && data.categories) {
-                    extractedTags = data.tags;
-                    extractedCategories = data.categories;
-                    
-                    // Show model stats if multi-model
-                    if (data.models_used && data.model_results) {
-                        console.log('[Extract] Multi-model stats:', data.model_results);
-                        const statsText = Object.entries(data.model_results)
-                            .map(([model, count]) => `${model}: ${count} tags`)
-                            .join(' | ');
-                        console.log('[Extract] Results:', statsText);
-                    }
-                    
-                    displayExtractedTagsByCategory();
-                    document.getElementById('extractedTags').style.display = 'block';
-                    document.getElementById('generateImg2ImgBtn').disabled = false;
-                    
-                    extractBtn.textContent = '✅ Đã trích xuất!';
-                    setTimeout(() => {
-                        extractBtn.textContent = '🔬 Trích xuất đặc trưng';
-                    }, 2000);
-                } else {
-                    alert('❌ Lỗi: ' + (data.error || 'Không thể trích xuất đặc trưng'));
-                }
-            } catch (error) {
-                console.error('Extract error:', error);
-                alert('❌ Lỗi khi trích xuất đặc trưng: ' + error.message);
-            } finally {
-                extractBtn.disabled = false;
-            }
-        }
-
-        // Display Extracted Tags by Category
-        function displayExtractedTagsByCategory() {
-            const tagsList = document.getElementById('tagsList');
-            
-            const CATEGORY_NAMES = {
-                'hair': '💇 Tóc',
-                'eyes': '👁️ Mắt',
-                'mouth': '👄 Miệng',
-                'face': '😊 Khuôn mặt',
-                'accessories': '👑 Phụ kiện',
-                'clothing': '👔 Quần áo',
-                'body': '🧍 Cơ thể',
-                'pose': '🤸 Tư thế',
-                'background': '🏞️ Background',
-                'style': '🎨 Style',
-                'other': '📦 Khác'
-            };
-            
-            let html = '';
-            
-            for (const [category, categoryTags] of Object.entries(extractedCategories)) {
-                if (categoryTags.length === 0) continue;
-                
-                const categoryFiltered = filteredCategories.has(category);
-                const categoryName = CATEGORY_NAMES[category] || category;
-                
-                html += `
-                    <div class="tag-category">
-                        <div class="tag-category-header">
-                            <label style="cursor: pointer; user-select: none;">
-                                <input type="checkbox" 
-                                       ${categoryFiltered ? 'checked' : ''} 
-                                       onchange="toggleCategory('${category}')"
-                                       style="margin-right: 8px;">
-                                <strong>${categoryName}</strong> 
-                                <span style="opacity: 0.7;">(${categoryTags.length})</span>
-                            </label>
-                        </div>
-                        <div class="tag-category-items ${categoryFiltered ? 'category-filtered' : ''}">
-                `;
-                
-                for (const tag of categoryTags) {
-                    const isFiltered = filteredTags.has(tag.name) || categoryFiltered;
-                    
-                    // Show votes/sources if multi-model extraction
-                    let tagTitle = `Confidence: ${(tag.confidence * 100).toFixed(0)}%`;
-                    if (tag.votes && tag.sources) {
-                        tagTitle += `\nVotes: ${tag.votes} models\nSources: ${tag.sources.join(', ')}`;
-                    }
-                    
-                    html += `
-                        <span class="tag-item ${isFiltered ? 'filtered' : ''}" 
-                              onclick="toggleTag('${tag.name}')"
-                              title="${tagTitle}">
-                            ${tag.name}
-                            <span class="tag-confidence">
-                                ${(tag.confidence * 100).toFixed(0)}%
-                                ${tag.votes && tag.votes > 1 ? ` (${tag.votes}🎯)` : ''}
-                            </span>
-                        </span>
-                    `;
-                }
-                
-                html += `
-                        </div>
-                    </div>
-                `;
-            }
-            
-            tagsList.innerHTML = html;
-        }
-        
-        // Toggle entire category
-        function toggleCategory(category) {
-            if (filteredCategories.has(category)) {
-                filteredCategories.delete(category);
-                // Remove all tags in this category from filtered tags
-                if (extractedCategories[category]) {
-                    extractedCategories[category].forEach(tag => {
-                        filteredTags.delete(tag.name);
-                    });
-                }
-            } else {
-                filteredCategories.add(category);
-                // Add all tags in this category to filtered tags
-                if (extractedCategories[category]) {
-                    extractedCategories[category].forEach(tag => {
-                        filteredTags.add(tag.name);
-                    });
-                }
-            }
-            displayExtractedTagsByCategory();
-        }
-
-        // Toggle Tag Filtering
-        function toggleTag(tagName) {
-            if (filteredTags.has(tagName)) {
-                filteredTags.delete(tagName);
-            } else {
-                filteredTags.add(tagName);
-            }
-            displayExtractedTags();
-        }
-
-        // Generate Img2Img
-        async function generateImg2Img() {
-            if (!sourceImageBase64 || extractedTags.length === 0) {
-                alert('⚠️ Vui lòng upload ảnh và trích xuất đặc trưng trước!');
-                return;
-            }
-            
-            const generateBtn = document.getElementById('generateImg2ImgBtn');
-            generateBtn.disabled = true;
-            generateBtn.textContent = '⏳ Đang tạo ảnh...';
-            
-            try {
-                // Get active tags (not filtered)
-                const activeTags = extractedTags
-                    .filter(tag => !filteredTags.has(tag.name))
-                    .map(tag => tag.name);
-                
-                const userPrompt = document.getElementById('img2imgPrompt').value.trim();
-                const featureWeight = parseInt(document.getElementById('featureWeight').value) / 100;
-                
-                const response = await fetch('/api/img2img-advanced', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        source_image: sourceImageBase64.split(',')[1],
-                        extracted_tags: activeTags,
-                        user_prompt: userPrompt,
-                        feature_weight: featureWeight,
-                        negative_prompt: document.getElementById('img2imgNegativePrompt').value,
-                        denoising_strength: parseFloat(document.getElementById('denoisingStrength').value),
-                        steps: parseInt(document.getElementById('img2imgSteps').value),
-                        cfg_scale: parseFloat(document.getElementById('img2imgCfgScale').value),
-                        width: parseInt(document.getElementById('img2imgWidth').value),
-                        height: parseInt(document.getElementById('img2imgHeight').value),
-                        model: document.getElementById('modelCheckpoint').value,
-                        lora_models: getImg2imgSelectedLoras(),
-                        vae: document.getElementById('img2imgVaeSelect').value || null
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.image) {
-                    currentGeneratedImage = data;
-                    
-                    // Display in modal
-                    document.getElementById('generatedImage').src = 'data:image/png;base64,' + data.image;
-                    document.getElementById('generatedImageContainer').style.display = 'block';
-                    
-                    // Auto-send to chat with full metadata
-                    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                    const width = parseInt(document.getElementById('img2imgWidth').value);
-                    const height = parseInt(document.getElementById('img2imgHeight').value);
-                    const denoisingStrength = parseFloat(document.getElementById('denoisingStrength').value);
-                    const steps = parseInt(document.getElementById('img2imgSteps').value);
-                    const cfgScale = parseFloat(document.getElementById('img2imgCfgScale').value);
-                    
-                    const detailsId = 'details-' + Date.now();
-                    const imageHtml = `
-                        <div class="message assistant-message" style="max-width: 600px;">
-                            <div class="message-header">
-                                <strong>🖼️ Img2Img Result</strong>
-                                <span class="timestamp">${timestamp}</span>
-                            </div>
-                            <div class="message-content">
-                                <img src="data:image/png;base64,${data.image}" alt="Img2Img Generated" style="max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;" loading="lazy" onclick="this.style.maxWidth = this.style.maxWidth === '100%' ? '300px' : '100%'">
-                                <div style="margin-top: 10px;">
-                                    <button onclick="document.getElementById('${detailsId}').style.display = document.getElementById('${detailsId}').style.display === 'none' ? 'block' : 'none'" 
-                                            style="padding: 4px 10px; background: #673ab7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-bottom: 8px;">
-                                        📊 Toggle Details
-                                    </button>
-                                    <div id="${detailsId}" style="display: none; padding: 10px; background: rgba(103, 58, 183, 0.1); border-left: 3px solid #673ab7; border-radius: 4px; font-size: 11px;">
-                                        <strong>📝 Final Prompt:</strong><br>
-                                        <code style="font-size: 10px; display: block; margin: 5px 0; white-space: pre-wrap; background: rgba(0,0,0,0.05); padding: 5px; border-radius: 3px;">${data.final_prompt || 'N/A'}</code>
-                                        <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                                            <div><strong>🎯 User:</strong> ${userPrompt || '(none)'}</div>
-                                            <div><strong>⚖️ Weight:</strong> ${(featureWeight * 100).toFixed(0)}%/${((1 - featureWeight) * 100).toFixed(0)}%</div>
-                                            <div><strong>🏷️ Tags:</strong> ${activeTags.length}/${extractedTags.length}</div>
-                                            <div><strong>🚫 Filtered:</strong> ${filteredTags.size} tags</div>
-                                            <div><strong>🖼️ Size:</strong> ${width}×${height}</div>
-                                            <div><strong>🎨 Denoising:</strong> ${denoisingStrength}</div>
-                                            <div><strong>📏 Steps:</strong> ${steps}</div>
-                                            <div><strong>⚙️ CFG:</strong> ${cfgScale}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Add to chat
-                    const chatMessages = document.getElementById('chatContainer');
-                    if (chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', imageHtml);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                        
-                        // Make new images clickable
-                        window.makeImagesClickable();
-                        
-                        // Save to current chat session
-                        if (currentChatId && chatSessions[currentChatId]) {
-                            chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
-                            chatSessions[currentChatId].updatedAt = new Date();
-                            saveSessions();
-                        }
-                    }
-                    
-                    generateBtn.textContent = '✅ Đã tạo & gửi vào chat!';
-                    setTimeout(() => {
-                        generateBtn.textContent = '🎨 Tạo ảnh từ hình ảnh';
-                    }, 2000);
-                } else {
-                    alert('❌ Lỗi: ' + (data.error || 'Không thể tạo ảnh'));
-                }
-            } catch (error) {
-                console.error('Generation error:', error);
-                alert('❌ Lỗi khi tạo ảnh: ' + error.message);
-            } finally {
-                generateBtn.disabled = false;
-            }
         }
         
         async function checkSDStatus() {
@@ -2683,87 +3228,6 @@ Return ONLY the title, nothing else.`;
             const randomIndex = Math.floor(Math.random() * negativePrompts.length);
             document.getElementById('negativePrompt').value = negativePrompts[randomIndex];
         }
-
-        // Random prompts for Img2Img (context-aware based on extracted tags)
-        function randomImg2ImgPrompt() {
-            // If tags are extracted, use smart variations
-            if (extractedCategories && Object.keys(extractedCategories).length > 0) {
-                const variations = [];
-                
-                // Hair variations
-                if (extractedCategories['hair']?.length > 0) {
-                    variations.push(
-                        "different hair color, vibrant hair, gradient hair",
-                        "longer hair, flowing hair, windblown hair",
-                        "short hair, bob cut, modern hairstyle"
-                    );
-                }
-                
-                // Eyes variations
-                if (extractedCategories['eyes']?.length > 0) {
-                    variations.push(
-                        "glowing eyes, sparkling eyes, heterochromia",
-                        "detailed eyes, expressive eyes, beautiful eyes"
-                    );
-                }
-                
-                // Style variations
-                variations.push(
-                    "cyberpunk style, neon colors, futuristic tech",
-                    "fantasy style, magical aura, glowing effects, sparkles",
-                    "realistic style, photorealistic, detailed textures",
-                    "chibi style, cute, adorable, kawaii, sd character",
-                    "manga style, black and white, screentones, ink",
-                    "watercolor style, soft colors, artistic, painterly",
-                    "dark gothic style, dramatic shadows, mysterious",
-                    "pastel colors, soft lighting, dreamy atmosphere"
-                );
-                
-                // Expression variations
-                variations.push(
-                    "happy smile, joyful expression, bright eyes",
-                    "serious expression, determined look, intense gaze",
-                    "shy expression, blushing, looking away",
-                    "confident pose, powerful stance, cool attitude"
-                );
-                
-                const randomIndex = Math.floor(Math.random() * variations.length);
-                document.getElementById('img2imgPrompt').value = variations[randomIndex];
-            } else {
-                // Fallback to basic prompts if no tags
-                const prompts = [
-                    "pink hair, red eyes, cute smile, detailed face",
-                    "blue eyes, blonde hair, elegant pose, beautiful",
-                    "cyberpunk style, neon colors, futuristic, high tech",
-                    "fantasy style, magical aura, glowing effects, epic",
-                    "realistic style, detailed textures, soft lighting, photorealistic",
-                    "chibi style, cute, adorable, kawaii, sd character",
-                    "different expression, happy, excited, energetic",
-                    "anime style, vibrant colors, dynamic pose, masterpiece"
-                ];
-                
-                const randomIndex = Math.floor(Math.random() * prompts.length);
-                document.getElementById('img2imgPrompt').value = prompts[randomIndex];
-            }
-        }
-
-        function randomImg2ImgNegativePrompt() {
-            const negativePrompts = [
-                "bad quality, blurry, distorted, worst quality, low quality, r18, nsfw",
-                "low quality, bad anatomy, deformed, mutation, extra limbs, missing fingers",
-                "worst quality, jpeg artifacts, watermark, signature, text, username",
-                "ugly, poorly drawn, bad proportions, duplicate, malformed",
-                "out of frame, cropped, bad composition, cut off, clipped",
-                "grainy, low resolution, oversaturated colors, noise, pixelated",
-                "disfigured, malformed, poorly drawn face, bad hands, fused fingers",
-                "text, logo, copyright, lowres, bad anatomy, bad hands",
-                "blurry, grainy, poorly drawn, amateur, low effort, rushed",
-                "artifacts, compression, distorted features, asymmetric, unbalanced"
-            ];
-            
-            const randomIndex = Math.floor(Math.random() * negativePrompts.length);
-            document.getElementById('img2imgNegativePrompt').value = negativePrompts[randomIndex];
-        }
         
         // Handle image generation tool
         async function handleImageGenerationTool(userMessage, model, context, deepThinking, userTimestamp) {
@@ -2856,11 +3320,7 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                 });
                 
                 const negativeData = await negativeResponse.json();
-                let negativePrompt = negativeData.response.trim();
-                
-                // Add negative embeddings (MUST-HAVE for quality)
-                const negativeEmbeddings = 'EasyNegative, BadDream, UnrealisticDream, bad-hands-5, verybadimagenegative';
-                negativePrompt = `${negativeEmbeddings}, ${negativePrompt}`;
+                const negativePrompt = negativeData.response.trim();
                 
                 // Show generated negative prompt
                 addMessage(`🚫 **Negative prompt được tạo:**\n\`\`\`\n${negativePrompt}\n\`\`\``, false, model, context, formatTimestamp(new Date()));
@@ -2886,19 +3346,12 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                     negative_prompt: negativePrompt,
                     width: 768,
                     height: 768,
-                    steps: 20,
-                    cfg_scale: 10,
+                    steps: 15,
+                    cfg_scale: 8,
                     sampler_name: 'DPM++ 2M Karras',
                     seed: -1,
                     restore_faces: false,
-                    enable_hr: false,
-                    lora_models: [
-                        { name: 'add_detail', weight: 0.6 },          // Thêm chi tiết tổng thể
-                        { name: 'GoodHands-vanilla', weight: 0.8 },   // Fix tay
-                        { name: 'BeautifulEyes', weight: 0.7 },       // Mắt đẹp hơn
-                        { name: 'HairDetailer', weight: 0.5 }         // Tóc chi tiết
-                    ],
-                    vae: 'kl-f8-anime2.vae.safetensors'  // Best VAE cho anime
+                    enable_hr: false
                 };
                 
                 console.log('Generating image with params:', imageParams);
@@ -3027,10 +3480,6 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
             }
         }
         
-        // Global variables to store Lora and VAE lists
-        let availableLoras = [];
-        let availableVaes = [];
-        
         async function loadSamplers() {
             try {
                 const response = await fetch('/api/sd-samplers');
@@ -3052,136 +3501,6 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
             } catch (error) {
                 console.error('Error loading samplers:', error);
             }
-        }
-        
-        async function loadLoras() {
-            try {
-                const response = await fetch('/api/sd-loras');
-                const data = await response.json();
-                availableLoras = data.loras || [];
-                console.log(`Loaded ${availableLoras.length} Lora models`);
-            } catch (error) {
-                console.error('Error loading loras:', error);
-                availableLoras = [];
-            }
-        }
-        
-        async function loadVaes() {
-            try {
-                const response = await fetch('/api/sd-vaes');
-                const data = await response.json();
-                availableVaes = data.vaes || [];
-                
-                // Populate VAE selects
-                const vaeSelect = document.getElementById('vaeSelect');
-                const img2imgVaeSelect = document.getElementById('img2imgVaeSelect');
-                
-                [vaeSelect, img2imgVaeSelect].forEach(select => {
-                    select.innerHTML = '<option value="">Automatic (Mặc định)</option>';
-                    availableVaes.forEach(vae => {
-                        const option = document.createElement('option');
-                        option.value = vae.model_name || vae;
-                        option.textContent = vae.model_name || vae;
-                        select.appendChild(option);
-                    });
-                });
-                
-                console.log(`Loaded ${availableVaes.length} VAE models`);
-            } catch (error) {
-                console.error('Error loading VAEs:', error);
-                availableVaes = [];
-            }
-        }
-        
-        // Counter for unique Lora selection IDs
-        let loraIdCounter = 0;
-        
-        function addLoraSelection() {
-            const container = document.getElementById('loraSelectionContainer');
-            const loraId = ++loraIdCounter;
-            
-            const loraDiv = document.createElement('div');
-            loraDiv.id = `lora-${loraId}`;
-            loraDiv.style.cssText = 'display: flex; gap: 10px; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 4px;';
-            
-            const selectHTML = `
-                <select id="loraName-${loraId}" style="flex: 2;">
-                    <option value="">-- Chọn Lora --</option>
-                    ${availableLoras.map(lora => `<option value="${lora.name || lora.alias}">${lora.alias || lora.name}</option>`).join('')}
-                </select>
-                <input type="number" id="loraWeight-${loraId}" placeholder="Weight" value="1.0" min="0" max="2" step="0.1" style="flex: 1;">
-                <button type="button" onclick="removeLoraSelection(${loraId})" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">❌</button>
-            `;
-            
-            loraDiv.innerHTML = selectHTML;
-            container.insertBefore(loraDiv, document.getElementById('addLoraBtn'));
-        }
-        
-        function removeLoraSelection(loraId) {
-            const loraDiv = document.getElementById(`lora-${loraId}`);
-            if (loraDiv) loraDiv.remove();
-        }
-        
-        function addImg2imgLoraSelection() {
-            const container = document.getElementById('img2imgLoraSelectionContainer');
-            const loraId = ++loraIdCounter;
-            
-            const loraDiv = document.createElement('div');
-            loraDiv.id = `img2imgLora-${loraId}`;
-            loraDiv.style.cssText = 'display: flex; gap: 10px; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 4px;';
-            
-            const selectHTML = `
-                <select id="img2imgLoraName-${loraId}" style="flex: 2;">
-                    <option value="">-- Chọn Lora --</option>
-                    ${availableLoras.map(lora => `<option value="${lora.name || lora.alias}">${lora.alias || lora.name}</option>`).join('')}
-                </select>
-                <input type="number" id="img2imgLoraWeight-${loraId}" placeholder="Weight" value="1.0" min="0" max="2" step="0.1" style="flex: 1;">
-                <button type="button" onclick="removeImg2imgLoraSelection(${loraId})" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">❌</button>
-            `;
-            
-            loraDiv.innerHTML = selectHTML;
-            container.insertBefore(loraDiv, document.getElementById('addImg2imgLoraBtn'));
-        }
-        
-        function removeImg2imgLoraSelection(loraId) {
-            const loraDiv = document.getElementById(`img2imgLora-${loraId}`);
-            if (loraDiv) loraDiv.remove();
-        }
-        
-        function getSelectedLoras() {
-            const loras = [];
-            const container = document.getElementById('loraSelectionContainer');
-            const loraElements = container.querySelectorAll('[id^="lora-"]');
-            
-            loraElements.forEach(elem => {
-                const id = elem.id.split('-')[1];
-                const name = document.getElementById(`loraName-${id}`)?.value;
-                const weight = parseFloat(document.getElementById(`loraWeight-${id}`)?.value || 1.0);
-                
-                if (name) {
-                    loras.push({ name, weight });
-                }
-            });
-            
-            return loras;
-        }
-        
-        function getImg2imgSelectedLoras() {
-            const loras = [];
-            const container = document.getElementById('img2imgLoraSelectionContainer');
-            const loraElements = container.querySelectorAll('[id^="img2imgLora-"]');
-            
-            loraElements.forEach(elem => {
-                const id = elem.id.split('-')[1];
-                const name = document.getElementById(`img2imgLoraName-${id}`)?.value;
-                const weight = parseFloat(document.getElementById(`img2imgLoraWeight-${id}`)?.value || 1.0);
-                
-                if (name) {
-                    loras.push({ name, weight });
-                }
-            });
-            
-            return loras;
         }
         
         // Auto-adjust steps and CFG based on image size
@@ -3263,9 +3582,7 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                 sampler_name: document.getElementById('samplerSelect').value,
                 restore_faces: document.getElementById('restoreFaces').checked,
                 enable_hr: document.getElementById('enableHR').checked,
-                seed: -1,
-                lora_models: getSelectedLoras(),
-                vae: document.getElementById('vaeSelect').value || null
+                seed: -1
             };
             
             console.log('Params:', params);
@@ -3435,379 +3752,6 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
         document.getElementById('imageGenModal').addEventListener('click', (e) => {
             if (e.target.id === 'imageGenModal') {
                 closeImageModal();
-            }
-        });
-    </script>
-    
-    <!-- Image Preview Modal (Discord-style) -->
-    <div id="imagePreviewModal" class="image-preview-modal">
-        <div class="image-preview-controls">
-            <button class="preview-control-btn" onclick="downloadPreviewImage()" title="Download">
-                📥
-            </button>
-            <button class="preview-control-btn" onclick="zoomPreviewImage(-0.2)" title="Zoom Out">
-                🔍-
-            </button>
-            <button class="preview-control-btn" onclick="zoomPreviewImage(0.2)" title="Zoom In">
-                🔍+
-            </button>
-            <button class="preview-control-btn" onclick="resetPreviewZoom()" title="Reset Zoom">
-                ⟲
-            </button>
-        </div>
-        <span class="image-preview-close" onclick="closeImagePreview()">&times;</span>
-        <img id="imagePreviewContent" class="image-preview-content" src="" alt="Preview">
-        <div id="imagePreviewInfo" class="image-preview-info"></div>
-    </div>
-    
-    <!-- Message History Modal -->
-    <div id="historyModal" class="history-modal">
-        <div class="history-modal-content">
-            <div class="modal-header">
-                <h2>📜 Lịch sử chỉnh sửa</h2>
-                <button onclick="closeHistoryModal()" style="background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Đóng</button>
-            </div>
-            <div id="historyContent"></div>
-        </div>
-    </div>
-    
-    <script>
-        // Image Preview Functionality
-        let currentPreviewSrc = '';
-        
-        function openImagePreview(imgElement) {
-            console.log('[Image Preview] Opening preview for:', imgElement.src);
-            const modal = document.getElementById('imagePreviewModal');
-            const previewImg = document.getElementById('imagePreviewContent');
-            const previewInfo = document.getElementById('imagePreviewInfo');
-            
-            if (!modal) {
-                console.error('[Image Preview] Modal not found!');
-                return;
-            }
-            
-            currentPreviewSrc = imgElement.src;
-            previewImg.src = currentPreviewSrc;
-            
-            // Extract info from image
-            const imgAlt = imgElement.alt || 'Image';
-            const imgWidth = imgElement.naturalWidth;
-            const imgHeight = imgElement.naturalHeight;
-            
-            previewInfo.innerHTML = `${imgAlt} • ${imgWidth} x ${imgHeight}`;
-            
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            console.log('[Image Preview] Modal opened successfully');
-        }
-        
-        let currentZoom = 1;
-        
-        function closeImagePreview() {
-            const modal = document.getElementById('imagePreviewModal');
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-            currentZoom = 1;
-            const img = document.getElementById('imagePreviewContent');
-            if (img) {
-                img.style.transform = 'scale(1)';
-            }
-        }
-        
-        function zoomPreviewImage(delta) {
-            currentZoom += delta;
-            currentZoom = Math.max(0.5, Math.min(currentZoom, 3)); // Limit 0.5x to 3x
-            const img = document.getElementById('imagePreviewContent');
-            if (img) {
-                img.style.transform = `scale(${currentZoom})`;
-                img.style.transition = 'transform 0.2s ease';
-            }
-        }
-        
-        function resetPreviewZoom() {
-            currentZoom = 1;
-            const img = document.getElementById('imagePreviewContent');
-            if (img) {
-                img.style.transform = 'scale(1)';
-                img.style.transition = 'transform 0.2s ease';
-            }
-        }
-        
-        function downloadPreviewImage() {
-            const img = document.getElementById('imagePreviewContent');
-            if (!img || !img.src) return;
-            
-            const link = document.createElement('a');
-            link.href = img.src;
-            link.download = `image_${Date.now()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        
-        // Make all images in chat clickable
-        window.makeImagesClickable = function() {
-            const images = document.querySelectorAll('.message-content img');
-            console.log(`[Image Preview] Found ${images.length} images`);
-            images.forEach(img => {
-                if (!img.hasAttribute('data-clickable')) {
-                    img.setAttribute('data-clickable', 'true');
-                    img.style.cursor = 'zoom-in';
-                    img.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        console.log('[Image Preview] Image clicked:', this.src);
-                        openImagePreview(this);
-                    });
-                    console.log('[Image Preview] Made clickable:', img.src);
-                }
-            });
-        };
-        
-        // Initialize event listeners after DOM is ready
-        function initImagePreview() {
-            console.log('[Image Preview] Initializing event listeners...');
-            
-            // Click on background to close
-            const modal = document.getElementById('imagePreviewModal');
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        closeImagePreview();
-                    }
-                });
-                console.log('[Image Preview] Modal click listener added');
-            } else {
-                console.error('[Image Preview] Modal not found during init!');
-            }
-            
-            // ESC key to close
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    closeImagePreview();
-                    closeHistoryModal();
-                }
-            });
-            
-            // Mouse wheel zoom on preview image
-            const previewImg = document.getElementById('imagePreviewContent');
-            if (previewImg) {
-                previewImg.addEventListener('wheel', function(e) {
-                    if (modal.classList.contains('active')) {
-                        e.preventDefault();
-                        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                        zoomPreviewImage(delta);
-                    }
-                }, { passive: false });
-            }
-            
-            // Keyboard shortcuts for zoom
-            document.addEventListener('keydown', function(e) {
-                if (modal.classList.contains('active')) {
-                    if (e.key === '+' || e.key === '=') {
-                        e.preventDefault();
-                        zoomPreviewImage(0.2);
-                    } else if (e.key === '-' || e.key === '_') {
-                        e.preventDefault();
-                        zoomPreviewImage(-0.2);
-                    } else if (e.key === '0') {
-                        e.preventDefault();
-                        resetPreviewZoom();
-                    }
-                }
-            });
-            
-            // Make existing images clickable
-            window.makeImagesClickable();
-        }
-        
-        // Initialize on page load
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initImagePreview);
-        } else {
-            initImagePreview();
-        }
-        
-        // Message History Functionality
-        const messageHistory = new Map(); // messageId -> [version1, version2, ...]
-        
-        function addMessageVersion(messageId, content, timestamp) {
-            if (!messageHistory.has(messageId)) {
-                messageHistory.set(messageId, []);
-            }
-            messageHistory.get(messageId).push({
-                content: content,
-                timestamp: timestamp || new Date().toISOString()
-            });
-        }
-        
-        function showMessageHistory(messageId) {
-            const history = messageHistory.get(messageId);
-            if (!history || history.length === 0) {
-                alert('Không có lịch sử chỉnh sửa');
-                return;
-            }
-            
-            const modal = document.getElementById('historyModal');
-            const historyContent = document.getElementById('historyContent');
-            
-            let html = '<div style="margin-bottom: 15px; color: #666;">';
-            html += `<p>Tổng số phiên bản: <strong>${history.length + 1}</strong></p>`;
-            html += '<p style="font-size: 13px; margin-top: 5px;">💡 Bấm "↩️ Khôi phục" để quay lại phiên bản cũ và tiếp tục chat</p>';
-            html += '</div>';
-            
-            // Show current version first
-            const currentMessage = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (currentMessage) {
-                const currentContent = currentMessage.querySelector('.message-text')?.textContent || '';
-                html += '<div class="history-version current">';
-                html += '<div class="history-version-header">✅ Phiên bản hiện tại</div>';
-                html += `<div style="white-space: pre-wrap; padding: 10px 0;">${currentContent}</div>`;
-                html += '</div>';
-            }
-            
-            // Show all previous versions in reverse order (newest first)
-            const reversedHistory = [...history].reverse();
-            reversedHistory.forEach((version, index) => {
-                const versionNumber = history.length - index;
-                html += '<div class="history-version">';
-                html += `<div class="history-version-header">`;
-                html += `📝 Phiên bản ${versionNumber} - ${new Date(version.timestamp).toLocaleString('vi-VN')}`;
-                html += `</div>`;
-                html += `<div style="white-space: pre-wrap; padding: 10px 0;">${version.content}</div>`;
-                html += `<div style="margin-top: 10px;">`;
-                html += `<button onclick="restoreVersion('${messageId}', ${history.length - index - 1})" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">`;
-                html += `↩️ Khôi phục & Chat từ đây`;
-                html += `</button>`;
-                html += `</div>`;
-                html += '</div>';
-            });
-            
-            historyContent.innerHTML = html;
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        // Restore a previous version and allow branching from there
-        async function restoreVersion(messageId, versionIndex) {
-            const history = messageHistory.get(messageId);
-            if (!history || !history[versionIndex]) {
-                alert('Không tìm thấy phiên bản này');
-                return;
-            }
-            
-            const version = history[versionIndex];
-            const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
-            
-            if (!messageDiv) {
-                alert('Không tìm thấy tin nhắn');
-                return;
-            }
-            
-            // Confirm restore
-            const versionNumber = versionIndex + 1;
-            const confirm = window.confirm(
-                `Bạn có chắc muốn khôi phục Phiên bản ${versionNumber}?\n\n` +
-                `Nội dung: "${version.content.substring(0, 100)}${version.content.length > 100 ? '...' : ''}"\n\n` +
-                `Tất cả tin nhắn sau tin nhắn này sẽ bị xóa và AI sẽ tạo response mới.`
-            );
-            
-            if (!confirm) return;
-            
-            // Close history modal
-            closeHistoryModal();
-            
-            // Save current content to history before restoring
-            const currentText = messageDiv.querySelector('.message-text')?.textContent || '';
-            addMessageVersion(messageId, currentText, new Date().toISOString());
-            
-            // Get all messages before this one
-            const allMessages = Array.from(chatContainer.children);
-            const messageIndex = allMessages.indexOf(messageDiv);
-            
-            // Build conversation history up to this point
-            const historyBeforeEdit = [];
-            for (let i = 0; i < messageIndex; i++) {
-                const msg = allMessages[i];
-                const isUser = msg.classList.contains('user');
-                const textContent = msg.querySelector('.message-text')?.textContent || '';
-                
-                historyBeforeEdit.push({
-                    role: isUser ? 'user' : 'assistant',
-                    content: textContent
-                });
-            }
-            
-            // Update the message text with restored version
-            const textDiv = messageDiv.querySelector('.message-text');
-            textDiv.textContent = version.content;
-            
-            // Remove all messages after this one
-            for (let i = allMessages.length - 1; i > messageIndex; i--) {
-                allMessages[i].remove();
-            }
-            
-            // Get model and context from message data or use current settings
-            const model = messageDiv.dataset.model || modelSelect.value;
-            const context = messageDiv.dataset.context || contextSelect.value;
-            const deepThinking = deepThinkingCheck.checked;
-            
-            // Show loading
-            loading.classList.add('active');
-            sendBtn.disabled = true;
-            
-            try {
-                // Call backend to regenerate response with restored input
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: version.content,
-                        model: model,
-                        context: context,
-                        deep_thinking: deepThinking,
-                        tools: [],
-                        history: historyBeforeEdit
-                    })
-                });
-                
-                const data = await response.json();
-                const responseTimestamp = formatTimestamp(new Date());
-                
-                if (data.error) {
-                    addMessage(`❌ Lỗi: ${data.error}`, false, model, context, responseTimestamp);
-                } else {
-                    addMessage(data.response, false, model, context, responseTimestamp);
-                }
-                
-                // Update chat session
-                if (currentChatId && chatSessions[currentChatId]) {
-                    chatSessions[currentChatId].messages = Array.from(chatContainer.children).map(el => el.outerHTML);
-                    chatSessions[currentChatId].updatedAt = new Date();
-                    saveSessions();
-                    renderChatList();
-                }
-                
-            } catch (error) {
-                console.error('Error restoring version:', error);
-                addMessage(`❌ Lỗi khi khôi phục: ${error.message}`, false, model, context, formatTimestamp(new Date()));
-            } finally {
-                loading.classList.remove('active');
-                sendBtn.disabled = false;
-            }
-        }
-        
-        function closeHistoryModal() {
-            const modal = document.getElementById('historyModal');
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-        
-        // Click outside to close history modal
-        document.getElementById('historyModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeHistoryModal();
             }
         });
     </script>

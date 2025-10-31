@@ -21,14 +21,28 @@ env/
 ENV/
 env.bak/
 venv.bak/
+venv_*/
+**/venv/
+**/venv_*/
 
 # ============================================
 # ENVIRONMENT & SECRETS
 # ============================================
 .env
 .env.*
+!.env.example
 *.key
 *.pem
+
+# ============================================
+# CONFIG FILES (Sensitive)
+# ============================================
+**/config/*.json
+**/config/*.yaml
+**/config/*.yml
+**/config/.env
+!**/config/.env.example
+!**/config/__init__.py
 
 # ============================================
 # IDE & EDITOR
@@ -74,15 +88,56 @@ desktop.ini
 node_modules/
 
 # ============================================
-# STABLE DIFFUSION
+# LARGE FILES & MODELS
 # ============================================
-# Loại trừ models (file lớn)
-stable-diffusion-webui/models/
-# Giữ lại các file config và scripts
-!stable-diffusion-webui/models/.gitkeep
+# Model files (large binary files)
+**/*.bin
+**/*.safetensors
+**/*.ckpt
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.h5
+**/*.pb
 
-# Loại trừ outputs và logs
-stable-diffusion-webui/outputs/
+# Keep model config files
+!**/*config*.json
+!**/config.json
+
+# ============================================
+# SERVICE-SPECIFIC IGNORES
+# ============================================
+
+# ChatBot
+ChatBot/Storage/Image_Gen/*.png
+ChatBot/Storage/Image_Gen/*.jpg
+ChatBot/Storage/Image_Gen/*.jpeg
+ChatBot/data/memory/*/
+
+# Speech2Text
+Speech2Text Services/data/audio/**/*.wav
+Speech2Text Services/data/audio/**/*.mp3
+Speech2Text Services/results/**/*.txt
+Speech2Text Services/logs/*.log
+Speech2Text Services/data/cache/
+
+# Text2SQL
+Text2SQL Services/sample/uploaded/*.jsonl
+
+# Stable Diffusion
+stable-diffusion-webui/models/Stable-diffusion/*.safetensors
+stable-diffusion-webui/models/Stable-diffusion/*.ckpt
+stable-diffusion-webui/models/Lora/*.safetensors
+stable-diffusion-webui/models/VAE/*.safetensors
+stable-diffusion-webui/models/VAE/*.pt
+stable-diffusion-webui/models/ESRGAN/**/*.pth
+stable-diffusion-webui/models/GFPGAN/**/*.pth
+stable-diffusion-webui/models/Codeformer/**/*.pth
+stable-diffusion-webui/outputs/**/*.png
+stable-diffusion-webui/outputs/**/*.jpg
 stable-diffusion-webui/log/
 stable-diffusion-webui/tmp/
 stable-diffusion-webui/cache.json
+
+# Keep folder structure
+!**/.gitkeep
