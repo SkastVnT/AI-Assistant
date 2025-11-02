@@ -2865,41 +2865,53 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                 // Show generated negative prompt
                 addMessage(`🚫 **Negative prompt được tạo:**\n\`\`\`\n${negativePrompt}\n\`\`\``, false, model, context, formatTimestamp(new Date()));
                 
-                // Step 3: Change to AnythingV4 model
-                addMessage('⚙️ Đang chuẩn bị model AnythingV4...', false, model, context, formatTimestamp(new Date()));
+                // Step 3: Change to AnythingXL model (SDXL)
+                addMessage('⚙️ Đang chuẩn bị model AnythingXL (SDXL)...', false, model, context, formatTimestamp(new Date()));
                 
                 try {
                     await fetch('/api/sd-change-model', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({model_name: 'AnythingV4_v45.safetensors'})
+                        body: JSON.stringify({model_name: 'AnythingXL_xl.safetensors'})
                     });
                 } catch (e) {
                     console.log('Model already set or failed to change:', e);
                 }
                 
                 // Step 4: Generate image with specified parameters
-                addMessage('🎨 Đang tạo ảnh... (có thể mất 10-30 giây)', false, model, context, formatTimestamp(new Date()));
+                addMessage('🎨 Đang tạo ảnh SDXL 1024x1024... (có thể mất 30-60 giây)', false, model, context, formatTimestamp(new Date()));
                 
                 const imageParams = {
-                    prompt: generatedPrompt,
-                    negative_prompt: negativePrompt,
-                    width: 768,
-                    height: 768,
-                    steps: 20,
-                    cfg_scale: 10,
-                    sampler_name: 'DPM++ 2M Karras',
-                    seed: -1,
-                    restore_faces: false,
-                    enable_hr: false,
-                    lora_models: [
-                        { name: 'add_detail', weight: 0.6 },          // Thêm chi tiết tổng thể
-                        { name: 'GoodHands-vanilla', weight: 0.8 },   // Fix tay
-                        { name: 'BeautifulEyes', weight: 0.7 },       // Mắt đẹp hơn
-                        { name: 'HairDetailer', weight: 0.5 }         // Tóc chi tiết
-                    ],
-                    vae: 'kl-f8-anime2.vae.safetensors'  // Best VAE cho anime
-                };
+                prompt: generatedPrompt,
+                negative_prompt: negativePrompt + ", BadDream, UnrealisticDream, easynegative, bad quality, worst quality, low quality, jpeg artifacts, blurry, bad anatomy, bad hands",
+                
+                // SDXL optimal resolution (1024x1024 is native for SDXL)
+                width: 1024,
+                height: 1024,
+                
+                // SDXL settings (optimized for quality)
+                steps: 30,  // SDXL works best with 25-40 steps
+                cfg_scale: 7,  // SDXL optimal CFG is 6-8
+                sampler_name: 'DPM++ 2M Karras',
+                seed: -1,
+                
+                restore_faces: false,  // SDXL already produces good faces
+                enable_hr: false,  // Not needed for SDXL at native resolution
+                
+                // SDXL-compatible Loras (only XL versions work with SDXL)
+                lora_models: [
+                    { name: 'add-detail-xl', weight: 0.7 },  // XL - Overall detail enhancement
+                    { name: 'ponyxl_11eyes', weight: 0.6 },  // XL - Beautiful eyes
+                    { name: 'Lora_Corrector_eyes_PonyXL', weight: 0.5 },  // XL - Eye correction
+                    { name: 'akanbe-XL-V1', weight: 0.4 }  // XL - Art style enhancement
+                ],
+                
+                // Best VAE for anime with SDXL
+                vae: 'kl-f8-anime2.vae.safetensors',
+                
+                // Save images to gallery
+                save_images: true
+            };
                 
                 console.log('Generating image with params:', imageParams);
                 
@@ -2922,13 +2934,15 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                                 image: imageData.images[0],
                                 metadata: {
                                     prompt: generatedPrompt,
-                                    negative_prompt: negativePrompt,
-                                    width: 768,
-                                    height: 768,
-                                    steps: 15,
-                                    cfg_scale: 8,
-                                    sampler_name: 'DPM++ 2M Karras',
-                                    model: 'AnythingV4_v45',
+                                    negative_prompt: imageParams.negative_prompt,
+                                    width: imageParams.width,
+                                    height: imageParams.height,
+                                    steps: imageParams.steps,
+                                    cfg_scale: imageParams.cfg_scale,
+                                    sampler_name: imageParams.sampler_name,
+                                    model: 'AnythingXL_xl',
+                                    lora_models: imageParams.lora_models,
+                                    vae: imageParams.vae,
                                     source: 'text2image_tool'
                                 }
                             })
@@ -2951,10 +2965,12 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                                 <div class="message-content">
                                     <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;" loading="lazy">
                                     <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                        <strong>📝 Prompt:</strong> ${generatedPrompt}<br>
-                                        <strong>❌ Negative:</strong> ${negativePrompt}<br>
-                                        <strong>🖼️ Kích thước:</strong> 768x768 | <strong>Steps:</strong> 15 | <strong>CFG:</strong> 8<br>
-                                        <strong>🎲 Sampler:</strong> DPM++ 2M Karras | <strong>🤖 Model:</strong> AnythingV4_v45
+                                        <strong>📝 Prompt:</strong> ${generatedPrompt.substring(0, 150)}...<br>
+                                        <strong>❌ Negative:</strong> ${imageParams.negative_prompt.substring(0, 100)}...<br>
+                                        <strong>🖼️ Size:</strong> ${imageParams.width}x${imageParams.height} | <strong>Steps:</strong> ${imageParams.steps} | <strong>CFG:</strong> ${imageParams.cfg_scale}<br>
+                                        <strong>🎲 Sampler:</strong> ${imageParams.sampler_name} | <strong>🤖 Model:</strong> AnythingXL (SDXL)<br>
+                                        <strong>🎨 Lora:</strong> ${imageParams.lora_models.map(l => `${l.name}(${l.weight})`).join(', ')}<br>
+                                        <strong>🎭 VAE:</strong> ${imageParams.vae}
                                         ${saveData.success ? `<br><strong>💾 Saved:</strong> ${saveData.filename}` : ''}
                                     </div>
                                 </div>
@@ -2987,10 +3003,12 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                                 <div class="message-content">
                                     <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
                                     <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                        <strong>📝 Prompt:</strong> ${generatedPrompt}<br>
-                                        <strong>❌ Negative:</strong> ${negativePrompt}<br>
-                                        <strong>🖼️ Kích thước:</strong> 768x768 | <strong>Steps:</strong> 15 | <strong>CFG:</strong> 8<br>
-                                        <strong>🎲 Sampler:</strong> DPM++ 2M Karras | <strong>🤖 Model:</strong> AnythingV4_v45
+                                        <strong>📝 Prompt:</strong> ${generatedPrompt.substring(0, 150)}...<br>
+                                        <strong>❌ Negative:</strong> ${imageParams.negative_prompt.substring(0, 100)}...<br>
+                                        <strong>🖼️ Size:</strong> ${imageParams.width}x${imageParams.height} | <strong>Steps:</strong> ${imageParams.steps} | <strong>CFG:</strong> ${imageParams.cfg_scale}<br>
+                                        <strong>🎲 Sampler:</strong> ${imageParams.sampler_name} | <strong>🤖 Model:</strong> AnythingXL (SDXL)<br>
+                                        <strong>🎨 Lora:</strong> ${imageParams.lora_models.map(l => `${l.name}(${l.weight})`).join(', ')}<br>
+                                        <strong>🎭 VAE:</strong> ${imageParams.vae}
                                     </div>
                                 </div>
                             </div>

@@ -2,7 +2,7 @@
 
 **Ngày kiểm tra:** 31/10/2025  
 **Branch:** Ver_1  
-**Python version:** 3.10.6  
+**Python version:** 3.10.x
 
 ---
 
@@ -231,8 +231,8 @@ Không cần cài lại PyTorch, không cần download models lại, chỉ cần
 ## 📞 HỖ TRỢ
 
 Nếu gặp vấn đề:
-1. Check Python version: `python --version` (phải là 3.10.6)
-2. Check CUDA: `nvidia-smi` (phải có CUDA 11.8)
+1. Check Python version: `python --version` (phải là 3.10.x)
+2. Check CUDA: `nvidia-smi` (phải có CUDA)
 3. Check venv activated: dòng lệnh phải có `(venv_*)` ở đầu
 4. Xem logs error và search Google hoặc hỏi tôi
 
