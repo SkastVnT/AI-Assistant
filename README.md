@@ -23,10 +23,10 @@
 
 ***Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ***
 
-[~!Tính năng](#-tính-năng-nổi-bật)  
-[~!Quick Start](#-quick-start)  
-[~!Cài đặt](#-yêu-cầu-hệ-thống)  
-[~!Tài liệu](#-tài-liệu)
+*[Tính năng](#-tính-năng-nổi-bật)  
+![Quick Start](#-quick-start)  
+~[Cài đặt](#-yêu-cầu-hệ-thống)  
+[Tài liệu](#-tài-liệu)
 
 </div>
 
