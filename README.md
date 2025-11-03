@@ -664,9 +664,10 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 **Fresher Software Engineer**
 
 *Collaborator & Contributor* 
-*Atsui~
+
+***Atsui~
 Atsukute hikarabisou
-Ugoitenai no ni atsui yo~* 
+Ugoitenai no ni atsui yo~*** 
 
 
 </td>
