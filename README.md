@@ -1,90 +1,236 @@
-# 🤖 AI-Assistant - Nền Tảng Tích Hợp Đa Dịch Vụ AI# 🤖 AI-Assistant - Nền Tảng Tích Hợp Đa Dịch Vụ AI
+# 🤖 AI-Assistant - Nền Tảng Tích Hợp Đa Dịch Vụ AI# 🤖 AI-Assistant - Nền Tảng Tích Hợp Đa Dịch Vụ AI 🤖
 
 
 
-<div align="center"><div align="center">
+<div align="center">
 
 
+
+![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)<div align="center"><div align="center">
+
+![Flask](https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask)
+
+![AI](https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge)
+
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)
 
+**Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ: ChatBot, Text2SQL, Speech2Text, Image Generation**
+
 ![Flask](https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask)![Flask](https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask)
+
+[Tính năng](#-tính-năng-nổi-bật) • [Khởi động nhanh](#-quick-start) • [Cài đặt](#️-yêu-cầu-hệ-thống) • [Tài liệu](#-tài-liệu)
 
 ![AI](https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge)![AI](https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge)
 
+</div>
+
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
+---
 
+
+
+## 📋 Tổng Quan
 
 **Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ: ChatBot, Text2SQL, Speech2Text, Image Generation****Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ: ChatBot, Text2SQL, Speech2Text, Image Generation**
 
+**AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng theo chuẩn **Generative AI Template** với kiến trúc modular, production-ready.
 
+
+
+### 🎯 Các Dịch Vụ
 
 [Tính năng](#-tính-năng-nổi-bật) • [Khởi động nhanh](#-quick-start) • [Cài đặt](#️-yêu-cầu-hệ-thống) • [Tài liệu](#-tài-liệu)[Tính năng](#-tính-năng-nổi-bật) • [Khởi động nhanh](#-quick-start) • [Cài đặt](#️-cài-đặt) • [Tài liệu](#-tài-liệu)
 
-
-
-</div></div>
-
-
-
-------
-
-
-
-## 📋 Tổng Quan## 📋 Tổng Quan
-
-
-
-**AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng theo chuẩn **Generative AI Template** với kiến trúc modular, production-ready.**AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau:
-
-
-
-### 🎯 Các Dịch Vụ| Service | Mô Tả | Port | Status | Docs |
+| Service | Mô Tả | Port | Status | Docs |
 
 |---------|-------|------|--------|------|
 
+| 🤖 **ChatBot** | Multi-model AI (Gemini, GPT-4, Qwen) + Image Gen | 5001 | ✅ Ready | [📖 Docs](ChatBot/README.md) |
+
+| 📊 **Text2SQL** ⭐ | Natural Language → SQL với AI Learning | 5002 | ✅ Production | [📖 Docs](Text2SQL%20Services/README.md) |</div></div>
+
+| 🎤 **Speech2Text** | Vietnamese transcription + Diarization | 7860 | 🔧 Beta | [📖 Docs](Speech2Text%20Services/README.md) |
+
+| 🎨 **Stable Diffusion** | AI Image Generation (AUTOMATIC1111 WebUI) | 7861 | ✅ Ready | [📖 Docs](stable-diffusion-webui/README.md) |
+
+
+
+---------
+
+
+
+## ✨ Tính Năng Nổi Bật
+
+
+
+### 🤖 ChatBot Service (v2.0)## 📋 Tổng Quan## 📋 Tổng Quan
+
+
+
+- ✅ **Multi-Model Support**: Gemini 2.0 Flash, GPT-4, DeepSeek, Qwen 1.5B (local), BloomVN
+
+- ✅ **Image Generation**: Tích hợp Stable Diffusion với LoRA & VAE support
+
+- ✅ **AI Memory System**: Lưu trữ conversations và generated images**AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng theo chuẩn **Generative AI Template** với kiến trúc modular, production-ready.**AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau:
+
+- ✅ **Tools Integration**: Google Search, GitHub Search
+
+- ✅ **Export PDF**: Export conversations kèm images và metadata
+
+- ✅ **Modern UI**: Tailwind CSS, responsive design, dark mode support
+
+### 🎯 Các Dịch Vụ| Service | Mô Tả | Port | Status | Docs |
+
+👉 **[Chi tiết đầy đủ →](ChatBot/README.md)** | 🚀 **Port**: 5001
+
+|---------|-------|------|--------|------|
+
+---
+
 | Service | Mô Tả | Port | Status | Docs || 🤖 **ChatBot** | Multi-model AI (Gemini, GPT-4, Qwen) + Image Gen | 5001 | ✅ Ready | [📖 Docs](ChatBot/README.md) |
+
+### 📊 Text2SQL Service ⭐ **MỚI NHẤT v2.0**
 
 |---------|-------|------|--------|------|| 📊 **Text2SQL** ⭐ | Natural Language → SQL với AI Learning | 5002 | ✅ Production | [📖 Docs](Text2SQL%20Services/README.md) |
 
-| 🤖 **ChatBot** | Multi-model AI (Gemini, GPT-4, Qwen) + Image Gen | 5001 | ✅ Ready | [📖](ChatBot/README.md) || 🎤 **Speech2Text** | Vietnamese transcription + Diarization | 7860 | 🔧 Beta | [📖 Docs](Speech2Text%20Services/README.md) |
+- ✅ **Natural Language to SQL**: Chuyển đổi tiếng Việt/English thành SQL queries
 
-| 📊 **Text2SQL** ⭐ | Natural Language → SQL với AI Learning | 5002 | ✅ Production | [📖](Text2SQL%20Services/README.md) || 🎨 **Stable Diffusion** | AI Image Generation (AUTOMATIC1111 WebUI) | 7861 | ✅ Ready | [📖 Docs](stable-diffusion-webui/README.md) |
+- ✅ **Multi-Database Support**: ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server| 🤖 **ChatBot** | Multi-model AI (Gemini, GPT-4, Qwen) + Image Gen | 5001 | ✅ Ready | [📖](ChatBot/README.md) || 🎤 **Speech2Text** | Vietnamese transcription + Diarization | 7860 | 🔧 Beta | [📖 Docs](Speech2Text%20Services/README.md) |
 
-| 🎤 **Speech2Text** | Vietnamese transcription + Diarization | 7860 | 🔧 Beta | [📖](Speech2Text%20Services/README.md) |
+- ✅ **AI Learning System**: Lưu SQL đúng vào Knowledge Base, tự học từ user feedback
+
+- ✅ **Question Generation**: Tự động tạo 5 câu hỏi mẫu từ database schema| 📊 **Text2SQL** ⭐ | Natural Language → SQL với AI Learning | 5002 | ✅ Production | [📖](Text2SQL%20Services/README.md) || 🎨 **Stable Diffusion** | AI Image Generation (AUTOMATIC1111 WebUI) | 7861 | ✅ Ready | [📖 Docs](stable-diffusion-webui/README.md) |
+
+- ✅ **Database Connection**: Kết nối trực tiếp localhost & MongoDB Atlas
+
+- ✅ **Deep Thinking Mode**: Enhanced reasoning cho complex queries| 🎤 **Speech2Text** | Vietnamese transcription + Diarization | 7860 | 🔧 Beta | [📖](Speech2Text%20Services/README.md) |
+
+- ✅ **Ready to Deploy**: Hướng dẫn deploy FREE trên Render.com
 
 | 🎨 **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | 7861 | ✅ Ready | [📖](stable-diffusion-webui/README.md) |
 
+👉 **[Chi tiết đầy đủ →](Text2SQL%20Services/README.md)** | 🚀 **Port**: 5002  
 
-
-------
-
-
-
-## ✨ Tính Năng Nổi Bật## ✨ Tính Năng Nổi Bật
+📦 **[Deployment Guide →](Text2SQL%20Services/README.md#-deployment)**
 
 
 
-### 🤖 ChatBot Service (v2.0)### 🤖 ChatBot Service (v2.0)
+---------
 
 
+
+### 🎤 Speech2Text Service (v3.6.0+)
+
+
+
+- ✅ **Dual-Model Fusion**: Whisper + PhoWhisper cho accuracy tối đa (98%+)## ✨ Tính Năng Nổi Bật## ✨ Tính Năng Nổi Bật
+
+- ✅ **Vietnamese Optimized**: Fine-tuned cho tiếng Việt
+
+- ✅ **Speaker Diarization**: pyannote.audio 3.1 với 95-98% accuracy
+
+- ✅ **Qwen Enhancement**: LLM-powered transcript refinement
+
+- ✅ **Real-time Web UI**: Progress tracking với WebSocket### 🤖 ChatBot Service (v2.0)### 🤖 ChatBot Service (v2.0)
+
+- ✅ **Multi-format Support**: MP3, WAV, M4A, FLAC
+
+
+
+👉 **[Chi tiết đầy đủ →](Speech2Text%20Services/README.md)** | 🚀 **Port**: 7860
 
 - ✅ **Multi-Model Support**: Gemini 2.0 Flash, GPT-4, DeepSeek, Qwen 1.5B (local), BloomVN- ✅ **Multi-Model**: Gemini 2.0, GPT-4, DeepSeek, Qwen 1.5B (local), BloomVN
 
+---
+
 - ✅ **Image Generation**: Tích hợp Stable Diffusion với LoRA & VAE support- ✅ **Image Generation**: Tích hợp Stable Diffusion với LoRA & VAE support
+
+### 🎨 Stable Diffusion WebUI
 
 - ✅ **AI Memory System**: Lưu trữ conversations và generated images- ✅ **AI Memory System**: Lưu conversations + generated images
 
-- ✅ **Tools Integration**: Google Search, GitHub Search- ✅ **Tools Integration**: Google Search, GitHub Search
+> **Based on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**  
 
-- ✅ **Export PDF**: Export conversations kèm images và metadata- ✅ **Export PDF**: Conversations với images và metadata
-
-- ✅ **Modern UI**: Tailwind CSS, responsive design, dark mode support- ✅ **Modern UI**: Tailwind CSS, responsive, dark mode
+> *Customized configuration for optimized performance*- ✅ **Tools Integration**: Google Search, GitHub Search- ✅ **Tools Integration**: Google Search, GitHub Search
 
 
+
+- ✅ **Text-to-Image**: Tạo ảnh từ text prompts- ✅ **Export PDF**: Export conversations kèm images và metadata- ✅ **Export PDF**: Conversations với images và metadata
+
+- ✅ **Image-to-Image**: Transform và edit images
+
+- ✅ **LoRA + VAE**: Fine-tuned models support- ✅ **Modern UI**: Tailwind CSS, responsive design, dark mode support- ✅ **Modern UI**: Tailwind CSS, responsive, dark mode
+
+- ✅ **ControlNet**: Precise generation control
+
+- ✅ **API Enabled**: RESTful API, tích hợp sẵn với ChatBot
+
+- ✅ **GPU Optimized**: CUDA 12.1, xformers support
 
 👉 **[Chi tiết →](ChatBot/README.md)** | 🚀 **Port**: 5001👉 **[Chi tiết đầy đủ →](ChatBot/README.md)**
+
+👉 **[Chi tiết đầy đủ →](stable-diffusion-webui/README.md)** | 🚀 **Port**: 7861  
+
+🔗 **[Original Project →](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**
+
+
+
+---------
+
+
+
+## 🚀 Quick Start
+
+
+
+### 1️⃣ Text2SQL (Khuyến nghị - Dễ nhất!)### 📊 Text2SQL Service ⭐ **MỚI NHẤT v2.0**### 📊 Text2SQL Service ⭐ **MỚI NHẤT v2.0**
+
+
+
+```bash
+
+# Di chuyển vào thư mục
+
+cd "Text2SQL Services"- ✅ **Natural Language to SQL**: Chuyển đổi tiếng Việt/English thành SQL queries- ✅ **NL to SQL**: Chuyển đổi tiếng Việt/English → SQL queries
+
+
+
+# Tạo virtual environment- ✅ **Multi-Database Support**: ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server- ✅ **Multi-Database**: ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server
+
+python -m venv Text2SQL
+
+.\Text2SQL\Scripts\activate- ✅ **AI Learning System**: Lưu SQL đúng vào Knowledge Base, tự học từ user feedback- ✅ **AI Learning**: Lưu SQL đúng vào Knowledge Base, tự học từ user
+
+
+
+# Cài đặt dependencies- ✅ **Question Generation**: Tự động tạo 5 câu hỏi mẫu từ database schema- ✅ **Question Generation**: Tự động tạo 5 câu hỏi mẫu từ schema
+
+pip install -r requirements.txt
+
+- ✅ **Database Connection**: Kết nối trực tiếp localhost & MongoDB Atlas- ✅ **Database Connection**: Kết nối trực tiếp localhost & Atlas databases
+
+# Cấu hình API key
+
+cp .env.example .env- ✅ **Deep Thinking Mode**: Enhanced reasoning cho complex queries- ✅ **Deep Thinking Mode**: Enhanced reasoning cho queries phức tạp
+
+# Chỉnh sửa .env và thêm GEMINI_API_KEY_1
+
+- ✅ **Ready to Deploy**: Hướng dẫn deploy FREE trên Render.com- ✅ **Ready to Deploy**: Hướng dẫn deploy FREE trên Render.com
+
+# Khởi động service
+
+python app_simple.py
+
+# → http://localhost:5002
+
+```👉 **[Chi tiết →](Text2SQL%20Services/README.md)** | 🚀 **Port**: 5002 | 📦 **[Deploy Guide](Text2SQL%20Services/README.md#-deployment)**👉 **[Chi tiết đầy đủ →](Text2SQL%20Services/README.md)**  
+
+
+
+**Chi tiết:** [Text2SQL Setup Guide →](Text2SQL%20Services/README.md#-quick-start)🚀 **[Deployment Guide →](Text2SQL%20Services/README.md#-deployment)**
 
 
 
@@ -92,287 +238,517 @@
 
 
 
-### 📊 Text2SQL Service ⭐ **MỚI NHẤT v2.0**### 📊 Text2SQL Service ⭐ **MỚI NHẤT v2.0**
+### 2️⃣ ChatBot---
 
 
 
-- ✅ **Natural Language to SQL**: Chuyển đổi tiếng Việt/English thành SQL queries- ✅ **NL to SQL**: Chuyển đổi tiếng Việt/English → SQL queries
-
-- ✅ **Multi-Database Support**: ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server- ✅ **Multi-Database**: ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server
-
-- ✅ **AI Learning System**: Lưu SQL đúng vào Knowledge Base, tự học từ user feedback- ✅ **AI Learning**: Lưu SQL đúng vào Knowledge Base, tự học từ user
-
-- ✅ **Question Generation**: Tự động tạo 5 câu hỏi mẫu từ database schema- ✅ **Question Generation**: Tự động tạo 5 câu hỏi mẫu từ schema
-
-- ✅ **Database Connection**: Kết nối trực tiếp localhost & MongoDB Atlas- ✅ **Database Connection**: Kết nối trực tiếp localhost & Atlas databases
-
-- ✅ **Deep Thinking Mode**: Enhanced reasoning cho complex queries- ✅ **Deep Thinking Mode**: Enhanced reasoning cho queries phức tạp
-
-- ✅ **Ready to Deploy**: Hướng dẫn deploy FREE trên Render.com- ✅ **Ready to Deploy**: Hướng dẫn deploy FREE trên Render.com
-
-
-
-👉 **[Chi tiết →](Text2SQL%20Services/README.md)** | 🚀 **Port**: 5002 | 📦 **[Deploy Guide](Text2SQL%20Services/README.md#-deployment)**👉 **[Chi tiết đầy đủ →](Text2SQL%20Services/README.md)**  
-
-🚀 **[Deployment Guide →](Text2SQL%20Services/README.md#-deployment)**
-
----
-
----
-
-### 🎤 Speech2Text Service (v3.6.0+)
-
-### 🎤 Speech2Text Service (v3.6.0+)
-
-- ✅ **Dual-Model Fusion**: Whisper + PhoWhisper cho accuracy tối đa (98%+)
-
-- ✅ **Vietnamese Optimized**: Fine-tuned cho tiếng Việt- ✅ **Dual-Model Fusion**: Whisper + PhoWhisper cho accuracy tối đa
-
-- ✅ **Speaker Diarization**: pyannote.audio 3.1 với 95-98% accuracy- ✅ **Vietnamese Optimized**: 98%+ accuracy cho tiếng Việt
-
-- ✅ **Qwen Enhancement**: LLM-powered transcript refinement- ✅ **Speaker Diarization**: pyannote.audio 3.1 (95-98% accuracy)
-
-- ✅ **Real-time Web UI**: Progress tracking với WebSocket- ✅ **Qwen Enhancement**: LLM-powered transcript refinement
-
-- ✅ **Multi-format Support**: MP3, WAV, M4A, FLAC- ✅ **Web UI**: Real-time progress tracking với WebSocket
-
-- ✅ **Multi-format**: MP3, WAV, M4A, FLAC support
-
-👉 **[Chi tiết →](Speech2Text%20Services/README.md)** | 🚀 **Port**: 7860
-
-👉 **[Chi tiết đầy đủ →](Speech2Text%20Services/README.md)**
-
----
-
----
-
-### 🎨 Stable Diffusion WebUI
-
-### 🎨 Stable Diffusion WebUI
-
-> **Based on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**  
-
-> *Customized configuration for optimized performance*> **Based on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**  
-
-> *Customized configuration for optimized performance*
-
-- ✅ **Text-to-Image**: Tạo ảnh từ text prompts
-
-- ✅ **Image-to-Image**: Transform và edit images- ✅ **Text-to-Image**: Tạo ảnh từ text prompts
-
-- ✅ **LoRA + VAE**: Fine-tuned models support- ✅ **Image-to-Image**: Transform và chỉnh sửa ảnh
-
-- ✅ **ControlNet**: Precise generation control- ✅ **LoRA + VAE**: Fine-tuned models support
-
-- ✅ **API Enabled**: RESTful API, tích hợp sẵn với ChatBot- ✅ **ControlNet**: Precise generation control
-
-- ✅ **GPU Optimized**: CUDA 12.1, xformers support- ✅ **API Enabled**: RESTful API, tích hợp với ChatBot
-
-- ✅ **GPU Optimized**: CUDA 12.1, xformers support
-
-👉 **[Chi tiết →](stable-diffusion-webui/README.md)** | 🚀 **Port**: 7861 | 🔗 **[Original Project](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**
-
-👉 **[Chi tiết đầy đủ →](stable-diffusion-webui/README.md)**  
-
----🔗 **[Original Project →](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**
-
-
-
-## 🚀 Quick Start---
-
-
-
-### 1️⃣ Text2SQL (Khuyến nghị - Dễ nhất!)## 🚀 Quick Start
-
-
-
-```bash
+```bash### 🎤 Speech2Text Service (v3.6.0+)
 
 # Di chuyển vào thư mục
 
-cd "Text2SQL Services"### 1️⃣ Text2SQL (Khuyến nghị - Dễ nhất!)
+cd ChatBot### 🎤 Speech2Text Service (v3.6.0+)
 
 
 
-# Tạo virtual environment```bash
+# Tạo virtual environment- ✅ **Dual-Model Fusion**: Whisper + PhoWhisper cho accuracy tối đa (98%+)
 
-python -m venv Text2SQLcd "Text2SQL Services"
+python -m venv venv_chatbot
 
-.\Text2SQL\Scripts\activatepython -m venv Text2SQL
+.\venv_chatbot\Scripts\activate- ✅ **Vietnamese Optimized**: Fine-tuned cho tiếng Việt- ✅ **Dual-Model Fusion**: Whisper + PhoWhisper cho accuracy tối đa
 
-.\Text2SQL\Scripts\activate
 
-# Cài đặt dependenciespip install -r requirements.txt
+
+# Cài đặt dependencies- ✅ **Speaker Diarization**: pyannote.audio 3.1 với 95-98% accuracy- ✅ **Vietnamese Optimized**: 98%+ accuracy cho tiếng Việt
 
 pip install -r requirements.txt
 
-# Tạo file .env và thêm GEMINI_API_KEY_1
+- ✅ **Qwen Enhancement**: LLM-powered transcript refinement- ✅ **Speaker Diarization**: pyannote.audio 3.1 (95-98% accuracy)
 
-# Cấu hình API keycp .env.example .env
+# Cấu hình API keys
 
-cp .env.example .env
+cp .env.example .env- ✅ **Real-time Web UI**: Progress tracking với WebSocket- ✅ **Qwen Enhancement**: LLM-powered transcript refinement
 
-# Chỉnh sửa .env và thêm GEMINI_API_KEY_1# Khởi động
+# Chỉnh sửa .env và thêm OPENAI_API_KEY, GEMINI_API_KEY
 
-python app_simple.py
+- ✅ **Multi-format Support**: MP3, WAV, M4A, FLAC- ✅ **Web UI**: Real-time progress tracking với WebSocket
 
-# Khởi động service# → http://localhost:5002
+# Khởi động service
 
-python app_simple.py```
+python app.py- ✅ **Multi-format**: MP3, WAV, M4A, FLAC support
 
+# → http://localhost:5001
 
-
-# Truy cập: http://localhost:5002**Chi tiết:** [Text2SQL Setup Guide →](Text2SQL%20Services/README.md#-quick-start)
-
-```
-
----
-
-📖 **[Setup Guide chi tiết →](Text2SQL%20Services/README.md#-quick-start)**
-
-### 2️⃣ ChatBot
-
----
-
-```bash
-
-### 2️⃣ ChatBotcd ChatBot
-
-python -m venv venv_chatbot
-
-```bash.\venv_chatbot\Scripts\activate
-
-# Di chuyển vào thư mụcpip install -r requirements.txt
-
-cd ChatBot
-
-# Tạo file .env và thêm API keys
-
-# Tạo virtual environmentcp .env.example .env
-
-python -m venv venv_chatbot
-
-.\venv_chatbot\Scripts\activate# Khởi động
-
-python app.py
-
-# Cài đặt dependencies# → http://localhost:5001
-
-pip install -r requirements.txt```
+```👉 **[Chi tiết →](Speech2Text%20Services/README.md)** | 🚀 **Port**: 7860
 
 
 
-# Cấu hình API keys**Chi tiết:** [ChatBot Setup Guide →](ChatBot/README.md)
-
-cp .env.example .env
-
-# Chỉnh sửa .env và thêm OPENAI_API_KEY, GEMINI_API_KEY---
+**Chi tiết:** [ChatBot Setup Guide →](ChatBot/README.md)👉 **[Chi tiết đầy đủ →](Speech2Text%20Services/README.md)**
 
 
 
-# Khởi động service### 3️⃣ Speech2Text
-
-python app.py
-
-```bash
-
-# Truy cập: http://localhost:5001cd "Speech2Text Services"
-
-```# Chạy script cài đặt dependencies
-
-.\scripts\fix_dependencies.bat
-
-📖 **[Setup Guide chi tiết →](ChatBot/README.md#-quick-start)**
-
-# Khởi động Web UI
-
----.\start_webui.bat
-
-# → http://localhost:7860
-
-### 3️⃣ Speech2Text```
+------
 
 
 
-```bash**Chi tiết:** [Speech2Text Setup Guide →](Speech2Text%20Services/SETUP_FINAL.md)
+### 3️⃣ Speech2Text---
+
+
+
+```bash### 🎨 Stable Diffusion WebUI
 
 # Di chuyển vào thư mục
 
-cd "Speech2Text Services"---
+cd "Speech2Text Services"### 🎨 Stable Diffusion WebUI
 
 
 
-# Chạy script cài đặt (tự động xử lý dependencies)### 4️⃣ Stable Diffusion
+# Chạy script cài đặt dependencies> **Based on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**  
 
 .\scripts\fix_dependencies.bat
 
-```bash
+> *Customized configuration for optimized performance*> **Based on [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**  
 
-# Cấu hình HuggingFace token (optional, cho diarization)cd stable-diffusion-webui
+# Cấu hình HuggingFace token (optional, cho diarization)
 
-# Tạo file .env và thêm HF_TOKEN# Khởi động với API enabled
-
-.\webui.bat
-
-# Khởi động Web UI# → http://localhost:7861
-
-.\start_webui.bat```
+# Tạo file .env và thêm HF_TOKEN> *Customized configuration for optimized performance*
 
 
 
-# Truy cập: http://localhost:7860**Chi tiết:** [SD WebUI Setup Guide →](stable-diffusion-webui/README.md)
+# Khởi động Web UI- ✅ **Text-to-Image**: Tạo ảnh từ text prompts
+
+.\start_webui.bat
+
+# → http://localhost:7860- ✅ **Image-to-Image**: Transform và edit images- ✅ **Text-to-Image**: Tạo ảnh từ text prompts
 
 ```
 
+- ✅ **LoRA + VAE**: Fine-tuned models support- ✅ **Image-to-Image**: Transform và chỉnh sửa ảnh
+
+**Chi tiết:** [Speech2Text Setup Guide →](Speech2Text%20Services/SETUP_FINAL.md)
+
+- ✅ **ControlNet**: Precise generation control- ✅ **LoRA + VAE**: Fine-tuned models support
+
 ---
 
-📖 **[Setup Guide chi tiết →](Speech2Text%20Services/SETUP_FINAL.md)**
+- ✅ **API Enabled**: RESTful API, tích hợp sẵn với ChatBot- ✅ **ControlNet**: Precise generation control
+
+### 4️⃣ Stable Diffusion
+
+- ✅ **GPU Optimized**: CUDA 12.1, xformers support- ✅ **API Enabled**: RESTful API, tích hợp với ChatBot
+
+```bash
+
+# Di chuyển vào thư mục- ✅ **GPU Optimized**: CUDA 12.1, xformers support
+
+cd stable-diffusion-webui
+
+👉 **[Chi tiết →](stable-diffusion-webui/README.md)** | 🚀 **Port**: 7861 | 🔗 **[Original Project](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**
+
+# Khởi động WebUI với API enabled
+
+.\webui.bat👉 **[Chi tiết đầy đủ →](stable-diffusion-webui/README.md)**  
+
+# → http://localhost:7861
+
+```---🔗 **[Original Project →](https://github.com/AUTOMATIC1111/stable-diffusion-webui)**
+
+
+
+**Chi tiết:** [SD WebUI Setup Guide →](stable-diffusion-webui/README.md)
+
+
+
+---## 🚀 Quick Start---
+
+
 
 ## 🗂️ Cấu Trúc Dự Án
 
+
+
+```### 1️⃣ Text2SQL (Khuyến nghị - Dễ nhất!)## 🚀 Quick Start
+
+AI-Assistant/
+
+│
+
+├── 📁 config/                    # Configuration management
+
+│   ├── model_config.py          # Service configurations```bash
+
+│   └── logging_config.py        # Logging setup
+
+│# Di chuyển vào thư mục
+
+├── 📁 src/                       # Hub Gateway source code
+
+│   ├── hub.py                   # Main applicationcd "Text2SQL Services"### 1️⃣ Text2SQL (Khuyến nghị - Dễ nhất!)
+
+│   ├── handlers/                # Request handlers
+
+│   └── utils/                   # Utilities (cache, rate limiter)
+
+│
+
+├── 📁 data/                      # Data storage# Tạo virtual environment```bash
+
+│   ├── cache/                   # Response cache
+
+│   ├── prompts/                 # Prompt templatespython -m venv Text2SQLcd "Text2SQL Services"
+
+│   └── outputs/                 # Output files
+
+│.\Text2SQL\Scripts\activatepython -m venv Text2SQL
+
+├── 📁 ChatBot/                   # 🤖 Multi-model AI Chatbot
+
+│   ├── app.py                   # Main application.\Text2SQL\Scripts\activate
+
+│   ├── README.md                # Documentation
+
+│   ├── templates/               # HTML templates# Cài đặt dependenciespip install -r requirements.txt
+
+│   ├── static/                  # CSS, JS, images
+
+│   ├── models/                  # Local Qwen modelspip install -r requirements.txt
+
+│   └── Storage/                 # Generated images
+
+│# Tạo file .env và thêm GEMINI_API_KEY_1
+
+├── 📁 Text2SQL Services/        # 📊 SQL Generator ⭐
+
+│   ├── app_simple.py            # Main application# Cấu hình API keycp .env.example .env
+
+│   ├── data/                    # Schemas, knowledge base
+
+│   │   ├── knowledge_base/      # AI learned SQLcp .env.example .env
+
+│   │   └── sample_schemas/      # Example schemas
+
+│   └── README.md                # Documentation# Chỉnh sửa .env và thêm GEMINI_API_KEY_1# Khởi động
+
+│
+
+├── 📁 Speech2Text Services/     # 🎤 Voice Transcriptionpython app_simple.py
+
+│   ├── app/web_ui.py            # Web interface
+
+│   ├── README.md                # Documentation# Khởi động service# → http://localhost:5002
+
+│   └── SETUP_FINAL.md           # Setup guide
+
+│python app_simple.py```
+
+├── 📁 stable-diffusion-webui/   # 🎨 Image Generation (AUTOMATIC1111)
+
+│   ├── webui.bat                # Windows launcher
+
+│   ├── README.md                # Documentation
+
+│   └── models/                  # SD models# Truy cập: http://localhost:5002**Chi tiết:** [Text2SQL Setup Guide →](Text2SQL%20Services/README.md#-quick-start)
+
+│
+
+├── 📁 docs/                      # Comprehensive documentation```
+
+│   ├── README.md                # Documentation hub
+
+│   ├── PROJECT_STRUCTURE.md     # Architecture details---
+
+│   ├── QUICK_REFERENCE.md       # Command cheat sheet
+
+│   └── guides/                  # Setup & usage guides📖 **[Setup Guide chi tiết →](Text2SQL%20Services/README.md#-quick-start)**
+
+│
+
+├── 📁 scripts/                   # Automation scripts### 2️⃣ ChatBot
+
+│   ├── startup/                 # Service startup scripts
+
+│   └── stable-diffusion/        # SD specific scripts---
+
+│
+
+├── 📁 examples/                  # Usage examples```bash
+
+│   ├── basic_completion.py      # Simple examples
+
+│   └── chain_prompts.py         # Advanced examples### 2️⃣ ChatBotcd ChatBot
+
+│
+
+├── hub.py                        # Hub Gateway entry pointpython -m venv venv_chatbot
+
+├── setup.py                      # Package setup
+
+├── requirements.txt              # Hub dependencies```bash.\venv_chatbot\Scripts\activate
+
+├── Dockerfile                    # Docker configuration
+
+├── .env.example                  # Environment variables template# Di chuyển vào thư mụcpip install -r requirements.txt
+
+└── README.md                     # This file
+
+```cd ChatBot
+
+
+
+---# Tạo file .env và thêm API keys
+
+
+
+## 🛠️ Yêu Cầu Hệ Thống# Tạo virtual environmentcp .env.example .env
+
+
+
+### Tối Thiểupython -m venv venv_chatbot
+
+
+
+- **Python**: 3.10.6 hoặc cao hơn.\venv_chatbot\Scripts\activate# Khởi động
+
+- **RAM**: 8GB
+
+- **Storage**: 15GB cho models và cachepython app.py
+
+- **OS**: Windows 10/11, Linux, macOS
+
+# Cài đặt dependencies# → http://localhost:5001
+
+### Khuyến Nghị
+
+pip install -r requirements.txt```
+
+- **Python**: 3.10.11
+
+- **RAM**: 16GB+
+
+- **GPU**: NVIDIA với 6GB+ VRAM (cho Stable Diffusion và local models)
+
+- **CUDA**: 11.8 hoặc 12.1# Cấu hình API keys**Chi tiết:** [ChatBot Setup Guide →](ChatBot/README.md)
+
+- **Storage**: 20GB+ SSD
+
+cp .env.example .env
+
+### Compatibility
+
+# Chỉnh sửa .env và thêm OPENAI_API_KEY, GEMINI_API_KEY---
+
+| Service | CPU Only | GPU Boost | VRAM Required |
+
+|---------|----------|-----------|---------------|
+
+| ChatBot (API only) | ✅ Yes | ❌ No | 0GB |
+
+| ChatBot (with Qwen) | 🐌 Slow | ✅ Yes | 4GB+ |# Khởi động service### 3️⃣ Speech2Text
+
+| Text2SQL | ✅ Yes | ❌ No | 0GB |
+
+| Speech2Text | ✅ Yes | ✅ Yes | 6GB+ |python app.py
+
+| Stable Diffusion | ❌ No | ✅ Required | 6GB+ |
+
+```bash
+
 ---
+
+# Truy cập: http://localhost:5001cd "Speech2Text Services"
+
+## 🔑 API Keys
+
+```# Chạy script cài đặt dependencies
+
+### Bắt Buộc (chọn ít nhất 1)
+
+.\scripts\fix_dependencies.bat
+
+- **Gemini API** (FREE): https://makersuite.google.com/app/apikey
+
+  - Dùng cho: Text2SQL, ChatBot📖 **[Setup Guide chi tiết →](ChatBot/README.md#-quick-start)**
+
+  - Free tier: 60 requests/minute
+
+# Khởi động Web UI
+
+### Tùy Chọn
+
+---.\start_webui.bat
+
+- **OpenAI API**: https://platform.openai.com/api-keys
+
+  - Dùng cho: ChatBot GPT-4, Whisper# → http://localhost:7860
+
+  - Cost: Pay-as-you-go
+
+### 3️⃣ Speech2Text```
+
+- **HuggingFace Token** (FREE): https://huggingface.co/settings/tokens
+
+  - Dùng cho: Speech2Text diarization, Local models
+
+  - Free tier: Unlimited
+
+```bash**Chi tiết:** [Speech2Text Setup Guide →](Speech2Text%20Services/SETUP_FINAL.md)
+
+- **DeepSeek API**: https://platform.deepseek.com/api-keys
+
+  - Dùng cho: ChatBot DeepSeek models# Di chuyển vào thư mục
+
+  - Cost: ~$0.14/1M tokens
+
+cd "Speech2Text Services"---
+
+---
+
+
+
+## 📚 Tài Liệu
+
+# Chạy script cài đặt (tự động xử lý dependencies)### 4️⃣ Stable Diffusion
+
+### 📖 Service Documentation
+
+.\scripts\fix_dependencies.bat
+
+| Service | Main Docs | Setup Guide | Features |
+
+|---------|-----------|-------------|----------|```bash
+
+| **ChatBot** | [README](ChatBot/README.md) | [Setup](ChatBot/README.md#-quick-start) | [Docs →](ChatBot/docs/) |
+
+| **Text2SQL** | [README](Text2SQL%20Services/README.md) | [Setup](Text2SQL%20Services/README.md#-quick-start) | [AI Learning →](Text2SQL%20Services/README.md) |# Cấu hình HuggingFace token (optional, cho diarization)cd stable-diffusion-webui
+
+| **Speech2Text** | [README](Speech2Text%20Services/README.md) | [Setup](Speech2Text%20Services/SETUP_FINAL.md) | [WebUI →](Speech2Text%20Services/README.md) |
+
+| **Stable Diffusion** | [README](stable-diffusion-webui/README.md) | [Setup](stable-diffusion-webui/README.md) | [Original →](https://github.com/AUTOMATIC1111/stable-diffusion-webui) |# Tạo file .env và thêm HF_TOKEN# Khởi động với API enabled
+
+
+
+### 🔍 Feature Guides.\webui.bat
+
+
+
+- **Text2SQL v2.0 Features**: [Text2SQL Services/README.md](Text2SQL%20Services/README.md)# Khởi động Web UI# → http://localhost:7861
+
+- **ChatBot Tools Integration**: [ChatBot/README.md](ChatBot/README.md)
+
+- **Local Models Setup**: [ChatBot/README.md](ChatBot/README.md).\start_webui.bat```
+
+
+
+---
+
+
+
+## 🚀 Deployment# Truy cập: http://localhost:7860**Chi tiết:** [SD WebUI Setup Guide →](stable-diffusion-webui/README.md)
+
+
+
+### 🌟 Text2SQL - Ready for Production!```
+
+
+
+**Platform:** Render.com (FREE)  ---
+
+**Build Time:** 3-5 minutes  
+
+**Status:** ✅ Ready to deploy📖 **[Setup Guide chi tiết →](Speech2Text%20Services/SETUP_FINAL.md)**
+
+
+
+```bash## 🗂️ Cấu Trúc Dự Án
+
+# Quick deploy guide
+
+cd "Text2SQL Services"---
+
+git init && git add . && git commit -m "Deploy"
+
+git push origin main```
 
 ```
 
 ### 4️⃣ Stable DiffusionAI-Assistant/
 
+👉 **[Chi tiết deployment →](Text2SQL%20Services/README.md#-deployment)**
+
 │
+
+---
 
 ```bash├── 📁 config/                    # Configuration management
 
+## 🤝 Contributing
+
 # Di chuyển vào thư mục│   ├── model_config.py          # Service configurations
+
+Contributions are welcome! Please:
 
 cd stable-diffusion-webui│   └── logging_config.py        # Logging setup
 
-│
+1. Fork the repository
 
-# Khởi động WebUI với API enabled├── 📁 src/                       # Hub Gateway source code
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)│
+
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+
+4. Push to the branch (`git push origin feature/AmazingFeature`)# Khởi động WebUI với API enabled├── 📁 src/                       # Hub Gateway source code
+
+5. Open a Pull Request
 
 .\webui.bat│   ├── hub.py                   # Main application
 
+---
+
 │   ├── handlers/                # Request handlers
+
+## 📝 License
 
 # Hoặc với các flags tùy chỉnh:│   └── utils/                   # Utilities (cache, rate limiter)
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 python launch.py --api --xformers│
+
+---
 
 ├── 📁 data/                      # Data storage
 
+## 🙏 Acknowledgments
+
 # Truy cập: http://localhost:7861│   ├── cache/                   # Response cache
 
-```│   ├── prompts/                 # Prompt templates
+- [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) - Stable Diffusion WebUI
 
-│   └── outputs/                 # Output files
+- [Google Gemini](https://ai.google.dev/) - AI API```│   ├── prompts/                 # Prompt templates
+
+- [OpenAI](https://openai.com/) - GPT models
+
+- [HuggingFace](https://huggingface.co/) - Model hub│   └── outputs/                 # Output files
+
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) - Speaker diarization
 
 📖 **[Setup Guide chi tiết →](stable-diffusion-webui/README.md)**│
 
+---
+
 ├── 📁 ChatBot/                   # 🤖 Multi-model AI Chatbot
+
+<div align="center">
 
 ---│   ├── app.py                   # Main application
 
+**Made with ❤️ by SkastVnT**
+
 │   ├── README.md                # Documentation
 
+⭐ Star this repo if you find it helpful!
+
 ## 🗂️ Cấu Trúc Dự Án│   ├── templates/               # HTML templates
+
+</div>
 
 │   ├── static/                  # CSS, JS, images
 
