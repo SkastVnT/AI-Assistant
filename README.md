@@ -627,20 +627,43 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 
 <div align="center">
 
-##  **AUTHOR**
+##  **AUTHORS & CONTRIBUTORS**
 
-<img src="https://github.com/SkastVnT.png" width="100" height="100" style="border-radius: 50%; border: 3px solid #6366F1;" />
+</div>
+
+<table>
+<tr>
+<td align="center" width="50%">
+
+<img src="https://github.com/SkastVnT.png" width="120" height="120" style="border-radius: 50%; border: 3px solid #6366F1;" />
 
 ### **SkastVnT**
 
 [![GitHub](https://img.shields.io/badge/GitHub-SkastVnT-181717?style=for-the-badge&logo=github)](https://github.com/SkastVnT)
 [![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:your-email@example.com)
 
-*Developed entirely by me, with late nights, lots of coffee , and a passion for AI* 
+**Solo Developer • AI Enthusiast • Full-Stack Engineer**
 
-**Solo Developer  AI Enthusiast  Full-Stack Engineer**
+*Developed with late nights, lots of coffee ☕, and a passion for AI* 
 
-</div>
+</td>
+<td align="center" width="50%">
+
+<img src="https://github.com/sug1omyo.png" width="120" height="120" style="border-radius: 50%; border: 3px solid #10B981;" />
+
+### **sug1omyo**
+
+[![GitHub](https://img.shields.io/badge/GitHub-sug1omyo-181717?style=for-the-badge&logo=github)](https://github.com/sug1omyo)
+
+**Fresher Software Engineer**
+
+*Collaborator & Contributor* 
+
+</td>
+</tr>
+</table>
+
+<div align="center">
 
 ---
 
