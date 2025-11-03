@@ -1,0 +1,95 @@
+# ============================================================================
+# Stable Diffusion WebUI - AI Assistant Project
+# Python: 3.10.6
+# Description: Advanced image generation with Stable Diffusion
+# Original: https://github.com/AUTOMATIC1111/stable-diffusion-webui
+# ============================================================================
+
+# ============= CORE DEPENDENCIES =============
+GitPython>=3.1.0
+Pillow>=10.0.0
+accelerate>=0.27.0
+numpy>=1.23.0
+omegaconf>=2.2.3
+requests>=2.31.0
+safetensors>=0.4.0
+psutil>=5.9.0
+
+# ============= PYTORCH (Install separately) =============
+# torch>=2.0.0
+# torchvision>=0.15.0
+# torchaudio>=2.0.0
+# Install from: https://pytorch.org/get-started/locally/
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# ============= WEB UI =============
+fastapi>=0.94.0
+gradio==3.41.2
+uvicorn>=0.20.0
+
+# ============= TRANSFORMERS =============
+transformers==4.30.2
+open-clip-torch>=2.20.0
+
+# ============= IMAGE PROCESSING =============
+basicsr>=1.4.2
+gfpgan>=1.3.8
+realesrgan>=0.3.0
+resize-right>=0.0.2
+piexif>=1.1.3
+inflection>=0.5.1
+blendmodes>=2022.0.0
+
+# ============= UPSCALING & ENHANCEMENT =============
+scikit-image>=0.21.0
+
+# ============= UTILITIES =============
+einops>=0.7.0
+jsonmerge>=1.9.0
+kornia>=0.7.0
+lark>=1.1.5
+timm>=0.9.0
+tomesd>=0.1.3
+
+# ============= TRAINING (Optional) =============
+pytorch_lightning>=2.0.0
+torchdiffeq>=0.2.3
+torchsde>=0.2.5
+
+# ============= ADDITIONAL =============
+clean-fid>=0.1.35
+
+# ============================================================================
+# INSTALLATION GUIDE
+# ============================================================================
+# 
+# 1. Create virtual environment:
+#    python -m venv venv_sd
+#    
+# 2. Activate virtual environment:
+#    Windows: .\venv_sd\Scripts\activate
+#    Linux/Mac: source venv_sd/bin/activate
+#
+# 3. Install PyTorch with CUDA:
+#    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+#
+# 4. Install other dependencies:
+#    pip install -r requirements.txt
+#
+# 5. Download Stable Diffusion models:
+#    Place .safetensors or .ckpt files in models/Stable-diffusion/
+#
+# 6. Run WebUI:
+#    python webui.py --api
+#
+# 7. For ChatBot integration, use --api flag
+#
+# ============================================================================
+# REQUIREMENTS
+# ============================================================================
+# - NVIDIA GPU with 6GB+ VRAM (8GB+ recommended)
+# - CUDA 11.8 or higher
+# - 16GB+ RAM
+# - 20GB+ free disk space (for models)
+#
+# ============================================================================

@@ -1,0 +1,15 @@
+{
+  "filename": "generated_20251030_120653.png",
+  "created_at": "2025-10-30T12:06:53.110550",
+  "metadata": {
+    "prompt": "masterpiece, best quality, highly detailed, anime girl, bocchi the rock style, cute face, school uniform, short pink hair, shy smile, bright eyes, dynamic pose, vibrant colors, soft lighting, bokeh background, classroom setting, energetic, cheerful, detailed background, sharp focus, illustration",
+    "negative_prompt": "bad quality, blurry, distorted, ugly, worst quality, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, r18, nsfw, nude, explicit, sexual, porn, lowres, jpeg artifacts, cropped, out of frame, text, watermark, signature, poorly drawn hands, poorly drawn face, mutation, deformed, disfigured, incorrect eyes, unnatural pose, bad proportions, mutated hands, mutated fingers, glitch, duplicate",
+    "width": 768,
+    "height": 768,
+    "steps": 15,
+    "cfg_scale": 8,
+    "sampler_name": "DPM++ 2M Karras",
+    "model": "AnythingV4_v45",
+    "source": "text2image_tool"
+  }
+}

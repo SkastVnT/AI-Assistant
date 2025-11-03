@@ -1,0 +1,274 @@
+/* Tailwind CSS Custom Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Light mode colors */
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #1a202c;
+}
+
+body.dark-mode {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e2e8f0;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Sidebar */
+.sidebar {
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.dark-mode .sidebar {
+    background: #2d3748;
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.dark-mode .sidebar-header {
+    background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+}
+
+/* Chat items - NO auto-reorder on update */
+.chat-list {
+    /* Remove any ordering/sorting styles */
+}
+
+.chat-item {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.dark-mode .chat-item {
+    background: #4a5568;
+    border-color: #2d3748;
+}
+
+.chat-item:hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.dark-mode .chat-item:hover {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+.chat-item.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+/* Container */
+.container {
+    background: white;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .container {
+    background: #2d3748;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Controls */
+.controls {
+    background: #f7fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dark-mode .controls {
+    background: #1a202c;
+    border-bottom-color: #4a5568;
+}
+
+/* Buttons */
+button, select {
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Messages */
+.message {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.user .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.message.assistant .message-content {
+    background: #f7fafc;
+    color: #2d3748;
+    border: 1px solid #e2e8f0;
+}
+
+.dark-mode .message.assistant .message-content {
+    background: #4a5568;
+    color: #e2e8f0;
+    border-color: #2d3748;
+}
+
+/* Code blocks */
+.message-content pre {
+    background: #1a202c;
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.message-content code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+.dark-mode .message-content code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Memory panel */
+.memory-panel {
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+
+.dark-mode .memory-panel {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+.memory-item {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.dark-mode .memory-item {
+    background: #4a5568;
+    border-color: #2d3748;
+}
+
+.memory-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+/* Image generation modal */
+.modal {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .modal-content {
+    background: #2d3748;
+}
+
+/* Loading spinner */
+.loading {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: -280px;
+        z-index: 1000;
+    }
+    
+    .sidebar.active {
+        left: 0;
+    }
+}
+
+/* Color fixes for light mode text visibility */
+body:not(.dark-mode) .control-group label {
+    color: #2d3748;
+    font-weight: 500;
+}
+
+body:not(.dark-mode) select,
+body:not(.dark-mode) button {
+    color: #2d3748;
+}
+
+body:not(.dark-mode) .chat-item-title {
+    color: #2d3748;
+}
+
+body:not(.dark-mode) .chat-item-preview {
+    color: #4a5568;
+}
+
+body:not(.dark-mode) .chat-item-time {
+    color: #718096;
+}
+
+/* Active chat item (keep white text) */
+.chat-item.active .chat-item-title,
+.chat-item.active .chat-item-preview,
+.chat-item.active .chat-item-time {
+    color: white !important;
+}

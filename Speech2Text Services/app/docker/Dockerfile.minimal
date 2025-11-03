@@ -1,0 +1,71 @@
+# ============================================
+# SPEECH-TO-TEXT SYSTEM - LIGHTWEIGHT DOCKERFILE
+# Minimal essential dependencies for fastest build
+# Full dependencies installed after container start
+# ============================================
+
+# ===== STAGE 1: Base image =====
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    CUDA_VISIBLE_DEVICES=0
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
+    ffmpeg \
+    libsndfile1 \
+    git \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade pip setuptools wheel
+
+# ===== STAGE 2: Install minimal Python packages =====
+FROM base AS builder
+
+WORKDIR /tmp
+
+# Install PyTorch (largest package, install first)
+RUN pip3 install --no-cache-dir \
+    torch==2.7.1 torchaudio==2.7.1 \
+    --index-url https://download.pytorch.org/whl/cu118
+
+# Install web framework only (for API)
+RUN pip3 install --no-cache-dir \
+    flask>=3.0.0 \
+    flask-socketio>=5.3.0 \
+    flask-cors>=4.0.0 \
+    python-dotenv>=1.0.0
+
+# Install audio processing
+RUN pip3 install --no-cache-dir \
+    soundfile>=0.12.1 \
+    pydub>=0.25.1
+
+# ===== STAGE 3: Final image =====
+FROM base AS final
+
+# Copy installed packages
+COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+
+WORKDIR /app
+
+# Create directories
+RUN mkdir -p /app/output/raw /app/output/vistral /app/output/dual \
+    /app/audio /app/logs /app/data/results/sessions
+
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+EXPOSE 5000 8000
+
+# Simplified healthcheck (no GPU check to avoid startup issues)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import flask" || exit 1
+
+# Default: run shell for manual testing
+CMD ["/bin/bash"]

@@ -1,3 +1,82 @@
+# ============================================================================
+# AI-Assistant Root Project
+# Python: 3.10.6
+# Repository: https://github.com/SkastVnT/AI-Assistant
+# Description: Unified AI Assistant Hub with multiple services
+# ============================================================================
+
+# ============= SERVICES =============
+# 1. ChatBot               - Multi-model chatbot with local LLM support
+# 2. Text2SQL Services     - Natural language to SQL conversion
+# 3. Speech2Text Services  - Vietnamese speech-to-text transcription
+# 4. Stable Diffusion WebUI - Advanced image generation
+#
+# Each service has its own virtual environment and requirements.txt
+# Navigate to service folder and follow its README.md for setup
+
+# ============= ROOT HUB DEPENDENCIES =============
+# These are for the main coordinator/hub only
+
+# Web Framework
 flask==3.0.0
 flask-cors==4.0.0
 python-dotenv==1.0.0
+werkzeug>=3.0.0
+
+# Utilities
+requests>=2.31.0
+pyyaml>=6.0.0
+
+# Logging
+colorama>=0.4.6
+
+# ============================================================================
+# QUICK START
+# ============================================================================
+#
+# 1. Clone repository:
+#    git clone https://github.com/SkastVnT/AI-Assistant.git
+#    cd AI-Assistant
+#
+# 2. Choose a service to setup:
+#    - cd ChatBot              (for chatbot service)
+#    - cd "Text2SQL Services"  (for SQL conversion)
+#    - cd "Speech2Text Services" (for transcription)
+#    - cd stable-diffusion-webui (for image generation)
+#
+# 3. Follow service-specific README.md for detailed setup
+#
+# 4. Each service runs independently with its own:
+#    - Virtual environment (venv_*)
+#    - requirements.txt
+#    - Configuration (.env)
+#    - Port number
+#
+# ============================================================================
+# SERVICE PORTS (Default)
+# ============================================================================
+# ChatBot:              http://localhost:5000
+# Text2SQL:             http://localhost:5001
+# Speech2Text:          http://localhost:5002
+# Stable Diffusion:     http://localhost:7860
+#
+# ============================================================================
+# SYSTEM REQUIREMENTS
+# ============================================================================
+# - Python 3.10.6
+# - NVIDIA GPU with CUDA 11.8 (for AI models)
+# - 16GB+ RAM (32GB recommended)
+# - 50GB+ free disk space
+# - Windows 10/11 or Linux
+#
+# ============================================================================
+# DOCUMENTATION
+# ============================================================================
+# - README.md              - Main project documentation
+# - docs/                  - Additional guides
+# - ChatBot/README.md      - ChatBot service guide
+# - Text2SQL Services/README.md - Text2SQL guide
+# - Speech2Text Services/README.md - Speech2Text guide
+# - stable-diffusion-webui/README.md - SD WebUI guide
+#
+# ============================================================================

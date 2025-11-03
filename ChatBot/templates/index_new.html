@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="min-h-screen">
+    <!-- Sidebar Toggle (Mobile) -->
+    <button id="sidebarToggle" class="fixed top-4 left-4 z-50 lg:hidden bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg">
+        <span class="text-2xl">☰</span>
+    </button>
+    
+    <div class="main-wrapper flex h-screen">
+        <!-- Sidebar -->
+        <aside class="sidebar w-72 h-screen fixed lg:relative left-0 top-0 z-40 overflow-y-auto shadow-xl">
+            <div class="sidebar-header p-6">
+                <h3 class="text-xl font-bold mb-4">💬 Chat History</h3>
+                <button id="newChatBtn" class="new-chat-btn w-full bg-white hover:bg-gray-100 text-purple-600 font-semibold py-3 px-4 rounded-lg transition-all">
+                    ✨ Cuộc trò chuyện mới
+                </button>
+            </div>
+            
+            <div class="chat-list px-4 pb-4" id="chatList">
+                <!-- Chat items will be inserted here -->
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-screen overflow-hidden lg:ml-0">
+            <!-- Container -->
+            <div class="container flex-1 flex flex-col m-4 rounded-2xl overflow-hidden">
+                <!-- Header -->
+                <header class="header text-center py-6 px-4">
+                    <h1 class="text-3xl font-bold text-purple-600 dark:text-purple-400">🤖 AI ChatBot Assistant</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">Trợ lý AI thông minh với khả năng học tập và tạo ảnh</p>
+                </header>
+                
+                <!-- Controls -->
+                <div class="controls p-4 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="control-group">
+                            <label for="modelSelect" class="block text-sm font-medium mb-1">🤖 Model:</label>
+                            <select id="modelSelect" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="gemini">Gemini (Google)</option>
+                                <option value="bloom">BloomVN-8B (Local)</option>
+                                <option value="qwen-1.8b">Qwen 1.8B (Local)</option>
+                                <option value="qwen-14b">Qwen 14B (Local)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="contextSelect" class="block text-sm font-medium mb-1">🎯 Context:</label>
+                            <select id="contextSelect" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="balanced">Balanced</option>
+                                <option value="precise">Precise</option>
+                                <option value="creative">Creative</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group flex items-end gap-2">
+                            <button id="darkModeToggle" class="flex-1 bg-gray-700 hover:bg-gray-800 text-white py-2 px-4 rounded-lg transition-all">
+                                🌙 Dark Mode
+                            </button>
+                            <button id="downloadBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-all">
+                                📥 PDF
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-3">
+                        <label class="checkbox-container inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="deepThinking" class="w-4 h-4">
+                            <span class="text-sm font-medium">🧠 Deep Thinking</span>
+                        </label>
+                        
+                        <label class="checkbox-container inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="aiLearning" class="w-4 h-4">
+                            <span class="text-sm font-medium">📚 AI Learning</span>
+                        </label>
+                        
+                        <button id="imageGenBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all">
+                            🎨 Tạo ảnh
+                        </button>
+                        
+                        <button id="saveMemoryBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">
+                            💾 Lưu bài học
+                        </button>
+                        
+                        <button id="clearBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">
+                            🗑️ Xóa chat
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Chat Container -->
+                <div id="chatContainer" class="chat-container flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Messages will appear here -->
+                </div>
+                
+                <!-- Input Area -->
+                <div class="p-4 border-t dark:border-gray-700">
+                    <div class="flex gap-2">
+                        <input type="file" id="fileInput" multiple accept=".txt,.md,.py,.js,.json,.csv" class="hidden">
+                        <label for="fileInput" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg cursor-pointer transition-all">
+                            📎
+                        </label>
+                        <textarea id="messageInput" 
+                                  placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter để xuống dòng)"
+                                  class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none"
+                                  rows="2"></textarea>
+                        <button id="sendBtn" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-all">
+                            📤 Gửi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Memory Panel (collapsible) -->
+        <aside class="hidden lg:block w-80 h-screen overflow-y-auto bg-white dark:bg-gray-800 shadow-xl p-4" id="memoryPanel">
+            <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">📚 Bài học đã lưu</h3>
+            <div id="memoryList" class="space-y-2">
+                <!-- Memory items will be inserted here -->
+            </div>
+        </aside>
+    </div>
+    
+    <!-- Image Generation Modal -->
+    <div id="imageGenModal" class="modal fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-content max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🎨 Tạo ảnh với Stable Diffusion</h2>
+                <button id="closeModal" class="text-3xl hover:text-red-500 transition-colors">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">📝 Prompt:</label>
+                    <textarea id="prompt" 
+                              rows="3" 
+                              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                              placeholder="anime girl, beautiful, detailed..."></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">❌ Negative Prompt:</label>
+                    <textarea id="negativePrompt" 
+                              rows="2" 
+                              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                              placeholder="bad quality, blurry, distorted..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">📏 Width:</label>
+                        <input type="number" id="imageWidth" value="512" min="64" max="1024" step="64"
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">📏 Height:</label>
+                        <input type="number" id="imageHeight" value="512" min="64" max="1024" step="64"
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">🎲 Steps:</label>
+                        <input type="number" id="steps" value="30" min="1" max="150"
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">⚙️ CFG Scale:</label>
+                        <input type="number" id="cfgScale" value="7" min="1" max="20" step="0.5"
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">🔧 Sampler:</label>
+                    <select id="samplerName" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <option value="DPM++ 2M Karras">DPM++ 2M Karras</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">🌱 Seed (-1 = random):</label>
+                    <input type="number" id="seed" value="-1"
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                </div>
+                
+                <button id="generateImageBtn" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-all">
+                    🎨 Tạo ảnh
+                </button>
+                
+                <div id="generatedImageResult" class="mt-4">
+                    <!-- Generated image will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/memory.js"></script>
+    <script src="/static/js/image-gen.js"></script>
+    <script src="/static/js/pdf-export.js"></script>
+</body>
+</html>

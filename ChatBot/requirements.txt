@@ -1,6 +1,68 @@
+# ============================================================================
+# ChatBot Service - AI Assistant Project
+# Python: 3.10.6
+# Description: Multi-model chatbot with local LLM support and image generation
+# ============================================================================
+
+# ============= WEB FRAMEWORK =============
 flask==3.0.0
+flask-cors==4.0.0
 python-dotenv==1.0.0
-openai
+werkzeug>=3.0.0
+
+# ============= AI APIs =============
+openai>=1.0.0
 google-generativeai==0.8.5
-requests
-Pillow
+
+# ============= IMAGE PROCESSING =============
+Pillow>=10.0.0
+requests>=2.31.0
+
+# ============= LOCAL MODEL SUPPORT =============
+# PyTorch (CUDA 11.8) - Install from https://pytorch.org/get-started/locally/
+numpy<2.0.0  # Required for PyTorch compatibility
+torch>=2.0.0
+torchaudio>=2.0.0
+transformers>=4.37.0
+accelerate>=0.27.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# Quantization (for efficient local models - Windows requires Visual C++)
+bitsandbytes>=0.41.0; sys_platform != 'win32'
+
+# ============= ADDITIONAL UTILITIES =============
+# Progress bars
+tqdm>=4.65.0
+
+# JSON handling
+jsonschema>=4.17.0
+
+# Safe loading
+pyyaml>=6.0
+
+# File handling
+aiofiles>=23.0.0
+
+# ============================================================================
+# INSTALLATION GUIDE
+# ============================================================================
+# 
+# 1. Create virtual environment:
+#    python -m venv venv_chatbot
+#    
+# 2. Activate virtual environment:
+#    Windows: .\venv_chatbot\Scripts\activate
+#    Linux/Mac: source venv_chatbot/bin/activate
+#
+# 3. Install PyTorch with CUDA (if GPU available):
+#    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+#
+# 4. Install other dependencies:
+#    pip install -r requirements.txt
+#
+# 5. Setup environment variables:
+#    Copy .env.example to .env and fill in API keys
+#
+# 6. Run the application:
+#    python app.py

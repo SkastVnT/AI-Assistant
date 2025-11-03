@@ -1,0 +1,37 @@
+# =============================================================================
+# T5 Model Service - Offline AI Fusion
+# =============================================================================
+FROM nvidia/cuda:11.8-runtime-ubuntu22.04
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy T5 service code
+COPY core/ ./core/
+COPY app.py .
+COPY api/ ./api/
+
+# Create model cache directory
+RUN mkdir -p /app/models /app/logs
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=60s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Run T5 service
+CMD ["python3", "api/t5_service.py"]

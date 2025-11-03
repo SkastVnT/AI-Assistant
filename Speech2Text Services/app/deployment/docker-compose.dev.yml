@@ -1,0 +1,60 @@
+# Docker Compose cho Development (không cần GPU)
+version: '3.8'
+
+services:
+  # API Service - CPU only
+  api-dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-dev
+    container_name: s2t-api-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ENVIRONMENT=development
+      - DEVICE=cpu
+    volumes:
+      - .:/app
+      - ./data/audio:/app/audio
+      - ./data/results:/app/result
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - s2t-dev
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: s2t-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev:/data
+    restart: unless-stopped
+    networks:
+      - s2t-dev
+
+  # Simple file server cho results
+  file-server:
+    image: nginx:alpine
+    container_name: s2t-files
+    ports:
+      - "8090:80"
+    volumes:
+      - ./data/results:/usr/share/nginx/html/results
+      - ./data/audio:/usr/share/nginx/html/audio
+      - ./docker/nginx-files.conf:/etc/nginx/nginx.conf
+    restart: unless-stopped
+    networks:
+      - s2t-dev
+
+volumes:
+  redis_dev:
+    driver: local
+
+networks:
+  s2t-dev:
+    driver: bridge
