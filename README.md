@@ -12,9 +12,17 @@
 ![AI](https://img.shields.io/badge/AI-Powered-6366F1?style=for-the-badge&logo=openai&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-10B981?style=for-the-badge&logo=opensourceinitiative&logoColor=white)
 
-![Stars](https://img.shields.io/github/stars/SkastVnT/AI-Assistant?style=social)
-![Forks](https://img.shields.io/github/forks/SkastVnT/AI-Assistant?style=social)
-![Issues](https://img.shields.io/github/issues/SkastVnT/AI-Assistant?style=social)
+<br/>
+
+![Stars](https://img.shields.io/github/stars/SkastVnT/AI-Assistant?style=for-the-badge&logo=github&logoColor=white&color=FFD700)
+![Forks](https://img.shields.io/github/forks/SkastVnT/AI-Assistant?style=for-the-badge&logo=github&logoColor=white&color=3B82F6)
+![Issues](https://img.shields.io/github/issues/SkastVnT/AI-Assistant?style=for-the-badge&logo=github&logoColor=white&color=10B981)
+![Watchers](https://img.shields.io/github/watchers/SkastVnT/AI-Assistant?style=for-the-badge&logo=github&logoColor=white&color=EC4899)
+
+<br/>
+
+### ⭐⭐ **2 STARS ACHIEVED!** ⭐⭐
+*Thank you for your support! 🎉*
 
 ** Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ **
 
@@ -677,6 +685,54 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 [![Google Gemini](https://img.shields.io/badge/Google-Gemini_API-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
 [![OpenAI](https://img.shields.io/badge/OpenAI-GPT_Models-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com)
 [![Hugging Face](https://img.shields.io/badge/-Hugging_Face-FFD21E?style=for-the-badge&logoColor=black)](https://huggingface.co)
+
+</div>
+
+---
+
+<div align="center">
+
+## 🎖️ **MILESTONES & ACHIEVEMENTS** 🎖️
+
+<table>
+<tr>
+<td align="center" width="25%">
+<img src="https://img.shields.io/badge/⭐-2_Stars-FFD700?style=for-the-badge&logo=github&logoColor=white" />
+<br/>
+<sub><b>Nov 3, 2025</b></sub>
+<br/>
+<sub>🎉 First Milestone!</sub>
+</td>
+<td align="center" width="25%">
+<img src="https://img.shields.io/badge/🔱-4_Services-6366F1?style=for-the-badge" />
+<br/>
+<sub><b>Production Ready</b></sub>
+<br/>
+<sub>ChatBot • Text2SQL • Speech2Text • SD</sub>
+</td>
+<td align="center" width="25%">
+<img src="https://img.shields.io/badge/👥-2_Contributors-10B981?style=for-the-badge&logo=github&logoColor=white" />
+<br/>
+<sub><b>Team Growing</b></sub>
+<br/>
+<sub>SkastVnT • sug1omyo</sub>
+</td>
+<td align="center" width="25%">
+<img src="https://img.shields.io/badge/📦-Open_Source-EC4899?style=for-the-badge&logo=opensourceinitiative&logoColor=white" />
+<br/>
+<sub><b>MIT Licensed</b></sub>
+<br/>
+<sub>Free & Open to All</sub>
+</td>
+</tr>
+</table>
+
+### 🎯 **Next Milestones:**
+- 🎯 **5 Stars** - Add demo video
+- 🎯 **10 Stars** - Release v2.0 with new features
+- 🎯 **25 Stars** - Community showcase section
+- 🎯 **50 Stars** - Docker support & Easy deployment
+- 🎯 **100 Stars** - 🎊 Special celebration!
 
 </div>
 
