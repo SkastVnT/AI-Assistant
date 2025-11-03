@@ -645,7 +645,7 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 ### **SkastVnT**
 
 [![GitHub](https://img.shields.io/badge/GitHub-SkastVnT-181717?style=for-the-badge&logo=github)](https://github.com/SkastVnT)
-[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:your-email@example.com)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:nguyvip007@gmail.com)
 
 **Solo Developer • AI Enthusiast • Full-Stack Engineer**
 
@@ -659,10 +659,15 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 ### **sug1omyo**
 
 [![GitHub](https://img.shields.io/badge/GitHub-sug1omyo-181717?style=for-the-badge&logo=github)](https://github.com/sug1omyo)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:ngtuanhei2004@gmail.com)
 
 **Fresher Software Engineer**
 
 *Collaborator & Contributor* 
+*Atsui~
+Atsukute hikarabisou
+Ugoitenai no ni atsui yo~* 
+
 
 </td>
 </tr>
