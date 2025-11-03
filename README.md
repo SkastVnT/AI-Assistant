@@ -21,12 +21,12 @@
 
 <br/>
 
-** Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ **
+***Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ***
 
-[ Tính năng](#-tính-năng-nổi-bật)  
-[ Quick Start](#-quick-start)  
-[ Cài đặt](#-yêu-cầu-hệ-thống)  
-[ Tài liệu](#-tài-liệu)
+[~!Tính năng](#-tính-năng-nổi-bật)  
+[~!Quick Start](#-quick-start)  
+[~!Cài đặt](#-yêu-cầu-hệ-thống)  
+[~!Tài liệu](#-tài-liệu)
 
 </div>
 
@@ -665,9 +665,9 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 
 *Collaborator & Contributor* 
 
-***Atsui~
-Atsukute hikarabisou
-Ugoitenai no ni atsui yo~*** 
+***Atsui~***
+***Atsukute hikarabisou***
+***Ugoitenai no ni atsui yo~*** 
 
 
 </td>
@@ -772,8 +772,8 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=18&duration=2000&pause=1000&color=6366F1&center=true&vCenter=true&width=600&lines=Built+with+%E2%9D%A4%EF%B8%8F+and+lots+of+%E2%98%95;Solo+Project+by+SkastVnT;Thanks+for+visiting!+%F0%9F%91%8B" alt="Footer Typing SVG" />
 
-**Made with  by [SkastVnT](https://github.com/SkastVnT)**
+**Made with  by [@SkastVnT](https://github.com/SkastVnT)**
 
-* 2025 SkastVnT. All rights reserved.*
+*2025 SkastVnT. All rights reserved.*
 
 </div>
