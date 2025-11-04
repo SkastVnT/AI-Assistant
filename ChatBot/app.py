@@ -614,10 +614,10 @@ def github_search_tool(query):
 
 @app.route('/')
 def index():
-    """Home page - Original beautiful UI"""
+    """Home page - Original beautiful UI with full SDXL support"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
-    return render_template('index.html')
+    return render_template('index_original_backup.html')
 
 
 @app.route('/new')
@@ -780,6 +780,7 @@ def history():
 # ============================================================================
 
 @app.route('/api/sd-health', methods=['GET'])
+@app.route('/sd-api/status', methods=['GET'])  # Alias for frontend compatibility
 def sd_health():
     """Kiểm tra xem Stable Diffusion API có đang chạy không"""
     try:
@@ -812,6 +813,7 @@ def sd_health():
 
 
 @app.route('/api/sd-models', methods=['GET'])
+@app.route('/sd-api/models', methods=['GET'])  # Alias for frontend compatibility
 def sd_models():
     """Lấy danh sách tất cả checkpoint models"""
     try:
@@ -833,6 +835,7 @@ def sd_models():
 
 
 @app.route('/api/sd-change-model', methods=['POST'])
+@app.route('/api/sd/change-model', methods=['POST'])  # Alias
 def sd_change_model():
     """Đổi checkpoint model"""
     try:
@@ -861,10 +864,11 @@ def sd_change_model():
             }), 500
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/generate-image', methods=['POST'])
+@app.route('/sd-api/text2img', methods=['POST'])  # Alias for frontend compatibility
 def generate_image():
     """
     Tạo ảnh từ text prompt bằng Stable Diffusion
@@ -883,6 +887,7 @@ def generate_image():
         - enable_hr (bool): Hires fix (default: False)
         - hr_scale (float): HR scale (default: 2.0)
         - save_images (bool): Lưu ảnh vào disk (default: False)
+        - save_to_storage (bool): Save to ChatBot storage (default: False)
     """
     try:
         from src.utils.sd_client import get_sd_client
@@ -894,6 +899,7 @@ def generate_image():
             return jsonify({'error': 'Prompt không được để trống'}), 400
         
         # Lấy parameters từ request
+        save_to_storage = data.get('save_to_storage', False)
         params = {
             'prompt': prompt,
             'negative_prompt': data.get('negative_prompt', ''),
@@ -917,31 +923,84 @@ def generate_image():
         sd_client = get_sd_client(sd_api_url)
         
         # Tạo ảnh
-        print(f"[DEBUG] Calling txt2img with params: {params}")
+        logger.info(f"[TEXT2IMG] Calling txt2img with params: {params}")
         result = sd_client.txt2img(**params)
-        print(f"[DEBUG] txt2img result: {result}")
+        logger.info(f"[TEXT2IMG] txt2img completed")
         
         # Kiểm tra lỗi
         if 'error' in result:
-            print(f"[ERROR] SD Error: {result['error']}")
+            logger.error(f"[TEXT2IMG] SD Error: {result['error']}")
             return jsonify(result), 500
         
-        # Trả về kết quả
-        return jsonify({
-            'success': True,
-            'images': result.get('images', []),
-            'info': result.get('info', ''),
-            'parameters': result.get('parameters', {})
-        })
+        # Get base64 images from result
+        base64_images = result.get('images', [])
+        
+        if not base64_images:
+            return jsonify({'error': 'No images generated'}), 500
+        
+        # Save to storage if requested
+        saved_filenames = []
+        if save_to_storage:
+            for idx, image_base64 in enumerate(base64_images):
+                try:
+                    # Generate filename with timestamp
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f"generated_{timestamp}_{idx}.png"
+                    filepath = IMAGE_STORAGE_DIR / filename
+                    
+                    # Decode and save image
+                    image_data = base64.b64decode(image_base64)
+                    with open(filepath, 'wb') as f:
+                        f.write(image_data)
+                    
+                    saved_filenames.append(filename)
+                    logger.info(f"[TEXT2IMG] Saved image to: {filename}")
+                    
+                    # Save metadata
+                    metadata_file = filepath.with_suffix('.json')
+                    with open(metadata_file, 'w', encoding='utf-8') as f:
+                        json.dump({
+                            'filename': filename,
+                            'created_at': datetime.now().isoformat(),
+                            'prompt': prompt,
+                            'negative_prompt': params['negative_prompt'],
+                            'parameters': params
+                        }, f, ensure_ascii=False, indent=2)
+                        
+                except Exception as save_error:
+                    logger.error(f"[TEXT2IMG] Error saving image {idx}: {save_error}")
+        
+        # Return response in format expected by frontend
+        if save_to_storage and saved_filenames:
+            # Return filenames for frontend to construct URLs
+            return jsonify({
+                'success': True,
+                'images': saved_filenames,  # Array of filenames
+                'image': saved_filenames[0],  # First filename for backward compatibility
+                'base64_images': base64_images,  # Include base64 for direct display
+                'info': result.get('info', ''),
+                'parameters': result.get('parameters', {})
+            })
+        else:
+            # Return base64 images directly
+            return jsonify({
+                'success': True,
+                'image': base64_images[0] if base64_images else None,
+                'images': base64_images,  # Full array of base64 images
+                'info': result.get('info', ''),
+                'parameters': result.get('parameters', {})
+            })
         
     except Exception as e:
         import traceback
         error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
-        print(f"[ERROR] {error_msg}")
+        logger.error(f"[TEXT2IMG] {error_msg}")
         return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/sd-samplers', methods=['GET'])
+@app.route('/sd-api/samplers', methods=['GET'])  # Alias for frontend compatibility
+@app.route('/api/sd/samplers', methods=['GET'])  # Another alias
 def sd_samplers():
     """Lấy danh sách samplers"""
     try:
@@ -953,14 +1012,16 @@ def sd_samplers():
         samplers = sd_client.get_samplers()
         
         return jsonify({
+            'success': True,
             'samplers': samplers
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/sd-loras', methods=['GET'])
+@app.route('/sd-api/loras', methods=['GET'])  # Alias for frontend compatibility
 def sd_loras():
     """Lấy danh sách Lora models"""
     try:
@@ -980,6 +1041,7 @@ def sd_loras():
 
 
 @app.route('/api/sd-vaes', methods=['GET'])
+@app.route('/sd-api/vaes', methods=['GET'])  # Alias for frontend compatibility
 def sd_vaes():
     """Lấy danh sách VAE models"""
     try:
@@ -999,6 +1061,7 @@ def sd_vaes():
 
 
 @app.route('/api/img2img', methods=['POST'])
+@app.route('/sd-api/img2img', methods=['POST'])  # Alias for frontend compatibility
 def img2img():
     """
     Tạo ảnh từ ảnh gốc bằng Stable Diffusion Img2Img
@@ -1063,10 +1126,12 @@ def img2img():
             logger.error(f"[IMG2IMG] SD Error: {result['error']}")
             return jsonify(result), 500
         
-        # Trả về kết quả
+        # Trả về kết quả (compatible với frontend)
+        images = result.get('images', [])
         return jsonify({
             'success': True,
-            'images': result.get('images', []),
+            'image': images[0] if images else None,  # First image for backward compatibility
+            'images': images,  # Full array for multi-image support
             'info': result.get('info', ''),
             'parameters': result.get('parameters', {})
         })
@@ -1232,6 +1297,7 @@ def extract_anime_features_multi():
 
 
 @app.route('/api/extract-anime-features', methods=['POST'])
+@app.route('/sd-api/interrogate', methods=['POST'])  # Alias for frontend compatibility
 def extract_anime_features():
     """
     Trích xuất đặc trưng anime từ ảnh bằng DeepDanbooru với categorization

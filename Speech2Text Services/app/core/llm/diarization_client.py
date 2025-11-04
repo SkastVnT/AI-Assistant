@@ -98,10 +98,10 @@ class SpeakerDiarizationClient:
         load_start = time.time()
         
         try:
-            # Load pipeline with authentication (use 'use_auth_token' for older pyannote versions)
+            # Load pipeline with authentication (use 'token' instead of deprecated 'use_auth_token')
             self.pipeline = Pipeline.from_pretrained(
                 self.model_name,
-                use_auth_token=self.hf_token
+                token=self.hf_token
             )
             
             # Move to GPU if available

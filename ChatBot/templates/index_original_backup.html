@@ -2909,8 +2909,11 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                 // Best VAE for anime with SDXL
                 vae: 'kl-f8-anime2.vae.safetensors',
                 
-                // Save images to gallery
-                save_images: true
+                // Save images to SD WebUI gallery
+                save_images: true,
+                
+                // Save to ChatBot storage (IMPORTANT for display in chat)
+                save_to_storage: true
             };
                 
                 console.log('Generating image with params:', imageParams);
@@ -2925,105 +2928,85 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                 console.log('Image response:', imageData);
                 
                 if (imageData.success && imageData.images && imageData.images.length > 0) {
-                    // Save image to server first
-                    try {
-                        const saveResponse = await fetch('/api/save-image', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                image: imageData.images[0],
-                                metadata: {
-                                    prompt: generatedPrompt,
-                                    negative_prompt: imageParams.negative_prompt,
-                                    width: imageParams.width,
-                                    height: imageParams.height,
-                                    steps: imageParams.steps,
-                                    cfg_scale: imageParams.cfg_scale,
-                                    sampler_name: imageParams.sampler_name,
-                                    model: 'AnythingXL_xl',
-                                    lora_models: imageParams.lora_models,
-                                    vae: imageParams.vae,
-                                    source: 'text2image_tool'
-                                }
-                            })
-                        });
-                        
-                        const saveData = await saveResponse.json();
-                        console.log('Image saved:', saveData);
-                        
-                        // Use server URL for display
-                        const imageUrl = saveData.success ? saveData.url : `data:image/png;base64,${imageData.images[0]}`;
-                        
-                        // Display image in chat
-                        const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                        const imageHtml = `
-                            <div class="message assistant-message">
-                                <div class="message-header">
-                                    <strong>🎨 Ảnh được tạo thành công!</strong>
-                                    <span class="timestamp">${timestamp}</span>
-                                </div>
-                                <div class="message-content">
-                                    <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;" loading="lazy">
-                                    <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                        <strong>📝 Prompt:</strong> ${generatedPrompt.substring(0, 150)}...<br>
-                                        <strong>❌ Negative:</strong> ${imageParams.negative_prompt.substring(0, 100)}...<br>
-                                        <strong>🖼️ Size:</strong> ${imageParams.width}x${imageParams.height} | <strong>Steps:</strong> ${imageParams.steps} | <strong>CFG:</strong> ${imageParams.cfg_scale}<br>
-                                        <strong>🎲 Sampler:</strong> ${imageParams.sampler_name} | <strong>🤖 Model:</strong> AnythingXL (SDXL)<br>
-                                        <strong>🎨 Lora:</strong> ${imageParams.lora_models.map(l => `${l.name}(${l.weight})`).join(', ')}<br>
-                                        <strong>🎭 VAE:</strong> ${imageParams.vae}
-                                        ${saveData.success ? `<br><strong>💾 Saved:</strong> ${saveData.filename}` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        const chatMessages = document.getElementById('chatContainer');
-                        if (chatMessages) {
-                            chatMessages.insertAdjacentHTML('beforeend', imageHtml);
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                    // Check if image is already saved to storage (filename) or need to display base64
+                    const firstImage = imageData.images[0];
+                    let imageUrl;
+                    let filename = '';
+                    
+                    if (firstImage.startsWith('generated_')) {
+                        // Already saved to storage - construct URL from filename
+                        imageUrl = `/storage/images/${firstImage}`;
+                        filename = firstImage;
+                        console.log('Image already saved:', filename);
+                    } else {
+                        // Base64 image - save to server first
+                        try {
+                            const saveResponse = await fetch('/api/save-image', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({
+                                    image: firstImage,
+                                    metadata: {
+                                        prompt: generatedPrompt,
+                                        negative_prompt: imageParams.negative_prompt,
+                                        width: imageParams.width,
+                                        height: imageParams.height,
+                                        steps: imageParams.steps,
+                                        cfg_scale: imageParams.cfg_scale,
+                                        sampler_name: imageParams.sampler_name,
+                                        model: 'AnythingXL_xl',
+                                        lora_models: imageParams.lora_models,
+                                        vae: imageParams.vae,
+                                        source: 'text2image_tool'
+                                    }
+                                })
+                            });
                             
-                            // Save to current chat session immediately
-                            if (currentChatId && chatSessions[currentChatId]) {
-                                chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
-                                chatSessions[currentChatId].updatedAt = new Date();
-                                saveSessions();
-                            }
+                            const saveData = await saveResponse.json();
+                            console.log('Image saved:', saveData);
+                            
+                            // Use server URL for display
+                            imageUrl = saveData.success ? saveData.url : `data:image/png;base64,${firstImage}`;
+                            filename = saveData.filename || '';
+                        } catch (saveError) {
+                            console.error('Error saving image:', saveError);
+                            imageUrl = `data:image/png;base64,${firstImage}`;
                         }
-                    } catch (saveError) {
-                        console.error('Error saving image:', saveError);
-                        // Fallback to base64 if save fails
-                        const imageUrl = `data:image/png;base64,${imageData.images[0]}`;
-                        const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                        const imageHtml = `
-                            <div class="message assistant-message">
-                                <div class="message-header">
-                                    <strong>🎨 Ảnh được tạo thành công!</strong>
-                                    <span class="timestamp">${timestamp}</span>
-                                </div>
-                                <div class="message-content">
-                                    <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
-                                    <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                        <strong>📝 Prompt:</strong> ${generatedPrompt.substring(0, 150)}...<br>
-                                        <strong>❌ Negative:</strong> ${imageParams.negative_prompt.substring(0, 100)}...<br>
-                                        <strong>🖼️ Size:</strong> ${imageParams.width}x${imageParams.height} | <strong>Steps:</strong> ${imageParams.steps} | <strong>CFG:</strong> ${imageParams.cfg_scale}<br>
-                                        <strong>🎲 Sampler:</strong> ${imageParams.sampler_name} | <strong>🤖 Model:</strong> AnythingXL (SDXL)<br>
-                                        <strong>🎨 Lora:</strong> ${imageParams.lora_models.map(l => `${l.name}(${l.weight})`).join(', ')}<br>
-                                        <strong>🎭 VAE:</strong> ${imageParams.vae}
-                                    </div>
+                    }
+                    
+                    // Display image in chat
+                    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    const imageHtml = `
+                        <div class="message assistant-message">
+                            <div class="message-header">
+                                <strong>🎨 Ảnh được tạo thành công!</strong>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                            <div class="message-content">
+                                <img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;" loading="lazy">
+                                <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                    <strong>📝 Prompt:</strong> ${generatedPrompt.substring(0, 150)}...<br>
+                                    <strong>❌ Negative:</strong> ${imageParams.negative_prompt.substring(0, 100)}...<br>
+                                    <strong>🖼️ Size:</strong> ${imageParams.width}x${imageParams.height} | <strong>Steps:</strong> ${imageParams.steps} | <strong>CFG:</strong> ${imageParams.cfg_scale}<br>
+                                    <strong>🎲 Sampler:</strong> ${imageParams.sampler_name} | <strong>🤖 Model:</strong> AnythingXL (SDXL)<br>
+                                    <strong>🎨 Lora:</strong> ${imageParams.lora_models.map(l => `${l.name}(${l.weight})`).join(', ')}<br>
+                                    <strong>🎭 VAE:</strong> ${imageParams.vae}
+                                    ${filename ? `<br><strong>💾 Saved:</strong> ${filename}` : ''}
                                 </div>
                             </div>
-                        `;
+                        </div>
+                    `;
+                    
+                    const chatMessages = document.getElementById('chatContainer');
+                    if (chatMessages) {
+                        chatMessages.insertAdjacentHTML('beforeend', imageHtml);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
                         
-                        const chatMessages = document.getElementById('chatContainer');
-                        if (chatMessages) {
-                            chatMessages.insertAdjacentHTML('beforeend', imageHtml);
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                            
-                            if (currentChatId && chatSessions[currentChatId]) {
-                                chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
-                                chatSessions[currentChatId].updatedAt = new Date();
-                                saveSessions();
-                            }
+                        // Save to current chat session immediately
+                        if (currentChatId && chatSessions[currentChatId]) {
+                            chatSessions[currentChatId].messages = Array.from(chatMessages.children).map(el => el.outerHTML);
+                            chatSessions[currentChatId].updatedAt = new Date();
+                            saveSessions();
                         }
                     }
                     

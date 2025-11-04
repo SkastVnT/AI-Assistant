@@ -34,7 +34,7 @@ from core.utils import preprocess_audio
 env_path = Path(__file__).parent / "config" / ".env"
 load_dotenv(env_path)
 print(f"[ENV] Loading environment from: {env_path}")
-print(f"[ENV] HF_TOKEN loaded: {'YES' if os.getenv('HF_TOKEN') else 'NO'}")
+print(f"[ENV] HF_TOKEN loaded: {'YES' if os.getenv('HUGGINGFACE_TOKEN') else 'NO'}")
 
 # Get base directory
 BASE_DIR = Path(__file__).parent  # app directory
@@ -347,10 +347,22 @@ def process_audio_with_diarization(audio_path, session_id):
 
 @app.route('/')
 def index():
-    """Main page"""
+    """Main page (original UI)"""
     return render_template('index.html')
 
+@app.route('/modern')
+def modern():
+    """Modern UI (ChatBot-style)"""
+    return render_template('index_modern.html')
+
+@app.route('/chatbot')
+@app.route('/chatbot-ui')
+def chatbot_ui():
+    """ChatBot-style UI (New Modern Design)"""
+    return render_template('index_chatbot_style.html')
+
 @app.route('/upload', methods=['POST'])
+@app.route('/api/process', methods=['POST'])  # Alias for modern UI
 def upload_file():
     """Handle file upload and start processing"""
     global processing_state
@@ -358,10 +370,11 @@ def upload_file():
     if processing_state['is_processing']:
         return jsonify({'error': 'Already processing another file'}), 400
     
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+    # Support both 'file' (old UI) and 'audio' (new UI)
+    file = request.files.get('file') or request.files.get('audio')
     
-    file = request.files['file']
+    if not file:
+        return jsonify({'error': 'No file provided'}), 400
     
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
@@ -372,7 +385,9 @@ def upload_file():
     try:
         # Save file
         filename = secure_filename(file.filename)
-        session_id = f"session_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Get session_id from form data or generate new one
+        session_id = request.form.get('session_id') or f"session_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
         audio_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -499,6 +514,6 @@ if __name__ == '__main__':
     # Run with eventlet for WebSocket support
     socketio.run(app, 
                  host='0.0.0.0', 
-                 port=5000, 
+                 port=5001, 
                  debug=True,
                  use_reloader=False)
