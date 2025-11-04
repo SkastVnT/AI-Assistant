@@ -21,9 +21,6 @@
 
 <br/>
 
-### ⭐⭐ **2 STARS ACHIEVED!** ⭐⭐
-*Thank you for your support! 🎉*
-
 ** Nền tảng tích hợp 4 dịch vụ AI mạnh mẽ **
 
 [ Tính năng](#-tính-năng-nổi-bật)  
