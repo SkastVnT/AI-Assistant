@@ -509,43 +509,33 @@ graph LR
 graph TB
     A[🎤 Audio Input<br/>MP3/WAV/M4A/FLAC] --> B[🔊 Preprocessing<br/>16kHz Mono]
     B --> C{🎚️ VAD Enabled?}
-    C -->|Yes| D[🎯 Silero VAD<br/>Remove Silence<br/>30-50% faster]
+    C -->|Yes| D[🎯 Silero VAD<br/>Remove Silence]
     C -->|No| E[👥 Speaker Diarization]
     D --> E
     
-    subgraph Diarization
-    E[🎙️ pyannote.audio 3.1<br/>Detect Speakers] --> F[📊 Timeline Segmentation<br/>Speaker_00, Speaker_01...]
+    E[🎙️ pyannote.audio 3.1<br/>Detect Speakers] --> F[📊 Timeline Segmentation<br/>Speaker_00, Speaker_01]
     F --> G[✂️ Audio Chunks<br/>by Speaker]
-    end
     
-    subgraph Dual Transcription
-    G --> H1[🌍 Whisper large-v3<br/>Global ASR - 99 languages]
-    G --> H2[🇻🇳 PhoWhisper large<br/>Vietnamese Specialist]
-    H1 --> I1[📝 Transcript 1<br/>English-optimized]
-    H2 --> I2[📝 Transcript 2<br/>Vietnamese-optimized]
-    end
+    G --> H1[🌍 Whisper large-v3<br/>Global ASR]
+    G --> H2[🇻🇳 PhoWhisper large<br/>Vietnamese ASR]
+    H1 --> I1[📝 Transcript 1]
+    H2 --> I2[📝 Transcript 2]
     
-    subgraph Smart Fusion
     I1 --> J[🤖 Confidence Scoring]
     I2 --> J
-    J --> K[⚖️ Weighted Merge<br/>Best of Both]
+    J --> K[⚖️ Weighted Merge]
     K --> L[📝 Fused Transcript]
-    end
     
-    subgraph AI Enhancement
     L --> M{🧠 Qwen Enhancement?}
     M -->|Yes| N[🤖 Qwen2.5-1.5B<br/>Smart Fusion]
     M -->|No| O[📄 Raw Transcript]
-    N --> P[✨ Grammar Fix<br/>🔤 Punctuation<br/>👥 Speaker Labels]
+    N --> P[✨ Grammar + Punctuation<br/>Speaker Labels]
     P --> Q[📋 Enhanced Output]
     O --> Q
-    end
     
-    subgraph Output Formats
-    Q --> R1[📝 Timeline TXT<br/>Speaker_00: 00:00-00:15]
-    Q --> R2[📊 JSON Metadata<br/>timestamps, speakers]
-    Q --> R3[📑 Full Transcript<br/>Cleaned & Formatted]
-    end
+    Q --> R1[📝 Timeline TXT]
+    Q --> R2[📊 JSON Metadata]
+    Q --> R3[📑 Full Transcript]
     
     R1 --> S[🎉 Done!]
     R2 --> S
@@ -610,17 +600,14 @@ graph LR
 graph TB
     A[👤 User Input] --> B{🎨 Generation Type}
     
-    subgraph Text-to-Image Flow
     B -->|txt2img| C1[📝 Text Prompt<br/>Positive + Negative]
     C1 --> D1[🎯 Select Model<br/>SD 1.5/XL/Custom]
-    D1 --> E1[⚙️ Parameters<br/>Steps: 20-50<br/>CFG: 7-12]
+    D1 --> E1[⚙️ Parameters<br/>Steps/CFG/Size]
     E1 --> F1{🎭 LoRA?}
     F1 -->|Yes| G1[🔧 Load LoRA Models<br/>Style Transfer]
     F1 -->|No| H1[🖼️ Generate Image]
     G1 --> H1
-    end
     
-    subgraph Image-to-Image Flow
     B -->|img2img| C2[🖼️ Source Image]
     C2 --> D2[📝 Modification Prompt]
     D2 --> E2[🎚️ Denoising Strength<br/>0.1-1.0]
@@ -628,27 +615,22 @@ graph TB
     F2 -->|Yes| G2[🔧 Apply VAE<br/>Color Enhancement]
     F2 -->|No| H2[🖼️ Transform Image]
     G2 --> H2
-    end
     
-    subgraph Advanced Features
     H1 --> I{🎛️ Advanced Options?}
     H2 --> I
     I -->|ControlNet| J1[🎮 ControlNet<br/>Pose/Depth/Canny]
     I -->|Inpainting| J2[🖌️ Selective Edit<br/>Mask Areas]
-    I -->|Outpainting| J3[🖼️ Extend Canvas<br/>Beyond Borders]
+    I -->|Outpainting| J3[🖼️ Extend Canvas]
     I -->|None| K[✨ Final Processing]
     J1 --> K
     J2 --> K
     J3 --> K
-    end
     
-    subgraph Output
     K --> L[🖼️ Generated Image<br/>High Quality]
     L --> M{📊 Output Options}
     M -->|Save| N1[💾 Save to Gallery]
-    M -->|API| N2[🔌 Return via API<br/>ChatBot Integration]
+    M -->|API| N2[🔌 Return via API]
     M -->|Batch| N3[📦 Batch Generate]
-    end
     
     N1 --> O[🎉 Done!]
     N2 --> O
@@ -1616,11 +1598,13 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 [![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:ngtuanhei2004@gmail.com)
 
 **Fresher Software Engineer**
-***Atsui~***
-***Atsukute hikarabisou***
-***Ugoitenai no ni atsui yo~***
 
-*Collaborator & Contributor* 
+***Collaborator & Contributor***
+
+*Atsui~*
+*Atsukute hikarabisou*
+*Ugoitenai no ni atsui yo~*
+
 
 </td>
 </tr>

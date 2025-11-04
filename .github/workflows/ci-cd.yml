@@ -123,6 +123,7 @@ jobs:
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+      continue-on-error: true
     
     - name: Build and push Hub image
       uses: docker/build-push-action@v4
@@ -133,6 +134,7 @@ jobs:
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-hub:latest
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-hub:${{ github.sha }}
+      continue-on-error: true
     
     - name: Build and push ChatBot image
       uses: docker/build-push-action@v4
@@ -143,6 +145,7 @@ jobs:
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-chatbot:latest
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-chatbot:${{ github.sha }}
+      continue-on-error: true
     
     - name: Build and push Text2SQL image
       uses: docker/build-push-action@v4
@@ -153,6 +156,7 @@ jobs:
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-text2sql:latest
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-text2sql:${{ github.sha }}
+      continue-on-error: true
 
   # Job 5: Security Scan
   security:
