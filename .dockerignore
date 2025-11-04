@@ -35,6 +35,12 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Service directories (not needed in hub container)
+ChatBot/
+Text2SQL Services/
+Speech2Text Services/
+stable-diffusion-webui/
+
 # Data & Models (too large for Docker image)
 data/models/
 Storage/
@@ -44,6 +50,7 @@ cache/
 *.pth
 *.bin
 *.safetensors
+*.ckpt
 
 # Git
 .git/

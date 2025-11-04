@@ -17,33 +17,42 @@ ENV PYTHONUNBUFFERED=1 \
     TRANSFORMERS_CACHE=/app/data/models
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     git \
     ffmpeg \
     libsndfile1 \
+    pkg-config \
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libavfilter-dev \
+    libswscale-dev \
+    libswresample-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Copy requirements first (for better caching)
 COPY requirements.txt .
 
-# Install Python dependencies (CPU version)
-RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+# Install Python dependencies (GPU version with CUDA 11.8)
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cu118 && \
     pip install --no-cache-dir -r requirements.txt
+
+# Create necessary directories before copying code
+RUN mkdir -p data/audio data/models data/results results logs
 
 # Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p data/audio data/models data/results results logs
-
 # Expose port
 EXPOSE 7860
 
-# Health check
-HEALTHCHECK --interval=60s --timeout=15s --start-period=120s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:7860/', timeout=10)" || exit 1
+# Health check using curl (more reliable than Python)
+HEALTHCHECK --interval=60s --timeout=15s --start-period=180s --retries=3 \
+    CMD curl -f http://localhost:7860/health || exit 1
 
 # Run application
 CMD ["python", "app/web_ui.py"]

@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv_chatbot/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test and documentation
+tests/
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Storage and data
+Storage/
+data/
+models/
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+*.ckpt
