@@ -469,9 +469,11 @@ def get_chatbot(session_id):
 # ============================================================================
 
 def google_search_tool(query):
-    """Google Custom Search API"""
+    """Google Custom Search API with improved error handling"""
     try:
         import requests
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
         
         if not GOOGLE_SEARCH_API_KEY_1 or not GOOGLE_CSE_ID:
             return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
@@ -483,6 +485,18 @@ def google_search_tool(query):
         
         url = "https://www.googleapis.com/customsearch/v1"
         
+        # Create session with retry strategy
+        session = requests.Session()
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        
         # Try with first API key
         params = {
             'key': GOOGLE_SEARCH_API_KEY_1,
@@ -491,7 +505,7 @@ def google_search_tool(query):
             'num': 5  # Number of results
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        response = session.get(url, params=params, timeout=30)
         
         # Log full response for debugging
         logger.info(f"[GOOGLE SEARCH] Response status: {response.status_code}")
@@ -516,7 +530,7 @@ def google_search_tool(query):
             # Quota exceeded, try second key
             if GOOGLE_SEARCH_API_KEY_2:
                 params['key'] = GOOGLE_SEARCH_API_KEY_2
-                response = requests.get(url, params=params, timeout=10)
+                response = session.get(url, params=params, timeout=30)
                 if response.status_code == 200:
                     data = response.json()
                     results = []
@@ -531,9 +545,18 @@ def google_search_tool(query):
         else:
             return f"❌ Lỗi Google Search API: {response.status_code}"
     
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"[GOOGLE SEARCH] Connection Error: {e}")
+        return "❌ Lỗi kết nối đến Google Search API. Vui lòng kiểm tra:\n• Kết nối Internet\n• Proxy/Firewall settings\n• Thử lại sau ít phút"
+    except requests.exceptions.Timeout as e:
+        logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
+        return "❌ Timeout khi kết nối đến Google Search API. Vui lòng thử lại."
+    except requests.exceptions.RequestException as e:
+        logger.error(f"[GOOGLE SEARCH] Request Error: {e}")
+        return f"❌ Lỗi request: {str(e)}"
     except Exception as e:
-        logger.error(f"[GOOGLE SEARCH] Error: {e}")
-        return f"❌ Lỗi: {str(e)}"
+        logger.error(f"[GOOGLE SEARCH] Unexpected Error: {e}")
+        return f"❌ Lỗi không mong muốn: {str(e)}"
 
 
 def github_search_tool(query):
@@ -607,16 +630,49 @@ def index_new():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Chat endpoint"""
+    """Chat endpoint - handles both JSON and FormData (with files)"""
     try:
-        data = request.json
-        message = data.get('message', '')
-        model = data.get('model', 'gemini')
-        context = data.get('context', 'casual')
-        deep_thinking = data.get('deep_thinking', False)
-        tools = data.get('tools', [])
-        history = data.get('history', None)  # New parameter for edit feature
-        memory_ids = data.get('memory_ids', [])  # New parameter for AI learning
+        logger.info(f"[CHAT] Received request - Content-Type: {request.content_type}")
+        
+        # Check if request has files (FormData) or is JSON
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            # FormData with files
+            data = request.form
+            message = data.get('message', '')
+            model = data.get('model', 'gemini')
+            context = data.get('context', 'casual')
+            deep_thinking = data.get('deep_thinking', 'false').lower() == 'true'
+            
+            # Safe JSON parsing with error handling
+            try:
+                tools = json.loads(data.get('tools', '[]')) if data.get('tools') else []
+            except:
+                tools = []
+            
+            try:
+                history_str = data.get('history', 'null')
+                history = json.loads(history_str) if history_str and history_str != 'null' else None
+            except:
+                history = None
+                
+            try:
+                memory_ids = json.loads(data.get('memory_ids', '[]')) if data.get('memory_ids') else []
+            except:
+                memory_ids = []
+            
+            # Handle uploaded files
+            files = request.files.getlist('files')
+            # TODO: Process files if needed
+        else:
+            # JSON request
+            data = request.json
+            message = data.get('message', '')
+            model = data.get('model', 'gemini')
+            context = data.get('context', 'casual')
+            deep_thinking = data.get('deep_thinking', False)
+            tools = data.get('tools', [])
+            history = data.get('history', None)
+            memory_ids = data.get('memory_ids', [])
         
         if not message:
             return jsonify({'error': 'Tin nhắn trống'}), 400
@@ -1467,6 +1523,10 @@ def save_memory():
     """Save a conversation as a learning memory with images"""
     try:
         data = request.json
+        
+        if not data:
+            return jsonify({'error': 'Invalid JSON data or missing Content-Type header'}), 400
+        
         title = data.get('title', '')
         content = data.get('content', '')
         tags = data.get('tags', [])
@@ -1557,8 +1617,10 @@ def save_memory():
         })
         
     except Exception as e:
+        import traceback
         logger.error(f"Error saving memory: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 @app.route('/api/memory/list', methods=['GET'])
