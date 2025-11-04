@@ -116,8 +116,8 @@
 
 |  Service |  Mô Tả |  Port |  Status |  Docs |
 |:-----------|:---------|:--------|:----------|:--------|
-|  **ChatBot** | Multi-model AI + Image Generation | `5001` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
-|  **Text2SQL**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
+|  **ChatBot v2.0**  | Multi-model AI + Auto-File Analysis + Stop Gen | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
+|  **Text2SQL v2.0**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
 |  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
 
@@ -155,11 +155,14 @@ graph LR
 | Feature | Description | Status |
 |:--------|:------------|:-------|
 |  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  |
+|  **Auto-File Analysis** | Upload & instant AI insights (50MB max) |  NEW v2.0 |
+|  **Stop Generation** | Interrupt AI mid-response & keep output |  NEW v2.0 |
 |  **Image Gen** | Stable Diffusion + LoRA + VAE |  |
 |  **AI Memory** | Lưu trữ conversations & images |  |
+|  **Message Versioning** | Track multiple response versions |  NEW v2.0 |
 |  **Tools** | Google Search, GitHub Search |  |
 |  **Export** | PDF với metadata |  |
-|  **UI** | Tailwind CSS, Dark Mode |  |
+|  **UI** | Full-screen ChatGPT-like, Dark Mode |  v2.0 |
 
 <div align="right">
 
@@ -193,20 +196,22 @@ graph TD
 <tr>
 <td width="50%">
 
-** Core Features:**
--  Vietnamese + English Support
--  Multi-DB: ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server
--  AI Learning từ user feedback
--  Auto-generate sample questions
+** ChatBot v2.0 Features:**
+-  Auto-File Analysis (up to 50MB)
+-  Stop Generation mid-response
+-  Message History Versioning
+-  Full-screen ChatGPT-like UI
+-  Smart Storage Management
 
 </td>
 <td width="50%">
 
-** Advanced Features:**
--  Direct localhost & Atlas connection
+** Text2SQL v2.0 Features:**
+-  Vietnamese + English Support
+-  Multi-DB Support
+-  AI Learning System
 -  Deep Thinking Mode
--  Deploy FREE trên Render.com
--  Real-time query execution
+-  Deploy FREE on Render.com
 
 </td>
 </tr>
@@ -577,10 +582,63 @@ AI Image Generation
 <td width="50%">
 
 ###  **Personal**
--  Personal AI Assistant
+-  Personal AI Assistant with File Analysis
+-  Auto-analyze documents & code
 -  Content Creation with Images
--  Interactive Conversations
--  Document Generation
+-  Interactive Conversations with Stop Control
+-  Smart Storage Management
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+##  **WHAT'S NEW IN v2.0**
+
+</div>
+
+<table>
+<tr>
+<td width="50%">
+
+###  **ChatBot v2.0** (Nov 2025)
+
+** Auto-File Analysis**
+```
+Upload → AI analyzes instantly
+No need to type questions!
+```
+
+** Stop Generation**
+```
+Stop button → Keep partial response
+Continue from there
+```
+
+** Full-Screen UI**
+```
+ChatGPT-like experience
+100vh layout, better visibility
+```
+
+</td>
+<td width="50%">
+
+###  **Key Improvements**
+
+-  File upload up to **50MB**
+-  Image compression (1200px max)
+-  Message history versioning
+-  Smart storage with auto-cleanup
+-  Enhanced chat item visibility
+-  GitHub badge integration
+-  ES6 modular architecture
+-  Performance optimizations
+
+ **[Full Changelog](ChatBot/CHANGELOG.md)**
 
 </td>
 </tr>
