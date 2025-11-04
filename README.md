@@ -1599,7 +1599,7 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 ### **SkastVnT**
 
 [![GitHub](https://img.shields.io/badge/GitHub-SkastVnT-181717?style=for-the-badge&logo=github)](https://github.com/SkastVnT)
-[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:your-email@example.com)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:nguyvip007@gmail.com)
 
 **Solo Developer • AI Enthusiast • Full-Stack Engineer**
 
@@ -1613,8 +1613,12 @@ Dự án này được phân phối dưới giấy phép **MIT License**
 ### **sug1omyo**
 
 [![GitHub](https://img.shields.io/badge/GitHub-sug1omyo-181717?style=for-the-badge&logo=github)](https://github.com/sug1omyo)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:ngtuanhei2004@gmail.com)
 
 **Fresher Software Engineer**
+***Atsui~***
+***Atsukute hikarabisou***
+***Ugoitenai no ni atsui yo~***
 
 *Collaborator & Contributor* 
 
@@ -1828,8 +1832,8 @@ Have an idea? Share it with us!
 ### 🎓 **Resources**
 
 - 📺 **Video Tutorials:** Coming soon on YouTube
-- 💬 **Discord Community:** Join our server (link coming soon)
-- 📧 **Email Support:** your-email@example.com
+- 💬 **Discord Community:** [Join our server](https://discord.gg/d3K8Ck9NeR)
+- 📧 **Email Support:** [Send Mail](mailto:nguyvip007@gmail.com)
 - 📱 **Follow Updates:** [@SkastVnT](https://github.com/SkastVnT)
 
 ### 🌟 **Show Your Support**
