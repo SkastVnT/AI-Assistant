@@ -205,16 +205,24 @@ class StableDiffusionClient:
         except Exception as e:
             return {"error": f"Lỗi khi tạo ảnh: {str(e)}"}
     
-    def get_samplers(self) -> List[str]:
+    def get_samplers(self) -> List[Dict]:
         """Lấy danh sách tất cả các samplers có sẵn"""
         try:
             response = requests.get(f"{self.api_url}/sdapi/v1/samplers", timeout=10)
             response.raise_for_status()
             samplers = response.json()
-            return [s["name"] for s in samplers]
+            # Return array of {name: sampler_name} for frontend compatibility
+            return [{"name": s["name"]} for s in samplers]
         except Exception as e:
             print(f"Error getting samplers: {e}")
-            return ["Euler a", "Euler", "DPM++ 2M Karras", "DPM++ SDE Karras", "DDIM"]
+            # Return default samplers
+            return [
+                {"name": "Euler a"},
+                {"name": "Euler"},
+                {"name": "DPM++ 2M Karras"},
+                {"name": "DPM++ SDE Karras"},
+                {"name": "DDIM"}
+            ]
     
     def get_loras(self) -> List[Dict]:
         """

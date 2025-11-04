@@ -112,7 +112,11 @@ node_modules/
 ChatBot/Storage/Image_Gen/*.png
 ChatBot/Storage/Image_Gen/*.jpg
 ChatBot/Storage/Image_Gen/*.jpeg
+ChatBot/Storage/Image_Gen/*.json
 ChatBot/data/memory/*/
+ChatBot/models/BloomVN-8B-chat/
+ChatBot/models/Qwen2.5-14B-Instruct/
+ChatBot/models/Qwen1.5-1.8B-Chat/
 
 # Speech2Text
 Speech2Text Services/data/audio/**/*.wav
@@ -120,9 +124,14 @@ Speech2Text Services/data/audio/**/*.mp3
 Speech2Text Services/results/**/*.txt
 Speech2Text Services/logs/*.log
 Speech2Text Services/data/cache/
+Speech2Text Services/speech/
+Speech2Text Services/s2t/
+Speech2Text Services/app/s2t/
 
 # Text2SQL
 Text2SQL Services/sample/uploaded/*.jsonl
+Text2SQL Services/speech/
+Text2SQL Services/Text2SQL/
 
 # Stable Diffusion
 stable-diffusion-webui/models/Stable-diffusion/*.safetensors
@@ -133,6 +142,7 @@ stable-diffusion-webui/models/VAE/*.pt
 stable-diffusion-webui/models/ESRGAN/**/*.pth
 stable-diffusion-webui/models/GFPGAN/**/*.pth
 stable-diffusion-webui/models/Codeformer/**/*.pth
+stable-diffusion-webui/models/OrangeMixs/
 stable-diffusion-webui/outputs/**/*.png
 stable-diffusion-webui/outputs/**/*.jpg
 stable-diffusion-webui/log/

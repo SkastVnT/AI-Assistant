@@ -132,8 +132,20 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
         console.log('Image response:', imageData);
         
         if (imageData.success && imageData.images && imageData.images.length > 0) {
-            const imagePath = imageData.images[0];
-            const imageUrl = `/storage/images/${imagePath}`;
+            // Check if images are filenames (saved to storage) or base64
+            const firstImage = imageData.images[0];
+            let imageUrl;
+            
+            if (firstImage.startsWith('generated_')) {
+                // Saved to storage - construct URL
+                imageUrl = `/storage/images/${firstImage}`;
+            } else if (firstImage.startsWith('data:image')) {
+                // Already data URL
+                imageUrl = firstImage;
+            } else {
+                // Base64 string - convert to data URL
+                imageUrl = `data:image/png;base64,${firstImage}`;
+            }
             
             // Display image with metadata
             const metadata = `
@@ -141,8 +153,7 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
 ❌ **Negative:** ${negativePrompt.substring(0, 100)}...
 🖼️ **Size:** ${imageParams.width}x${imageParams.height}
 🎲 **Steps:** ${imageParams.steps} | **CFG:** ${imageParams.cfg_scale}
-⚙️ **Sampler:** ${imageParams.sampler_name}
-💾 **Saved:** ${imagePath}`;
+⚙️ **Sampler:** ${imageParams.sampler_name}`;
             
             addMessage(
                 `🖼️ **Ảnh đã được tạo thành công!**\n\n<img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">\n\n<div style="background: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">${metadata}</div>`,
@@ -278,8 +289,20 @@ async function generateImage() {
         const data = await response.json();
         
         if (data.success && data.images && data.images.length > 0) {
-            const imagePath = data.images[0];
-            const imageUrl = `/storage/images/${imagePath}`;
+            // Check if images are filenames or base64
+            const firstImage = data.images[0];
+            let imageUrl;
+            
+            if (firstImage.startsWith('generated_')) {
+                // Saved to storage - construct URL
+                imageUrl = `/storage/images/${firstImage}`;
+            } else if (firstImage.startsWith('data:image')) {
+                // Already data URL
+                imageUrl = firstImage;
+            } else {
+                // Base64 string - convert to data URL
+                imageUrl = `data:image/png;base64,${firstImage}`;
+            }
             
             // Display in result area
             const resultDiv = document.getElementById('generatedImageResult');
