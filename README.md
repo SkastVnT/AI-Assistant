@@ -499,7 +499,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>🎙️ Speech2Text Service (v3.6.0+)</b></summary>
 <br>
 
@@ -587,7 +587,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>🎨 Stable Diffusion WebUI</b></summary>
 <br>
 
