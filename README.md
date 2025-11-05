@@ -763,7 +763,7 @@ graph LR
 
 </details>
 
-<details>
+<details open>
 <summary><b>📄 Document Intelligence Service (v1.5.1 - AI ENHANCED! 🆕)</b></summary>
 <br>
 
