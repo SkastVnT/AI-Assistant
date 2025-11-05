@@ -1,0 +1,22 @@
+# Docker ignore file
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+venv/
+env/
+.env
+.git/
+.gitignore
+*.md
+setup.bat
+start_service.bat
+static/uploads/*
+!static/uploads/.gitkeep
+output/*
+!output/.gitkeep
+*.log
+.vscode/
+.idea/

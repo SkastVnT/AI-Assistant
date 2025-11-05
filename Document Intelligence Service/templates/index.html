@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📄 Document Intelligence Service</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-alt"></i>
+                    <h1>Document Intelligence</h1>
+                    <span class="badge">v1.0.0 - Phase 1</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-icon" id="helpBtn" title="Help">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                    <button class="btn btn-icon" id="settingsBtn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="layout">
+                <!-- Left Panel - Upload & Controls -->
+                <div class="left-panel">
+                    <div class="panel-card">
+                        <h2 class="panel-title">
+                            <i class="fas fa-upload"></i>
+                            Upload Document
+                        </h2>
+                        
+                        <!-- Upload Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                <h3>Drag & Drop hoặc Click để chọn file</h3>
+                                <p class="upload-hint">Hỗ trợ: JPG, PNG, PDF, TIFF, BMP, WEBP</p>
+                                <p class="upload-size">Kích thước tối đa: 20MB</p>
+                                <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.bmp,.tiff,.webp" hidden>
+                                <button class="btn btn-primary" id="selectFileBtn">
+                                    <i class="fas fa-folder-open"></i> Chọn File
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- File Info -->
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <div class="file-preview">
+                                <img id="previewImage" src="" alt="Preview" style="display: none;">
+                                <div class="file-details">
+                                    <i class="fas fa-file-alt file-icon"></i>
+                                    <div class="file-meta">
+                                        <p class="file-name" id="fileName"></p>
+                                        <p class="file-size" id="fileSize"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-danger btn-sm" id="removeFileBtn">
+                                <i class="fas fa-times"></i> Xóa
+                            </button>
+                        </div>
+
+                        <!-- Processing Options -->
+                        <div class="options-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-sliders-h"></i>
+                                Tùy chọn xử lý
+                            </h3>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="autoRotate" checked>
+                                <label for="autoRotate">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Tự động xoay ảnh
+                                </label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="includeConfidence" checked>
+                                <label for="includeConfidence">
+                                    <i class="fas fa-percentage"></i>
+                                    Hiển thị độ tin cậy
+                                </label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="saveOutput" checked>
+                                <label for="saveOutput">
+                                    <i class="fas fa-save"></i>
+                                    Lưu kết quả
+                                </label>
+                            </div>
+
+                            <div class="option-item">
+                                <label for="minConfidence">
+                                    <i class="fas fa-filter"></i>
+                                    Độ tin cậy tối thiểu: <span id="confidenceValue">50%</span>
+                                </label>
+                                <input type="range" id="minConfidence" min="0" max="100" value="50" class="slider">
+                            </div>
+                        </div>
+
+                        <!-- Process Button -->
+                        <button class="btn btn-success btn-large" id="processBtn" disabled>
+                            <i class="fas fa-magic"></i>
+                            Xử lý Document
+                        </button>
+
+                        <!-- Progress -->
+                        <div class="progress-container" id="progressContainer" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <p class="progress-text" id="progressText">Đang xử lý...</p>
+                        </div>
+                    </div>
+
+                    <!-- Stats Card -->
+                    <div class="stats-card" id="statsCard" style="display: none;">
+                        <h3 class="stats-title">📊 Thống kê</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <i class="fas fa-align-left"></i>
+                                <div>
+                                    <p class="stat-label">Text Blocks</p>
+                                    <p class="stat-value" id="statBlocks">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-font"></i>
+                                <div>
+                                    <p class="stat-label">Ký tự</p>
+                                    <p class="stat-value" id="statChars">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-list-ol"></i>
+                                <div>
+                                    <p class="stat-label">Dòng</p>
+                                    <p class="stat-value" id="statLines">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <p class="stat-label">Độ chính xác</p>
+                                    <p class="stat-value" id="statConfidence">0%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Results -->
+                <div class="right-panel">
+                    <div class="panel-card">
+                        <div class="result-header">
+                            <h2 class="panel-title">
+                                <i class="fas fa-file-alt"></i>
+                                Kết quả OCR
+                            </h2>
+                            <div class="result-actions" id="resultActions" style="display: none;">
+                                <button class="btn btn-icon" id="copyBtn" title="Copy">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-icon" id="downloadTxtBtn" title="Download TXT">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn btn-icon" id="downloadJsonBtn" title="Download JSON">
+                                    <i class="fas fa-file-code"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div class="empty-state" id="emptyState">
+                            <i class="fas fa-file-image empty-icon"></i>
+                            <h3>Chưa có kết quả</h3>
+                            <p>Upload document và nhấn "Xử lý" để xem kết quả OCR</p>
+                        </div>
+
+                        <!-- Result Content -->
+                        <div class="result-content" id="resultContent" style="display: none;">
+                            <!-- Tabs -->
+                            <div class="tabs">
+                                <button class="tab-btn active" data-tab="text">
+                                    <i class="fas fa-align-left"></i>
+                                    Text
+                                </button>
+                                <button class="tab-btn" data-tab="blocks">
+                                    <i class="fas fa-th-list"></i>
+                                    Blocks
+                                </button>
+                                <button class="tab-btn" data-tab="json">
+                                    <i class="fas fa-code"></i>
+                                    JSON
+                                </button>
+                            </div>
+
+                            <!-- Tab Content -->
+                            <div class="tab-content active" id="textTab">
+                                <div class="text-display">
+                                    <pre id="extractedText"></pre>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="blocksTab">
+                                <div class="blocks-list" id="blocksList"></div>
+                            </div>
+
+                            <div class="tab-content" id="jsonTab">
+                                <div class="json-display">
+                                    <pre id="jsonOutput"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Help Modal -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-question-circle"></i> Hướng dẫn sử dụng</h2>
+                <button class="modal-close" id="closeHelpModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>📄 Document Intelligence Service</h3>
+                <p>Dịch vụ OCR tự động với AI, hỗ trợ tiếng Việt</p>
+                
+                <h4>🚀 Cách sử dụng:</h4>
+                <ol>
+                    <li>Upload document (ảnh hoặc PDF)</li>
+                    <li>Chọn tùy chọn xử lý nếu cần</li>
+                    <li>Nhấn "Xử lý Document"</li>
+                    <li>Xem kết quả và download nếu cần</li>
+                </ol>
+
+                <h4>📋 Định dạng hỗ trợ:</h4>
+                <ul>
+                    <li>Ảnh: JPG, PNG, BMP, TIFF, WEBP</li>
+                    <li>Document: PDF (multi-page)</li>
+                    <li>Kích thước: Tối đa 20MB</li>
+                </ul>
+
+                <h4>⚙️ Công nghệ:</h4>
+                <ul>
+                    <li>PaddleOCR - FREE, Vietnamese support</li>
+                    <li>High accuracy text extraction</li>
+                    <li>Auto rotation & orientation detection</li>
+                </ul>
+
+                <h4>🎯 Use Cases:</h4>
+                <ul>
+                    <li>CMND/CCCD extraction</li>
+                    <li>Invoice processing</li>
+                    <li>Contract analysis</li>
+                    <li>Form digitization</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

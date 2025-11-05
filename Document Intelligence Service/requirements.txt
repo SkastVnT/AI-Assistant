@@ -1,0 +1,33 @@
+# Document Intelligence Service - Requirements
+# Phase 1: Basic OCR & WebUI
+
+# Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# OCR Engine (FREE - Vietnamese support)
+paddleocr==2.7.3
+paddlepaddle==2.6.0  # CPU version
+
+# Image Processing
+Pillow==10.1.0
+opencv-python==4.8.1.78
+
+# PDF Handling
+PyMuPDF==1.23.8  # fitz - fast PDF processing
+
+# Utilities
+python-dotenv==1.0.0
+werkzeug==3.0.1
+
+# Data Processing
+numpy==1.24.3
+pandas==2.1.4
+
+# Future: Document Understanding (Phase 2)
+# layoutparser==0.3.4
+# pytesseract==0.3.10
+
+# Future: AI Integration (Phase 4)
+# transformers==4.35.0
+# torch==2.1.0

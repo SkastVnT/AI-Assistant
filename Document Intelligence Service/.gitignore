@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment Variables
+.env
+
+# Uploads & Output (temporary files)
+static/uploads/*
+!static/uploads/.gitkeep
+output/*
+!output/.gitkeep
+
+# PaddleOCR downloaded models
+inference/
+*.pdparams
+*.pdopt
+*.pdmodel
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+test_*.jpg
+test_*.png
+test_*.pdf
