@@ -9,6 +9,7 @@ dist/
 build/
 
 # Virtual Environment
+DIS/
 venv/
 env/
 ENV/
@@ -21,12 +22,19 @@ static/uploads/*
 !static/uploads/.gitkeep
 output/*
 !output/.gitkeep
+Storage/
 
 # PaddleOCR downloaded models
 inference/
 *.pdparams
 *.pdopt
 *.pdmodel
+.paddleocr/
+
+# Model cache
+models/cache/
+*.onnx
+*.pth
 
 # Logs
 *.log

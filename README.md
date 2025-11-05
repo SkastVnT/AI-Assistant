@@ -90,7 +90,7 @@ docker-compose up -d
 </td>
 <td width="50%">
 
-###  **Text2SQL**  NEW!
+###  **Text2SQL**
 <img src="https://img.shields.io/badge/NL-to--SQL-3B82F6?style=flat-square" />
 <img src="https://img.shields.io/badge/AI-Learning-10B981?style=flat-square" />
 
@@ -105,6 +105,19 @@ docker-compose up -d
 <tr>
 <td width="50%">
 
+###  **Document Intelligence**  NEW!
+<img src="https://img.shields.io/badge/OCR-Vietnamese-10B981?style=flat-square" />
+<img src="https://img.shields.io/badge/AI-Enhanced-8B5CF6?style=flat-square" />
+
+-  PaddleOCR + Gemini 2.0
+-  Document Classification
+-  Smart Extraction
+-  Multi-language Support
+-  Batch Processing
+
+</td>
+<td width="50%">
+
 ###  **Speech2Text**
 <img src="https://img.shields.io/badge/Accuracy-98%25-10B981?style=flat-square" />
 <img src="https://img.shields.io/badge/Vietnamese-Optimized-EF4444?style=flat-square" />
@@ -116,6 +129,8 @@ docker-compose up -d
 -  Multi-format Support
 
 </td>
+</tr>
+<tr>
 <td width="50%">
 
 ###  **Stable Diffusion**
@@ -129,6 +144,9 @@ docker-compose up -d
 -  API Enabled
 
 </td>
+<td width="50%">
+
+</td>
 </tr>
 </table>
 
@@ -140,7 +158,7 @@ docker-compose up -d
 
 </div>
 
-> **AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
+> **AI-Assistant** là nền tảng AI tích hợp gồm **5 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
 
 ### 🏗️ **System Architecture Overview**
 
@@ -159,6 +177,7 @@ graph TB
     subgraph AI Services
     CB[🤖 ChatBot Service<br/>Port 5001<br/>Multi-Model AI + Image Gen]
     T2S[📊 Text2SQL Service<br/>Port 5002<br/>NL to SQL + AI Learning]
+    DIS[📄 Document Intelligence<br/>Port 5003<br/>OCR + AI Analysis]
     S2T[🎙️ Speech2Text Service<br/>Port 7860<br/>Dual-Model + Diarization]
     SD[🎨 Stable Diffusion<br/>Port 7861<br/>Image Generation API]
     end
@@ -183,6 +202,7 @@ graph TB
     
     HUB --> CB
     HUB --> T2S
+    HUB --> DIS
     HUB --> S2T
     HUB --> SD
     
@@ -195,6 +215,9 @@ graph TB
     T2S --> DB2
     T2S --> DB3
     
+    DIS --> API1
+    DIS --> FS
+    
     S2T --> API4
     S2T --> FS
     
@@ -206,6 +229,7 @@ graph TB
     style HUB fill:#6366F1,stroke:#4F46E5,color:#fff
     style CB fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style T2S fill:#3B82F6,stroke:#2563EB,color:#fff
+    style DIS fill:#10B981,stroke:#059669,color:#fff
     style S2T fill:#EF4444,stroke:#DC2626,color:#fff
     style SD fill:#EC4899,stroke:#DB2777,color:#fff
 ```
@@ -218,25 +242,29 @@ graph LR
     
     B -->|Chat| C1[🤖 ChatBot]
     B -->|Query DB| C2[📊 Text2SQL]
-    B -->|Transcribe| C3[🎙️ Speech2Text]
-    B -->|Generate Art| C4[🎨 SD WebUI]
+    B -->|OCR Document| C3[📄 Doc Intelligence]
+    B -->|Transcribe| C4[🎙️ Speech2Text]
+    B -->|Generate Art| C5[🎨 SD WebUI]
     
-    C1 -->|Need Image?| C4
-    C4 -->|Image Ready| C1
+    C1 -->|Need Image?| C5
+    C5 -->|Image Ready| C1
     
     C2 -->|Query Result| E[📊 Data Visualization]
-    C3 -->|Transcript| F[📝 Text Processing]
+    C3 -->|Extracted Text| F[📝 Document Data]
+    C4 -->|Transcript| G[📝 Text Processing]
     
-    C1 --> G[💬 Response]
-    E --> G
-    F --> G
+    C1 --> H[💬 Response]
+    E --> H
+    F --> H
+    G --> H
     
     style B fill:#6366F1,stroke:#4F46E5,color:#fff
     style C1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style C2 fill:#3B82F6,stroke:#2563EB,color:#fff
-    style C3 fill:#EF4444,stroke:#DC2626,color:#fff
-    style C4 fill:#EC4899,stroke:#DB2777,color:#fff
-    style G fill:#10B981,stroke:#059669,color:#fff
+    style C3 fill:#10B981,stroke:#059669,color:#fff
+    style C4 fill:#EF4444,stroke:#DC2626,color:#fff
+    style C5 fill:#EC4899,stroke:#DB2777,color:#fff
+    style H fill:#F59E0B,stroke:#D97706,color:#fff
 ```
 
 <div align="center">
@@ -247,6 +275,7 @@ graph LR
 |:-----------|:---------|:--------|:----------|:--------|
 |  **ChatBot v2.0**  | Multi-model AI + Auto-File Analysis + Stop Gen | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.0**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
+|  **Document Intelligence v1.5.1**  🆕 | OCR + AI Document Analysis (Gemini 2.0 Flash) | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
 |  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
 
@@ -735,11 +764,11 @@ graph LR
 </details>
 
 <details>
-<summary><b>📄 Document Intelligence Service (v1.0.0 - NEW!)</b></summary>
+<summary><b>📄 Document Intelligence Service (v1.5.1 - AI ENHANCED! 🆕)</b></summary>
 <br>
 
 > **AI-Powered Document Processing & OCR**  
-> **FREE models** with Vietnamese support 🇻🇳
+> **Gemini 2.0 Flash (FREE)** + PaddleOCR Vietnamese support 🇻🇳
 
 ### 🔄 **Document Processing Pipeline**
 
@@ -752,31 +781,42 @@ graph TB
     C -->|PDF| D2[📑 PDF Extraction<br/>Multi-page Support]
     
     D1 --> E[🔄 Preprocessing<br/>Auto-rotation<br/>Orientation Fix]
-    D2 --> F[📄 Page-to-Image<br/>Conversion]
-    F --> E
+    D2 --> E
     
-    E --> G[🤖 PaddleOCR Engine<br/>Vietnamese Support]
-    G --> H[📝 Text Extraction<br/>with Confidence Scores]
+    E --> F[🔍 PaddleOCR Engine<br/>Vietnamese Optimized]
+    F --> G[📝 Text Extraction<br/>+ Bounding Boxes]
     
-    H --> I[🎯 Post-Processing]
-    I --> J[📊 Confidence Filtering]
-    J --> K[🔤 Text Formatting]
+    G --> H{🧠 AI Enhancement?}
+    H -->|Yes| I1[🤖 Gemini 2.0 Flash<br/>FREE Model]
+    H -->|No| K[� OCR Results]
     
-    K --> L{📤 Output Format?}
-    L -->|Text| M1[📝 Plain TXT]
-    L -->|JSON| M2[📊 Structured JSON<br/>with Metadata]
-    L -->|Blocks| M3[🔷 Text Blocks<br/>with Bounding Boxes]
+    I1 --> J{🎯 AI Tasks}
+    J -->|Classify| L1[� Document Type<br/>ID/Invoice/Contract]
+    J -->|Extract| L2[� Key Info<br/>Name/Date/Amount]
+    J -->|Summary| L3[� Content Summary]
+    J -->|Q&A| L4[💬 Answer Questions]
+    J -->|Translate| L5[🌐 Multi-language<br/>EN/JA/KO/ZH]
     
-    M1 --> N[💾 Save Results]
-    M2 --> N
-    M3 --> N
-    N --> O[📥 Download/Export]
-    O --> P[🎉 Done!]
+    L1 --> M[✨ Enhanced Results]
+    L2 --> M
+    L3 --> M
+    L4 --> M
+    L5 --> M
+    K --> M
+    
+    M --> N{📤 Output Format}
+    N -->|TXT| O1[� Plain Text]
+    N -->|JSON| O2[📊 Structured Data]
+    N -->|Copy| O3[📋 Clipboard]
+    
+    O1 --> P[🎉 Done!]
+    O2 --> P
+    O3 --> P
     
     style A fill:#6366F1,stroke:#4F46E5,color:#fff
-    style G fill:#10B981,stroke:#059669,color:#fff
-    style H fill:#8B5CF6,stroke:#7C3AED,color:#fff
-    style N fill:#3B82F6,stroke:#2563EB,color:#fff
+    style F fill:#10B981,stroke:#059669,color:#fff
+    style I1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style M fill:#3B82F6,stroke:#2563EB,color:#fff
     style P fill:#F59E0B,stroke:#D97706,color:#fff
 ```
 
@@ -785,94 +825,264 @@ graph TB
 ```mermaid
 graph LR
     subgraph Input Formats
-    A1[🖼️ Images<br/>JPG/PNG/BMP]
+    A1[🖼️ JPG/PNG<br/>Images]
     A2[📄 PDF<br/>Multi-page]
-    A3[📸 TIFF/WEBP]
+    A3[�️ BMP/TIFF<br/>Documents]
+    A4[📸 WEBP<br/>Modern]
     end
     
     subgraph OCR Engine
-    B1[🤖 PaddleOCR<br/>FREE Engine]
+    B1[🔍 PaddleOCR<br/>FREE]
     B2[🇻🇳 Vietnamese<br/>Optimized]
-    B3[🔄 Auto-rotate]
+    B3[� Auto-rotation<br/>Fix Orientation]
+    B4[🎯 Confidence<br/>Scores]
+    end
+    
+    subgraph AI Features
+    C1[🏷️ Classification<br/>Document Type]
+    C2[🔍 Extraction<br/>Key Fields]
+    C3[📝 Summary<br/>Content]
+    C4[� Q&A<br/>Questions]
+    C5[🌐 Translation<br/>8+ Languages]
+    C6[� Insights<br/>Analysis]
+    end
+    
+    subgraph Advanced Tools
+    E1[📦 Batch<br/>Process]
+    E2[📋 Templates<br/>CMND/Invoice]
+    E3[� History<br/>Search]
+    E4[⚡ Quick<br/>Actions]
     end
     
     subgraph Output Options
-    C1[📝 Plain Text]
-    C2[📊 JSON Data]
-    C3[🔷 Text Blocks]
-    C4[📥 Export Files]
+    D1[📄 TXT<br/>Plain]
+    D2[📊 JSON<br/>Structured]
+    D3[📋 Copy<br/>Clipboard]
+    D4[💾 Download<br/>Files]
     end
     
     A1 --> B1
     A2 --> B1
     A3 --> B1
+    A4 --> B1
+    
     B1 --> B2
     B2 --> B3
-    B3 --> C1
-    B3 --> C2
-    B3 --> C3
-    C1 --> C4
-    C2 --> C4
-    C3 --> C4
+    B3 --> B4
     
-    style B1 fill:#10B981,color:#fff
-    style B2 fill:#8B5CF6,color:#fff
-    style C4 fill:#3B82F6,color:#fff
+    B4 --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    C5 --> C6
+    
+    C6 --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> E4
+    
+    E4 --> D1
+    E4 --> D2
+    E4 --> D3
+    E4 --> D4
+    
+    style B1 fill:#10B981,stroke:#059669,color:#fff
+    style C1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style C6 fill:#EC4899,stroke:#DB2777,color:#fff
+    style E1 fill:#F59E0B,stroke:#D97706,color:#fff
+    style D2 fill:#3B82F6,color:#fff
 ```
 
-#### 🚀 Key Features:
+#### � Tính năng chính:
 
 <table>
 <tr>
-<td width="33%">
+<td width="50%">
 
-**📸 Input Support**
-- Images: JPG, PNG, BMP, TIFF, WEBP
-- Documents: PDF (multi-page)
-- Max size: 20MB
-- Drag & drop upload
-- Preview images
-
-</td>
-<td width="33%">
-
-**🤖 OCR Processing**
-- PaddleOCR (FREE)
-- Vietnamese optimized
-- High accuracy (95%+)
-- Auto-orientation
-- Confidence scoring
-- Text block detection
+**� OCR Features (FREE)**
+- **Engine:** PaddleOCR 2.7.3
+- **Language:** Vietnamese optimized
+- **Accuracy:** 95-98%
+- **Auto-rotation:** Fix image orientation
+- **Confidence:** Score filtering
+- **Formats:** JPG, PNG, BMP, TIFF, WEBP, PDF
+- **Max size:** 20MB per file
+- **Speed:** 2-5s per page (CPU)
 
 </td>
-<td width="33%">
+<td width="50%">
 
-**📤 Output Formats**
-- Plain TXT
-- Structured JSON
-- Text blocks + coordinates
-- Copy to clipboard
-- Download files
-- API integration
+**🧠 AI Features (Gemini 2.0 Flash FREE)**
+- **Classification:** Auto-detect document type
+  - ID Cards (CMND/CCCD)
+  - Invoices/Receipts
+  - Contracts
+  - Forms & Applications
+- **Extraction:** Smart field detection
+  - Names, dates, addresses
+  - Amounts, invoice numbers
+  - Key terms & clauses
+- **Summarization:** Content overview
+- **Q&A:** Ask questions about document
+- **Translation:** 8+ languages support
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**⚡ Advanced Tools (v1.6.0)**
+- **Batch Processing:** Process up to 10 files
+- **Templates:** Pre-defined Vietnamese docs
+  - 📇 CMND/CCCD
+  - 🧾 Hóa đơn
+  - 📄 Hợp đồng
+  - 📋 Đơn từ
+  - 💰 Bảng lương
+- **History:** Track all processed documents
+- **Quick Actions:**
+  - Clean text (remove duplicates)
+  - Extract info (numbers, dates, emails)
+  - Format text (capitalize, line numbers)
+
+</td>
+<td width="50%">
+
+**📤 Output & Integration**
+- **Formats:**
+  - Plain TXT
+  - Structured JSON (with coordinates)
+  - Copy to clipboard
+  - Download files
+- **API:** RESTful endpoints
+  - `/api/upload` - Process document
+  - `/api/ai/classify` - Classification
+  - `/api/ai/extract` - Extraction
+  - `/api/ai/qa` - Q&A
+  - `/api/batch` - Batch processing
+- **Storage:** Auto-save to history (last 100)
 
 </td>
 </tr>
 </table>
 
-#### 🎯 Use Cases:
+#### 🎯 Use Cases & Performance:
 
-| Document Type | Accuracy | Speed |
-|:--------------|:---------|:------|
-| 🪪 **CMND/CCCD** | 98%+ | 2-3s |
-| 📋 **Invoices** | 95%+ | 3-5s |
-| 📝 **Contracts** | 96%+ | 4-6s |
-| 📄 **Forms** | 97%+ | 2-4s |
-| 📑 **PDF (10 pages)** | 95%+ | 20-50s |
+<table>
+<tr>
+<th width="25%">Document Type</th>
+<th width="25%">OCR Accuracy</th>
+<th width="25%">Processing Speed</th>
+<th width="25%">AI Enhancement</th>
+</tr>
+<tr>
+<td>🪪 <b>CMND/CCCD</b></td>
+<td>98%+</td>
+<td>2-3s</td>
+<td>✅ Template matching + validation</td>
+</tr>
+<tr>
+<td>🧾 <b>Hóa đơn/Invoice</b></td>
+<td>95%+</td>
+<td>3-5s</td>
+<td>✅ Amount extraction + classification</td>
+</tr>
+<tr>
+<td>📝 <b>Hợp đồng/Contract</b></td>
+<td>96%+</td>
+<td>4-6s</td>
+<td>✅ Key terms + summary + Q&A</td>
+</tr>
+<tr>
+<td>📋 <b>Đơn từ/Forms</b></td>
+<td>97%+</td>
+<td>2-4s</td>
+<td>✅ Field extraction + validation</td>
+</tr>
+<tr>
+<td>📄 <b>PDF (10 pages)</b></td>
+<td>95%+</td>
+<td>20-50s</td>
+<td>✅ Multi-page analysis</td>
+</tr>
+</table>
+
+#### 🔧 Tech Stack:
+
+| Component | Technology | Why |
+|:----------|:-----------|:----|
+| **AI Model** | Gemini 2.0 Flash Exp | FREE tier (15 RPM, 1M TPD), multilingual |
+| **OCR Engine** | PaddleOCR 2.7.3 | FREE, Vietnamese support, 95%+ accuracy |
+| **Backend** | Flask 3.0.0 | Lightweight, easy integration |
+| **Frontend** | Vanilla JS | Modern responsive UI |
+| **Image Processing** | Pillow + OpenCV | Standard tools |
+| **PDF Handling** | PyMuPDF (fitz) | Fast multi-page processing |
+
+#### 🆕 What's New in v1.5.1:
+
+<table>
+<tr>
+<td width="50%">
+
+**🐛 Critical Bugfix (v1.5.1)**
+- ✅ Fixed `AssertionError` in PaddleOCR
+- ✅ Path object to string conversion
+- ✅ File existence validation
+- ✅ Upload success rate: 0% → 100%
+- ✅ All upload requests now work perfectly
+
+**📚 Enhanced Documentation**
+- Complete fix analysis
+- Quick reference guide
+- Test suite included
+- One-click restart script
+
+</td>
+<td width="50%">
+
+**� AI Enhancement (v1.5.0)**
+- 🧠 Gemini 2.0 Flash integration (FREE)
+- 🏷️ Document classification
+- 🔍 Smart information extraction
+- 📝 Content summarization
+- 💬 Q&A over documents
+- 🌐 Multi-language translation (8+)
+- � Insights generation
+
+**⚡ Advanced Features (v1.6.0)**
+- 📦 Batch processing (10 files)
+- 📋 Vietnamese templates
+- 📜 Processing history (search)
+- ⚡ Quick actions (format/extract)
+
+</td>
+</tr>
+</table>
+
+#### 🔒 Requirements:
+
+**Hardware:**
+- CPU: 2+ cores (4+ recommended)
+- RAM: 4GB (8GB recommended)
+- Storage: 2GB for models + output
+
+**Software:**
+- Python 3.10+
+- Windows/Linux/macOS
+- (Optional) Gemini API key for AI features
+
+**API Keys (Optional):**
+- **Gemini API:** FREE at https://ai.google.dev
+  - 15 requests/minute
+  - 1,000 requests/day
+  - 4M tokens/day
+- **Note:** Service works without AI key (OCR-only mode)
 
 <div align="right">
 
  **[Chi tiết đầy đủ ](Document%20Intelligence%20Service/README.md)** |  **Port**: `5003`  
- **[Setup Guide ](Document%20Intelligence%20Service/SETUP_GUIDE.md)**
+ **[Setup Guide ](Document%20Intelligence%20Service/SETUP_GUIDE.md)** |  **[Compatibility Notes ](Document%20Intelligence%20Service/COMPATIBILITY_NOTES.md)**
 
 </div>
 

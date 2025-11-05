@@ -50,6 +50,15 @@ class PaddleOCREngine:
             List of detected text blocks with coordinates and confidence
         """
         try:
+            # Convert to string if Path object
+            if hasattr(image_path, '__fspath__'):
+                image_path = str(image_path)
+            
+            # Validate file exists
+            if not Path(image_path).exists():
+                logger.error(f"File not found: {image_path}")
+                return []
+            
             # Run OCR
             result = self.ocr.ocr(image_path, cls=self.config.get('use_angle_cls', True))
             
@@ -79,7 +88,9 @@ class PaddleOCREngine:
             return text_blocks
             
         except Exception as e:
-            logger.error(f"❌ OCR extraction failed: {e}")
+            logger.error(f"❌ OCR extraction failed: {type(e).__name__}: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
     def extract_text_simple(self, image_path: str) -> str:
@@ -92,6 +103,10 @@ class PaddleOCREngine:
         Returns:
             Extracted text as string
         """
+        # Convert to string if needed
+        if hasattr(image_path, '__fspath__'):
+            image_path = str(image_path)
+            
         text_blocks = self.extract_text(image_path)
         return '\n'.join([block['text'] for block in text_blocks])
     
@@ -106,6 +121,10 @@ class PaddleOCREngine:
         Returns:
             Filtered text blocks
         """
+        # Convert to string if needed
+        if hasattr(image_path, '__fspath__'):
+            image_path = str(image_path)
+            
         text_blocks = self.extract_text(image_path)
         return [
             block for block in text_blocks 
@@ -122,6 +141,10 @@ class PaddleOCREngine:
         Returns:
             Average confidence (0.0 - 1.0)
         """
+        # Convert to string if needed
+        if hasattr(image_path, '__fspath__'):
+            image_path = str(image_path)
+            
         text_blocks = self.extract_text(image_path)
         if not text_blocks:
             return 0.0
@@ -139,6 +162,10 @@ class PaddleOCREngine:
         Returns:
             Orientation info
         """
+        # Convert to string if needed
+        if hasattr(image_path, '__fspath__'):
+            image_path = str(image_path)
+            
         if not self.config.get('use_angle_cls', False):
             return {'angle': 0, 'confidence': 1.0}
         

@@ -33,6 +33,31 @@ class DocumentIntelligenceApp {
         this.minConfidence = document.getElementById('minConfidence');
         this.confidenceValue = document.getElementById('confidenceValue');
 
+        // AI Options
+        this.aiStatusBadge = document.getElementById('aiStatusBadge');
+        this.aiClassify = document.getElementById('aiClassify');
+        this.aiExtract = document.getElementById('aiExtract');
+        this.aiSummary = document.getElementById('aiSummary');
+        this.aiTab = document.getElementById('aiTab');
+
+        // AI Sections
+        this.aiClassificationSection = document.getElementById('aiClassificationSection');
+        this.aiExtractionSection = document.getElementById('aiExtractionSection');
+        this.aiSummarySection = document.getElementById('aiSummarySection');
+        this.documentType = document.getElementById('documentType');
+        this.extractedData = document.getElementById('extractedData');
+        this.summaryText = document.getElementById('summaryText');
+
+        // AI Tools
+        this.aiQuestion = document.getElementById('aiQuestion');
+        this.aiAskBtn = document.getElementById('aiAskBtn');
+        this.aiAnswer = document.getElementById('aiAnswer');
+        this.targetLanguage = document.getElementById('targetLanguage');
+        this.aiTranslateBtn = document.getElementById('aiTranslateBtn');
+        this.aiTranslation = document.getElementById('aiTranslation');
+        this.aiInsightsBtn = document.getElementById('aiInsightsBtn');
+        this.aiInsights = document.getElementById('aiInsights');
+
         // Stats
         this.statsCard = document.getElementById('statsCard');
         this.statBlocks = document.getElementById('statBlocks');
@@ -61,6 +86,10 @@ class DocumentIntelligenceApp {
         // Toast
         this.toast = document.getElementById('toast');
         this.toastMessage = document.getElementById('toastMessage');
+        
+        // AI State
+        this.aiEnabled = false;
+        this.ocrText = '';
     }
 
     attachEventListeners() {
@@ -81,6 +110,29 @@ class DocumentIntelligenceApp {
             this.confidenceValue.textContent = e.target.value + '%';
         });
 
+        // AI Master Toggle
+        const aiMasterToggle = document.getElementById('aiMasterToggle');
+        const aiFeatures = document.getElementById('aiFeatures');
+        if (aiMasterToggle) {
+            aiMasterToggle.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                if (aiFeatures) {
+                    aiFeatures.classList.toggle('disabled', !enabled);
+                }
+                // Update badge
+                if (this.aiStatusBadge) {
+                    if (enabled && this.aiEnabled) {
+                        this.aiStatusBadge.textContent = 'ACTIVE';
+                        this.aiStatusBadge.className = 'badge-ai active';
+                    } else if (!enabled) {
+                        this.aiStatusBadge.textContent = 'OFF';
+                        this.aiStatusBadge.className = 'badge-ai inactive';
+                    }
+                }
+                this.showToast(enabled ? '✅ AI đã bật' : '❌ AI đã tắt');
+            });
+        }
+
         // Tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
@@ -91,9 +143,22 @@ class DocumentIntelligenceApp {
         this.downloadTxtBtn.addEventListener('click', () => this.downloadTxt());
         this.downloadJsonBtn.addEventListener('click', () => this.downloadJson());
 
+        // AI Tools
+        this.aiAskBtn.addEventListener('click', () => this.askQuestion());
+        this.aiTranslateBtn.addEventListener('click', () => this.translateDocument());
+        this.aiInsightsBtn.addEventListener('click', () => this.generateInsights());
+        
+        // Enter key for question
+        this.aiQuestion.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.askQuestion();
+        });
+
         // Modal
         this.helpBtn.addEventListener('click', () => this.showHelp());
-        this.closeHelpModal.addEventListener('click', () => this.hideHelp());
+        // Use data-modal attribute like other modals
+        if (this.closeHelpModal) {
+            this.closeHelpModal.addEventListener('click', () => this.hideHelp());
+        }
         this.helpModal.addEventListener('click', (e) => {
             if (e.target === this.helpModal) this.hideHelp();
         });
@@ -104,9 +169,48 @@ class DocumentIntelligenceApp {
             const response = await fetch('/api/health');
             const data = await response.json();
             console.log('Service health:', data);
+            
+            // Update AI backend availability
+            const aiMasterToggle = document.getElementById('aiMasterToggle');
+            const aiFeatures = document.getElementById('aiFeatures');
+            
+            if (data.features && data.features.ai_enhancement) {
+                // AI backend is available
+                this.aiEnabled = true;
+                
+                // Check if user has it toggled on
+                const userEnabled = aiMasterToggle ? aiMasterToggle.checked : true;
+                
+                if (userEnabled) {
+                    this.aiStatusBadge.textContent = 'ACTIVE';
+                    this.aiStatusBadge.className = 'badge-ai active';
+                    this.aiTab.style.display = 'inline-flex';
+                } else {
+                    this.aiStatusBadge.textContent = 'OFF';
+                    this.aiStatusBadge.className = 'badge-ai inactive';
+                    this.aiTab.style.display = 'none';
+                }
+            } else {
+                // AI backend not available
+                this.aiEnabled = false;
+                this.aiStatusBadge.textContent = 'INACTIVE';
+                this.aiStatusBadge.className = 'badge-ai inactive';
+                this.aiTab.style.display = 'none';
+                
+                // Disable master toggle and features
+                if (aiMasterToggle) {
+                    aiMasterToggle.checked = false;
+                    aiMasterToggle.disabled = true;
+                }
+                if (aiFeatures) {
+                    aiFeatures.classList.add('disabled');
+                }
+            }
         } catch (error) {
             console.error('Health check failed:', error);
             this.showToast('⚠️ Cannot connect to server', 'warning');
+            this.aiStatusBadge.textContent = 'ERROR';
+            this.aiStatusBadge.className = 'badge-ai inactive';
         }
     }
 
@@ -217,6 +321,23 @@ class DocumentIntelligenceApp {
             include_blocks: true,
             min_confidence: parseFloat(this.minConfidence.value) / 100
         };
+        
+        // Check if AI is enabled by both backend AND user toggle
+        const aiMasterToggle = document.getElementById('aiMasterToggle');
+        const userEnabledAI = aiMasterToggle ? aiMasterToggle.checked : false;
+        
+        // Add AI options if both backend supports it and user has it enabled
+        if (this.aiEnabled && userEnabledAI) {
+            options.ai_classify = this.aiClassify.checked;
+            options.ai_extract = this.aiExtract.checked;
+            options.ai_summary = this.aiSummary.checked;
+        } else {
+            // Explicitly disable AI if user toggled it off
+            options.ai_classify = false;
+            options.ai_extract = false;
+            options.ai_summary = false;
+        }
+        
         formData.append('options', JSON.stringify(options));
 
         try {
@@ -233,11 +354,22 @@ class DocumentIntelligenceApp {
 
             const result = await response.json();
 
+            if (this.aiEnabled && (options.ai_classify || options.ai_extract || options.ai_summary)) {
+                this.updateProgress(70, 'Đang phân tích AI...');
+                await new Promise(resolve => setTimeout(resolve, 500)); // Visual delay
+            }
+
             this.updateProgress(100, 'Hoàn thành!');
 
             if (result.success) {
                 this.currentResult = result;
                 this.displayResult(result);
+                
+                // Display AI results if available
+                if (result.ai_analysis) {
+                    this.displayAIResults(result.ai_analysis);
+                }
+                
                 this.showToast('✅ Xử lý thành công!', 'success');
             } else {
                 throw new Error(result.error || 'Processing failed');
@@ -369,14 +501,14 @@ class DocumentIntelligenceApp {
 
     // Modal
     showHelp() {
-        this.helpModal.classList.add('active');
+        this.helpModal.style.display = 'flex';
     }
 
     hideHelp() {
-        this.helpModal.classList.remove('active');
+        this.helpModal.style.display = 'none';
     }
 
-    // Toast
+    // Toast / Notification
     showToast(message, type = 'success') {
         this.toastMessage.textContent = message;
         
@@ -397,10 +529,210 @@ class DocumentIntelligenceApp {
             this.toast.classList.remove('show');
         }, 3000);
     }
+
+    // Alias for advanced features compatibility
+    showNotification(message, type = 'success') {
+        this.showToast(message, type);
+    }
+
+    // AI Methods
+    displayAIResults(aiResults) {
+        if (!aiResults || !this.aiEnabled) return;
+
+        // Show AI sections based on results
+        if (aiResults.classification) {
+            this.aiClassificationSection.style.display = 'block';
+            this.documentType.innerHTML = `
+                <i class="fas fa-file-alt"></i>
+                <span>${aiResults.classification.type}</span>
+            `;
+        }
+
+        if (aiResults.extraction && Object.keys(aiResults.extraction).length > 0) {
+            this.aiExtractionSection.style.display = 'block';
+            this.extractedData.innerHTML = '';
+            
+            for (const [key, value] of Object.entries(aiResults.extraction)) {
+                const row = document.createElement('div');
+                row.className = 'data-row';
+                row.innerHTML = `
+                    <div class="data-key">${key}:</div>
+                    <div class="data-value">${value}</div>
+                `;
+                this.extractedData.appendChild(row);
+            }
+        }
+
+        if (aiResults.summary) {
+            this.aiSummarySection.style.display = 'block';
+            this.summaryText.textContent = aiResults.summary;
+        }
+
+        // Store OCR text for AI tools
+        if (this.currentResult && this.currentResult.text) {
+            this.ocrText = this.currentResult.text;
+        }
+    }
+
+    async askQuestion() {
+        const question = this.aiQuestion.value.trim();
+        if (!question) {
+            this.showToast('⚠️ Vui lòng nhập câu hỏi', 'warning');
+            return;
+        }
+
+        if (!this.ocrText) {
+            this.showToast('⚠️ Chưa có document để hỏi', 'warning');
+            return;
+        }
+
+        this.aiAnswer.style.display = 'block';
+        this.aiAnswer.innerHTML = '<div class="ai-loading">Đang xử lý câu hỏi...</div>';
+        this.aiAskBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/ai/qa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: this.ocrText,
+                    question: question
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.aiAnswer.innerHTML = `
+                    <strong>Câu hỏi:</strong> ${question}<br><br>
+                    <strong>Trả lời:</strong><br>${data.answer}
+                `;
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('AI Q&A error:', error);
+            this.aiAnswer.innerHTML = `
+                <div class="ai-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Lỗi: ${error.message}
+                </div>
+            `;
+        } finally {
+            this.aiAskBtn.disabled = false;
+        }
+    }
+
+    async translateDocument() {
+        if (!this.ocrText) {
+            this.showToast('⚠️ Chưa có document để dịch', 'warning');
+            return;
+        }
+
+        const targetLang = this.targetLanguage.value;
+        this.aiTranslation.style.display = 'block';
+        this.aiTranslation.innerHTML = '<div class="ai-loading">Đang dịch...</div>';
+        this.aiTranslateBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/ai/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: this.ocrText,
+                    target_language: targetLang
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.aiTranslation.innerHTML = `
+                    <strong>Dịch sang ${targetLang.toUpperCase()}:</strong><br><br>
+                    ${data.translation}
+                `;
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Translation error:', error);
+            this.aiTranslation.innerHTML = `
+                <div class="ai-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Lỗi: ${error.message}
+                </div>
+            `;
+        } finally {
+            this.aiTranslateBtn.disabled = false;
+        }
+    }
+
+    async generateInsights() {
+        if (!this.ocrText) {
+            this.showToast('⚠️ Chưa có document để phân tích', 'warning');
+            return;
+        }
+
+        this.aiInsights.style.display = 'block';
+        this.aiInsights.innerHTML = '<div class="ai-loading">Đang phân tích...</div>';
+        this.aiInsightsBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/ai/insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: this.ocrText
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                let html = '<strong>Phân tích chuyên sâu:</strong><br><br>';
+                
+                const insights = data.insights;
+                if (insights.document_purpose) {
+                    html += `<h5>📋 Mục đích:</h5><p>${insights.document_purpose}</p>`;
+                }
+                if (insights.key_points && insights.key_points.length > 0) {
+                    html += '<h5>🔑 Điểm chính:</h5><ul>';
+                    insights.key_points.forEach(point => {
+                        html += `<li>${point}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                if (insights.entities && insights.entities.length > 0) {
+                    html += '<h5>👤 Thực thể:</h5><ul>';
+                    insights.entities.forEach(entity => {
+                        html += `<li>${entity}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                if (insights.recommendations) {
+                    html += `<h5>💡 Đề xuất:</h5><p>${insights.recommendations}</p>`;
+                }
+
+                this.aiInsights.innerHTML = html;
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Insights error:', error);
+            this.aiInsights.innerHTML = `
+                <div class="ai-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Lỗi: ${error.message}
+                </div>
+            `;
+        } finally {
+            this.aiInsightsBtn.disabled = false;
+        }
+    }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 Document Intelligence Service - Frontend Ready');
-    new DocumentIntelligenceApp();
+    window.app = new DocumentIntelligenceApp();
 });

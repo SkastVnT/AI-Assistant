@@ -3,6 +3,10 @@ Configuration for Document Intelligence Service
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
 
 # Base Directory
 BASE_DIR = Path(__file__).parent.parent
@@ -10,7 +14,7 @@ BASE_DIR = Path(__file__).parent.parent
 # Server Configuration
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5003))
-DEBUG = os.getenv('FLASK_ENV', 'development') == 'development'
+DEBUG = False  # Disable debug mode to prevent reloader issues
 
 # File Upload Configuration
 MAX_FILE_SIZE = int(os.getenv('MAX_FILE_SIZE', 20 * 1024 * 1024))  # 20MB
@@ -21,18 +25,33 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'bmp', 'tiff', 'webp'}
 # OCR Configuration
 OCR_CONFIG = {
     'use_angle_cls': os.getenv('ENABLE_ANGLE_CLS', 'True') == 'True',
-    'lang': os.getenv('OCR_LANGUAGE', 'ch'),  # 'ch' includes Vietnamese
+    'lang': os.getenv('OCR_LANGUAGE', 'vietnam'),  # Vietnamese language support
     'use_gpu': os.getenv('OCR_USE_GPU', 'False') == 'True',
     'det_model_dir': None,  # Auto download
     'rec_model_dir': None,  # Auto download
+    'cls_model_dir': None,  # Auto download
     'show_log': False
+}
+
+# AI Enhancement Configuration
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+ENABLE_AI_ENHANCEMENT = (os.getenv('ENABLE_AI_ENHANCEMENT', 'True') == 'True') and bool(GEMINI_API_KEY)
+AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash-exp')
+
+# AI Features
+AI_FEATURES = {
+    'enable_classification': os.getenv('ENABLE_CLASSIFICATION', 'True') == 'True',
+    'enable_extraction': os.getenv('ENABLE_EXTRACTION', 'True') == 'True',
+    'enable_summary': os.getenv('ENABLE_SUMMARY', 'True') == 'True',
+    'enable_qa': os.getenv('ENABLE_QA', 'True') == 'True',
+    'enable_translation': os.getenv('ENABLE_TRANSLATION', 'True') == 'True',
 }
 
 # Processing Options
 PROCESSING_OPTIONS = {
     'enable_table_recognition': False,  # Phase 2
     'enable_layout_analysis': False,    # Phase 2
-    'enable_ai_understanding': False,   # Phase 4
+    'enable_ai_understanding': ENABLE_AI_ENHANCEMENT,
 }
 
 # Create directories if not exist
@@ -49,5 +68,6 @@ __all__ = [
     'HOST', 'PORT', 'DEBUG',
     'MAX_FILE_SIZE', 'UPLOAD_FOLDER', 'OUTPUT_FOLDER',
     'OCR_CONFIG', 'PROCESSING_OPTIONS',
+    'GEMINI_API_KEY', 'ENABLE_AI_ENHANCEMENT', 'AI_MODEL', 'AI_FEATURES',
     'allowed_file'
 ]

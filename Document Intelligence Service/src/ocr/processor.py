@@ -51,8 +51,12 @@ class OCRProcessor:
         try:
             logger.info(f"📄 Processing image: {image_path.name}")
             
-            # Extract text
-            text_blocks = self.ocr.extract_text(image_path)
+            # Verify file exists
+            if not image_path.exists():
+                raise FileNotFoundError(f"Image file not found: {image_path}")
+            
+            # Extract text (always pass string)
+            text_blocks = self.ocr.extract_text(str(image_path))
             full_text = '\n'.join([block['text'] for block in text_blocks])
             avg_confidence = self.ocr.get_average_confidence(str(image_path))
             

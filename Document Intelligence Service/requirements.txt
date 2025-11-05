@@ -1,5 +1,5 @@
 # Document Intelligence Service - Requirements
-# Phase 1: Basic OCR & WebUI
+# Phase 1.5: OCR + AI Enhancement with Gemini 2.0 Flash
 
 # Web Framework
 Flask==3.0.0
@@ -7,14 +7,18 @@ Flask-CORS==4.0.0
 
 # OCR Engine (FREE - Vietnamese support)
 paddleocr==2.7.3
-paddlepaddle==2.6.0  # CPU version
+paddlepaddle==2.6.1  # CPU version (stable for Windows)
+protobuf==3.20.2  # CRITICAL: PaddlePaddle compatibility (set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python)
 
 # Image Processing
 Pillow==10.1.0
-opencv-python==4.8.1.78
+opencv-python<=4.6.0.66  # Compatible with paddleocr
 
 # PDF Handling
 PyMuPDF==1.23.8  # fitz - fast PDF processing
+
+# AI Integration - Gemini 2.0 Flash (FREE)
+google-generativeai==0.3.2
 
 # Utilities
 python-dotenv==1.0.0
@@ -23,11 +27,11 @@ werkzeug==3.0.1
 # Data Processing
 numpy==1.24.3
 pandas==2.1.4
+scipy==1.11.4
+scikit-image==0.19.3
 
-# Future: Document Understanding (Phase 2)
+# Future: Advanced Document Understanding (Phase 2)
 # layoutparser==0.3.4
 # pytesseract==0.3.10
-
-# Future: AI Integration (Phase 4)
 # transformers==4.35.0
 # torch==2.1.0
