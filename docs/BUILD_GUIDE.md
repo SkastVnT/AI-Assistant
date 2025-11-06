@@ -19,34 +19,119 @@
 
 ## 🚀 Quick Start
 
-### All Services Quick Build
+### Prerequisites: Install pyenv First!
+
+Before building any service, install **pyenv** for Python version management:
+
+```powershell
+# Using pip (recommended)
+pip install pyenv-win --target %USERPROFILE%\.pyenv
+
+# Add to PATH (PowerShell as Administrator)
+[System.Environment]::SetEnvironmentVariable('PYENV',$env:USERPROFILE + "\.pyenv\pyenv-win\","User")
+[System.Environment]::SetEnvironmentVariable('PYENV_ROOT',$env:USERPROFILE + "\.pyenv\pyenv-win\","User")
+[System.Environment]::SetEnvironmentVariable('PYENV_HOME',$env:USERPROFILE + "\.pyenv\pyenv-win\","User")
+
+$Path = [System.Environment]::GetEnvironmentVariable('PATH', "User")
+[System.Environment]::SetEnvironmentVariable('PATH', $Path + ";" + $env:USERPROFILE + "\.pyenv\pyenv-win\bin;" + $env:USERPROFILE + "\.pyenv\pyenv-win\shims", "User")
+
+# Restart terminal and verify
+pyenv --version
+```
+
+See [pyenv Installation Guide](#-installing-pyenv-for-windows) for detailed instructions.
+
+---
+
+### Quick Build - All Services
+
+#### Step 1: Install Python Versions
 
 ```bash
-# Navigate to service directory and run build script:
+# Install Python 3.10.11 (for Text2SQL, Document Intelligence, Speech2Text)
+pyenv install 3.10.11
+
+# Install Python 3.11.9 (for ChatBot, Stable Diffusion)
+pyenv install 3.11.9
+
+# Verify
+pyenv versions
+```
+
+#### Step 2: Build Each Service
+
+```bash
+# ChatBot (Python 3.11.9)
+cd ChatBot
+pyenv local 3.11.9
+pyenv exec python -m venv venv_chatbot
+.\venv_chatbot\Scripts\activate
+pip install -r requirements.txt
+
+# Text2SQL (Python 3.10.11)
+cd "Text2SQL Services"
+pyenv local 3.10.11
+pyenv exec python -m venv Text2SQL
+.\Text2SQL\Scripts\activate
+pip install -r requirements.txt
+
+# Document Intelligence (Python 3.10.11)
+cd "Document Intelligence Service"
+pyenv local 3.10.11
+pyenv exec python -m venv venv
+.\venv\Scripts\activate
+set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+pip install -r requirements.txt
+
+# Speech2Text (Python 3.10.11)
+cd "Speech2Text Services"
+pyenv local 3.10.11
+pyenv exec python -m venv venv
+.\venv\Scripts\activate
+pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
+
+# Stable Diffusion (Python 3.11.9)
+cd stable-diffusion-webui
+pyenv local 3.11.9
+.\webui-user.bat  # Auto-creates venv
+```
+
+---
+
+### Or Use Automated Build Scripts
+
+```bash
+# Navigate to each service and run:
 
 # ChatBot
 cd ChatBot
+pyenv local 3.11.9
 build-service-chatbot.bat
 
 # Text2SQL
 cd "Text2SQL Services"
+pyenv local 3.10.11
 build-service-text2sql.bat
 
 # Document Intelligence
 cd "Document Intelligence Service"
+pyenv local 3.10.11
 build-service-document-intelligence.bat
 
 # Speech2Text
 cd "Speech2Text Services"
+pyenv local 3.10.11
 build-service-speech2text.bat
 
 # Stable Diffusion
 cd stable-diffusion-webui
+pyenv local 3.11.9
 build-service-stable-diffusion.bat
 ```
 
 Each script will:
-✅ Check Python installation  
+✅ Check Python version (via pyenv)  
 ✅ Create/activate virtual environment  
 ✅ Install/verify dependencies  
 ✅ Run tests (if available)  
@@ -62,10 +147,23 @@ Each script will:
 | Component | Minimum | Recommended |
 |:----------|:--------|:------------|
 | **OS** | Windows 10 64-bit | Windows 11 64-bit |
-| **Python** | 3.10.6 | 3.10.11 |
+| **Python** | 3.10.x / 3.11.x (see below) | Latest stable |
+| **pyenv** | Latest | Latest |
 | **RAM** | 8GB | 16GB+ |
 | **Storage** | 50GB free | 100GB+ SSD |
 | **GPU** | None (CPU mode) | NVIDIA GPU 6GB+ VRAM |
+
+### Python Version Requirements (pyenv)
+
+| Service | Python Version | Reason |
+|:--------|:--------------|:-------|
+| **ChatBot** | **3.11.x** | Better performance with transformers |
+| **Text2SQL** | **3.10.x** | Stable with Gemini SDK |
+| **Document Intelligence** | **3.10.x** | PaddleOCR compatibility |
+| **Speech2Text** | **3.10.x** | PyTorch 2.0 compatibility |
+| **Stable Diffusion** | **3.11.x** | AUTOMATIC1111 WebUI optimization |
+
+**⚠️ IMPORTANT:** We use **pyenv** to manage Python versions per service. This prevents version conflicts between services.
 
 ### Service-Specific Requirements
 
@@ -98,36 +196,521 @@ Each script will:
 
 ---
 
-## 🛠️ Service-by-Service Guide
+## � Python Version Management with pyenv
 
-### 1️⃣ ChatBot Service
+### Why pyenv?
 
-#### Build Steps
+Different services require different Python versions:
+- **ChatBot & Stable Diffusion** work best with **Python 3.11.x**
+- **Other services** require **Python 3.10.x** for compatibility
+
+Using **pyenv** allows us to:
+✅ Install multiple Python versions side-by-side  
+✅ Switch between versions per project/service  
+✅ Avoid version conflicts  
+✅ Maintain clean, isolated environments  
+
+---
+
+### 📦 Installing pyenv for Windows
+
+#### Option 1: pyenv-win (Recommended)
+
+```powershell
+# Using pip
+pip install pyenv-win --target %USERPROFILE%\.pyenv
+
+# Using chocolatey (if installed)
+choco install pyenv-win
+
+# Using scoop (if installed)
+scoop install pyenv
+```
+
+#### Option 2: Manual Installation
+
+```powershell
+# Clone repository
+git clone https://github.com/pyenv-win/pyenv-win.git %USERPROFILE%\.pyenv
+
+# Add to PATH (PowerShell as Administrator)
+[System.Environment]::SetEnvironmentVariable('PYENV',$env:USERPROFILE + "\.pyenv\pyenv-win\","User")
+[System.Environment]::SetEnvironmentVariable('PYENV_ROOT',$env:USERPROFILE + "\.pyenv\pyenv-win\","User")
+[System.Environment]::SetEnvironmentVariable('PYENV_HOME',$env:USERPROFILE + "\.pyenv\pyenv-win\","User")
+
+$Path = [System.Environment]::GetEnvironmentVariable('PATH', "User")
+[System.Environment]::SetEnvironmentVariable('PATH', $Path + ";" + $env:USERPROFILE + "\.pyenv\pyenv-win\bin;" + $env:USERPROFILE + "\.pyenv\pyenv-win\shims", "User")
+
+# Restart terminal
+```
+
+#### Verify Installation
+
+```bash
+pyenv --version
+# Should show: pyenv 3.x.x
+```
+
+---
+
+### 🎯 pyenv Quick Reference
+
+#### Essential Commands
+
+```bash
+# List available Python versions
+pyenv install --list
+
+# Install specific Python version
+pyenv install 3.10.11
+pyenv install 3.11.9
+
+# List installed versions
+pyenv versions
+
+# Set global Python version (system-wide)
+pyenv global 3.10.11
+
+# Set local Python version (current directory only)
+pyenv local 3.11.9
+
+# Set shell Python version (current terminal session)
+pyenv shell 3.10.11
+
+# Check active Python version
+pyenv version
+python --version
+
+# Uninstall Python version
+pyenv uninstall 3.10.11
+```
+
+---
+
+### 🔧 Service-Specific Setup with pyenv
+
+#### Recommended Workflow
+
+For each service, we follow this pattern:
+
+```bash
+# 1. Navigate to service directory
+cd "ServiceName"
+
+# 2. Install required Python version (if not already)
+pyenv install 3.x.x
+
+# 3. Set local Python version (creates .python-version file)
+pyenv local 3.x.x
+
+# 4. Verify version
+python --version
+
+# 5. Create virtual environment using pyenv's Python
+pyenv exec python -m venv venv_name
+
+# 6. Activate virtual environment
+.\venv_name\Scripts\activate
+
+# 7. Install dependencies
+pip install -r requirements.txt
+```
+
+---
+
+### 📋 Service Configuration Matrix
+
+| Service | Python | Local Command | Virtual Env Name |
+|:--------|:-------|:--------------|:-----------------|
+| ChatBot | 3.11.9 | `pyenv local 3.11.9` | `venv_chatbot` |
+| Text2SQL | 3.10.11 | `pyenv local 3.10.11` | `Text2SQL` |
+| Document Intelligence | 3.10.11 | `pyenv local 3.10.11` | `venv` |
+| Speech2Text | 3.10.11 | `pyenv local 3.10.11` | `venv` |
+| Stable Diffusion | 3.11.9 | `pyenv local 3.11.9` | (auto-managed) |
+
+---
+
+### 🚀 Step-by-Step: Setting Up All Services
+
+#### 1. Install Python Versions
+
+```bash
+# Install Python 3.10.11 (for most services)
+pyenv install 3.10.11
+
+# Install Python 3.11.9 (for ChatBot & Stable Diffusion)
+pyenv install 3.11.9
+
+# Verify installations
+pyenv versions
+```
+
+Expected output:
+```
+* system (set by PYENV_VERSION environment variable)
+  3.10.11
+  3.11.9
+```
+
+#### 2. Configure Each Service
+
+##### ChatBot (Python 3.11.9)
 
 ```bash
 cd ChatBot
-build-service-chatbot.bat
-```
 
-#### Manual Build
+# Set Python 3.11.9 for this directory
+pyenv local 3.11.9
 
-```bash
+# Verify
+python --version  # Should show: Python 3.11.9
+
 # Create virtual environment
-python -m venv venv_chatbot
+pyenv exec python -m venv venv_chatbot
 
 # Activate
 .\venv_chatbot\Scripts\activate
 
-# Upgrade pip
-python -m pip install --upgrade pip
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+##### Text2SQL (Python 3.10.11)
+
+```bash
+cd "Text2SQL Services"
+
+# Set Python 3.10.11 for this directory
+pyenv local 3.10.11
+
+# Verify
+python --version  # Should show: Python 3.10.11
+
+# Create virtual environment
+pyenv exec python -m venv Text2SQL
+
+# Activate
+.\Text2SQL\Scripts\activate
 
 # Install dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
-
-# Configure .env
-copy .env.example .env
-# Edit .env and add API keys
 ```
+
+##### Document Intelligence (Python 3.10.11)
+
+```bash
+cd "Document Intelligence Service"
+
+# Set Python 3.10.11
+pyenv local 3.10.11
+
+# Verify
+python --version  # Should show: Python 3.10.11
+
+# Create virtual environment
+pyenv exec python -m venv venv
+
+# Activate
+.\venv\Scripts\activate
+
+# CRITICAL: Set environment variable
+set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+
+# Install dependencies
+pip install --upgrade pip
+pip install protobuf==3.20.2
+pip install -r requirements.txt
+```
+
+##### Speech2Text (Python 3.10.11)
+
+```bash
+cd "Speech2Text Services"
+
+# Set Python 3.10.11
+pyenv local 3.10.11
+
+# Verify
+python --version  # Should show: Python 3.10.11
+
+# Create virtual environment
+pyenv exec python -m venv venv
+
+# Activate
+.\venv\Scripts\activate
+
+# Install PyTorch first (CRITICAL)
+# For CUDA 11.8:
+pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+
+# Install remaining dependencies
+pip install -r requirements.txt
+```
+
+##### Stable Diffusion (Python 3.11.9)
+
+```bash
+cd stable-diffusion-webui
+
+# Set Python 3.11.9
+pyenv local 3.11.9
+
+# Verify
+python --version  # Should show: Python 3.11.9
+
+# Note: Virtual environment is auto-managed by webui.bat
+# Just run:
+.\webui-user.bat
+```
+
+---
+
+### 📝 Understanding .python-version File
+
+When you run `pyenv local 3.x.x`, pyenv creates a `.python-version` file in the current directory.
+
+**Example:**
+```bash
+cd ChatBot
+pyenv local 3.11.9
+cat .python-version
+# Output: 3.11.9
+```
+
+This file tells pyenv which Python version to use when you're in this directory.
+
+**Benefits:**
+- Automatic version switching when entering directory
+- Project-specific Python versions
+- Committed to git for team consistency
+
+---
+
+### 🔄 Switching Between Services
+
+```bash
+# Example workflow
+
+# Work on ChatBot (Python 3.11.9)
+cd ChatBot
+python --version  # Auto-switches to 3.11.9
+.\venv_chatbot\Scripts\activate
+
+# Work on Text2SQL (Python 3.10.11)
+cd ..\Text2SQL Services
+python --version  # Auto-switches to 3.10.11
+.\Text2SQL\Scripts\activate
+
+# Work on Document Intelligence (Python 3.10.11)
+cd "..\Document Intelligence Service"
+python --version  # Auto-switches to 3.10.11
+.\venv\Scripts\activate
+```
+
+---
+
+### �🛠️ Troubleshooting pyenv
+
+#### Issue 1: "pyenv: command not found"
+
+```bash
+# Check if pyenv is in PATH
+echo $env:PATH | Select-String "pyenv"
+
+# Re-add to PATH (PowerShell as Administrator)
+$Path = [System.Environment]::GetEnvironmentVariable('PATH', "User")
+[System.Environment]::SetEnvironmentVariable('PATH', $Path + ";" + $env:USERPROFILE + "\.pyenv\pyenv-win\bin;" + $env:USERPROFILE + "\.pyenv\pyenv-win\shims", "User")
+
+# Restart terminal
+```
+
+#### Issue 2: "Version X.X.X is not installed"
+
+```bash
+# Install the required version
+pyenv install 3.10.11
+pyenv install 3.11.9
+
+# Refresh shims
+pyenv rehash
+```
+
+#### Issue 3: Wrong Python version activated
+
+```bash
+# Check which version is active
+pyenv version
+
+# Check what set it
+pyenv version-origin
+
+# Override with shell
+pyenv shell 3.11.9
+
+# Or go to directory and check .python-version file
+cat .python-version
+```
+
+#### Issue 4: pyenv not switching versions automatically
+
+```bash
+# Ensure .python-version file exists
+ls -la | Select-String ".python-version"
+
+# If missing, create it
+pyenv local 3.11.9
+
+# Refresh shims
+pyenv rehash
+
+# Restart terminal
+```
+
+#### Issue 5: "python" command not found after pyenv install
+
+```bash
+# Rehash shims
+pyenv rehash
+
+# Check global version
+pyenv global
+
+# Set global if needed
+pyenv global 3.10.11
+
+# Verify
+python --version
+```
+
+---
+
+### 💡 Best Practices
+
+#### 1. Always Use `pyenv local` in Service Directories
+
+```bash
+# Good ✅
+cd ChatBot
+pyenv local 3.11.9
+
+# Avoid ❌
+pyenv global 3.11.9  # Affects all projects!
+```
+
+#### 2. Use `pyenv exec` for Virtual Environment Creation
+
+```bash
+# Good ✅
+pyenv exec python -m venv venv_chatbot
+
+# Avoid ❌
+python -m venv venv_chatbot  # May use wrong Python version
+```
+
+#### 3. Check Python Version Before Installing Dependencies
+
+```bash
+# Always verify first
+python --version
+pyenv version
+
+# Then install
+pip install -r requirements.txt
+```
+
+#### 4. Commit .python-version to Git
+
+```bash
+# Add to each service directory
+git add .python-version
+git commit -m "Add Python version specification"
+```
+
+#### 5. Document Version Requirements
+
+Each service should have its Python version documented:
+- In `README.md`
+- In `.python-version` file
+- In build scripts
+
+---
+
+### 📊 Quick Comparison: Before vs After pyenv
+
+#### Before (Manual Python Management)
+
+```
+Problems:
+❌ One global Python version for all services
+❌ Version conflicts between services
+❌ Need to manually track which service needs which version
+❌ Difficult to switch between projects
+❌ Requires multiple Python installations in different folders
+```
+
+#### After (With pyenv)
+
+```
+Benefits:
+✅ Automatic version switching per directory
+✅ Clean, centralized Python version management
+✅ Easy to install/uninstall versions
+✅ .python-version file ensures consistency
+✅ Team members use same Python version
+✅ Simple workflow: cd → pyenv auto-switches
+```
+
+---
+
+
+
+### 1️⃣ ChatBot Service
+
+**Required Python Version:** 3.11.9 (managed by pyenv)
+
+#### Build Steps with pyenv
+
+```bash
+cd ChatBot
+
+# Step 1: Install Python 3.11.9 (if not already installed)
+pyenv install 3.11.9
+
+# Step 2: Set local Python version (creates .python-version)
+pyenv local 3.11.9
+
+# Step 3: Verify Python version
+python --version  # Should show: Python 3.11.9
+pyenv version     # Confirm pyenv is managing it
+
+# Step 4: Create virtual environment using pyenv's Python
+pyenv exec python -m venv venv_chatbot
+
+# Step 5: Activate virtual environment
+.\venv_chatbot\Scripts\activate
+
+# Step 6: Upgrade pip
+python -m pip install --upgrade pip
+
+# Step 7: Install dependencies
+pip install -r requirements.txt
+```
+
+#### Or Use Build Script
+
+```bash
+cd ChatBot
+
+# Make sure Python 3.11.9 is set first
+pyenv local 3.11.9
+
+# Run build script
+build-service-chatbot.bat
+```
+
+**⚠️ Note:** The build script will check for Python 3.10+. With pyenv, ensure you run `pyenv local 3.11.9` before running the script.
 
 #### Configuration
 
@@ -192,20 +775,45 @@ python -c "import google.generativeai as genai; genai.configure(api_key='YOUR_KE
 
 ### 2️⃣ Text2SQL Service
 
-#### Build Steps
+**Required Python Version:** 3.10.11 (managed by pyenv)
+
+#### Build Steps with pyenv
 
 ```bash
 cd "Text2SQL Services"
-build-service-text2sql.bat
+
+# Step 1: Install Python 3.10.11 (if not already installed)
+pyenv install 3.10.11
+
+# Step 2: Set local Python version
+pyenv local 3.10.11
+
+# Step 3: Verify Python version
+python --version  # Should show: Python 3.10.11
+
+# Step 4: Create virtual environment
+pyenv exec python -m venv Text2SQL
+
+# Step 5: Activate virtual environment
+.\Text2SQL\Scripts\activate
+
+# Step 6: Upgrade pip
+python -m pip install --upgrade pip
+
+# Step 7: Install dependencies
+pip install -r requirements.txt
 ```
 
-#### Manual Build
+#### Or Use Build Script
 
 ```bash
-python -m venv Text2SQL
-.\Text2SQL\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+cd "Text2SQL Services"
+
+# Set Python version first
+pyenv local 3.10.11
+
+# Run build script
+build-service-text2sql.bat
 ```
 
 #### Configuration
@@ -277,35 +885,61 @@ icacls data\knowledge_base
 
 ### 3️⃣ Document Intelligence Service
 
-#### Build Steps
+**Required Python Version:** 3.10.11 (managed by pyenv)
+
+#### Build Steps with pyenv
 
 ```bash
 cd "Document Intelligence Service"
+
+# Step 1: Install Python 3.10.11 (if not already installed)
+pyenv install 3.10.11
+
+# Step 2: Set local Python version
+pyenv local 3.10.11
+
+# Step 3: Verify Python version
+python --version  # Should show: Python 3.10.11
+
+# Step 4: Create virtual environment
+pyenv exec python -m venv venv
+
+# Step 5: Activate virtual environment
+.\venv\Scripts\activate
+
+# Step 6: CRITICAL - Set environment variable
+set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+
+# Step 7: Upgrade pip
+python -m pip install --upgrade pip
+
+# Step 8: Install protobuf first (critical for PaddlePaddle)
+pip install protobuf==3.20.2
+
+# Step 9: Install remaining dependencies
+pip install -r requirements.txt
+```
+
+#### Or Use Build Script
+
+```bash
+cd "Document Intelligence Service"
+
+# Set Python version first
+pyenv local 3.10.11
+
+# Run build script (handles env variable automatically)
 build-service-document-intelligence.bat
 ```
 
 #### **CRITICAL:** Environment Variable
 
 ```bash
-# MUST set this before running!
+# MUST set this before running the service!
 set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 ```
 
-Add to System Environment Variables for permanent fix.
-
-#### Manual Build
-
-```bash
-python -m venv venv
-.\venv\Scripts\activate
-
-# CRITICAL: Set environment variable
-set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-
-pip install --upgrade pip
-pip install protobuf==3.20.2
-pip install -r requirements.txt
-```
+**Permanent Fix:** Add to System Environment Variables (Windows Settings → Environment Variables)
 
 #### Configuration
 
@@ -376,43 +1010,67 @@ pip install opencv-python==4.6.0.66
 
 ### 4️⃣ Speech2Text Service
 
-#### Build Steps
+**Required Python Version:** 3.10.11 (managed by pyenv)
+
+#### Build Steps with pyenv
 
 ```bash
 cd "Speech2Text Services"
-build-service-speech2text.bat
-```
 
-#### Prerequisites
+# Step 1: Install Python 3.10.11 (if not already installed)
+pyenv install 3.10.11
 
-1. **CUDA Toolkit** (if using GPU):
-   - Download: https://developer.nvidia.com/cuda-downloads
-   - Version: 11.8 or 12.1
+# Step 2: Set local Python version
+pyenv local 3.10.11
 
-2. **HuggingFace Account**:
-   - Sign up: https://huggingface.co/join
-   - Create token: https://huggingface.co/settings/tokens
-   - Accept licenses:
-     - https://huggingface.co/pyannote/speaker-diarization-3.1
-     - https://huggingface.co/pyannote/segmentation-3.0
+# Step 3: Verify Python version
+python --version  # Should show: Python 3.10.11
 
-#### Manual Build
+# Step 4: Create virtual environment
+pyenv exec python -m venv venv
 
-```bash
-python -m venv venv
+# Step 5: Activate virtual environment
 .\venv\Scripts\activate
-pip install --upgrade pip
 
-# Install PyTorch first (CRITICAL)
+# Step 6: Upgrade pip
+python -m pip install --upgrade pip
+
+# Step 7: Install PyTorch FIRST (CRITICAL - choose based on GPU)
 # For CUDA 11.8:
 pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 
 # For CPU only:
 pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cpu
 
-# Install remaining dependencies
+# Step 8: Install remaining dependencies
 pip install -r requirements.txt
 ```
+
+#### Or Use Build Script
+
+```bash
+cd "Speech2Text Services"
+
+# Set Python version first
+pyenv local 3.10.11
+
+# Run build script (auto-detects CUDA)
+build-service-speech2text.bat
+```
+
+#### Prerequisites
+
+1. **CUDA Toolkit** (if using GPU - highly recommended):
+   - Download: https://developer.nvidia.com/cuda-downloads
+   - Version: 11.8 or 12.1
+   - Verify: `nvidia-smi`
+
+2. **HuggingFace Account** (required for speaker diarization):
+   - Sign up: https://huggingface.co/join
+   - Create token: https://huggingface.co/settings/tokens
+   - Accept licenses:
+     - https://huggingface.co/pyannote/speaker-diarization-3.1
+     - https://huggingface.co/pyannote/segmentation-3.0
 
 #### Configuration
 
@@ -482,26 +1140,60 @@ python -c "from faster_whisper import WhisperModel; model = WhisperModel('large-
 
 ### 5️⃣ Stable Diffusion Service
 
-#### Build Steps
+**Required Python Version:** 3.11.9 (managed by pyenv)
+
+#### Build Steps with pyenv
 
 ```bash
 cd stable-diffusion-webui
+
+# Step 1: Install Python 3.11.9 (if not already installed)
+pyenv install 3.11.9
+
+# Step 2: Set local Python version
+pyenv local 3.11.9
+
+# Step 3: Verify Python version
+python --version  # Should show: Python 3.11.9
+
+# Step 4: Run build script
 build-service-stable-diffusion.bat
+
+# Note: Virtual environment is auto-managed by webui.bat
+# The webui.bat script will detect pyenv's Python and create venv automatically
 ```
+
+#### Or Direct Launch
+
+```bash
+cd stable-diffusion-webui
+
+# Set Python version
+pyenv local 3.11.9
+
+# Run WebUI (auto-creates venv on first run)
+.\webui-user.bat
+```
+
+**⚠️ Important:** The AUTOMATIC1111 WebUI manages its own virtual environment. Just ensure Python 3.11.9 is active via pyenv before running `webui-user.bat`.
 
 #### Prerequisites
 
 1. **Git**: https://git-scm.com/download/win
-2. **NVIDIA GPU** with 4GB+ VRAM (REQUIRED)
+2. **NVIDIA GPU** with 4GB+ VRAM (**REQUIRED** - CPU mode is extremely slow)
 3. **CUDA** 11.8 or 12.1
 4. **At least one SD model** (~2-7GB)
 
-#### Initial Setup (if not cloned)
+#### Initial Setup (if repository not cloned yet)
 
 ```bash
 # Clone AUTOMATIC1111 WebUI
 git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
 cd stable-diffusion-webui
+
+# Set Python version
+pyenv install 3.11.9
+pyenv local 3.11.9
 
 # Run build script
 build-service-stable-diffusion.bat
