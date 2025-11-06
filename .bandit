@@ -5,6 +5,7 @@
 # B112: Try/except with continue (common error handling pattern)
 skips = B101,B110,B112
 
-# Exclude third-party/vendor directories and large external projects
-# These directories contain vendored code that we don't maintain
-exclude_dirs = stable-diffusion-webui,ChatBot/models,"Speech2Text Services"
+# Note: exclude_dirs is not used in this config because the workflow
+# explicitly scans only ChatBot and Speech2Text Services/app/core directories.
+# If you need to exclude subdirectories within those paths, add them here:
+# exclude_dirs = ChatBot/tests,ChatBot/venv_chatbot

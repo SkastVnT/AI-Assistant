@@ -34,20 +34,29 @@ jobs:
       run: |
         # Scan only project code paths (ChatBot and Speech2Text Services/app/core)
         # to reduce noise from third-party vendor code in stable-diffusion-webui
-        # The .bandit config file excludes vendor directories and skips common test patterns (B101, B110, B112)
+        # The .bandit config file skips common test patterns (B101, B110, B112)
         # To add more directories to the scan, update the bandit command below
         python -m pip install bandit
         bandit -r ChatBot "Speech2Text Services/app/core" --ini .bandit -f json -o bandit-report.json || true
         # Fail only if medium/high severity issues exist
         python3 <<'EOF'
         import json
-        r=json.load(open('bandit-report.json'))
-        counts={'LOW':0,'MEDIUM':0,'HIGH':0}
-        for i in r.get('results',[]):
-            sev=i.get('issue_severity','LOW').upper()
-            counts[sev]=counts.get(sev,0)+1
-        print('Bandit counts:',counts)
-        if counts['HIGH']>0 or counts['MEDIUM']>0:
+        import sys
+        
+        try:
+            with open('bandit-report.json') as f:
+                r = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f'Error reading bandit report: {e}')
+            sys.exit(1)
+        
+        counts = {'LOW': 0, 'MEDIUM': 0, 'HIGH': 0}
+        for i in r.get('results', []):
+            sev = i.get('issue_severity', 'LOW').upper()
+            counts[sev] = counts.get(sev, 0) + 1
+        
+        print('Bandit counts:', counts)
+        if counts['HIGH'] > 0 or counts['MEDIUM'] > 0:
             raise SystemExit('Bandit found medium/high issues')
         EOF
       continue-on-error: false
