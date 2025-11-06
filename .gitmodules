@@ -1,0 +1,6 @@
+
+# Removed broken submodule entry for ChatBot/models/BloomVN-8B-chat (no url in original .gitmodules causing CI failure).
+# Re-add with: 
+# [submodule "ChatBot/models/BloomVN-8B-chat"]
+#   path = ChatBot/models/BloomVN-8B-chat
+#   url = <URL_HERE>
