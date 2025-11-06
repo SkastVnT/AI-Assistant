@@ -35,3 +35,9 @@ python-dotenv==1.0.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 tiktoken==0.5.2
+
+# Phase 6: Performance & Reliability
+redis==5.0.1  # Caching (optional)
+flask-limiter==3.5.0  # Rate limiting
+tenacity==8.2.3  # Retry logic
+psutil==5.9.6  # System monitoring

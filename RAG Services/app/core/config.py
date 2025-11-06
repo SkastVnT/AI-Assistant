@@ -72,6 +72,34 @@ class Settings(BaseSettings):
     ENABLE_RERANKING: bool = False  # Can enable with free cross-encoder
     ENABLE_QUERY_EXPANSION: bool = True
     
+    # Phase 6: Performance & Reliability
+    USE_REDIS: bool = False
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: Optional[str] = None
+    REDIS_DB: int = 0
+    CACHE_DEFAULT_TTL: int = 3600  # 1 hour
+    CACHE_MAX_MEMORY_ITEMS: int = 1000
+    
+    ENABLE_RATE_LIMIT: bool = True
+    DEFAULT_RATE_LIMIT: str = "60 per minute"
+    SEARCH_RATE_LIMIT: str = "30 per minute"
+    UPLOAD_RATE_LIMIT: str = "10 per minute"
+    
+    MAX_RETRIES: int = 3
+    RETRY_INITIAL_WAIT: float = 1.0
+    RETRY_MAX_WAIT: float = 10.0
+    CIRCUIT_BREAKER_THRESHOLD: int = 5
+    CIRCUIT_BREAKER_TIMEOUT: int = 60
+    
+    ENABLE_METRICS: bool = True
+    LOG_LEVEL: str = "INFO"
+    LOG_FILE: str = "logs/rag_services.log"
+    
+    NUM_THREADS: int = 4
+    BATCH_SIZE: int = 32
+    ENABLE_EMBEDDING_CACHE: bool = True
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
@@ -82,6 +110,10 @@ class Settings(BaseSettings):
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)
         self.DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
         self.VECTORDB_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Create logs directory
+        logs_dir = Path(self.LOG_FILE).parent
+        logs_dir.mkdir(parents=True, exist_ok=True)
 
 # Global settings instance
 settings = Settings()
