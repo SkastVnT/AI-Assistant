@@ -43,7 +43,7 @@ huggingface-hub==0.21.4
 librosa==0.10.1
 soundfile==0.12.1
 scipy==1.11.4
-audioread==3.0.1
+audioread==3.1.0
 av>=12.0.0
 
 # TorchCodec (OPTIONAL - for PhoWhisper optimization)
