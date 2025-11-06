@@ -1,6 +1,7 @@
 #!/bin/bash
 # Check Python syntax across the repository
 # This script identifies syntax errors before running security scans
+# Note: This script intentionally does not use 'set -e' as it should not fail the job
 
 echo "=== Python Syntax Check ==="
 echo ""
