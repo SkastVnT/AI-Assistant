@@ -26,7 +26,8 @@ class RAGEngine:
         question: str,
         top_k: int = None,
         language: str = "auto",
-        filter_metadata: Optional[Dict] = None
+        filter_metadata: Optional[Dict] = None,
+        conversation_context: Optional[str] = None
     ) -> Dict:
         """
         Answer question using RAG
@@ -36,18 +37,26 @@ class RAGEngine:
             top_k: Number of chunks to retrieve
             language: Response language (auto, vi, en)
             filter_metadata: Optional filters for search
+            conversation_context: Previous conversation for context
             
         Returns:
             Dict with answer, sources, and metadata
         """
         top_k = top_k or settings.TOP_K_RESULTS
         
-        print(f"🔍 RAG Query: {question}")
+        # Enhance question with conversation context if available
+        enhanced_question = question
+        if conversation_context:
+            enhanced_question = f"{conversation_context}\n\nCurrent question: {question}"
+            print(f"🔍 RAG Query with conversation context: {question}")
+        else:
+            print(f"🔍 RAG Query: {question}")
+        
         print(f"   Retrieving top {top_k} chunks...")
         
         # Step 1: Retrieve relevant chunks
         search_results = self.vector_store.search(
-            query=question,
+            query=enhanced_question,
             top_k=top_k,
             filter_metadata=filter_metadata
         )
@@ -65,10 +74,16 @@ class RAGEngine:
         # Step 2: Generate answer with LLM
         print(f"   🤖 Generating answer with {self.llm_client.model.model_name if self.llm_client.model else 'LLM'}...")
         
+        # Build context with conversation history if available
+        context_prefix = ""
+        if conversation_context:
+            context_prefix = f"**Previous conversation:**\n{conversation_context}\n\n**Retrieved documents:**\n"
+        
         llm_response = self.llm_client.generate_answer(
             query=question,
             context_chunks=search_results,
-            language=language
+            language=language,
+            conversation_context=context_prefix
         )
         
         print(f"   ✓ Answer generated")
@@ -81,7 +96,8 @@ class RAGEngine:
             'search_results': search_results,  # Include for debugging/display
             'model': llm_response.get('model', 'unknown'),
             'mode': 'rag',
-            'query': question
+            'query': question,
+            'used_history': conversation_context is not None
         }
     
     def query_with_history(

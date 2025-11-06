@@ -44,7 +44,8 @@ class FreeLLMClient:
         self,
         query: str,
         context_chunks: List[Dict],
-        language: str = "auto"
+        language: str = "auto",
+        conversation_context: Optional[str] = None
     ) -> Dict:
         """
         Generate answer from query and context
@@ -53,6 +54,7 @@ class FreeLLMClient:
             query: User question
             context_chunks: Retrieved relevant chunks
             language: Response language (auto, vi, en)
+            conversation_context: Previous conversation for context
             
         Returns:
             Dict with answer, sources, and metadata
@@ -68,8 +70,8 @@ class FreeLLMClient:
             # Build context from chunks
             context = self._build_context(context_chunks)
             
-            # Create prompt
-            prompt = self._create_prompt(query, context, language)
+            # Create prompt (with conversation context if available)
+            prompt = self._create_prompt(query, context, language, conversation_context)
             
             # Generate response
             response = self.model.generate_content(prompt)
@@ -107,8 +109,14 @@ class FreeLLMClient:
         
         return "\n".join(context_parts)
     
-    def _create_prompt(self, query: str, context: str, language: str) -> str:
-        """Create RAG prompt"""
+    def _create_prompt(
+        self, 
+        query: str, 
+        context: str, 
+        language: str,
+        conversation_context: Optional[str] = None
+    ) -> str:
+        """Create RAG prompt with optional conversation context"""
         
         language_instruction = ""
         if language == "vi":
@@ -117,6 +125,11 @@ class FreeLLMClient:
             language_instruction = "Answer in English."
         else:
             language_instruction = "Detect the query language and respond in the same language."
+        
+        # Add conversation context if available
+        context_section = ""
+        if conversation_context:
+            context_section = f"\n{conversation_context}\n"
         
         prompt = f"""You are a helpful AI assistant that answers questions based on provided documents.
 
@@ -127,7 +140,7 @@ IMPORTANT INSTRUCTIONS:
 4. Be concise but comprehensive
 5. {language_instruction}
 6. Format your answer with markdown (bold, bullet points, etc.)
-
+{context_section}
 DOCUMENTS:
 {context}
 

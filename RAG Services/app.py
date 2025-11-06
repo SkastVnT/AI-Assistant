@@ -7,11 +7,16 @@ from flask_cors import CORS
 import os
 from pathlib import Path
 from werkzeug.utils import secure_filename
+from datetime import datetime
+import time
 
 from app.core.config import settings, MODELS_INFO
 from app.core.vectorstore import get_vector_store
 from app.core.document_processor import DocumentProcessor
 from app.core.rag_engine import get_rag_engine
+from app.core.chat_history import get_chat_history
+from app.core.filters import SearchFilters
+from app.core.analytics import get_analytics_tracker
 
 # Initialize Flask app
 app = Flask(__name__, 
@@ -115,28 +120,88 @@ def upload_document():
 def search():
     """
     Semantic search in documents
-    Request body: { "query": "...", "top_k": 5 }
+    Request body: { 
+        "query": "...", 
+        "top_k": 5,
+        "filters": {
+            "documents": [...],
+            "file_types": [...],
+            "min_score": 0.7
+        }
+    }
     """
+    start_time = time.time()
+    
     try:
         data = request.get_json()
         query = data.get('query', '')
         top_k = data.get('top_k', settings.TOP_K_RESULTS)
+        filters = data.get('filters', {})
         
         if not query:
             return jsonify({'error': 'Query is required'}), 400
         
         # Search in vector store
         vector_store = get_vector_store()
-        results = vector_store.search(query, top_k=top_k)
+        results = vector_store.search(query, top_k=top_k * 2)  # Get more for filtering
+        
+        # Apply advanced filters
+        if filters.get('documents'):
+            results = SearchFilters.filter_by_documents(results, filters['documents'])
+        
+        if filters.get('file_types'):
+            results = SearchFilters.filter_by_file_type(results, filters['file_types'])
+        
+        if filters.get('min_score'):
+            results = SearchFilters.filter_by_score(
+                results, 
+                min_score=filters['min_score']
+            )
+        
+        # Limit to top_k after filtering
+        results = results[:top_k]
+        
+        # Track analytics
+        response_time = time.time() - start_time
+        documents_used = SearchFilters.get_available_documents(results)
+        
+        analytics = get_analytics_tracker()
+        analytics.track_query(
+            query=query,
+            mode='search',
+            results_count=len(results),
+            response_time=response_time,
+            success=True,
+            documents_used=documents_used
+        )
+        
+        # Get statistics
+        stats = SearchFilters.get_statistics(results)
         
         return jsonify({
             'query': query,
             'results': results,
-            'count': len(results)
+            'count': len(results),
+            'stats': stats,
+            'response_time': response_time
         })
         
     except Exception as e:
         print(f"❌ Search error: {e}")
+        
+        # Track failed query
+        try:
+            analytics = get_analytics_tracker()
+            analytics.track_query(
+                query=query,
+                mode='search',
+                results_count=0,
+                response_time=time.time() - start_time,
+                success=False
+            )
+        except:
+            pass
+        
         return jsonify({'error': str(e)}), 500
 
 
@@ -201,14 +266,20 @@ def rag_query():
     Request body: { 
         "query": "...", 
         "top_k": 5,
-        "language": "auto"  // auto, vi, en
+        "language": "auto",  // auto, vi, en
+        "use_history": false,
+        "session_id": null
     }
     """
+    start_time = time.time()
+    
     try:
         data = request.get_json()
         query = data.get('query', '')
         top_k = data.get('top_k', settings.TOP_K_RESULTS)
         language = data.get('language', 'auto')
+        use_history = data.get('use_history', False)
+        session_id = data.get('session_id')
         
         if not query:
             return jsonify({'error': 'Query is required'}), 400
@@ -216,17 +287,73 @@ def rag_query():
         # Get RAG engine
         rag_engine = get_rag_engine()
         
+        # Get chat history if needed
+        chat_history = get_chat_history()
+        conversation_context = None
+        
+        if use_history and session_id:
+            try:
+                chat_history.load_session(session_id)
+                conversation_context = chat_history.get_context_for_query(max_messages=6)
+            except:
+                pass  # Continue without history
+        
         # Generate answer
         result = rag_engine.query(
             question=query,
             top_k=top_k,
-            language=language
+            language=language,
+            conversation_context=conversation_context
         )
         
+        # Save to chat history if session active
+        if session_id:
+            try:
+                if not use_history:  # Start new session
+                    chat_history.start_session(session_id)
+                
+                chat_history.add_message('user', query)
+                chat_history.add_message(
+                    'assistant', 
+                    result['answer'],
+                    metadata={'sources': result.get('sources', [])}
+                )
+            except Exception as e:
+                print(f"⚠️ Failed to save to chat history: {e}")
+        
+        # Track analytics
+        response_time = time.time() - start_time
+        documents_used = [s['source'] for s in result.get('sources', [])]
+        
+        analytics = get_analytics_tracker()
+        analytics.track_query(
+            query=query,
+            mode='rag',
+            results_count=len(result.get('sources', [])),
+            response_time=response_time,
+            success=True,
+            documents_used=documents_used
+        )
+        
+        result['response_time'] = response_time
         return jsonify(result)
         
     except Exception as e:
         print(f"❌ RAG query error: {e}")
+        
+        # Track failed query
+        try:
+            analytics = get_analytics_tracker()
+            analytics.track_query(
+                query=query,
+                mode='rag',
+                results_count=0,
+                response_time=time.time() - start_time,
+                success=False
+            )
+        except:
+            pass
+        
         return jsonify({'error': str(e)}), 500
 
 
@@ -248,6 +375,249 @@ def rag_status():
             'available': False,
             'error': str(e)
         }), 500
+
+
+# ==================== CHAT HISTORY ENDPOINTS ====================
+
+@app.route('/api/chat/start', methods=['POST'])
+def start_chat():
+    """
+    Start new chat session
+    Request body: { "session_id": "optional-custom-id" }
+    """
+    try:
+        data = request.get_json() or {}
+        session_id = data.get('session_id')
+        
+        chat_history = get_chat_history()
+        session_id = chat_history.start_session(session_id)
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'message': 'New chat session started'
+        })
+        
+    except Exception as e:
+        print(f"❌ Start chat error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat/sessions', methods=['GET'])
+def list_sessions():
+    """List all saved chat sessions"""
+    try:
+        chat_history = get_chat_history()
+        sessions = chat_history.list_sessions()
+        
+        return jsonify({
+            'sessions': sessions,
+            'count': len(sessions)
+        })
+        
+    except Exception as e:
+        print(f"❌ List sessions error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat/session/<session_id>', methods=['GET'])
+def get_session(session_id):
+    """Load specific chat session"""
+    try:
+        chat_history = get_chat_history()
+        session_data = chat_history.load_session(session_id)
+        
+        if not session_data:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        return jsonify(session_data)
+        
+    except Exception as e:
+        print(f"❌ Get session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat/session/<session_id>/save', methods=['POST'])
+def save_session(session_id):
+    """
+    Save current session
+    Request body: { "session_name": "Optional custom name" }
+    """
+    try:
+        data = request.get_json() or {}
+        session_name = data.get('session_name')
+        
+        chat_history = get_chat_history()
+        chat_history.load_session(session_id)  # Load if not current
+        chat_history.save_session(session_name)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Session saved successfully'
+        })
+        
+    except Exception as e:
+        print(f"❌ Save session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat/session/<session_id>', methods=['DELETE'])
+def delete_session(session_id):
+    """Delete chat session"""
+    try:
+        chat_history = get_chat_history()
+        chat_history.delete_session(session_id)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Session {session_id} deleted'
+        })
+        
+    except Exception as e:
+        print(f"❌ Delete session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat/session/<session_id>/export', methods=['GET'])
+def export_session(session_id):
+    """
+    Export chat session
+    Query params: ?format=txt (or md)
+    """
+    try:
+        format_type = request.args.get('format', 'txt')
+        
+        chat_history = get_chat_history()
+        content = chat_history.export_session(session_id, format_type)
+        
+        if not content:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        # Return as file
+        from flask import Response
+        
+        filename = f"chat_{session_id}.{format_type}"
+        return Response(
+            content,
+            mimetype='text/plain',
+            headers={
+                'Content-Disposition': f'attachment; filename={filename}'
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Export session error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== FILTER & ANALYTICS ENDPOINTS ====================
+
+@app.route('/api/filters/available', methods=['GET'])
+def get_available_filters():
+    """Get available filter options"""
+    try:
+        vector_store = get_vector_store()
+        stats = vector_store.get_stats()
+        
+        # Get all documents
+        documents = stats.get('sources', [])
+        
+        # Extract file types
+        file_types = set()
+        for doc in documents:
+            ext = '.' + doc.get('file_type', '').lower()
+            if ext != '.':
+                file_types.add(ext)
+        
+        return jsonify({
+            'documents': [d['name'] for d in documents],
+            'file_types': sorted(list(file_types)),
+            'total_documents': len(documents)
+        })
+        
+    except Exception as e:
+        print(f"❌ Get filters error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/dashboard', methods=['GET'])
+def get_analytics_dashboard():
+    """Get complete analytics dashboard"""
+    try:
+        analytics = get_analytics_tracker()
+        dashboard = analytics.get_dashboard_data()
+        
+        return jsonify(dashboard)
+        
+    except Exception as e:
+        print(f"❌ Analytics error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/trends', methods=['GET'])
+def get_query_trends():
+    """
+    Get query trends
+    Query params: ?period=day (or hour, week)
+    """
+    try:
+        period = request.args.get('period', 'day')
+        
+        analytics = get_analytics_tracker()
+        trends = analytics.get_query_trends(period)
+        
+        return jsonify({
+            'period': period,
+            'trends': trends
+        })
+        
+    except Exception as e:
+        print(f"❌ Trends error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/popular', methods=['GET'])
+def get_popular_items():
+    """Get popular queries and documents"""
+    try:
+        top_n = int(request.args.get('top_n', 10))
+        
+        analytics = get_analytics_tracker()
+        
+        return jsonify({
+            'popular_queries': analytics.get_popular_queries(top_n),
+            'popular_documents': analytics.get_popular_documents(top_n)
+        })
+        
+    except Exception as e:
+        print(f"❌ Popular items error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/export', methods=['GET'])
+def export_analytics():
+    """Export analytics report"""
+    try:
+        analytics = get_analytics_tracker()
+        
+        # Export to temp file
+        from tempfile import NamedTemporaryFile
+        
+        with NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            analytics.export_report(Path(f.name))
+            temp_path = f.name
+        
+        # Read and return
+        from flask import send_file
+        return send_file(
+            temp_path,
+            as_attachment=True,
+            download_name=f'analytics_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+        )
+        
+    except Exception as e:
+        print(f"❌ Export analytics error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
