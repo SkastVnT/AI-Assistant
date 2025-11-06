@@ -1,6 +1,16 @@
 
-# Removed broken submodule entry for ChatBot/models/BloomVN-8B-chat (no url in original .gitmodules causing CI failure).
-# Re-add with: 
-# [submodule "ChatBot/models/BloomVN-8B-chat"]
-#   path = ChatBot/models/BloomVN-8B-chat
-#   url = <URL_HERE>
+# ============================================================================
+# Removed broken submodule entries (no URL configured, causing CI failures)
+# ============================================================================
+#
+# The following submodules were removed from .gitmodules because they had no
+# URL field, causing "fatal: No url found for submodule path" errors:
+#
+# 1. ChatBot/models/BloomVN-8B-chat
+# 2. ChatBot/models/Qwen2.5-14B-Instruct  
+# 3. stable-diffusion-webui/models/OrangeMixs
+#
+# To re-add a submodule with proper URL:
+# [submodule "path/to/submodule"]
+#   path = path/to/submodule
+#   url = <repository-url>

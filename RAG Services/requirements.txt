@@ -1,2 +1,10 @@
-transformers==4.48.0
-# underthesea==6.7.0  # removed because GPL-3.0-or-later is denied by CI. Replace with a permissively-licensed alternative if needed.
+# ============================================================================
+# RAG Services - AI Assistant Project
+# Description: RAG (Retrieval-Augmented Generation) Service
+# ============================================================================
+
+# ============= NLP & TRANSFORMERS =============
+transformers>=4.48.0  # Minimum 4.48.0 for security patches (fixes GHSA-hxxf-235m-72v3, GHSA-wrfc-pvp9-mr9g)
+
+# ============= REMOVED DEPENDENCIES =============
+# underthesea==6.7.0  # Removed: GPL-3.0-or-later license denied by CI. Replace with permissively-licensed alternative if needed.
