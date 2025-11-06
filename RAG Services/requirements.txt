@@ -1,0 +1,37 @@
+# RAG Services - Free Models Only
+# Core Framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# Vector Database (FREE - Local)
+chromadb==0.4.22
+
+# Embeddings (FREE - Open Source)
+sentence-transformers==2.3.1
+transformers==4.36.2
+
+# Document Processing
+pypdf==3.17.4
+python-docx==1.1.0
+python-pptx==0.6.23
+openpyxl==3.1.2
+markdown==3.5.1
+
+# Text Processing
+langchain==0.1.0
+langchain-community==0.0.10
+unstructured==0.11.8
+
+# Vietnamese Support (FREE)
+underthesea==6.7.0
+pyvi==0.1.1
+
+# LLM Integration (FREE APIs)
+google-generativeai==0.3.2  # Gemini Free API
+openai==1.6.1  # For compatible APIs
+
+# Utils
+python-dotenv==1.0.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+tiktoken==0.5.2
