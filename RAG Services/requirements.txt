@@ -1,2 +1,2 @@
-transformers==4.37.1
+transformers==4.48.0
 # underthesea==6.7.0  # removed because GPL-3.0-or-later is denied by CI. Replace with a permissively-licensed alternative if needed.
