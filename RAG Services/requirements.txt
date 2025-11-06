@@ -1,0 +1,46 @@
+# RAG Services - Free Models Only
+# Core Framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# Vector Database (FREE - Local)
+chromadb==0.4.22
+
+# Embeddings (FREE - Open Source)
+sentence-transformers==2.3.1
+# transformers had known deserialization vulnerabilities; upgrade to a fixed release range
+transformers>=4.38.0,<5.0.0
+
+# Document Processing
+pypdf==3.17.4
+python-docx==1.1.0
+python-pptx==0.6.23
+openpyxl==3.1.2
+markdown==3.5.1
+
+# Text Processing
+langchain==0.1.0
+langchain-community==0.0.10
+unstructured==0.11.8
+
+# Vietnamese Support (FREE)
+# underthesea (GPL-3.0-or-later) removed to comply with CI license policy.
+# If you need Vietnamese NLP, consider an alternative with a compatible license and add it as an optional dependency.
+# Example placeholder: # underthesea==6.7.0  # GPL-3.0-or-later - not compatible with project license
+pyvi==0.1.1
+
+# LLM Integration (FREE APIs)
+google-generativeai==0.3.2  # Gemini Free API
+openai==1.6.1  # For compatible APIs
+
+# Utils
+python-dotenv==1.0.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+tiktoken==0.5.2
+
+# Phase 6: Performance & Reliability
+redis==5.0.1  # Caching (optional)
+flask-limiter==3.5.0  # Rate limiting
+tenacity==8.2.3  # Retry logic
+psutil==5.9.6  # System monitoring

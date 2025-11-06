@@ -1,0 +1,3 @@
+[submodule "ChatBot/models/BloomVN-8B-chat"]
+	path = ChatBot/models/BloomVN-8B-chat
+	url = https://github.com/SkastVnT/BloomVN-8B-chat.git
