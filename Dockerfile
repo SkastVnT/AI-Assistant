@@ -1,6 +1,6 @@
 # Dockerfile for AI Assistant Hub
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 LABEL maintainer="AI Assistant Team"
 LABEL description="Hub Gateway for AI Assistant Platform"
