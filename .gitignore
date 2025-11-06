@@ -71,6 +71,7 @@ temp/
 *.tmp
 *.bak
 *.backup
+bandit-report.json
 
 # ============================================
 # OS
