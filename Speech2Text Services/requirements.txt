@@ -67,7 +67,7 @@ flask==3.0.2
 flask-cors==4.0.0
 flask-socketio==5.3.6
 python-socketio==5.11.1
-eventlet==0.35.2
+eventlet==0.40.3
 
 # ============= DEVELOPMENT =============
 # Code formatting
