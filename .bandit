@@ -1,0 +1,10 @@
+[bandit]
+# Skip checks that are expected in third-party code or tests
+# B101: Use of assert detected (common in tests)
+# B110: Try/except with pass (common error handling pattern)
+# B112: Try/except with continue (common error handling pattern)
+skips = B101,B110,B112
+
+# Exclude third-party/vendor directories and large external projects
+# These directories contain vendored code that we don't maintain
+exclude_dirs = stable-diffusion-webui,ChatBot/models,"Speech2Text Services"
