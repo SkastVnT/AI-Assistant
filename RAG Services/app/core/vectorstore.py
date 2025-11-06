@@ -1,12 +1,14 @@
 """
 ChromaDB Vector Store - FREE Local Database
 No API costs, unlimited storage, persistent
+With Vietnamese query optimization
 """
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 from typing import List, Dict, Optional, Any
 from .config import settings
 from .embeddings import get_embedding_model
+from .vietnamese_processor import get_vietnamese_processor
 import uuid
 
 class VectorStore:
@@ -83,23 +85,39 @@ class VectorStore:
         self,
         query: str,
         top_k: int = None,
-        filter_metadata: Optional[Dict[str, Any]] = None
+        filter_metadata: Optional[Dict[str, Any]] = None,
+        optimize_vietnamese: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Semantic search in vector store
+        With Vietnamese query optimization
         
         Args:
             query: Search query
             top_k: Number of results (default from settings)
             filter_metadata: Optional metadata filters
+            optimize_vietnamese: Apply Vietnamese query processing
             
         Returns:
             List of results with text, metadata, and score
         """
         top_k = top_k or settings.TOP_K_RESULTS
         
+        # Optimize query if Vietnamese
+        processed_query = query
+        if optimize_vietnamese:
+            try:
+                vi_processor = get_vietnamese_processor()
+                lang = vi_processor.detect_language(query)
+                
+                if lang == 'vi':
+                    processed_query = vi_processor.process_query(query, enhance=True)
+                    print(f"   🇻🇳 Vietnamese query optimized: '{query}' → '{processed_query}'")
+            except Exception as e:
+                print(f"   ⚠️  Vietnamese query optimization failed: {e}")
+        
         # Generate query embedding (FREE)
-        query_embedding = self.embedding_model.embed_text(query)
+        query_embedding = self.embedding_model.embed_text(processed_query)
         
         # Search in ChromaDB
         results = self.collection.query(

@@ -620,6 +620,93 @@ def export_analytics():
         return jsonify({'error': str(e)}), 500
 
 
+# ==================== VIETNAMESE OPTIMIZATION ENDPOINTS ====================
+
+@app.route('/api/vietnamese/analyze', methods=['POST'])
+def analyze_vietnamese_text():
+    """
+    Analyze Vietnamese text
+    Request body: { "text": "..." }
+    """
+    try:
+        from app.core.vietnamese_processor import get_vietnamese_processor
+        
+        data = request.get_json()
+        text = data.get('text', '')
+        
+        if not text:
+            return jsonify({'error': 'Text is required'}), 400
+        
+        vi_processor = get_vietnamese_processor()
+        
+        # Analyze text
+        result = {
+            'language': vi_processor.detect_language(text),
+            'statistics': vi_processor.get_statistics(text),
+            'cleaned': vi_processor.clean_text(text),
+            'sentences': vi_processor.segment_sentences(text),
+            'tokens': vi_processor.tokenize_words(text)
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ Vietnamese analysis error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/vietnamese/process', methods=['POST'])
+def process_vietnamese_query():
+    """
+    Process Vietnamese query for search
+    Request body: { "query": "...", "enhance": true }
+    """
+    try:
+        from app.core.vietnamese_processor import get_vietnamese_processor
+        
+        data = request.get_json()
+        query = data.get('query', '')
+        enhance = data.get('enhance', True)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        vi_processor = get_vietnamese_processor()
+        
+        # Process query
+        result = {
+            'original': query,
+            'language': vi_processor.detect_language(query),
+            'processed': vi_processor.process_query(query, enhance),
+            'tokens': vi_processor.tokenize_words(query),
+            'cleaned': vi_processor.clean_text(query)
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ Vietnamese processing error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/vietnamese/status', methods=['GET'])
+def vietnamese_status():
+    """Check if Vietnamese libraries are available"""
+    try:
+        from app.core.vietnamese_processor import VIETNAMESE_AVAILABLE
+        
+        return jsonify({
+            'available': VIETNAMESE_AVAILABLE,
+            'message': 'Vietnamese optimization ready' if VIETNAMESE_AVAILABLE else 'Vietnamese libraries not installed'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'available': False,
+            'error': str(e)
+        }), 500
+
+
 if __name__ == '__main__':
     print(f"""
     
@@ -629,7 +716,7 @@ if __name__ == '__main__':
     ║     Semantic Search & Knowledge Base                      ║
     ║                                                           ║
     ║     💰 100% FREE - No API costs                           ║
-    ║     🌍 Vietnamese-optimized                               ║
+    ║     �🇳 Vietnamese-optimized (Phase 5)                     ║
     ║                                                           ║
     ║     Models:                                               ║
     ║     📊 Embedding: {MODELS_INFO['embedding']['name'][:30]:<30} ║
@@ -640,12 +727,19 @@ if __name__ == '__main__':
     ╚═══════════════════════════════════════════════════════════╝
     
     Phase 1: Core RAG ✅
-    - Document upload
-    - Text extraction
-    - Semantic search
-    - Vector storage
+    Phase 2: Web UI ✅  
+    Phase 3: LLM Integration ✅
+    Phase 4: Advanced Features ✅
+    Phase 5: Vietnamese Optimization ✅
     
-    Next: Phase 2 - Web UI 🎨
+    Features:
+    - 🔍 Semantic search
+    - 💬 Chat history
+    - 🔧 Advanced filters
+    - 📊 Analytics dashboard
+    - 🇻🇳 Vietnamese text processing
+    
+    Ready to serve! 🚀
     """)
     
     app.run(

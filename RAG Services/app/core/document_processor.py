@@ -1,6 +1,7 @@
 """
 Document Processing - Extract text from various formats
 All FREE libraries
+With Vietnamese optimization support
 """
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ from openpyxl import load_workbook
 import markdown
 
 from .config import settings
+from .vietnamese_processor import get_vietnamese_processor
 
 class DocumentProcessor:
     """
@@ -146,14 +148,21 @@ class DocumentProcessor:
             return ""
     
     @staticmethod
-    def chunk_text(text: str, chunk_size: int = None, overlap: int = None) -> List[str]:
+    def chunk_text(
+        text: str, 
+        chunk_size: int = None, 
+        overlap: int = None,
+        use_vietnamese: bool = True
+    ) -> List[str]:
         """
         Split text into chunks with overlap
+        Vietnamese-aware sentence segmentation
         
         Args:
             text: Text to chunk
             chunk_size: Size of each chunk (default from settings)
             overlap: Overlap between chunks (default from settings)
+            use_vietnamese: Use Vietnamese-aware chunking
             
         Returns:
             List of text chunks
@@ -161,7 +170,21 @@ class DocumentProcessor:
         chunk_size = chunk_size or settings.CHUNK_SIZE
         overlap = overlap or settings.CHUNK_OVERLAP
         
-        # Split by sentences first (better semantic boundaries)
+        # Try Vietnamese-aware chunking first
+        if use_vietnamese:
+            try:
+                vi_processor = get_vietnamese_processor()
+                
+                # Detect if text is Vietnamese
+                lang = vi_processor.detect_language(text)
+                
+                if lang == 'vi':
+                    print(f"   🇻🇳 Vietnamese text detected - using optimized chunking")
+                    return vi_processor.chunk_vietnamese_text(text, chunk_size, overlap)
+            except Exception as e:
+                print(f"   ⚠️  Vietnamese chunking failed, using fallback: {e}")
+        
+        # Fallback to simple sentence-based chunking
         sentences = re.split(r'(?<=[.!?])\s+', text)
         
         chunks = []
@@ -194,15 +217,18 @@ class DocumentProcessor:
         cls,
         file_path: str,
         chunk_size: int = None,
-        overlap: int = None
+        overlap: int = None,
+        use_vietnamese: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Process file and return chunks with metadata
+        With Vietnamese text preprocessing
         
         Args:
             file_path: Path to file
             chunk_size: Chunk size
             overlap: Overlap size
+            use_vietnamese: Use Vietnamese optimization
             
         Returns:
             List of dicts with 'text' and 'metadata'
@@ -212,8 +238,26 @@ class DocumentProcessor:
         if not text:
             return []
         
+        # Preprocess text if Vietnamese
+        if use_vietnamese:
+            try:
+                vi_processor = get_vietnamese_processor(
+                    use_tokenization=False,  # Don't tokenize at this stage
+                    remove_stopwords=False
+                )
+                
+                # Clean and normalize
+                text = vi_processor.clean_text(text)
+                
+                # Get statistics
+                stats = vi_processor.get_statistics(text)
+                if stats['vietnamese_ratio'] > 0.1:
+                    print(f"   🇻🇳 Vietnamese content: {stats['vietnamese_ratio']*100:.1f}%")
+            except Exception as e:
+                print(f"   ⚠️  Vietnamese preprocessing failed: {e}")
+        
         # Chunk text
-        chunks = cls.chunk_text(text, chunk_size, overlap)
+        chunks = cls.chunk_text(text, chunk_size, overlap, use_vietnamese)
         
         # Add metadata
         file_name = Path(file_path).name
