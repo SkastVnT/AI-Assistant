@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 RAG Services - Semantic Search & Knowledge Base</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .search-result {
+            transition: all 0.3s ease;
+        }
+        
+        .search-result:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area.dragging {
+            border-color: #667eea;
+            background-color: #f7fafc;
+        }
+        
+        .score-bar {
+            transition: width 0.5s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-search text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">RAG Services</h1>
+                        <p class="text-sm opacity-90">Semantic Search & Knowledge Base</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="glass-effect px-4 py-2 rounded-full text-sm">
+                        <i class="fas fa-check-circle"></i> 100% FREE
+                    </span>
+                    <span class="glass-effect px-4 py-2 rounded-full text-sm" id="statsDisplay">
+                        <i class="fas fa-database"></i> <span id="docCount">0</span> docs
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Sidebar - Upload & Documents -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Upload Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-upload text-blue-500 mr-2"></i>
+                        Upload Documents
+                    </h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center cursor-pointer" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-600 mb-2">Drag & drop files here</p>
+                        <p class="text-sm text-gray-400 mb-4">or click to browse</p>
+                        <input type="file" id="fileInput" class="hidden" accept=".pdf,.docx,.doc,.pptx,.xlsx,.txt,.md,.html" multiple>
+                        <button onclick="document.getElementById('fileInput').click()" 
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            Choose Files
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4 text-xs text-gray-500">
+                        <p><i class="fas fa-info-circle mr-1"></i> Supported formats:</p>
+                        <p class="mt-1">PDF, DOCX, PPTX, XLSX, TXT, MD, HTML</p>
+                        <p class="mt-1">Max size: 50MB per file</p>
+                    </div>
+                </div>
+                
+                <!-- Documents List -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold mb-4 flex items-center justify-between">
+                        <span>
+                            <i class="fas fa-folder text-yellow-500 mr-2"></i>
+                            My Documents
+                        </span>
+                        <button onclick="refreshDocuments()" class="text-sm text-blue-500 hover:text-blue-600">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </h2>
+                    
+                    <div id="documentsList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-8">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>No documents yet</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Info -->
+                <div class="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
+                    <h3 class="font-bold mb-3 flex items-center">
+                        <i class="fas fa-robot mr-2"></i>
+                        System Info
+                    </h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-80">Embedding:</span>
+                            <span class="font-semibold" id="embeddingModel">Loading...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-80">VectorDB:</span>
+                            <span class="font-semibold">ChromaDB</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-80">Status:</span>
+                            <span class="font-semibold text-green-300" id="systemStatus">
+                                <i class="fas fa-circle text-xs"></i> Online
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content - Search & Results -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Search Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-search text-green-500 mr-2"></i>
+                        Semantic Search
+                    </h2>
+                    
+                    <div class="relative">
+                        <input type="text" 
+                               id="searchInput" 
+                               placeholder="Ask anything about your documents... (e.g., 'What is machine learning?')"
+                               class="w-full px-4 py-3 pr-32 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                               onkeypress="if(event.key === 'Enter') performSearch()">
+                        
+                        <div class="absolute right-2 top-2 flex space-x-2">
+                            <select id="topKSelect" class="px-3 py-1 border border-gray-300 rounded text-sm">
+                                <option value="3">Top 3</option>
+                                <option value="5" selected>Top 5</option>
+                                <option value="10">Top 10</option>
+                            </select>
+                            <button onclick="performSearch()" 
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-1 rounded transition">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button onclick="setQuery('What is machine learning?')" 
+                                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition">
+                            💡 What is ML?
+                        </button>
+                        <button onclick="setQuery('How does it work?')" 
+                                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition">
+                            ⚙️ How does it work?
+                        </button>
+                        <button onclick="setQuery('Give me examples')" 
+                                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition">
+                            📚 Examples
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Search Status -->
+                <div id="searchStatus" class="hidden">
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                        <div class="flex items-center">
+                            <i class="fas fa-spinner fa-spin text-blue-500 mr-3"></i>
+                            <span class="text-blue-700">Searching through your documents...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div id="resultsContainer" class="hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-bold flex items-center">
+                                <i class="fas fa-list-ul text-purple-500 mr-2"></i>
+                                Search Results
+                            </h2>
+                            <span id="resultCount" class="text-sm text-gray-500"></span>
+                        </div>
+                        
+                        <div id="results" class="space-y-4"></div>
+                    </div>
+                </div>
+                
+                <!-- Welcome Message -->
+                <div id="welcomeMessage" class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg shadow-lg p-8">
+                    <div class="text-center">
+                        <i class="fas fa-magic text-6xl text-purple-500 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-3 text-gray-800">Welcome to RAG Services!</h3>
+                        <p class="text-gray-600 mb-6 max-w-2xl mx-auto">
+                            Upload your documents and start asking questions. Our AI will search through your knowledge base 
+                            using semantic understanding - not just keywords!
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                            <div class="bg-white p-4 rounded-lg">
+                                <i class="fas fa-upload text-3xl text-blue-500 mb-2"></i>
+                                <h4 class="font-semibold mb-1">1. Upload</h4>
+                                <p class="text-sm text-gray-600">Add your PDF, DOCX, or other documents</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg">
+                                <i class="fas fa-search text-3xl text-green-500 mb-2"></i>
+                                <h4 class="font-semibold mb-1">2. Search</h4>
+                                <p class="text-sm text-gray-600">Ask questions in natural language</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg">
+                                <i class="fas fa-lightbulb text-3xl text-yellow-500 mb-2"></i>
+                                <h4 class="font-semibold mb-1">3. Discover</h4>
+                                <p class="text-sm text-gray-600">Get relevant answers instantly</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 hidden">
+        <div class="bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3">
+            <i id="toastIcon" class="fas fa-check-circle"></i>
+            <span id="toastMessage">Success!</span>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <i class="fas fa-spinner fa-spin text-5xl text-blue-500 mb-4"></i>
+            <p class="text-xl font-semibold" id="loadingMessage">Processing...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

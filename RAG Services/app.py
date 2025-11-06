@@ -13,7 +13,9 @@ from app.core.vectorstore import get_vector_store
 from app.core.document_processor import DocumentProcessor
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='app/templates',
+            static_folder='app/static')
 app.config['SECRET_KEY'] = 'rag-services-secret-key-2024'
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_FILE_SIZE
 
