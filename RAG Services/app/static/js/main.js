@@ -663,3 +663,743 @@ function hideLoading() {
     document.getElementById('loadingModal').classList.add('hidden');
     document.getElementById('loadingModal').classList.remove('flex');
 }
+
+// ==================== PHASE 4: ADVANCED FEATURES ====================
+
+// Global state for Phase 4
+let currentSessionId = null;
+let currentFilters = {
+    documents: [],
+    fileTypes: [],
+    minScore: 0.7
+};
+let trendsChart = null;
+
+/**
+ * Show/hide main tabs
+ */
+function showTab(tab) {
+    const searchSection = document.querySelector('#welcomeMessage').parentElement;
+    const analyticsSection = document.getElementById('analyticsSection');
+    const searchTabBtn = document.getElementById('searchTabBtn');
+    const analyticsTabBtn = document.getElementById('analyticsTabBtn');
+    
+    if (tab === 'search') {
+        searchSection.classList.remove('hidden');
+        analyticsSection.classList.add('hidden');
+        searchTabBtn.classList.add('bg-white', 'bg-opacity-20');
+        searchTabBtn.classList.remove('hover:bg-white', 'hover:bg-opacity-10');
+        analyticsTabBtn.classList.remove('bg-white', 'bg-opacity-20');
+        analyticsTabBtn.classList.add('hover:bg-white', 'hover:bg-opacity-10');
+    } else if (tab === 'analytics') {
+        searchSection.classList.add('hidden');
+        analyticsSection.classList.remove('hidden');
+        analyticsTabBtn.classList.add('bg-white', 'bg-opacity-20');
+        analyticsTabBtn.classList.remove('hover:bg-white', 'hover:bg-opacity-10');
+        searchTabBtn.classList.remove('bg-white', 'bg-opacity-20');
+        searchTabBtn.classList.add('hover:bg-white', 'hover:bg-opacity-10');
+        
+        // Load analytics data
+        loadAnalyticsDashboard();
+    }
+}
+
+// ==================== CHAT HISTORY FUNCTIONS ====================
+
+/**
+ * Start new chat session
+ */
+async function startNewChat() {
+    try {
+        const response = await fetch(`${API_BASE}/api/chat/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            currentSessionId = data.session_id;
+            document.getElementById('currentSessionInfo').classList.remove('hidden');
+            document.getElementById('sessionNameInput').value = '';
+            document.getElementById('sessionMessageCount').textContent = '0 messages';
+            showToast('success', '✨ New chat started!');
+            await loadChatSessions();
+        }
+    } catch (error) {
+        console.error('Error starting chat:', error);
+        showToast('error', 'Failed to start new chat');
+    }
+}
+
+/**
+ * Save current session
+ */
+async function saveCurrentSession() {
+    if (!currentSessionId) {
+        showToast('warning', 'No active session');
+        return;
+    }
+    
+    const sessionName = document.getElementById('sessionNameInput').value.trim();
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/chat/session/${currentSessionId}/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_name: sessionName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('success', '💾 Session saved!');
+            await loadChatSessions();
+        }
+    } catch (error) {
+        console.error('Error saving session:', error);
+        showToast('error', 'Failed to save session');
+    }
+}
+
+/**
+ * Load all chat sessions
+ */
+async function loadChatSessions() {
+    try {
+        const response = await fetch(`${API_BASE}/api/chat/sessions`);
+        const data = await response.json();
+        
+        const sessionsList = document.getElementById('sessionsList');
+        
+        if (data.sessions && data.sessions.length > 0) {
+            sessionsList.innerHTML = data.sessions.map(session => `
+                <div class="session-item p-3 border border-gray-200 rounded-lg cursor-pointer">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1" onclick="loadChatSession('${session.session_id}')">
+                            <h4 class="font-semibold text-sm text-gray-800 mb-1">
+                                ${session.session_name || 'Untitled Session'}
+                            </h4>
+                            <p class="text-xs text-gray-500">
+                                ${session.message_count} messages • ${new Date(session.updated_at).toLocaleDateString()}
+                            </p>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button onclick="exportChatSession('${session.session_id}', 'txt'); event.stopPropagation();" 
+                                    class="text-gray-400 hover:text-blue-500 text-xs p-1"
+                                    title="Export as TXT">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button onclick="deleteChatSession('${session.session_id}'); event.stopPropagation();" 
+                                    class="text-gray-400 hover:text-red-500 text-xs p-1"
+                                    title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            sessionsList.innerHTML = `
+                <div class="text-center text-gray-400 py-4 text-sm">
+                    <i class="fas fa-comments text-2xl mb-2"></i>
+                    <p>No saved sessions</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading sessions:', error);
+    }
+}
+
+/**
+ * Load specific chat session
+ */
+async function loadChatSession(sessionId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/chat/session/${sessionId}`);
+        const data = await response.json();
+        
+        currentSessionId = sessionId;
+        document.getElementById('currentSessionInfo').classList.remove('hidden');
+        document.getElementById('sessionNameInput').value = data.session_name || '';
+        document.getElementById('sessionMessageCount').textContent = `${data.message_count} messages`;
+        
+        showToast('success', `📂 Loaded: ${data.session_name || 'Session'}`);
+    } catch (error) {
+        console.error('Error loading session:', error);
+        showToast('error', 'Failed to load session');
+    }
+}
+
+/**
+ * Delete chat session
+ */
+async function deleteChatSession(sessionId) {
+    if (!confirm('Are you sure you want to delete this session?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/chat/session/${sessionId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (currentSessionId === sessionId) {
+                currentSessionId = null;
+                document.getElementById('currentSessionInfo').classList.add('hidden');
+            }
+            showToast('success', '🗑️ Session deleted');
+            await loadChatSessions();
+        }
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        showToast('error', 'Failed to delete session');
+    }
+}
+
+/**
+ * Export chat session
+ */
+async function exportChatSession(sessionId, format = 'txt') {
+    try {
+        const url = `${API_BASE}/api/chat/session/${sessionId}/export?format=${format}`;
+        window.open(url, '_blank');
+        showToast('success', '📥 Downloading session...');
+    } catch (error) {
+        console.error('Error exporting session:', error);
+        showToast('error', 'Failed to export session');
+    }
+}
+
+// ==================== FILTER FUNCTIONS ====================
+
+/**
+ * Load available filters
+ */
+async function loadAvailableFilters() {
+    try {
+        const response = await fetch(`${API_BASE}/api/filters/available`);
+        const data = await response.json();
+        
+        // Populate documents filter
+        const documentsFilter = document.getElementById('documentsFilter');
+        documentsFilter.innerHTML = '<option value="">All documents</option>' +
+            data.documents.map(doc => `<option value="${doc}">${doc}</option>`).join('');
+        
+        // Populate file type filters
+        const fileTypeFilters = document.getElementById('fileTypeFilters');
+        if (data.file_types && data.file_types.length > 0) {
+            fileTypeFilters.innerHTML = data.file_types.map(type => `
+                <label class="flex items-center text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" value="${type}" class="mr-2 file-type-checkbox">
+                    <i class="fas ${getFileIcon(type.substring(1))} mr-1 text-gray-500"></i>
+                    <span>${type.toUpperCase()}</span>
+                </label>
+            `).join('');
+        } else {
+            fileTypeFilters.innerHTML = '<p class="text-xs text-gray-400">No file types available</p>';
+        }
+    } catch (error) {
+        console.error('Error loading filters:', error);
+    }
+}
+
+/**
+ * Apply filters to search
+ */
+function applyFilters() {
+    // Get selected documents
+    const documentsFilter = document.getElementById('documentsFilter');
+    const selectedDocs = Array.from(documentsFilter.selectedOptions)
+        .map(opt => opt.value)
+        .filter(val => val);
+    
+    // Get selected file types
+    const fileTypeCheckboxes = document.querySelectorAll('.file-type-checkbox:checked');
+    const selectedTypes = Array.from(fileTypeCheckboxes).map(cb => cb.value);
+    
+    // Get min score
+    const minScore = document.getElementById('minScoreSlider').value / 100;
+    
+    currentFilters = {
+        documents: selectedDocs,
+        fileTypes: selectedTypes,
+        minScore: minScore
+    };
+    
+    // Update active filters display
+    updateActiveFilters();
+    
+    // Re-run current search if any
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput.value.trim()) {
+        handleQuery();
+    }
+    
+    showToast('success', '✅ Filters applied');
+}
+
+/**
+ * Update active filters display
+ */
+function updateActiveFilters() {
+    const activeFiltersDiv = document.getElementById('activeFilters');
+    const filters = [];
+    
+    if (currentFilters.documents.length > 0) {
+        currentFilters.documents.forEach(doc => {
+            filters.push(`
+                <span class="filter-badge inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                    <i class="fas fa-file mr-1"></i> ${doc}
+                    <button onclick="removeDocumentFilter('${doc}')" class="ml-1 hover:text-blue-900">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </span>
+            `);
+        });
+    }
+    
+    if (currentFilters.fileTypes.length > 0) {
+        currentFilters.fileTypes.forEach(type => {
+            filters.push(`
+                <span class="filter-badge inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                    <i class="fas fa-file mr-1"></i> ${type}
+                    <button onclick="removeFileTypeFilter('${type}')" class="ml-1 hover:text-green-900">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </span>
+            `);
+        });
+    }
+    
+    if (currentFilters.minScore > 0.7) {
+        filters.push(`
+            <span class="filter-badge inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                <i class="fas fa-sliders-h mr-1"></i> Score ≥ ${currentFilters.minScore.toFixed(2)}
+            </span>
+        `);
+    }
+    
+    if (filters.length > 0) {
+        activeFiltersDiv.innerHTML = filters.join('');
+        activeFiltersDiv.classList.remove('hidden');
+    } else {
+        activeFiltersDiv.classList.add('hidden');
+    }
+}
+
+/**
+ * Remove specific document filter
+ */
+function removeDocumentFilter(doc) {
+    currentFilters.documents = currentFilters.documents.filter(d => d !== doc);
+    const documentsFilter = document.getElementById('documentsFilter');
+    Array.from(documentsFilter.options).forEach(opt => {
+        if (opt.value === doc) opt.selected = false;
+    });
+    updateActiveFilters();
+    applyFilters();
+}
+
+/**
+ * Remove specific file type filter
+ */
+function removeFileTypeFilter(type) {
+    currentFilters.fileTypes = currentFilters.fileTypes.filter(t => t !== type);
+    const checkbox = document.querySelector(`.file-type-checkbox[value="${type}"]`);
+    if (checkbox) checkbox.checked = false;
+    updateActiveFilters();
+    applyFilters();
+}
+
+/**
+ * Clear all filters
+ */
+function clearFilters() {
+    currentFilters = {
+        documents: [],
+        fileTypes: [],
+        minScore: 0.7
+    };
+    
+    document.getElementById('documentsFilter').selectedIndex = 0;
+    document.querySelectorAll('.file-type-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('minScoreSlider').value = 70;
+    document.getElementById('minScoreValue').textContent = '0.70';
+    
+    updateActiveFilters();
+    showToast('info', '🧹 Filters cleared');
+}
+
+// ==================== ANALYTICS FUNCTIONS ====================
+
+/**
+ * Load complete analytics dashboard
+ */
+async function loadAnalyticsDashboard() {
+    try {
+        const response = await fetch(`${API_BASE}/api/analytics/dashboard`);
+        const data = await response.json();
+        
+        // Update performance metrics
+        document.getElementById('metricTotalQueries').textContent = data.performance.total_queries || 0;
+        document.getElementById('metricSuccessRate').textContent = 
+            ((data.success_rate.rate * 100) || 0).toFixed(1) + '%';
+        document.getElementById('metricSuccessful').textContent = data.success_rate.successful || 0;
+        document.getElementById('metricFailed').textContent = data.success_rate.failed || 0;
+        document.getElementById('metricAvgResponse').textContent = 
+            (data.performance.avg_response_time || 0).toFixed(2) + 's';
+        document.getElementById('metricRAGQueries').textContent = data.query_by_mode.rag || 0;
+        document.getElementById('metricSearchQueries').textContent = data.query_by_mode.search || 0;
+        
+        // Load popular queries
+        loadPopularQueries(data.popular_queries || []);
+        
+        // Load popular documents
+        loadPopularDocuments(data.popular_documents || []);
+        
+        // Load recent activity
+        loadRecentActivity(data.recent_queries || []);
+        
+        // Load trends chart
+        loadTrendsChart(data.trends || {});
+        
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+        showToast('error', 'Failed to load analytics');
+    }
+}
+
+/**
+ * Load popular queries list
+ */
+function loadPopularQueries(queries) {
+    const container = document.getElementById('popularQueries');
+    
+    if (queries.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-4 text-sm">
+                <i class="fas fa-inbox text-2xl mb-2"></i>
+                <p>No queries yet</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = queries.map((item, index) => `
+        <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+            <div class="flex items-center flex-1">
+                <span class="text-lg font-bold text-gray-400 mr-3">${index + 1}</span>
+                <span class="text-sm text-gray-700">${item.query}</span>
+            </div>
+            <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                ${item.count}×
+            </span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Load popular documents list
+ */
+function loadPopularDocuments(documents) {
+    const container = document.getElementById('popularDocuments');
+    
+    if (documents.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-4 text-sm">
+                <i class="fas fa-inbox text-2xl mb-2"></i>
+                <p>No documents used yet</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = documents.map((doc, index) => `
+        <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+            <div class="flex items-center flex-1">
+                <span class="text-lg font-bold text-gray-400 mr-3">${index + 1}</span>
+                <span class="text-sm text-gray-700">${doc.name}</span>
+            </div>
+            <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                ${doc.queries} queries
+            </span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Load recent activity
+ */
+function loadRecentActivity(queries) {
+    const container = document.getElementById('recentActivity');
+    
+    if (queries.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-4 text-sm">
+                <i class="fas fa-inbox text-2xl mb-2"></i>
+                <p>No recent activity</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = queries.map(q => {
+        const success = q.success !== false;
+        const mode = q.mode === 'rag' ? 'RAG' : 'Search';
+        const icon = q.mode === 'rag' ? 'fa-robot' : 'fa-search';
+        const color = success ? 'green' : 'red';
+        
+        return `
+            <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div class="flex-shrink-0 w-8 h-8 bg-${color}-100 rounded-lg flex items-center justify-center">
+                    <i class="fas ${icon} text-${color}-600 text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm text-gray-800 truncate">${q.query}</p>
+                    <div class="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                        <span>${mode}</span>
+                        <span>•</span>
+                        <span>${q.results_count} results</span>
+                        <span>•</span>
+                        <span>${q.response_time?.toFixed(2) || 0}s</span>
+                    </div>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-${success ? 'check-circle text-green-500' : 'times-circle text-red-500'}"></i>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Load trends chart
+ */
+async function loadTrends(period = 'day') {
+    try {
+        const response = await fetch(`${API_BASE}/api/analytics/trends?period=${period}`);
+        const data = await response.json();
+        
+        loadTrendsChart(data.trends || {});
+    } catch (error) {
+        console.error('Error loading trends:', error);
+    }
+}
+
+/**
+ * Render trends chart
+ */
+function loadTrendsChart(trends) {
+    const ctx = document.getElementById('trendsChart');
+    
+    if (!ctx) return;
+    
+    // Destroy existing chart
+    if (trendsChart) {
+        trendsChart.destroy();
+    }
+    
+    const labels = Object.keys(trends);
+    const searchData = labels.map(key => trends[key].search || 0);
+    const ragData = labels.map(key => trends[key].rag || 0);
+    
+    trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Search',
+                    data: searchData,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'RAG',
+                    data: ragData,
+                    borderColor: 'rgb(168, 85, 247)',
+                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Refresh analytics
+ */
+function refreshAnalytics() {
+    loadAnalyticsDashboard();
+    showToast('success', '🔄 Analytics refreshed');
+}
+
+// ==================== UPDATE EXISTING FUNCTIONS ====================
+
+// Override performSearch to include filters
+const originalPerformSearch = window.performSearch;
+window.performSearch = async function() {
+    const query = document.getElementById('searchInput').value.trim();
+    
+    if (!query) {
+        showToast('warning', 'Please enter a search query');
+        return;
+    }
+    
+    const topK = parseInt(document.getElementById('topKSelect').value);
+    
+    // Show loading
+    document.getElementById('searchStatus').classList.remove('hidden');
+    document.getElementById('resultsContainer').classList.add('hidden');
+    document.getElementById('welcomeMessage').classList.add('hidden');
+    
+    try {
+        const requestBody = {
+            query: query,
+            top_k: topK
+        };
+        
+        // Add filters if any
+        if (currentFilters.documents.length > 0 || 
+            currentFilters.fileTypes.length > 0 || 
+            currentFilters.minScore > 0.7) {
+            requestBody.filters = currentFilters;
+        }
+        
+        const response = await fetch(`${API_BASE}/api/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Hide search status
+        document.getElementById('searchStatus').classList.add('hidden');
+        
+        // Display results
+        displayResults(data.results, query, data.stats);
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        document.getElementById('searchStatus').classList.add('hidden');
+        showToast('error', `Search failed: ${error.message}`);
+    }
+};
+
+// Override performRAG to include session
+const originalPerformRAG = window.performRAG;
+window.performRAG = async function() {
+    const query = document.getElementById('searchInput').value.trim();
+    
+    if (!query) {
+        showToast('warning', 'Please enter a question');
+        return;
+    }
+    
+    const topK = parseInt(document.getElementById('topKSelect').value);
+    const useHistory = document.getElementById('useHistoryToggle')?.checked || false;
+    
+    // Show loading
+    document.getElementById('searchStatus').classList.remove('hidden');
+    document.getElementById('resultsContainer').classList.add('hidden');
+    document.getElementById('welcomeMessage').classList.add('hidden');
+    
+    try {
+        const requestBody = {
+            query: query,
+            top_k: topK,
+            language: 'auto',
+            use_history: useHistory && currentSessionId !== null,
+            session_id: currentSessionId
+        };
+        
+        const response = await fetch(`${API_BASE}/api/rag/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Hide search status
+        document.getElementById('searchStatus').classList.add('hidden');
+        
+        // Update session message count if active
+        if (currentSessionId) {
+            const countElem = document.getElementById('sessionMessageCount');
+            const currentCount = parseInt(countElem.textContent) || 0;
+            countElem.textContent = `${currentCount + 2} messages`;
+        }
+        
+        // Display RAG answer
+        displayRAGResult(data, query);
+        
+    } catch (error) {
+        console.error('RAG error:', error);
+        document.getElementById('searchStatus').classList.add('hidden');
+        showToast('error', `RAG query failed: ${error.message}`);
+    }
+};
+
+// Update displayResults to show filter stats
+const originalDisplayResults = window.displayResults;
+window.displayResults = function(results, query, stats) {
+    originalDisplayResults(results, query);
+    
+    // Add filter stats if available
+    if (stats && stats.total_results) {
+        const resultCount = document.getElementById('resultCount');
+        resultCount.innerHTML = `
+            ${stats.total_results} results 
+            ${stats.unique_documents ? `from ${stats.unique_documents} documents` : ''}
+            ${stats.avg_score ? `(avg: ${(stats.avg_score * 100).toFixed(0)}%)` : ''}
+        `;
+    }
+};
+
+// Initialize Phase 4 on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load chat sessions
+    loadChatSessions();
+    
+    // Load available filters
+    loadAvailableFilters();
+    
+    // Auto-refresh sessions every 60 seconds
+    setInterval(loadChatSessions, 60000);
+});

@@ -11,6 +11,9 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <!-- Custom styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -87,6 +90,32 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #5568d3;
         }
+        
+        /* Filter badge */
+        .filter-badge {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-10px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Session item hover */
+        .session-item {
+            transition: all 0.2s ease;
+        }
+        
+        .session-item:hover {
+            background: #f7fafc;
+            transform: translateX(4px);
+        }
+        
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            min-height: 200px;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -108,6 +137,17 @@
                     <span class="glass-effect px-4 py-2 rounded-full text-sm" id="statsDisplay">
                         <i class="fas fa-database"></i> <span id="docCount">0</span> docs
                     </span>
+                    <!-- Navigation Tabs -->
+                    <div class="flex space-x-2">
+                        <button onclick="showTab('search')" id="searchTabBtn" 
+                                class="px-3 py-1 rounded-lg bg-white bg-opacity-20 text-white text-sm">
+                            <i class="fas fa-search mr-1"></i> Search
+                        </button>
+                        <button onclick="showTab('analytics')" id="analyticsTabBtn" 
+                                class="px-3 py-1 rounded-lg text-white text-sm hover:bg-white hover:bg-opacity-10">
+                            <i class="fas fa-chart-line mr-1"></i> Analytics
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -144,6 +184,108 @@
                         <p class="mt-1">PDF, DOCX, PPTX, XLSX, TXT, MD, HTML</p>
                         <p class="mt-1">Max size: 50MB per file</p>
                     </div>
+                </div>
+                
+                <!-- Chat History Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-history text-purple-500 mr-2"></i>
+                            Chat History
+                        </h2>
+                        <button onclick="startNewChat()" 
+                                class="text-sm bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded transition">
+                            <i class="fas fa-plus mr-1"></i> New
+                        </button>
+                    </div>
+                    
+                    <!-- Current Session Info -->
+                    <div id="currentSessionInfo" class="hidden mb-4 p-3 bg-purple-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <input type="text" 
+                                       id="sessionNameInput" 
+                                       placeholder="Session name..."
+                                       class="w-full px-2 py-1 border border-purple-200 rounded text-sm focus:outline-none focus:border-purple-400">
+                            </div>
+                            <button onclick="saveCurrentSession()" 
+                                    class="ml-2 text-purple-600 hover:text-purple-700">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between text-xs text-purple-600">
+                            <span id="sessionMessageCount">0 messages</span>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="useHistoryToggle" class="mr-1" checked>
+                                <span>Use context</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Sessions List -->
+                    <div id="sessionsList" class="space-y-2 max-h-64 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-4 text-sm">
+                            <i class="fas fa-comments text-2xl mb-2"></i>
+                            <p>No saved sessions</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Filters Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-filter text-blue-500 mr-2"></i>
+                            Filters
+                        </h2>
+                        <button onclick="clearFilters()" 
+                                class="text-sm text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                    
+                    <!-- Active Filters Display -->
+                    <div id="activeFilters" class="hidden mb-4 flex flex-wrap gap-2"></div>
+                    
+                    <!-- Documents Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-file-alt mr-1"></i> Documents
+                        </label>
+                        <select id="documentsFilter" multiple size="4" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded text-sm">
+                            <option value="">All documents</option>
+                        </select>
+                    </div>
+                    
+                    <!-- File Type Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-file mr-1"></i> File Types
+                        </label>
+                        <div id="fileTypeFilters" class="space-y-1">
+                            <!-- Checkboxes will be populated dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Score Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-sliders-h mr-1"></i> Min Score: <span id="minScoreValue">0.70</span>
+                        </label>
+                        <input type="range" 
+                               id="minScoreSlider" 
+                               min="0" 
+                               max="100" 
+                               value="70" 
+                               class="w-full"
+                               oninput="document.getElementById('minScoreValue').textContent = (this.value/100).toFixed(2)">
+                    </div>
+                    
+                    <button onclick="applyFilters()" 
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition">
+                        <i class="fas fa-check mr-2"></i> Apply Filters
+                    </button>
                 </div>
                 
                 <!-- Documents List -->
@@ -323,6 +465,122 @@
                                 <i class="fas fa-lightbulb text-3xl text-yellow-500 mb-2"></i>
                                 <h4 class="font-semibold mb-1">3. Discover</h4>
                                 <p class="text-sm text-gray-600">Get relevant answers instantly</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analytics Dashboard -->
+                <div id="analyticsSection" class="hidden space-y-6">
+                    <!-- Performance Metrics Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-semibold text-gray-600">Total Queries</h3>
+                                <i class="fas fa-search text-blue-500 text-xl"></i>
+                            </div>
+                            <p class="text-3xl font-bold text-gray-800" id="metricTotalQueries">0</p>
+                            <p class="text-xs text-gray-500 mt-1">All time</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-semibold text-gray-600">Success Rate</h3>
+                                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                            </div>
+                            <p class="text-3xl font-bold text-gray-800" id="metricSuccessRate">0%</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <span id="metricSuccessful">0</span>/<span id="metricFailed">0</span>
+                            </p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-semibold text-gray-600">Avg Response</h3>
+                                <i class="fas fa-clock text-yellow-500 text-xl"></i>
+                            </div>
+                            <p class="text-3xl font-bold text-gray-800" id="metricAvgResponse">0s</p>
+                            <p class="text-xs text-gray-500 mt-1">Response time</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-semibold text-gray-600">RAG Queries</h3>
+                                <i class="fas fa-robot text-purple-500 text-xl"></i>
+                            </div>
+                            <p class="text-3xl font-bold text-gray-800" id="metricRAGQueries">0</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <span id="metricSearchQueries">0</span> search
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Trends Chart -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-bold flex items-center">
+                                <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+                                Query Trends
+                            </h2>
+                            <select id="trendsPeriod" onchange="loadTrends(this.value)" 
+                                    class="px-3 py-1 border border-gray-300 rounded text-sm">
+                                <option value="day">Daily</option>
+                                <option value="hour">Hourly</option>
+                                <option value="week">Weekly</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="trendsChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Popular Items -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Popular Queries -->
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h2 class="text-xl font-bold mb-4 flex items-center">
+                                <i class="fas fa-fire text-orange-500 mr-2"></i>
+                                Popular Queries
+                            </h2>
+                            <div id="popularQueries" class="space-y-2 max-h-80 overflow-y-auto">
+                                <div class="text-center text-gray-400 py-4 text-sm">
+                                    <i class="fas fa-inbox text-2xl mb-2"></i>
+                                    <p>No queries yet</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Popular Documents -->
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h2 class="text-xl font-bold mb-4 flex items-center">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                Popular Documents
+                            </h2>
+                            <div id="popularDocuments" class="space-y-2 max-h-80 overflow-y-auto">
+                                <div class="text-center text-gray-400 py-4 text-sm">
+                                    <i class="fas fa-inbox text-2xl mb-2"></i>
+                                    <p>No documents used yet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-bold flex items-center">
+                                <i class="fas fa-history text-gray-500 mr-2"></i>
+                                Recent Activity
+                            </h2>
+                            <button onclick="refreshAnalytics()" 
+                                    class="text-sm text-blue-500 hover:text-blue-600">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="recentActivity" class="space-y-3 max-h-96 overflow-y-auto">
+                            <div class="text-center text-gray-400 py-4 text-sm">
+                                <i class="fas fa-inbox text-2xl mb-2"></i>
+                                <p>No recent activity</p>
                             </div>
                         </div>
                     </div>
