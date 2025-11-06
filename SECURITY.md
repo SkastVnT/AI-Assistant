@@ -248,7 +248,23 @@ Our repository uses **GitHub Rulesets** to enforce security policies on the `mas
 
 **Target Branch:** `master` (default branch)  
 **Enforcement:** ✅ Active  
-**Bypass:** Not allowed (no exceptions)
+**Bypass:** Repository admins allowed (owner: @SkastVnT)
+
+**Bypass Configuration:**
+```yaml
+Bypass list:
+  - Repository admin: Always allowed
+  - Bypass mode: Always allow bypass
+  
+Rationale: 
+  Owner (@SkastVnT) can push directly for:
+  - Hotfixes requiring immediate deployment
+  - Security patches that cannot wait for PR review
+  - Emergency rollbacks
+  - Configuration changes
+  
+All other contributors must follow PR workflow.
+```
 
 #### **Pull Request Settings**
 
