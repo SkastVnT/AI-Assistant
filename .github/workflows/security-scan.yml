@@ -45,10 +45,12 @@ jobs:
     - name: Run Bandit (Python Security Linter)
       run: |
         bandit -r . --configfile .bandit \
+          --exclude ./ChatBot/tests,./tests,./stable-diffusion-webui,"./Speech2Text Services" \
           --severity-level medium \
           --confidence-level medium \
           -f json -o bandit-report.json || true
         bandit -r . --configfile .bandit \
+          --exclude ./ChatBot/tests,./tests,./stable-diffusion-webui,"./Speech2Text Services" \
           -f txt || true
       continue-on-error: true
         

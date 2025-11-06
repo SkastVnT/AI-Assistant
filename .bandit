@@ -1,5 +1,10 @@
-exclude:
-  - /ChatBot/tests
-  - /tests
-  - /stable-diffusion-webui
-  - /Speech2Text Services
+# Bandit security scanner configuration
+# Excludes test directories and third-party code from security scans
+# Note: Due to Bandit YAML parsing limitations, exclusions are also specified
+# in the workflow file using --exclude flag
+
+exclude_dirs:
+  - ChatBot/tests
+  - tests
+  - stable-diffusion-webui
+  - Speech2Text Services
