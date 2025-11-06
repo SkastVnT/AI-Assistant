@@ -146,6 +146,16 @@ docker-compose up -d
 </td>
 <td width="50%">
 
+###  **RAG Services**  NEW!
+<img src="https://img.shields.io/badge/Multi--LLM-RAG-14B8A6?style=flat-square" />
+<img src="https://img.shields.io/badge/Vietnamese-NLP-EF4444?style=flat-square" />
+
+-  OpenAI + DeepSeek + Gemini
+-  Vietnamese NLP (underthesea)
+-  ChromaDB Vector Search
+-  Smart Caching & Analytics
+-  182 KB Documentation
+
 </td>
 </tr>
 </table>
