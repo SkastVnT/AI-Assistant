@@ -27,7 +27,7 @@ from utils.logger import setup_logger
 load_dotenv("../config/.env")
 
 # Configuration
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN") or "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"
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN")
 AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\audio.mp3")
 
 print("=" * 80)

@@ -25,7 +25,7 @@
 
 4. **Environment Configuration**
    - Created `.env` file with HF_TOKEN template
-   - Token found: `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`
+   - Token found: ``
 
 ---
 

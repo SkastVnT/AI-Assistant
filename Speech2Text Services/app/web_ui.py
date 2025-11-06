@@ -143,7 +143,7 @@ def process_audio_with_diarization(audio_path, session_id):
             diarizer = SpeakerDiarizationClient(
                 min_speakers=2,
                 max_speakers=5,
-                hf_token=os.getenv('HF_TOKEN') or os.getenv('HF_API_TOKEN') or "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"
+                hf_token=os.getenv('HF_TOKEN') or os.getenv('HF_API_TOKEN')
             )
             diarizer.load()
             

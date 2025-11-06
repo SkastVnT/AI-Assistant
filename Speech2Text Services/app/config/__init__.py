@@ -12,7 +12,7 @@ config_dir = Path(__file__).parent
 load_dotenv(config_dir / ".env")
 
 # API Keys
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN") or "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"
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 

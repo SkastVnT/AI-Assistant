@@ -23,7 +23,7 @@
 403 Client Error - Access to model pyannote/speaker-diarization-3.1 is restricted
 ```
 
-**Your Token:** `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` ✅ (Found in .env)
+**Your Token:** `hf_api_token` ✅ (Found in .env)
 
 **Solution:**
 1. Visit: https://huggingface.co/pyannote/speaker-diarization-3.1
@@ -142,7 +142,7 @@ Option B - Let me fix it for you (reply "fix qwen")
 
 1. **Test HF Token:**
    ```powershell
-   python -c "from pyannote.audio import Pipeline; p = Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', token='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'); print('✅ Token works!')"
+   python -c "from pyannote.audio import Pipeline; p = Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', token=''); print('✅ Token works!')"
    ```
 
 2. **Test Qwen:**
