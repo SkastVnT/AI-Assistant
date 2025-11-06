@@ -1,0 +1,1838 @@
+{
+  "success": true,
+  "filename": "CV_Ky_su_phan_mem.pdf",
+  "type": "pdf",
+  "processed_at": "2025-11-05T23:33:55.316650",
+  "statistics": {
+    "total_pages": 2,
+    "successful_pages": 2,
+    "total_chars": 2516
+  },
+  "full_text": "=== Page 1 ===\nTHANH NGUYEN NGOC\nFront-end Developer\n送04/12/2003\nskastvnt@gmail.com\n0Nguyén Dinh Chieu, Phuong 6, Quan 3, TP.HCM \n0949456363\nthanh-nguyen-ngoc-7a9772340\nNguyen Ngoc Thanh\n https://github.com/SkastVnT\nGioi thieu\nmuon tham gia mot nhomcac lap trinhviencocung chihuong.Dang timkiemmot vitri phu hop taicong tyc6 cac dy\nán voi do thu thách cao, noi la hieu suat lam viéc dugc cong nhan va khen thuong xung dang.\nHoc van\nTruong Dai hoc Hoa Sen\nArtificial Intelligence\n10/2009-10/2013\nKién thuc Fullstack co ban nhu Nodejs,HTML,CSS,XML,JavaScript va ReactJS,Mongodb.\nTu timhieuveTrituenhantaova lamcacdu ánchobanthan.\nTranh bi ky nang ve ngon ngur Python va Nodejs.\nTrinh do ngoqi ngu dugc cai thien.\nHoat dong\nKy nang\nHTML5&CSS3\nJAVASCRIPT\nAdobe Illustrator\nGithub and PR-driven development\nAnalystuserneeds\nObject-Oriented Programming\nTest DrivenDevelopment\nES2015\nLaravel\nNguoi tham chieu\nkazkimatz\nCTO-VietCV 2\nDien thoqi:\nEmail:\n03 322 442 xxkazki_example@vietcv.io\n@VietCV.io - Trang 1/2\n\n=== Page 2 ===\nChung chi\nAPTIS\n(12/2012)\nB2.C6 the:\nDocva viet tai lieu thamkhao.\nViet business va support email.\n· Nghe, noi va take note khi thao luan cong viec qua cac budi hop, call voi khach hang.\nDieu quan tam\nNgon ngu\nDu án\nCV Generator tool\n10/2017-hien tai\nMo ta: Trang web cho nguoi tim viéc tao CV truc tuyen\nLink: https://vietcv.io\nNha dau tu:VietCV\nCong nghe: HTML5/ CSS3 (hau het),React,Redux,Ruby on Rails\nTeam: 1 PO, 1 lead, 2 dev, 1 designer\nVi tri: Front-end Developer\nChi tiet:\nThiet ke va quyet dinh bo cuc tryc quan cua trang web.\n Thay doi code, phan mem hogc d6 hoa cua cac trang hien co.\nToi uu hoa noi dung web cho toc do va hieu suait toi uu.\n· Nghien cuu cong nghe mdi, goi phan mem va san pham phan cung.\n·Tu van ve nhung han che cua he thong va chuc nang trang web.\nKiem tra trang web truoc khi dua ra thi truong.\n·Tao cac thiet ke digital bat mat va huu ich tren nhieu nen tang khác nhau.\nWORKZONE-Selfproject\n2013-2014\nMo ta: nen tang de quan ly dy án ca nhan, nhiem vy va qua trinh cua toi\nLink: https://vietcvproject.io\nCong nghe: HTML/CSS/Javascript/VueJS - Laravel\nTeam:canhan\nVi tri: Fullstack Developer va Designer\nMuc tieu: cai thien ki nang front-end va hoc back-end\nChi tiet:\n·Tu thiet ke front-end va viet HTML/CSS voi dinh huong suy nghi thiet ke ve Ui/UX\nuoni oput p igp opn gut go up np buno bunp !onbu bunuu gp qam buon opn ujbnjd 1ouo top !o ·\n·Viet back-end de kiem soat thong tin cua nhiem vu va qua trinh\n·Moi ban be su dung san pham va thu thapykiende cai thien nen tang\n@VietCV.io - Trang 2/2\n",
+  "pages": [
+    {
+      "success": true,
+      "filename": "temp_page_1.png",
+      "processed_at": "2025-11-05T23:33:50.324804",
+      "statistics": {
+        "total_blocks": 38,
+        "average_confidence": 0.97,
+        "total_chars": 988,
+        "total_lines": 38
+      },
+      "text": "THANH NGUYEN NGOC\nFront-end Developer\n送04/12/2003\nskastvnt@gmail.com\n0Nguyén Dinh Chieu, Phuong 6, Quan 3, TP.HCM \n0949456363\nthanh-nguyen-ngoc-7a9772340\nNguyen Ngoc Thanh\n https://github.com/SkastVnT\nGioi thieu\nmuon tham gia mot nhomcac lap trinhviencocung chihuong.Dang timkiemmot vitri phu hop taicong tyc6 cac dy\nán voi do thu thách cao, noi la hieu suat lam viéc dugc cong nhan va khen thuong xung dang.\nHoc van\nTruong Dai hoc Hoa Sen\nArtificial Intelligence\n10/2009-10/2013\nKién thuc Fullstack co ban nhu Nodejs,HTML,CSS,XML,JavaScript va ReactJS,Mongodb.\nTu timhieuveTrituenhantaova lamcacdu ánchobanthan.\nTranh bi ky nang ve ngon ngur Python va Nodejs.\nTrinh do ngoqi ngu dugc cai thien.\nHoat dong\nKy nang\nHTML5&CSS3\nJAVASCRIPT\nAdobe Illustrator\nGithub and PR-driven development\nAnalystuserneeds\nObject-Oriented Programming\nTest DrivenDevelopment\nES2015\nLaravel\nNguoi tham chieu\nkazkimatz\nCTO-VietCV 2\nDien thoqi:\nEmail:\n03 322 442 xxkazki_example@vietcv.io\n@VietCV.io - Trang 1/2",
+      "blocks": [
+        {
+          "id": 0,
+          "text": "THANH NGUYEN NGOC",
+          "confidence": 0.9429930448532104,
+          "bbox": {
+            "top_left": [
+              445.0,
+              30.0
+            ],
+            "top_right": [
+              889.0,
+              35.0
+            ],
+            "bottom_right": [
+              889.0,
+              76.0
+            ],
+            "bottom_left": [
+              444.0,
+              70.0
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "text": "Front-end Developer",
+          "confidence": 0.9998663067817688,
+          "bbox": {
+            "top_left": [
+              519.0,
+              86.0
+            ],
+            "top_right": [
+              813.0,
+              88.0
+            ],
+            "bottom_right": [
+              813.0,
+              123.0
+            ],
+            "bottom_left": [
+              519.0,
+              121.0
+            ]
+          }
+        },
+        {
+          "id": 2,
+          "text": "送04/12/2003",
+          "confidence": 0.9584591388702393,
+          "bbox": {
+            "top_left": [
+              241.0,
+              146.0
+            ],
+            "top_right": [
+              384.0,
+              146.0
+            ],
+            "bottom_right": [
+              384.0,
+              170.0
+            ],
+            "bottom_left": [
+              241.0,
+              170.0
+            ]
+          }
+        },
+        {
+          "id": 3,
+          "text": "skastvnt@gmail.com",
+          "confidence": 0.9863518476486206,
+          "bbox": {
+            "top_left": [
+              400.0,
+              147.0
+            ],
+            "top_right": [
+              630.0,
+              147.0
+            ],
+            "bottom_right": [
+              630.0,
+              172.0
+            ],
+            "bottom_left": [
+              400.0,
+              172.0
+            ]
+          }
+        },
+        {
+          "id": 4,
+          "text": "0Nguyén Dinh Chieu, Phuong 6, Quan 3, TP.HCM ",
+          "confidence": 0.9442049860954285,
+          "bbox": {
+            "top_left": [
+              646.0,
+              142.0
+            ],
+            "top_right": [
+              1096.0,
+              144.0
+            ],
+            "bottom_right": [
+              1096.0,
+              174.0
+            ],
+            "bottom_left": [
+              646.0,
+              172.0
+            ]
+          }
+        },
+        {
+          "id": 5,
+          "text": "0949456363",
+          "confidence": 0.9998749494552612,
+          "bbox": {
+            "top_left": [
+              303.0,
+              184.0
+            ],
+            "top_right": [
+              448.0,
+              184.0
+            ],
+            "bottom_right": [
+              448.0,
+              207.0
+            ],
+            "bottom_left": [
+              303.0,
+              207.0
+            ]
+          }
+        },
+        {
+          "id": 6,
+          "text": "thanh-nguyen-ngoc-7a9772340",
+          "confidence": 0.9947518110275269,
+          "bbox": {
+            "top_left": [
+              466.0,
+              184.0
+            ],
+            "top_right": [
+              797.0,
+              184.0
+            ],
+            "bottom_right": [
+              797.0,
+              209.0
+            ],
+            "bottom_left": [
+              466.0,
+              209.0
+            ]
+          }
+        },
+        {
+          "id": 7,
+          "text": "Nguyen Ngoc Thanh",
+          "confidence": 0.9944865107536316,
+          "bbox": {
+            "top_left": [
+              816.0,
+              184.0
+            ],
+            "top_right": [
+              1032.0,
+              184.0
+            ],
+            "bottom_right": [
+              1032.0,
+              209.0
+            ],
+            "bottom_left": [
+              816.0,
+              209.0
+            ]
+          }
+        },
+        {
+          "id": 8,
+          "text": " https://github.com/SkastVnT",
+          "confidence": 0.9806922078132629,
+          "bbox": {
+            "top_left": [
+              521.0,
+              223.0
+            ],
+            "top_right": [
+              811.0,
+              223.0
+            ],
+            "bottom_right": [
+              811.0,
+              247.0
+            ],
+            "bottom_left": [
+              521.0,
+              247.0
+            ]
+          }
+        },
+        {
+          "id": 9,
+          "text": "Gioi thieu",
+          "confidence": 0.9050509333610535,
+          "bbox": {
+            "top_left": [
+              78.0,
+              312.0
+            ],
+            "top_right": [
+              212.0,
+              312.0
+            ],
+            "bottom_right": [
+              212.0,
+              342.0
+            ],
+            "bottom_left": [
+              78.0,
+              342.0
+            ]
+          }
+        },
+        {
+          "id": 10,
+          "text": "muon tham gia mot nhomcac lap trinhviencocung chihuong.Dang timkiemmot vitri phu hop taicong tyc6 cac dy",
+          "confidence": 0.919657289981842,
+          "bbox": {
+            "top_left": [
+              74.0,
+              384.0
+            ],
+            "top_right": [
+              1114.0,
+              386.0
+            ],
+            "bottom_right": [
+              1114.0,
+              410.0
+            ],
+            "bottom_left": [
+              74.0,
+              409.0
+            ]
+          }
+        },
+        {
+          "id": 11,
+          "text": "án voi do thu thách cao, noi la hieu suat lam viéc dugc cong nhan va khen thuong xung dang.",
+          "confidence": 0.943513035774231,
+          "bbox": {
+            "top_left": [
+              78.0,
+              412.0
+            ],
+            "top_right": [
+              896.0,
+              412.0
+            ],
+            "bottom_right": [
+              896.0,
+              437.0
+            ],
+            "bottom_left": [
+              78.0,
+              437.0
+            ]
+          }
+        },
+        {
+          "id": 12,
+          "text": "Hoc van",
+          "confidence": 0.9371167421340942,
+          "bbox": {
+            "top_left": [
+              92.0,
+              489.0
+            ],
+            "top_right": [
+              207.0,
+              489.0
+            ],
+            "bottom_right": [
+              207.0,
+              521.0
+            ],
+            "bottom_left": [
+              92.0,
+              521.0
+            ]
+          }
+        },
+        {
+          "id": 13,
+          "text": "Truong Dai hoc Hoa Sen",
+          "confidence": 0.967105507850647,
+          "bbox": {
+            "top_left": [
+              75.0,
+              545.0
+            ],
+            "top_right": [
+              321.0,
+              547.0
+            ],
+            "bottom_right": [
+              320.0,
+              577.0
+            ],
+            "bottom_left": [
+              74.0,
+              575.0
+            ]
+          }
+        },
+        {
+          "id": 14,
+          "text": "Artificial Intelligence",
+          "confidence": 0.9930854439735413,
+          "bbox": {
+            "top_left": [
+              523.0,
+              545.0
+            ],
+            "top_right": [
+              742.0,
+              549.0
+            ],
+            "bottom_right": [
+              742.0,
+              577.0
+            ],
+            "bottom_left": [
+              522.0,
+              573.0
+            ]
+          }
+        },
+        {
+          "id": 15,
+          "text": "10/2009-10/2013",
+          "confidence": 0.999454140663147,
+          "bbox": {
+            "top_left": [
+              947.0,
+              549.0
+            ],
+            "top_right": [
+              1114.0,
+              549.0
+            ],
+            "bottom_right": [
+              1114.0,
+              574.0
+            ],
+            "bottom_left": [
+              947.0,
+              574.0
+            ]
+          }
+        },
+        {
+          "id": 16,
+          "text": "Kién thuc Fullstack co ban nhu Nodejs,HTML,CSS,XML,JavaScript va ReactJS,Mongodb.",
+          "confidence": 0.9590616822242737,
+          "bbox": {
+            "top_left": [
+              101.0,
+              612.0
+            ],
+            "top_right": [
+              882.0,
+              614.0
+            ],
+            "bottom_right": [
+              882.0,
+              639.0
+            ],
+            "bottom_left": [
+              101.0,
+              637.0
+            ]
+          }
+        },
+        {
+          "id": 17,
+          "text": "Tu timhieuveTrituenhantaova lamcacdu ánchobanthan.",
+          "confidence": 0.9355695843696594,
+          "bbox": {
+            "top_left": [
+              104.0,
+              639.0
+            ],
+            "top_right": [
+              652.0,
+              639.0
+            ],
+            "bottom_right": [
+              652.0,
+              661.0
+            ],
+            "bottom_left": [
+              104.0,
+              661.0
+            ]
+          }
+        },
+        {
+          "id": 18,
+          "text": "Tranh bi ky nang ve ngon ngur Python va Nodejs.",
+          "confidence": 0.9684817790985107,
+          "bbox": {
+            "top_left": [
+              103.0,
+              665.0
+            ],
+            "top_right": [
+              522.0,
+              665.0
+            ],
+            "bottom_right": [
+              522.0,
+              689.0
+            ],
+            "bottom_left": [
+              103.0,
+              689.0
+            ]
+          }
+        },
+        {
+          "id": 19,
+          "text": "Trinh do ngoqi ngu dugc cai thien.",
+          "confidence": 0.9427279233932495,
+          "bbox": {
+            "top_left": [
+              99.0,
+              688.0
+            ],
+            "top_right": [
+              404.0,
+              689.0
+            ],
+            "bottom_right": [
+              404.0,
+              714.0
+            ],
+            "bottom_left": [
+              99.0,
+              712.0
+            ]
+          }
+        },
+        {
+          "id": 20,
+          "text": "Hoat dong",
+          "confidence": 0.9980941414833069,
+          "bbox": {
+            "top_left": [
+              91.0,
+              759.0
+            ],
+            "top_right": [
+              239.0,
+              763.0
+            ],
+            "bottom_right": [
+              238.0,
+              795.0
+            ],
+            "bottom_left": [
+              90.0,
+              791.0
+            ]
+          }
+        },
+        {
+          "id": 21,
+          "text": "Ky nang",
+          "confidence": 0.9804936647415161,
+          "bbox": {
+            "top_left": [
+              91.0,
+              840.0
+            ],
+            "top_right": [
+              208.0,
+              846.0
+            ],
+            "bottom_right": [
+              206.0,
+              878.0
+            ],
+            "bottom_left": [
+              90.0,
+              871.0
+            ]
+          }
+        },
+        {
+          "id": 22,
+          "text": "HTML5&CSS3",
+          "confidence": 0.9809283018112183,
+          "bbox": {
+            "top_left": [
+              76.0,
+              909.0
+            ],
+            "top_right": [
+              205.0,
+              909.0
+            ],
+            "bottom_right": [
+              205.0,
+              928.0
+            ],
+            "bottom_left": [
+              76.0,
+              928.0
+            ]
+          }
+        },
+        {
+          "id": 23,
+          "text": "JAVASCRIPT",
+          "confidence": 0.9990121722221375,
+          "bbox": {
+            "top_left": [
+              602.0,
+              907.0
+            ],
+            "top_right": [
+              710.0,
+              907.0
+            ],
+            "bottom_right": [
+              710.0,
+              931.0
+            ],
+            "bottom_left": [
+              602.0,
+              931.0
+            ]
+          }
+        },
+        {
+          "id": 24,
+          "text": "Adobe Illustrator",
+          "confidence": 0.9528184533119202,
+          "bbox": {
+            "top_left": [
+              76.0,
+              961.0
+            ],
+            "top_right": [
+              228.0,
+              961.0
+            ],
+            "bottom_right": [
+              228.0,
+              984.0
+            ],
+            "bottom_left": [
+              76.0,
+              984.0
+            ]
+          }
+        },
+        {
+          "id": 25,
+          "text": "Github and PR-driven development",
+          "confidence": 0.957786500453949,
+          "bbox": {
+            "top_left": [
+              602.0,
+              959.0
+            ],
+            "top_right": [
+              919.0,
+              961.0
+            ],
+            "bottom_right": [
+              919.0,
+              986.0
+            ],
+            "bottom_left": [
+              602.0,
+              984.0
+            ]
+          }
+        },
+        {
+          "id": 26,
+          "text": "Analystuserneeds",
+          "confidence": 0.9986715316772461,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1016.0
+            ],
+            "top_right": [
+              246.0,
+              1016.0
+            ],
+            "bottom_right": [
+              246.0,
+              1038.0
+            ],
+            "bottom_left": [
+              76.0,
+              1038.0
+            ]
+          }
+        },
+        {
+          "id": 27,
+          "text": "Object-Oriented Programming",
+          "confidence": 0.980801522731781,
+          "bbox": {
+            "top_left": [
+              602.0,
+              1014.0
+            ],
+            "top_right": [
+              877.0,
+              1016.0
+            ],
+            "bottom_right": [
+              876.0,
+              1040.0
+            ],
+            "bottom_left": [
+              602.0,
+              1038.0
+            ]
+          }
+        },
+        {
+          "id": 28,
+          "text": "Test DrivenDevelopment",
+          "confidence": 0.9843034148216248,
+          "bbox": {
+            "top_left": [
+              74.0,
+              1068.0
+            ],
+            "top_right": [
+              301.0,
+              1070.0
+            ],
+            "bottom_right": [
+              301.0,
+              1095.0
+            ],
+            "bottom_left": [
+              74.0,
+              1093.0
+            ]
+          }
+        },
+        {
+          "id": 29,
+          "text": "ES2015",
+          "confidence": 0.9998909831047058,
+          "bbox": {
+            "top_left": [
+              602.0,
+              1068.0
+            ],
+            "top_right": [
+              673.0,
+              1068.0
+            ],
+            "bottom_right": [
+              673.0,
+              1095.0
+            ],
+            "bottom_left": [
+              602.0,
+              1095.0
+            ]
+          }
+        },
+        {
+          "id": 30,
+          "text": "Laravel",
+          "confidence": 0.9956884384155273,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1123.0
+            ],
+            "top_right": [
+              147.0,
+              1123.0
+            ],
+            "bottom_right": [
+              147.0,
+              1147.0
+            ],
+            "bottom_left": [
+              76.0,
+              1147.0
+            ]
+          }
+        },
+        {
+          "id": 31,
+          "text": "Nguoi tham chieu",
+          "confidence": 0.9780052900314331,
+          "bbox": {
+            "top_left": [
+              92.0,
+              1209.0
+            ],
+            "top_right": [
+              340.0,
+              1209.0
+            ],
+            "bottom_right": [
+              340.0,
+              1238.0
+            ],
+            "bottom_left": [
+              92.0,
+              1238.0
+            ]
+          }
+        },
+        {
+          "id": 32,
+          "text": "kazkimatz",
+          "confidence": 0.9995043277740479,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1267.0
+            ],
+            "top_right": [
+              184.0,
+              1267.0
+            ],
+            "bottom_right": [
+              184.0,
+              1291.0
+            ],
+            "bottom_left": [
+              76.0,
+              1291.0
+            ]
+          }
+        },
+        {
+          "id": 33,
+          "text": "CTO-VietCV 2",
+          "confidence": 0.9846344590187073,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1293.0
+            ],
+            "top_right": [
+              212.0,
+              1293.0
+            ],
+            "bottom_right": [
+              212.0,
+              1317.0
+            ],
+            "bottom_left": [
+              76.0,
+              1317.0
+            ]
+          }
+        },
+        {
+          "id": 34,
+          "text": "Dien thoqi:",
+          "confidence": 0.9287607073783875,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1319.0
+            ],
+            "top_right": [
+              179.0,
+              1319.0
+            ],
+            "bottom_right": [
+              179.0,
+              1344.0
+            ],
+            "bottom_left": [
+              76.0,
+              1344.0
+            ]
+          }
+        },
+        {
+          "id": 35,
+          "text": "Email:",
+          "confidence": 0.9321305155754089,
+          "bbox": {
+            "top_left": [
+              195.0,
+              1321.0
+            ],
+            "top_right": [
+              255.0,
+              1321.0
+            ],
+            "bottom_right": [
+              255.0,
+              1340.0
+            ],
+            "bottom_left": [
+              195.0,
+              1340.0
+            ]
+          }
+        },
+        {
+          "id": 36,
+          "text": "03 322 442 xxkazki_example@vietcv.io",
+          "confidence": 0.9753170013427734,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1345.0
+            ],
+            "top_right": [
+              425.0,
+              1345.0
+            ],
+            "bottom_right": [
+              425.0,
+              1370.0
+            ],
+            "bottom_left": [
+              76.0,
+              1370.0
+            ]
+          }
+        },
+        {
+          "id": 37,
+          "text": "@VietCV.io - Trang 1/2",
+          "confidence": 0.9505311846733093,
+          "bbox": {
+            "top_left": [
+              933.0,
+              1642.0
+            ],
+            "top_right": [
+              1174.0,
+              1642.0
+            ],
+            "bottom_right": [
+              1174.0,
+              1666.0
+            ],
+            "bottom_left": [
+              933.0,
+              1666.0
+            ]
+          }
+        }
+      ],
+      "page_number": 1
+    },
+    {
+      "success": true,
+      "filename": "temp_page_2.png",
+      "processed_at": "2025-11-05T23:33:55.315650",
+      "statistics": {
+        "total_blocks": 40,
+        "average_confidence": 0.953,
+        "total_chars": 1528,
+        "total_lines": 40
+      },
+      "text": "Chung chi\nAPTIS\n(12/2012)\nB2.C6 the:\nDocva viet tai lieu thamkhao.\nViet business va support email.\n· Nghe, noi va take note khi thao luan cong viec qua cac budi hop, call voi khach hang.\nDieu quan tam\nNgon ngu\nDu án\nCV Generator tool\n10/2017-hien tai\nMo ta: Trang web cho nguoi tim viéc tao CV truc tuyen\nLink: https://vietcv.io\nNha dau tu:VietCV\nCong nghe: HTML5/ CSS3 (hau het),React,Redux,Ruby on Rails\nTeam: 1 PO, 1 lead, 2 dev, 1 designer\nVi tri: Front-end Developer\nChi tiet:\nThiet ke va quyet dinh bo cuc tryc quan cua trang web.\n Thay doi code, phan mem hogc d6 hoa cua cac trang hien co.\nToi uu hoa noi dung web cho toc do va hieu suait toi uu.\n· Nghien cuu cong nghe mdi, goi phan mem va san pham phan cung.\n·Tu van ve nhung han che cua he thong va chuc nang trang web.\nKiem tra trang web truoc khi dua ra thi truong.\n·Tao cac thiet ke digital bat mat va huu ich tren nhieu nen tang khác nhau.\nWORKZONE-Selfproject\n2013-2014\nMo ta: nen tang de quan ly dy án ca nhan, nhiem vy va qua trinh cua toi\nLink: https://vietcvproject.io\nCong nghe: HTML/CSS/Javascript/VueJS - Laravel\nTeam:canhan\nVi tri: Fullstack Developer va Designer\nMuc tieu: cai thien ki nang front-end va hoc back-end\nChi tiet:\n·Tu thiet ke front-end va viet HTML/CSS voi dinh huong suy nghi thiet ke ve Ui/UX\nuoni oput p igp opn gut go up np buno bunp !onbu bunuu gp qam buon opn ujbnjd 1ouo top !o ·\n·Viet back-end de kiem soat thong tin cua nhiem vu va qua trinh\n·Moi ban be su dung san pham va thu thapykiende cai thien nen tang\n@VietCV.io - Trang 2/2",
+      "blocks": [
+        {
+          "id": 0,
+          "text": "Chung chi",
+          "confidence": 0.9947443008422852,
+          "bbox": {
+            "top_left": [
+              94.0,
+              56.0
+            ],
+            "top_right": [
+              236.0,
+              56.0
+            ],
+            "bottom_right": [
+              236.0,
+              88.0
+            ],
+            "bottom_left": [
+              94.0,
+              88.0
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "text": "APTIS",
+          "confidence": 0.9981897473335266,
+          "bbox": {
+            "top_left": [
+              78.0,
+              116.0
+            ],
+            "top_right": [
+              140.0,
+              116.0
+            ],
+            "bottom_right": [
+              140.0,
+              140.0
+            ],
+            "bottom_left": [
+              78.0,
+              140.0
+            ]
+          }
+        },
+        {
+          "id": 2,
+          "text": "(12/2012)",
+          "confidence": 0.999847412109375,
+          "bbox": {
+            "top_left": [
+              1009.0,
+              114.0
+            ],
+            "top_right": [
+              1112.0,
+              114.0
+            ],
+            "bottom_right": [
+              1112.0,
+              144.0
+            ],
+            "bottom_left": [
+              1009.0,
+              144.0
+            ]
+          }
+        },
+        {
+          "id": 3,
+          "text": "B2.C6 the:",
+          "confidence": 0.938187301158905,
+          "bbox": {
+            "top_left": [
+              74.0,
+              154.0
+            ],
+            "top_right": [
+              174.0,
+              154.0
+            ],
+            "bottom_right": [
+              174.0,
+              179.0
+            ],
+            "bottom_left": [
+              74.0,
+              179.0
+            ]
+          }
+        },
+        {
+          "id": 4,
+          "text": "Docva viet tai lieu thamkhao.",
+          "confidence": 0.930448055267334,
+          "bbox": {
+            "top_left": [
+              101.0,
+              188.0
+            ],
+            "top_right": [
+              372.0,
+              188.0
+            ],
+            "bottom_right": [
+              372.0,
+              210.0
+            ],
+            "bottom_left": [
+              101.0,
+              210.0
+            ]
+          }
+        },
+        {
+          "id": 5,
+          "text": "Viet business va support email.",
+          "confidence": 0.9555203914642334,
+          "bbox": {
+            "top_left": [
+              103.0,
+              214.0
+            ],
+            "top_right": [
+              379.0,
+              214.0
+            ],
+            "bottom_right": [
+              379.0,
+              239.0
+            ],
+            "bottom_left": [
+              103.0,
+              239.0
+            ]
+          }
+        },
+        {
+          "id": 6,
+          "text": "· Nghe, noi va take note khi thao luan cong viec qua cac budi hop, call voi khach hang.",
+          "confidence": 0.9576618671417236,
+          "bbox": {
+            "top_left": [
+              74.0,
+              235.0
+            ],
+            "top_right": [
+              850.0,
+              237.0
+            ],
+            "bottom_right": [
+              850.0,
+              267.0
+            ],
+            "bottom_left": [
+              74.0,
+              265.0
+            ]
+          }
+        },
+        {
+          "id": 7,
+          "text": "Dieu quan tam",
+          "confidence": 0.9807944893836975,
+          "bbox": {
+            "top_left": [
+              91.0,
+              305.0
+            ],
+            "top_right": [
+              298.0,
+              311.0
+            ],
+            "bottom_right": [
+              297.0,
+              342.0
+            ],
+            "bottom_left": [
+              90.0,
+              337.0
+            ]
+          }
+        },
+        {
+          "id": 8,
+          "text": "Ngon ngu",
+          "confidence": 0.9707825183868408,
+          "bbox": {
+            "top_left": [
+              90.0,
+              405.0
+            ],
+            "top_right": [
+              228.0,
+              405.0
+            ],
+            "bottom_right": [
+              228.0,
+              435.0
+            ],
+            "bottom_left": [
+              90.0,
+              435.0
+            ]
+          }
+        },
+        {
+          "id": 9,
+          "text": "Du án",
+          "confidence": 0.9233570098876953,
+          "bbox": {
+            "top_left": [
+              92.0,
+              503.0
+            ],
+            "top_right": [
+              175.0,
+              503.0
+            ],
+            "bottom_right": [
+              175.0,
+              530.0
+            ],
+            "bottom_left": [
+              92.0,
+              530.0
+            ]
+          }
+        },
+        {
+          "id": 10,
+          "text": "CV Generator tool",
+          "confidence": 0.9836409091949463,
+          "bbox": {
+            "top_left": [
+              78.0,
+              558.0
+            ],
+            "top_right": [
+              260.0,
+              558.0
+            ],
+            "bottom_right": [
+              260.0,
+              582.0
+            ],
+            "bottom_left": [
+              78.0,
+              582.0
+            ]
+          }
+        },
+        {
+          "id": 11,
+          "text": "10/2017-hien tai",
+          "confidence": 0.9592094421386719,
+          "bbox": {
+            "top_left": [
+              937.0,
+              556.0
+            ],
+            "top_right": [
+              1112.0,
+              558.0
+            ],
+            "bottom_right": [
+              1112.0,
+              584.0
+            ],
+            "bottom_left": [
+              937.0,
+              582.0
+            ]
+          }
+        },
+        {
+          "id": 12,
+          "text": "Mo ta: Trang web cho nguoi tim viéc tao CV truc tuyen",
+          "confidence": 0.9675247073173523,
+          "bbox": {
+            "top_left": [
+              76.0,
+              593.0
+            ],
+            "top_right": [
+              551.0,
+              593.0
+            ],
+            "bottom_right": [
+              551.0,
+              617.0
+            ],
+            "bottom_left": [
+              76.0,
+              617.0
+            ]
+          }
+        },
+        {
+          "id": 13,
+          "text": "Link: https://vietcv.io",
+          "confidence": 0.9870550036430359,
+          "bbox": {
+            "top_left": [
+              76.0,
+              617.0
+            ],
+            "top_right": [
+              269.0,
+              617.0
+            ],
+            "bottom_right": [
+              269.0,
+              642.0
+            ],
+            "bottom_left": [
+              76.0,
+              642.0
+            ]
+          }
+        },
+        {
+          "id": 14,
+          "text": "Nha dau tu:VietCV",
+          "confidence": 0.9624308347702026,
+          "bbox": {
+            "top_left": [
+              76.0,
+              644.0
+            ],
+            "top_right": [
+              246.0,
+              644.0
+            ],
+            "bottom_right": [
+              246.0,
+              667.0
+            ],
+            "bottom_left": [
+              76.0,
+              667.0
+            ]
+          }
+        },
+        {
+          "id": 15,
+          "text": "Cong nghe: HTML5/ CSS3 (hau het),React,Redux,Ruby on Rails",
+          "confidence": 0.9636642336845398,
+          "bbox": {
+            "top_left": [
+              78.0,
+              668.0
+            ],
+            "top_right": [
+              643.0,
+              668.0
+            ],
+            "bottom_right": [
+              643.0,
+              693.0
+            ],
+            "bottom_left": [
+              78.0,
+              693.0
+            ]
+          }
+        },
+        {
+          "id": 16,
+          "text": "Team: 1 PO, 1 lead, 2 dev, 1 designer",
+          "confidence": 0.9351741671562195,
+          "bbox": {
+            "top_left": [
+              74.0,
+              693.0
+            ],
+            "top_right": [
+              395.0,
+              695.0
+            ],
+            "bottom_right": [
+              395.0,
+              719.0
+            ],
+            "bottom_left": [
+              74.0,
+              717.0
+            ]
+          }
+        },
+        {
+          "id": 17,
+          "text": "Vi tri: Front-end Developer",
+          "confidence": 0.9788070321083069,
+          "bbox": {
+            "top_left": [
+              75.0,
+              717.0
+            ],
+            "top_right": [
+              312.0,
+              719.0
+            ],
+            "bottom_right": [
+              312.0,
+              746.0
+            ],
+            "bottom_left": [
+              74.0,
+              744.0
+            ]
+          }
+        },
+        {
+          "id": 18,
+          "text": "Chi tiet:",
+          "confidence": 0.9344216585159302,
+          "bbox": {
+            "top_left": [
+              78.0,
+              747.0
+            ],
+            "top_right": [
+              149.0,
+              747.0
+            ],
+            "bottom_right": [
+              149.0,
+              767.0
+            ],
+            "bottom_left": [
+              78.0,
+              767.0
+            ]
+          }
+        },
+        {
+          "id": 19,
+          "text": "Thiet ke va quyet dinh bo cuc tryc quan cua trang web.",
+          "confidence": 0.9452190399169922,
+          "bbox": {
+            "top_left": [
+              101.0,
+              775.0
+            ],
+            "top_right": [
+              586.0,
+              775.0
+            ],
+            "bottom_right": [
+              586.0,
+              800.0
+            ],
+            "bottom_left": [
+              101.0,
+              800.0
+            ]
+          }
+        },
+        {
+          "id": 20,
+          "text": " Thay doi code, phan mem hogc d6 hoa cua cac trang hien co.",
+          "confidence": 0.9644334316253662,
+          "bbox": {
+            "top_left": [
+              97.0,
+              796.0
+            ],
+            "top_right": [
+              650.0,
+              798.0
+            ],
+            "bottom_right": [
+              650.0,
+              828.0
+            ],
+            "bottom_left": [
+              97.0,
+              826.0
+            ]
+          }
+        },
+        {
+          "id": 21,
+          "text": "Toi uu hoa noi dung web cho toc do va hieu suait toi uu.",
+          "confidence": 0.9555895924568176,
+          "bbox": {
+            "top_left": [
+              101.0,
+              826.0
+            ],
+            "top_right": [
+              586.0,
+              826.0
+            ],
+            "bottom_right": [
+              586.0,
+              851.0
+            ],
+            "bottom_left": [
+              101.0,
+              851.0
+            ]
+          }
+        },
+        {
+          "id": 22,
+          "text": "· Nghien cuu cong nghe mdi, goi phan mem va san pham phan cung.",
+          "confidence": 0.9543131589889526,
+          "bbox": {
+            "top_left": [
+              76.0,
+              849.0
+            ],
+            "top_right": [
+              699.0,
+              849.0
+            ],
+            "bottom_right": [
+              699.0,
+              879.0
+            ],
+            "bottom_left": [
+              76.0,
+              879.0
+            ]
+          }
+        },
+        {
+          "id": 23,
+          "text": "·Tu van ve nhung han che cua he thong va chuc nang trang web.",
+          "confidence": 0.964021623134613,
+          "bbox": {
+            "top_left": [
+              80.0,
+              877.0
+            ],
+            "top_right": [
+              669.0,
+              877.0
+            ],
+            "bottom_right": [
+              669.0,
+              902.0
+            ],
+            "bottom_left": [
+              80.0,
+              902.0
+            ]
+          }
+        },
+        {
+          "id": 24,
+          "text": "Kiem tra trang web truoc khi dua ra thi truong.",
+          "confidence": 0.9503353238105774,
+          "bbox": {
+            "top_left": [
+              101.0,
+              903.0
+            ],
+            "top_right": [
+              512.0,
+              903.0
+            ],
+            "bottom_right": [
+              512.0,
+              928.0
+            ],
+            "bottom_left": [
+              101.0,
+              928.0
+            ]
+          }
+        },
+        {
+          "id": 25,
+          "text": "·Tao cac thiet ke digital bat mat va huu ich tren nhieu nen tang khác nhau.",
+          "confidence": 0.9205850958824158,
+          "bbox": {
+            "top_left": [
+              78.0,
+              926.0
+            ],
+            "top_right": [
+              753.0,
+              926.0
+            ],
+            "bottom_right": [
+              753.0,
+              951.0
+            ],
+            "bottom_left": [
+              78.0,
+              951.0
+            ]
+          }
+        },
+        {
+          "id": 26,
+          "text": "WORKZONE-Selfproject",
+          "confidence": 0.9781838655471802,
+          "bbox": {
+            "top_left": [
+              76.0,
+              977.0
+            ],
+            "top_right": [
+              342.0,
+              979.0
+            ],
+            "bottom_right": [
+              342.0,
+              1003.0
+            ],
+            "bottom_left": [
+              76.0,
+              1002.0
+            ]
+          }
+        },
+        {
+          "id": 27,
+          "text": "2013-2014",
+          "confidence": 0.9991704225540161,
+          "bbox": {
+            "top_left": [
+              999.0,
+              981.0
+            ],
+            "top_right": [
+              1110.0,
+              981.0
+            ],
+            "bottom_right": [
+              1110.0,
+              1000.0
+            ],
+            "bottom_left": [
+              999.0,
+              1000.0
+            ]
+          }
+        },
+        {
+          "id": 28,
+          "text": "Mo ta: nen tang de quan ly dy án ca nhan, nhiem vy va qua trinh cua toi",
+          "confidence": 0.9517695307731628,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1012.0
+            ],
+            "top_right": [
+              707.0,
+              1012.0
+            ],
+            "bottom_right": [
+              707.0,
+              1037.0
+            ],
+            "bottom_left": [
+              76.0,
+              1037.0
+            ]
+          }
+        },
+        {
+          "id": 29,
+          "text": "Link: https://vietcvproject.io",
+          "confidence": 0.9694994688034058,
+          "bbox": {
+            "top_left": [
+              73.0,
+              1033.0
+            ],
+            "top_right": [
+              329.0,
+              1035.0
+            ],
+            "bottom_right": [
+              329.0,
+              1065.0
+            ],
+            "bottom_left": [
+              73.0,
+              1063.0
+            ]
+          }
+        },
+        {
+          "id": 30,
+          "text": "Cong nghe: HTML/CSS/Javascript/VueJS - Laravel",
+          "confidence": 0.9747780561447144,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1061.0
+            ],
+            "top_right": [
+              522.0,
+              1061.0
+            ],
+            "bottom_right": [
+              522.0,
+              1091.0
+            ],
+            "bottom_left": [
+              76.0,
+              1091.0
+            ]
+          }
+        },
+        {
+          "id": 31,
+          "text": "Team:canhan",
+          "confidence": 0.937887966632843,
+          "bbox": {
+            "top_left": [
+              80.0,
+              1091.0
+            ],
+            "top_right": [
+              209.0,
+              1091.0
+            ],
+            "bottom_right": [
+              209.0,
+              1110.0
+            ],
+            "bottom_left": [
+              80.0,
+              1110.0
+            ]
+          }
+        },
+        {
+          "id": 32,
+          "text": "Vi tri: Fullstack Developer va Designer",
+          "confidence": 0.975824236869812,
+          "bbox": {
+            "top_left": [
+              73.0,
+              1110.0
+            ],
+            "top_right": [
+              411.0,
+              1112.0
+            ],
+            "bottom_right": [
+              411.0,
+              1142.0
+            ],
+            "bottom_left": [
+              73.0,
+              1140.0
+            ]
+          }
+        },
+        {
+          "id": 33,
+          "text": "Muc tieu: cai thien ki nang front-end va hoc back-end",
+          "confidence": 0.969738245010376,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1138.0
+            ],
+            "top_right": [
+              552.0,
+              1138.0
+            ],
+            "bottom_right": [
+              552.0,
+              1163.0
+            ],
+            "bottom_left": [
+              76.0,
+              1163.0
+            ]
+          }
+        },
+        {
+          "id": 34,
+          "text": "Chi tiet:",
+          "confidence": 0.9528433680534363,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1165.0
+            ],
+            "top_right": [
+              149.0,
+              1165.0
+            ],
+            "bottom_right": [
+              149.0,
+              1189.0
+            ],
+            "bottom_left": [
+              76.0,
+              1189.0
+            ]
+          }
+        },
+        {
+          "id": 35,
+          "text": "·Tu thiet ke front-end va viet HTML/CSS voi dinh huong suy nghi thiet ke ve Ui/UX",
+          "confidence": 0.9256505966186523,
+          "bbox": {
+            "top_left": [
+              78.0,
+              1195.0
+            ],
+            "top_right": [
+              813.0,
+              1195.0
+            ],
+            "bottom_right": [
+              813.0,
+              1219.0
+            ],
+            "bottom_left": [
+              78.0,
+              1219.0
+            ]
+          }
+        },
+        {
+          "id": 36,
+          "text": "uoni oput p igp opn gut go up np buno bunp !onbu bunuu gp qam buon opn ujbnjd 1ouo top !o ·",
+          "confidence": 0.6777830719947815,
+          "bbox": {
+            "top_left": [
+              80.0,
+              1221.0
+            ],
+            "top_right": [
+              946.0,
+              1221.0
+            ],
+            "bottom_right": [
+              946.0,
+              1245.0
+            ],
+            "bottom_left": [
+              80.0,
+              1245.0
+            ]
+          }
+        },
+        {
+          "id": 37,
+          "text": "·Viet back-end de kiem soat thong tin cua nhiem vu va qua trinh",
+          "confidence": 0.9392181634902954,
+          "bbox": {
+            "top_left": [
+              78.0,
+              1245.0
+            ],
+            "top_right": [
+              668.0,
+              1245.0
+            ],
+            "bottom_right": [
+              668.0,
+              1270.0
+            ],
+            "bottom_left": [
+              78.0,
+              1270.0
+            ]
+          }
+        },
+        {
+          "id": 38,
+          "text": "·Moi ban be su dung san pham va thu thapykiende cai thien nen tang",
+          "confidence": 0.9289358854293823,
+          "bbox": {
+            "top_left": [
+              76.0,
+              1268.0
+            ],
+            "top_right": [
+              721.0,
+              1272.0
+            ],
+            "bottom_right": [
+              721.0,
+              1296.0
+            ],
+            "bottom_left": [
+              76.0,
+              1293.0
+            ]
+          }
+        },
+        {
+          "id": 39,
+          "text": "@VietCV.io - Trang 2/2",
+          "confidence": 0.9570717215538025,
+          "bbox": {
+            "top_left": [
+              930.0,
+              1642.0
+            ],
+            "top_right": [
+              1176.0,
+              1642.0
+            ],
+            "bottom_right": [
+              1176.0,
+              1666.0
+            ],
+            "bottom_left": [
+              930.0,
+              1666.0
+            ]
+          }
+        }
+      ],
+      "page_number": 2
+    }
+  ]
+}

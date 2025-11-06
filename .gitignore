@@ -108,6 +108,14 @@ node_modules/
 # SERVICE-SPECIFIC IGNORES
 # ============================================
 
+# Document Intelligence Service
+Document Intelligence Service/DIS/
+Document Intelligence Service/output/*.json
+Document Intelligence Service/output/*.txt
+
+# RAG Services
+RAG Services/RAG/
+
 # ChatBot
 ChatBot/Storage/Image_Gen/*.png
 ChatBot/Storage/Image_Gen/*.jpg
