@@ -1,9 +1,35 @@
 """
-Pre-commit hooks configuration for code quality
+Pre-commit hooks configuration for code quality and security
 Install: pip install pre-commit && pre-commit install
+Run: pre-commit run --all-files
 """
 
 repos:
+  # Python security linter
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: Bandit Security Scan
+        args: ['-r', '.', '--severity-level', 'medium', '--confidence-level', 'medium']
+        exclude: ^(venv|Text2SQL|stable-diffusion-webui/venv|tests)/
+        
+  # Dependency vulnerability scanner
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.1
+    hooks:
+      - id: python-safety-dependencies-check
+        files: requirements\.txt$
+        
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect Secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: .*/tests/.*|.*\.ipynb$
+  
   # Code formatting
   - repo: https://github.com/psf/black
     rev: 23.12.1

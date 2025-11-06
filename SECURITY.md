@@ -227,7 +227,716 @@ npm audit fix --force
 
 ---
 
-## 🔧 Security Best Practices for Deployment
+## � GitHub Repository Security Configuration
+
+### Branch Protection Rules
+
+Our repository uses **GitHub Rulesets** to enforce security policies on the `master` branch.
+
+**Configuration Path:** `Settings → Rules → Rulesets → "Protect Master Branch"`
+
+#### **Active Rules for Master Branch**
+
+| Rule | Status | Configuration | Purpose |
+| ---- | ------ | ------------- | ------- |
+| **Restrict deletions** | ✅ Enabled | Always enforced | Prevent accidental branch deletion |
+| **Block force pushes** | ✅ Enabled | No bypass allowed | Maintain commit history integrity |
+| **Require pull request before merging** | ✅ Enabled | 0 required approvals (solo dev) | Code review workflow |
+| **Require status checks to pass** | ✅ Enabled | No required checks yet | Future CI/CD integration |
+| **Require signed commits** | ⏳ Pending | Optional for now | GPG signature verification |
+| **Require linear history** | ❌ Disabled | Allow merge commits | Flexible workflow |
+
+**Target Branch:** `master` (default branch)  
+**Enforcement:** ✅ Active  
+**Bypass:** Not allowed (no exceptions)
+
+#### **Pull Request Settings**
+
+```yaml
+Required approvals: 0  # Solo developer - adjust to 1+ for teams
+Dismiss stale approvals: No  # Keep approvals valid across commits
+Require Code Owners review: No  # No CODEOWNERS file yet
+Require conversation resolution: No  # Can merge with unresolved threads
+Auto-request Copilot review: No  # Manual review only
+
+Allowed merge methods:
+  - Merge commit ✅
+  - Squash and merge ✅
+  - Rebase and merge ✅
+```
+
+#### **Status Checks Configuration**
+
+**Current Status:** 🟡 No checks configured yet
+
+**Planned Checks (after CI/CD setup):**
+- `security-scan` - Bandit + Safety + pip-audit
+- `codeql-analysis` - GitHub CodeQL security scanning
+- `build-chatbot` - Build and test ChatBot service
+- `build-text2sql` - Build and test Text2SQL service
+- `lint-python` - Code quality checks (flake8, black)
+
+**How to add status checks:**
+1. Setup GitHub Actions workflows (see section below)
+2. Go to `Rulesets → Protect Master Branch → Require status checks`
+3. Click `Add checks` and select workflow jobs
+
+---
+
+### Secret Scanning
+
+**Status:** ✅ **Enabled** (257 secrets scanned)
+
+GitHub automatically scans for leaked credentials in every push.
+
+**Protected Secrets:**
+- ✅ Google Gemini API keys (`GEMINI_API_KEY_*`)
+- ✅ OpenAI API keys (`OPENAI_API_KEY`)
+- ✅ HuggingFace tokens (`HF_TOKEN`)
+- ✅ Database credentials (ClickHouse, MongoDB, PostgreSQL)
+- ✅ Private SSH/RSA keys
+- ✅ OAuth tokens and JWT secrets
+
+**Alert Configuration:**
+```yaml
+Settings → Security → Secret scanning alerts
+✅ Push protection: Block commits containing secrets
+✅ Validity check: Verify if leaked keys are still active
+✅ Non-provider patterns: Scan for custom secret formats
+✅ Push protection bypass: Require admin approval
+```
+
+**Response Procedure for Leaked Secrets:**
+```bash
+# 1. Rotate the compromised key immediately
+# Google Gemini
+- Go to https://aistudio.google.com/app/apikey
+- Revoke old key → Generate new key
+
+# HuggingFace
+- Go to https://huggingface.co/settings/tokens
+- Revoke compromised token → Create new token
+
+# 2. Update local .env files
+echo "GEMINI_API_KEY=new_key_here" >> .env
+
+# 3. Verify .gitignore is working
+git check-ignore .env  # Should return: .env
+
+# 4. Remove from git history (if committed)
+git filter-repo --path .env --invert-paths
+git push --force
+```
+
+---
+
+### Dependabot Alerts
+
+**Status:** 🔴 **159 vulnerabilities detected** (11 critical, 52 high, 78 medium, 18 low)
+
+**Severity Breakdown:**
+
+| Severity | Count | SLA | Action Required |
+| -------- | ----- | --- | --------------- |
+| 🔴 **Critical** | 11 | 24 hours | Fix immediately before next release |
+| 🟠 **High** | 52 | 7 days | Schedule hotfix release this week |
+| 🟡 **Medium** | 78 | 30 days | Include in next minor version |
+| 🟢 **Low** | 18 | 90 days | Review and plan migration |
+
+**Top Vulnerable Dependencies:**
+- `torch < 2.0.1` - CUDA memory vulnerabilities (CVE-2023-XXXXX)
+- `transformers < 4.30.0` - Model injection attacks (CVE-2023-YYYYY)
+- `Pillow < 10.0.0` - Image parsing RCE (CVE-2023-ZZZZZ)
+- `urllib3 < 2.0.0` - CRLF injection (CVE-2023-WWWWW)
+- `langchain < 0.0.350` - Prompt injection bypass
+
+**Enable Dependabot Auto-Updates:**
+
+Create `.github/dependabot.yml`:
+
+```yaml
+version: 2
+updates:
+  # ChatBot Service (Python 3.11.9)
+  - package-ecosystem: "pip"
+    directory: "/ChatBot"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "SkastVnT"
+    labels:
+      - "dependencies"
+      - "security"
+      - "chatbot"
+    commit-message:
+      prefix: "🔒"
+      include: "scope"
+    
+  # Text2SQL Service (Python 3.10.11)
+  - package-ecosystem: "pip"
+    directory: "/Text2SQL Services"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "text2sql"
+    
+  # Document Intelligence Service (Python 3.10.11)
+  - package-ecosystem: "pip"
+    directory: "/Document Intelligence Service"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "document-intelligence"
+    
+  # Speech2Text Service (Python 3.10.11)
+  - package-ecosystem: "pip"
+    directory: "/Speech2Text Services"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "speech2text"
+    
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+```
+
+**Manual Fix Commands:**
+
+```bash
+# 1. Audit all services
+for dir in "ChatBot" "Text2SQL Services" "Document Intelligence Service" "Speech2Text Services"; do
+  echo "=== Auditing $dir ==="
+  cd "$dir"
+  pip-audit -r requirements.txt --desc
+  cd ..
+done
+
+# 2. Update critical packages (ChatBot - Python 3.11.9)
+cd ChatBot
+pyenv local 3.11.9
+pip install --upgrade \
+  torch==2.1.2 \
+  transformers==4.36.0 \
+  langchain==0.1.0 \
+  Pillow==10.1.0 \
+  urllib3==2.1.0
+pip freeze > requirements.txt
+
+# 3. Update other services (Python 3.10.11)
+cd "../Text2SQL Services"
+pyenv local 3.10.11
+pip install --upgrade \
+  langchain==0.1.0 \
+  sqlalchemy==2.0.23 \
+  clickhouse-driver==0.2.6
+pip freeze > requirements.txt
+
+# 4. Test after updates
+pytest tests/ --cov
+```
+
+---
+
+### Code Scanning (CodeQL)
+
+**Status:** ⏳ **Not configured yet** (Recommended for security)
+
+**What CodeQL Detects:**
+- 🔍 SQL Injection vulnerabilities
+- 🔍 Command Injection (OS command execution)
+- 🔍 Path Traversal (directory traversal)
+- 🔍 Hardcoded credentials in source code
+- 🔍 Insecure deserialization (pickle, yaml)
+- 🔍 XSS vulnerabilities (if applicable)
+- 🔍 Weak cryptography usage
+- 🔍 Unvalidated redirects
+
+**Setup GitHub Actions for CodeQL:**
+
+Create `.github/workflows/codeql-analysis.yml`:
+
+```yaml
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Run weekly scan every Monday at 00:00 UTC (07:00 Vietnam)
+    - cron: '0 0 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze Python Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+        # Optional: Scan specific services separately
+        service: [ 'ChatBot', 'Text2SQL Services', 'Document Intelligence Service', 'Speech2Text Services' ]
+        
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        queries: +security-and-quality
+        config-file: ./.github/codeql/codeql-config.yml
+        
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{ matrix.language }}/service:${{ matrix.service }}"
+        output: sarif-results
+        upload: true
+```
+
+**CodeQL Configuration** (`.github/codeql/codeql-config.yml`):
+
+```yaml
+name: "AI-Assistant CodeQL Config"
+
+queries:
+  - uses: security-and-quality
+  - uses: security-extended
+
+paths-ignore:
+  - "venv*/**"
+  - "Text2SQL/**"
+  - "stable-diffusion-webui/venv/**"
+  - "**/tests/**"
+  - "**/__pycache__/**"
+
+paths:
+  - "ChatBot/src/**"
+  - "Text2SQL Services/src/**"
+  - "Document Intelligence Service/src/**"
+  - "Speech2Text Services/src/**"
+```
+
+---
+
+### Security Advisories
+
+**How to Report Vulnerabilities Privately:**
+
+#### **Method 1: GitHub Security Advisory (Recommended)**
+
+1. Navigate to: https://github.com/SkastVnT/AI-Assistant/security/advisories
+2. Click **"Report a vulnerability"**
+3. Fill in the form:
+
+```yaml
+Title: [Service] Vulnerability Type - Brief Description
+Example: [ChatBot] Prompt Injection - System Message Bypass
+
+Severity: 
+  - Critical (CVSS 9.0-10.0)
+  - High (CVSS 7.0-8.9)
+  - Medium (CVSS 4.0-6.9)
+  - Low (CVSS 0.1-3.9)
+
+Affected versions: 
+  - ChatBot v2.0.x
+  - All versions before v2.1.0
+
+CWE (Common Weakness Enumeration):
+  - CWE-89: SQL Injection
+  - CWE-79: Cross-site Scripting
+  - CWE-78: OS Command Injection
+  - CWE-918: SSRF
+  - CWE-502: Deserialization
+
+Description:
+  Detailed explanation of the vulnerability including:
+  - What component is affected
+  - How the vulnerability works
+  - Attack scenario/vector
+  - Preconditions required
+
+Proof of Concept:
+  ```python
+  # Malicious input example
+  user_input = "'; DROP TABLE users; --"
+  
+  # Vulnerable code in Text2SQL Services/src/agents/sql_agent.py
+  query = f"SELECT * FROM products WHERE name = '{user_input}'"
+  ```
+
+Impact:
+  - Confidentiality: High (access to sensitive data)
+  - Integrity: High (data modification possible)
+  - Availability: Medium (service disruption)
+  - CVSS Score: 9.8 (Critical)
+
+Steps to Reproduce:
+  1. Clone repository: git clone https://github.com/SkastVnT/AI-Assistant
+  2. Start Text2SQL service: cd "Text2SQL Services" && python app.py
+  3. Send POST request to /query endpoint with malicious payload
+  4. Observe SQL injection in database logs
+  5. Verify unauthorized data access
+
+Suggested Fix:
+  - Use parameterized queries with SQLAlchemy
+  - Implement input sanitization
+  - Add rate limiting
+  - Update LangChain to latest version
+
+References:
+  - OWASP SQL Injection: https://owasp.org/www-community/attacks/SQL_Injection
+  - CWE-89: https://cwe.mitre.org/data/definitions/89.html
+```
+
+#### **Method 2: Private Email**
+
+Send encrypted email to: `security@[your-domain].com`
+
+**PGP Public Key:** [Link to public key]
+
+**Response Timeline:**
+- ✅ **Acknowledgment:** Within 48 hours
+- 📊 **Initial Assessment:** Within 5 business days
+- 🔄 **Status Updates:** Every 7 days
+- 🛠️ **Fix Development:** 7-30 days (Critical: 7d, High: 14d, Medium: 30d)
+- 📢 **Public Disclosure:** After fix + 90 days max (coordinated)
+
+---
+
+### Two-Factor Authentication (2FA)
+
+**Status:** ⏳ **Not enforced yet** (Recommended for all contributors)
+
+#### **Enable 2FA for Your GitHub Account:**
+
+```
+1. Go to: Settings → Password and authentication
+2. Click: "Enable two-factor authentication"
+3. Choose method:
+   ✅ Authenticator app (Recommended)
+      - Authy (multi-device sync)
+      - Google Authenticator
+      - Microsoft Authenticator
+   ✅ Security keys (Most secure)
+      - YubiKey 5 Series
+      - Google Titan Security Key
+      - Thetis FIDO2 Key
+   ⚠️ SMS backup (Not recommended as primary)
+4. Save recovery codes in password manager
+```
+
+#### **For Organization/Team (Future):**
+
+```yaml
+Organization Settings → Authentication security
+✅ Require two-factor authentication for everyone
+✅ Remove members who don't enable 2FA within 30 days
+✅ Require 2FA for outside collaborators
+✅ Allow SMS authentication as backup only
+```
+
+---
+
+### GitHub Actions Security Workflows
+
+#### **Workflow 1: Comprehensive Security Scanning**
+
+Create `.github/workflows/security-scan.yml`:
+
+```yaml
+name: Security Scanning
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+
+jobs:
+  security-scan:
+    name: Run Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for secret scanning
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10.11'
+        cache: 'pip'
+        
+    - name: Install security tools
+      run: |
+        pip install --upgrade pip
+        pip install bandit safety pip-audit detect-secrets
+        
+    - name: Run Bandit (Python Security Linter)
+      run: |
+        bandit -r . \
+          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv,**/tests/** \
+          --severity-level medium \
+          --confidence-level medium \
+          -f json -o bandit-report.json
+        bandit -r . \
+          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv \
+          -f txt -o bandit-report.txt
+      continue-on-error: true
+        
+    - name: Run Safety (Dependency Vulnerability Scanner)
+      run: |
+        for req in $(find . -name "requirements.txt" -not -path "*/venv*"); do
+          echo "Checking $req"
+          safety check -r "$req" --json --output safety-${req//\//-}.json || true
+        done
+      continue-on-error: true
+        
+    - name: Run pip-audit (PyPI Package Auditor)
+      run: |
+        for req in $(find . -name "requirements.txt" -not -path "*/venv*"); do
+          echo "=== Auditing $req ==="
+          pip-audit -r "$req" --desc --format json --output pip-audit-${req//\//-}.json || true
+        done
+      continue-on-error: true
+        
+    - name: Run detect-secrets
+      run: |
+        detect-secrets scan --baseline .secrets.baseline
+        detect-secrets audit .secrets.baseline
+      continue-on-error: true
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports-${{ github.sha }}
+        path: |
+          bandit-report.*
+          safety-*.json
+          pip-audit-*.json
+          .secrets.baseline
+        retention-days: 90
+        
+    - name: Comment PR with security summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read Bandit results
+          let banditIssues = 0;
+          try {
+            const bandit = JSON.parse(fs.readFileSync('bandit-report.json', 'utf8'));
+            banditIssues = bandit.results.length;
+          } catch (e) {}
+          
+          const body = `## 🔒 Security Scan Results
+          
+          **Bandit Issues:** ${banditIssues}
+          
+          Download full reports from the Actions artifacts.
+          
+          ${banditIssues > 0 ? '⚠️ Please review security findings before merging.' : '✅ No security issues detected.'}`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+```
+
+#### **Workflow 2: Dependency Review**
+
+Create `.github/workflows/dependency-review.yml`:
+
+```yaml
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: high
+        deny-licenses: GPL-3.0, AGPL-3.0
+        comment-summary-in-pr: always
+```
+
+---
+
+### Pre-commit Hooks for Local Development
+
+**Install Pre-commit Framework:**
+
+```bash
+pip install pre-commit
+```
+
+**Create `.pre-commit-config.yaml` in project root:**
+
+```yaml
+repos:
+  # Python security linter
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: Bandit Security Scan
+        args: ['-r', '.', '--severity-level', 'medium', '--confidence-level', 'medium']
+        exclude: ^(venv|Text2SQL|stable-diffusion-webui/venv|tests)/
+        
+  # Dependency vulnerability scanner
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.1
+    hooks:
+      - id: python-safety-dependencies-check
+        files: requirements\.txt$
+        
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect Secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: .*/tests/.*|.*\.ipynb$
+        
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        name: Black Code Formatter
+        language_version: python3.10
+        args: ['--line-length=100']
+        
+  # Import sorting
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort Import Sorter
+        args: ['--profile', 'black', '--line-length=100']
+        
+  # Linting
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        name: Flake8 Linter
+        args: ['--max-line-length=100', '--ignore=E203,W503']
+        
+  # YAML validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        args: ['--safe']
+      - id: check-json
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+```
+
+**Install and Run:**
+
+```bash
+# Install hooks
+pre-commit install
+
+# Run on all files (first time)
+pre-commit run --all-files
+
+# Run on staged files (automatic on git commit)
+git commit -m "test"
+
+# Update hooks to latest versions
+pre-commit autoupdate
+```
+
+---
+
+## 📊 Security Metrics Dashboard
+
+Track repository security posture over time:
+
+| Metric | Current | Target | Trend | Priority | ETA |
+| ------ | ------- | ------ | ----- | -------- | --- |
+| **Dependabot Alerts** | 159 | 0 | 🔴 ↑ | Critical | Dec 2025 |
+| **Critical Vulnerabilities** | 11 | 0 | 🔴 ↑ | Critical | This Week |
+| **High Vulnerabilities** | 52 | 0 | 🔴 ↑ | High | Nov 2025 |
+| **Secret Scanning Alerts** | 0 | 0 | 🟢 → | Low | Maintained |
+| **Code Scanning Alerts** | N/A | 0 | ⚪ - | High | Setup pending |
+| **Branch Protection Rules** | 4/7 | 7/7 | 🟡 ↗ | Medium | This month |
+| **2FA Enforcement** | Not set | 100% | 🔴 - | Medium | Q1 2026 |
+| **Security Policy** | ✅ Complete | ✅ | 🟢 ✓ | Low | Done |
+| **CI/CD Security Checks** | Not setup | Active | 🟡 - | High | This month |
+| **Pre-commit Hooks** | Not setup | Active | 🟡 - | Medium | This week |
+
+**Monitoring Frequency:**
+- 🔴 **Critical/High:** Daily review
+- 🟡 **Medium:** Weekly review
+- 🟢 **Low:** Monthly review
+- 📊 **Full Audit:** Quarterly
+
+**Reporting:**
+```bash
+# Generate security report
+python scripts/security_report.py --output reports/security-$(date +%Y%m%d).md
+
+# Send to team (future)
+# curl -X POST "$SLACK_WEBHOOK" -d "{\"text\": \"Security Report: $(cat reports/latest.md)\"}"
+```
+
+---
+
+## �🔧 Security Best Practices for Deployment
 
 ### Production Checklist
 

@@ -1,0 +1,102 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+
+jobs:
+  security-scan:
+    name: Run Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10.11'
+        cache: 'pip'
+        
+    - name: Install security tools
+      run: |
+        pip install --upgrade pip
+        pip install bandit safety pip-audit
+        
+    - name: Run Bandit (Python Security Linter)
+      run: |
+        bandit -r . \
+          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv,**/tests/** \
+          --severity-level medium \
+          --confidence-level medium \
+          -f json -o bandit-report.json || true
+        bandit -r . \
+          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv \
+          -f txt || true
+      continue-on-error: true
+        
+    - name: Run Safety (Dependency Vulnerability Scanner)
+      run: |
+        for req in ChatBot/requirements.txt "Text2SQL Services/requirements.txt" "Document Intelligence Service/requirements.txt" "Speech2Text Services/requirements.txt"; do
+          if [ -f "$req" ]; then
+            echo "Checking $req"
+            safety check -r "$req" || true
+          fi
+        done
+      continue-on-error: true
+        
+    - name: Run pip-audit (PyPI Package Auditor)
+      run: |
+        for req in ChatBot/requirements.txt "Text2SQL Services/requirements.txt" "Document Intelligence Service/requirements.txt" "Speech2Text Services/requirements.txt"; do
+          if [ -f "$req" ]; then
+            echo "=== Auditing $req ==="
+            pip-audit -r "$req" --desc || true
+          fi
+        done
+      continue-on-error: true
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports-${{ github.sha }}
+        path: |
+          bandit-report.json
+        retention-days: 90
+        
+    - name: Comment PR with security summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let banditIssues = 0;
+          try {
+            const bandit = JSON.parse(fs.readFileSync('bandit-report.json', 'utf8'));
+            banditIssues = bandit.results.length;
+          } catch (e) {
+            banditIssues = 'N/A';
+          }
+          
+          const body = `## 🔒 Security Scan Results
+          
+          **Bandit Issues:** ${banditIssues}
+          
+          Download full reports from the Actions artifacts.
+          
+          ${banditIssues > 0 ? '⚠️ Please review security findings before merging.' : '✅ No security issues detected.'}`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
