@@ -72,7 +72,7 @@ class SpeakerDiarizationClient:
             )
         
         self.model_name = model_name
-        self.hf_token = hf_token or os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN") or "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"
+        self.hf_token = hf_token or os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN")
         self.min_speakers = min_speakers
         self.max_speakers = max_speakers
         

@@ -68,7 +68,7 @@ Edit `d:\WORK\s2t\.env`:
 HF_TOKEN=hf_your_actual_token_here
 
 # Keep existing Gemini key
-GEMINI_API_KEY=AIzaSyCbaNe3w8VW7aKXGKBzN9JgpjKrYRsed-c
+GEMINI_API_KEY=your_gemini_api_key_here (old_key_deleted_in_official_google_update)
 ```
 
 **Verification:**
