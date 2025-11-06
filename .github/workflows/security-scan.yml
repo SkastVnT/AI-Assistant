@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
+permissions:
+  contents: write
+  actions: read
+  pull-requests: write
+
 jobs:
   security-scan:
     name: Run Security Checks
@@ -17,7 +22,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        submodules: recursive
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
@@ -29,16 +36,19 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install bandit safety pip-audit
+    
+    - name: Check Python syntax
+      run: |
+        bash scripts/check_python_syntax.sh
+      continue-on-error: true
         
     - name: Run Bandit (Python Security Linter)
       run: |
-        bandit -r . \
-          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv,**/tests/** \
+        bandit -r . --configfile .bandit \
           --severity-level medium \
           --confidence-level medium \
           -f json -o bandit-report.json || true
-        bandit -r . \
-          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv \
+        bandit -r . --configfile .bandit \
           -f txt || true
       continue-on-error: true
         

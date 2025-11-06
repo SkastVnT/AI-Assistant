@@ -3,6 +3,7 @@ Centralized Error Handling for VistralS2T
 Custom exceptions and error handling utilities
 """
 
+import sys
 import traceback
 import logging
 from typing import Optional, Any
@@ -59,8 +60,8 @@ def handle_error(
     try:
         logger = logging.getLogger("vistral")
         logger.error(error_msg, exc_info=True)
-    except:
-        pass  # Logger not configured
+    except Exception as e:
+        print(f"Logger not configured: {e}", file=sys.stderr)
     
     if raise_error:
         raise error

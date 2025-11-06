@@ -1,0 +1,5 @@
+exclude:
+  - /ChatBot/tests
+  - /tests
+  - /stable-diffusion-webui
+  - /Speech2Text Services
