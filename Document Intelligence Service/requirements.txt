@@ -6,7 +6,7 @@ Flask==3.0.0
 Flask-CORS==4.0.0
 
 # OCR Engine (FREE - Vietnamese support)
-paddleocr==2.7.3
+paddleocr==3.3.1
 paddlepaddle==2.6.1  # CPU version (stable for Windows)
 protobuf==3.20.2  # CRITICAL: PaddlePaddle compatibility (set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python)
 
