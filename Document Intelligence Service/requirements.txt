@@ -2,7 +2,7 @@
 # Phase 1.5: OCR + AI Enhancement with Gemini 2.0 Flash
 
 # Web Framework
-Flask==3.0.0
+Flask==3.1.2
 Flask-CORS==4.0.0
 
 # OCR Engine (FREE - Vietnamese support)
