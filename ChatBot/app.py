@@ -33,6 +33,29 @@ werkzeug_logger.setLevel(logging.INFO)
 # Load environment variables
 load_dotenv()
 
+# Import performance optimization utilities
+try:
+    from src.utils.cache_manager import get_cache_manager
+    from src.utils.database_manager import get_database_manager
+    from src.utils.streaming_handler import StreamingHandler
+    PERFORMANCE_ENABLED = True
+    logger.info("✅ Performance optimization modules loaded")
+except Exception as e:
+    PERFORMANCE_ENABLED = False
+    logger.warning(f"⚠️ Performance modules not available: {e}")
+
+# Initialize performance components
+if PERFORMANCE_ENABLED:
+    cache = get_cache_manager()
+    db = get_database_manager()
+    streaming = StreamingHandler()
+    logger.info(f"✅ Cache status: {cache.enabled}")
+    logger.info(f"✅ Database status: {db.enabled}")
+else:
+    cache = None
+    db = None
+    streaming = None
+
 # Import local model loader
 try:
     from src.utils.local_model_loader import model_loader

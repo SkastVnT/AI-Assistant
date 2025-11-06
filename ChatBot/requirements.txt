@@ -10,6 +10,11 @@ flask-cors==4.0.0
 python-dotenv==1.0.0
 werkzeug>=3.0.0
 
+# ============= PERFORMANCE & CACHING (Phase 1) =============
+redis>=5.0.0
+pymongo>=4.6.0
+dnspython>=2.4.0  # Required for MongoDB SRV connection
+
 # ============= AI APIs =============
 openai>=1.0.0
 google-generativeai==0.8.5
@@ -17,6 +22,14 @@ google-generativeai==0.8.5
 # ============= IMAGE PROCESSING =============
 Pillow>=10.0.0
 requests>=2.31.0
+
+# ============= PHASE 2: ADVANCED FEATURES =============
+# Semantic search and embeddings
+sentence-transformers>=2.2.2
+
+# Scientific computing
+scipy>=1.11.0
+scikit-learn>=1.3.0
 
 # ============= LOCAL MODEL SUPPORT =============
 # PyTorch (CUDA 11.8) - Install from https://pytorch.org/get-started/locally/
