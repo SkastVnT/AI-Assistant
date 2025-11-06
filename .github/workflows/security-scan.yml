@@ -39,17 +39,17 @@ jobs:
         python -m pip install bandit
         bandit -r ChatBot "Speech2Text Services/app/core" --ini .bandit -f json -o bandit-report.json || true
         # Fail only if medium/high severity issues exist
-        python3 - <<'PY'
-import json
-r=json.load(open('bandit-report.json'))
-counts={'LOW':0,'MEDIUM':0,'HIGH':0}
-for i in r.get('results',[]):
-    sev=i.get('issue_severity','LOW').upper()
-    counts[sev]=counts.get(sev,0)+1
-print('Bandit counts:',counts)
-if counts['HIGH']>0 or counts['MEDIUM']>0:
-    raise SystemExit('Bandit found medium/high issues')
-PY
+        python3 <<'EOF'
+        import json
+        r=json.load(open('bandit-report.json'))
+        counts={'LOW':0,'MEDIUM':0,'HIGH':0}
+        for i in r.get('results',[]):
+            sev=i.get('issue_severity','LOW').upper()
+            counts[sev]=counts.get(sev,0)+1
+        print('Bandit counts:',counts)
+        if counts['HIGH']>0 or counts['MEDIUM']>0:
+            raise SystemExit('Bandit found medium/high issues')
+        EOF
       continue-on-error: false
         
     - name: Run Safety (Dependency Vulnerability Scanner)
