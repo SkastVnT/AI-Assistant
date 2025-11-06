@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 from app.core.config import settings, MODELS_INFO
 from app.core.vectorstore import get_vector_store
 from app.core.document_processor import DocumentProcessor
+from app.core.rag_engine import get_rag_engine
 
 # Initialize Flask app
 app = Flask(__name__, 
@@ -191,6 +192,62 @@ def get_stats():
     except Exception as e:
         print(f"❌ Stats error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/rag/query', methods=['POST'])
+def rag_query():
+    """
+    RAG Query - Answer question using retrieved context
+    Request body: { 
+        "query": "...", 
+        "top_k": 5,
+        "language": "auto"  // auto, vi, en
+    }
+    """
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        top_k = data.get('top_k', settings.TOP_K_RESULTS)
+        language = data.get('language', 'auto')
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        # Get RAG engine
+        rag_engine = get_rag_engine()
+        
+        # Generate answer
+        result = rag_engine.query(
+            question=query,
+            top_k=top_k,
+            language=language
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ RAG query error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/rag/status', methods=['GET'])
+def rag_status():
+    """Check if RAG is available (LLM configured)"""
+    try:
+        from app.core.llm_client import get_llm_client
+        llm_client = get_llm_client()
+        
+        return jsonify({
+            'available': llm_client.model is not None,
+            'model': settings.GEMINI_MODEL if llm_client.model else None,
+            'message': 'RAG ready' if llm_client.model else 'No API key configured'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'available': False,
+            'error': str(e)
+        }), 500
 
 
 if __name__ == '__main__':

@@ -5,6 +5,10 @@
 
 const API_BASE = '';
 
+// Current mode: 'search' or 'rag'
+let currentMode = 'search';
+let ragAvailable = false;
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 RAG Services UI Initialized');
@@ -16,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load initial data
     loadSystemInfo();
     refreshDocuments();
+    checkRAGStatus();
     
     // Auto-refresh documents every 30 seconds
     setInterval(refreshDocuments, 30000);
@@ -118,6 +123,275 @@ async function uploadFile(file) {
 }
 
 /**
+ * Check if RAG is available
+ */
+async function checkRAGStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/api/rag/status`);
+        const data = await response.json();
+        
+        ragAvailable = data.available;
+        
+        if (!ragAvailable) {
+            // Disable RAG mode button
+            document.getElementById('ragModeBtn').disabled = true;
+            document.getElementById('ragModeBtn').classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('ragModeBtn').title = 'Configure GEMINI_API_KEY to enable';
+        }
+    } catch (error) {
+        console.error('Failed to check RAG status:', error);
+        ragAvailable = false;
+    }
+}
+
+/**
+ * Switch between search and RAG mode
+ */
+function switchMode(mode) {
+    currentMode = mode;
+    
+    const searchBtn = document.getElementById('searchModeBtn');
+    const ragBtn = document.getElementById('ragModeBtn');
+    const ragBadge = document.getElementById('ragStatusBadge');
+    
+    if (mode === 'search') {
+        searchBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        searchBtn.classList.add('bg-blue-500', 'text-white');
+        ragBtn.classList.remove('bg-purple-500', 'text-white');
+        ragBtn.classList.add('bg-gray-200', 'text-gray-700');
+        ragBadge.classList.add('hidden');
+    } else {
+        ragBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        ragBtn.classList.add('bg-purple-500', 'text-white');
+        searchBtn.classList.remove('bg-blue-500', 'text-white');
+        searchBtn.classList.add('bg-gray-200', 'text-gray-700');
+        ragBadge.classList.remove('hidden');
+    }
+}
+
+/**
+ * Handle query based on current mode
+ */
+function handleQuery() {
+    if (currentMode === 'rag') {
+        performRAG();
+    } else {
+        performSearch();
+    }
+}
+
+/**
+ * Perform RAG query
+ */
+async function performRAG() {
+    const query = document.getElementById('searchInput').value.trim();
+    
+    if (!query) {
+        showToast('warning', '⚠️ Please enter a question');
+        return;
+    }
+    
+    if (!ragAvailable) {
+        showToast('error', '❌ RAG not available. Configure GEMINI_API_KEY.');
+        return;
+    }
+    
+    const topK = parseInt(document.getElementById('topKSelect').value);
+    
+    // Show searching status
+    document.getElementById('searchStatus').classList.remove('hidden');
+    document.getElementById('welcomeMessage').classList.add('hidden');
+    document.getElementById('resultsContainer').classList.add('hidden');
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/rag/query`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                query, 
+                top_k: topK,
+                language: 'auto'
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Hide searching status
+        document.getElementById('searchStatus').classList.add('hidden');
+        
+        if (data.answer) {
+            displayRAGResult(data, query);
+        } else {
+            showNoResults();
+        }
+        
+    } catch (error) {
+        console.error('RAG query error:', error);
+        document.getElementById('searchStatus').classList.add('hidden');
+        showToast('error', '❌ RAG query failed: ' + error.message);
+    }
+}
+
+/**
+ * Display RAG result
+ */
+function displayRAGResult(data, query) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsTitle = document.getElementById('resultsTitle');
+    const resultsIcon = document.getElementById('resultsIcon');
+    const resultCount = document.getElementById('resultCount');
+    const ragAnswer = document.getElementById('ragAnswer');
+    const ragAnswerText = document.getElementById('ragAnswerText');
+    const ragSources = document.getElementById('ragSources');
+    const resultsDiv = document.getElementById('results');
+    
+    // Update header
+    resultsContainer.classList.remove('hidden');
+    resultsTitle.textContent = 'AI Answer';
+    resultsIcon.className = 'fas fa-robot text-purple-500 mr-2';
+    resultCount.textContent = `Based on ${data.retrieved_chunks} relevant chunk(s)`;
+    
+    // Show RAG answer
+    ragAnswer.classList.remove('hidden');
+    
+    // Format answer (support markdown)
+    ragAnswerText.innerHTML = formatMarkdown(data.answer);
+    
+    // Display sources
+    if (data.sources && data.sources.length > 0) {
+        ragSources.innerHTML = `
+            <div class="text-sm font-semibold text-gray-700 mb-2">📚 Sources:</div>
+            <div class="space-y-1">
+                ${data.sources.map(source => {
+                    const relevance = Math.round(source.relevance * 100);
+                    return `
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">
+                                <i class="fas fa-file-alt text-purple-400 mr-2"></i>
+                                ${source.name}
+                            </span>
+                            <span class="text-purple-600 font-semibold">${relevance}%</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+    
+    // Show search results below (collapsible)
+    if (data.search_results && data.search_results.length > 0) {
+        resultsDiv.innerHTML = `
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <button onclick="toggleSearchResults()" class="text-sm text-blue-500 hover:text-blue-600 mb-3">
+                    <i class="fas fa-chevron-down mr-1"></i>
+                    Show source chunks (${data.search_results.length})
+                </button>
+                <div id="searchResultsDetails" class="hidden space-y-4">
+                    ${data.search_results.map((result, index) => createSearchResultCard(result, index, query)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Scroll to results
+    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Toggle search results details
+ */
+function toggleSearchResults() {
+    const details = document.getElementById('searchResultsDetails');
+    details.classList.toggle('hidden');
+}
+
+/**
+ * Format markdown text
+ */
+function formatMarkdown(text) {
+    if (!text) return '';
+    
+    // Simple markdown formatting
+    let html = text
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Code
+        .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded">$1</code>')
+        // Line breaks
+        .replace(/\n/g, '<br>')
+        // Bullet points
+        .replace(/^- (.+)$/gm, '• $1')
+        .replace(/^\d+\. (.+)$/gm, '<strong>$&</strong>');
+    
+    return html;
+}
+
+/**
+ * Create search result card
+ */
+function createSearchResultCard(result, index, query) {
+    const scorePercent = Math.round(result.score * 100);
+    const scoreColor = scorePercent >= 80 ? 'green' : scorePercent >= 60 ? 'yellow' : 'orange';
+    
+    // Highlight query terms
+    let highlightedText = result.text;
+    const queryWords = query.toLowerCase().split(' ');
+    queryWords.forEach(word => {
+        if (word.length > 3) {
+            const regex = new RegExp(`(${word})`, 'gi');
+            highlightedText = highlightedText.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
+        }
+    });
+    
+    return `
+        <div class="search-result bg-white border-2 border-gray-200 rounded-lg p-5 fade-in">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
+                        ${index + 1}
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-file-alt text-gray-400"></i>
+                            <span class="font-semibold text-gray-800">${result.metadata.source}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Chunk ${result.metadata.chunk_id + 1} of ${result.metadata.total_chunks}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-${scoreColor}-600">${scorePercent}%</div>
+                    <div class="text-xs text-gray-500">relevance</div>
+                </div>
+            </div>
+            
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                <div class="score-bar bg-gradient-to-r from-${scoreColor}-400 to-${scoreColor}-600 h-2 rounded-full" 
+                     style="width: ${scorePercent}%"></div>
+            </div>
+            
+            <div class="text-gray-700 leading-relaxed">
+                ${highlightedText.substring(0, 500)}${highlightedText.length > 500 ? '...' : ''}
+            </div>
+            
+            <div class="mt-3 flex items-center space-x-4 text-sm text-gray-500">
+                <span><i class="fas fa-tag mr-1"></i> ${result.metadata.file_type}</span>
+                <button onclick="copyText(\`${result.text.replace(/`/g, '\\`')}\`)" 
+                        class="hover:text-blue-500 transition">
+                    <i class="fas fa-copy mr-1"></i> Copy
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+/**
  * Perform semantic search
  */
 async function performSearch() {
@@ -168,68 +442,23 @@ async function performSearch() {
 function displayResults(results, query) {
     const resultsContainer = document.getElementById('resultsContainer');
     const resultsDiv = document.getElementById('results');
+    const resultsTitle = document.getElementById('resultsTitle');
+    const resultsIcon = document.getElementById('resultsIcon');
     const resultCount = document.getElementById('resultCount');
+    const ragAnswer = document.getElementById('ragAnswer');
     
+    // Hide RAG answer (search mode)
+    ragAnswer.classList.add('hidden');
+    
+    // Update header
     resultsContainer.classList.remove('hidden');
+    resultsTitle.textContent = 'Search Results';
+    resultsIcon.className = 'fas fa-list-ul text-purple-500 mr-2';
     resultCount.textContent = `Found ${results.length} relevant result(s)`;
     
-    resultsDiv.innerHTML = results.map((result, index) => {
-        const scorePercent = Math.round(result.score * 100);
-        const scoreColor = scorePercent >= 80 ? 'green' : scorePercent >= 60 ? 'yellow' : 'orange';
-        
-        // Highlight query terms in text (simple implementation)
-        let highlightedText = result.text;
-        const queryWords = query.toLowerCase().split(' ');
-        queryWords.forEach(word => {
-            if (word.length > 3) {
-                const regex = new RegExp(`(${word})`, 'gi');
-                highlightedText = highlightedText.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
-            }
-        });
-        
-        return `
-            <div class="search-result bg-white border-2 border-gray-200 rounded-lg p-5 fade-in">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
-                            ${index + 1}
-                        </div>
-                        <div>
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-file-alt text-gray-400"></i>
-                                <span class="font-semibold text-gray-800">${result.metadata.source}</span>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-1">
-                                Chunk ${result.metadata.chunk_id + 1} of ${result.metadata.total_chunks}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-right">
-                        <div class="text-2xl font-bold text-${scoreColor}-600">${scorePercent}%</div>
-                        <div class="text-xs text-gray-500">relevance</div>
-                    </div>
-                </div>
-                
-                <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
-                    <div class="score-bar bg-gradient-to-r from-${scoreColor}-400 to-${scoreColor}-600 h-2 rounded-full" 
-                         style="width: ${scorePercent}%"></div>
-                </div>
-                
-                <div class="text-gray-700 leading-relaxed">
-                    ${highlightedText.substring(0, 500)}${highlightedText.length > 500 ? '...' : ''}
-                </div>
-                
-                <div class="mt-3 flex items-center space-x-4 text-sm text-gray-500">
-                    <span><i class="fas fa-tag mr-1"></i> ${result.metadata.file_type}</span>
-                    <button onclick="copyText(\`${result.text.replace(/`/g, '\\`')}\`)" 
-                            class="hover:text-blue-500 transition">
-                        <i class="fas fa-copy mr-1"></i> Copy
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
+    resultsDiv.innerHTML = results.map((result, index) => 
+        createSearchResultCard(result, index, query)
+    ).join('');
     
     // Scroll to results
     resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
