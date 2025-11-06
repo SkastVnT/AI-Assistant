@@ -22,11 +22,11 @@ set "SERVICE_NAME=Stable Diffusion (AUTOMATIC1111)"
 set "PYTHON_VERSION=3.10"
 set "WEBUI_SCRIPT=webui-user.bat"
 
-echo.
+echo(
 echo %BLUE%============================================================%RESET%
 echo %BLUE%  BUILD SCRIPT - %SERVICE_NAME% SERVICE%RESET%
 echo %BLUE%============================================================%RESET%
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 1: Check Python Installation
@@ -35,11 +35,11 @@ echo %YELLOW%[STEP 1/7]%RESET% Checking Python installation...
 
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo %RED%[ERROR]%RESET% Python is not installed or not in PATH!
-    echo.
+    echo %RED%[ERROR]%RESET% Python is not installed or not in PATH
+    echo(
     echo Please install Python %PYTHON_VERSION% or higher from:
     echo https://www.python.org/downloads/
-    echo.
+    echo(
     pause
     exit /b 1
 )
@@ -65,38 +65,28 @@ if %MAJOR% EQU 3 if %MINOR% LSS 10 (
     exit /b 1
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 2: Check CUDA (Required for GPU Acceleration)
 REM ============================================================================
-echo %YELLOW%[STEP 2/7]%RESET% Checking CUDA availability...
+echo %YELLOW%[STEP 2/7]%RESET% Checking CUDA availability
 
-nvidia-smi >nul 2>&1
-if errorlevel 1 (
-    echo %YELLOW%[WARN]%RESET% NVIDIA GPU not detected or nvidia-smi not in PATH
-    echo.
-    echo %YELLOW%[IMPORTANT]%RESET% Stable Diffusion REQUIRES NVIDIA GPU with CUDA!
-    echo CPU-only mode is extremely slow (not recommended).
-    echo.
-    echo Minimum requirements:
-    echo - NVIDIA GPU with 4GB+ VRAM (6GB+ recommended)
-    echo - CUDA 11.8 or 12.1
-    echo - Latest NVIDIA drivers
-    echo.
+nvidia-smi >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo %YELLOW%[WARN]%RESET% NVIDIA GPU not detected
+    echo(
     set "CUDA_AVAILABLE=0"
     
     choice /C YN /M "Continue anyway?"
     if errorlevel 2 exit /b 1
 ) else (
-    echo %GREEN%[OK]%RESET% NVIDIA GPU detected:
-    echo.
-    nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
-    echo.
+    echo %GREEN%[OK]%RESET% NVIDIA GPU detected
+    nvidia-smi --query-gpu=name --format=csv,noheader
     set "CUDA_AVAILABLE=1"
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 3: Check Git Installation
@@ -105,10 +95,10 @@ echo %YELLOW%[STEP 3/7]%RESET% Checking Git installation...
 
 git --version >nul 2>&1
 if errorlevel 1 (
-    echo %RED%[ERROR]%RESET% Git is not installed!
-    echo.
+    echo %RED%[ERROR]%RESET% Git is not installed
+    echo(
     echo Install Git from: https://git-scm.com/download/win
-    echo.
+    echo(
     pause
     exit /b 1
 )
@@ -116,7 +106,7 @@ if errorlevel 1 (
 for /f "tokens=3" %%i in ('git --version 2^>^&1') do set GIT_VER=%%i
 echo %GREEN%[OK]%RESET% Git %GIT_VER% found
 
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 4: Check/Initialize Repository
@@ -124,14 +114,8 @@ REM ============================================================================
 echo %YELLOW%[STEP 4/7]%RESET% Checking repository...
 
 if not exist ".git" (
-    echo %YELLOW%[WARN]%RESET% Not a git repository
-    echo %YELLOW%[INFO]%RESET% This directory should be the stable-diffusion-webui repository
-    echo.
-    echo If you haven't cloned the repository yet, run:
-    echo git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
-    echo.
-    pause
-    exit /b 1
+    echo %YELLOW%[INFO]%RESET% This is a local installation (not a git repository)
+    echo %GREEN%[OK]%RESET% Continuing with existing setup
 ) else (
     echo %GREEN%[OK]%RESET% Git repository detected
     
@@ -140,7 +124,7 @@ if not exist ".git" (
     echo %YELLOW%[INFO]%RESET% Remote: !REMOTE_URL!
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 5: Check Essential Directories
@@ -178,7 +162,7 @@ if not exist "embeddings" (
     echo %GREEN%[OK]%RESET% embeddings exists
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 6: Check for Stable Diffusion Models
@@ -191,22 +175,17 @@ for %%f in ("models\Stable-diffusion\*.safetensors" "models\Stable-diffusion\*.c
 )
 
 if %MODEL_COUNT% EQU 0 (
-    echo %YELLOW%[WARN]%RESET% No Stable Diffusion models found!
-    echo.
-    echo %YELLOW%[INFO]%RESET% You need to download at least one model:
-    echo.
-    echo Recommended models (~2-7GB each):
-    echo 1. Stable Diffusion 1.5
-    echo    https://huggingface.co/runwayml/stable-diffusion-v1-5
-    echo.
-    echo 2. Stable Diffusion XL 1.0
-    echo    https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
-    echo.
-    echo 3. Anime models (e.g., Anything V5, CounterfeitXL)
-    echo    https://civitai.com/
-    echo.
-    echo Place .safetensors or .ckpt files in: models\Stable-diffusion\
-    echo.
+    echo %YELLOW%[WARN]%RESET% No Stable Diffusion models found
+    echo(
+    echo %YELLOW%[INFO]%RESET% You need to download at least one model
+    echo(
+    echo Recommended models (approximately 2-7GB each)
+    echo 1. Stable Diffusion v1.5
+    echo 2. Stable Diffusion XL Base
+    echo 3. Anime models from CivitAI
+    echo(
+    echo Place safetensors or ckpt files in models\Stable-diffusion folder
+    echo(
 ) else (
     echo %GREEN%[OK]%RESET% Found %MODEL_COUNT% model(s):
     for %%f in ("models\Stable-diffusion\*.safetensors" "models\Stable-diffusion\*.ckpt") do (
@@ -214,20 +193,27 @@ if %MODEL_COUNT% EQU 0 (
     )
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM STEP 7: Check webui-user.bat Configuration
 REM ============================================================================
-echo %YELLOW%[STEP 7/7]%RESET% Checking %WEBUI_SCRIPT%...
+echo %YELLOW%[STEP 7/7]%RESET% Checking webui scripts...
 
-if not exist "%WEBUI_SCRIPT%" (
-    echo %RED%[ERROR]%RESET% %WEBUI_SCRIPT% not found!
-    echo.
-    echo This file should exist in stable-diffusion-webui root.
-    echo Please ensure you're in the correct directory.
+if not exist "webui.bat" (
+    echo %RED%[ERROR]%RESET% webui.bat not found
+    echo(
+    echo This file should exist in stable-diffusion-webui root
+    echo Please ensure you are in the correct directory
     pause
     exit /b 1
+) else (
+    echo %GREEN%[OK]%RESET% webui.bat found
+)
+
+if not exist "%WEBUI_SCRIPT%" (
+    echo %YELLOW%[INFO]%RESET% webui-user.bat not found (optional config file)
+    echo %YELLOW%[INFO]%RESET% You can create it to customize launch parameters
 ) else (
     echo %GREEN%[OK]%RESET% %WEBUI_SCRIPT% found
     
@@ -240,23 +226,23 @@ if not exist "%WEBUI_SCRIPT%" (
     )
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM RECOMMENDED SETTINGS
 REM ============================================================================
 echo %YELLOW%[TIPS]%RESET% Recommended settings for %WEBUI_SCRIPT%:
-echo.
+echo(
 echo Add these lines to enable optimizations:
 echo   set COMMANDLINE_ARGS=--xformers --opt-sdp-attention --api
-echo.
+echo(
 echo Flags explained:
 echo   --xformers             : Faster generation (NVIDIA only)
 echo   --opt-sdp-attention    : Memory optimization
 echo   --api                  : Enable REST API for integration
 echo   --listen               : Allow external connections
 echo   --port 7861            : Custom port
-echo.
+echo(
 
 REM ============================================================================
 REM VENV CHECK
@@ -271,7 +257,7 @@ if exist "venv\Scripts\python.exe" (
     echo %YELLOW%[INFO]%RESET% Required downloads: ~4GB (PyTorch, dependencies)
 )
 
-echo.
+echo(
 
 REM ============================================================================
 REM BUILD COMPLETE
@@ -279,24 +265,24 @@ REM ============================================================================
 echo %GREEN%============================================================%RESET%
 echo %GREEN%  BUILD COMPLETE - %SERVICE_NAME% SERVICE%RESET%
 echo %GREEN%============================================================%RESET%
-echo.
-echo System ready! To start Stable Diffusion:
-echo.
+echo(
+echo System ready to start Stable Diffusion:
+echo(
 echo 1. Download at least one SD model (if not done)
 echo 2. Run: webui-user.bat (or webui.bat)
 echo 3. Wait for initial setup (10-20 min on first run)
 echo 4. Access WebUI at: http://localhost:7860
-echo.
+echo(
 echo For ChatBot integration:
 echo - API will be available at: http://localhost:7860/sdapi/v1
 echo - Make sure to add --api flag in webui-user.bat
-echo.
+echo(
 echo %YELLOW%[PERFORMANCE TIPS]%RESET%
-echo - Enable xformers for 20-30%% speed boost
+echo - Enable xformers for 20-30 percent speed boost
 echo - Use --medvram if you have 4-6GB VRAM
 echo - Use --lowvram if you have less than 4GB VRAM
-echo.
+echo(
 echo For troubleshooting, see: BUILD_GUIDE.md
-echo.
+echo(
 
 pause
