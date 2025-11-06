@@ -1,0 +1,42 @@
+{
+  "success": true,
+  "filename": "CV_Ky_su_phan_mem.pdf",
+  "type": "pdf",
+  "processed_at": "2025-11-05T22:35:59.263584",
+  "statistics": {
+    "total_pages": 2,
+    "successful_pages": 2,
+    "total_chars": 0
+  },
+  "full_text": "=== Page 1 ===\n\n\n=== Page 2 ===\n\n",
+  "pages": [
+    {
+      "success": true,
+      "filename": "temp_page_1.png",
+      "processed_at": "2025-11-05T22:35:59.152007",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 1
+    },
+    {
+      "success": true,
+      "filename": "temp_page_2.png",
+      "processed_at": "2025-11-05T22:35:59.262581",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 2
+    }
+  ]
+}

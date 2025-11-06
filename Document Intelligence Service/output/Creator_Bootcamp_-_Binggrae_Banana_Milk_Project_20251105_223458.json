@@ -1,0 +1,140 @@
+{
+  "success": true,
+  "filename": "Creator_Bootcamp_-_Binggrae_Banana_Milk_Project.pdf",
+  "type": "pdf",
+  "processed_at": "2025-11-05T22:34:58.697909",
+  "statistics": {
+    "total_pages": 9,
+    "successful_pages": 9,
+    "total_chars": 0
+  },
+  "full_text": "=== Page 1 ===\n\n\n=== Page 2 ===\n\n\n=== Page 3 ===\n\n\n=== Page 4 ===\n\n\n=== Page 5 ===\n\n\n=== Page 6 ===\n\n\n=== Page 7 ===\n\n\n=== Page 8 ===\n\n\n=== Page 9 ===\n\n",
+  "pages": [
+    {
+      "success": true,
+      "filename": "temp_page_1.png",
+      "processed_at": "2025-11-05T22:34:56.753533",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 1
+    },
+    {
+      "success": true,
+      "filename": "temp_page_2.png",
+      "processed_at": "2025-11-05T22:34:56.935479",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 2
+    },
+    {
+      "success": true,
+      "filename": "temp_page_3.png",
+      "processed_at": "2025-11-05T22:34:57.328801",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 3
+    },
+    {
+      "success": true,
+      "filename": "temp_page_4.png",
+      "processed_at": "2025-11-05T22:34:57.473374",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 4
+    },
+    {
+      "success": true,
+      "filename": "temp_page_5.png",
+      "processed_at": "2025-11-05T22:34:57.883407",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 5
+    },
+    {
+      "success": true,
+      "filename": "temp_page_6.png",
+      "processed_at": "2025-11-05T22:34:58.032860",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 6
+    },
+    {
+      "success": true,
+      "filename": "temp_page_7.png",
+      "processed_at": "2025-11-05T22:34:58.393617",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 7
+    },
+    {
+      "success": true,
+      "filename": "temp_page_8.png",
+      "processed_at": "2025-11-05T22:34:58.531116",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 8
+    },
+    {
+      "success": true,
+      "filename": "temp_page_9.png",
+      "processed_at": "2025-11-05T22:34:58.696886",
+      "statistics": {
+        "total_blocks": 0,
+        "average_confidence": 0.0,
+        "total_chars": 0,
+        "total_lines": 1
+      },
+      "text": "",
+      "blocks": [],
+      "page_number": 9
+    }
+  ]
+}
