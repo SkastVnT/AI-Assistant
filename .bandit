@@ -1,0 +1,8 @@
+[bandit]
+exclude_dirs = ChatBot/tests,stable-diffusion-webui,Speech2Text Services,ChatBot/models,Text2SQL Services/tests,Speech2Text Services/app/tests
+skips = B101,B110,B112,B603
+# Keep default severity to LOW but we'll make CI fail only on HIGH via parser
+# B101: assert_used - common in tests
+# B110: try_except_pass - acceptable pattern in many cases
+# B112: try_except_continue - acceptable pattern in many cases
+# B603: subprocess_without_shell_equals_true - shell=False is safer but flagged anyway
