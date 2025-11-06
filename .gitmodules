@@ -7,7 +7,7 @@
 # URL field, causing "fatal: No url found for submodule path" errors:
 #
 # 1. ChatBot/models/BloomVN-8B-chat
-# 2. ChatBot/models/Qwen2.5-14B-Instruct  
+# 2. ChatBot/models/Qwen2.5-14B-Instruct
 # 3. stable-diffusion-webui/models/OrangeMixs
 #
 # To re-add a submodule with proper URL:
