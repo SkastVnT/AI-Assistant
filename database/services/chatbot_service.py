@@ -1,7 +1,7 @@
 """
 ChatBot Database Service
 
-High-level service layer for ChatBot operations
+High-level service layer for ChatBot operations with Redis caching
 """
 
 import logging
@@ -18,6 +18,18 @@ from database.repositories import (
     UploadedFileRepository
 )
 from database.models.chatbot import MessageRole
+
+# Import caching utilities
+try:
+    from database.utils.cache import (
+        UserCache, ConversationCache, MessageCache, MemoryCache,
+        cache_client, get_cache
+    )
+    CACHE_ENABLED = True
+except Exception as e:
+    CACHE_ENABLED = False
+    logger = logging.getLogger(__name__)
+    logger.warning(f"⚠️ Cache not available: {e}")
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +60,7 @@ class ChatBotService:
         full_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Get existing user or create new one
+        Get existing user or create new one (with caching)
         
         Args:
             username: Username
@@ -58,6 +70,16 @@ class ChatBotService:
         Returns:
             User dict with id, username, email, etc.
         """
+        # Try cache first
+        if CACHE_ENABLED and cache_client:
+            try:
+                cached = cache_client.get(UserCache.get_username_key(username))
+                if cached:
+                    import json
+                    return json.loads(cached)
+            except Exception as e:
+                logger.warning(f"Cache read error: {e}")
+        
         with db_session() as session:
             # Try to find existing user
             user = self.user_repo.get_by_username(session, username)
@@ -75,7 +97,7 @@ class ChatBotService:
                 # Update last login
                 self.user_repo.update_last_login(session, user.id)
             
-            return {
+            user_data = {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
@@ -83,6 +105,15 @@ class ChatBotService:
                 "is_active": user.is_active,
                 "last_login": user.last_login
             }
+            
+            # Cache the result
+            if CACHE_ENABLED and cache_client:
+                try:
+                    UserCache.cache_user(user_data, ttl=3600)
+                except Exception as e:
+                    logger.warning(f"Cache write error: {e}")
+            
+            return user_data
     
     # ========================================================================
     # Conversation Management
@@ -136,7 +167,7 @@ class ChatBotService:
         message_limit: Optional[int] = None
     ) -> Optional[Dict[str, Any]]:
         """
-        Get conversation by ID
+        Get conversation by ID (with caching)
         
         Args:
             conversation_id: Conversation ID
@@ -146,6 +177,16 @@ class ChatBotService:
         Returns:
             Conversation dict or None
         """
+        # Try cache for conversation without messages
+        if not include_messages and CACHE_ENABLED and cache_client:
+            try:
+                import json
+                cached = cache_client.get(ConversationCache.get_conversation_key(conversation_id))
+                if cached:
+                    return json.loads(cached)
+            except Exception as e:
+                logger.warning(f"Cache read error: {e}")
+        
         with db_session() as session:
             if include_messages:
                 conversation = self.conv_repo.get_with_messages(
@@ -184,6 +225,13 @@ class ChatBotService:
                     }
                     for msg in conversation.messages
                 ]
+            else:
+                # Cache conversation without messages
+                if CACHE_ENABLED and cache_client:
+                    try:
+                        ConversationCache.cache_conversation(result, ttl=1800)
+                    except Exception as e:
+                        logger.warning(f"Cache write error: {e}")
             
             return result
     
@@ -232,7 +280,7 @@ class ChatBotService:
     
     def delete_conversation(self, conversation_id: int) -> bool:
         """
-        Delete conversation (cascade deletes messages, etc.)
+        Delete conversation (cascade deletes messages, etc.) and invalidate cache
         
         Args:
             conversation_id: Conversation ID
@@ -243,6 +291,14 @@ class ChatBotService:
         with db_session() as session:
             success = self.conv_repo.delete(session, conversation_id, soft_delete=False)
             if success:
+                # Invalidate cache
+                if CACHE_ENABLED and cache_client:
+                    try:
+                        ConversationCache.invalidate_conversation(conversation_id)
+                        MessageCache.invalidate_messages(conversation_id)
+                    except Exception as e:
+                        logger.warning(f"Cache invalidation error: {e}")
+                
                 logger.info(f"Deleted conversation {conversation_id}")
             return success
     
@@ -266,10 +322,11 @@ class ChatBotService:
         role: str,
         content: str,
         model: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        tool_results: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
-        Save message to conversation
+        Save message to conversation (invalidates cache)
         
         Args:
             conversation_id: Conversation ID
@@ -277,6 +334,7 @@ class ChatBotService:
             content: Message content
             model: Optional model name
             metadata: Optional metadata
+            tool_results: Optional tool execution results
             
         Returns:
             Message dict
@@ -293,11 +351,20 @@ class ChatBotService:
                 content=content,
                 model=model,
                 sequence_number=seq_num,
-                metadata=metadata or {}
+                metadata=metadata or {},
+                tool_results=tool_results or []
             )
             
             # Update conversation message count
             self.conv_repo.update_message_count(session, conversation_id)
+            
+            # Invalidate conversation cache
+            if CACHE_ENABLED and cache_client:
+                try:
+                    ConversationCache.invalidate_conversation(conversation_id)
+                    MessageCache.invalidate_messages(conversation_id)
+                except Exception as e:
+                    logger.warning(f"Cache invalidation error: {e}")
             
             logger.info(f"Saved message {message.id} to conversation {conversation_id}")
             
@@ -308,6 +375,7 @@ class ChatBotService:
                 "content": message.content,
                 "model": message.model,
                 "sequence_number": message.sequence_number,
+                "tool_results": message.tool_results,
                 "created_at": message.created_at.isoformat()
             }
     

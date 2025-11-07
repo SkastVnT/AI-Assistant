@@ -40,26 +40,32 @@ class DatabaseEngine:
         cls,
         database_url: Optional[str] = None,
         echo: bool = False,
-        pool_size: int = 5,
-        max_overflow: int = 10,
+        pool_size: int = 20,
+        max_overflow: int = 30,
         pool_timeout: int = 30,
-        pool_recycle: int = 3600,
+        pool_recycle: int = 1800,
         use_null_pool: bool = False
     ) -> Engine:
         """
-        Initialize database engine with connection pooling
+        Initialize database engine with optimized connection pooling for production
         
         Args:
             database_url: PostgreSQL connection string (default from env)
             echo: Whether to log SQL statements
-            pool_size: Number of connections to maintain
-            max_overflow: Maximum overflow connections
+            pool_size: Number of connections to maintain (default: 20 for production)
+            max_overflow: Maximum overflow connections (default: 30 for production)
             pool_timeout: Seconds to wait for connection
-            pool_recycle: Recycle connections after N seconds
+            pool_recycle: Recycle connections after N seconds (default: 1800 for stability)
             use_null_pool: Use NullPool (for testing/serverless)
         
         Returns:
             SQLAlchemy Engine instance
+        
+        Production Recommendations:
+            - pool_size: 20-50 depending on concurrent users
+            - max_overflow: 1.5x pool_size for burst traffic
+            - pool_recycle: 1800 (30min) to prevent stale connections
+            - pool_pre_ping: True to verify connections
         """
         if cls._engine is not None:
             logger.warning("Database engine already initialized")
