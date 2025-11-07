@@ -19,7 +19,7 @@
 
 # Web Framework
 flask==3.0.0
-flask-cors==4.0.0
+flask-cors==6.0.0  # Updated from 4.0.0 - Security fix for vulnerabilities
 python-dotenv==1.0.0
 werkzeug>=3.0.0
 
