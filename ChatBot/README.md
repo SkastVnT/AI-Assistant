@@ -61,19 +61,65 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment
+### 3. Setup Database
+
+```bash
+# Start PostgreSQL and Redis (using Docker - recommended)
+docker-compose up -d postgres redis
+
+# Or install manually:
+# - PostgreSQL 15+: https://www.postgresql.org/download/
+# - Redis 7+: https://redis.io/download
+
+# Create database and user
+psql -U postgres -c "CREATE DATABASE chatbot_db;"
+psql -U postgres -c "CREATE USER chatbot_user WITH PASSWORD 'your_password';"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatbot_db TO chatbot_user;"
+
+# Initialize database schema
+python -c "from database.database import init_db; init_db()"
+
+# Optimize database indexes
+psql -U chatbot_user -d chatbot_db -f database/scripts/optimize_indexes.sql
+```
+
+### 4. Configure Environment
 
 ```bash
 # Copy example environment file
 copy .env.example .env
 
-# Edit .env and add your API keys:
+# Edit .env and add configuration:
+# API Keys:
 # - OPENAI_API_KEY (for GPT-4)
 # - GOOGLE_API_KEY (for Gemini)
 # - SD_API_URL (Stable Diffusion API, default: http://127.0.0.1:7860)
+
+# Database:
+# - DATABASE_URL=postgresql://chatbot_user:your_password@localhost:5432/chatbot_db
+# - DB_POOL_SIZE=20
+# - DB_MAX_OVERFLOW=30
+
+# Redis:
+# - REDIS_HOST=localhost
+# - REDIS_PORT=6379
+# - CACHE_ENABLED=true
 ```
 
-### 4. Run Application
+### 5. Migrate Existing Data (Optional)
+
+If you have existing file-based conversations:
+
+```bash
+python database/scripts/migrate_to_database.py \
+    --storage-dir "Storage" \
+    --batch-size 100 \
+    --create-default-user
+```
+
+See [Database Migration Guide](docs/DATABASE_MIGRATION_GUIDE.md) for detailed instructions.
+
+### 6. Run Application
 
 ```bash
 python app.py
@@ -236,6 +282,25 @@ FLASK_DEBUG=False
 3. Test connection: http://127.0.0.1:7860/docs
 ```
 
+### Database Issues
+
+```bash
+# If connection fails:
+1. Verify PostgreSQL is running: sudo systemctl status postgresql
+2. Check DATABASE_URL in .env
+3. Test connection: psql -U chatbot_user -d chatbot_db
+
+# If queries are slow:
+1. Run ANALYZE: psql -U chatbot_user -d chatbot_db -c "ANALYZE;"
+2. Check indexes: psql -U chatbot_user -d chatbot_db -f database/scripts/optimize_indexes.sql
+3. Monitor pool: python -c "from database.utils.connection_monitoring import ConnectionPoolMonitor; ConnectionPoolMonitor.log_pool_status()"
+
+# If cache not working:
+1. Verify Redis is running: redis-cli ping
+2. Check REDIS_HOST and REDIS_PORT in .env
+3. Monitor cache: redis-cli info stats
+```
+
 ### Dependencies Issues
 
 ```bash
@@ -254,6 +319,11 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 - [LoRA & VAE Guide](docs/LORA_VAE_GUIDE.md)
 - [Memory Features](docs/MEMORY_WITH_IMAGES_FEATURE.md)
 - [UI Improvements](docs/UI_IMPROVEMENTS.md)
+
+### Database & Migration
+- **[Database Migration Guide](docs/DATABASE_MIGRATION_GUIDE.md)** - Step-by-step migration instructions
+- [Database Current State](docs/DATABASE_CURRENT_STATE.md) - Complete database documentation
+- [API Documentation](docs/API_DOCUMENTATION.md) - RESTful API reference
 
 ### Technical Documentation
 - [Module Architecture](docs/NEW_FEATURES_v2.0.md#71-module-architecture)

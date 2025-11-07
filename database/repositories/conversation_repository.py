@@ -1,18 +1,19 @@
 """
 Conversation Repository
 
-Provides data access layer for Conversation model
+Provides data access layer for Conversation model with optimizations
 """
 
 import logging
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from sqlalchemy import select, func, desc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
 
 from database.models.chatbot import Conversation
 from database.repositories.base import BaseRepository
+from database.utils.query_optimization import with_relationships, OptimizedQueries
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +162,7 @@ class ConversationRepository(BaseRepository[Conversation]):
         message_limit: Optional[int] = None
     ) -> Optional[Conversation]:
         """
-        Load conversation with all messages (eager loading)
+        Load conversation with all messages (optimized with selectinload)
         
         Args:
             session: Database session
@@ -170,11 +171,16 @@ class ConversationRepository(BaseRepository[Conversation]):
             
         Returns:
             Conversation with messages or None if not found
+            
+        Note:
+            Uses selectinload for better performance with large message collections
+            compared to joinedload which can cause Cartesian product issues
         """
         try:
+            # Use selectinload for better performance
             stmt = select(Conversation).where(
                 Conversation.id == conversation_id
-            ).options(joinedload(Conversation.messages))
+            ).options(selectinload(Conversation.messages))
             
             result = session.execute(stmt)
             conversation = result.unique().scalar_one_or_none()
@@ -186,6 +192,33 @@ class ConversationRepository(BaseRepository[Conversation]):
             return conversation
         except SQLAlchemyError as e:
             logger.error(f"Error getting conversation {conversation_id} with messages: {e}")
+            return None
+    
+    def get_with_all_related(
+        self,
+        session: Session,
+        conversation_id: int
+    ) -> Optional[Conversation]:
+        """
+        Load conversation with ALL relationships (messages, memories, files)
+        
+        Args:
+            session: Database session
+            conversation_id: Conversation ID
+            
+        Returns:
+            Conversation with all relationships loaded
+        """
+        try:
+            # Use OptimizedQueries helper
+            return OptimizedQueries.get_with_related(
+                session,
+                Conversation,
+                conversation_id,
+                ['messages', 'memories', 'uploaded_files', 'user']
+            )
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting conversation {conversation_id} with all related: {e}")
             return None
     
     def update_metadata(
