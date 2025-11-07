@@ -27,8 +27,10 @@ Edit `.env` file:
 ```bash
 # Add these lines
 REDIS_URL=redis://localhost:6379/0
-MONGODB_URI=mongodb+srv://thanhnguyen:tXH6O1Ai2I7dKUJB@mongodb.qexrzvn.mongodb.net/?appName=mongodb
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/?appName=YOUR_APP
 ```
+
+> 🔐 **Security:** Get your MongoDB URI from [MongoDB Atlas](https://cloud.mongodb.com) - Never commit real credentials!
 
 ### 4️⃣ Test Installation (1 min)
 
@@ -179,9 +181,10 @@ docker run -d -p 6379:6379 redis:alpine
 1. Check `.env` has correct URI
 2. Test connection:
    ```bash
-   python -c "from pymongo import MongoClient; MongoClient('mongodb+srv://thanhnguyen:tXH6O1Ai2I7dKUJB@mongodb.qexrzvn.mongodb.net/?appName=mongodb').admin.command('ping')"
+   python -c "from pymongo import MongoClient; MongoClient('YOUR_MONGODB_URI').admin.command('ping')"
    ```
 3. Whitelist IP in MongoDB Atlas (0.0.0.0/0 for testing)
+4. Make sure to replace YOUR_MONGODB_URI with your actual connection string
 
 ### Dependencies missing?
 

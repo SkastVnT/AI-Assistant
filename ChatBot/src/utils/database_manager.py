@@ -36,7 +36,7 @@ class DatabaseManager:
         """
         self.connection_string = connection_string or os.getenv(
             'MONGODB_URI',
-            'mongodb+srv://thanhnguyen:tXH6O1Ai2I7dKUJB@mongodb.qexrzvn.mongodb.net/?appName=mongodb'
+            'mongodb://localhost:27017'  # Default to localhost - NEVER hardcode credentials!
         )
         
         try:
