@@ -1,0 +1,54 @@
+{
+  "id": "conv_003_test",
+  "title": "Deep Learning Discussion",
+  "created_at": "2025-10-15T09:00:00",
+  "updated_at": "2025-10-15T10:45:00",
+  "tags": ["ai", "deep-learning", "tutorial"],
+  "template": null,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Explain neural networks to me",
+      "timestamp": "2025-10-15T09:00:00",
+      "model": "deepseek"
+    },
+    {
+      "role": "assistant",
+      "content": "Neural networks are computational models inspired by biological neural networks. They consist of layers of interconnected nodes (neurons) that process information.",
+      "timestamp": "2025-10-15T09:00:15",
+      "model": "deepseek"
+    },
+    {
+      "role": "user",
+      "content": "Can you give an example with code?",
+      "timestamp": "2025-10-15T09:05:00",
+      "model": "deepseek"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure! Here's a simple example using PyTorch:\n\n```python\nimport torch\nimport torch.nn as nn\n\nclass SimpleNN(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc1 = nn.Linear(784, 128)\n        self.fc2 = nn.Linear(128, 10)\n    \n    def forward(self, x):\n        x = torch.relu(self.fc1(x))\n        x = self.fc2(x)\n        return x\n```",
+      "timestamp": "2025-10-15T09:05:30",
+      "model": "deepseek"
+    }
+  ],
+  "branches": [
+    {
+      "branch_id": "branch_001",
+      "created_at": "2025-10-15T09:30:00",
+      "from_message": 2,
+      "title": "Alternative explanation"
+    }
+  ],
+  "parent_id": null,
+  "metadata": {
+    "user_id": "user_001",
+    "session_id": "session_003",
+    "memories": [
+      {
+        "question": "What are neural networks?",
+        "answer": "Computational models inspired by biological neural networks",
+        "saved_at": "2025-10-15T09:10:00"
+      }
+    ]
+  }
+}

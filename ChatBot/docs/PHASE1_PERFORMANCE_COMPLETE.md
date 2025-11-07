@@ -200,9 +200,11 @@ Update `.env` file:
 # Redis
 REDIS_URL=redis://localhost:6379/0
 
-# MongoDB
-MONGODB_URI=mongodb+srv://thanhnguyen:tXH6O1Ai2I7dKUJB@mongodb.qexrzvn.mongodb.net/?appName=mongodb
+# MongoDB - Get your URI from https://cloud.mongodb.com
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/?appName=YOUR_APP
 ```
+
+> 🔐 **IMPORTANT:** Never commit real MongoDB credentials to Git!
 
 ### Step 4: Test Installation
 

@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "AI-Assistant PostgreSQL",
+      "Group": "AI-Assistant",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "ai_assistant",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "PassFile": "/tmp/pgpassfile"
+    }
+  }
+}
