@@ -1,6 +1,6 @@
 import google.generativeai as genai
 
-genai.configure(api_key='AIzaSyB0h_O7rVZTcSqh1iPHvuRwEE5PsCgvK18')
+genai.configure(api_key='test_api_key')
 
 print("Available Gemini models:")
 for m in genai.list_models():

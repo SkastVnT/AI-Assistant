@@ -2,7 +2,7 @@
 
 ## ✅ API Key đã có trong .env
 ```
-GEMINI_API_KEY=AIzaSyB0h_O7rVZTcSqh1iPHvuRwEE5PsCgvK18
+GEMINI_API_KEY=AIzaS...
 ```
 
 ## ⚠️ VẤN ĐỀ
@@ -63,7 +63,7 @@ AI Enhancement (Gemini 2.0 Flash) [ACTIVE]  ← Màu xanh!
 1. **Kiểm tra API key có đúng không:**
 ```powershell
 # Trong PowerShell
-$env:GEMINI_API_KEY = "AIzaSyB0h_O7rVZTcSqh1iPHvuRwEE5PsCgvK18"
+$env:GEMINI_API_KEY = "AIzaS..."
 python -c "import os; print('API Key:', os.getenv('GEMINI_API_KEY'))"
 ```
 

@@ -363,21 +363,12 @@ graph LR
 
 |  Service |  Mô Tả |  Port |  Status |  Docs |
 |:-----------|:---------|:--------|:----------|:--------|
-<<<<<<< HEAD
-|  **ChatBot v2.0** 🔥 | Multi-model AI + **Phase 2: Multimodal + Advanced Image** | `5001` | <img src="https://img.shields.io/badge/-Phase_2_Active-8B5CF6?style=flat-square" /> | [ Docs](ChatBot/README.md) |
-|  **Text2SQL v2.0**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
-|  **Document Intelligence v1.5.1**  | OCR + AI Document Analysis (Gemini 2.0 Flash) | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
-|  **RAG Services v1.0**  🆕 | Multi-LLM RAG + Vietnamese NLP + Analytics | `5004` | <img src="https://img.shields.io/badge/-Documentation_Ready-14B8A6?style=flat-square" /> | [ Docs](RAG%20Services/README.md) |
-|  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
-|  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
-=======
 |  **ChatBot v2.0** 🆕 | Multi-model AI + Auto-File Analysis + Stop Gen + Phase 2 Features | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.0** 🆕 | Natural Language → SQL + AI Learning + Question Gen | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
 |  **Document Intelligence v1.6** 🆕 | OCR + Gemini 2.0 AI + Batch Processing + Templates | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
 |  **RAG Services v1.0** 🆕 | Multi-LLM RAG + Vietnamese NLP + Caching + Analytics | `5004` | <img src="https://img.shields.io/badge/-Production_Ready-14B8A6?style=flat-square" /> | [ Docs](RAG%20Services/README.md) |
 |  **Speech2Text v3.6+** 🆕 | Dual-Model Fusion + Diarization + Web UI | `7860` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | Text2Image + ControlNet + LoRA + Upscaling | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
->>>>>>> master
 
 </div>
 
@@ -481,19 +472,6 @@ graph LR
 
 | Feature | Description | Status |
 |:--------|:------------|:-------|
-<<<<<<< HEAD
-|  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  |
-|  **Auto-File Analysis** | Upload & instant AI insights (50MB max) |  v2.0 |
-|  **Stop Generation** | Interrupt AI mid-response & keep output |  v2.0 |
-|  **Multimodal AI** 🔥 | Vision + Audio + Document + Text analysis |  **Phase 2** |
-|  **Advanced Image Gen** 🔥 | ControlNet + 4x Upscale + Inpainting/Outpainting |  **Phase 2** |
-|  **Smart Search** 🔥 | Semantic search + Conversation branching |  **Phase 2** |
-|  **Image Gen** | Stable Diffusion + LoRA + VAE |  |
-|  **AI Memory** | Lưu trữ conversations & images |  |
-|  **Message Versioning** | Track multiple response versions |  v2.0 |
-|  **Tools** | Google Search, GitHub Search |  |
-|  **Export** | PDF với metadata |  |
-=======
 |  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  v2.0 |
 |  **Auto-File Analysis** | Upload & instant AI insights (50MB max) |  NEW v2.0 |
 |  **Stop Generation** | Interrupt AI mid-response & keep output |  NEW v2.0 |
@@ -505,7 +483,6 @@ graph LR
 |  **Message Versioning** | Track multiple response versions |  NEW v2.0 |
 |  **Tools** | Google Search, GitHub Search |  v2.0 |
 |  **Export** | PDF với metadata |  v2.0 |
->>>>>>> master
 |  **UI** | Full-screen ChatGPT-like, Dark Mode |  v2.0 |
 
 <div align="right">
@@ -623,12 +600,6 @@ graph LR
 -  Auto-File Analysis (50MB)
 -  Stop Generation mid-response
 -  ControlNet + Upscaling + Inpainting
-
-** Phase 2 - Advanced Features (30% Complete):**
--  **Multimodal AI**: Vision (Gemini/GPT-4V) + Audio + Document
--  **Advanced Image**: ControlNet + 4x Upscale + Face Restoration
--  **Smart Conversations**: Semantic Search + Branching + Auto-tags
--  Status: Backend Complete ✅ | Frontend Pending ⏳
 
 </td>
 <td width="50%">

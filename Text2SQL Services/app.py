@@ -314,11 +314,11 @@ def get_ch_client():
         return None
     try:
         return get_client(
-            host=os.getenv("CLICKHOUSE_HOST", "103.232.122.212"),
+            host=os.getenv("CLICKHOUSE_HOST", "localhost"),
             port=int(os.getenv("CLICKHOUSE_PORT", "8123")),
-            username=os.getenv("CLICKHOUSE_USER", "thanhnguyen"),
-            password=os.getenv("CLICKHOUSE_PASSWORD", "thanhnguyen@123"),
-            database=os.getenv("CLICKHOUSE_DB", "cdn"),
+            username=os.getenv("CLICKHOUSE_USER", "default"),
+            password=os.getenv("CLICKHOUSE_PASSWORD", ""),
+            database=os.getenv("CLICKHOUSE_DB", "default"),
         )
     except Exception:
         return None

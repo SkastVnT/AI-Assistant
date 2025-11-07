@@ -1,0 +1,161 @@
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+MANIFEST
+
+# ============================================
+# VIRTUAL ENVIRONMENT
+# ============================================
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+venv_*/
+**/venv/
+**/venv_*/
+
+# ============================================
+# ENVIRONMENT & SECRETS
+# ============================================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ============================================
+# CONFIG FILES (Sensitive)
+# ============================================
+**/config/*.json
+**/config/*.yaml
+**/config/*.yml
+**/config/.env
+!**/config/.env.example
+!**/config/__init__.py
+
+# ============================================
+# IDE & EDITOR
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.iml
+
+# ============================================
+# CACHE & TEMP
+# ============================================
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+*.log
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# BUILD & DEPLOYMENT
+# ============================================
+*.pyc
+*.pyo
+*.class
+node_modules/
+
+# ============================================
+# LARGE FILES & MODELS
+# ============================================
+# Model files (large binary files)
+**/*.bin
+**/*.safetensors
+**/*.ckpt
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.h5
+**/*.pb
+
+# Keep model config files
+!**/*config*.json
+!**/config.json
+
+# ============================================
+# SERVICE-SPECIFIC IGNORES
+# ============================================
+
+# Document Intelligence Service
+Document Intelligence Service/DIS/
+Document Intelligence Service/output/*.json
+Document Intelligence Service/output/*.txt
+
+# RAG Services
+RAG Services/RAG/
+
+# ChatBot
+ChatBot/Storage/Image_Gen/*.png
+ChatBot/Storage/Image_Gen/*.jpg
+ChatBot/Storage/Image_Gen/*.jpeg
+ChatBot/Storage/Image_Gen/*.json
+ChatBot/data/memory/*/
+ChatBot/models/BloomVN-8B-chat/
+ChatBot/models/Qwen2.5-14B-Instruct/
+ChatBot/models/Qwen1.5-1.8B-Chat/
+
+# Speech2Text
+Speech2Text Services/data/audio/**/*.wav
+Speech2Text Services/data/audio/**/*.mp3
+Speech2Text Services/results/**/*.txt
+Speech2Text Services/logs/*.log
+Speech2Text Services/data/cache/
+Speech2Text Services/speech/
+Speech2Text Services/s2t/
+Speech2Text Services/app/s2t/
+
+# Text2SQL
+Text2SQL Services/sample/uploaded/*.jsonl
+Text2SQL Services/speech/
+Text2SQL Services/Text2SQL/
+
+# Stable Diffusion
+stable-diffusion-webui/models/Stable-diffusion/*.safetensors
+stable-diffusion-webui/models/Stable-diffusion/*.ckpt
+stable-diffusion-webui/models/Lora/*.safetensors
+stable-diffusion-webui/models/VAE/*.safetensors
+stable-diffusion-webui/models/VAE/*.pt
+stable-diffusion-webui/models/ESRGAN/**/*.pth
+stable-diffusion-webui/models/GFPGAN/**/*.pth
+stable-diffusion-webui/models/Codeformer/**/*.pth
+stable-diffusion-webui/models/OrangeMixs/
+stable-diffusion-webui/outputs/**/*.png
+stable-diffusion-webui/outputs/**/*.jpg
+stable-diffusion-webui/log/
+stable-diffusion-webui/tmp/
+stable-diffusion-webui/cache.json
+
+# Keep folder structure
+!**/.gitkeep
