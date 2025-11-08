@@ -65,15 +65,23 @@ main() {
         speech2text|Speech2Text)
             run_service_tests "Speech2Text" "Speech2Text Services/tests"
             ;;
+        document|DocumentIntelligence|dis)
+            run_service_tests "Document Intelligence" "Document Intelligence Service/tests"
+            ;;
+        rag|RAG|RAGServices)
+            run_service_tests "RAG Services" "RAG Services/tests"
+            ;;
         all)
             echo -e "${GREEN}Running all tests...${NC}"
             run_service_tests "ChatBot" "ChatBot/tests"
             run_service_tests "Text2SQL" "Text2SQL Services/tests"
-            # Add more services as needed
+            run_service_tests "Speech2Text" "Speech2Text Services/tests"
+            run_service_tests "Document Intelligence" "Document Intelligence Service/tests"
+            run_service_tests "RAG Services" "RAG Services/tests"
             ;;
         *)
             echo -e "${RED}Unknown service: $SERVICE${NC}"
-            echo "Available services: chatbot, text2sql, speech2text, all"
+            echo "Available services: chatbot, text2sql, speech2text, document, rag, all"
             exit 1
             ;;
     esac

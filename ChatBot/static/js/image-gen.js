@@ -99,7 +99,7 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
             await fetch('/api/sd/change-model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model_name: 'anythingv4_0.safetensors' })
+                body: JSON.stringify({ model_name: 'AnythingXL_xl.safetensors' })
             });
         } catch (e) {
             console.log('Model change error (may already be loaded):', e);

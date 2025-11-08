@@ -39,44 +39,86 @@ class HubConfig:
     SERVICES: Dict[str, ServiceConfig] = {
         "chatbot": ServiceConfig(
             name="AI ChatBot",
-            description="Trợ lý AI thông minh với Gemini, GPT-3.5, DeepSeek",
+            description="Trợ lý AI thông minh với Gemini, GPT-3.5, DeepSeek & Local LLMs",
             icon="🤖",
             port=5000,
             url="http://localhost:5000",
             color="from-blue-500 to-purple-600",
             features=[
-                "3 mô hình AI mạnh mẽ",
+                "Nhiều mô hình AI (Gemini, GPT, DeepSeek)",
+                "Local LLMs (Qwen, BloomVN)",
                 "Tư vấn tâm lý chuyên sâu",
-                "Giải pháp đời sống thực tế",
                 "Trò chuyện tự nhiên"
+            ]
+        ),
+        "stable_diffusion": ServiceConfig(
+            name="Stable Diffusion",
+            description="Tạo hình ảnh từ mô tả văn bản với AI",
+            icon="🎨",
+            port=7860,
+            url="http://localhost:7860",
+            color="from-pink-500 to-rose-600",
+            features=[
+                "Text-to-Image generation",
+                "Nhiều models & checkpoints",
+                "ControlNet & LoRA support",
+                "Inpainting & Outpainting"
             ]
         ),
         "speech2text": ServiceConfig(
             name="Speech to Text",
             description="Chuyển đổi giọng nói thành văn bản tiếng Việt",
             icon="🎤",
-            port=5001,
-            url="http://localhost:5001",
+            port=5002,
+            url="http://localhost:5002",
             color="from-green-500 to-teal-600",
             features=[
+                "Whisper + PhoWhisper fusion",
                 "Nhận dạng tiếng Việt chuẩn",
                 "Phân tách người nói (Diarization)",
-                "Hỗ trợ nhiều định dạng audio",
-                "Real-time transcription"
+                "Hỗ trợ nhiều định dạng audio"
             ]
         ),
         "text2sql": ServiceConfig(
             name="Text to SQL",
             description="Tạo câu truy vấn SQL từ ngôn ngữ tự nhiên",
             icon="💾",
-            port=5002,
-            url="http://localhost:5002",
+            port=5001,
+            url="http://localhost:5001",
             color="from-orange-500 to-red-600",
             features=[
                 "Gemini AI powered",
                 "Học từ lịch sử truy vấn",
-                "Hỗ trợ nhiều loại database",
-                "SQL validation"
+                "Hỗ trợ ClickHouse & MongoDB",
+                "SQL validation & optimization"
+            ]
+        ),
+        "document_intelligence": ServiceConfig(
+            name="Document Intelligence",
+            description="OCR và phân tích tài liệu thông minh với AI",
+            icon="📄",
+            port=5003,
+            url="http://localhost:5003",
+            color="from-indigo-500 to-blue-600",
+            features=[
+                "PaddleOCR - Vietnamese support",
+                "Gemini 2.0 Flash AI enhancement",
+                "PDF & Image processing",
+                "Structured data extraction"
+            ]
+        ),
+        "rag_services": ServiceConfig(
+            name="RAG Services",
+            description="Retrieval-Augmented Generation cho Q&A thông minh",
+            icon="📚",
+            port=5004,
+            url="http://localhost:5004",
+            color="from-cyan-500 to-blue-600",
+            features=[
+                "Document retrieval & embedding",
+                "LangChain integration",
+                "ChromaDB vector store",
+                "Context-aware answering"
             ]
         )
     }

@@ -44,6 +44,7 @@ data/cache/
 data/outputs/
 *.db
 *.sqlite
+./Storage
 
 # OS
 .DS_Store

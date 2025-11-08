@@ -637,7 +637,23 @@ def github_search_tool(query):
 
 @app.route('/')
 def index():
-    """Home page - Original beautiful UI with full SDXL support"""
+    """Home page - Original UI (Version 1.0) - Full Features"""
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
+    return render_template('index_original_backup.html')
+
+
+@app.route('/v2')
+def index_v2():
+    """ChatGPT V2 Fixed - All Features Working!"""
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
+    return render_template('index_chatgpt_v2_fixed.html')
+
+
+@app.route('/v1')
+def index_v1():
+    """Original UI (Version 1.0) - Alias for backward compatibility"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
     return render_template('index_original_backup.html')

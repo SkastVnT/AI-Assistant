@@ -1,0 +1,76 @@
+# ============================================================================
+# RAG Services - Requirements
+# Retrieval-Augmented Generation Service
+# Python: 3.10+
+# ============================================================================
+
+# ============= WEB FRAMEWORK =============
+Flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
+werkzeug>=3.0.0
+
+# ============= AI & LLM =============
+openai>=1.0.0
+google-generativeai>=0.3.0
+
+# ============= VECTOR DATABASE =============
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+
+# ============= NLP & TEXT PROCESSING =============
+langchain>=0.1.0
+underthesea>=6.0.0  # Vietnamese NLP
+
+# ============= UTILITIES =============
+requests>=2.31.0
+pyyaml>=6.0.0
+colorama>=0.4.6
+
+# ============= DATA PROCESSING =============
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ============= OPTIONAL: CACHING =============
+# redis>=5.0.0  # Uncomment if using Redis cache
+
+# ============= OPTIONAL: ADVANCED FEATURES =============
+# faiss-cpu>=1.7.0  # Alternative vector DB
+# pinecone-client>=2.0.0  # Cloud vector DB
+
+# ============================================================================
+# INSTALLATION GUIDE
+# ============================================================================
+# 
+# 1. Create virtual environment:
+#    python -m venv RAG
+#    
+# 2. Activate virtual environment:
+#    Windows: RAG\Scripts\activate
+#    Linux/Mac: source RAG/bin/activate
+#
+# 3. Install dependencies:
+#    pip install -r requirements.txt
+#
+# 4. Setup environment variables:
+#    Copy .env.example to .env and configure API keys
+#
+# 5. Run the application:
+#    python app.py
+#
+# 6. Access UI:
+#    http://localhost:5004
+#
+# ============================================================================
+# FEATURES
+# ============================================================================
+#
+# ✅ Document retrieval with semantic search
+# ✅ Multi-LLM support (OpenAI, DeepSeek, Gemini)
+# ✅ Vietnamese language optimization
+# ✅ ChromaDB vector store
+# ✅ LangChain integration
+# ✅ Real-time Q&A interface
+# ✅ Context-aware answering
+#
+# ============================================================================

@@ -27,39 +27,37 @@
 
 ---
 
-### ⚡ **QUICK START IN 5 MINUTES**
+### ⚡ **QUICK START IN 3 STEPS**
 
 ```bash
 # 1️⃣ Clone repository
 git clone https://github.com/SkastVnT/AI-Assistant.git
 cd AI-Assistant
 
-# 2️⃣ Choose a service to start:
+# 2️⃣ Khởi động Hub Gateway (Port 3000) - Giao diện chính
+cd scripts\startup
+start_hub.bat
+# ➡️ Open http://localhost:3000
 
-# 🔷 Option A: Text2SQL (Recommended! Easiest)
-cd "Text2SQL Services"
-python -m venv Text2SQL
-.\Text2SQL\Scripts\activate
-pip install -r requirements.txt
-# Create .env and add GEMINI_API_KEY_1=your_key
-python app_simple.py
-# ➡️ Open http://localhost:5002
+# 3️⃣ Từ Hub, chọn service bạn muốn dùng
+# Hub hiển thị tất cả 6 services với nút "Mở dịch vụ"
+# Click để tự động mở service trong tab mới!
 
-# 🔷 Option B: ChatBot (Most Popular)
-cd ChatBot
-python -m venv venv_chatbot
-.\venv_chatbot\Scripts\activate
-pip install -r requirements.txt
-# Create .env with API keys (Gemini/OpenAI)
-python app.py
-# ➡️ Open http://localhost:5001
-
-# 🔷 Option C: Docker (All Services)
-docker-compose up -d
-# ➡️ All services start automatically!
+# 🚀 HOẶC khởi động tất cả services cùng lúc:
+cd scripts\startup
+start_all_services.bat
+# ➡️ Tất cả 6 services + Hub tự động khởi động!
 ```
 
-[![Get Started](https://img.shields.io/badge/🚀-Get_Started_Now-6366F1?style=for-the-badge)](docs/GETTING_STARTED.md)
+**📌 6 Services Available:**
+- 🤖 **ChatBot** (5000) - Multi-model AI với Gemini, GPT, Local LLMs
+- 💾 **Text2SQL** (5001) - Chuyển ngôn ngữ tự nhiên → SQL
+- 🎤 **Speech2Text** (5002) - Vietnamese speech-to-text
+- � **Document Intelligence** (5003) - OCR + AI document analysis  
+- 📚 **RAG Services** (5004) - Intelligent Q&A with RAG
+- 🎨 **Stable Diffusion** (7860) - Text-to-image generation
+
+[![Get Started](https://img.shields.io/badge/🚀-Get_Started_Now-6366F1?style=for-the-badge)](docs/HUB_QUICKSTART.md)
 [![Download](https://img.shields.io/badge/⬇️-Download_Latest-10B981?style=for-the-badge)](https://github.com/SkastVnT/AI-Assistant/archive/refs/heads/master.zip)
 [![Documentation](https://img.shields.io/badge/📚-Read_Docs-3B82F6?style=for-the-badge)](docs/)
 

@@ -14,6 +14,7 @@ werkzeug>=3.0.0
 redis>=5.0.0
 pymongo>=4.6.0
 dnspython>=2.4.0  # Required for MongoDB SRV connection
+dotenv
 
 # ============= AI APIs =============
 openai>=1.0.0

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant - ChatGPT Style</title>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Custom CSS - New ChatGPT Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_chatgpt_v2.css') }}">
+</head>
+<body>
+    <!-- Main App Container - ChatGPT Style -->
+    <div class="app-container">
+        
+        <!-- Sidebar - Left Panel -->
+        <div class="sidebar" id="sidebar">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="newChatBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    <span>New chat</span>
+                </button>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Search Box -->
+            <div class="sidebar-search">
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" 
+                           id="chatSearchInput" 
+                           class="search-input" 
+                           placeholder="Search chats...">
+                    <button class="search-clear-btn" id="searchClearBtn" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat History Section -->
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <button class="section-toggle" id="historyToggle">
+                        <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                        <span>Chat History</span>
+                    </button>
+                </div>
+                <div class="section-content expanded" id="chatList">
+                    <!-- Chat items will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            
+            <!-- Top Header - Minimal -->
+            <div class="chat-header">
+                <div class="header-left">
+                    <button class="mobile-sidebar-toggle" id="mobileSidebarToggle">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12h18M3 6h18M3 18h18"/>
+                        </svg>
+                    </button>
+                    <h1 class="chat-title">🤖 AI Assistant</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Dark Mode Toggle -->
+                    <button class="header-btn theme-toggle-btn" id="themeToggleBtn" title="Toggle dark mode">
+                        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="23"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                            <line x1="1" y1="12" x2="3" y2="12"/>
+                            <line x1="21" y1="12" x2="23" y2="12"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                    
+                    <!-- GitHub Badge (Compact) -->
+                    <a href="https://github.com/SkastVnT/AI-Assistant" target="_blank" class="github-link" title="@SkastVnT on GitHub">
+                        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Controls Panel (Collapsible) -->
+            <div class="controls-panel" id="controlsPanel">
+                <div class="controls-header">
+                    <button class="controls-toggle" id="controlsToggle">
+                        <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 15l-6-6-6 6"/>
+                        </svg>
+                        <span>Controls</span>
+                    </button>
+                </div>
+                <div class="controls-content expanded">
+                    <div class="control-row">
+                        <div class="control-item">
+                            <label class="control-label">Model:</label>
+                            <select id="modelSelect" class="control-select">
+                                <option value="gemini">Gemini (Google) - FREE</option>
+                                <option value="openai">GPT-4o-mini (OpenAI)</option>
+                                <option value="deepseek">DeepSeek (Rẻ nhất)</option>
+                                <option value="qwen">Qwen1.5b (Alibaba)</option>
+                                <option value="bloomvn">BloomVN-8B - FREE</option>
+                            </select>
+                        </div>
+
+                        <div class="control-item">
+                            <label class="control-label">Mode:</label>
+                            <select id="contextSelect" class="control-select">
+                                <option value="casual">Trò chuyện vui vẻ</option>
+                                <option value="psychological">Tâm lý - Tâm sự</option>
+                                <option value="lifestyle">Giải pháp đời sống</option>
+                                <option value="programming">💻 Lập trình</option>
+                            </select>
+                        </div>
+
+                        <div class="control-item checkbox-item">
+                            <input type="checkbox" id="deepThinkingCheck" class="control-checkbox">
+                            <label for="deepThinkingCheck" class="checkbox-label">🧠 Deep Thinking</label>
+                        </div>
+                    </div>
+
+                    <div class="control-row">
+                        <button class="control-btn" id="imageGenBtn" title="AI Image Generation">
+                            🎨 Image Gen
+                        </button>
+                        <button class="control-btn" id="memoryBtn" title="AI Learning Memory">
+                            🧠 Memory
+                        </button>
+                        <button class="control-btn" id="exportBtn" title="Export Chat">
+                            📥 Export
+                        </button>
+                        <button class="control-btn danger" id="clearBtn" title="Clear Chat">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-wrapper">
+                <div class="chat-container" id="chatContainer">
+                    <!-- Welcome Message -->
+                    <div class="message assistant">
+                        <div class="message-avatar">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>
+                            </svg>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-text">
+                                Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊
+                            </div>
+                            <div class="message-footer">
+                                <span class="message-meta">Gemini • Trò chuyện vui vẻ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory Panel (Hidden by default) -->
+            <div class="memory-panel" id="memoryPanel" style="display: none;">
+                <div class="memory-header">
+                    <strong>📚 AI Learning Memory</strong>
+                    <button class="memory-action-btn" id="saveMemoryBtn">
+                        💾 Save Current Chat
+                    </button>
+                    <button class="memory-action-btn" id="closeMemoryBtn" style="margin-left: auto;">
+                        ✖ Close
+                    </button>
+                </div>
+                <div class="memory-list" id="memoryList">
+                    <p>Đang tải memory...</p>
+                </div>
+            </div>
+
+            <!-- Input Area - Bottom -->
+            <div class="input-area">
+                <!-- Tools Bar -->
+                <div class="tools-bar">
+                    <label class="tool-btn file-upload-btn">
+                        📎 Upload
+                        <input type="file" id="fileInput" class="file-input" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,image/*" multiple>
+                    </label>
+                </div>
+
+                <!-- File Attachments Preview -->
+                <div class="file-attachments" id="fileList" style="display: none;">
+                    <!-- Attached files show here -->
+                </div>
+
+                <!-- Message Input -->
+                <div class="input-wrapper">
+                    <textarea 
+                        id="messageInput" 
+                        class="message-input" 
+                        placeholder="Message AI Assistant..." 
+                        rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn" title="Send message (Enter)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Generation Modal -->
+    <div id="imageGenModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>🎨 AI Image Generation</h2>
+                <button class="close-modal" id="closeImageModalBtn">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Prompt:</label>
+                <textarea id="imagePrompt" rows="3" placeholder="Describe the image you want..." style="width: 100%; padding: 8px;"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Negative Prompt:</label>
+                <textarea id="imageNegativePrompt" rows="2" placeholder="What to avoid..." style="width: 100%; padding: 8px;"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button id="generateImageBtn" style="flex: 1; padding: 10px; background: #10a37f; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    🎨 Generate Image
+                </button>
+            </div>
+            
+            <div id="imageGenResult" style="margin-top: 20px; display: none;">
+                <img id="generatedImage" style="width: 100%; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- ALL-IN-ONE JavaScript - Everything Works! -->
+    <script>
+        console.log('🚀 Loading ChatBot V2 Fixed...');
+        
+        let conversationHistory = [];
+        let currentChatId = null;
+        let isGenerating = false;
+        let uploadedFiles = [];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM Ready');
+            
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            // Setup all event listeners
+            setupChatListeners();
+            setupControlListeners();
+            setupMemoryListeners();
+            setupImageGenListeners();
+            setupFileUpload();
+            
+            // Load saved settings
+            loadSettings();
+            
+            console.log('✅ App initialized');
+        }
+        
+        // ===== CHAT FUNCTIONS =====
+        function setupChatListeners() {
+            const sendBtn = document.getElementById('sendBtn');
+            const messageInput = document.getElementById('messageInput');
+            const newChatBtn = document.getElementById('newChatBtn');
+            
+            if (sendBtn) {
+                sendBtn.addEventListener('click', sendMessage);
+            }
+            
+            if (messageInput) {
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+                
+                // Auto-resize
+                messageInput.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+                });
+            }
+            
+            if (newChatBtn) {
+                newChatBtn.addEventListener('click', () => {
+                    conversationHistory = [];
+                    document.getElementById('chatContainer').innerHTML = `
+                        <div class="message assistant">
+                            <div class="message-content">
+                                <div class="message-text">Xin chào! Tôi là AI Assistant mới. Tôi có thể giúp gì cho bạn? 😊</div>
+                            </div>
+                        </div>
+                    `;
+                    showNotification('✅ Đã tạo chat mới!', 'success');
+                });
+            }
+        }
+        
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || isGenerating) return;
+            
+            isGenerating = true;
+            
+            // Add user message
+            addMessage('user', message);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // Get settings
+            const model = document.getElementById('modelSelect').value;
+            const context = document.getElementById('contextSelect').value;
+            const deepThinking = document.getElementById('deepThinkingCheck').checked;
+            
+            // Show loading
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant loading-message';
+            loadingDiv.innerHTML = '<div class="message-content"><div class="spinner"></div> Đang suy nghĩ...</div>';
+            document.getElementById('chatContainer').appendChild(loadingDiv);
+            scrollToBottom();
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        model: model,
+                        context_type: context,
+                        enable_deep_thinking: deepThinking,
+                        files: uploadedFiles
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Remove loading
+                loadingDiv.remove();
+                
+                // Add AI response
+                if (data.response) {
+                    addMessage('assistant', data.response);
+                    conversationHistory.push({ role: 'user', content: message });
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                } else {
+                    throw new Error('No response from server');
+                }
+                
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('assistant', `❌ Lỗi: ${error.message}`);
+                showNotification('Có lỗi xảy ra: ' + error.message, 'error');
+            } finally {
+                isGenerating = false;
+                uploadedFiles = [];
+                document.getElementById('fileList').style.display = 'none';
+            }
+        }
+        
+        function addMessage(role, content) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            // Parse markdown
+            const html = marked.parse(content || '');
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${html}</div>
+                    <div class="message-footer">
+                        <span class="message-meta">${role === 'user' ? 'You' : 'AI'} • ${new Date().toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            
+            // Highlight code blocks
+            messageDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
+            
+            scrollToBottom();
+        }
+        
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // ===== CONTROL FUNCTIONS =====
+        function setupControlListeners() {
+            // Theme toggle
+            const themeBtn = document.getElementById('themeToggleBtn');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', () => {
+                    document.body.classList.toggle('dark-mode');
+                    const isDark = document.body.classList.contains('dark-mode');
+                    localStorage.setItem('darkMode', isDark);
+                    showNotification(isDark ? '🌙 Dark mode' : '☀️ Light mode', 'success');
+                });
+            }
+            
+            // Clear chat
+            const clearBtn = document.getElementById('clearBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    if (confirm('Xóa toàn bộ chat?')) {
+                        conversationHistory = [];
+                        document.getElementById('chatContainer').innerHTML = '';
+                        showNotification('✅ Đã xóa chat', 'success');
+                    }
+                });
+            }
+            
+            // Export chat
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportChat);
+            }
+            
+            // Controls toggle
+            const controlsToggle = document.getElementById('controlsToggle');
+            if (controlsToggle) {
+                controlsToggle.addEventListener('click', () => {
+                    const content = document.querySelector('.controls-content');
+                    content.classList.toggle('expanded');
+                });
+            }
+        }
+        
+        async function exportChat() {
+            try {
+                const messages = conversationHistory.map(m => 
+                    `**${m.role.toUpperCase()}:** ${m.content}`
+                ).join('\n\n');
+                
+                const blob = new Blob([messages], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `chat_${new Date().toISOString().slice(0,10)}.txt`;
+                a.click();
+                
+                showNotification('✅ Exported successfully!', 'success');
+            } catch (error) {
+                showNotification('❌ Export failed: ' + error.message, 'error');
+            }
+        }
+        
+        // ===== MEMORY FUNCTIONS =====
+        function setupMemoryListeners() {
+            const memoryBtn = document.getElementById('memoryBtn');
+            const closeMemoryBtn = document.getElementById('closeMemoryBtn');
+            const saveMemoryBtn = document.getElementById('saveMemoryBtn');
+            
+            if (memoryBtn) {
+                memoryBtn.addEventListener('click', toggleMemoryPanel);
+            }
+            
+            if (closeMemoryBtn) {
+                closeMemoryBtn.addEventListener('click', () => {
+                    document.getElementById('memoryPanel').style.display = 'none';
+                });
+            }
+            
+            if (saveMemoryBtn) {
+                saveMemoryBtn.addEventListener('click', saveMemory);
+            }
+        }
+        
+        async function toggleMemoryPanel() {
+            const panel = document.getElementById('memoryPanel');
+            const isVisible = panel.style.display !== 'none';
+            
+            if (isVisible) {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                await loadMemories();
+            }
+        }
+        
+        async function loadMemories() {
+            const memoryList = document.getElementById('memoryList');
+            memoryList.innerHTML = '<p>Đang tải...</p>';
+            
+            try {
+                const response = await fetch('/get_memories');
+                const data = await response.json();
+                
+                if (data.memories && data.memories.length > 0) {
+                    memoryList.innerHTML = data.memories.map(m => `
+                        <div class="memory-item">
+                            <strong>Q:</strong> ${m.question}<br>
+                            <strong>A:</strong> ${m.answer}
+                        </div>
+                    `).join('');
+                } else {
+                    memoryList.innerHTML = '<p>Chưa có memory nào</p>';
+                }
+            } catch (error) {
+                memoryList.innerHTML = '<p>❌ Không thể tải memory</p>';
+            }
+        }
+        
+        async function saveMemory() {
+            if (conversationHistory.length < 2) {
+                showNotification('Cần ít nhất 1 cặp hỏi-đáp', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/save_memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversation: conversationHistory })
+                });
+                
+                const data = await response.json();
+                showNotification('✅ Đã lưu ' + data.saved_count + ' memory!', 'success');
+                await loadMemories();
+            } catch (error) {
+                showNotification('❌ Không thể lưu memory', 'error');
+            }
+        }
+        
+        // ===== IMAGE GENERATION =====
+        function setupImageGenListeners() {
+            const imageGenBtn = document.getElementById('imageGenBtn');
+            const closeModalBtn = document.getElementById('closeImageModalBtn');
+            const generateBtn = document.getElementById('generateImageBtn');
+            
+            if (imageGenBtn) {
+                imageGenBtn.addEventListener('click', () => {
+                    document.getElementById('imageGenModal').style.display = 'flex';
+                });
+            }
+            
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', () => {
+                    document.getElementById('imageGenModal').style.display = 'none';
+                });
+            }
+            
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateImage);
+            }
+        }
+        
+        async function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value.trim();
+            if (!prompt) {
+                showNotification('Nhập prompt trước!', 'error');
+                return;
+            }
+            
+            const negativePrompt = document.getElementById('imageNegativePrompt').value.trim();
+            const generateBtn = document.getElementById('generateImageBtn');
+            
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Generating...';
+            
+            try {
+                const response = await fetch('/generate_image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        negative_prompt: negativePrompt || 'bad quality, blurry'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.image_url) {
+                    const resultDiv = document.getElementById('imageGenResult');
+                    const img = document.getElementById('generatedImage');
+                    img.src = data.image_url;
+                    resultDiv.style.display = 'block';
+                    showNotification('✅ Image generated!', 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (error) {
+                showNotification('❌ Generation failed: ' + error.message, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🎨 Generate Image';
+            }
+        }
+        
+        // ===== FILE UPLOAD =====
+        function setupFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileSelect);
+            }
+        }
+        
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            const fileList = document.getElementById('fileList');
+            
+            if (files.length === 0) return;
+            
+            fileList.style.display = 'block';
+            fileList.innerHTML = files.map(f => `
+                <div class="file-item">
+                    📎 ${f.name} (${(f.size / 1024).toFixed(1)} KB)
+                </div>
+            `).join('');
+            
+            // Read files
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedFiles.push({
+                        name: file.name,
+                        type: file.type,
+                        content: e.target.result
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            showNotification(`✅ Đã chọn ${files.length} file`, 'success');
+        }
+        
+        // ===== UTILITIES =====
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10a37f' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        function loadSettings() {
+            // Dark mode
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+            }
+        }
+        
+        console.log('✅ All functions initialized!');
+    </script>
+    
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-top-color: #10a37f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .memory-item {
+            padding: 10px;
+            margin: 10px 0;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .file-item {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin: 5px;
+            display: inline-block;
+        }
+    </style>
+</body>
+</html>

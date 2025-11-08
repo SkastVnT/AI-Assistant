@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Services - Intelligent Q&A</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .message {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-indigo-600 mb-2">📚 RAG Services</h1>
+                    <p class="text-gray-600">Retrieval-Augmented Generation for Intelligent Q&A</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold">
+                        ● Online
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <!-- Messages Area -->
+            <div id="messages" class="h-96 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                <div class="message text-center text-gray-500 text-sm">
+                    Xin chào! Tôi là RAG Assistant. Hãy đặt câu hỏi về tài liệu của bạn.
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 bg-white border-t border-gray-200">
+                <form id="queryForm" class="flex gap-2">
+                    <input 
+                        type="text" 
+                        id="questionInput"
+                        placeholder="Đặt câu hỏi của bạn..." 
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
+                    >
+                    <button 
+                        type="submit"
+                        class="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold"
+                    >
+                        Gửi
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="mt-6 grid grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-2xl font-bold text-indigo-600" id="queryCount">0</div>
+                <div class="text-sm text-gray-600">Câu hỏi</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-2xl font-bold text-green-600" id="docCount">0</div>
+                <div class="text-sm text-gray-600">Tài liệu</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600" id="avgTime">0ms</div>
+                <div class="text-sm text-gray-600">Thời gian TB</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let queryCount = 0;
+        const messagesDiv = document.getElementById('messages');
+        const queryForm = document.getElementById('queryForm');
+        const questionInput = document.getElementById('questionInput');
+
+        // Load stats on page load
+        loadStats();
+
+        queryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            // Add user message
+            addMessage(question, 'user');
+            questionInput.value = '';
+
+            // Show loading
+            const loadingId = addMessage('Đang tìm kiếm và xử lý...', 'assistant', true);
+
+            try {
+                const startTime = Date.now();
+                
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        top_k: 5,
+                        language: 'auto'
+                    })
+                });
+
+                const data = await response.json();
+                const responseTime = Date.now() - startTime;
+
+                // Remove loading message
+                document.getElementById(loadingId).remove();
+
+                if (data.success) {
+                    // Add answer
+                    let answerText = data.answer;
+                    
+                    // Add sources if available
+                    if (data.sources && data.sources.length > 0) {
+                        answerText += '\n\n📚 Nguồn tham khảo:\n';
+                        data.sources.forEach((source, idx) => {
+                            answerText += `${idx + 1}. ${source.title || source.source || 'Unknown'}\n`;
+                        });
+                    }
+
+                    addMessage(answerText, 'assistant');
+                    
+                    // Update stats
+                    queryCount++;
+                    document.getElementById('queryCount').textContent = queryCount;
+                    document.getElementById('avgTime').textContent = `${responseTime}ms`;
+                } else {
+                    addMessage(`❌ Lỗi: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                addMessage(`❌ Lỗi kết nối: ${error.message}`, 'error');
+            }
+        });
+
+        function addMessage(text, type, isLoading = false) {
+            const messageId = `msg-${Date.now()}`;
+            const messageDiv = document.createElement('div');
+            messageDiv.id = messageId;
+            messageDiv.className = 'message';
+
+            if (type === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-end">
+                        <div class="bg-indigo-600 text-white px-4 py-2 rounded-2xl rounded-tr-none max-w-md">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'assistant') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-start">
+                        <div class="bg-white border border-gray-200 px-4 py-2 rounded-2xl rounded-tl-none max-w-md whitespace-pre-wrap">
+                            ${isLoading ? '<span class="text-gray-500">⏳ ' + text + '</span>' : text}
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'error') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-center">
+                        <div class="bg-red-100 text-red-800 px-4 py-2 rounded-xl text-sm">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return messageId;
+        }
+
+        async function loadStats() {
+            try {
+                // Load document count
+                const docsResponse = await fetch('/api/documents');
+                const docsData = await docsResponse.json();
+                if (docsData.success) {
+                    document.getElementById('docCount').textContent = docsData.count;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+    </script>
+</body>
+</html>

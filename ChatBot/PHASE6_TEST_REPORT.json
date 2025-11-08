@@ -1,0 +1,731 @@
+{
+  "timestamp": "2025-11-07T16:57:43.847770",
+  "total_tests": 108,
+  "passed": 100,
+  "failed": 7,
+  "skipped": 1,
+  "tests": [
+    {
+      "name": "File exists: templates/index_chatgpt_v2.html",
+      "status": "PASS",
+      "message": "Main V2 template",
+      "details": {
+        "size": 19958
+      }
+    },
+    {
+      "name": "File exists: static/js/main_v2.js",
+      "status": "PASS",
+      "message": "Main V2 entry point",
+      "details": {
+        "size": 21768
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/chat-manager.js",
+      "status": "PASS",
+      "message": "Chat manager",
+      "details": {
+        "size": 12961
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/api-service.js",
+      "status": "PASS",
+      "message": "API service",
+      "details": {
+        "size": 8565
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/message-renderer.js",
+      "status": "PASS",
+      "message": "Message renderer",
+      "details": {
+        "size": 17998
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/file-handler.js",
+      "status": "PASS",
+      "message": "File handler",
+      "details": {
+        "size": 13301
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/image-gen.js",
+      "status": "PASS",
+      "message": "Image generator",
+      "details": {
+        "size": 18799
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/memory-manager.js",
+      "status": "PASS",
+      "message": "Memory manager",
+      "details": {
+        "size": 6419
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/export-handler.js",
+      "status": "PASS",
+      "message": "Export handler",
+      "details": {
+        "size": 10788
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/ui-utils.js",
+      "status": "PASS",
+      "message": "UI utilities",
+      "details": {
+        "size": 12318
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/performance-utils.js",
+      "status": "PASS",
+      "message": "Performance utilities",
+      "details": {
+        "size": 18202
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/search-handler.js",
+      "status": "PASS",
+      "message": "Search handler (Phase 2)",
+      "details": {
+        "size": 12042
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/version-navigator.js",
+      "status": "PASS",
+      "message": "Version navigator (Phase 3)",
+      "details": {
+        "size": 22445
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/projects-manager.js",
+      "status": "PASS",
+      "message": "Projects manager (Phase 4)",
+      "details": {
+        "size": 27287
+      }
+    },
+    {
+      "name": "File exists: static/js/modules/preferences-manager.js",
+      "status": "PASS",
+      "message": "Preferences manager (Phase 5)",
+      "details": {
+        "size": 17920
+      }
+    },
+    {
+      "name": "File exists: static/css/style_chatgpt_v2.css",
+      "status": "PASS",
+      "message": "Main V2 stylesheet",
+      "details": {
+        "size": 55834
+      }
+    },
+    {
+      "name": "File exists: docs/PHASE2_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 2 docs",
+      "details": {
+        "size": 10767
+      }
+    },
+    {
+      "name": "File exists: docs/PHASE3_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 3 docs",
+      "details": {
+        "size": 16655
+      }
+    },
+    {
+      "name": "File exists: docs/PHASE4_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 4 docs",
+      "details": {
+        "size": 18127
+      }
+    },
+    {
+      "name": "File exists: docs/PHASE5_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 5 docs",
+      "details": {
+        "size": 19739
+      }
+    },
+    {
+      "name": "Phase 1: HTML element 'app-container'",
+      "status": "PASS",
+      "message": "Main app container",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: HTML element 'sidebar'",
+      "status": "PASS",
+      "message": "Sidebar",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: HTML element 'main-content'",
+      "status": "PASS",
+      "message": "Main content area",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: HTML element 'messages-container'",
+      "status": "FAIL",
+      "message": "Missing Messages container",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: HTML element 'input-container'",
+      "status": "FAIL",
+      "message": "Missing Input container",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: HTML element 'chat-header'",
+      "status": "PASS",
+      "message": "Chat header",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: CDN library 'marked'",
+      "status": "PASS",
+      "message": "marked loaded",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: CDN library 'highlight.js'",
+      "status": "PASS",
+      "message": "highlight.js loaded",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: CDN library 'jspdf'",
+      "status": "PASS",
+      "message": "jspdf loaded",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: CDN library 'html2canvas'",
+      "status": "PASS",
+      "message": "html2canvas loaded",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: CSS file size",
+      "status": "PASS",
+      "message": "2658 lines",
+      "details": {
+        "lines": 2658,
+        "bytes": 53174
+      }
+    },
+    {
+      "name": "Phase 1: CSS variables",
+      "status": "PASS",
+      "message": "CSS custom properties defined",
+      "details": {}
+    },
+    {
+      "name": "Phase 1: Dark mode support",
+      "status": "PASS",
+      "message": "Dark mode styles present",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: Feature 'SearchHandler'",
+      "status": "PASS",
+      "message": "Main search class",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: Feature 'initSearch'",
+      "status": "FAIL",
+      "message": "Missing Search initialization",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: Feature 'handleSearch'",
+      "status": "FAIL",
+      "message": "Missing Search handler",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: Feature 'highlightMatches'",
+      "status": "FAIL",
+      "message": "Missing Match highlighting",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: Feature 'navigateResults'",
+      "status": "FAIL",
+      "message": "Missing Result navigation",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: Feature 'Ctrl+F'",
+      "status": "PASS",
+      "message": "Keyboard shortcut",
+      "details": {}
+    },
+    {
+      "name": "Phase 2: search-handler.js size",
+      "status": "FAIL",
+      "message": "388 lines",
+      "details": {
+        "lines": 388
+      }
+    },
+    {
+      "name": "Phase 3: Feature 'VersionNavigator'",
+      "status": "PASS",
+      "message": "Main version class",
+      "details": {}
+    },
+    {
+      "name": "Phase 3: Feature 'addVersion'",
+      "status": "PASS",
+      "message": "Version creation",
+      "details": {}
+    },
+    {
+      "name": "Phase 3: Feature 'navigateToPrevious'",
+      "status": "PASS",
+      "message": "Previous version",
+      "details": {}
+    },
+    {
+      "name": "Phase 3: Feature 'navigateToNext'",
+      "status": "PASS",
+      "message": "Next version",
+      "details": {}
+    },
+    {
+      "name": "Phase 3: Feature 'showVersionHistory'",
+      "status": "PASS",
+      "message": "Version history modal",
+      "details": {}
+    },
+    {
+      "name": "Phase 3: Feature 'localStorage'",
+      "status": "PASS",
+      "message": "Persistence",
+      "details": {}
+    },
+    {
+      "name": "Phase 3: version-navigator.js size",
+      "status": "PASS",
+      "message": "643 lines",
+      "details": {
+        "lines": 643
+      }
+    },
+    {
+      "name": "Phase 4: Feature 'ProjectsManager'",
+      "status": "PASS",
+      "message": "Main projects class",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Feature 'createProject'",
+      "status": "PASS",
+      "message": "Project creation",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Feature 'updateProject'",
+      "status": "PASS",
+      "message": "Project update",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Feature 'deleteProject'",
+      "status": "PASS",
+      "message": "Project deletion",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Feature 'addChatToProject'",
+      "status": "PASS",
+      "message": "Add chat to project",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Feature 'exportProject'",
+      "status": "PASS",
+      "message": "Export functionality",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Feature 'importProject'",
+      "status": "PASS",
+      "message": "Import functionality",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Project colors",
+      "status": "PASS",
+      "message": "Color customization present",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: Project icons",
+      "status": "PASS",
+      "message": "Icon customization present",
+      "details": {}
+    },
+    {
+      "name": "Phase 4: projects-manager.js size",
+      "status": "PASS",
+      "message": "795 lines",
+      "details": {
+        "lines": 795
+      }
+    },
+    {
+      "name": "Phase 5: Feature 'PreferencesManager'",
+      "status": "PASS",
+      "message": "Preferences manager",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: Feature 'SidebarToggle'",
+      "status": "PASS",
+      "message": "Sidebar toggle",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: Feature 'NotificationManager'",
+      "status": "PASS",
+      "message": "Notification system",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: Feature 'localStorage'",
+      "status": "PASS",
+      "message": "Persistence",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: Feature 'toggle'",
+      "status": "PASS",
+      "message": "Toggle functionality",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: Feature 'applyTheme'",
+      "status": "PASS",
+      "message": "Theme application",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: preferences-manager.js size",
+      "status": "PASS",
+      "message": "609 lines",
+      "details": {
+        "lines": 609
+      }
+    },
+    {
+      "name": "Phase 5: CSS 'sidebar-toggle-btn'",
+      "status": "PASS",
+      "message": "Toggle button styles",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: CSS 'sidebar-collapsed'",
+      "status": "PASS",
+      "message": "Collapsed state",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: CSS '@keyframes'",
+      "status": "PASS",
+      "message": "Animations",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: CSS 'notification'",
+      "status": "PASS",
+      "message": "Notification styles",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: CSS '@media'",
+      "status": "PASS",
+      "message": "Responsive design",
+      "details": {}
+    },
+    {
+      "name": "Phase 5: CSS 'prefers-reduced-motion'",
+      "status": "PASS",
+      "message": "Accessibility",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: Image Generation",
+      "status": "SKIP",
+      "message": "Image Generation - check manually",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: Memory System",
+      "status": "PASS",
+      "message": "Memory System endpoint/function found",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: File Upload",
+      "status": "PASS",
+      "message": "File Upload endpoint/function found",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: Google Search",
+      "status": "PASS",
+      "message": "Google Search endpoint/function found",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: GitHub Integration",
+      "status": "PASS",
+      "message": "GitHub Integration endpoint/function found",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: image-gen.js module",
+      "status": "PASS",
+      "message": "Image generation module exists",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: memory-manager.js module",
+      "status": "PASS",
+      "message": "Memory manager module exists",
+      "details": {}
+    },
+    {
+      "name": "Existing Feature: file-handler.js module",
+      "status": "PASS",
+      "message": "File handler module exists",
+      "details": {}
+    },
+    {
+      "name": "Module Import: ChatManager",
+      "status": "PASS",
+      "message": "ChatManager imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: APIService",
+      "status": "PASS",
+      "message": "APIService imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: MessageRenderer",
+      "status": "PASS",
+      "message": "MessageRenderer imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: FileHandler",
+      "status": "PASS",
+      "message": "FileHandler imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: ImageGenerator",
+      "status": "PASS",
+      "message": "ImageGenerator imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: MemoryManager",
+      "status": "PASS",
+      "message": "MemoryManager imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: ExportHandler",
+      "status": "PASS",
+      "message": "ExportHandler imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: SearchHandler",
+      "status": "PASS",
+      "message": "SearchHandler imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: VersionNavigator",
+      "status": "PASS",
+      "message": "VersionNavigator imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: ProjectsManager",
+      "status": "PASS",
+      "message": "ProjectsManager imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: PreferencesManager",
+      "status": "PASS",
+      "message": "PreferencesManager imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: SidebarToggle",
+      "status": "PASS",
+      "message": "SidebarToggle imported",
+      "details": {}
+    },
+    {
+      "name": "Module Import: NotificationManager",
+      "status": "PASS",
+      "message": "NotificationManager imported",
+      "details": {}
+    },
+    {
+      "name": "Main V2: App initialization",
+      "status": "PASS",
+      "message": "initializeApp function exists",
+      "details": {}
+    },
+    {
+      "name": "Main V2: Parallel initialization",
+      "status": "PASS",
+      "message": "Modules initialized in parallel",
+      "details": {}
+    },
+    {
+      "name": "CSS: Total line count",
+      "status": "PASS",
+      "message": "2658 lines (expected \u22652500)",
+      "details": {
+        "lines": 2658
+      }
+    },
+    {
+      "name": "CSS Section: Sidebar",
+      "status": "PASS",
+      "message": "Sidebar section present",
+      "details": {}
+    },
+    {
+      "name": "CSS Section: Search",
+      "status": "PASS",
+      "message": "Search section present",
+      "details": {}
+    },
+    {
+      "name": "CSS Section: Version Navigation",
+      "status": "PASS",
+      "message": "Version Navigation section present",
+      "details": {}
+    },
+    {
+      "name": "CSS Section: Projects",
+      "status": "PASS",
+      "message": "Projects section present",
+      "details": {}
+    },
+    {
+      "name": "CSS Section: Animations",
+      "status": "PASS",
+      "message": "Animations section present",
+      "details": {}
+    },
+    {
+      "name": "CSS Section: Mobile",
+      "status": "PASS",
+      "message": "Mobile section present",
+      "details": {}
+    },
+    {
+      "name": "CSS Section: Accessibility",
+      "status": "PASS",
+      "message": "Accessibility section present",
+      "details": {}
+    },
+    {
+      "name": "CSS: Brace matching",
+      "status": "PASS",
+      "message": "Open: 404, Close: 404",
+      "details": {
+        "open": 404,
+        "close": 404
+      }
+    },
+    {
+      "name": "Documentation: PHASE2_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 2 summary - 335 lines, 1424 words",
+      "details": {
+        "lines": 335,
+        "words": 1424
+      }
+    },
+    {
+      "name": "Documentation: PHASE3_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 3 summary - 550 lines, 1794 words",
+      "details": {
+        "lines": 550,
+        "words": 1794
+      }
+    },
+    {
+      "name": "Documentation: PHASE4_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 4 summary - 626 lines, 1946 words",
+      "details": {
+        "lines": 626,
+        "words": 1946
+      }
+    },
+    {
+      "name": "Documentation: PHASE5_COMPLETE_SUMMARY.md",
+      "status": "PASS",
+      "message": "Phase 5 summary - 857 lines, 2547 words",
+      "details": {
+        "lines": 857,
+        "words": 2547
+      }
+    },
+    {
+      "name": "Documentation: VERSION_NAVIGATION_GUIDE.md",
+      "status": "PASS",
+      "message": "Phase 3 guide - 399 lines, 1308 words",
+      "details": {
+        "lines": 399,
+        "words": 1308
+      }
+    },
+    {
+      "name": "Documentation: SIDEBAR_TOGGLE_GUIDE.md",
+      "status": "PASS",
+      "message": "Phase 5 guide - 577 lines, 1707 words",
+      "details": {
+        "lines": 577,
+        "words": 1707
+      }
+    }
+  ]
+}

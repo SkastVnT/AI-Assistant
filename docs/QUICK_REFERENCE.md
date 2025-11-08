@@ -6,8 +6,11 @@
 |---------|------|-----|--------|
 | **Hub Gateway** | `3000` | http://localhost:3000 | ✅ Safe (no conflicts) |
 | **ChatBot** | `5000` | http://localhost:5000 | ✅ Available |
-| **Speech2Text** | `5001` | http://localhost:5001 | ✅ Available |
-| **Text2SQL** | `5002` | http://localhost:5002 | ✅ Available |
+| **Text2SQL** | `5001` | http://localhost:5001 | ✅ Available |
+| **Speech2Text** | `5002` | http://localhost:5002 | ✅ Available |
+| **Document Intelligence** | `5003` | http://localhost:5003 | ✅ Available |
+| **RAG Services** | `5004` | http://localhost:5004 | ✅ Available |
+| **Stable Diffusion** | `7860` | http://localhost:7860 | ✅ Available |
 | ~~Kafka UI~~ | ~~8080~~ | - | ⚠️ Reserved for Kafka |
 
 > **Note**: Port 3000 được chọn để tránh conflict với Kafka UI (8080)

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant - ChatGPT Style</title>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chatgpt_style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="newChatBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14m-7-7h14"/>
+                    </svg>
+                    <span>New chat</span>
+                </button>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-container">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search chats...">
+            </div>
+
+            <!-- Chat List -->
+            <div class="chat-list" id="chatList">
+                <!-- Recent Chats Section -->
+                <div class="chat-section">
+                    <div class="chat-section-title">Today</div>
+                    <!-- Chat items will be dynamically added here -->
+                </div>
+                
+                <div class="chat-section">
+                    <div class="chat-section-title">Yesterday</div>
+                    <!-- Chat items will be dynamically added here -->
+                </div>
+
+                <div class="chat-section">
+                    <div class="chat-section-title">Previous 7 Days</div>
+                    <!-- Chat items will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Projects Section -->
+            <div class="projects-section">
+                <button class="projects-toggle" id="projectsToggle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+                    </svg>
+                    <span>Projects</span>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+                <div class="projects-list" id="projectsList" style="display: none;">
+                    <!-- Projects will be added dynamically -->
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="storage-info" id="storageInfo">
+                    <div class="storage-icon">💾</div>
+                    <div class="storage-details">
+                        <div class="storage-text">Storage</div>
+                        <div class="storage-bar">
+                            <div class="storage-progress" id="storageProgress" style="width: 0%"></div>
+                        </div>
+                        <div class="storage-label" id="storageLabel">0 MB / 200 MB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18"/>
+                    </svg>
+                </button>
+                <div class="model-selector">
+                    <select id="modelSelect" class="model-select">
+                        <option value="gemini">Gemini Pro (FREE)</option>
+                        <option value="openai">GPT-4o-mini</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="qwen">Qwen 1.5B</option>
+                        <option value="bloomvn">BloomVN-8B (FREE)</option>
+                        <optgroup label="🖥️ Local Models">
+                            <option value="qwen1.5-local">Qwen1.5-1.8B Local</option>
+                            <option value="bloomvn-local">BloomVN-8B Local</option>
+                            <option value="qwen2.5-local">Qwen2.5-14B Local ⭐</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="top-actions">
+                    <button class="icon-btn" id="imageGenBtn" title="Generate Image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="m21 15-5-5L5 21"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="memoryBtn" title="AI Memory">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20zm0 0v20"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="downloadBtn" title="Download Chat">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="settingsBtn" title="Settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6m10-10h-6m-6 0H4"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container" id="chatContainer">
+                <!-- Welcome Screen (shown when no messages) -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-logo">
+                        <div class="logo-icon">🤖</div>
+                        <h1>AI ChatBot Assistant</h1>
+                        <p>Hỗ trợ tâm lý, tâm sự và giải pháp đời sống, hỗ trợ lập trình chung</p>
+                    </div>
+                    <div class="welcome-features">
+                        <div class="feature-card">
+                            <div class="feature-icon">💡</div>
+                            <h3>Smart Context</h3>
+                            <p>Nhớ cuộc trò chuyện và hiểu ngữ cảnh</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🧠</div>
+                            <h3>Deep Thinking</h3>
+                            <p>Suy luận sâu cho câu trả lời chất lượng</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🎨</div>
+                            <h3>Image Generation</h3>
+                            <p>Tạo ảnh từ văn bản mô tả</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📚</div>
+                            <h3>Projects</h3>
+                            <p>Chat liên kết và học hỏi lẫn nhau</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="messages-area" id="messagesArea">
+                    <!-- Messages will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Message Navigation (for history < 2/2 >) -->
+            <div class="message-navigation" id="messageNavigation" style="display: none;">
+                <button class="nav-btn" id="prevMessageBtn" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
+                <span class="nav-indicator" id="navIndicator">1 / 1</span>
+                <button class="nav-btn" id="nextMessageBtn" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-options">
+                        <button class="option-btn" id="contextBtn" title="Context Mode">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span id="contextLabel">Casual</span>
+                        </button>
+                        <label class="checkbox-option">
+                            <input type="checkbox" id="deepThinkingCheck">
+                            <span>🧠 Deep Thinking</span>
+                        </label>
+                    </div>
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="userInput" 
+                            class="user-input" 
+                            placeholder="Message AI ChatBot..."
+                            rows="1"
+                        ></textarea>
+                        <button class="send-btn" id="sendBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Mode Selector Modal -->
+    <div class="modal" id="contextModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Chọn chế độ trò chuyện</h3>
+                <button class="modal-close" id="contextModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="context-option" data-context="casual">
+                    <div class="context-icon">😊</div>
+                    <div class="context-info">
+                        <h4>Trò chuyện vui vẻ</h4>
+                        <p>Thân thiện, thoải mái</p>
+                    </div>
+                </div>
+                <div class="context-option" data-context="psychological">
+                    <div class="context-icon">💭</div>
+                    <div class="context-info">
+                        <h4>Tâm lý - Tâm sự</h4>
+                        <p>Lắng nghe, thấu hiểu</p>
+                    </div>
+                </div>
+                <div class="context-option" data-context="lifestyle">
+                    <div class="context-icon">🏡</div>
+                    <div class="context-info">
+                        <h4>Giải pháp đời sống</h4>
+                        <p>Tư vấn thực tế</p>
+                    </div>
+                </div>
+                <div class="context-option" data-context="programming">
+                    <div class="context-icon">💻</div>
+                    <div class="context-info">
+                        <h4>Hỗ trợ lập trình</h4>
+                        <p>Code, debug, giải thích</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Modal -->
+    <div class="modal" id="projectModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Project</h3>
+                <button class="modal-close" id="projectModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="modal-input" id="projectNameInput" placeholder="Project name...">
+                <textarea class="modal-textarea" id="projectDescInput" placeholder="Description (optional)..."></textarea>
+                <button class="modal-btn" id="createProjectBtn">Create Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Generation Modal -->
+    <div class="modal" id="imageGenModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>🎨 AI Image Generation</h3>
+                <button class="modal-close" id="imageGenModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea class="modal-textarea" id="imagePromptInput" placeholder="Mô tả hình ảnh bạn muốn tạo..."></textarea>
+                <div class="image-options">
+                    <label>
+                        Size:
+                        <select id="imageSizeSelect">
+                            <option value="512x512">512x512</option>
+                            <option value="768x768">768x768</option>
+                            <option value="1024x1024">1024x1024</option>
+                        </select>
+                    </label>
+                </div>
+                <button class="modal-btn" id="generateImageBtn">Generate Image</button>
+                <div class="image-result" id="imageResult" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chatgpt_style.js') }}"></script>
+</body>
+</html>
