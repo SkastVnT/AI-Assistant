@@ -8,7 +8,7 @@
 ## 📋 Mô tả
 
 Class Diagram thể hiện:
-- **Classes:** Các lớp chính của hệ thống
+- **Classes:** Các lớp chính của hệ thống (4 services + Hub Gateway)
 - **Attributes:** Thuộc tính của mỗi class
 - **Methods:** Phương thức/hàm của mỗi class
 - **Relationships:** Kế thừa, kết hợp, phụ thuộc
@@ -56,15 +56,6 @@ classDiagram
         +generate_sql(question: str)
         +execute_query(sql: str)
         +save_feedback(sql: str, correct: bool)
-    }
-    
-    class DocumentIntelligenceService {
-        +ocr_engine: PaddleOCR
-        +ai_analyzer: GeminiAPI
-        +process_document(file: File)
-        +classify_document(text: str)
-        +extract_information(text: str)
-        +translate(text: str, target_lang: str)
     }
     
     class Speech2TextService {
@@ -152,7 +143,6 @@ classDiagram
     HubGateway o-- Service
     Service <|-- ChatBotService
     Service <|-- Text2SQLService
-    Service <|-- DocumentIntelligenceService
     Service <|-- Speech2TextService
     Service <|-- StableDiffusionService
     
@@ -256,28 +246,6 @@ classDiagram
 
 ---
 
-### 📄 DocumentIntelligenceService
-
-**File thực tế:** `Document Intelligence Service/app.py`
-
-| Attribute | Type | Mô tả |
-|:----------|:-----|:------|
-| `ocr_engine` | PaddleOCR | OCR engine |
-| `ai_analyzer` | GeminiAPI | AI analysis |
-
-| Method | Parameters | Return | Mô tả |
-|:-------|:-----------|:-------|:------|
-| `process_document()` | file: File | dict | OCR + AI analysis |
-| `classify_document()` | text: str | str | Phân loại document |
-| `extract_information()` | text: str | dict | Trích xuất thông tin |
-| `translate()` | text: str, lang: str | str | Dịch document |
-
-**Dependencies:**
-- PaddleOCR 2.7.3
-- Gemini 2.0 Flash
-
----
-
 ### 🎙️ Speech2TextService
 
 **File thực tế:** `Speech2Text Services/app.py`
@@ -332,7 +300,6 @@ classDiagram
 Service (abstract)
 ├── ChatBotService
 ├── Text2SQLService
-├── DocumentIntelligenceService
 ├── Speech2TextService
 └── StableDiffusionService
 ```
@@ -353,8 +320,8 @@ Service (abstract)
 
 | Metric | Số lượng |
 |:-------|:---------|
-| **Tổng Classes** | 17 |
-| **Service Classes** | 5 |
+| **Tổng Classes** | 16 |
+| **Service Classes** | 4 |
 | **Helper Classes** | 7 |
 | **Data Classes** | 5 |
 | **Abstract Classes** | 1 |

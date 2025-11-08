@@ -8,7 +8,7 @@
 ## 📋 Mô tả
 
 ER Diagram thể hiện:
-- **Entities (Bảng):** 21 bảng chính
+- **Entities (Bảng):** 18 bảng chính
 - **Relationships:** One-to-Many, Many-to-Many
 - **Cardinality:** 1:1, 1:N, M:N
 - **Attributes:** Primary Keys, Foreign Keys, Important fields
@@ -21,7 +21,6 @@ ER Diagram thể hiện:
 erDiagram
     USERS ||--o{ CONVERSATIONS : has
     USERS ||--o{ DATABASE_CONNECTIONS : creates
-    USERS ||--o{ PROCESSED_DOCUMENTS : uploads
     USERS ||--o{ TRANSCRIPTIONS : creates
     USERS ||--o{ IMAGE_GENERATIONS : generates
     USERS ||--o{ USER_API_KEYS : owns
@@ -38,8 +37,6 @@ erDiagram
     DATABASE_CONNECTIONS ||--o{ DATABASE_SCHEMAS : has
     
     SQL_KNOWLEDGE_BASE }o--|| QUERY_HISTORY : matches
-    
-    PROCESSED_DOCUMENTS ||--o{ DOCUMENT_ANALYSIS : analyzed_by
     
     TRANSCRIPTIONS ||--o{ SPEAKERS : has
     
@@ -188,48 +185,6 @@ erDiagram
         timestamp created_at
     }
     
-    PROCESSED_DOCUMENTS {
-        int id PK
-        int user_id FK
-        string original_filename
-        string stored_filename
-        text file_path
-        string file_type
-        bigint file_size
-        int page_count
-        text ocr_text
-        text cleaned_text
-        string document_type
-        decimal classification_confidence
-        jsonb extracted_info
-        int processing_time_ms
-        string ocr_language
-        timestamp created_at
-    }
-    
-    DOCUMENT_ANALYSIS {
-        int id PK
-        int document_id FK
-        string analysis_type
-        text question
-        text answer
-        string target_language
-        text result
-        string model_used
-        timestamp created_at
-    }
-    
-    DOCUMENT_TEMPLATES {
-        int id PK
-        string template_name
-        string document_type
-        jsonb field_definitions
-        text ocr_instructions
-        text sample_image_url
-        boolean is_active
-        timestamp created_at
-    }
-    
     TRANSCRIPTIONS {
         int id PK
         int user_id FK
@@ -344,14 +299,13 @@ erDiagram
 |:------------|:------------|:------------|:------------|
 | **USERS** | CONVERSATIONS | 1:N | User có nhiều conversations |
 | **USERS** | DATABASE_CONNECTIONS | 1:N | User lưu nhiều DB connections |
-| **USERS** | PROCESSED_DOCUMENTS | 1:N | User upload nhiều documents |
 | **USERS** | TRANSCRIPTIONS | 1:N | User tạo nhiều transcriptions |
 | **USERS** | IMAGE_GENERATIONS | 1:N | User generate nhiều images |
 | **USERS** | USER_API_KEYS | 1:N | User có nhiều API keys |
 | **USERS** | CHATBOT_MEMORY | 1:N | User có nhiều memories |
 | **USERS** | QUERY_HISTORY | 1:N | User execute nhiều queries |
 
-**Total:** 1 User → N Records (across 8 tables)
+**Total:** 1 User → N Records (across 7 tables)
 
 ---
 
@@ -379,17 +333,7 @@ erDiagram
 
 ---
 
-### 4. Document Processing Relationships (1:N)
-
-| Parent Table | Child Table | Relationship | Description |
-|:------------|:------------|:------------|:------------|
-| **PROCESSED_DOCUMENTS** | DOCUMENT_ANALYSIS | 1:N | Document có nhiều analyses (summary, Q&A, etc.) |
-
-**Total:** 1 Document → N Analyses
-
----
-
-### 5. Speech2Text Relationships (1:N)
+### 4. Speech2Text Relationships (1:N)
 
 | Parent Table | Child Table | Relationship | Description |
 |:------------|:------------|:------------|:------------|
@@ -399,7 +343,7 @@ erDiagram
 
 ---
 
-### 6. Knowledge Base Relationships (N:1)
+### 5. Knowledge Base Relationships (N:1)
 
 | Child Table | Parent Table | Relationship | Description |
 |:-----------|:------------|:------------|:------------|
@@ -409,7 +353,7 @@ erDiagram
 
 ---
 
-### 7. LoRA Usage (M:N - through JSONB)
+### 6. LoRA Usage (M:N - through JSONB)
 
 | Table A | Table B | Relationship | Description |
 |:--------|:--------|:------------|:------------|
@@ -455,13 +399,13 @@ erDiagram
 
 | Relationship Type | Count | Examples |
 |:-----------------|:------|:---------|
-| **1:N (Mandatory)** | 12 | User→Conversations, Conversation→Messages |
-| **1:N (Optional)** | 8 | Conversation→Files, Query→KB_Match |
+| **1:N (Mandatory)** | 10 | User→Conversations, Conversation→Messages |
+| **1:N (Optional)** | 7 | Conversation→Files, Query→KB_Match |
 | **1:1** | 1 | Connection→Schema (cached) |
 | **M:N** | 1 | Image_Gen↔LoRA_Models (via JSONB) |
 | **Self-referencing** | 1 | MESSAGES.parent_message_id |
 
-**Total Relationships:** 23
+**Total Relationships:** 20
 
 ---
 
@@ -497,20 +441,7 @@ WHERE t.id = ?
 GROUP BY t.id;
 ```
 
-### 4. Get user's document processing stats:
-```sql
-SELECT 
-    document_type,
-    COUNT(*) as total,
-    AVG(processing_time_ms) as avg_time,
-    SUM(file_size) as total_size
-FROM processed_documents
-WHERE user_id = ?
-GROUP BY document_type
-ORDER BY total DESC;
-```
-
-### 5. Get popular LoRA models:
+### 4. Get popular LoRA models:
 ```sql
 SELECT 
     lm.*,
@@ -532,7 +463,6 @@ LIMIT 20;
 - **Usage:** Daily active for 1 year
 - **ChatBot:** 10 conversations/user/month, 20 messages/conversation
 - **Text2SQL:** 50 queries/user/month
-- **Documents:** 5 documents/user/month
 - **Speech2Text:** 2 transcriptions/user/month
 - **Images:** 10 images/user/month
 
@@ -546,20 +476,19 @@ LIMIT 20;
 | **CHATBOT_MEMORY** | 50K | 50 MB | Slow |
 | **SQL_KNOWLEDGE_BASE** | 10K | 20 MB | Slow (reuse) |
 | **QUERY_HISTORY** | 600K | 300 MB | Fast |
-| **PROCESSED_DOCUMENTS** | 60K | 800 MB | Moderate |
 | **TRANSCRIPTIONS** | 24K | 2 GB | Moderate |
 | **IMAGE_GENERATIONS** | 120K | 4 GB | Fast |
 | **API_USAGE** | 10M | 8 GB | Very Fast |
 | **SYSTEM_LOGS** | 50M | 10 GB | Very Fast |
 
-**Total Estimated:** ~27 GB/year (excluding file storage)
+**Total Estimated:** ~25 GB/year (excluding file storage)
 
 ### File Storage (separate from DB):
-- **Uploaded files:** ~500 GB/year
+- **Uploaded files:** ~200 GB/year
 - **Images:** ~300 GB/year
 - **Transcription audio:** ~200 GB/year
 
-**Grand Total:** ~1 TB/year (DB + Files)
+**Grand Total:** ~925 GB/year (DB + Files)
 
 ---
 

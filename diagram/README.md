@@ -67,9 +67,9 @@ AI-Assistant/
 │   └── 05_er_diagram.md          # ER Diagram
 ├── ChatBot/                      # 🤖 ChatBot Service
 ├── Text2SQL Services/            # 📊 Text2SQL Service
-├── Document Intelligence Service/ # 📄 Document Service
 ├── Speech2Text Services/         # 🎙️ Speech2Text Service
-└── stable-diffusion-webui/       # 🎨 Stable Diffusion
+├── stable-diffusion-webui/       # 🎨 Stable Diffusion
+└── src/                          # 🎯 Hub Gateway
 ```
 
 ---
@@ -77,7 +77,8 @@ AI-Assistant/
 ## 📝 Ghi chú
 
 ### Hiện trạng dự án:
-- ✅ 5 services hoạt động độc lập
+- ✅ 4 core services hoạt động độc lập
+- ✅ Hub Gateway đang phát triển (Port 3000)
 - ⚠️ Chưa có database tập trung (đang dùng file system)
 - 🚧 Đề xuất migrate sang PostgreSQL (trong 04_database_design.md)
 

@@ -11,7 +11,6 @@
 ❌ **Không có database tập trung**  
 - ChatBot: JSON files trong `ChatBot/Storage/`
 - Text2SQL: JSON Lines trong `Text2SQL Services/data/knowledge_base/`
-- Document Intelligence: Không có persistent storage
 - Speech2Text: Output files only
 - Stable Diffusion: Image files only
 
@@ -225,66 +224,7 @@ CREATE INDEX idx_schemas_hash ON database_schemas(schema_hash);
 
 ---
 
-### 4. Document Intelligence Service Tables
-
-```sql
--- Processed documents
-CREATE TABLE processed_documents (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    original_filename VARCHAR(255) NOT NULL,
-    stored_filename VARCHAR(255) NOT NULL,
-    file_path TEXT NOT NULL,
-    file_type VARCHAR(20), -- 'image', 'pdf'
-    file_size BIGINT,
-    page_count INTEGER DEFAULT 1,
-    ocr_text TEXT, -- Raw OCR output
-    cleaned_text TEXT, -- Cleaned version
-    document_type VARCHAR(50), -- 'ID', 'invoice', 'contract', 'receipt', etc.
-    classification_confidence DECIMAL(5,2), -- AI confidence
-    extracted_info JSONB, -- Structured data: {name, date, amount, etc.}
-    processing_time_ms INTEGER,
-    ocr_language VARCHAR(10) DEFAULT 'vi',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Document analysis history (AI interactions)
-CREATE TABLE document_analysis (
-    id SERIAL PRIMARY KEY,
-    document_id INTEGER REFERENCES processed_documents(id) ON DELETE CASCADE,
-    analysis_type VARCHAR(50), -- 'summary', 'qa', 'translation', 'extraction'
-    question TEXT, -- For Q&A
-    answer TEXT,
-    target_language VARCHAR(10), -- For translation
-    result TEXT,
-    model_used VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Document templates (for common Vietnamese documents)
-CREATE TABLE document_templates (
-    id SERIAL PRIMARY KEY,
-    template_name VARCHAR(100) NOT NULL,
-    document_type VARCHAR(50) NOT NULL,
-    field_definitions JSONB NOT NULL, -- [{name, type, pattern, required}]
-    ocr_instructions TEXT, -- Special instructions for OCR
-    sample_image_url TEXT,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create indexes
-CREATE INDEX idx_documents_user ON processed_documents(user_id);
-CREATE INDEX idx_documents_type ON processed_documents(document_type);
-CREATE INDEX idx_documents_created ON processed_documents(created_at DESC);
-CREATE INDEX idx_analysis_document ON document_analysis(document_id);
-CREATE INDEX idx_analysis_type ON document_analysis(analysis_type);
-CREATE INDEX idx_templates_type ON document_templates(document_type);
-```
-
----
-
-### 5. Speech2Text Service Tables
+### 4. Speech2Text Service Tables
 
 ```sql
 -- Transcriptions
@@ -330,7 +270,7 @@ CREATE INDEX idx_speakers_transcription ON speakers(transcription_id);
 
 ---
 
-### 6. Stable Diffusion Service Tables
+### 5. Stable Diffusion Service Tables
 
 ```sql
 -- Image generations
@@ -382,7 +322,7 @@ CREATE INDEX idx_lora_usage ON lora_models(usage_count DESC);
 
 ---
 
-### 7. System Tables (Monitoring & Analytics)
+### 6. System Tables (Monitoring & Analytics)
 
 ```sql
 -- System logs
@@ -499,11 +439,10 @@ CREATE TRIGGER increment_kb_on_query
 | **Users & Auth** | 2 | ~50 MB |
 | **ChatBot** | 4 | ~2 GB |
 | **Text2SQL** | 5 | ~500 MB |
-| **Document Intel** | 3 | ~1 GB |
 | **Speech2Text** | 2 | ~3 GB |
 | **Stable Diffusion** | 2 | ~5 GB |
 | **System** | 3 | ~10 GB |
-| **TOTAL** | **21 tables** | **~22 GB** |
+| **TOTAL** | **18 tables** | **~20.5 GB** |
 
 ---
 
@@ -528,10 +467,9 @@ CREATE TRIGGER increment_kb_on_query
 4. Implement learning algorithm improvements
 
 ### Phase 4: Other Services (Week 4)
-1. Add Document Intelligence tracking
-2. Add Speech2Text history
-3. Add Stable Diffusion metadata
-4. Implement admin dashboard
+1. Add Speech2Text history
+2. Add Stable Diffusion metadata
+3. Implement admin dashboard
 
 ---
 

@@ -1,7 +1,7 @@
 # 1️⃣ USE CASE DIAGRAM
 
 > **Biểu đồ ca sử dụng hệ thống AI-Assistant**  
-> Mô tả tương tác giữa người dùng và 5 dịch vụ AI
+> Mô tả tương tác giữa người dùng và 4 dịch vụ AI chính + Hub Gateway
 
 ---
 
@@ -9,7 +9,7 @@
 
 Use Case Diagram thể hiện:
 - **Actors:** User (người dùng thông thường), Admin (quản trị viên), External APIs (API bên ngoài)
-- **Services:** 5 dịch vụ AI độc lập
+- **Services:** 4 dịch vụ AI độc lập + Hub Gateway
 - **Use Cases:** Các chức năng chính của từng service
 
 ---
@@ -47,15 +47,6 @@ graph TB
             UC14[📊 Execute Query]
         end
         
-        subgraph Document Intelligence
-            UC15[📄 Upload Document]
-            UC16[🔍 Perform OCR]
-            UC17[🏷️ Classify Document]
-            UC18[🔍 Extract Information]
-            UC19[📝 Summarize Content]
-            UC20[🌐 Translate Document]
-        end
-        
         subgraph Speech2Text Service
             UC21[🎤 Upload Audio]
             UC22[👥 Detect Speakers]
@@ -79,7 +70,6 @@ graph TB
     User --> Hub
     Hub --> UC1
     Hub --> UC8
-    Hub --> UC15
     Hub --> UC21
     Hub --> UC25
     
@@ -97,12 +87,6 @@ graph TB
     UC10 --> UC13
     UC13 --> UC14
     
-    UC15 --> UC16
-    UC16 --> UC17
-    UC16 --> UC18
-    UC16 --> UC19
-    UC16 --> UC20
-    
     UC21 --> UC22
     UC22 --> UC23
     UC23 --> UC24
@@ -117,7 +101,6 @@ graph TB
     UC4 --> ExternalAPI
     UC7 --> ExternalAPI
     UC10 --> ExternalAPI
-    UC17 --> ExternalAPI
     UC24 --> ExternalAPI
     UC27 --> ExternalAPI
 ```
@@ -149,17 +132,6 @@ graph TB
 | UC12 | Provide Feedback | Đánh giá SQL đúng/sai để AI học | User |
 | UC13 | Connect to Database | Kết nối đến ClickHouse/MongoDB/PostgreSQL | User |
 | UC14 | Execute Query | Chạy SQL và hiển thị kết quả | User |
-
-### 📄 Document Intelligence Service (6 use cases)
-
-| ID | Use Case | Mô tả | Actor |
-|:---|:---------|:------|:------|
-| UC15 | Upload Document | Upload ảnh/PDF (max 20MB) | User |
-| UC16 | Perform OCR | PaddleOCR trích xuất text từ ảnh | System |
-| UC17 | Classify Document | AI phân loại (CMND, hóa đơn, hợp đồng...) | System → External API |
-| UC18 | Extract Information | Trích xuất thông tin quan trọng | System → External API |
-| UC19 | Summarize Content | Tóm tắt nội dung document | System → External API |
-| UC20 | Translate Document | Dịch sang 8+ ngôn ngữ | System → External API |
 
 ### 🎙️ Speech2Text Service (4 use cases)
 
@@ -194,8 +166,6 @@ graph TB
 - **UC1** (Chat) bao gồm UC2, UC3, UC4, UC5, UC6, UC7
 - **UC8** (Upload Schema) bao gồm UC9
 - **UC10** (Generate SQL) bao gồm UC11 (check KB trước)
-- **UC15** (Upload Document) bao gồm UC16 (OCR)
-- **UC16** (OCR) bao gồm UC17, UC18, UC19, UC20
 - **UC21** (Upload Audio) bao gồm UC22
 - **UC22** (Diarization) bao gồm UC23
 - **UC23** (Transcribe) bao gồm UC24
@@ -210,10 +180,10 @@ graph TB
 
 | Metric | Số lượng |
 |:-------|:---------|
-| **Tổng Use Cases** | 30 |
+| **Tổng Use Cases** | 24 |
 | **Primary Actors** | 2 (User, Admin) |
 | **External Systems** | 1 (APIs) |
-| **Services** | 5 |
+| **Services** | 4 |
 | **Use Cases/Service** | 3-7 |
 
 ---
