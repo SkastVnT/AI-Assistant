@@ -19,6 +19,17 @@ import json
 from pathlib import Path
 import shutil
 
+# MongoDB imports
+from bson import ObjectId
+from config.mongodb_config import mongodb_client, get_db
+from config.mongodb_helpers import (
+    ConversationDB, 
+    MessageDB, 
+    MemoryDB, 
+    FileDB,
+    UserSettingsDB
+)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -43,6 +54,15 @@ try:
 except Exception as e:
     PERFORMANCE_ENABLED = False
     logger.warning(f"⚠️ Performance modules not available: {e}")
+
+# Import ImgBB uploader (easy API key)
+try:
+    from src.utils.imgbb_uploader import ImgBBUploader, upload_to_imgbb
+    CLOUD_UPLOAD_ENABLED = True
+    logger.info("✅ ImgBB uploader loaded")
+except ImportError as e:
+    CLOUD_UPLOAD_ENABLED = False
+    logger.warning(f"⚠️ ImgBB uploader not available: {e}")
 
 # Initialize performance components
 if PERFORMANCE_ENABLED:
@@ -70,6 +90,15 @@ app = Flask(__name__,
             static_folder='static',
             static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
+
+# Initialize MongoDB connection
+try:
+    mongodb_client.connect()
+    MONGODB_ENABLED = True
+    logger.info("✅ MongoDB connection established")
+except Exception as e:
+    MONGODB_ENABLED = False
+    logger.warning(f"⚠️ MongoDB not available, using session storage: {e}")
 
 # Memory storage path
 MEMORY_DIR = Path(__file__).parent / 'data' / 'memory'
@@ -134,12 +163,112 @@ SYSTEM_PROMPTS = {
 }
 
 
+# ============================================================================
+# MONGODB CONVERSATION MANAGEMENT
+# ============================================================================
+
+def get_or_create_conversation(user_id, model='gemini-2.0-flash'):
+    """Get active conversation or create new one"""
+    if not MONGODB_ENABLED:
+        return None
+    
+    try:
+        # Check if user has active conversation
+        conversations = ConversationDB.get_user_conversations(user_id, include_archived=False, limit=1)
+        
+        if conversations and len(conversations) > 0:
+            return conversations[0]
+        else:
+            # Create new conversation
+            conv = ConversationDB.create_conversation(
+                user_id=user_id,
+                model=model,
+                title="New Chat"
+            )
+            logger.info(f"✅ Created new conversation: {conv['_id']}")
+            return conv
+    except Exception as e:
+        logger.error(f"❌ Error getting/creating conversation: {e}")
+        return None
+
+
+def save_message_to_db(conversation_id, role, content, metadata=None, images=None, files=None):
+    """Save message to MongoDB"""
+    if not MONGODB_ENABLED or not conversation_id:
+        return None
+    
+    try:
+        message = MessageDB.add_message(
+            conversation_id=str(conversation_id),
+            role=role,
+            content=content,
+            metadata=metadata or {},
+            images=images or [],
+            files=files or []
+        )
+        logger.info(f"✅ Saved message to DB: {message['_id']}")
+        return message
+    except Exception as e:
+        logger.error(f"❌ Error saving message: {e}")
+        return None
+
+
+def load_conversation_history(conversation_id, limit=10):
+    """Load conversation history from MongoDB"""
+    if not MONGODB_ENABLED or not conversation_id:
+        return []
+    
+    try:
+        messages = MessageDB.get_conversation_messages(str(conversation_id), limit=limit)
+        
+        # Convert to conversation history format
+        history = []
+        for msg in messages:
+            if msg['role'] == 'user':
+                user_content = msg['content']
+                # Find corresponding assistant message
+                assistant_msg = next((m for m in messages if m.get('parent_message_id') == msg['_id']), None)
+                if assistant_msg:
+                    history.append({
+                        'user': user_content,
+                        'assistant': assistant_msg['content']
+                    })
+        
+        return history
+    except Exception as e:
+        logger.error(f"❌ Error loading conversation history: {e}")
+        return []
+
+
+def get_user_id_from_session():
+    """Get user ID from session (or create anonymous user)"""
+    if 'user_id' not in session:
+        # Create anonymous user ID
+        session['user_id'] = f"anonymous_{str(uuid.uuid4())[:8]}"
+    return session['user_id']
+
+
+def get_active_conversation_id():
+    """Get active conversation ID from session"""
+    return session.get('conversation_id')
+
+
+def set_active_conversation(conversation_id):
+    """Set active conversation in session"""
+    session['conversation_id'] = str(conversation_id)
+
+
 class ChatbotAgent:
     """Multi-model chatbot agent"""
     
-    def __init__(self):
+    def __init__(self, conversation_id=None):
         self.conversation_history = []
         self.current_model = 'gemini'  # Default model
+        self.conversation_id = conversation_id
+        
+        # Load history from MongoDB if available
+        if MONGODB_ENABLED and conversation_id:
+            self.conversation_history = load_conversation_history(conversation_id)
         
     def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None):
         """Chat using Google Gemini"""
@@ -442,7 +571,21 @@ class ChatbotAgent:
             return f"❌ Lỗi local model: {str(e)}"
     
     def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None):
-        """Main chat method"""
+        """Main chat method with MongoDB integration"""
+        # Save user message to MongoDB
+        if MONGODB_ENABLED and self.conversation_id and history is None:
+            save_message_to_db(
+                conversation_id=self.conversation_id,
+                role='user',
+                content=message,
+                metadata={
+                    'model': model,
+                    'context': context,
+                    'deep_thinking': deep_thinking
+                }
+            )
+        
+        # Get response from selected model
         if model == 'gemini':
             response = self.chat_with_gemini(message, context, deep_thinking, history, memories)
         elif model == 'openai':
@@ -460,6 +603,7 @@ class ChatbotAgent:
         
         # Only save to conversation history if no custom history provided
         if history is None:
+            # Save to in-memory history
             self.conversation_history.append({
                 'user': message,
                 'assistant': response,
@@ -468,12 +612,46 @@ class ChatbotAgent:
                 'context': context,
                 'deep_thinking': deep_thinking
             })
+            
+            # Save assistant response to MongoDB
+            if MONGODB_ENABLED and self.conversation_id:
+                save_message_to_db(
+                    conversation_id=self.conversation_id,
+                    role='assistant',
+                    content=response,
+                    metadata={
+                        'model': model,
+                        'context': context,
+                        'deep_thinking': deep_thinking,
+                        'finish_reason': 'stop'
+                    }
+                )
         
         return response
     
     def clear_history(self):
-        """Clear conversation history"""
+        """Clear conversation history and create new conversation in MongoDB"""
         self.conversation_history = []
+        
+        # Archive old conversation and create new one in MongoDB
+        if MONGODB_ENABLED and self.conversation_id:
+            try:
+                # Archive current conversation
+                ConversationDB.archive_conversation(str(self.conversation_id))
+                logger.info(f"✅ Archived conversation: {self.conversation_id}")
+                
+                # Create new conversation
+                user_id = get_user_id_from_session()
+                conv = ConversationDB.create_conversation(
+                    user_id=user_id,
+                    model=self.current_model,
+                    title="New Chat"
+                )
+                self.conversation_id = conv['_id']
+                set_active_conversation(self.conversation_id)
+                logger.info(f"✅ Created new conversation: {self.conversation_id}")
+            except Exception as e:
+                logger.error(f"❌ Error clearing history: {e}")
 
 
 # Store chatbot instances per session
@@ -481,9 +659,18 @@ chatbots = {}
 
 
 def get_chatbot(session_id):
-    """Get or create chatbot for session"""
+    """Get or create chatbot for session with MongoDB support"""
     if session_id not in chatbots:
-        chatbots[session_id] = ChatbotAgent()
+        # Get or create conversation in MongoDB
+        conversation_id = None
+        if MONGODB_ENABLED:
+            user_id = get_user_id_from_session()
+            conv = get_or_create_conversation(user_id)
+            if conv:
+                conversation_id = conv['_id']
+                set_active_conversation(conversation_id)
+        
+        chatbots[session_id] = ChatbotAgent(conversation_id=conversation_id)
     return chatbots[session_id]
 
 
@@ -799,6 +986,136 @@ def history():
 
 
 # ============================================================================
+# MONGODB CONVERSATION ROUTES
+# ============================================================================
+
+@app.route('/api/conversations', methods=['GET'])
+def get_conversations():
+    """Get all conversations for current user"""
+    try:
+        if not MONGODB_ENABLED:
+            return jsonify({'error': 'MongoDB not enabled'}), 503
+        
+        user_id = get_user_id_from_session()
+        conversations = ConversationDB.get_user_conversations(user_id, include_archived=False, limit=50)
+        
+        # Convert ObjectId to string
+        for conv in conversations:
+            conv['_id'] = str(conv['_id'])
+        
+        return jsonify({
+            'conversations': conversations,
+            'count': len(conversations)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting conversations: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversations/<conversation_id>', methods=['GET'])
+def get_conversation(conversation_id):
+    """Get specific conversation with messages"""
+    try:
+        if not MONGODB_ENABLED:
+            return jsonify({'error': 'MongoDB not enabled'}), 503
+        
+        # Get conversation with messages
+        conv = ConversationDB.get_conversation_with_messages(conversation_id)
+        
+        if not conv:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Convert ObjectId to string
+        conv['_id'] = str(conv['_id'])
+        for msg in conv.get('messages', []):
+            msg['_id'] = str(msg['_id'])
+            msg['conversation_id'] = str(msg['conversation_id'])
+        
+        return jsonify(conv)
+        
+    except Exception as e:
+        logger.error(f"Error getting conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
+def delete_conversation(conversation_id):
+    """Delete a conversation"""
+    try:
+        if not MONGODB_ENABLED:
+            return jsonify({'error': 'MongoDB not enabled'}), 503
+        
+        success = ConversationDB.delete_conversation(conversation_id)
+        
+        if success:
+            # Clear from session if it's the active conversation
+            if session.get('conversation_id') == conversation_id:
+                session.pop('conversation_id', None)
+            
+            return jsonify({'message': 'Conversation deleted successfully'})
+        else:
+            return jsonify({'error': 'Failed to delete conversation'}), 500
+        
+    except Exception as e:
+        logger.error(f"Error deleting conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversations/<conversation_id>/archive', methods=['POST'])
+def archive_conversation(conversation_id):
+    """Archive a conversation"""
+    try:
+        if not MONGODB_ENABLED:
+            return jsonify({'error': 'MongoDB not enabled'}), 503
+        
+        success = ConversationDB.archive_conversation(conversation_id)
+        
+        if success:
+            return jsonify({'message': 'Conversation archived successfully'})
+        else:
+            return jsonify({'error': 'Failed to archive conversation'}), 500
+        
+    except Exception as e:
+        logger.error(f"Error archiving conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversations/new', methods=['POST'])
+def create_new_conversation():
+    """Create a new conversation"""
+    try:
+        if not MONGODB_ENABLED:
+            return jsonify({'error': 'MongoDB not enabled'}), 503
+        
+        data = request.json or {}
+        user_id = get_user_id_from_session()
+        
+        conv = ConversationDB.create_conversation(
+            user_id=user_id,
+            model=data.get('model', 'gemini-2.0-flash'),
+            title=data.get('title', 'New Chat')
+        )
+        
+        # Set as active conversation
+        set_active_conversation(conv['_id'])
+        
+        # Update chatbot instance
+        session_id = session.get('session_id')
+        if session_id in chatbots:
+            chatbots[session_id].conversation_id = conv['_id']
+            chatbots[session_id].conversation_history = []
+        
+        conv['_id'] = str(conv['_id'])
+        
+        return jsonify(conv)
+        
+    except Exception as e:
+        logger.error(f"Error creating conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # STABLE DIFFUSION IMAGE GENERATION ROUTES
 # ============================================================================
 
@@ -963,6 +1280,8 @@ def generate_image():
         
         # Save to storage if requested
         saved_filenames = []
+        cloud_urls = []  # PostImages URLs
+        
         if save_to_storage:
             for idx, image_base64 in enumerate(base64_images):
                 try:
@@ -971,38 +1290,124 @@ def generate_image():
                     filename = f"generated_{timestamp}_{idx}.png"
                     filepath = IMAGE_STORAGE_DIR / filename
                     
-                    # Decode and save image
+                    # Decode and save image locally first
                     image_data = base64.b64decode(image_base64)
                     with open(filepath, 'wb') as f:
                         f.write(image_data)
                     
                     saved_filenames.append(filename)
-                    logger.info(f"[TEXT2IMG] Saved image to: {filename}")
+                    logger.info(f"[TEXT2IMG] Saved locally: {filename}")
                     
-                    # Save metadata
+                    # Upload to PostImages (NO API KEY NEEDED!)
+                    cloud_url = None
+                    delete_url = None
+                    
+                    if CLOUD_UPLOAD_ENABLED:
+                        try:
+                            logger.info(f"[TEXT2IMG] ☁️ Uploading to ImgBB...")
+                            uploader = ImgBBUploader()
+                            upload_result = uploader.upload_image(
+                                str(filepath),
+                                title=f"AI Generated: {prompt[:50]}"
+                            )
+                            
+                            if upload_result:
+                                cloud_url = upload_result['url']
+                                delete_url = upload_result.get('delete_url', '')
+                                cloud_urls.append(cloud_url)
+                                logger.info(f"[TEXT2IMG] ✅ ImgBB URL: {cloud_url}")
+                            else:
+                                logger.warning(f"[TEXT2IMG] ⚠️ ImgBB upload failed, using local URL")
+                        
+                        except Exception as upload_error:
+                            logger.error(f"[TEXT2IMG] ImgBB upload error: {upload_error}")
+                    
+                    # Save metadata with cloud URL
                     metadata_file = filepath.with_suffix('.json')
+                    metadata = {
+                        'filename': filename,
+                        'created_at': datetime.now().isoformat(),
+                        'prompt': prompt,
+                        'negative_prompt': params['negative_prompt'],
+                        'parameters': params,
+                        'cloud_url': cloud_url,
+                        'delete_url': delete_url,
+                        'service': 'imgbb' if cloud_url else 'local'
+                    }
+                    
                     with open(metadata_file, 'w', encoding='utf-8') as f:
-                        json.dump({
-                            'filename': filename,
-                            'created_at': datetime.now().isoformat(),
-                            'prompt': prompt,
-                            'negative_prompt': params['negative_prompt'],
-                            'parameters': params
-                        }, f, ensure_ascii=False, indent=2)
+                        json.dump(metadata, f, ensure_ascii=False, indent=2)
                         
                 except Exception as save_error:
                     logger.error(f"[TEXT2IMG] Error saving image {idx}: {save_error}")
         
+        # Auto-save message to MongoDB with cloud URLs
+        if MONGODB_ENABLED and save_to_storage and saved_filenames:
+            try:
+                # Get or create conversation
+                session_id = session.get('session_id')
+                user_id = get_user_id_from_session()
+                conversation_id = session.get('conversation_id')
+                
+                if not conversation_id:
+                    # Create new conversation
+                    conversation = ConversationDB.create_conversation(
+                        user_id=user_id,
+                        title=f"Text2Image: {prompt[:30]}..."
+                    )
+                    conversation_id = str(conversation['_id'])
+                    session['conversation_id'] = conversation_id
+                    logger.info(f"📝 Created new conversation: {conversation_id}")
+                
+                # Prepare images array for MongoDB
+                images_data = []
+                for idx, filename in enumerate(saved_filenames):
+                    cloud_url = cloud_urls[idx] if idx < len(cloud_urls) else None
+                    
+                    images_data.append({
+                        'url': f"/static/Storage/Image_Gen/{filename}",
+                        'cloud_url': cloud_url,
+                        'delete_url': delete_url if cloud_url else None,
+                        'caption': f"Generated: {prompt[:50]}",
+                        'generated': True,
+                        'service': 'imgbb' if cloud_url else 'local',
+                        'mime_type': 'image/png'
+                    })
+                
+                # Save assistant message with images
+                save_message_to_db(
+                    conversation_id=conversation_id,
+                    role='assistant',
+                    content=f"✅ Generated image with prompt: {prompt}",
+                    images=images_data,
+                    metadata={
+                        'model': 'stable-diffusion',
+                        'prompt': prompt,
+                        'negative_prompt': params['negative_prompt'],
+                        'cloud_service': 'imgbb' if cloud_urls else 'local',
+                        'num_images': len(saved_filenames)
+                    }
+                )
+                
+                logger.info(f"💾 Saved image message to MongoDB with {len(cloud_urls)} cloud URLs")
+                
+            except Exception as db_error:
+                logger.error(f"❌ Error saving to MongoDB: {db_error}")
+        
         # Return response in format expected by frontend
         if save_to_storage and saved_filenames:
-            # Return filenames for frontend to construct URLs
+            # Return filenames + cloud URLs
             return jsonify({
                 'success': True,
-                'images': saved_filenames,  # Array of filenames
+                'images': saved_filenames,  # Local filenames
                 'image': saved_filenames[0],  # First filename for backward compatibility
+                'cloud_urls': cloud_urls,  # ImgBB URLs
+                'cloud_url': cloud_urls[0] if cloud_urls else None,  # First cloud URL
                 'base64_images': base64_images,  # Include base64 for direct display
                 'info': result.get('info', ''),
-                'parameters': result.get('parameters', {})
+                'parameters': result.get('parameters', {}),
+                'cloud_service': 'imgbb' if CLOUD_UPLOAD_ENABLED and cloud_urls else None,
+                'saved_to_db': MONGODB_ENABLED  # Indicate if saved to MongoDB
             })
         else:
             # Return base64 images directly
