@@ -17,7 +17,7 @@ numpy==1.24.4
 
 # ============= CORE AI MODELS =============
 # Whisper (Global ASR)
-faster-whisper==1.0.3
+faster-whisper==1.2.1
 
 # PhoWhisper (Vietnamese ASR) + Transformers
 transformers==4.40.0
