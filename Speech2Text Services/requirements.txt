@@ -40,7 +40,7 @@ huggingface-hub==0.21.4
 # No separate package needed, but requires torch + torchaudio above
 
 # ============= AUDIO PROCESSING =============
-librosa==0.10.1
+librosa==0.11.0
 soundfile==0.12.1
 scipy==1.11.4
 audioread==3.0.1
