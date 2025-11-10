@@ -1554,15 +1554,150 @@ def img2img():
             logger.error(f"[IMG2IMG] SD Error: {result['error']}")
             return jsonify(result), 500
         
-        # Trả về kết quả (compatible với frontend)
-        images = result.get('images', [])
-        return jsonify({
-            'success': True,
-            'image': images[0] if images else None,  # First image for backward compatibility
-            'images': images,  # Full array for multi-image support
-            'info': result.get('info', ''),
-            'parameters': result.get('parameters', {})
-        })
+        # Get base64 images from result
+        base64_images = result.get('images', [])
+        
+        if not base64_images:
+            return jsonify({'error': 'No images generated'}), 500
+        
+        # Save to storage if requested
+        save_to_storage = data.get('save_to_storage', False)
+        saved_filenames = []
+        cloud_urls = []
+        
+        if save_to_storage:
+            for idx, image_base64 in enumerate(base64_images):
+                try:
+                    # Generate filename with timestamp
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f"img2img_{timestamp}_{idx}.png"
+                    filepath = IMAGE_STORAGE_DIR / filename
+                    
+                    # Decode and save image locally first
+                    image_data = base64.b64decode(image_base64)
+                    with open(filepath, 'wb') as f:
+                        f.write(image_data)
+                    
+                    saved_filenames.append(filename)
+                    logger.info(f"[IMG2IMG] Saved locally: {filename}")
+                    
+                    # Upload to ImgBB cloud
+                    cloud_url = None
+                    delete_url = None
+                    
+                    if CLOUD_UPLOAD_ENABLED:
+                        try:
+                            logger.info(f"[IMG2IMG] ☁️ Uploading to ImgBB...")
+                            uploader = ImgBBUploader()
+                            upload_result = uploader.upload_image(
+                                str(filepath),
+                                title=f"AI Img2Img: {prompt[:50]}"
+                            )
+                            
+                            if upload_result:
+                                cloud_url = upload_result['url']
+                                delete_url = upload_result.get('delete_url', '')
+                                cloud_urls.append(cloud_url)
+                                logger.info(f"[IMG2IMG] ✅ ImgBB URL: {cloud_url}")
+                            else:
+                                logger.warning(f"[IMG2IMG] ⚠️ ImgBB upload failed, using local URL")
+                        
+                        except Exception as upload_error:
+                            logger.error(f"[IMG2IMG] ImgBB upload error: {upload_error}")
+                    
+                    # Save metadata with cloud URL
+                    metadata_file = filepath.with_suffix('.json')
+                    metadata = {
+                        'filename': filename,
+                        'created_at': datetime.now().isoformat(),
+                        'prompt': prompt,
+                        'negative_prompt': params['negative_prompt'],
+                        'denoising_strength': params['denoising_strength'],
+                        'parameters': params,
+                        'cloud_url': cloud_url,
+                        'delete_url': delete_url,
+                        'service': 'imgbb' if cloud_url else 'local'
+                    }
+                    
+                    with open(metadata_file, 'w', encoding='utf-8') as f:
+                        json.dump(metadata, f, ensure_ascii=False, indent=2)
+                        
+                except Exception as save_error:
+                    logger.error(f"[IMG2IMG] Error saving image {idx}: {save_error}")
+        
+        # Auto-save message to MongoDB with cloud URLs
+        if MONGODB_ENABLED and save_to_storage and saved_filenames:
+            try:
+                # Get or create conversation
+                user_id = get_user_id_from_session()
+                conversation_id = session.get('conversation_id')
+                
+                if not conversation_id:
+                    # Create new conversation
+                    conversation = ConversationDB.create_conversation(
+                        user_id=user_id,
+                        model='stable-diffusion',
+                        title=f"Img2Img: {prompt[:30]}..."
+                    )
+                    conversation_id = str(conversation['_id'])
+                    session['conversation_id'] = conversation_id
+                    logger.info(f"📝 Created new conversation: {conversation_id}")
+                
+                # Prepare images array for MongoDB
+                images_data = []
+                for idx, filename in enumerate(saved_filenames):
+                    cloud_url = cloud_urls[idx] if idx < len(cloud_urls) else None
+                    
+                    images_data.append({
+                        'url': f"/static/Storage/Image_Gen/{filename}",
+                        'cloud_url': cloud_url,
+                        'delete_url': delete_url if cloud_url else None,
+                        'caption': f"Img2Img: {prompt[:50]}",
+                        'generated': True,
+                        'service': 'imgbb' if cloud_url else 'local',
+                        'mime_type': 'image/png'
+                    })
+                
+                # Save assistant message with images
+                save_message_to_db(
+                    conversation_id=conversation_id,
+                    role='assistant',
+                    content=f"✅ Generated Img2Img with prompt: {prompt}",
+                    images=images_data,
+                    metadata={
+                        'model': 'stable-diffusion-img2img',
+                        'prompt': prompt,
+                        'negative_prompt': params['negative_prompt'],
+                        'denoising_strength': params['denoising_strength'],
+                        'cloud_service': 'imgbb' if cloud_urls else 'local',
+                        'num_images': len(saved_filenames)
+                    }
+                )
+                
+                logger.info(f"💾 Saved Img2Img message to MongoDB with {len(cloud_urls)} cloud URLs")
+                
+            except Exception as db_error:
+                logger.error(f"❌ Error saving to MongoDB: {db_error}")
+        
+        # Return response in format expected by frontend
+        if save_to_storage and saved_filenames:
+            return jsonify({
+                'success': True,
+                'image': base64_images[0] if base64_images else None,
+                'images': base64_images,
+                'filenames': saved_filenames,
+                'cloud_urls': cloud_urls,
+                'info': result.get('info', ''),
+                'parameters': result.get('parameters', {})
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'image': base64_images[0] if base64_images else None,
+                'images': base64_images,
+                'info': result.get('info', ''),
+                'parameters': result.get('parameters', {})
+            })
         
     except Exception as e:
         import traceback
