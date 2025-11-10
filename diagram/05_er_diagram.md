@@ -1,17 +1,68 @@
 # 5️⃣ ENTITY RELATIONSHIP (ER) DIAGRAM
 
 > **Biểu đồ thực thể - liên kết hệ thống AI-Assistant**  
-> Mô tả quan hệ giữa các bảng trong database
+> Mô tả quan hệ giữa các collections trong MongoDB Atlas
 
 ---
 
-## 📋 Mô tả
+## ⚠️ NOTICE: MONGODB PRODUCTION DIAGRAM
 
-ER Diagram thể hiện:
-- **Entities (Bảng):** 18 bảng chính
-- **Relationships:** One-to-Many, Many-to-Many
-- **Cardinality:** 1:1, 1:N, M:N
-- **Attributes:** Primary Keys, Foreign Keys, Important fields
+**Current Implementation:** MongoDB Atlas M0 Free Tier (Not PostgreSQL)
+
+> **📚 For current MongoDB ER Diagram, see:**
+> 
+> **[MongoDB ER Diagram - Production Implementation](05_er_diagram_mongodb.md)**
+> 
+> Document mới bao gồm:
+> - ✅ **ROOT LEVEL:** System Architecture Overview (User, ChatBot, Storage)
+> - ✅ **LEVEL 1.1:** User Domain (users, user_settings)
+> - ✅ **LEVEL 1.2:** ChatBot Service (conversations, messages, memory, files)
+> - ✅ **LEVEL 1.3:** Message Images Structure (Embedded arrays với ImgBB)
+> - ✅ **LEVEL 1.4:** Relationship Patterns (1:1, 1:N, M:N)
+> - ✅ **LEVEL 1.5:** Metadata Structures (Embedded objects)
+> - ✅ **Query Examples:** Aggregation pipelines, lookups, sorting
+> - ✅ **Growth Projections:** Data size estimates for 1 year
+> - ✅ **Index Strategy:** 26 indexes across 6 collections
+> 
+> **Structured theo cấp bậc (ROOT → LEVEL 1) để dễ đọc và chính xác**  
+> **Last Updated:** November 10, 2025
+
+---
+
+## 📋 QUICK REFERENCE
+
+### MongoDB Collections (6 Total):
+
+| Collection | Documents | Purpose | Status |
+|-----------|-----------|---------|--------|
+| `users` | 0 | Authentication & profiles | ✅ Ready |
+| `user_settings` | 0 | User preferences | ✅ Ready |
+| `conversations` | ~50 | Chat sessions | ✅ Active |
+| `messages` | ~30 | Messages + images arrays | ✅ Active |
+| `chatbot_memory` | 0 | AI learning | ✅ Ready |
+| `uploaded_files` | 0 | File metadata | ✅ Ready |
+
+### Relationship Summary:
+
+- **1:1 Unique:** User → User Settings
+- **1:N Mandatory:** Conversation → Messages
+- **1:N Optional:** User → Conversations, Conversation → Memory/Files
+- **M:N via Arrays:** Messages ↔ Images (embedded trong messages.images[])
+- **Self-Reference:** Messages.parent_message_id (message versioning)
+
+### Cloud Integration:
+
+- **ImgBB Cloud:** Permanent image URLs (https://i.ibb.co/...)
+- **Local Storage:** Backup + fast access (Storage/Image_Gen/)
+- **MongoDB:** Metadata + references trong messages.images[] array
+
+---
+
+## 🗂️ LEGACY POSTGRESQL DESIGN (REFERENCE ONLY)
+
+> **Note:** Phần dưới đây là thiết kế PostgreSQL ban đầu với 18 tables.  
+> **Production hiện tại sử dụng MongoDB Atlas với 6 collections.**  
+> Giữ lại cho reference purposes.
 
 ---
 

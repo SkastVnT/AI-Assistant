@@ -15,26 +15,246 @@ Class Diagram thể hiện:
 
 ---
 
-## 🎯 Biểu đồ tổng quan
+## 🎯 Kiến trúc phân lớp (Layered Architecture)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   PRESENTATION LAYER                            │
+│                     (Flask Web App)                             │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                   APPLICATION LAYER                             │
+│          (Business Logic & Service Orchestration)               │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                   DATA ACCESS LAYER                             │
+│              (Repository Pattern - MongoDB)                     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                   DATABASE LAYER                                │
+│                  (MongoDB Atlas - 6 Collections)                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📊 ROOT LEVEL - System Architecture Overview
+
+### Tổng quan hệ thống theo các layer
+
+```mermaid
+graph TB
+    subgraph "Layer 1: Presentation Layer"
+        A[FlaskApp<br/>Web Application Controller]
+    end
+    
+    subgraph "Layer 2: Application/Business Logic Layer"
+        B[AIModelManager<br/>AI Service Orchestrator]
+        C[CacheManager<br/>Performance Cache]
+        D[StreamingHandler<br/>Real-time SSE]
+    end
+    
+    subgraph "Layer 3: Data Access Layer - Repository Pattern"
+        E[MongoDBClient<br/>Singleton DB Connection]
+        F[ConversationDB<br/>Conversations Repository]
+        G[MessageDB<br/>Messages Repository]
+        H[MemoryDB<br/>AI Memory Repository]
+        I[FileDB<br/>Files Repository]
+        J[UserSettingsDB<br/>Settings Repository]
+    end
+    
+    subgraph "Layer 4: External Services Integration"
+        K[GeminiModel<br/>Google Gemini API]
+        L[OpenAIModel<br/>GPT-4/GPT-4o API]
+        M[DeepSeekModel<br/>DeepSeek API]
+        N[LocalModelLoader<br/>Qwen/BloomVN Local]
+        O[StableDiffusionClient<br/>Image Generation]
+        P[PostImagesAPI<br/>Cloud Image Storage]
+        Q[GoogleSearchAPI<br/>Web Search]
+        R[GitHubAPI<br/>Code Search]
+    end
+    
+    subgraph "Layer 5: Database - MongoDB Atlas"
+        S[(conversations)]
+        T[(messages)]
+        U[(chatbot_memory)]
+        V[(uploaded_files)]
+        W[(users)]
+        X[(user_settings)]
+    end
+    
+    %% Layer 1 to Layer 2
+    A -->|uses| B
+    A -->|uses| C
+    A -->|uses| D
+    
+    %% Layer 1 & 2 to Layer 3
+    A -->|uses| E
+    B -->|uses| E
+    
+    %% Layer 3 internal
+    E -->|provides| F
+    E -->|provides| G
+    E -->|provides| H
+    E -->|provides| I
+    E -->|provides| J
+    
+    %% Layer 2 to Layer 4
+    B -->|manages| K
+    B -->|manages| L
+    B -->|manages| M
+    B -->|uses| N
+    A -->|uses| O
+    A -->|uses| P
+    A -->|uses| Q
+    A -->|uses| R
+    
+    %% Layer 3 to Layer 5
+    F -->|CRUD| S
+    G -->|CRUD| T
+    H -->|CRUD| U
+    I -->|CRUD| V
+    J -->|CRUD| W
+    J -->|CRUD| X
+    
+    style A fill:#667eea,stroke:#764ba2,stroke-width:3px,color:#fff
+    style E fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+```
+
+---
+
+## 🔷 LEVEL 1 - Presentation Layer (Flask Web App)
+
+### FlaskApp - Main Application Controller
 
 ```mermaid
 classDiagram
     class FlaskApp {
+        <<Controller>>
         -app: Flask
         -secret_key: str
         -mongodb_client: MongoDBClient
+        -model_manager: AIModelManager
+        -cache: CacheManager
+        -streaming: StreamingHandler
         -static_folder: Path
-        +run(host, port, debug)
-        +route(path, methods)
-        +before_request()
-        +after_request()
+        
+        +__init__()
+        +setup_routes() void
+        +run(host: str, port: int, debug: bool) void
+        +before_request() void
+        +after_request(response) Response
+        
+        %% Route handlers
+        +index() str
+        +chat() dict
+        +upload_file() dict
+        +generate_image() dict
+        +save_memory() dict
+        +export_pdf() bytes
     }
     
+    class Flask {
+        <<Framework>>
+        +route(path, methods)
+        +before_request(func)
+        +after_request(func)
+        +run(host, port, debug)
+    }
+    
+    FlaskApp --> Flask : inherits/uses
+    
+    note for FlaskApp "Entry point của application\nXử lý HTTP requests/responses\nOrchestrate business logic"
+```
+
+**Vai trò:**
+- ✅ Entry point của toàn bộ hệ thống
+- ✅ Route HTTP requests đến đúng handlers
+- ✅ Orchestrate các services (AI, DB, Cache)
+- ✅ Return JSON responses cho frontend
+
+**File thực tế:** `ChatBot/app.py`
+
+---
+
+## 🔷 LEVEL 1.1 - Application Layer (Business Logic & Services)
+
+### Core Services
+
+```mermaid
+classDiagram
+    class AIModelManager {
+        <<Service>>
+        -models: Dict~str,AIModel~
+        -current_model: str
+        -api_keys: Dict~str,str~
+        
+        +__init__()
+        +switch_model(model_name: str) bool
+        +get_available_models() List~str~
+        +chat(messages: List, model: str, temp: float) str
+        +chat_stream(messages: List, model: str) Generator
+        +get_model_info(model_name: str) dict
+        -_validate_model(model_name: str) bool
+    }
+    
+    class CacheManager {
+        <<Service>>
+        -cache: Dict~str,CacheEntry~
+        -ttl: int
+        -enabled: bool
+        -max_size: int
+        
+        +__init__(ttl: int)
+        +get(key: str) any
+        +set(key: str, value: any, ttl: int) void
+        +delete(key: str) void
+        +clear() void
+        +get_stats() dict
+        -_cleanup_expired() void
+    }
+    
+    class StreamingHandler {
+        <<Service>>
+        -chunk_size: int
+        -active_streams: Dict~str,Stream~
+        
+        +__init__(chunk_size: int)
+        +stream_response(generator: Generator) Generator
+        +create_sse_message(data: dict) str
+        +handle_stop_signal(stream_id: str) void
+        +get_active_count() int
+    }
+    
+    FlaskApp --> AIModelManager : uses
+    FlaskApp --> CacheManager : uses
+    FlaskApp --> StreamingHandler : uses
+    
+    note for AIModelManager "Factory Pattern\nQuản lý 8+ AI models\nDynamic model switching"
+    note for CacheManager "Singleton Pattern\nReduce API latency\nTTL-based expiration"
+    note for StreamingHandler "Observer Pattern\nServer-Sent Events\nReal-time streaming"
+```
+
+---
+
+## 🔷 LEVEL 2 - Data Access Layer (Repository Pattern)
+
+### MongoDB Client & Repositories
+
+```mermaid
+classDiagram
     class MongoDBClient {
+        <<Singleton>>
         -_instance: MongoDBClient
         -_client: MongoClient
         -_db: Database
         -uri: str
+        -database_name: str
+        
+        +__new__(cls) MongoDBClient
         +connect() bool
         +close() void
         +db: Database
@@ -45,111 +265,160 @@ classDiagram
         +users: Collection
         +settings: Collection
         -_create_indexes() void
+        -_setup_validation() void
     }
     
     class ConversationDB {
+        <<Repository>>
         -db: Database
         -collection: Collection
-        +create_conversation(user_id, model, title) ObjectId
-        +get_conversation(conversation_id) dict
-        +get_user_conversations(user_id, limit) List~dict~
-        +update_conversation(conversation_id, data) bool
-        +delete_conversation(conversation_id) bool
-        +archive_conversation(conversation_id) bool
-        +increment_message_count(conversation_id, tokens) bool
+        
+        +__init__(db: Database)
+        +create(user_id, model, title) ObjectId
+        +get_by_id(conversation_id) dict
+        +get_by_user(user_id, limit) List~dict~
+        +update(conversation_id, data) bool
+        +delete(conversation_id) bool
+        +archive(conversation_id) bool
+        +increment_stats(conv_id, tokens) bool
         +get_statistics(user_id) dict
     }
     
     class MessageDB {
+        <<Repository>>
         -db: Database
         -collection: Collection
-        +add_message(conversation_id, role, content) ObjectId
-        +get_messages(conversation_id, limit) List~dict~
-        +update_message(message_id, content) bool
-        +delete_message(message_id) bool
-        +add_image_to_message(message_id, image_data) bool
-        +add_file_to_message(message_id, file_data) bool
-        +edit_message(message_id, new_content, parent_id) ObjectId
-        +get_message_versions(parent_id) List~dict~
+        
+        +__init__(db: Database)
+        +add(conv_id, role, content) ObjectId
+        +get_by_conversation(conv_id, limit) List~dict~
+        +update(message_id, content) bool
+        +delete(message_id) bool
+        +add_image(msg_id, image_data) bool
+        +add_file(msg_id, file_data) bool
+        +create_version(msg_id, content, parent) ObjectId
+        +get_versions(parent_id) List~dict~
     }
     
     class MemoryDB {
+        <<Repository>>
         -db: Database
         -collection: Collection
-        +save_memory(user_id, question, answer, tags) ObjectId
-        +search_memory(user_id, query, tags) List~dict~
-        +get_memory(memory_id) dict
+        
+        +__init__(db: Database)
+        +save(user_id, question, answer, tags) ObjectId
+        +search(user_id, query, tags) List~dict~
+        +get_by_id(memory_id) dict
         +update_rating(memory_id, rating) bool
         +add_tags(memory_id, tags) bool
-        +delete_memory(memory_id) bool
-        +get_popular_memories(user_id, limit) List~dict~
+        +delete(memory_id) bool
+        +get_popular(user_id, limit) List~dict~
     }
     
     class FileDB {
+        <<Repository>>
         -db: Database
         -collection: Collection
-        +save_file(user_id, conversation_id, file_info) ObjectId
-        +get_file(file_id) dict
-        +get_conversation_files(conversation_id) List~dict~
+        
+        +__init__(db: Database)
+        +save(user_id, conv_id, file_info) ObjectId
+        +get_by_id(file_id) dict
+        +get_by_conversation(conv_id) List~dict~
         +update_analysis(file_id, analysis) bool
-        +delete_file(file_id) bool
-        +get_file_statistics(user_id) dict
+        +delete(file_id) bool
+        +get_statistics(user_id) dict
     }
     
     class UserSettingsDB {
+        <<Repository>>
         -db: Database
         -collection: Collection
-        +get_settings(user_id) dict
-        +update_settings(user_id, settings) bool
+        
+        +__init__(db: Database)
+        +get(user_id) dict
+        +update(user_id, settings) bool
         +get_default_model(user_id) str
-        +update_chatbot_settings(user_id, settings) bool
-        +update_ui_settings(user_id, settings) bool
+        +update_chatbot(user_id, settings) bool
+        +update_ui(user_id, settings) bool
     }
     
-    class AIModelManager {
-        -models: dict
-        -current_model: str
-        -api_keys: dict
-        +switch_model(model_name) bool
-        +get_available_models() List~str~
-        +chat(messages, model, temperature) str
-        +chat_stream(messages, model) Generator
-        +get_model_info(model_name) dict
-        -_validate_model(model_name) bool
+    MongoDBClient "1" -- "1" ConversationDB : provides
+    MongoDBClient "1" -- "1" MessageDB : provides
+    MongoDBClient "1" -- "1" MemoryDB : provides
+    MongoDBClient "1" -- "1" FileDB : provides
+    MongoDBClient "1" -- "1" UserSettingsDB : provides
+    
+    FlaskApp --> MongoDBClient : uses
+    AIModelManager --> MongoDBClient : uses
+    
+    note for MongoDBClient "Singleton Pattern\nConnection Pooling\nIndex Management\nSchema Validation"
+```
+
+**File thực tế:** 
+- `ChatBot/config/mongodb_config.py`
+- `ChatBot/config/mongodb_helpers.py`
+
+---
+
+## 🔷 LEVEL 3 - AI Models Integration Layer
+
+### AI Service Providers
+
+```mermaid
+classDiagram
+    class AIModel {
+        <<Interface>>
+        +chat_completion(messages) str
+        +chat_completion_stream(messages) Generator
+        +count_tokens(text) int
     }
     
     class GeminiModel {
         -api_key: str
         -model: GenerativeModel
         -generation_config: dict
+        -safety_settings: dict
+        
+        +__init__(api_key, model_name)
         +generate_content(prompt, images) str
-        +generate_content_stream(prompt) Generator
+        +generate_stream(prompt) Generator
         +count_tokens(text) int
         +analyze_file(file_path) str
+        +upload_file(file_path) File
     }
     
     class OpenAIModel {
         -api_key: str
         -client: OpenAI
         -model: str
+        -organization: str
+        
+        +__init__(api_key, model_name)
         +chat_completion(messages) str
-        +chat_completion_stream(messages) Generator
+        +chat_stream(messages) Generator
         +count_tokens(text) int
         +create_embedding(text) List~float~
+        +moderate_content(text) dict
     }
     
     class DeepSeekModel {
         -api_key: str
         -base_url: str
         -client: OpenAI
+        -model: str
+        
+        +__init__(api_key)
         +chat_completion(messages) str
-        +chat_completion_stream(messages) Generator
+        +chat_stream(messages) Generator
         +count_tokens(text) int
     }
     
     class QwenModel {
         -api_key: str
         -model: str
+        -endpoint: str
+        
+        +__init__(api_key, model_name)
         +chat_completion(messages) str
         +generate(prompt) str
         +count_tokens(text) int
@@ -157,92 +426,159 @@ classDiagram
     
     class LocalModelLoader {
         -models_dir: Path
-        -loaded_models: dict
+        -loaded_models: Dict~str,Model~
+        -device: str
+        -max_memory: int
+        
+        +__init__(models_dir)
         +load_model(model_name) Model
         +unload_model(model_name) bool
-        +get_loaded_models() List~str~
+        +get_loaded() List~str~
         +generate(model_name, prompt) str
         -_check_memory() bool
+        -_optimize_model(model) Model
     }
     
-    class CacheManager {
-        -cache: dict
-        -ttl: int
-        -enabled: bool
-        +get(key) any
-        +set(key, value, ttl) void
-        +delete(key) void
-        +clear() void
-        +get_stats() dict
-    }
+    AIModel <|.. GeminiModel : implements
+    AIModel <|.. OpenAIModel : implements
+    AIModel <|.. DeepSeekModel : implements
+    AIModel <|.. QwenModel : implements
     
-    class StreamingHandler {
-        -chunk_size: int
-        +stream_response(generator) Generator
-        +create_sse_message(data) str
-        +handle_stop_signal() void
-    }
+    AIModelManager "1" o-- "*" GeminiModel : manages
+    AIModelManager "1" o-- "*" OpenAIModel : manages
+    AIModelManager "1" o-- "*" DeepSeekModel : manages
+    AIModelManager "1" o-- "*" QwenModel : manages
+    AIModelManager "1" --> "1" LocalModelLoader : uses
     
+    note for AIModel "Strategy Pattern\nPolymorphic interface\nInterchangeable algorithms"
+```
+
+**Supported Models:**
+- Gemini: `gemini-2.0-flash-thinking-exp`, `gemini-1.5-pro`
+- OpenAI: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`
+- DeepSeek: `deepseek-chat`, `deepseek-coder`
+- Qwen: `qwen-turbo`, `qwen-plus`
+- Local: `Qwen2.5-14B-Instruct`, `BloomVN-8B-chat`
+
+---
+
+## 🔷 LEVEL 4 - Utility & Helper Services
+
+### File Management & Cloud Services
+
+```mermaid
+classDiagram
     class FileUploader {
+        <<Utility>>
         -upload_dir: Path
         -max_size: int
-        -allowed_types: List~str~
-        +upload_file(file) dict
-        +validate_file(file) bool
-        +save_file(file, filename) Path
-        +delete_file(file_path) bool
-        +get_file_info(file_path) dict
+        -allowed_types: Set~str~
+        -temp_dir: Path
+        
+        +__init__(upload_dir, max_size)
+        +upload(file: File) dict
+        +validate(file: File) bool
+        +save(file, filename) Path
+        +delete(file_path) bool
+        +get_info(file_path) dict
+        -_generate_filename() str
+        -_check_mime_type(file) str
     }
     
     class ImageUploader {
+        <<Utility>>
         -storage_dir: Path
-        -cloud_service: str
-        -api_key: str
+        -cloud_service: PostImagesAPI
+        -fallback_service: ImgBBAPI
+        -max_size: int
+        
+        +__init__(storage_dir)
         +save_local(image) Path
         +upload_to_cloud(image_path) dict
         +delete_from_cloud(delete_url) bool
-        +get_image_info(image_path) dict
-        -_compress_image(image) Image
+        +get_info(image_path) dict
+        -_compress(image) Image
+        -_generate_thumbnail(image) Image
     }
     
     class PostImagesAPI {
+        <<External Service>>
         -api_key: str
         -base_url: str
+        -session: Session
+        
+        +__init__(api_key)
         +upload(image_path) dict
         +delete(delete_url) bool
         +get_image(image_url) bytes
         -_prepare_upload(image_path) dict
+        -_handle_error(response) Exception
     }
     
     class StableDiffusionClient {
+        <<External Service>>
         -api_url: str
         -timeout: int
-        +text_to_image(prompt, params) bytes
-        +image_to_image(image, prompt, params) bytes
+        -default_params: dict
+        
+        +__init__(api_url)
+        +text2img(prompt, params) bytes
+        +img2img(image, prompt, params) bytes
         +check_status() bool
         +get_models() List~str~
         +get_loras() List~str~
+        +set_model(model_name) bool
     }
     
     class GoogleSearchAPI {
+        <<External Service>>
         -api_key: str
         -cse_id: str
-        +search(query, num_results) List~dict~
+        -session: Session
+        
+        +__init__(api_key, cse_id)
+        +search(query, num) List~dict~
         +search_images(query) List~dict~
         -_format_results(results) List~dict~
     }
     
     class GitHubAPI {
+        <<External Service>>
         -token: str
         -base_url: str
-        +search_repositories(query) List~dict~
+        -session: Session
+        
+        +__init__(token)
+        +search_repos(query) List~dict~
         +search_code(query) List~dict~
         +search_issues(query) List~dict~
-        +get_repository(owner, repo) dict
+        +get_repo(owner, repo) dict
         -_make_request(endpoint, params) dict
     }
     
+    FlaskApp --> FileUploader : uses
+    FlaskApp --> ImageUploader : uses
+    FlaskApp --> StableDiffusionClient : uses
+    FlaskApp --> GoogleSearchAPI : uses
+    FlaskApp --> GitHubAPI : uses
+    
+    ImageUploader --> PostImagesAPI : primary
+    ImageUploader --> FileDB : saves metadata
+    FileUploader --> FileDB : saves metadata
+    
+    note for ImageUploader "Hybrid Storage:\nLocal + Cloud\nFallback mechanism"
+```
+
+---
+
+## 🔷 LEVEL 5 - Domain Models (Data Entities)
+
+### MongoDB Document Models
+
+```mermaid
+classDiagram
     class Conversation {
+        <<Entity>>
         +id: ObjectId
         +user_id: str
         +model: str
@@ -254,11 +590,14 @@ classDiagram
         +metadata: dict
         +created_at: datetime
         +updated_at: datetime
+        
         +to_dict() dict
         +from_dict(data) Conversation
+        +validate() bool
     }
     
     class Message {
+        <<Entity>>
         +id: ObjectId
         +conversation_id: ObjectId
         +role: str
@@ -271,11 +610,15 @@ classDiagram
         +is_edited: bool
         +is_stopped: bool
         +created_at: datetime
+        
         +to_dict() dict
         +from_dict(data) Message
+        +add_image(image) void
+        +add_file(file) void
     }
     
     class Memory {
+        <<Entity>>
         +id: ObjectId
         +user_id: str
         +conversation_id: ObjectId
@@ -288,11 +631,15 @@ classDiagram
         +is_public: bool
         +metadata: dict
         +created_at: datetime
+        
         +to_dict() dict
         +from_dict(data) Memory
+        +add_tag(tag) void
+        +update_rating(rating) void
     }
     
     class UploadedFile {
+        <<Entity>>
         +id: ObjectId
         +user_id: str
         +conversation_id: ObjectId
@@ -305,11 +652,14 @@ classDiagram
         +analysis_result: str
         +metadata: dict
         +created_at: datetime
+        
         +to_dict() dict
         +from_dict(data) UploadedFile
+        +get_extension() str
     }
     
     class Image {
+        <<Value Object>>
         +url: str
         +cloud_url: str
         +delete_url: str
@@ -318,57 +668,39 @@ classDiagram
         +mime_type: str
         +generated: bool
         +service: str
+        
         +to_dict() dict
         +from_dict(data) Image
     }
     
     class File {
+        <<Value Object>>
         +name: str
         +path: str
         +type: str
         +size: int
         +mime_type: str
         +analysis_result: str
+        
         +to_dict() dict
         +from_dict(data) File
     }
     
-    %% Relationships
-    FlaskApp "1" -- "1" MongoDBClient : uses
-    FlaskApp "1" -- "1" AIModelManager : uses
-    FlaskApp "1" -- "1" CacheManager : uses
-    FlaskApp "1" -- "1" StreamingHandler : uses
-    
-    MongoDBClient "1" -- "*" ConversationDB : provides
-    MongoDBClient "1" -- "*" MessageDB : provides
-    MongoDBClient "1" -- "*" MemoryDB : provides
-    MongoDBClient "1" -- "*" FileDB : provides
-    MongoDBClient "1" -- "*" UserSettingsDB : provides
-    
-    AIModelManager "1" -- "*" GeminiModel : manages
-    AIModelManager "1" -- "*" OpenAIModel : manages
-    AIModelManager "1" -- "*" DeepSeekModel : manages
-    AIModelManager "1" -- "*" QwenModel : manages
-    AIModelManager "1" -- "1" LocalModelLoader : uses
-    
-    ConversationDB "1" -- "*" Conversation : CRUD
-    MessageDB "1" -- "*" Message : CRUD
-    MemoryDB "1" -- "*" Memory : CRUD
-    FileDB "1" -- "*" UploadedFile : CRUD
-    
-    Message "1" -- "*" Image : contains
-    Message "1" -- "*" File : contains
-    
-    FileUploader "1" -- "1" FileDB : saves to
-    ImageUploader "1" -- "1" PostImagesAPI : uploads via
-    ImageUploader "1" -- "1" MessageDB : saves to
-    
-    FlaskApp "1" -- "1" StableDiffusionClient : uses
-    FlaskApp "1" -- "1" GoogleSearchAPI : uses
-    FlaskApp "1" -- "1" GitHubAPI : uses
-    
     Conversation "1" -- "*" Message : has
+    Message "1" *-- "*" Image : contains
+    Message "1" *-- "*" File : contains
     Memory "1" -- "0..1" Conversation : references
+    UploadedFile "*" -- "1" Conversation : belongs to
+    
+    ConversationDB ..> Conversation : CRUD
+    MessageDB ..> Message : CRUD
+    MemoryDB ..> Memory : CRUD
+    FileDB ..> UploadedFile : CRUD
+    
+    note for Conversation "Aggregate Root\nControls message lifecycle"
+    note for Message "Entity with versioning\nSupports edit history"
+    note for Image "Embedded in Message\nHybrid storage refs"
+    note for File "Embedded in Message\nMetadata only"
 ```
 
 ---

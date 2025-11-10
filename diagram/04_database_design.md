@@ -1,24 +1,59 @@
 # 4️⃣ DATABASE DESIGN
 
 > **Thiết kế cơ sở dữ liệu cho hệ thống AI-Assistant**  
-> Đề xuất migrate từ file-based storage sang PostgreSQL
+> Sử dụng MongoDB Atlas cho persistent storage
 
 ---
 
 ## 📋 Tổng quan
 
 ### Hiện trạng:
-❌ **Không có database tập trung**  
-- ChatBot: JSON files trong `ChatBot/Storage/`
-- Text2SQL: JSON Lines trong `Text2SQL Services/data/knowledge_base/`
-- Speech2Text: Output files only
-- Stable Diffusion: Image files only
+✅ **MongoDB Atlas (M0 Free Tier)** - Production database  
+- ChatBot: MongoDB collections (conversations, messages, memory, files, users, settings)
+- Text2SQL: JSON Lines trong `Text2SQL Services/data/knowledge_base/` (chưa migrate)
+- Speech2Text: Output files only (chưa có database)
+- Stable Diffusion: Image files + MongoDB messages.images[] array
+- ✅ **ImgBB Cloud Integration** - Auto-save images to cloud with persistent URLs
 
-### Đề xuất:
-✅ **PostgreSQL 14+** - Centralized database  
-✅ **SQLAlchemy ORM** - Python integration  
-✅ **Alembic** - Database migrations  
-✅ **Redis** - Caching layer  
+### Đề xuất tương lai:
+🔄 **Migrate Text2SQL** - Chuyển knowledge base sang MongoDB  
+🔄 **Add Speech2Text DB** - Lưu transcriptions và speakers  
+🔄 **Redis** - Caching layer (planned)
+
+---
+
+## 📚 CHI TIẾT MONGODB SCHEMA - XEM TÀI LIỆU CHUYÊN BIỆT
+
+> **⚠️ QUAN TRỌNG:** Document này giữ PostgreSQL design cũ làm reference.  
+> **✅ PRODUCTION MONGODB SCHEMA:** Xem tài liệu chuyên biệt bên dưới:
+
+### 🔗 Current Production MongoDB Documentation
+
+**📖 [MongoDB Schema - Production Implementation](../docs/archives/2025-11-10/MONGODB_SCHEMA_UPDATED_1110.md)**
+
+Tài liệu này chứa:
+- ✅ **6 Collections hiện tại:** conversations, messages, chatbot_memory, uploaded_files, users, user_settings
+- ✅ **26 Indexes:** Performance optimized queries
+- ✅ **ImgBB Cloud Storage Integration:** 
+  - Text2Img: `/api/generate-image` endpoint
+  - Img2Img: `/api/img2img` endpoint
+  - Auto-save to MongoDB with `save_to_storage: true`
+- ✅ **Hybrid Storage Strategy:**
+  - Local: `Storage/Image_Gen/` (fast access, backup)
+  - Cloud: ImgBB (permanent shareable URLs, unlimited free tier)
+  - Database: messages.images[] (metadata, cloud_url, delete_url)
+- ✅ **Complete Schema Examples:** Document examples với cloud URLs
+- ✅ **Query Examples:** Aggregation queries cho images, conversations
+- ✅ **Connection Configuration:** PyMongo setup với MongoDB Atlas
+
+**Cập nhật cuối:** November 10, 2025 (Post ImgBB Integration)
+
+---
+
+## 🗂️ LEGACY POSTGRESQL DESIGN (REFERENCE ONLY)
+
+> **Note:** Phần dưới đây là thiết kế PostgreSQL ban đầu, KHÔNG phải implementation hiện tại.  
+> Giữ lại cho reference purposes. Production system sử dụng MongoDB Atlas.  
 
 ---
 
