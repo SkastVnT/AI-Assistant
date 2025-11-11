@@ -98,6 +98,127 @@ erDiagram
     }
     
     USER_SETTINGS {
+    ## 🧩Database Diagram (SQL) + Data Structure (NoSQL)
+
+    > **Lưu ý:** Các diagram sau đây mô tả đúng kiến trúc và dữ liệu thực tế của dự án AI-Assistant, không dùng mẫu báo cáo. Dữ liệu được lấy từ production MongoDB Atlas (ChatBot) và PostgreSQL (Text2SQL).
+
+    ### Combined Overview — Project Database Structure
+
+    ```mermaid
+    graph TB
+      %% Text2SQL Service (PostgreSQL)
+      subgraph "Text2SQL (PostgreSQL)"
+        T2SQL_USERS[(users)]
+        T2SQL_KB[(kb_documents)]
+        T2SQL_SCHEMAS[(db_schemas)]
+        T2SQL_QUERIES[(queries)]
+        T2SQL_LOGS[(query_logs)]
+        T2SQL_USERS -->|1:N| T2SQL_QUERIES
+        T2SQL_KB -->|N:1| T2SQL_QUERIES
+        T2SQL_SCHEMAS -->|N:1| T2SQL_QUERIES
+        T2SQL_QUERIES -->|1:N| T2SQL_LOGS
+      end
+
+      %% ChatBot Service (MongoDB Atlas)
+      subgraph "ChatBot (MongoDB Atlas)"
+        CB_USERS((users))
+        CB_SETTINGS((user_settings))
+        CB_CONV((conversations))
+        CB_MSG((messages))
+        CB_FILES((uploaded_files))
+        CB_MEMORY((chatbot_memory))
+        CB_USERS -->|1:1| CB_SETTINGS
+        CB_USERS -->|1:N| CB_CONV
+        CB_CONV -->|1:N| CB_MSG
+        CB_CONV -->|1:N| CB_FILES
+        CB_CONV -->|1:N| CB_MEMORY
+      end
+
+      %% Cross-service mapping (if needed)
+      T2SQL_USERS -. session/user mapping .- CB_USERS
+
+      classDef sql fill:#8BC34A,stroke:#558B2F,color:#fff
+      classDef nosql fill:#03A9F4,stroke:#0277BD,color:#fff
+      class T2SQL_USERS,T2SQL_KB,T2SQL_SCHEMAS,T2SQL_QUERIES,T2SQL_LOGS sql
+      class CB_USERS,CB_SETTINGS,CB_CONV,CB_MSG,CB_FILES,CB_MEMORY nosql
+    ```
+
+    ---
+
+    ## 📸 Biểu Đồ Chi Tiết (Chia Nhỏ Để Chụp)
+
+    ### A. Text2SQL ER Diagram (PostgreSQL — Production)
+    ```mermaid
+    erDiagram
+      USERS ||--o{ QUERIES : "executes"
+      QUERIES ||--o{ QUERY_LOGS : "has"
+      KB_DOCUMENTS ||--o{ QUERIES : "references"
+      DB_SCHEMAS ||--o{ QUERIES : "targets"
+
+      USERS {
+        int id PK
+        string email UK
+        string full_name
+        datetime created_at
+      }
+      KB_DOCUMENTS {
+        int id PK
+        string title
+        text content
+        json embeddings
+      }
+      DB_SCHEMAS {
+        int id PK
+        string db_name
+        json schema_json
+      }
+      QUERIES {
+        int id PK
+        int user_id FK
+        int kb_doc_id FK
+        int schema_id FK
+        text question
+        text sql_generated
+        datetime created_at
+      }
+      QUERY_LOGS {
+        int id PK
+        int query_id FK
+        float latency_ms
+        boolean success
+        text error_message
+        datetime created_at
+      }
+    ```
+
+    ### B. ChatBot Data Structure (MongoDB Atlas — Production)
+    ```mermaid
+    graph TB
+      MDB[[MongoDB Atlas]]
+      MDB --> USERS[users]
+      USERS --> username[username]
+      USERS --> email[email]
+      USERS --> profile[profile]
+      MDB --> USER_SETTINGS[user_settings]
+      USER_SETTINGS --> default_model[default_model]
+      USER_SETTINGS --> temperature[temperature]
+      MDB --> CONVERSATIONS[conversations]
+      CONVERSATIONS --> title[title]
+      CONVERSATIONS --> model[model]
+      CONVERSATIONS --> metadata[metadata]
+      MDB --> MESSAGES[messages]
+      MESSAGES --> role[role]
+      MESSAGES --> content[content]
+      MESSAGES --> images[images[]]
+      MDB --> UPLOADED_FILES[uploaded_files]
+      UPLOADED_FILES --> file_name[file_name]
+      UPLOADED_FILES --> cloud_url[cloud_url]
+      MDB --> CHATBOT_MEMORY[chatbot_memory]
+      CHATBOT_MEMORY --> memory_type[memory_type]
+      CHATBOT_MEMORY --> importance[importance]
+    ```
+
+    ---
         ObjectId _id PK "MongoDB auto-generated"
         string user_id UK "Reference to users (UNIQUE)"
         object settings "Nested document"
