@@ -404,7 +404,7 @@ Optimization: prune old messages, archive conversations, externalize large blobs
 
 ## 🔚 NAVIGATION
 
-[⬅️ ER MongoDB Only](05_er_diagram_mongodb.md) | [Database Design](04_database_design.md) | [Component Diagram](06_component_diagram.md) | [🏠 Index](README.md)
+[⬅️ ER MongoDB Only](05_er_diagram_mongodb.md) | [Cardinality 1–1 / 1–N / N–N](05_er_cardinality_patterns.md) | [Database Design](04_database_design.md) | [Component Diagram](06_component_diagram.md) | [🏠 Index](README.md)
 
 ---
 
