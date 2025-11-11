@@ -377,6 +377,286 @@ graph LR
 
 ---
 
+## 📸 Biểu Đồ Chi Tiết (Chia Nhỏ Để Chụp)
+
+> **Các biểu đồ dưới đây được chia nhỏ theo từng service để dễ dàng chụp màn hình và đưa vào Word/PowerPoint**
+
+---
+
+### 1️⃣ ChatBot Service Use Cases
+
+```mermaid
+graph TB
+    User[👤 User]
+    
+    subgraph ChatBot v2.0 - 8 Use Cases
+        UC1[💬 UC1: Chat with AI<br/>Multi-model Support]
+        UC2[📎 UC2: Auto-File Analysis<br/>Upload & Instant AI]
+        UC3[⏹️ UC3: Stop Generation<br/>Keep Partial Output]
+        UC4[🎨 UC4: Generate Images<br/>Text/Image-to-Image]
+        UC5[💾 UC5: AI Memory<br/>Save & Search]
+        UC6[📥 UC6: Export to PDF<br/>With Images]
+        UC7[🔍 UC7: Search Tools<br/>Web/GitHub]
+        UC8[📝 UC8: Edit Messages<br/>Version Tracking]
+    end
+    
+    ExternalAPI[🔌 External APIs<br/>Gemini, GPT-4, SD]
+    
+    User --> UC1
+    UC1 --> UC2
+    UC1 --> UC3
+    UC1 --> UC4
+    UC1 --> UC5
+    UC1 --> UC6
+    UC1 --> UC7
+    UC1 --> UC8
+    
+    UC2 --> ExternalAPI
+    UC4 --> ExternalAPI
+    UC7 --> ExternalAPI
+    
+    style UC1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style UC2 fill:#10B981,stroke:#059669,color:#fff
+    style UC3 fill:#F59E0B,stroke:#D97706,color:#fff
+    style UC4 fill:#EC4899,stroke:#DB2777,color:#fff
+```
+
+---
+
+### 2️⃣ Text2SQL Service Use Cases
+
+```mermaid
+graph TB
+    User[👤 User]
+    
+    subgraph Text2SQL v2.0 - 8 Use Cases
+        UC10[📤 UC10: Upload Schema<br/>File or DB Connect]
+        UC11[💡 UC11: Auto-Gen Questions<br/>5 Samples + SQL]
+        UC12[🤖 UC12: Generate SQL<br/>NL to SQL Query]
+        UC13[📚 UC13: Knowledge Base<br/>AI Learning System]
+        UC14[👍 UC14: Feedback Loop<br/>Correct/Wrong Rating]
+        UC15[🔌 UC15: DB Connection<br/>ClickHouse/MongoDB]
+        UC16[📊 UC16: Execute Query<br/>Run & Display Results]
+        UC17[🧠 UC17: Deep Thinking<br/>Enhanced Reasoning]
+    end
+    
+    ExternalAPI[🔌 External APIs<br/>Gemini, GPT-4]
+    Database[(🗄️ Databases<br/>ClickHouse/MongoDB/PostgreSQL)]
+    
+    User --> UC10
+    UC10 --> UC11
+    UC10 --> UC12
+    UC12 --> UC13
+    UC12 --> UC14
+    UC12 --> UC17
+    UC15 --> UC16
+    
+    UC12 --> ExternalAPI
+    UC17 --> ExternalAPI
+    UC15 --> Database
+    UC16 --> Database
+    
+    style UC10 fill:#3B82F6,stroke:#2563EB,color:#fff
+    style UC11 fill:#10B981,stroke:#059669,color:#fff
+    style UC12 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style UC13 fill:#F59E0B,stroke:#D97706,color:#fff
+```
+
+---
+
+### 3️⃣ Speech2Text Service Use Cases
+
+```mermaid
+graph TB
+    User[👤 User]
+    
+    subgraph Speech2Text v3.6+ - 5 Use Cases
+        UC20[🎤 UC20: Upload Audio<br/>MP3/WAV/M4A/FLAC]
+        UC21[👥 UC21: Speaker Diarization<br/>pyannote 3.1 - 95-98%]
+        UC22[📝 UC22: Dual Transcription<br/>Whisper + PhoWhisper]
+        UC23[✨ UC23: AI Enhancement<br/>Qwen Refinement]
+        UC24[📥 UC24: Export Results<br/>TXT/JSON/Timeline]
+    end
+    
+    ExternalAPI[🔌 External APIs<br/>HuggingFace Models]
+    
+    User --> UC20
+    UC20 --> UC21
+    UC21 --> UC22
+    UC22 --> UC23
+    UC23 --> UC24
+    
+    UC22 --> ExternalAPI
+    UC23 --> ExternalAPI
+    
+    style UC20 fill:#EF4444,stroke:#DC2626,color:#fff
+    style UC21 fill:#EC4899,stroke:#DB2777,color:#fff
+    style UC22 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style UC23 fill:#3B82F6,stroke:#2563EB,color:#fff
+```
+
+---
+
+### 4️⃣ Stable Diffusion Service Use Cases
+
+```mermaid
+graph TB
+    User[👤 User]
+    
+    subgraph Stable Diffusion - 4 Use Cases
+        UC30[🎨 UC30: Text-to-Image<br/>Prompt to Image]
+        UC31[🔄 UC31: Image-to-Image<br/>Transform Image]
+        UC32[🎭 UC32: LoRA/VAE<br/>100+ Style Models]
+        UC33[🖼️ UC33: Upload to Cloud<br/>ImgBB/PostImages]
+    end
+    
+    ExternalAPI[🔌 External APIs<br/>HuggingFace + ImgBB]
+    
+    User --> UC30
+    User --> UC31
+    UC30 --> UC32
+    UC31 --> UC32
+    UC30 --> UC33
+    UC31 --> UC33
+    
+    UC32 --> ExternalAPI
+    UC33 --> ExternalAPI
+    
+    style UC30 fill:#EC4899,stroke:#DB2777,color:#fff
+    style UC31 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style UC32 fill:#F59E0B,stroke:#D97706,color:#fff
+    style UC33 fill:#3B82F6,stroke:#2563EB,color:#fff
+```
+
+---
+
+### 5️⃣ Admin & Monitoring Use Cases
+
+```mermaid
+graph TB
+    Admin[👨‍💼 Admin]
+    
+    subgraph Admin Functions - 4 Use Cases
+        UC40[⚙️ UC40: Manage Services<br/>Start/Stop/Restart]
+        UC41[📊 UC41: View Logs<br/>System Monitoring]
+        UC42[🔧 UC42: Configure Settings<br/>API Keys/Models]
+        UC43[💾 UC43: Database Admin<br/>Backup/Restore]
+    end
+    
+    Services[⚙️ All Services<br/>ChatBot, Text2SQL, S2T, SD]
+    Logs[📋 Log Files<br/>System Logs]
+    Config[⚙️ Configuration<br/>.env Files]
+    Database[(🗄️ Databases<br/>MongoDB/PostgreSQL)]
+    
+    Admin --> UC40
+    Admin --> UC41
+    Admin --> UC42
+    Admin --> UC43
+    
+    UC40 --> Services
+    UC41 --> Logs
+    UC42 --> Config
+    UC43 --> Database
+    
+    style UC40 fill:#10B981,stroke:#059669,color:#fff
+    style UC41 fill:#3B82F6,stroke:#2563EB,color:#fff
+    style UC42 fill:#F59E0B,stroke:#D97706,color:#fff
+    style UC43 fill:#8B5CF6,stroke:#7C3AED,color:#fff
+```
+
+---
+
+### 6️⃣ Hub Gateway Flow
+
+```mermaid
+graph LR
+    User[👤 User Request]
+    Hub[🎯 Hub Gateway<br/>Port 3000]
+    
+    CB[🤖 ChatBot<br/>Port 5001]
+    T2S[📊 Text2SQL<br/>Port 5002]
+    S2T[🎙️ Speech2Text<br/>Port 7860]
+    SD[🎨 Stable Diffusion<br/>Port 7861]
+    
+    User --> Hub
+    Hub --> CB
+    Hub --> T2S
+    Hub --> S2T
+    Hub --> SD
+    
+    style Hub fill:#6366F1,stroke:#4F46E5,color:#fff
+    style CB fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style T2S fill:#3B82F6,stroke:#2563EB,color:#fff
+    style S2T fill:#EF4444,stroke:#DC2626,color:#fff
+    style SD fill:#EC4899,stroke:#DB2777,color:#fff
+```
+
+---
+
+### 7️⃣ Actor Relationships Overview
+
+```mermaid
+graph TB
+    subgraph Actors
+        User[👤 User<br/>End Users]
+        Admin[👨‍💼 Admin<br/>System Administrator]
+    end
+    
+    subgraph Services
+        Hub[🎯 Hub Gateway]
+        ChatBot[🤖 ChatBot v2.0<br/>8 use cases]
+        Text2SQL[📊 Text2SQL v2.0<br/>8 use cases]
+        Speech2Text[🎙️ Speech2Text v3.6+<br/>5 use cases]
+        SD[🎨 Stable Diffusion<br/>4 use cases]
+    end
+    
+    subgraph External
+        APIs[🔌 External APIs<br/>Gemini, OpenAI, HF, etc.]
+    end
+    
+    User --> Hub
+    Admin --> Hub
+    
+    Hub --> ChatBot
+    Hub --> Text2SQL
+    Hub --> Speech2Text
+    Hub --> SD
+    
+    ChatBot --> APIs
+    Text2SQL --> APIs
+    Speech2Text --> APIs
+    SD --> APIs
+    
+    style User fill:#10B981,stroke:#059669,color:#fff
+    style Admin fill:#F59E0B,stroke:#D97706,color:#fff
+    style Hub fill:#6366F1,stroke:#4F46E5,color:#fff
+    style APIs fill:#8B5CF6,stroke:#7C3AED,color:#fff
+```
+
+---
+
+## 📝 Hướng Dẫn Sử Dụng Diagrams
+
+### Để chụp và đưa vào Word:
+1. **Mở từng diagram riêng** trên GitHub (render tự động)
+2. **Chụp màn hình** (Windows: Win + Shift + S)
+3. **Paste vào Word** (Ctrl + V)
+4. **Resize** cho phù hợp với trang
+
+### Hoặc sử dụng Mermaid Live Editor:
+1. Copy code mermaid của diagram muốn chụp
+2. Mở https://mermaid.live
+3. Paste code vào
+4. Export as PNG/SVG
+5. Insert vào Word
+
+### Kích thước khuyến nghị:
+- **Diagram tổng quan:** Full page width (16cm)
+- **Diagram từng service:** Half page (8cm mỗi cái)
+- **Flow diagrams:** 10-12cm width
+
+---
+
 <div align="center">
 
 [⬅️ Back to Diagram Index](README.md) | [➡️ Next: Class Diagram](02_class_diagram.md)
