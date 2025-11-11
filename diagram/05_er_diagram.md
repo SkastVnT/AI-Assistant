@@ -312,9 +312,35 @@ erDiagram
         jsonb metadata
         string source
         timestamp created_at
+    }
+    
+    API_USAGE {
+        int id PK
+        string service
+        string endpoint
+        int user_id FK
+        string method
+        int status_code
+        int response_time_ms
+        int request_size_bytes
+        int response_size_bytes
+        string ip_address
+        text user_agent
+        text error_message
+        timestamp created_at
+    }
+    
+    SYSTEM_METRICS {
+        int id PK
+        string service
+        string metric_name
+        decimal metric_value
+        string unit
+        timestamp timestamp
+    }
+```
 
 ### 📸 BIỂU ĐỒ CHI TIẾT (Chia Nhỏ Để Chụp)
-
 > Giữ nguyên biểu đồ tổng quan ở trên. Các phần dưới đây tách nhỏ theo nhóm chức năng để dễ chụp đưa vào Word/PowerPoint.
 
 #### Hình Nhỏ 1 — Quan hệ User chính
@@ -539,34 +565,6 @@ erDiagram
 ---
 
 > Ghi chú: Mỗi hình nhỏ tập trung đúng một nhóm chức năng, cắt gọn cột để dễ hiển thị khi chụp ảnh.
-
-    }
-    
-    API_USAGE {
-        int id PK
-        string service
-        string endpoint
-        int user_id FK
-        string method
-        int status_code
-        int response_time_ms
-        int request_size_bytes
-        int response_size_bytes
-        string ip_address
-        text user_agent
-        text error_message
-        timestamp created_at
-    }
-    
-    SYSTEM_METRICS {
-        int id PK
-        string service
-        string metric_name
-        decimal metric_value
-        string unit
-        timestamp timestamp
-    }
-```
 
 ---
 
