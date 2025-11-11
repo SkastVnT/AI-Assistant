@@ -312,6 +312,234 @@ erDiagram
         jsonb metadata
         string source
         timestamp created_at
+
+### 📸 BIỂU ĐỒ CHI TIẾT (Chia Nhỏ Để Chụp)
+
+> Giữ nguyên biểu đồ tổng quan ở trên. Các phần dưới đây tách nhỏ theo nhóm chức năng để dễ chụp đưa vào Word/PowerPoint.
+
+#### Hình Nhỏ 1 — Quan hệ User chính
+```mermaid
+erDiagram
+    USERS ||--o{ CONVERSATIONS : creates
+    USERS ||--o{ DATABASE_CONNECTIONS : manages
+    USERS ||--o{ QUERY_HISTORY : executes
+    USERS ||--o{ USER_API_KEYS : owns
+
+    USERS {
+        int id PK
+        string username UK
+        string email UK
+    }
+
+    CONVERSATIONS {
+        uuid id PK
+        int user_id FK
+        int total_messages
+        boolean is_archived
+    }
+
+    DATABASE_CONNECTIONS {
+        int id PK
+        int user_id FK
+        string type
+        string host
+    }
+
+    QUERY_HISTORY {
+        int id PK
+        int user_id FK
+        text sql_query
+        string status
+    }
+
+    USER_API_KEYS {
+        int id PK
+        int user_id FK
+        string key_hash UK
+        boolean is_active
+    }
+```
+
+#### Hình Nhỏ 2 — Conversation & Message Flow
+```mermaid
+erDiagram
+    CONVERSATIONS ||--|{ MESSAGES : contains
+    CONVERSATIONS ||--o{ CHATBOT_MEMORY : stores
+    CONVERSATIONS ||--o{ UPLOADED_FILES : includes
+    CONVERSATIONS ||--o{ IMAGE_GENERATIONS : links
+    MESSAGES ||--o{ MESSAGES : parent_version
+
+    CONVERSATIONS {
+        uuid id PK
+        int user_id FK
+        string model
+        int total_messages
+    }
+
+    MESSAGES {
+        int id PK
+        uuid conversation_id FK
+        string role
+        jsonb images
+        int version
+        int parent_message_id FK
+    }
+
+    CHATBOT_MEMORY {
+        int id PK
+        uuid conversation_id FK
+        text question
+        text answer
+    }
+
+    UPLOADED_FILES {
+        int id PK
+        uuid conversation_id FK
+        string original_filename
+        bigint file_size
+    }
+
+    IMAGE_GENERATIONS {
+        int id PK
+        uuid conversation_id FK
+        text prompt
+        string model
+    }
+```
+
+#### Hình Nhỏ 3 — Text2SQL Core (PostgreSQL)
+```mermaid
+erDiagram
+    USERS ||--o{ DATABASE_CONNECTIONS : manages
+    DATABASE_CONNECTIONS ||--o{ DATABASE_SCHEMAS : caches
+    USERS ||--o{ QUERY_HISTORY : executes
+    DATABASE_CONNECTIONS ||--o{ QUERY_HISTORY : uses
+    SQL_KNOWLEDGE_BASE ||--o{ QUERY_HISTORY : matches
+
+    DATABASE_CONNECTIONS {
+        int id PK
+        int user_id FK
+        string type
+        string host
+        int port
+    }
+
+    DATABASE_SCHEMAS {
+        int id PK
+        int connection_id FK
+        jsonb schema_json
+        string schema_hash UK
+    }
+
+    SQL_KNOWLEDGE_BASE {
+        int id PK
+        text question
+        text sql_query
+        string database_type
+    }
+
+    QUERY_HISTORY {
+        int id PK
+        int user_id FK
+        int connection_id FK
+        text sql_query
+        string status
+    }
+```
+
+#### Hình Nhỏ 4 — Speech2Text
+```mermaid
+erDiagram
+    TRANSCRIPTIONS ||--o{ SPEAKERS : identifies
+
+    TRANSCRIPTIONS {
+        int id PK
+        int user_id FK
+        int duration_seconds
+        string language
+    }
+
+    SPEAKERS {
+        int id PK
+        int transcription_id FK
+        string speaker_label
+        int total_duration_seconds
+    }
+```
+
+#### Hình Nhỏ 5 — Image Generation & LoRA
+```mermaid
+erDiagram
+    IMAGE_GENERATIONS ||--o{ LORA_MODELS : uses
+    CONVERSATIONS ||--o{ IMAGE_GENERATIONS : links
+
+    IMAGE_GENERATIONS {
+        int id PK
+        uuid conversation_id FK
+        text prompt
+        string model
+        jsonb lora_models
+    }
+
+    LORA_MODELS {
+        int id PK
+        string model_name UK
+        text description
+        int usage_count
+    }
+```
+
+#### Hình Nhỏ 6 — System Monitoring
+```mermaid
+erDiagram
+    SYSTEM_LOGS ||--o{ API_USAGE : context
+    API_USAGE ||--o{ SYSTEM_METRICS : aggregates
+
+    SYSTEM_LOGS {
+        int id PK
+        string service
+        string level
+        text message
+    }
+
+    API_USAGE {
+        int id PK
+        string endpoint
+        int status_code
+        int response_time_ms
+    }
+
+    SYSTEM_METRICS {
+        int id PK
+        string metric_name
+        decimal metric_value
+    }
+```
+
+#### Hình Nhỏ 7 — Knowledge Reuse Pattern
+```mermaid
+erDiagram
+    SQL_KNOWLEDGE_BASE ||--o{ QUERY_HISTORY : reused_by
+
+    SQL_KNOWLEDGE_BASE {
+        int id PK
+        text question
+        text sql_query
+        int usage_count
+    }
+
+    QUERY_HISTORY {
+        int id PK
+        int kb_match_id FK
+        text sql_query
+        int execution_time_ms
+    }
+```
+
+---
+
+> Ghi chú: Mỗi hình nhỏ tập trung đúng một nhóm chức năng, cắt gọn cột để dễ hiển thị khi chụp ảnh.
+
     }
     
     API_USAGE {
