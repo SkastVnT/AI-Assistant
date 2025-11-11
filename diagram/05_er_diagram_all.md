@@ -277,7 +277,7 @@ erDiagram
 graph LR
     AUDIO_RAW[Audio File WAV] --> JOB[Speech Job JSON]
     JOB --> DIAR[Diarization Segments]
-    DIAR --> SEG1[Segment start\|end\|speaker\|text]
+    DIAR --> SEG1[Segment<br/>start · end · speaker · text]
     JOB --> TRANS[Transcript TXT]
     TRANS --> REFUSE[Linked to Conversation]
     REFUSE -. optional mapping .- CONVERSATIONS
@@ -288,6 +288,7 @@ graph LR
     style SEG1 fill:#90A4AE,stroke:#546E7A
     style TRANS fill:#607D8B,stroke:#37474F,color:#fff
     style REFUSE fill:#90CAF9,stroke:#1976D2,color:#000
+
 ```
 
 ---
