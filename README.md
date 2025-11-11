@@ -147,20 +147,22 @@ docker-compose up -d
 ```mermaid
 graph TB
     subgraph User Layer
-    U1[👤 Web Browser]
-    U2[📱 Mobile App]
-    U3[🔌 API Client]
+    U1[👤 Web Browser<br/>Chrome/Firefox/Edge]
+    U2[📱 Mobile App<br/>React Native Future]
+    U3[🔌 API Client<br/>Python/cURL/Postman]
     end
     
     subgraph API Gateway & Hub
-    HUB[🎯 Hub Service<br/>Port 3000<br/>API Gateway]
+    HUB[🎯 Hub Gateway<br/>Port 3000<br/>Flask API Router]
+    AUTH[🔐 Authentication<br/>JWT Future]
+    LIMIT[⚡ Rate Limiter<br/>Redis Future]
     end
     
-    subgraph AI Services
-    CB[🤖 ChatBot Service<br/>Port 5001<br/>Multi-Model AI + Image Gen]
-    T2S[📊 Text2SQL Service<br/>Port 5002<br/>NL to SQL + AI Learning]
-    S2T[🎙️ Speech2Text Service<br/>Port 7860<br/>Dual-Model + Diarization]
-    SD[🎨 Stable Diffusion<br/>Port 7861<br/>Image Generation API]
+    subgraph AI Services Layer
+    CB[🤖 ChatBot v2.0<br/>Port 5001<br/>Auto-File Analysis<br/>Multi-Model + Stop Gen]
+    T2S[📊 Text2SQL v2.0<br/>Port 5002<br/>AI Learning System<br/>Deep Thinking Mode]
+    S2T[🎙️ Speech2Text v3.6+<br/>Port 7860<br/>Dual-Model Fusion<br/>Speaker Diarization]
+    SD[🎨 Stable Diffusion<br/>Port 7861<br/>Text/Img2Img<br/>LoRA + VAE]
     end
     
     subgraph External AI APIs

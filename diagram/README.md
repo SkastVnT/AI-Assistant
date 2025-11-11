@@ -1,8 +1,9 @@
 # 📐 BIỂU ĐỒ THIẾT KẾ HỆ THỐNG AI-ASSISTANT
 
 > **Tài liệu thiết kế UML & Database cho dự án AI-Assistant**  
-> **Cập nhật:** 09/11/2025  
-> **Status:** ✅ **HOÀN THÀNH - PRODUCTION READY**
+> **Cập nhật:** 11/11/2025  
+> **Version:** v2.0 - Complete Documentation  
+> **Status:** ✅ **PRODUCTION READY - 6 SERVICES**
 
 ---
 
@@ -10,15 +11,28 @@
 
 | STT | Tên biểu đồ | File | Mô tả | Status |
 |:---:|:------------|:-----|:------|:-------|
-| 1️⃣ | **Use Case Diagram** | [01_usecase_diagram.md](01_usecase_diagram.md) | Biểu đồ ca sử dụng - 24 use cases | ✅ Complete |
-| 2️⃣ | **Class Diagram** | [02_class_diagram.md](02_class_diagram.md) | Biểu đồ lớp - 16 classes, 5 design patterns | ✅ Complete |
-| 3️⃣ | **Sequence Diagrams** | [03_sequence_diagrams.md](03_sequence_diagrams.md) | Biểu đồ tuần tự - 3 workflows quan trọng nhất | ✅ Complete |
-| 4️⃣ | **Database Design** | [04_database_design.md](04_database_design.md) | Thiết kế PostgreSQL - 18 tables, migration plan | ✅ Complete |
-| 5️⃣ | **ER Diagram** | [05_er_diagram.md](05_er_diagram.md) | Biểu đồ thực thể liên kết - 20 relationships | ✅ Complete |
-| 6️⃣ | **Component Diagram** 🆕 | [06_component_diagram.md](06_component_diagram.md) | Kiến trúc hệ thống - Services, Dependencies, Deployment | ✅ Complete |
-| 7️⃣ | **Activity Diagram** 🆕 | [07_activity_diagram.md](07_activity_diagram.md) | Luồng xử lý - 6 workflows chính | ✅ Complete |
-| 8️⃣ | **State Diagram** 🆕 | [08_state_diagram.md](08_state_diagram.md) | State machines - 6 entities | ✅ Complete |
-| 9️⃣ | **Deployment Diagram** 🆕 | [09_deployment_diagram.md](09_deployment_diagram.md) | Infrastructure - 5 deployment options | ✅ Complete |
+| 1️⃣ | **Use Case Diagram** | [01_usecase_diagram.md](01_usecase_diagram.md) | 30+ use cases across 6 services | ✅ Updated |
+| 2️⃣ | **Class Diagram** | [02_class_diagram.md](02_class_diagram.md) | 20+ classes, modern architecture patterns | ✅ Updated |
+| 3️⃣ | **Sequence Diagrams** | [03_sequence_diagrams.md](03_sequence_diagrams.md) | 4 critical workflows with timing | ✅ Updated |
+| 4️⃣ | **Database Design** | [04_database_design.md](04_database_design.md) | MongoDB + PostgreSQL + ClickHouse | ✅ Updated |
+| 5️⃣ | **ER Diagram** | [05_er_diagram.md](05_er_diagram.md) | MongoDB relationships & indexes | ✅ Updated |
+| 5️⃣-B | **ER Diagram MongoDB** | [05_er_diagram_mongodb.md](05_er_diagram_mongodb.md) | Detailed MongoDB schema | ✅ Complete |
+| 6️⃣ | **Component Diagram** | [06_component_diagram.md](06_component_diagram.md) | Services, dependencies, deployment | ✅ Updated |
+| 7️⃣ | **Activity Diagram** | [07_activity_diagram.md](07_activity_diagram.md) | 8 business workflows | ✅ Updated |
+| 8️⃣ | **State Diagram** | [08_state_diagram.md](08_state_diagram.md) | State machines for 8 entities | ✅ Updated |
+| 9️⃣ | **Deployment Diagram** | [09_deployment_diagram.md](09_deployment_diagram.md) | 5 deployment options (Local→K8s) | ✅ Updated |
+
+### 📂 Service-Specific Diagrams
+
+**ChatBot Service Documentation** (new_docs/):
+- [MongoDB Schema](new_docs/01_mongodb_schema.md) - 6 collections design
+- [API Architecture](new_docs/02_api_architecture.md) - 20+ REST endpoints
+- [Use Case Diagram](new_docs/03_usecase_diagram.md) - ChatBot specific
+- [Class Diagram](new_docs/04_class_diagram.md) - 30+ classes
+- [ER Diagram](new_docs/05_er_diagram.md) - MongoDB relationships
+- [Data Structure](new_docs/06_mongodb_data_structure.md) - NoSQL design
+- [Image Storage Design](new_docs/07_image_storage_design.md) - Hybrid storage
+- [UI Design](new_docs/08_ui_design.md) - Modern interface
 
 ---
 
@@ -26,21 +40,117 @@
 
 Các biểu đồ này được tạo ra để:
 
-✅ **Phân tích & thiết kế hệ thống** - Hiểu rõ kiến trúc từ use cases đến deployment  
-✅ **Tài liệu hóa toàn diện** - 9 loại diagrams bao phủ mọi khía cạnh  
-✅ **Chuẩn bị production** - Deployment diagrams cho Azure/AWS/K8s  
-✅ **Foundation cho mở rộng** - Scalable architecture với 5 deployment options  
-✅ **SoTA Documentation** 🏆 - State-of-the-art, production-ready design  
+✅ **Phân tích & thiết kế hệ thống** - 6 services với kiến trúc microservices  
+✅ **Tài liệu hóa toàn diện** - 18 diagrams bao phủ mọi khía cạnh  
+✅ **Production-ready architecture** - MongoDB + PostgreSQL + hybrid storage  
+✅ **Scalable design** - Docker, Kubernetes, cloud deployment options  
+✅ **SoTA Documentation** 🏆 - State-of-the-art enterprise-level design  
+✅ **Developer onboarding** - Clear architecture for new contributors  
+
+---
+
+## 🏗️ System Overview
+
+```mermaid
+graph TB
+    subgraph "🌐 Client Layer"
+        Web[Web Browser]
+        Mobile[Mobile App]
+        API[API Clients]
+    end
+    
+    subgraph "🎯 Gateway Layer"
+        Hub[Hub Gateway<br/>Port 3000]
+    end
+    
+    subgraph "⚙️ Service Layer"
+        CB[ChatBot v2.0<br/>Port 5001]
+        T2S[Text2SQL v2.0<br/>Port 5002]
+        S2T[Speech2Text v3.6+<br/>Port 7860]
+        SD[Stable Diffusion<br/>Port 7861]
+    end
+    
+    subgraph "💾 Data Layer"
+        Mongo[(MongoDB Atlas<br/>ChatBot Data)]
+        PG[(PostgreSQL<br/>Main DB)]
+        CH[(ClickHouse<br/>Analytics)]
+        FS[File Storage<br/>Local/Cloud]
+    end
+    
+    subgraph "🔌 External Services"
+        Gemini[Google Gemini API]
+        OpenAI[OpenAI GPT-4]
+        HF[HuggingFace Hub]
+        ImgBB[ImgBB Storage]
+    end
+    
+    Web --> Hub
+    Mobile --> Hub
+    API --> Hub
+    
+    Hub --> CB
+    Hub --> T2S
+    Hub --> S2T
+    Hub --> SD
+    
+    CB --> Mongo
+    CB --> FS
+    CB --> Gemini
+    CB --> OpenAI
+    CB --> SD
+    CB --> ImgBB
+    
+    T2S --> PG
+    T2S --> CH
+    T2S --> Gemini
+    
+    S2T --> FS
+    S2T --> HF
+    
+    SD --> FS
+    SD --> HF
+    
+    style Hub fill:#6366F1,stroke:#4F46E5,color:#fff
+    style CB fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style T2S fill:#3B82F6,stroke:#2563EB,color:#fff
+    style S2T fill:#EF4444,stroke:#DC2626,color:#fff
+    style SD fill:#EC4899,stroke:#DB2777,color:#fff
+```  
 
 ---
 
 ## 🛠️ Công nghệ sử dụng
 
+### Core Technologies
+- **Backend:** Python 3.10+, Flask 3.0
+- **Frontend:** HTML5, Tailwind CSS, JavaScript ES6
+- **AI Models:** Gemini 2.0, GPT-4, Whisper, PhoWhisper, Qwen, Stable Diffusion
+- **Databases:** MongoDB Atlas, PostgreSQL 14+, ClickHouse
+- **Storage:** Local + Cloud (ImgBB, PostImages)
+- **Deployment:** Docker, Docker Compose, Kubernetes
+
+### Diagram Standards
 - **Ngôn ngữ biểu đồ:** Mermaid (render native trên GitHub)
-- **Database:** PostgreSQL 14+ (production-ready design)
-- **Chuẩn UML:** Use Case, Class, Sequence, State, Activity, Component, Deployment, ER Diagrams
+- **Chuẩn UML:** Use Case, Class, Sequence, State, Activity, Component, Deployment, ER
 - **Cloud Platforms:** Azure, AWS, GCP, Kubernetes
-- **Tools:** Docker, Nginx, Redis, MongoDB Atlas
+- **Tools:** Docker, Nginx, Redis, MongoDB Atlas, HuggingFace
+
+---
+
+## 📊 Project Statistics
+
+```
+📦 Services:           6 (Hub + 4 AI + 1 Gateway)
+📝 Use Cases:          30+ across all services
+🏗️ Classes:           50+ total
+💾 Databases:          3 types (MongoDB, PostgreSQL, ClickHouse)
+🔌 API Endpoints:      70+ REST APIs
+🤖 AI Models:          10+ integrated
+📖 Diagrams:           18 comprehensive
+🗂️ Collections:        6 MongoDB collections
+📊 Tables:             15+ PostgreSQL tables
+🌐 Deployment Options: 5 (Local → K8s)
+```
 
 ---
 
