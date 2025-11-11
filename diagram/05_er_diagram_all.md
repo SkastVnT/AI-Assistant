@@ -65,12 +65,12 @@ erDiagram
     SYSTEM_METRICS { ObjectId _id PK }
 
     %% Virtual / Logical Entities (Not persisted 1:1)
-    MESSAGE_IMAGES { virtual array }
-    IMAGE_METADATA { virtual embed }
-    LORA_REFERENCES { virtual link }
-    SPEECH_JOBS { file+json }
-    SPEECH_SEGMENTS { json array }
-    TRANSCRIPTS { txt file }
+    MESSAGE_IMAGES { string kind }
+    IMAGE_METADATA { string kind }
+    LORA_REFERENCES { string kind }
+    SPEECH_JOBS { string storage }
+    SPEECH_SEGMENTS { string format }
+    TRANSCRIPTS { string format }
 ```
 
 > Legend: MongoDB (ObjectId) • PostgreSQL (int PK) • Virtual (derived/embedded) • Filesystem/External (file+json)
