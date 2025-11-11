@@ -203,7 +203,7 @@ erDiagram
 
 ```mermaid
 graph TB
-    MSG[Message Doc] --> IMGS{images[]}
+    MSG[Message Doc] --> IMGS{Images Array}
     IMGS --> IMG1[Image Object]
     IMG1 --> LOCAL[url]
     IMG1 --> CLOUD[cloud_url]
@@ -275,11 +275,11 @@ erDiagram
 
 ```mermaid
 graph LR
-    AUDIO_RAW[Audio File (.wav)] --> JOB[Speech Job JSON]
+    AUDIO_RAW[Audio File WAV] --> JOB[Speech Job JSON]
     JOB --> DIAR[Diarization Segments]
-    DIAR --> SEG1[Segment {start, end, speaker, text?}]
-    JOB --> TRANS[Transcript File (.txt)]
-    TRANS --> REFUSE[Linked to Conversation?]
+    DIAR --> SEG1[Segment start|end|speaker|text]
+    JOB --> TRANS[Transcript TXT]
+    TRANS --> REFUSE[Linked to Conversation]
     REFUSE -. optional mapping .- CONVERSATIONS
 
     style AUDIO_RAW fill:#37474F,stroke:#263238,color:#fff
