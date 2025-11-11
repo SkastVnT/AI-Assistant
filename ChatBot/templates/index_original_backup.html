@@ -754,15 +754,28 @@
         }
         
         // File upload - support multiple files
+        console.log('[FILE UPLOAD] Setting up file input listener...');
+        console.log('[FILE UPLOAD] fileInput element:', fileInput);
+        
         fileInput.addEventListener('change', function() {
+            console.log('[FILE UPLOAD] ===== FILE INPUT CHANGED =====');
+            console.log('[FILE UPLOAD] Files:', this.files);
+            console.log('[FILE UPLOAD] Files count:', this.files.length);
+            
             if (this.files.length > 0) {
                 // Add new files to the array
                 for (let file of this.files) {
+                    console.log('[FILE UPLOAD] Adding file:', file.name);
                     uploadedFiles.push(file);
                 }
+                console.log('[FILE UPLOAD] Total uploaded files:', uploadedFiles.length);
                 renderFileList();
+            } else {
+                console.log('[FILE UPLOAD] No files selected');
             }
         });
+        
+        console.log('[FILE UPLOAD] Listener setup complete');
         
         // Render uploaded files
         function renderFileList() {
@@ -776,6 +789,28 @@
                 `;
                 fileList.appendChild(tag);
             });
+            
+            // Also show files in chat
+            if (uploadedFiles.length > 0) {
+                showFilesInChat();
+            }
+        }
+        
+        // Show uploaded files in chat
+        function showFilesInChat() {
+            const timestamp = formatTimestamp(new Date());
+            const filesHTML = uploadedFiles.map(file => {
+                const sizeKB = (file.size / 1024).toFixed(2);
+                return `📄 <strong>${file.name}</strong> (${sizeKB} KB)`;
+            }).join('<br>');
+            
+            addMessage(
+                `📎 <strong>Đã tải lên ${uploadedFiles.length} file:</strong><br>${filesHTML}`, 
+                true, 
+                null, 
+                null, 
+                timestamp
+            );
         }
         
         // Remove file from list
@@ -825,7 +860,12 @@
             const textDiv = document.createElement('div');
             textDiv.className = 'message-text';
             if (isUser) {
-                textDiv.textContent = content;
+                // Allow HTML for file upload messages (contains 📎 emoji)
+                if (content.includes('📎')) {
+                    textDiv.innerHTML = content;
+                } else {
+                    textDiv.textContent = content;
+                }
             } else {
                 // Parse markdown for assistant messages
                 textDiv.innerHTML = marked.parse(content);
