@@ -1,0 +1,7 @@
+ImgBB Upload Test Result
+======================================================================
+Image: generated_20251029_175612.png
+Direct URL: https://i.ibb.co/v4Lzf3T3/generated-20251029-175612.png
+Display URL: https://i.ibb.co/hF28rB4B/generated-20251029-175612.png
+Delete URL: https://ibb.co/pj4XNfMf/bc423ebb409c85d03c0070f597b77719
+Thumbnail: https://i.ibb.co/pj4XNfMf/generated-20251029-175612.png

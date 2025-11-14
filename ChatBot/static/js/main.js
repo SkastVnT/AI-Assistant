@@ -52,32 +52,40 @@ class ChatBotApp {
         // Setup event listeners
         this.setupEventListeners();
         
+        console.log('[App] Setting up file upload handler...');
+        console.log('[App] fileInput element:', elements.fileInput);
+        
         // Setup file handling with AUTO-ANALYSIS
         this.fileHandler.setupFileInput(elements.fileInput, async (files) => {
+            console.log('[App] ===== FILE UPLOAD CALLBACK =====');
+            console.log('[App] Received files:', files.length, files);
+            
             try {
-                // Don't clear old files - allow accumulation
-                // this.fileHandler.clearSessionFiles();
-                // this.fileHandler.clearFiles();
-                
                 // Process NEW files only
                 const processedFiles = [];
                 for (let file of files) {
+                    console.log('[App] Processing file:', file.name);
                     try {
                         const fileData = await this.fileHandler.processFile(file);
+                        console.log('[App] Processed successfully:', fileData.name);
                         processedFiles.push(fileData);
                     } catch (error) {
                         alert(`❌ Lỗi xử lý file "${file.name}": ${error.message}`);
-                        console.error('File processing error:', error);
+                        console.error('[App] File processing error:', error);
                     }
                 }
                 
                 if (processedFiles.length === 0) {
+                    console.log('[App] No files processed');
                     elements.fileInput.value = '';
                     return;
                 }
                 
-                // Add to session (accumulate)
-                await this.fileHandler.addFilesToSession(files);
+                console.log('[App] Adding', processedFiles.length, 'files to session');
+                // Add processed files to session
+                for (let fileData of processedFiles) {
+                    this.fileHandler.currentSessionFiles.push(fileData);
+                }
                 this.saveFilesToCurrentSession();
                 
                 // Show NEW files in chat (not in input area)
@@ -116,8 +124,10 @@ class ChatBotApp {
                 
                 if (processedFiles.length === 0) return;
                 
-                // Add to session (accumulate)
-                await this.fileHandler.addFilesToSession(files);
+                // Add processed files to session (accumulate) - FIXED: use processedFiles instead of raw files
+                for (let fileData of processedFiles) {
+                    this.fileHandler.currentSessionFiles.push(fileData);
+                }
                 this.saveFilesToCurrentSession();
                 
                 // Show NEW files in chat
@@ -966,4 +976,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadChatAsPDF = () => app.exportHandler.downloadChatAsPDF(app.currentSession, app.chatManager.sessions);
     window.downloadChatAsJSON = () => app.exportHandler.downloadChatAsJSON(app.currentSession, app.chatManager.sessions);
     window.downloadChatAsText = () => app.exportHandler.downloadChatAsText(app.currentSession, app.chatManager.sessions);
+    
+    // Expose app for debugging
+    window.chatApp = app;
+    console.log('[App] ChatBot app exposed to window.chatApp');
 });

@@ -13,19 +13,39 @@ export class FileHandler {
      * Setup file input listener
      */
     setupFileInput(fileInput, onFilesChange) {
-        if (!fileInput) return;
+        if (!fileInput) {
+            console.error('[FileHandler] fileInput element not found!');
+            return;
+        }
 
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                // Add new files to the array
-                for (let file of fileInput.files) {
-                    this.uploadedFiles.push(file);
-                }
+        console.log('[FileHandler] Setting up file input listener');
+        console.log('[FileHandler] Element:', fileInput);
+        console.log('[FileHandler] Element ID:', fileInput.id);
+        
+        // Use direct property assignment to ensure it works
+        fileInput.onchange = function(event) {
+            console.log('[FileHandler] ===== FILE INPUT CHANGED =====');
+            console.log('[FileHandler] Event:', event);
+            console.log('[FileHandler] Target:', event.target);
+            console.log('[FileHandler] Files:', event.target.files);
+            console.log('[FileHandler] Files count:', event.target.files.length);
+            
+            if (event.target.files && event.target.files.length > 0) {
+                const newFiles = Array.from(event.target.files);
+                console.log('[FileHandler] New files array:', newFiles);
+                
                 if (onFilesChange) {
-                    onFilesChange(this.uploadedFiles);
+                    console.log('[FileHandler] Calling onFilesChange callback with', newFiles.length, 'files');
+                    onFilesChange(newFiles);
+                } else {
+                    console.error('[FileHandler] No onFilesChange callback provided!');
                 }
+            } else {
+                console.warn('[FileHandler] No files selected');
             }
-        });
+        };
+        
+        console.log('[FileHandler] File input listener setup complete');
     }
 
     /**
@@ -36,6 +56,7 @@ export class FileHandler {
 
         element.addEventListener('paste', async (e) => {
             const items = e.clipboardData.items;
+            const newFiles = [];
             
             for (let item of items) {
                 // Handle text paste (default behavior)
@@ -48,12 +69,14 @@ export class FileHandler {
                     e.preventDefault();
                     const file = item.getAsFile();
                     if (file) {
-                        this.uploadedFiles.push(file);
-                        if (onFilesChange) {
-                            onFilesChange(this.uploadedFiles);
-                        }
+                        newFiles.push(file);
                     }
                 }
+            }
+            
+            // Call callback with new files only
+            if (newFiles.length > 0 && onFilesChange) {
+                onFilesChange(newFiles);
             }
         });
     }

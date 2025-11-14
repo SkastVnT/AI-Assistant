@@ -150,12 +150,18 @@ export class APIService {
      * Generate image (Text2Img)
      */
     async generateImage(params) {
-        const response = await fetch('/sd-api/text2img', {
+        // Always enable save_to_storage for MongoDB persistence
+        const enhancedParams = {
+            ...params,
+            save_to_storage: true
+        };
+        
+        const response = await fetch('/api/generate-image', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(params)
+            body: JSON.stringify(enhancedParams)
         });
 
         if (!response.ok) {
@@ -169,12 +175,18 @@ export class APIService {
      * Generate image from image (Img2Img)
      */
     async generateImg2Img(params) {
-        const response = await fetch('/sd-api/img2img', {
+        // Always enable save_to_storage for MongoDB persistence
+        const enhancedParams = {
+            ...params,
+            save_to_storage: true
+        };
+        
+        const response = await fetch('/api/img2img', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(params)
+            body: JSON.stringify(enhancedParams)
         });
 
         if (!response.ok) {

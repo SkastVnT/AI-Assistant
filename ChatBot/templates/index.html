@@ -515,5 +515,30 @@
 
     <!-- Load JavaScript modules -->
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Temporary test script -->
+    <script>
+        console.log('=== INLINE TEST SCRIPT LOADED ===');
+        
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== DOM READY ===');
+            
+            const fileInput = document.getElementById('fileInput');
+            console.log('File input element:', fileInput);
+            
+            if (fileInput) {
+                console.log('Setting up direct onchange...');
+                fileInput.onchange = function(e) {
+                    console.log('=== ONCHANGE FIRED (INLINE) ===');
+                    console.log('Files:', e.target.files);
+                    alert('File selected: ' + (e.target.files.length > 0 ? e.target.files[0].name : 'none'));
+                };
+                console.log('Direct onchange setup complete');
+            } else {
+                console.error('File input NOT FOUND!');
+            }
+        });
+    </script>
 </body>
 </html>

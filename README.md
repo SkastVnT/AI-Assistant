@@ -21,7 +21,11 @@
 
 <br/>
 
+<<<<<<< HEAD
 **🌟 Nền tảng tích hợp 6 dịch vụ AI mạnh mẽ - Updated Nov 2025 🚀**
+=======
+**🌟 Nền tảng tích hợp 4 dịch vụ AI + 1 Hub Gateway 🚀**
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 
 [📖 Tính năng](#-tính-năng-nổi-bật) • [⚡ Quick Start](#-quick-start) • [🏗️ Kiến trúc](#️-system-architecture-overview) • [🛠️ Tech Stack](#️-technology-stack) • [📦 Yêu cầu](#-yêu-cầu-hệ-thống) • [📚 Tài liệu](#-tài-liệu)
 
@@ -109,6 +113,7 @@ docker-compose up -d
 <tr>
 <td width="50%">
 
+<<<<<<< HEAD
 ###  **Document Intelligence v1.6** 🆕
 <img src="https://img.shields.io/badge/OCR-Vietnamese-10B981?style=flat-square" />
 <img src="https://img.shields.io/badge/Gemini_2.0-FREE-8B5CF6?style=flat-square" />
@@ -125,6 +130,9 @@ docker-compose up -d
 <td width="50%">
 
 ###  **Speech2Text v3.6+** 🆕
+=======
+###  **Speech2Text**
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 <img src="https://img.shields.io/badge/Accuracy-98%25-10B981?style=flat-square" />
 <img src="https://img.shields.io/badge/Web_UI-Ready-EF4444?style=flat-square" />
 
@@ -137,8 +145,6 @@ docker-compose up -d
 -  100% Free (No paid APIs)
 
 </td>
-</tr>
-<tr>
 <td width="50%">
 
 ###  **Stable Diffusion**
@@ -154,6 +160,7 @@ docker-compose up -d
 -  RESTful API + ChatBot Integration
 
 </td>
+<<<<<<< HEAD
 <td width="50%">
 
 ###  **RAG Services v1.0** 🆕
@@ -170,6 +177,8 @@ docker-compose up -d
 -  1,410+ lines production-ready code
 
 </td>
+=======
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 </tr>
 </table>
 
@@ -181,6 +190,7 @@ docker-compose up -d
 
 </div>
 
+<<<<<<< HEAD
 > **AI-Assistant** là nền tảng AI tích hợp gồm **6 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready** với hơn **10,000+ dòng code** và **182KB+ documentation**.
 >
 > **🆕 Cập nhật mới nhất (Nov 2025):**
@@ -241,35 +251,38 @@ Circuit Breakers
 </td>
 </tr>
 </table>
+=======
+> **AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 
 ### 🏗️ **System Architecture Overview**
 
 ```mermaid
 graph TB
     subgraph User Layer
-    U1[👤 Web Browser]
-    U2[📱 Mobile App]
-    U3[🔌 API Client]
+    U1[👤 Web Browser<br/>Chrome/Firefox/Edge]
+    U2[📱 Mobile App<br/>React Native Future]
+    U3[🔌 API Client<br/>Python/cURL/Postman]
     end
     
     subgraph API Gateway & Hub
-    HUB[🎯 Hub Service<br/>Port 3000<br/>API Gateway]
+    HUB[🎯 Hub Gateway<br/>Port 3000<br/>Flask API Router]
+    AUTH[🔐 Authentication<br/>JWT Future]
+    LIMIT[⚡ Rate Limiter<br/>Redis Future]
     end
     
-    subgraph AI Services
-    CB[🤖 ChatBot Service<br/>Port 5001<br/>Multi-Model AI + Image Gen]
-    T2S[📊 Text2SQL Service<br/>Port 5002<br/>NL to SQL + AI Learning]
-    DIS[📄 Document Intelligence<br/>Port 5003<br/>OCR + AI Analysis]
-    RAG[📚 RAG Services<br/>Port 5004<br/>Multi-LLM + Vietnamese NLP]
-    S2T[🎙️ Speech2Text Service<br/>Port 7860<br/>Dual-Model + Diarization]
-    SD[🎨 Stable Diffusion<br/>Port 7861<br/>Image Generation API]
+    subgraph AI Services Layer
+    CB[🤖 ChatBot v2.0<br/>Port 5001<br/>Auto-File Analysis<br/>Multi-Model + Stop Gen]
+    T2S[📊 Text2SQL v2.0<br/>Port 5002<br/>AI Learning System<br/>Deep Thinking Mode]
+    S2T[🎙️ Speech2Text v3.6+<br/>Port 7860<br/>Dual-Model Fusion<br/>Speaker Diarization]
+    SD[🎨 Stable Diffusion<br/>Port 7861<br/>Text/Img2Img<br/>LoRA + VAE]
     end
     
     subgraph External AI APIs
     API1[🔷 Google Gemini 2.0]
     API2[🟣 OpenAI GPT-4]
     API3[🔵 DeepSeek]
-    API4[🤖 HuggingFace Models]
+    API4[� HuggingFace Models]
     end
     
     subgraph Data Storage
@@ -285,8 +298,6 @@ graph TB
     
     HUB --> CB
     HUB --> T2S
-    HUB --> DIS
-    HUB --> RAG
     HUB --> S2T
     HUB --> SD
     
@@ -299,14 +310,6 @@ graph TB
     T2S --> DB2
     T2S --> DB3
     
-    DIS --> API1
-    DIS --> FS
-    
-    RAG --> API1
-    RAG --> API2
-    RAG --> API3
-    RAG --> DB3
-    
     S2T --> API4
     S2T --> FS
     
@@ -318,8 +321,6 @@ graph TB
     style HUB fill:#6366F1,stroke:#4F46E5,color:#fff
     style CB fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style T2S fill:#3B82F6,stroke:#2563EB,color:#fff
-    style DIS fill:#10B981,stroke:#059669,color:#fff
-    style RAG fill:#14B8A6,stroke:#0D9488,color:#fff
     style S2T fill:#EF4444,stroke:#DC2626,color:#fff
     style SD fill:#EC4899,stroke:#DB2777,color:#fff
 ```
@@ -332,29 +333,25 @@ graph LR
     
     B -->|Chat| C1[🤖 ChatBot]
     B -->|Query DB| C2[📊 Text2SQL]
-    B -->|OCR Document| C3[📄 Doc Intelligence]
-    B -->|Transcribe| C4[🎙️ Speech2Text]
-    B -->|Generate Art| C5[🎨 SD WebUI]
+    B -->|Transcribe| C3[🎙️ Speech2Text]
+    B -->|Generate Art| C4[🎨 SD WebUI]
     
-    C1 -->|Need Image?| C5
-    C5 -->|Image Ready| C1
+    C1 -->|Need Image?| C4
+    C4 -->|Image Ready| C1
     
     C2 -->|Query Result| E[📊 Data Visualization]
-    C3 -->|Extracted Text| F[📝 Document Data]
-    C4 -->|Transcript| G[📝 Text Processing]
+    C3 -->|Transcript| F[📝 Text Processing]
     
-    C1 --> H[💬 Response]
-    E --> H
-    F --> H
-    G --> H
+    C1 --> G[💬 Response]
+    E --> G
+    F --> G
     
     style B fill:#6366F1,stroke:#4F46E5,color:#fff
     style C1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style C2 fill:#3B82F6,stroke:#2563EB,color:#fff
-    style C3 fill:#10B981,stroke:#059669,color:#fff
-    style C4 fill:#EF4444,stroke:#DC2626,color:#fff
-    style C5 fill:#EC4899,stroke:#DB2777,color:#fff
-    style H fill:#F59E0B,stroke:#D97706,color:#fff
+    style C3 fill:#EF4444,stroke:#DC2626,color:#fff
+    style C4 fill:#EC4899,stroke:#DB2777,color:#fff
+    style G fill:#F59E0B,stroke:#D97706,color:#fff
 ```
 
 <div align="center">
@@ -363,12 +360,20 @@ graph LR
 
 |  Service |  Mô Tả |  Port |  Status |  Docs |
 |:-----------|:---------|:--------|:----------|:--------|
+<<<<<<< HEAD
 |  **ChatBot v2.0** 🆕 | Multi-model AI + Auto-File Analysis + Stop Gen + Phase 2 Features | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.0** 🆕 | Natural Language → SQL + AI Learning + Question Gen | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
 |  **Document Intelligence v1.6** 🆕 | OCR + Gemini 2.0 AI + Batch Processing + Templates | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
 |  **RAG Services v1.0** 🆕 | Multi-LLM RAG + Vietnamese NLP + Caching + Analytics | `5004` | <img src="https://img.shields.io/badge/-Production_Ready-14B8A6?style=flat-square" /> | [ Docs](RAG%20Services/README.md) |
 |  **Speech2Text v3.6+** 🆕 | Dual-Model Fusion + Diarization + Web UI | `7860` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | Text2Image + ControlNet + LoRA + Upscaling | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
+=======
+|  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Development-6366F1?style=flat-square" /> | [ Docs](src/hub.py) |
+|  **ChatBot v2.0**  | Multi-model AI + Auto-File Analysis + Stop Gen | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
+|  **Text2SQL v2.0**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
+|  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
+|  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 
 </div>
 
@@ -861,6 +866,7 @@ graph LR
 
 </details>
 
+<<<<<<< HEAD
 <details open>
 <summary><b>📄 Document Intelligence Service (v1.6.0 🆕)</b></summary>
 <br>
@@ -1339,6 +1345,8 @@ graph LR
 
 </details>
 
+=======
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 ---
 
 <div align="center">
@@ -1437,47 +1445,22 @@ cd stable-diffusion-webui
 <tr>
 <td width="50%">
 
-### 5 **Document Intelligence** 🆕
+### 5 **Hub Gateway** 🆕 (Coming Soon)
 
 ```bash
-cd "Document Intelligence Service"
-.\setup.bat
-.\start_service.bat
+cd src
+python hub.py
 ```
 
 <div align="center">
 
- ** http://localhost:5003**
+ ** http://localhost:3000**
 
-[![Open](https://img.shields.io/badge/-Docs-10B981?style=for-the-badge)](Document%20Intelligence%20Service/README.md)
-
-</div>
-
-</td>
-<td width="50%">
-
-### 6 **RAG Services** 🆕
-
-```bash
-cd "RAG Services"
-python -m venv RAG
-.\RAG\Scripts\activate
-pip install -r requirements.txt
-# Setup .env with API keys
-python app.py
-```
-
-<div align="center">
-
- ** http://localhost:5004**
-
-[![Open](https://img.shields.io/badge/-Docs-14B8A6?style=for-the-badge)](RAG%20Services/README.md)
+[![Open](https://img.shields.io/badge/-Docs-6366F1?style=for-the-badge)](src/hub.py)
 
 </div>
 
 </td>
-</tr>
-<tr>
 <td width="50%">
 
 ### 🐳 **All Services (Docker)**
@@ -1524,6 +1507,7 @@ docker-compose up -d
      config/                  Configurations
      data/                    Knowledge base & prompts
 
+<<<<<<< HEAD
   Document Intelligence Service/ Document Intelligence (v1.6.0) 🆕
      app.py                   Main application (v1.6.0)
      requirements.txt         Dependencies
@@ -1549,6 +1533,10 @@ docker-compose up -d
 
   Speech2Text Services/        Speech2Text Service (v3.6+) 🆕
      app/                     Web UI application (Flask)
+=======
+  Speech2Text Services/        Speech2Text Service (v3.6)
+     app/                     Web UI application
+>>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
      src/                     Core processing
         transcription/        Dual-model fusion
         diarization/          Speaker separation
@@ -1563,10 +1551,13 @@ docker-compose up -d
      modules/                 Core modules
      extensions/              Extensions
 
+  src/                         Hub & Core Services
+     hub.py                   Hub Gateway (Port 3000)
+     handlers/                Request handlers
+     utils/                   Utility functions
+
   config/                      Global configurations
   docs/                        Documentation
-     archives/                Archived documentation
-        2025-11-06/           RAG Services docs summary
   examples/                    Code examples
   README.md                    This file
 ```
@@ -2457,14 +2448,14 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 graph LR
     A[🎯 v1.0<br/>Basic Services] --> B[🚀 v1.5<br/>Local Models]
     B --> C[⚡ v2.0<br/>Advanced Features]
-    C --> D[📚 v2.1<br/>RAG Services Docs]
-    D --> E[🧪 v2.2<br/>Testing + CI/CD]
-    E --> F[🎯 v3.0<br/>Enterprise Ready]
+    C --> D[🎯 v2.5<br/>Hub Gateway]
+    D --> E[🧪 v3.0<br/>Testing + CI/CD]
+    E --> F[🚀 v4.0<br/>Enterprise Ready]
     
     style A fill:#94A3B8
     style B fill:#3B82F6,color:#fff
     style C fill:#10B981,color:#fff
-    style D fill:#14B8A6,color:#fff
+    style D fill:#6366F1,color:#fff
     style E fill:#F59E0B,color:#fff
     style F fill:#EC4899,color:#fff
 ```

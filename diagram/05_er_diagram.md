@@ -1,17 +1,68 @@
 # 5️⃣ ENTITY RELATIONSHIP (ER) DIAGRAM
 
 > **Biểu đồ thực thể - liên kết hệ thống AI-Assistant**  
-> Mô tả quan hệ giữa các bảng trong database
+> Mô tả quan hệ giữa các collections trong MongoDB Atlas
 
 ---
 
-## 📋 Mô tả
+## ⚠️ NOTICE: MONGODB PRODUCTION DIAGRAM
 
-ER Diagram thể hiện:
-- **Entities (Bảng):** 21 bảng chính
-- **Relationships:** One-to-Many, Many-to-Many
-- **Cardinality:** 1:1, 1:N, M:N
-- **Attributes:** Primary Keys, Foreign Keys, Important fields
+**Current Implementation:** MongoDB Atlas M0 Free Tier (Not PostgreSQL)
+
+> **📚 For current MongoDB ER Diagram, see:**
+> 
+> **[MongoDB ER Diagram - Production Implementation](05_er_diagram_mongodb.md)**
+> 
+> Document mới bao gồm:
+> - ✅ **ROOT LEVEL:** System Architecture Overview (User, ChatBot, Storage)
+> - ✅ **LEVEL 1.1:** User Domain (users, user_settings)
+> - ✅ **LEVEL 1.2:** ChatBot Service (conversations, messages, memory, files)
+> - ✅ **LEVEL 1.3:** Message Images Structure (Embedded arrays với ImgBB)
+> - ✅ **LEVEL 1.4:** Relationship Patterns (1:1, 1:N, M:N)
+> - ✅ **LEVEL 1.5:** Metadata Structures (Embedded objects)
+> - ✅ **Query Examples:** Aggregation pipelines, lookups, sorting
+> - ✅ **Growth Projections:** Data size estimates for 1 year
+> - ✅ **Index Strategy:** 26 indexes across 6 collections
+> 
+> **Structured theo cấp bậc (ROOT → LEVEL 1) để dễ đọc và chính xác**  
+> **Last Updated:** November 10, 2025
+
+---
+
+## 📋 QUICK REFERENCE
+
+### MongoDB Collections (6 Total):
+
+| Collection | Documents | Purpose | Status |
+|-----------|-----------|---------|--------|
+| `users` | 0 | Authentication & profiles | ✅ Ready |
+| `user_settings` | 0 | User preferences | ✅ Ready |
+| `conversations` | ~50 | Chat sessions | ✅ Active |
+| `messages` | ~30 | Messages + images arrays | ✅ Active |
+| `chatbot_memory` | 0 | AI learning | ✅ Ready |
+| `uploaded_files` | 0 | File metadata | ✅ Ready |
+
+### Relationship Summary:
+
+- **1:1 Unique:** User → User Settings
+- **1:N Mandatory:** Conversation → Messages
+- **1:N Optional:** User → Conversations, Conversation → Memory/Files
+- **M:N via Arrays:** Messages ↔ Images (embedded trong messages.images[])
+- **Self-Reference:** Messages.parent_message_id (message versioning)
+
+### Cloud Integration:
+
+- **ImgBB Cloud:** Permanent image URLs (https://i.ibb.co/...)
+- **Local Storage:** Backup + fast access (Storage/Image_Gen/)
+- **MongoDB:** Metadata + references trong messages.images[] array
+
+---
+
+## 🗂️ LEGACY POSTGRESQL DESIGN (REFERENCE ONLY)
+
+> **Note:** Phần dưới đây là thiết kế PostgreSQL ban đầu với 18 tables.  
+> **Production hiện tại sử dụng MongoDB Atlas với 6 collections.**  
+> Giữ lại cho reference purposes.
 
 ---
 
@@ -21,7 +72,6 @@ ER Diagram thể hiện:
 erDiagram
     USERS ||--o{ CONVERSATIONS : has
     USERS ||--o{ DATABASE_CONNECTIONS : creates
-    USERS ||--o{ PROCESSED_DOCUMENTS : uploads
     USERS ||--o{ TRANSCRIPTIONS : creates
     USERS ||--o{ IMAGE_GENERATIONS : generates
     USERS ||--o{ USER_API_KEYS : owns
@@ -38,8 +88,6 @@ erDiagram
     DATABASE_CONNECTIONS ||--o{ DATABASE_SCHEMAS : has
     
     SQL_KNOWLEDGE_BASE }o--|| QUERY_HISTORY : matches
-    
-    PROCESSED_DOCUMENTS ||--o{ DOCUMENT_ANALYSIS : analyzed_by
     
     TRANSCRIPTIONS ||--o{ SPEAKERS : has
     
@@ -188,48 +236,6 @@ erDiagram
         timestamp created_at
     }
     
-    PROCESSED_DOCUMENTS {
-        int id PK
-        int user_id FK
-        string original_filename
-        string stored_filename
-        text file_path
-        string file_type
-        bigint file_size
-        int page_count
-        text ocr_text
-        text cleaned_text
-        string document_type
-        decimal classification_confidence
-        jsonb extracted_info
-        int processing_time_ms
-        string ocr_language
-        timestamp created_at
-    }
-    
-    DOCUMENT_ANALYSIS {
-        int id PK
-        int document_id FK
-        string analysis_type
-        text question
-        text answer
-        string target_language
-        text result
-        string model_used
-        timestamp created_at
-    }
-    
-    DOCUMENT_TEMPLATES {
-        int id PK
-        string template_name
-        string document_type
-        jsonb field_definitions
-        text ocr_instructions
-        text sample_image_url
-        boolean is_active
-        timestamp created_at
-    }
-    
     TRANSCRIPTIONS {
         int id PK
         int user_id FK
@@ -334,6 +340,232 @@ erDiagram
     }
 ```
 
+### 📸 BIỂU ĐỒ CHI TIẾT (Chia Nhỏ Để Chụp)
+> Giữ nguyên biểu đồ tổng quan ở trên. Các phần dưới đây tách nhỏ theo nhóm chức năng để dễ chụp đưa vào Word/PowerPoint.
+
+#### Hình Nhỏ 1 — Quan hệ User chính
+```mermaid
+erDiagram
+    USERS ||--o{ CONVERSATIONS : creates
+    USERS ||--o{ DATABASE_CONNECTIONS : manages
+    USERS ||--o{ QUERY_HISTORY : executes
+    USERS ||--o{ USER_API_KEYS : owns
+
+    USERS {
+        int id PK
+        string username UK
+        string email UK
+    }
+
+    CONVERSATIONS {
+        uuid id PK
+        int user_id FK
+        int total_messages
+        boolean is_archived
+    }
+
+    DATABASE_CONNECTIONS {
+        int id PK
+        int user_id FK
+        string type
+        string host
+    }
+
+    QUERY_HISTORY {
+        int id PK
+        int user_id FK
+        text sql_query
+        string status
+    }
+
+    USER_API_KEYS {
+        int id PK
+        int user_id FK
+        string key_hash UK
+        boolean is_active
+    }
+```
+
+#### Hình Nhỏ 2 — Conversation & Message Flow
+```mermaid
+erDiagram
+    CONVERSATIONS ||--|{ MESSAGES : contains
+    CONVERSATIONS ||--o{ CHATBOT_MEMORY : stores
+    CONVERSATIONS ||--o{ UPLOADED_FILES : includes
+    CONVERSATIONS ||--o{ IMAGE_GENERATIONS : links
+    MESSAGES ||--o{ MESSAGES : parent_version
+
+    CONVERSATIONS {
+        uuid id PK
+        int user_id FK
+        string model
+        int total_messages
+    }
+
+    MESSAGES {
+        int id PK
+        uuid conversation_id FK
+        string role
+        jsonb images
+        int version
+        int parent_message_id FK
+    }
+
+    CHATBOT_MEMORY {
+        int id PK
+        uuid conversation_id FK
+        text question
+        text answer
+    }
+
+    UPLOADED_FILES {
+        int id PK
+        uuid conversation_id FK
+        string original_filename
+        bigint file_size
+    }
+
+    IMAGE_GENERATIONS {
+        int id PK
+        uuid conversation_id FK
+        text prompt
+        string model
+    }
+```
+
+#### Hình Nhỏ 3 — Text2SQL Core (PostgreSQL)
+```mermaid
+erDiagram
+    USERS ||--o{ DATABASE_CONNECTIONS : manages
+    DATABASE_CONNECTIONS ||--o{ DATABASE_SCHEMAS : caches
+    USERS ||--o{ QUERY_HISTORY : executes
+    DATABASE_CONNECTIONS ||--o{ QUERY_HISTORY : uses
+    SQL_KNOWLEDGE_BASE ||--o{ QUERY_HISTORY : matches
+
+    DATABASE_CONNECTIONS {
+        int id PK
+        int user_id FK
+        string type
+        string host
+        int port
+    }
+
+    DATABASE_SCHEMAS {
+        int id PK
+        int connection_id FK
+        jsonb schema_json
+        string schema_hash UK
+    }
+
+    SQL_KNOWLEDGE_BASE {
+        int id PK
+        text question
+        text sql_query
+        string database_type
+    }
+
+    QUERY_HISTORY {
+        int id PK
+        int user_id FK
+        int connection_id FK
+        text sql_query
+        string status
+    }
+```
+
+#### Hình Nhỏ 4 — Speech2Text
+```mermaid
+erDiagram
+    TRANSCRIPTIONS ||--o{ SPEAKERS : identifies
+
+    TRANSCRIPTIONS {
+        int id PK
+        int user_id FK
+        int duration_seconds
+        string language
+    }
+
+    SPEAKERS {
+        int id PK
+        int transcription_id FK
+        string speaker_label
+        int total_duration_seconds
+    }
+```
+
+#### Hình Nhỏ 5 — Image Generation & LoRA
+```mermaid
+erDiagram
+    IMAGE_GENERATIONS ||--o{ LORA_MODELS : uses
+    CONVERSATIONS ||--o{ IMAGE_GENERATIONS : links
+
+    IMAGE_GENERATIONS {
+        int id PK
+        uuid conversation_id FK
+        text prompt
+        string model
+        jsonb lora_models
+    }
+
+    LORA_MODELS {
+        int id PK
+        string model_name UK
+        text description
+        int usage_count
+    }
+```
+
+#### Hình Nhỏ 6 — System Monitoring
+```mermaid
+erDiagram
+    SYSTEM_LOGS ||--o{ API_USAGE : context
+    API_USAGE ||--o{ SYSTEM_METRICS : aggregates
+
+    SYSTEM_LOGS {
+        int id PK
+        string service
+        string level
+        text message
+    }
+
+    API_USAGE {
+        int id PK
+        string endpoint
+        int status_code
+        int response_time_ms
+    }
+
+    SYSTEM_METRICS {
+        int id PK
+        string metric_name
+        decimal metric_value
+    }
+```
+
+#### Hình Nhỏ 7 — Knowledge Reuse Pattern
+```mermaid
+erDiagram
+    SQL_KNOWLEDGE_BASE ||--o{ QUERY_HISTORY : reused_by
+
+    SQL_KNOWLEDGE_BASE {
+        int id PK
+        text question
+        text sql_query
+        int usage_count
+    }
+
+    QUERY_HISTORY {
+        int id PK
+        int kb_match_id FK
+        text sql_query
+        int execution_time_ms
+    }
+```
+
+---
+
+> Ghi chú: Mỗi hình nhỏ tập trung đúng một nhóm chức năng, cắt gọn cột để dễ hiển thị khi chụp ảnh.
+
 ---
 
 ## 📊 Chi tiết quan hệ
@@ -344,14 +576,13 @@ erDiagram
 |:------------|:------------|:------------|:------------|
 | **USERS** | CONVERSATIONS | 1:N | User có nhiều conversations |
 | **USERS** | DATABASE_CONNECTIONS | 1:N | User lưu nhiều DB connections |
-| **USERS** | PROCESSED_DOCUMENTS | 1:N | User upload nhiều documents |
 | **USERS** | TRANSCRIPTIONS | 1:N | User tạo nhiều transcriptions |
 | **USERS** | IMAGE_GENERATIONS | 1:N | User generate nhiều images |
 | **USERS** | USER_API_KEYS | 1:N | User có nhiều API keys |
 | **USERS** | CHATBOT_MEMORY | 1:N | User có nhiều memories |
 | **USERS** | QUERY_HISTORY | 1:N | User execute nhiều queries |
 
-**Total:** 1 User → N Records (across 8 tables)
+**Total:** 1 User → N Records (across 7 tables)
 
 ---
 
@@ -379,17 +610,7 @@ erDiagram
 
 ---
 
-### 4. Document Processing Relationships (1:N)
-
-| Parent Table | Child Table | Relationship | Description |
-|:------------|:------------|:------------|:------------|
-| **PROCESSED_DOCUMENTS** | DOCUMENT_ANALYSIS | 1:N | Document có nhiều analyses (summary, Q&A, etc.) |
-
-**Total:** 1 Document → N Analyses
-
----
-
-### 5. Speech2Text Relationships (1:N)
+### 4. Speech2Text Relationships (1:N)
 
 | Parent Table | Child Table | Relationship | Description |
 |:------------|:------------|:------------|:------------|
@@ -399,7 +620,7 @@ erDiagram
 
 ---
 
-### 6. Knowledge Base Relationships (N:1)
+### 5. Knowledge Base Relationships (N:1)
 
 | Child Table | Parent Table | Relationship | Description |
 |:-----------|:------------|:------------|:------------|
@@ -409,7 +630,7 @@ erDiagram
 
 ---
 
-### 7. LoRA Usage (M:N - through JSONB)
+### 6. LoRA Usage (M:N - through JSONB)
 
 | Table A | Table B | Relationship | Description |
 |:--------|:--------|:------------|:------------|
@@ -455,13 +676,13 @@ erDiagram
 
 | Relationship Type | Count | Examples |
 |:-----------------|:------|:---------|
-| **1:N (Mandatory)** | 12 | User→Conversations, Conversation→Messages |
-| **1:N (Optional)** | 8 | Conversation→Files, Query→KB_Match |
+| **1:N (Mandatory)** | 10 | User→Conversations, Conversation→Messages |
+| **1:N (Optional)** | 7 | Conversation→Files, Query→KB_Match |
 | **1:1** | 1 | Connection→Schema (cached) |
 | **M:N** | 1 | Image_Gen↔LoRA_Models (via JSONB) |
 | **Self-referencing** | 1 | MESSAGES.parent_message_id |
 
-**Total Relationships:** 23
+**Total Relationships:** 20
 
 ---
 
@@ -497,20 +718,7 @@ WHERE t.id = ?
 GROUP BY t.id;
 ```
 
-### 4. Get user's document processing stats:
-```sql
-SELECT 
-    document_type,
-    COUNT(*) as total,
-    AVG(processing_time_ms) as avg_time,
-    SUM(file_size) as total_size
-FROM processed_documents
-WHERE user_id = ?
-GROUP BY document_type
-ORDER BY total DESC;
-```
-
-### 5. Get popular LoRA models:
+### 4. Get popular LoRA models:
 ```sql
 SELECT 
     lm.*,
@@ -532,7 +740,6 @@ LIMIT 20;
 - **Usage:** Daily active for 1 year
 - **ChatBot:** 10 conversations/user/month, 20 messages/conversation
 - **Text2SQL:** 50 queries/user/month
-- **Documents:** 5 documents/user/month
 - **Speech2Text:** 2 transcriptions/user/month
 - **Images:** 10 images/user/month
 
@@ -546,20 +753,19 @@ LIMIT 20;
 | **CHATBOT_MEMORY** | 50K | 50 MB | Slow |
 | **SQL_KNOWLEDGE_BASE** | 10K | 20 MB | Slow (reuse) |
 | **QUERY_HISTORY** | 600K | 300 MB | Fast |
-| **PROCESSED_DOCUMENTS** | 60K | 800 MB | Moderate |
 | **TRANSCRIPTIONS** | 24K | 2 GB | Moderate |
 | **IMAGE_GENERATIONS** | 120K | 4 GB | Fast |
 | **API_USAGE** | 10M | 8 GB | Very Fast |
 | **SYSTEM_LOGS** | 50M | 10 GB | Very Fast |
 
-**Total Estimated:** ~27 GB/year (excluding file storage)
+**Total Estimated:** ~25 GB/year (excluding file storage)
 
 ### File Storage (separate from DB):
-- **Uploaded files:** ~500 GB/year
+- **Uploaded files:** ~200 GB/year
 - **Images:** ~300 GB/year
 - **Transcription audio:** ~200 GB/year
 
-**Grand Total:** ~1 TB/year (DB + Files)
+**Grand Total:** ~925 GB/year (DB + Files)
 
 ---
 
