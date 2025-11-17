@@ -33,7 +33,7 @@ pyannote.audio==3.1.1
 # Accept license at: https://huggingface.co/pyannote/speaker-diarization-3.1
 
 # HuggingFace Hub (for model downloads)
-huggingface-hub==0.21.4
+huggingface-hub==1.1.4
 
 # ============= VOICE ACTIVITY DETECTION (NEW in v3.5) =============
 # Silero VAD loads from torch.hub automatically
