@@ -7,7 +7,7 @@ Flask-CORS==6.0.0  # Security fix: Updated from 4.0.0 (5 vulnerabilities patched
 
 # OCR Engine (FREE - Vietnamese support)
 paddleocr==2.7.3
-paddlepaddle==2.6.1  # CPU version (stable for Windows)
+paddlepaddle==3.2.2  # CPU version (stable for Windows)
 protobuf>=5.29.5  # Security fix: Updated from 3.20.2 (CVE patched)
 
 # Image Processing
