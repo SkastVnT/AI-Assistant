@@ -18,7 +18,7 @@ opencv-python>=4.8.1.78  # Security fix: Updated from 4.6.0.66 (CVE-2023-4863 pa
 PyMuPDF==1.23.8  # fitz - fast PDF processing
 
 # AI Integration - Gemini 2.0 Flash (FREE)
-google-generativeai==0.3.2
+google-generativeai==0.8.5
 
 # Utilities
 python-dotenv==1.0.0
