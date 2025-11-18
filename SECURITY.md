@@ -25,7 +25,7 @@ We take security seriously. If you discover a security vulnerability in AI-Assis
 
 **For critical vulnerabilities**, please report privately:
 
-1. **Email:** [Your security email here]
+1. **Email:** nguyvip007@gmail.com
 2. **GitHub Security Advisory:** 
    - Go to https://github.com/SkastVnT/AI-Assistant/security/advisories
    - Click "Report a vulnerability"
