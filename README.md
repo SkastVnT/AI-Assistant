@@ -21,11 +21,7 @@
 
 <br/>
 
-<<<<<<< HEAD
-**🌟 Nền tảng tích hợp 6 dịch vụ AI mạnh mẽ - Updated Nov 2025 🚀**
-=======
 **🌟 Nền tảng tích hợp 4 dịch vụ AI + 1 Hub Gateway 🚀**
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 
 [📖 Tính năng](#-tính-năng-nổi-bật) • [⚡ Quick Start](#-quick-start) • [🏗️ Kiến trúc](#️-system-architecture-overview) • [🛠️ Tech Stack](#️-technology-stack) • [📦 Yêu cầu](#-yêu-cầu-hệ-thống) • [📚 Tài liệu](#-tài-liệu)
 
@@ -81,31 +77,27 @@ docker-compose up -d
 <tr>
 <td width="50%">
 
-###  **ChatBot AI v2.0** 🆕
+###  **ChatBot AI**
 <img src="https://img.shields.io/badge/Multi--Model-Support-8B5CF6?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase_2-30%25_Complete-EC4899?style=flat-square" />
+<img src="https://img.shields.io/badge/Image-Generation-EC4899?style=flat-square" />
 
--  Gemini 2.0 Flash + GPT-4 + DeepSeek + Qwen
--  Auto-File Analysis (50MB)
--  Stop Generation Feature
--  Message History Versioning
--  Multimodal AI + Advanced Image Gen
--  Redis Cache + MongoDB (50% faster)
--  PDF Export with Images
+-  Gemini 2.0 Flash
+-  Stable Diffusion Integration
+-  AI Memory System
+-  Google & GitHub Search
+-  PDF Export
 
 </td>
 <td width="50%">
 
-###  **Text2SQL v2.0** 🆕
+###  **Text2SQL**
 <img src="https://img.shields.io/badge/NL-to--SQL-3B82F6?style=flat-square" />
 <img src="https://img.shields.io/badge/AI-Learning-10B981?style=flat-square" />
 
--  Vietnamese + English Support
--  5 Databases (ClickHouse/MongoDB/PostgreSQL/MySQL/SQL Server)
--  AI Learning System (Knowledge Base)
--  Auto-Generate 5 Questions
--  Deep Thinking Mode
--  Direct DB Connection
+-  Vietnamese Support
+-  Multi-Database
+-  AI Learning System
+-  Question Generation
 -  Cloud Deploy Ready
 
 </td>
@@ -113,72 +105,30 @@ docker-compose up -d
 <tr>
 <td width="50%">
 
-<<<<<<< HEAD
-###  **Document Intelligence v1.6** 🆕
-<img src="https://img.shields.io/badge/OCR-Vietnamese-10B981?style=flat-square" />
-<img src="https://img.shields.io/badge/Gemini_2.0-FREE-8B5CF6?style=flat-square" />
-
--  PaddleOCR + Gemini 2.0 Flash (FREE)
--  Batch Processing (10 files)
--  Document Templates (CMND/Hóa đơn/Hợp đồng)
--  Processing History + Search
--  Quick Actions (Clean/Extract/Format)
--  Smart Classification & Extraction
--  Multi-language Support (8+ languages)
-
-</td>
-<td width="50%">
-
-###  **Speech2Text v3.6+** 🆕
-=======
 ###  **Speech2Text**
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 <img src="https://img.shields.io/badge/Accuracy-98%25-10B981?style=flat-square" />
-<img src="https://img.shields.io/badge/Web_UI-Ready-EF4444?style=flat-square" />
+<img src="https://img.shields.io/badge/Vietnamese-Optimized-EF4444?style=flat-square" />
 
--  Dual-Model Fusion (Whisper + PhoWhisper)
--  Speaker Diarization (pyannote.audio 3.1) - 95-98%
--  Qwen2.5 Enhancement (Grammar + Punctuation)
--  Professional Web UI with Real-time Progress
--  Vietnamese Fine-tuned (98%+ accuracy)
--  Multi-format (MP3/WAV/M4A/FLAC)
--  100% Free (No paid APIs)
+-  Dual-Model Fusion
+-  Speaker Diarization
+-  Vietnamese Fine-tuned
+-  Real-time WebUI
+-  Multi-format Support
 
 </td>
 <td width="50%">
 
 ###  **Stable Diffusion**
-<img src="https://img.shields.io/badge/AUTOMATIC1111-WebUI-F59E0B?style=flat-square" />
-<img src="https://img.shields.io/badge/CUDA_12.1-Optimized-06B6D4?style=flat-square" />
+<img src="https://img.shields.io/badge/Text-to--Image-F59E0B?style=flat-square" />
+<img src="https://img.shields.io/badge/GPU-Optimized-06B6D4?style=flat-square" />
 
--  Text-to-Image + Image-to-Image
--  ControlNet (15+ models: Canny/Depth/OpenPose)
--  LoRA Mixing + VAE Enhancement
--  Real-ESRGAN 4x Upscaling
--  Inpainting + Outpainting
--  Face Restoration (CodeFormer/GFPGAN)
--  RESTful API + ChatBot Integration
+-  Text-to-Image
+-  Image-to-Image
+-  LoRA & VAE Support
+-  ControlNet
+-  API Enabled
 
 </td>
-<<<<<<< HEAD
-<td width="50%">
-
-###  **RAG Services v1.0** 🆕
-<img src="https://img.shields.io/badge/Phase_6-Complete-14B8A6?style=flat-square" />
-<img src="https://img.shields.io/badge/Vietnamese-NLP-EF4444?style=flat-square" />
-
--  Multi-LLM (OpenAI GPT-4 + DeepSeek + Gemini)
--  Vietnamese NLP (underthesea)
--  ChromaDB Vector Search
--  Redis + In-memory Caching (3-5x faster)
--  Real-time Monitoring + Health Checks
--  Circuit Breaker + Retry Logic (99.9% uptime)
--  Chat History + Content Filtering
--  1,410+ lines production-ready code
-
-</td>
-=======
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 </tr>
 </table>
 
@@ -190,70 +140,7 @@ docker-compose up -d
 
 </div>
 
-<<<<<<< HEAD
-> **AI-Assistant** là nền tảng AI tích hợp gồm **6 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready** với hơn **10,000+ dòng code** và **182KB+ documentation**.
->
-> **🆕 Cập nhật mới nhất (Nov 2025):**
-> - ✅ ChatBot v2.0 - Phase 2: Multimodal AI + Advanced Image Gen (30% complete)
-> - ✅ Text2SQL v2.0 - AI Learning + Question Generation
-> - ✅ Document Intelligence v1.6 - Batch Processing + Templates + History
-> - ✅ RAG Services v1.0 - Phase 6 Complete: Caching + Monitoring (1,410+ lines)
-> - ✅ Speech2Text v3.6+ - Web UI Ready + Dependencies Fixed
-> - ✅ Stable Diffusion - ControlNet + Upscaling integrated
-
-### 📊 **Project Statistics**
-
-<table>
-<tr>
-<td align="center" width="25%">
-
-**🎯 Services**
-
-<img src="https://img.shields.io/badge/Active-6-10B981?style=for-the-badge" />
-
-ChatBot • Text2SQL<br/>
-Doc Intelligence • RAG<br/>
-Speech2Text • SD WebUI
-
-</td>
-<td align="center" width="25%">
-
-**💻 Code**
-
-<img src="https://img.shields.io/badge/Lines-10,000+-3B82F6?style=for-the-badge" />
-
-5 AI Models<br/>
-15+ Features each<br/>
-Production Ready
-
-</td>
-<td align="center" width="25%">
-
-**📚 Docs**
-
-<img src="https://img.shields.io/badge/Size-182KB+-8B5CF6?style=for-the-badge" />
-
-Complete Guides<br/>
-API References<br/>
-Troubleshooting
-
-</td>
-<td align="center" width="25%">
-
-**🚀 Performance**
-
-<img src="https://img.shields.io/badge/Optimized-50%25+-EC4899?style=for-the-badge" />
-
-Redis Caching<br/>
-MongoDB<br/>
-Circuit Breakers
-
-</td>
-</tr>
-</table>
-=======
 > **AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 
 ### 🏗️ **System Architecture Overview**
 
@@ -360,20 +247,11 @@ graph LR
 
 |  Service |  Mô Tả |  Port |  Status |  Docs |
 |:-----------|:---------|:--------|:----------|:--------|
-<<<<<<< HEAD
-|  **ChatBot v2.0** 🆕 | Multi-model AI + Auto-File Analysis + Stop Gen + Phase 2 Features | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
-|  **Text2SQL v2.0** 🆕 | Natural Language → SQL + AI Learning + Question Gen | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
-|  **Document Intelligence v1.6** 🆕 | OCR + Gemini 2.0 AI + Batch Processing + Templates | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
-|  **RAG Services v1.0** 🆕 | Multi-LLM RAG + Vietnamese NLP + Caching + Analytics | `5004` | <img src="https://img.shields.io/badge/-Production_Ready-14B8A6?style=flat-square" /> | [ Docs](RAG%20Services/README.md) |
-|  **Speech2Text v3.6+** 🆕 | Dual-Model Fusion + Diarization + Web UI | `7860` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
-|  **Stable Diffusion** | Text2Image + ControlNet + LoRA + Upscaling | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
-=======
 |  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Development-6366F1?style=flat-square" /> | [ Docs](src/hub.py) |
 |  **ChatBot v2.0**  | Multi-model AI + Auto-File Analysis + Stop Gen | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.0**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
 |  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 
 </div>
 
@@ -477,17 +355,14 @@ graph LR
 
 | Feature | Description | Status |
 |:--------|:------------|:-------|
-|  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  v2.0 |
+|  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  |
 |  **Auto-File Analysis** | Upload & instant AI insights (50MB max) |  NEW v2.0 |
 |  **Stop Generation** | Interrupt AI mid-response & keep output |  NEW v2.0 |
-|  **Multimodal Handler** | Vision + Document + Audio analysis (Phase 2) |  NEW v2.0 |
-|  **Advanced Image Gen** | ControlNet + Upscaling + Inpainting (Phase 2) |  NEW v2.0 |
-|  **Performance** | Redis Cache + MongoDB (50% faster) |  NEW v2.0 |
-|  **Streaming** | Real-time response streaming |  NEW v2.0 |
-|  **AI Memory** | Lưu trữ conversations & images |  v2.0 |
+|  **Image Gen** | Stable Diffusion + LoRA + VAE |  |
+|  **AI Memory** | Lưu trữ conversations & images |  |
 |  **Message Versioning** | Track multiple response versions |  NEW v2.0 |
-|  **Tools** | Google Search, GitHub Search |  v2.0 |
-|  **Export** | PDF với metadata |  v2.0 |
+|  **Tools** | Google Search, GitHub Search |  |
+|  **Export** | PDF với metadata |  |
 |  **UI** | Full-screen ChatGPT-like, Dark Mode |  v2.0 |
 
 <div align="right">
@@ -597,26 +472,22 @@ graph LR
 <tr>
 <td width="50%">
 
-** ChatBot v2.0 Phase 2 (30% Complete):**
--  Multimodal AI Handler (850+ lines)
--  Advanced Image Gen (750+ lines)
--  Redis Cache + MongoDB (50% faster)
--  Streaming Responses
--  Auto-File Analysis (50MB)
+** ChatBot v2.0 Features:**
+-  Auto-File Analysis (up to 50MB)
 -  Stop Generation mid-response
--  ControlNet + Upscaling + Inpainting
+-  Message History Versioning
+-  Full-screen ChatGPT-like UI
+-  Smart Storage Management
 
 </td>
 <td width="50%">
 
 ** Text2SQL v2.0 Features:**
 -  Vietnamese + English Support
--  5 Databases (ClickHouse/MongoDB/PostgreSQL/MySQL/SQL Server)
--  AI Learning System (Knowledge Base)
--  Auto-Generate 5 Questions from Schema
+-  Multi-DB Support
+-  AI Learning System
 -  Deep Thinking Mode
--  Direct DB Connection
--  Export SQL History
+-  Deploy FREE on Render.com
 
 </td>
 </tr>
@@ -866,487 +737,6 @@ graph LR
 
 </details>
 
-<<<<<<< HEAD
-<details open>
-<summary><b>📄 Document Intelligence Service (v1.6.0 🆕)</b></summary>
-<br>
-
-> **AI-Powered Document Processing & OCR**  
-> **Gemini 2.0 Flash (FREE)** + PaddleOCR Vietnamese support 🇻🇳  
-> **NEW in v1.6:** Batch Processing + Templates + History + Quick Actions
-
-### 🔄 **Document Processing Pipeline**
-
-```mermaid
-graph TB
-    A[📄 Document Input<br/>Image/PDF] --> B[🔍 File Validation<br/>Type & Size Check]
-    B --> C{📑 Document Type?}
-    
-    C -->|Image| D1[🖼️ Image Processing<br/>JPG/PNG/BMP/TIFF]
-    C -->|PDF| D2[📑 PDF Extraction<br/>Multi-page Support]
-    
-    D1 --> E[🔄 Preprocessing<br/>Auto-rotation<br/>Orientation Fix]
-    D2 --> E
-    
-    E --> F[🔍 PaddleOCR Engine<br/>Vietnamese Optimized]
-    F --> G[📝 Text Extraction<br/>+ Bounding Boxes]
-    
-    G --> H{🧠 AI Enhancement?}
-    H -->|Yes| I1[🤖 Gemini 2.0 Flash<br/>FREE Model]
-    H -->|No| K[� OCR Results]
-    
-    I1 --> J{🎯 AI Tasks}
-    J -->|Classify| L1[� Document Type<br/>ID/Invoice/Contract]
-    J -->|Extract| L2[� Key Info<br/>Name/Date/Amount]
-    J -->|Summary| L3[� Content Summary]
-    J -->|Q&A| L4[💬 Answer Questions]
-    J -->|Translate| L5[🌐 Multi-language<br/>EN/JA/KO/ZH]
-    
-    L1 --> M[✨ Enhanced Results]
-    L2 --> M
-    L3 --> M
-    L4 --> M
-    L5 --> M
-    K --> M
-    
-    M --> N{📤 Output Format}
-    N -->|TXT| O1[� Plain Text]
-    N -->|JSON| O2[📊 Structured Data]
-    N -->|Copy| O3[📋 Clipboard]
-    
-    O1 --> P[🎉 Done!]
-    O2 --> P
-    O3 --> P
-    
-    style A fill:#6366F1,stroke:#4F46E5,color:#fff
-    style F fill:#10B981,stroke:#059669,color:#fff
-    style I1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
-    style M fill:#3B82F6,stroke:#2563EB,color:#fff
-    style P fill:#F59E0B,stroke:#D97706,color:#fff
-```
-
-### 🎯 **Features & Capabilities**
-
-```mermaid
-graph LR
-    subgraph Input Formats
-    A1[🖼️ JPG/PNG<br/>Images]
-    A2[📄 PDF<br/>Multi-page]
-    A3[�️ BMP/TIFF<br/>Documents]
-    A4[📸 WEBP<br/>Modern]
-    end
-    
-    subgraph OCR Engine
-    B1[🔍 PaddleOCR<br/>FREE]
-    B2[🇻🇳 Vietnamese<br/>Optimized]
-    B3[� Auto-rotation<br/>Fix Orientation]
-    B4[🎯 Confidence<br/>Scores]
-    end
-    
-    subgraph AI Features
-    C1[🏷️ Classification<br/>Document Type]
-    C2[🔍 Extraction<br/>Key Fields]
-    C3[📝 Summary<br/>Content]
-    C4[� Q&A<br/>Questions]
-    C5[🌐 Translation<br/>8+ Languages]
-    C6[� Insights<br/>Analysis]
-    end
-    
-    subgraph Advanced Tools
-    E1[📦 Batch<br/>Process]
-    E2[📋 Templates<br/>CMND/Invoice]
-    E3[� History<br/>Search]
-    E4[⚡ Quick<br/>Actions]
-    end
-    
-    subgraph Output Options
-    D1[📄 TXT<br/>Plain]
-    D2[📊 JSON<br/>Structured]
-    D3[📋 Copy<br/>Clipboard]
-    D4[💾 Download<br/>Files]
-    end
-    
-    A1 --> B1
-    A2 --> B1
-    A3 --> B1
-    A4 --> B1
-    
-    B1 --> B2
-    B2 --> B3
-    B3 --> B4
-    
-    B4 --> C1
-    C1 --> C2
-    C2 --> C3
-    C3 --> C4
-    C4 --> C5
-    C5 --> C6
-    
-    C6 --> E1
-    E1 --> E2
-    E2 --> E3
-    E3 --> E4
-    
-    E4 --> D1
-    E4 --> D2
-    E4 --> D3
-    E4 --> D4
-    
-    style B1 fill:#10B981,stroke:#059669,color:#fff
-    style C1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
-    style C6 fill:#EC4899,stroke:#DB2777,color:#fff
-    style E1 fill:#F59E0B,stroke:#D97706,color:#fff
-    style D2 fill:#3B82F6,color:#fff
-```
-
-#### � Tính năng chính:
-
-<table>
-<tr>
-<td width="50%">
-
-**� OCR Features (FREE)**
-- **Engine:** PaddleOCR 2.7.3
-- **Language:** Vietnamese optimized
-- **Accuracy:** 95-98%
-- **Auto-rotation:** Fix image orientation
-- **Confidence:** Score filtering
-- **Formats:** JPG, PNG, BMP, TIFF, WEBP, PDF
-- **Max size:** 20MB per file
-- **Speed:** 2-5s per page (CPU)
-
-</td>
-<td width="50%">
-
-**🧠 AI Features (Gemini 2.0 Flash FREE)**
-- **Classification:** Auto-detect document type
-  - ID Cards (CMND/CCCD)
-  - Invoices/Receipts
-  - Contracts
-  - Forms & Applications
-- **Extraction:** Smart field detection
-  - Names, dates, addresses
-  - Amounts, invoice numbers
-  - Key terms & clauses
-- **Summarization:** Content overview
-- **Q&A:** Ask questions about document
-- **Translation:** 8+ languages support
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-**⚡ Advanced Tools (v1.6.0)**
-- **Batch Processing:** Process up to 10 files
-- **Templates:** Pre-defined Vietnamese docs
-  - 📇 CMND/CCCD
-  - 🧾 Hóa đơn
-  - 📄 Hợp đồng
-  - 📋 Đơn từ
-  - 💰 Bảng lương
-- **History:** Track all processed documents
-- **Quick Actions:**
-  - Clean text (remove duplicates)
-  - Extract info (numbers, dates, emails)
-  - Format text (capitalize, line numbers)
-
-</td>
-<td width="50%">
-
-**📤 Output & Integration**
-- **Formats:**
-  - Plain TXT
-  - Structured JSON (with coordinates)
-  - Copy to clipboard
-  - Download files
-- **API:** RESTful endpoints
-  - `/api/upload` - Process document
-  - `/api/ai/classify` - Classification
-  - `/api/ai/extract` - Extraction
-  - `/api/ai/qa` - Q&A
-  - `/api/batch` - Batch processing
-- **Storage:** Auto-save to history (last 100)
-
-</td>
-</tr>
-</table>
-
-#### 🎯 Use Cases & Performance:
-
-<table>
-<tr>
-<th width="25%">Document Type</th>
-<th width="25%">OCR Accuracy</th>
-<th width="25%">Processing Speed</th>
-<th width="25%">AI Enhancement</th>
-</tr>
-<tr>
-<td>🪪 <b>CMND/CCCD</b></td>
-<td>98%+</td>
-<td>2-3s</td>
-<td>✅ Template matching + validation</td>
-</tr>
-<tr>
-<td>🧾 <b>Hóa đơn/Invoice</b></td>
-<td>95%+</td>
-<td>3-5s</td>
-<td>✅ Amount extraction + classification</td>
-</tr>
-<tr>
-<td>📝 <b>Hợp đồng/Contract</b></td>
-<td>96%+</td>
-<td>4-6s</td>
-<td>✅ Key terms + summary + Q&A</td>
-</tr>
-<tr>
-<td>📋 <b>Đơn từ/Forms</b></td>
-<td>97%+</td>
-<td>2-4s</td>
-<td>✅ Field extraction + validation</td>
-</tr>
-<tr>
-<td>📄 <b>PDF (10 pages)</b></td>
-<td>95%+</td>
-<td>20-50s</td>
-<td>✅ Multi-page analysis</td>
-</tr>
-</table>
-
-#### 🔧 Tech Stack:
-
-| Component | Technology | Why |
-|:----------|:-----------|:----|
-| **AI Model** | Gemini 2.0 Flash Exp | FREE tier (15 RPM, 1M TPD), multilingual |
-| **OCR Engine** | PaddleOCR 2.7.3 | FREE, Vietnamese support, 95%+ accuracy |
-| **Backend** | Flask 3.0.0 | Lightweight, easy integration |
-| **Frontend** | Vanilla JS | Modern responsive UI |
-| **Image Processing** | Pillow + OpenCV | Standard tools |
-| **PDF Handling** | PyMuPDF (fitz) | Fast multi-page processing |
-
-#### 🆕 What's New in v1.5.1:
-
-<table>
-<tr>
-<td width="50%">
-
-**🐛 Critical Bugfix (v1.5.1)**
-- ✅ Fixed `AssertionError` in PaddleOCR
-- ✅ Path object to string conversion
-- ✅ File existence validation
-- ✅ Upload success rate: 0% → 100%
-- ✅ All upload requests now work perfectly
-
-**📚 Enhanced Documentation**
-- Complete fix analysis
-- Quick reference guide
-- Test suite included
-- One-click restart script
-
-</td>
-<td width="50%">
-
-**� AI Enhancement (v1.5.0)**
-- 🧠 Gemini 2.0 Flash integration (FREE)
-- 🏷️ Document classification
-- 🔍 Smart information extraction
-- 📝 Content summarization
-- 💬 Q&A over documents
-- 🌐 Multi-language translation (8+)
-- � Insights generation
-
-**⚡ Advanced Features (v1.6.0)**
-- 📦 Batch processing (10 files)
-- 📋 Vietnamese templates
-- 📜 Processing history (search)
-- ⚡ Quick actions (format/extract)
-
-</td>
-</tr>
-</table>
-
-#### 🔒 Requirements:
-
-**Hardware:**
-- CPU: 2+ cores (4+ recommended)
-- RAM: 4GB (8GB recommended)
-- Storage: 2GB for models + output
-
-**Software:**
-- Python 3.10+
-- Windows/Linux/macOS
-- (Optional) Gemini API key for AI features
-
-**API Keys (Optional):**
-- **Gemini API:** FREE at https://ai.google.dev
-  - 15 requests/minute
-  - 1,000 requests/day
-  - 4M tokens/day
-- **Note:** Service works without AI key (OCR-only mode)
-
-<div align="right">
-
- **[Chi tiết đầy đủ ](Document%20Intelligence%20Service/README.md)** |  **Port**: `5003`  
- **[Setup Guide ](Document%20Intelligence%20Service/SETUP_GUIDE.md)** |  **[Compatibility Notes ](Document%20Intelligence%20Service/COMPATIBILITY_NOTES.md)**
-
-</div>
-
-</details>
-
-<details open>
-<summary><b>📚 RAG Services v1.0 🆕 DOCUMENTATION COMPLETE</b></summary>
-<br>
-
-### 🔄 **RAG Services Processing Pipeline**
-
-```mermaid
-graph TB
-    A[👤 User Question<br/>Natural Language] --> B[📄 Document Upload?]
-    B -->|Yes| C[📤 Upload Documents<br/>PDF/TXT/DOCX/MD]
-    B -->|No| D{🗄️ Use Existing?}
-    C --> E[✂️ Text Chunking<br/>Smart Overlap]
-    E --> F[🧮 Generate Embeddings<br/>Sentence Transformers]
-    F --> G[💾 Store in ChromaDB<br/>Vector Database]
-    D -->|Yes| G
-    D -->|No| H[❌ No Documents Error]
-    
-    subgraph RAG Processing
-    G --> I[🔍 Query Processing<br/>Vietnamese NLP]
-    I --> J[🎯 Semantic Search<br/>Top-K Retrieval]
-    J --> K{🤖 LLM Selection}
-    K -->|OpenAI| L1[🟣 GPT-4 Turbo]
-    K -->|DeepSeek| L2[🔵 DeepSeek Chat]
-    K -->|Gemini| L3[🔷 Gemini 2.0 Flash]
-    L1 --> M[💭 Generate Answer]
-    L2 --> M
-    L3 --> M
-    end
-    
-    subgraph Advanced Features
-    M --> N[📊 Analytics Tracking]
-    N --> O[💾 Chat History Save]
-    O --> P[⚡ Smart Caching]
-    P --> Q{🇻🇳 Vietnamese?}
-    Q -->|Yes| R[🔤 underthesea NLP<br/>Tokenization]
-    Q -->|No| S[📝 Standard Processing]
-    R --> T[✨ Enhanced Response]
-    S --> T
-    end
-    
-    T --> U[📤 Final Response]
-    U --> V{🎯 Actions?}
-    V -->|Export| W1[📥 Download Chat History]
-    V -->|Delete| W2[🗑️ Clear Conversations]
-    V -->|Monitor| W3[📊 View Analytics]
-    V -->|Continue| X[🎉 Done!]
-    W1 --> X
-    W2 --> X
-    W3 --> X
-    
-    style A fill:#14B8A6,stroke:#0D9488,color:#fff
-    style K fill:#8B5CF6,stroke:#7C3AED,color:#fff
-    style M fill:#10B981,stroke:#059669,color:#fff
-    style R fill:#EF4444,stroke:#DC2626,color:#fff
-    style U fill:#F59E0B,stroke:#D97706,color:#fff
-    style X fill:#EC4899,stroke:#DB2777,color:#fff
-```
-
-### 🎯 **RAG Architecture Flow**
-
-```mermaid
-graph LR
-    subgraph Document Processing
-    A1[📄 Upload Files]
-    A2[✂️ Chunk Text]
-    A3[🧮 Embeddings]
-    A4[💾 ChromaDB]
-    end
-    
-    subgraph Query Processing
-    B1[❓ User Query]
-    B2[🇻🇳 Vietnamese NLP]
-    B3[🔍 Vector Search]
-    B4[📊 Rank Results]
-    end
-    
-    subgraph LLM Generation
-    C1[🤖 Multi-LLM]
-    C2[💭 Context + Query]
-    C3[✨ Answer]
-    C4[📊 Analytics]
-    end
-    
-    A1 --> A2
-    A2 --> A3
-    A3 --> A4
-    B1 --> B2
-    B2 --> B3
-    A4 --> B3
-    B3 --> B4
-    B4 --> C1
-    C1 --> C2
-    C2 --> C3
-    C3 --> C4
-    
-    style A4 fill:#14B8A6,color:#fff
-    style B2 fill:#EF4444,color:#fff
-    style C1 fill:#8B5CF6,color:#fff
-    style C3 fill:#10B981,color:#fff
-```
-
-#### 💎 Tính năng chính:
-
-<table>
-<tr>
-<td width="50%">
-
-** Core Features:**
--  Multi-LLM Support (OpenAI, DeepSeek, Gemini)
--  Vietnamese NLP (underthesea)
--  Smart Document Chunking
--  Semantic Search (ChromaDB)
--  Chat History Management
--  Real-time Analytics
-
-</td>
-<td width="50%">
-
-** Advanced Features:**
--  Smart Caching System
--  Document Filters
--  Conversation Export
--  Monitoring Dashboard
--  Retry Logic & Circuit Breaker
--  RESTful API
-
-</td>
-</tr>
-</table>
-
-#### 📚 Documentation Status:
-
-| Document | Status | Size | Lines |
-|:---------|:-------|:-----|:------|
-|  **README.md** | ✅ Complete | 35 KB | 700+ |
-|  **API_DOCUMENTATION.md** | ✅ Complete | 40 KB | 850+ |
-|  **DEPLOYMENT_GUIDE.md** | ✅ Complete | 42 KB | 900+ |
-|  **DEVELOPMENT_GUIDE.md** | ✅ Complete | 38 KB | 800+ |
-|  **CHANGELOG.md** | ✅ Complete | 12 KB | 300+ |
-|  **docs/README.md** | ✅ Complete | 15 KB | 400+ |
-
-** Total Documentation:** ~182 KB • 20,000+ words • 70+ code examples • 40+ tables/diagrams
-
-<div align="right">
-
- **[Full Documentation ](RAG%20Services/README.md)** |  **Port**: `5004`  
- **[API Reference ](RAG%20Services/docs/API_DOCUMENTATION.md)** |  **[Deployment Guide ](RAG%20Services/docs/DEPLOYMENT_GUIDE.md)**
-
-</div>
-
-</details>
-
-=======
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
 ---
 
 <div align="center">
@@ -1507,43 +897,11 @@ docker-compose up -d
      config/                  Configurations
      data/                    Knowledge base & prompts
 
-<<<<<<< HEAD
-  Document Intelligence Service/ Document Intelligence (v1.6.0) 🆕
-     app.py                   Main application (v1.6.0)
-     requirements.txt         Dependencies
-     src/                     OCR + AI processing
-        ai/                   Gemini integration
-        ocr/                  PaddleOCR engine
-        utils/                Advanced features
-     config/                  Configurations
-     output/                  Processed documents
-     docs/                    Feature documentation
-
-  RAG Services/                RAG Service (v1.0) 
-     README.md                Main documentation (35 KB)
-     CHANGELOG.md             Version history (12 KB)
-     app/                     Application code
-     docs/                    Documentation suite (95 KB)
-        API_DOCUMENTATION.md  API reference (40 KB)
-        DEPLOYMENT_GUIDE.md   Deployment guide (42 KB)
-        DEVELOPMENT_GUIDE.md  Development guide (38 KB)
-        README.md             Docs navigation (15 KB)
-     data/                    Vector database
-     config/                  Configurations
-
-  Speech2Text Services/        Speech2Text Service (v3.6+) 🆕
-     app/                     Web UI application (Flask)
-=======
   Speech2Text Services/        Speech2Text Service (v3.6)
      app/                     Web UI application
->>>>>>> dec14d08e39a7118774779afa33912f49a73c0de
      src/                     Core processing
-        transcription/        Dual-model fusion
-        diarization/          Speaker separation
-        enhancement/          Qwen text refinement
-     scripts/                 Setup & fix scripts
-     docs/                    Complete documentation
-     requirements.txt         Fixed dependencies
+     scripts/                 Setup scripts
+     requirements.txt         Dependencies
 
   stable-diffusion-webui/      Stable Diffusion WebUI
      webui.bat                Launch script
@@ -1639,15 +997,10 @@ graph TB
 
 **🔧 Backend Stack**
 - **Python:** 3.10+ with type hints
-- **Flask:** 3.0 web framework (all services)
-- **PyTorch:** 2.0+ with CUDA 12.1 support
-- **Transformers:** 4.36+ HuggingFace models
-- **sentence-transformers:** Text embeddings (RAG)
-- **google-generativeai:** Gemini SDK
-- **openai:** OpenAI GPT-4 SDK
-- **pymongo:** MongoDB driver
-- **clickhouse-driver:** ClickHouse driver
-- **redis-py:** Redis client (caching)
+- **Flask:** 3.0 web framework
+- **PyTorch:** 2.0+ for ML models
+- **Transformers:** 4.36+ model library
+- **SQLAlchemy:** ORM for databases
 - **Flask-CORS:** Cross-origin requests
 - **python-dotenv:** Environment management
 
@@ -1669,33 +1022,25 @@ graph TB
 <td width="50%">
 
 **🤖 AI Models & APIs**
-- **Gemini 2.0 Flash:** Primary LLM (FREE) - Used in 5/6 services
+- **Gemini 2.0 Flash:** Primary LLM (FREE)
 - **GPT-4 Turbo:** Advanced reasoning
-- **DeepSeek:** Cost-effective LLM ($0.14/M tokens)
-- **Whisper large-v3:** Speech-to-text (99 languages) - 95%+ accuracy
-- **PhoWhisper-large:** Vietnamese ASR - 98%+ accuracy
-- **Stable Diffusion XL:** Text/Image-to-Image generation
-- **ControlNet:** 15+ models (Canny/Depth/OpenPose)
-- **Qwen2.5-1.5B:** Local LLM + Text enhancement
-- **pyannote.audio 3.1:** Speaker diarization - 95-98% accuracy
-- **PaddleOCR:** Vietnamese OCR - 95-98% accuracy
-- **ChromaDB:** Vector database for RAG
-- **underthesea:** Vietnamese NLP toolkit
+- **Whisper large-v3:** Speech-to-text (99 languages)
+- **PhoWhisper-large:** Vietnamese ASR
+- **Stable Diffusion:** Text/Image-to-Image
+- **Qwen2.5-1.5B:** Local LLM
+- **pyannote.audio:** Speaker diarization
 
 </td>
 <td width="50%">
 
 **💾 Data & Storage**
-- **SQLite:** Lightweight embedded DB (ChatBot conversations)
-- **MongoDB:** NoSQL document store (Text2SQL + RAG)
-- **MongoDB Atlas:** Cloud MongoDB support
-- **ClickHouse:** OLAP analytics database (Text2SQL)
-- **PostgreSQL:** Relational DB (Text2SQL)
-- **MySQL:** SQL database (Text2SQL)
-- **SQL Server:** Microsoft SQL (Text2SQL)
-- **ChromaDB:** Vector database (RAG Services)
-- **Redis:** Caching layer (ChatBot + RAG - 3-5x faster)
-- **File Storage:** Local filesystem (Images + Models)
+- **SQLite:** Lightweight embedded DB
+- **ClickHouse:** OLAP for analytics
+- **MongoDB:** NoSQL document store
+- **PostgreSQL:** Relational DB
+- **MySQL:** Popular SQL database
+- **File Storage:** Local + Cloud support
+- **Redis:** Caching (optional)
 
 </td>
 </tr>
@@ -2605,8 +1950,6 @@ Have an idea? Share it with us!
 ![Status](https://img.shields.io/badge/Status-Production_Ready-10B981?style=flat-square)
 ![Maintained](https://img.shields.io/badge/Maintained-Yes-10B981?style=flat-square)
 ![Version](https://img.shields.io/badge/Version-2.0.0-3B82F6?style=flat-square)
-![Services](https://img.shields.io/badge/Services-6_Active-8B5CF6?style=flat-square)
-![Updated](https://img.shields.io/badge/Updated-Nov_2025-14B8A6?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-EC4899?style=flat-square)
 
 **Made with 💜 by [SkastVnT](https://github.com/SkastVnT) and [Contributors](https://github.com/SkastVnT/AI-Assistant/graphs/contributors)**
