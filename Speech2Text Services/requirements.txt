@@ -22,7 +22,7 @@ faster-whisper==1.0.3
 # PhoWhisper (Vietnamese ASR) + Transformers
 transformers==4.40.0
 accelerate==0.27.2
-sentencepiece==0.2.0
+sentencepiece==0.2.1
 
 # Qwen2.5-1.5B-Instruct (Smart Fusion LLM)
 # Uses transformers package above
