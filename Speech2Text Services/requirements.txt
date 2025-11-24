@@ -71,7 +71,7 @@ eventlet==0.35.2
 
 # ============= DEVELOPMENT =============
 # Code formatting
-black==24.4.2
+black==25.11.0
 
 # Linting
 flake8==7.0.0
