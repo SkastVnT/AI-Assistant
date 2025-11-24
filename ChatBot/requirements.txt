@@ -33,7 +33,7 @@ scikit-learn>=1.3.0
 
 # ============= LOCAL MODEL SUPPORT =============
 # PyTorch (CUDA 11.8) - Install from https://pytorch.org/get-started/locally/
-numpy<2.0.0  # Required for PyTorch compatibility
+numpy<3.0.0  # Required for PyTorch compatibility
 torch>=2.0.0
 torchaudio>=2.0.0
 transformers>=4.37.0
