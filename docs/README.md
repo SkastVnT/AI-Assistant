@@ -26,23 +26,32 @@ Welcome to AI Assistant documentation center!
 
 ```
 docs/
-├── README.md                    # This file - Documentation index
-├── GETTING_STARTED.md           # Complete setup guide
-├── QUICK_REFERENCE.md           # Quick reference card
-├── API_DOCUMENTATION.md         # API reference
-├── PROJECT_STRUCTURE.md         # Architecture & structure
-├── DATABASE_CURRENT_STATE.md    # Database design
+├── README.md                      # This file - Documentation index
+├── GETTING_STARTED.md             # Complete setup guide
+├── QUICK_REFERENCE.md             # Quick reference card
+├── API_DOCUMENTATION.md           # API reference
+├── PROJECT_STRUCTURE.md           # Architecture & structure
+├── DATABASE_CURRENT_STATE.md      # Database design
+├── DOCUMENTATION_GUIDELINES.md    # Documentation standards
 │
-├── archives/                    # Historical documentation
-│   └── 2025-11-07/             # Nov 7, 2025 archive
-│       ├── README.md           # Archive index
-│       ├── SECURITY_*.md       # Security fixes
-│       └── PHASE2_*.md         # Development sessions
+├── archives/                      # Historical documentation
+│   └── 2025-11/                  # November 2025 archive
+│       ├── 2025-11-06/           # Nov 6 sessions
+│       ├── 2025-11-07/           # Nov 7 sessions
+│       ├── 2025-11-09/           # Nov 9 sessions
+│       ├── 2025-11-10/           # Nov 10 sessions
+│       ├── 2025-11-legacy/       # Legacy docs & commits
+│       └── *.md                  # Monthly updates
 │
-├── guides/                      # Detailed guides
-├── setup/                       # Setup instructions
-├── chart_guide/                 # Chart & visualization guides
-└── 04/                         # Legacy documentation
+├── guides/                        # Detailed guides
+│   ├── BUILD_GUIDE.md            # Build & deployment guide
+│   ├── IMAGE_GENERATION_GUIDE.md # Image generation guide
+│   ├── QUICK_START_IMAGE_GEN.md  # Quick start for images
+│   └── GOOGLE_DRIVE_UPLOAD_GUIDE.md # Upload files to Google Drive
+│
+└── chart_guide/                   # Chart & visualization guides
+    ├── FLOWCHART_STANDARDS.md    # Flowchart standards
+    └── examples/                 # Chart examples
 ```
 
 ## 🎯 Quick Navigation
@@ -75,13 +84,22 @@ docs/
 
 ## 📦 Recent Updates (Nov 2025)
 
-### ✅ Latest Archive: [November 7, 2025](archives/2025-11-07/)
+### ✅ Latest Changes: November 2025
+
+**Structure Reorganization (Nov 25, 2025):**
+- 🗂️ Consolidated all November archives into `archives/2025-11/`
+- 🧹 Cleaned up legacy documentation folders
+- 📝 Merged `guide docs/` into `docs/guides/`
+- ✅ Simplified documentation structure
+
+**Development Archive:**
 - 🔒 Security fixes (12 vulnerabilities patched)
 - 🔐 MongoDB credential leak remediation
 - 🚀 ChatBot v2.0 Phase 2 development
 - 📚 Historical documentation archived
 
 ### 🆕 Active Development
+
 - **ChatBot v2.0** - Phase 2: Multimodal AI + Advanced Image Gen (30% complete)
 - **Text2SQL v2.0** - AI Learning + Question Generation
 - **Document Intelligence v1.6** - Batch Processing + Templates
@@ -109,4 +127,4 @@ When adding new documentation:
 
 ---
 
-**Last Updated**: October 28, 2025 | **Version**: 2.0.0
+**Last Updated**: November 25, 2025 | **Version**: 2.1.0

@@ -1,10 +1,54 @@
-# ChatBot Service - AI Assistant v2.0
+# ChatBot Service - AI Assistant v2.5
 
-Advanced multi-model intelligent chatbot with local LLM support, image generation, auto-file analysis, and modern UX inspired by ChatGPT.
+Advanced multi-model intelligent chatbot with **Deep Thinking (o1-style)**, ChatGPT-inspired UI, file analysis, and modern features.
 
-## 🌟 Features
+<details>
+<summary><strong>🌟 Latest Updates (v2.5)</strong></summary>
+
+### 🧠 Deep Thinking Feature (OpenAI o1-style)
+
+- **Visible Thinking Process**: See AI's reasoning steps in real-time
+- **Collapsible Sections**: Click to expand/collapse thinking details
+- **Auto-enabled for Files**: Automatically activates when analyzing uploaded documents
+- **Smart Analysis**: 6-step reasoning process for comprehensive responses
+  1. Reading and parsing files
+  2. Extracting key information
+  3. Identifying main topics
+  4. Analyzing content depth
+  5. Cross-referencing information
+  6. Formulating comprehensive response
+
+### 💬 ChatGPT-Style Message Actions
+
+- **Action Buttons**: Copy, Like/Dislike, Regenerate, Edit, More options
+- **Hover-to-Show**: Smooth animations for clean interface
+- **Message Versioning**: Navigate between multiple response versions (◀ 1/2 ▶)
+- **Edit & Regenerate**: Click edit → modify message → get new response
+- **Copy to Clipboard**: One-click copy with visual confirmation
+
+### 📎 Enhanced File Upload (50MB Support)
+
+- **Upload Button**: Click "📎 Upload Files" to select documents
+- **Drag & Drop**: Paste files directly (Ctrl+V)
+- **Large File Support**: Up to 50MB per file
+- **Smart Context**: Files automatically included in conversation
+- **Chat-based Errors**: No more annoying popups - errors shown in chat
+- **User-initiated Analysis**: Upload → Ask questions → Get insights
+
+### 📝 Markdown Code Blocks
+
+- **Proper Formatting**: AI uses ` ` `language` syntax for code
+- **Syntax Highlighting**: Python, JavaScript, SQL, etc.
+- **Inline Code**: Variables and functions with \`backticks\`
+- **All Modes Supported**: Works in Casual, Programming, Lifestyle, Psychological modes
+
+</details>
+
+<details>
+<summary><strong>🌟 Core Features</strong></summary>
 
 ### 🤖 AI Capabilities
+
 - **Multi-Model Support**: OpenAI GPT-4, Google Gemini, DeepSeek, Local Qwen models
 - **Image Generation**: Integration with Stable Diffusion WebUI API
   - Text-to-Image (txt2img)
@@ -17,19 +61,26 @@ Advanced multi-model intelligent chatbot with local LLM support, image generatio
   - Auto-generated insights without user prompting
 
 ### 💾 Data Management
+
 - **Memory System**: Persistent conversation history with image storage
 - **Message Versioning**: Track multiple versions of AI responses
 - **Session-based Files**: Files attached per conversation
 - **Smart Storage**: Progress bar with auto-cleanup (keeps 5 recent chats)
 
 ### ⚡ User Experience
+
 - **Stop Generation**: Interrupt AI mid-response and keep partial output
 - **Full-Screen Layout**: ChatGPT-like interface utilizing entire viewport
 - **Message Editing**: Edit and regenerate responses
 - **Export**: PDF export for conversations with images
 - **Modern UI**: Responsive design with dark mode support
 
-## 📋 Requirements
+</details>
+
+<details>
+<summary><strong>📋 Requirements & Quick Start</strong></summary>
+
+## Requirements
 
 - Python 3.10.6
 - NVIDIA GPU with CUDA 11.8 (for local models)
@@ -79,9 +130,12 @@ copy .env.example .env
 python app.py
 ```
 
-Access at: http://localhost:5000
+Access at: <http://localhost:5000>
 
-## 🎨 Image Generation Setup
+</details>
+
+<details>
+<summary><strong>🎨 Image Generation Setup</strong></summary>
 
 1. Start Stable Diffusion WebUI with API enabled:
    ```bash
@@ -96,7 +150,10 @@ Access at: http://localhost:5000
    - **VAE**: Use custom VAE models
    - **Advanced Settings**: Steps, CFG Scale, Sampling methods
 
-## 📁 Project Structure
+</details>
+
+<details>
+<summary><strong>📁 Project Structure</strong></summary>
 
 ```
 ChatBot/
@@ -132,7 +189,12 @@ ChatBot/
     └── memory/                    # Conversation memories
 ```
 
-## 🔧 Configuration
+</details>
+
+<details>
+<summary><strong>🔧 Configuration & Setup</strong></summary>
+
+## Configuration
 
 ### Environment Variables (.env)
 
@@ -155,7 +217,12 @@ FLASK_DEBUG=False
 - **Gemini**: Fast and capable, requires API key
 - **Qwen (Local)**: Free, runs locally, requires GPU
 
-## 📖 Usage Guide
+</details>
+
+<details>
+<summary><strong>📖 Usage Guide</strong></summary>
+
+## Usage Guide
 
 ### Basic Chat
 
@@ -165,21 +232,36 @@ FLASK_DEBUG=False
 4. Click Send or press Enter
 5. **NEW:** Click "⏹️ Dừng lại" to stop AI mid-generation
 
-### File Upload & Auto-Analysis
+### File Upload & Analysis
 
-1. Click "📎 Upload Files" or paste (Ctrl+V)
-2. **Files appear directly in chat** (not in input area)
-3. **AI automatically analyzes** - no need to type anything!
-4. Receive detailed analysis:
-   - Content summary
-   - Issue detection
-   - Recommendations
-   - Q&A responses
+1. Click "📎 Upload Files" button
+2. Select files (up to 50MB each)
+3. Files appear in chat with confirmation message
+4. **Type your question** about the file
+5. **Deep Thinking auto-enables** for better analysis
+6. See thinking process → Get comprehensive answer
 
 **Supported files:**
+
 - Code: `.py`, `.js`, `.html`, `.css`, `.json`
-- Documents: `.pdf`, `.doc`, `.docx`, `.txt`
+- Documents: `.pdf`, `.doc`, `.docx`, `.txt`, `.xlsx`, `.csv`
 - Images: `.jpg`, `.png`, `.gif`, `.webp`
+
+**Example workflow:**
+```
+1. Upload: contract.pdf (127KB)
+   ✅ Đã tải lên 1 file. Bạn có thể hỏi tôi về nội dung file bây giờ!
+
+2. You ask: "Tóm tắt file này"
+   
+3. AI shows thinking:
+   💡 Thought process ▼
+   1. Đọc và phân tích file đính kèm...
+   2. Trích xuất thông tin và cấu trúc chính...
+   3. Xác định các chủ đề và nội dung chính...
+   
+4. AI provides detailed summary
+```
 
 ### Image Generation
 
@@ -261,30 +343,55 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 - [Storage Management](docs/NEW_FEATURES_v2.0.md#73-storage-management)
 - [Performance Optimizations](docs/NEW_FEATURES_v2.0.md#8-performance-optimizations)
 
-## 🔄 Updates
+</details>
+
+<details>
+<summary><strong>🔄 Changelog</strong></summary>
+
+### Version 2.5.0 (November 25, 2025) 🧠
+
+**Deep Thinking & UX Enhancements**
+
+- ✨ **Deep Thinking (o1-style)**: Visible reasoning process with collapsible sections
+- ✨ **ChatGPT-Style Actions**: Copy, Like/Dislike, Regenerate, Edit buttons with hover effects
+- ✨ **Message Versioning**: Navigate response versions with ◀ 1/2 ▶ controls
+- ✨ **Enhanced File Upload**: 50MB support, chat-based error messages
+- ✨ **Smart File Analysis**: Auto-enable Deep Thinking for uploaded documents
+- ✨ **Markdown Code Blocks**: Proper ` ` `language` syntax in all modes
+- 🎨 **Improved UI**: Smooth animations, better visual feedback
+- 🐛 **Fixed**: File upload button, event listeners after refresh, version navigation
 
 ### Version 2.0.0 (November 2025) 🎉
+
+**Major UI/UX Overhaul**
+
 - ✨ **Full-screen ChatGPT-like layout** - Utilizes entire viewport
-- ✨ **Auto-file analysis** - Upload and get instant AI insights
 - ✨ **Stop generation** - Interrupt AI and keep partial responses
-- ✨ **Message versioning** - Track multiple response versions
+- ✨ **Message editing** - Edit and regenerate AI responses
 - ✨ **Fancy storage display** - Progress bar with smart cleanup
 - 🎨 **Enhanced UI/UX** - Better visibility, GitHub badge, centered header
 - 🐛 **Fixed timestamp bug** - Chat items no longer "jump" when switching
 - 🔧 **Modular architecture** - ES6 modules for better maintainability
 
 ### Version 1.8.0
+
 - Added img2img support with LoRA and VAE
 - Improved UI with Tailwind CSS
 - Enhanced memory system with images
 - Added PDF export functionality
 
 ### Version 1.5.0
+
 - Added local Qwen model support
 - Implemented conversation memory
 - Added image generation tool
 
-## 🆕 What's New in v2.0?
+</details>
+
+<details>
+<summary><strong>🆕 What's New Highlights</strong></summary>
+
+## What's New in v2.0?
 
 ### Key Highlights
 
@@ -315,15 +422,16 @@ New: Progress bar with colors + One-click cleanup
 - Smooth animations
 - Dark mode perfected
 
-## 📝 License
+</details>
+
+## 📝 License & Contributing
 
 Part of AI-Assistant project. See root LICENSE file.
-
-## 🤝 Contributing
 
 This is a sub-service of AI-Assistant project. For contributions, please refer to the main project repository.
 
 Interested in specific features? Check out:
+
 - [CHANGELOG.md](CHANGELOG.md) - Full version history
 - [NEW_FEATURES_v2.0.md](docs/NEW_FEATURES_v2.0.md) - Deep dive into v2.0
 - [QUICK_START.md](docs/QUICK_START.md) - 5-minute setup guide
@@ -331,6 +439,7 @@ Interested in specific features? Check out:
 ## 📧 Support
 
 For issues and questions:
+
 - Create an issue in [main repository](https://github.com/SkastVnT/AI-Assistant)
 - Check [Troubleshooting](docs/NEW_FEATURES_v2.0.md#111-common-issues)
 - Review [Quick Start Guide](docs/QUICK_START.md)
@@ -346,5 +455,4 @@ For issues and questions:
 ---
 
 **Built with ❤️ by [@SkastVnT](https://github.com/SkastVnT)**
-
 **Star ⭐ this repo if you find it helpful!**

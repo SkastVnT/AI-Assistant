@@ -6,9 +6,12 @@
 export class ChatSession {
     constructor(id) {
         this.id = id;
-        this.title = 'Cuộc trò chuyện mới';
+        // Get default title based on current language
+        const lang = localStorage.getItem('chatbot_language') || 'vi';
+        this.title = lang === 'vi' ? 'Cuộc trò chuyện mới' : 'New conversation';
         this.messages = [];
         this.attachedFiles = []; // Store uploaded files for this chat session
+        this.messageVersions = {}; // Store message edit versions: { messageId: [{content, response, timestamp}] }
         this.createdAt = new Date();
         this.updatedAt = new Date();
     }
@@ -284,20 +287,22 @@ export class ChatManager {
      * Delete chat session
      */
     deleteChat(chatId) {
-        if (Object.keys(this.chatSessions).length === 1) {
-            return { success: false, message: 'Không thể xóa cuộc trò chuyện cuối cùng!' };
-        }
-        
         delete this.chatSessions[chatId];
         
-        // If deleting current chat, switch to another
+        // If deleting current chat, switch to another or create new
         if (chatId === this.currentChatId) {
             const remainingIds = Object.keys(this.chatSessions);
             if (remainingIds.length > 0) {
                 this.currentChatId = remainingIds[0];
             } else {
+                // No chats left, create a new one
                 this.newChat();
             }
+        }
+        
+        // If all chats were deleted, ensure we have at least one
+        if (Object.keys(this.chatSessions).length === 0) {
+            this.newChat();
         }
         
         return { success: true };
@@ -308,17 +313,24 @@ export class ChatManager {
      */
     async generateTitle(firstMessage) {
         try {
+            // Get current language from localStorage
+            const currentLang = localStorage.getItem('chatbot_language') || 'vi';
+            const languageInstruction = currentLang === 'en' 
+                ? 'Generate a concise 3-5 word English title for this conversation. Only return the title, nothing else:'
+                : 'Generate a concise 3-5 word Vietnamese title for this conversation. Only return the title, nothing else:';
+            
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    message: `Generate a concise 3-5 word Vietnamese title for this conversation. Only return the title, nothing else: "${firstMessage.substring(0, 100)}"`,
+                    message: `${languageInstruction} "${firstMessage.substring(0, 100)}"`,
                     model: 'gemini',
                     context: 'casual',
                     tools: [],
-                    deep_thinking: false
+                    deep_thinking: false,
+                    language: currentLang
                 })
             });
             
@@ -348,6 +360,39 @@ export class ChatManager {
      */
     getCurrentSession() {
         return this.chatSessions[this.currentChatId];
+    }
+    
+    /**
+     * Save message version to current session
+     */
+    saveMessageVersion(messageId, userContent, assistantResponse, timestamp) {
+        const session = this.getCurrentSession();
+        if (!session) return;
+        
+        if (!session.messageVersions) {
+            session.messageVersions = {};
+        }
+        
+        if (!session.messageVersions[messageId]) {
+            session.messageVersions[messageId] = [];
+        }
+        
+        session.messageVersions[messageId].push({
+            userContent: userContent,
+            assistantResponse: assistantResponse,
+            timestamp: timestamp
+        });
+        
+        this.saveSessions();
+    }
+    
+    /**
+     * Get message versions from current session
+     */
+    getMessageVersions(messageId) {
+        const session = this.getCurrentSession();
+        if (!session || !session.messageVersions) return [];
+        return session.messageVersions[messageId] || [];
     }
 
     /**

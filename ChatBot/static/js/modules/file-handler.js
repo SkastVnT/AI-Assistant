@@ -21,9 +21,15 @@ export class FileHandler {
         console.log('[FileHandler] Setting up file input listener');
         console.log('[FileHandler] Element:', fileInput);
         console.log('[FileHandler] Element ID:', fileInput.id);
+        console.log('[FileHandler] Element tag:', fileInput.tagName);
+        console.log('[FileHandler] Element type:', fileInput.type);
         
-        // Use direct property assignment to ensure it works
-        fileInput.onchange = function(event) {
+        // Remove any existing listeners first
+        const oldInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(oldInput, fileInput);
+        
+        // Add new listener with addEventListener (more reliable)
+        oldInput.addEventListener('change', function(event) {
             console.log('[FileHandler] ===== FILE INPUT CHANGED =====');
             console.log('[FileHandler] Event:', event);
             console.log('[FileHandler] Target:', event.target);
@@ -43,9 +49,12 @@ export class FileHandler {
             } else {
                 console.warn('[FileHandler] No files selected');
             }
-        };
+        });
         
         console.log('[FileHandler] File input listener setup complete');
+        
+        // Return the new element reference
+        return oldInput;
     }
 
     /**
@@ -222,6 +231,8 @@ export class FileHandler {
      * Process and save file to current session
      */
     async processFile(file) {
+        console.log('[FileHandler] Processing file:', file.name, 'Size:', this.formatFileSize(file.size), 'Type:', file.type);
+        
         // Validate file size - max 50MB
         const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
         if (file.size > MAX_FILE_SIZE) {
@@ -235,28 +246,47 @@ export class FileHandler {
             uploadedAt: new Date().toISOString()
         };
 
-        // Read file content based on type
-        if (file.type.startsWith('image/')) {
-            // For images, compress heavily to reduce storage
-            const base64 = await this.readFileAsBase64(file);
-            fileData.content = await this.compressImage(base64, 0.3); // Aggressive compression
-            fileData.preview = fileData.content;
-        } else if (file.type.startsWith('text/') || 
-                   file.type === 'application/json' ||
-                   file.name.endsWith('.py') || 
-                   file.name.endsWith('.js') || 
-                   file.name.endsWith('.html') || 
-                   file.name.endsWith('.css')) {
-            // For text files, store as text
-            fileData.content = await this.readFileAsText(file);
-        } else if (file.type === 'application/pdf' || 
-                   file.type === 'application/msword' || 
-                   file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            // For documents, store base64 and let backend handle
-            fileData.content = await this.readFileAsBase64(file);
+        try {
+            // Read file content based on type
+            if (file.type.startsWith('image/')) {
+                console.log('[FileHandler] Processing as image...');
+                // For images, compress heavily to reduce storage
+                const base64 = await this.readFileAsBase64(file);
+                console.log('[FileHandler] Image read, compressing...');
+                fileData.content = await this.compressImage(base64, 0.3); // Aggressive compression
+                fileData.preview = fileData.content;
+                console.log('[FileHandler] Image compressed successfully');
+            } else if (file.type.startsWith('text/') || 
+                       file.type === 'application/json' ||
+                       file.name.endsWith('.py') || 
+                       file.name.endsWith('.js') || 
+                       file.name.endsWith('.html') || 
+                       file.name.endsWith('.css')) {
+                console.log('[FileHandler] Processing as text file...');
+                // For text files, store as text
+                fileData.content = await this.readFileAsText(file);
+                console.log('[FileHandler] Text file read successfully');
+            } else if (file.type === 'application/pdf' || 
+                       file.type === 'application/msword' || 
+                       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                       file.name.endsWith('.xlsx') ||
+                       file.name.endsWith('.csv')) {
+                console.log('[FileHandler] Processing as document...');
+                // For documents, store base64 and let backend handle
+                fileData.content = await this.readFileAsBase64(file);
+                console.log('[FileHandler] Document read successfully');
+            } else {
+                console.log('[FileHandler] Unknown file type, reading as base64...');
+                // Unknown types, try base64
+                fileData.content = await this.readFileAsBase64(file);
+            }
+            
+            console.log('[FileHandler] File processed successfully:', file.name);
+            return fileData;
+        } catch (error) {
+            console.error('[FileHandler] Error processing file:', error);
+            throw new Error(`Không thể đọc file: ${error.message}`);
         }
-
-        return fileData;
     }
 
     /**

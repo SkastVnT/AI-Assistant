@@ -535,6 +535,38 @@ body.dark-mode .dark-mode-toggle {
     transform: translateY(-2px);
 }
 
+/* Language toggle button */
+.lang-toggle-btn {
+    background: transparent;
+    border: 2px solid #667eea;
+    color: #667eea;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-width: 70px;
+}
+
+body.dark-mode .lang-toggle-btn {
+    border-color: #9d4edd;
+    color: #9d4edd;
+}
+
+.lang-toggle-btn:hover {
+    background: rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .lang-toggle-btn:hover {
+    background: rgba(157, 78, 221, 0.2);
+    box-shadow: 0 4px 12px rgba(157, 78, 221, 0.35);
+}
+
+
 /* Download button */
 .download-btn {
     background: transparent;
@@ -614,6 +646,12 @@ body.dark-mode .chat-container {
     animation: fadeIn 0.3s;
     width: 100%;
     padding: 0 20px;
+    position: relative;
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
 }
 
 @keyframes fadeIn {
@@ -642,6 +680,307 @@ body.dark-mode .chat-container {
     border-radius: 12px;
     position: relative;
     line-height: 1.6;
+}
+
+/* Message Actions - ChatGPT Style */
+.message-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+.message-action-btn {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #666;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+}
+
+body.dark-mode .message-action-btn {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #aaa;
+}
+
+.message-action-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #333;
+}
+
+body.dark-mode .message-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.message-action-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+body.dark-mode .message-action-btn.active {
+    background: #ffd700;
+    border-color: #ffd700;
+    color: #1a1a2e;
+}
+
+.message-action-btn.copied {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+/* Message Options Menu */
+.message-options-menu {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    min-width: 180px;
+    z-index: 1000;
+    animation: slideDown 0.2s ease;
+}
+
+body.dark-mode .message-options-menu {
+    background: #2a2a2a;
+    border-color: #444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-options-menu .option-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: #333;
+    cursor: pointer;
+    border-radius: 6px;
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+
+body.dark-mode .message-options-menu .option-item {
+    color: #e0e0e0;
+}
+
+.message-options-menu .option-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+body.dark-mode .message-options-menu .option-item:hover {
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.message-options-menu .option-item span {
+    font-size: 16px;
+}
+
+/* Copy Notification */
+.copy-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+    z-index: 10000;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Thinking Process Styles */
+.thinking-container {
+    background: rgba(102, 126, 234, 0.05);
+    border-left: 3px solid #667eea;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    animation: thinkingPulse 2s ease-in-out infinite;
+}
+
+body.dark-mode .thinking-container {
+    background: rgba(100, 181, 246, 0.08);
+    border-left-color: #64b5f6;
+}
+
+@keyframes thinkingPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+.thinking-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: #667eea;
+    transition: all 0.2s ease;
+}
+
+body.dark-mode .thinking-header {
+    color: #64b5f6;
+}
+
+.thinking-header:hover {
+    color: #5568d3;
+}
+
+body.dark-mode .thinking-header:hover {
+    color: #90caf9;
+}
+
+.thinking-icon {
+    font-size: 16px;
+    animation: spin 2s linear infinite;
+}
+
+.thinking-header.collapsed .thinking-icon {
+    animation: none;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.thinking-toggle {
+    margin-left: auto;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+}
+
+.thinking-header.collapsed .thinking-toggle {
+    transform: rotate(-90deg);
+}
+
+.thinking-content {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(102, 126, 234, 0.2);
+    line-height: 1.6;
+    color: #555;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+
+body.dark-mode .thinking-content {
+    border-top-color: rgba(100, 181, 246, 0.2);
+    color: #ccc;
+}
+
+.thinking-content.collapsed {
+    max-height: 0;
+    margin-top: 0;
+    padding-top: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.thinking-step {
+    margin-bottom: 8px;
+    padding-left: 16px;
+    position: relative;
+}
+
+.thinking-step::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #667eea;
+    font-weight: bold;
+}
+
+body.dark-mode .thinking-step::before {
+    color: #64b5f6;
+}
+
+/* Thought Summary Section */
+.thought-summary {
+    background: rgba(76, 175, 80, 0.05);
+    border-left: 3px solid #4caf50;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 0 16px 0;
+    font-size: 13px;
+}
+
+body.dark-mode .thought-summary {
+    background: rgba(76, 175, 80, 0.08);
+}
+
+.thought-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #4caf50;
+    margin-bottom: 8px;
+}
+
+body.dark-mode .thought-summary-header {
+    color: #81c784;
+}
+
+.thought-summary-content {
+    color: #555;
+    line-height: 1.6;
+    font-style: italic;
+}
+
+body.dark-mode .thought-summary-content {
+    color: #ccc;
 }
 
 .message.user .message-content {
@@ -890,76 +1229,10 @@ body.dark-mode .copy-table-btn.copied {
     background: #4ade80;
 }
 
-/* Copy message button */
-.copy-message-btn {
-    display: inline-block;
-    margin-top: 8px;
-    padding: 5px 12px;
-    background: transparent;
-    color: #667eea;
-    border: 1px solid #667eea;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-body.dark-mode .copy-message-btn {
-    color: #ffd700;
-    border-color: #ffd700;
-}
-
-.copy-message-btn:hover {
-    background: #667eea;
-    color: white;
-    transform: translateY(-1px);
-}
-
-body.dark-mode .copy-message-btn:hover {
-    background: #ffd700;
-    color: #1a1a2e;
-}
-
-.copy-message-btn.copied {
-    background: #28a745;
-    color: white;
-    border-color: #28a745;
-}
-
-body.dark-mode .copy-message-btn.copied {
-    background: #4ade80;
-    border-color: #4ade80;
-}
-
-/* Edit message button */
+/* Legacy button styles - deprecated */
+.copy-message-btn,
 .edit-message-btn {
-    display: inline-block;
-    margin-top: 8px;
-    margin-left: 8px;
-    padding: 5px 12px;
-    background: transparent;
-    color: #ffa500;
-    border: 1px solid #ffa500;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-body.dark-mode .edit-message-btn {
-    color: #ff6b35;
-    border-color: #ff6b35;
-}
-
-.edit-message-btn:hover {
-    background: #ffa500;
-    color: white;
-    transform: translateY(-1px);
-}
-
-body.dark-mode .edit-message-btn:hover {
-    background: #ff6b35;
-    color: white;
+    display: none;
 }
 
 /* Edit form */
@@ -1333,6 +1606,73 @@ body.dark-mode .message-content tr:nth-child(even) {
     opacity: 0.6;
     margin-top: 3px;
     font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.message-version-badge {
+    background: rgba(102, 126, 234, 0.15);
+    color: #667eea;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    font-style: normal;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+body.dark-mode .message-version-badge {
+    background: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+}
+
+/* Version Navigation */
+.version-navigation {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.version-nav-btn {
+    background: transparent;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    cursor: pointer;
+    color: #667eea;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+body.dark-mode .version-nav-btn {
+    border-color: rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+}
+
+.version-nav-btn:hover:not(:disabled) {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+}
+
+body.dark-mode .version-nav-btn:hover:not(:disabled) {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
+}
+
+.version-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.version-counter {
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
 }
 
 .message-stopped-indicator {

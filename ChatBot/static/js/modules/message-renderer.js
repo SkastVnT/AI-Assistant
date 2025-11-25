@@ -51,7 +51,7 @@ export class MessageRenderer {
     /**
      * Create and add message to chat
      */
-    addMessage(chatContainer, content, isUser, model, context, timestamp) {
+    addMessage(chatContainer, content, isUser, model, context, timestamp, thinkingProcess = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
         messageDiv.dataset.timestamp = timestamp;
@@ -65,6 +65,12 @@ export class MessageRenderer {
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
+        
+        // Add thinking process if provided (for assistant with deep thinking)
+        if (!isUser && thinkingProcess) {
+            const thinkingDiv = this.createThinkingSection(thinkingProcess);
+            contentDiv.appendChild(thinkingDiv);
+        }
         
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
@@ -106,10 +112,26 @@ export class MessageRenderer {
             contentDiv.appendChild(infoDiv);
         }
         
-        // Add timestamp
+        // Add timestamp with version counter for assistant messages
         const timestampDiv = document.createElement('div');
         timestampDiv.className = 'message-timestamp';
-        timestampDiv.textContent = timestamp;
+        
+        if (!isUser) {
+            // Add version counter badge
+            const versionBadge = document.createElement('span');
+            versionBadge.className = 'message-version-badge';
+            versionBadge.textContent = '1/1';
+            timestampDiv.appendChild(versionBadge);
+            
+            const separator = document.createElement('span');
+            separator.textContent = ' • ';
+            timestampDiv.appendChild(separator);
+        }
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = timestamp;
+        timestampDiv.appendChild(timeSpan);
+        
         contentDiv.appendChild(timestampDiv);
         
         // Add action buttons
@@ -225,28 +247,381 @@ export class MessageRenderer {
         div.textContent = text;
         return div.innerHTML;
     }
+    
+    /**
+     * Create thinking process section (collapsible)
+     */
+    createThinkingSection(thinkingProcess, isLoading = false) {
+        const container = document.createElement('div');
+        container.className = 'thinking-container';
+        if (isLoading) {
+            container.dataset.loading = 'true';
+        }
+        
+        const header = document.createElement('div');
+        header.className = 'thinking-header';
+        
+        const icon = document.createElement('span');
+        icon.className = 'thinking-icon';
+        icon.textContent = '💭';
+        
+        const title = document.createElement('span');
+        title.textContent = isLoading ? 'Thinking...' : 'Thought process';
+        
+        const toggle = document.createElement('span');
+        toggle.className = 'thinking-toggle';
+        toggle.textContent = '▼';
+        
+        header.appendChild(icon);
+        header.appendChild(title);
+        header.appendChild(toggle);
+        
+        const content = document.createElement('div');
+        content.className = 'thinking-content';
+        
+        if (isLoading) {
+            content.textContent = 'Analyzing the problem and generating response...';
+        } else if (thinkingProcess) {
+            // Parse thinking process
+            if (typeof thinkingProcess === 'string') {
+                content.textContent = thinkingProcess;
+            } else {
+                content.textContent = JSON.stringify(thinkingProcess, null, 2);
+            }
+        }
+        
+        // Toggle functionality
+        header.addEventListener('click', () => {
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        });
+        
+        container.appendChild(header);
+        container.appendChild(content);
+        
+        return container;
+    }
+    
+    /**
+     * Update thinking process content
+     */
+    updateThinkingContent(container, thinkingProcess) {
+        const content = container.querySelector('.thinking-content');
+        const header = container.querySelector('.thinking-header');
+        const title = header.querySelector('span:nth-child(2)');
+        
+        if (content && title) {
+            title.textContent = 'Thought process';
+            
+            if (typeof thinkingProcess === 'string') {
+                content.textContent = thinkingProcess;
+            } else {
+                content.textContent = JSON.stringify(thinkingProcess, null, 2);
+            }
+            
+            // Remove loading state
+            container.removeAttribute('data-loading');
+            container.style.animation = 'none';
+        }
+    }
 
     /**
      * Add action buttons to message
      */
     addMessageButtons(contentDiv, content, isUser, messageDiv) {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-actions';
+        
         if (!isUser) {
-            // Copy button for assistant messages
-            const copyMsgBtn = document.createElement('button');
-            copyMsgBtn.className = 'copy-message-btn';
-            copyMsgBtn.textContent = '📋 Copy';
-            copyMsgBtn.onclick = () => this.copyMessageToClipboard(content, copyMsgBtn);
-            contentDiv.appendChild(copyMsgBtn);
+            // Copy button
+            const copyBtn = this.createActionButton('copy-btn', '📋', 'Copy');
+            copyBtn.onclick = () => this.copyMessageToClipboard(content, copyBtn);
+            actionsDiv.appendChild(copyBtn);
+            
+            // Like button
+            const likeBtn = this.createActionButton('like-btn', '👍', 'Good response');
+            likeBtn.onclick = () => this.toggleFeedback(likeBtn, 'like', messageDiv);
+            actionsDiv.appendChild(likeBtn);
+            
+            // Dislike button
+            const dislikeBtn = this.createActionButton('dislike-btn', '👎', 'Bad response');
+            dislikeBtn.onclick = () => this.toggleFeedback(dislikeBtn, 'dislike', messageDiv);
+            actionsDiv.appendChild(dislikeBtn);
+            
+            // Regenerate button
+            const regenBtn = this.createActionButton('regenerate-btn', '🔄', 'Regenerate');
+            regenBtn.onclick = () => this.regenerateResponse(messageDiv);
+            actionsDiv.appendChild(regenBtn);
+            
+            // More options button
+            const moreBtn = this.createActionButton('more-btn', '⋯', 'More');
+            moreBtn.onclick = () => this.showMoreOptions(messageDiv, moreBtn);
+            actionsDiv.appendChild(moreBtn);
         } else {
             // Edit button for user messages
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-message-btn';
-            editBtn.textContent = '✏️ Edit';
+            const editBtn = this.createActionButton('edit-btn', '✏️', 'Edit');
             editBtn.onclick = () => this.showEditForm(messageDiv, content);
-            contentDiv.appendChild(editBtn);
+            actionsDiv.appendChild(editBtn);
+            
+            // More options button
+            const moreBtn = this.createActionButton('more-btn', '⋯', 'More');
+            moreBtn.onclick = () => this.showMoreOptions(messageDiv, moreBtn);
+            actionsDiv.appendChild(moreBtn);
         }
+        
+        contentDiv.appendChild(actionsDiv);
     }
 
+    /**
+     * Create action button
+     */
+    createActionButton(className, icon, title) {
+        const button = document.createElement('button');
+        button.className = `message-action-btn ${className}`;
+        button.innerHTML = icon;
+        button.title = title;
+        return button;
+    }
+    
+    /**
+     * Toggle feedback (like/dislike)
+     */
+    toggleFeedback(button, type, messageDiv) {
+        const actionsDiv = button.parentElement;
+        const likeBtn = actionsDiv.querySelector('.like-btn');
+        const dislikeBtn = actionsDiv.querySelector('.dislike-btn');
+        
+        if (button.classList.contains('active')) {
+            button.classList.remove('active');
+            delete messageDiv.dataset.feedback;
+        } else {
+            likeBtn.classList.remove('active');
+            dislikeBtn.classList.remove('active');
+            button.classList.add('active');
+            messageDiv.dataset.feedback = type;
+        }
+    }
+    
+    /**
+     * Regenerate response
+     */
+    regenerateResponse(messageDiv) {
+        // Find the user message before this assistant message
+        let prevMessage = messageDiv.previousElementSibling;
+        while (prevMessage && !prevMessage.classList.contains('user')) {
+            prevMessage = prevMessage.previousElementSibling;
+        }
+        
+        if (!prevMessage || !window.chatApp) return;
+        
+        const userText = prevMessage.querySelector('.message-text')?.textContent;
+        if (!userText) return;
+        
+        // Store current response as version
+        const currentResponse = messageDiv.querySelector('.message-text')?.innerHTML;
+        const messageId = prevMessage.dataset.messageId || `msg_${Date.now()}_${Math.random()}`;
+        prevMessage.dataset.messageId = messageId;
+        
+        // Save current version before regenerating (user message + current response)
+        if (!this.messageHistory.has(messageId)) {
+            this.messageHistory.set(messageId, []);
+            // Save initial version
+            this.addMessageVersion(messageId, userText, currentResponse, new Date().toISOString());
+            if (window.chatManager) {
+                window.chatManager.saveMessageVersion(messageId, userText, currentResponse, new Date().toISOString());
+            }
+        }
+        
+        // Add new empty version that will be filled when response arrives
+        this.addMessageVersion(messageId, userText, '', new Date().toISOString());
+        if (window.chatManager) {
+            window.chatManager.saveMessageVersion(messageId, userText, '', new Date().toISOString());
+        }
+        
+        // Update version indicator
+        const history = this.getMessageHistory(messageId);
+        prevMessage.dataset.currentVersion = (history.length - 1).toString();
+        this.updateVersionIndicator(prevMessage);
+        
+        // Remove current assistant message
+        messageDiv.remove();
+        
+        // Show loading indicator
+        const chatContainer = prevMessage.parentElement;
+        if (window.chatApp && window.chatApp.uiUtils) {
+            window.chatApp.uiUtils.showLoading();
+        }
+        
+        // Get current form values
+        const formValues = window.chatApp.uiUtils.getFormValues();
+        
+        // Build conversation history
+        const history_context = window.chatApp.buildConversationHistory();
+        
+        // Get selected memories
+        const selectedMemories = window.chatApp.memoryManager.getSelectedMemories();
+        
+        // Create new AbortController
+        window.chatApp.currentAbortController = new AbortController();
+        
+        // Send API request
+        window.chatApp.apiService.sendMessage(
+            userText,
+            formValues.model,
+            formValues.context,
+            Array.from(window.chatApp.activeTools),
+            formValues.deepThinking,
+            history_context,
+            [],
+            selectedMemories,
+            window.chatApp.currentAbortController.signal
+        ).then(data => {
+            // Hide loading
+            window.chatApp.uiUtils.hideLoading();
+            
+            // Add response
+            const responseTimestamp = window.chatApp.uiUtils.formatTimestamp(new Date());
+            const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            
+            window.chatApp.messageRenderer.addMessage(
+                chatContainer,
+                responseContent,
+                false,
+                formValues.model,
+                formValues.context,
+                responseTimestamp
+            );
+            
+            // Update version history with the new response
+            const historyVersions = this.getMessageHistory(messageId);
+            if (historyVersions.length > 0) {
+                historyVersions[historyVersions.length - 1].assistantResponse = responseContent;
+                
+                // Save to chatManager
+                if (window.chatManager) {
+                    const session = window.chatManager.getCurrentSession();
+                    if (session && session.messageVersions && session.messageVersions[messageId]) {
+                        const versions = session.messageVersions[messageId];
+                        if (versions.length > 0) {
+                            versions[versions.length - 1].assistantResponse = responseContent;
+                            window.chatManager.saveSessions();
+                        }
+                    }
+                }
+            }
+            
+            // Save session
+            window.chatApp.saveCurrentSession(true);
+            
+            // Make images clickable
+            setTimeout(() => {
+                window.chatApp.messageRenderer.makeImagesClickable((img) => window.chatApp.openImagePreview(img));
+            }, 100);
+            
+        }).catch(error => {
+            window.chatApp.uiUtils.hideLoading();
+            
+            if (error.name === 'AbortError') {
+                console.log('[Regenerate] Request aborted by user');
+            } else {
+                console.error('[Regenerate] Error:', error);
+                const errorMsg = window.chatApp.messageRenderer.addMessage(
+                    chatContainer,
+                    `❌ **Lỗi:** ${error.message || 'Không thể tạo lại response'}`,
+                    false,
+                    formValues.model,
+                    formValues.context,
+                    window.chatApp.uiUtils.formatTimestamp(new Date())
+                );
+            }
+        });
+    }
+    
+    /**
+     * Show more options menu
+     */
+    showMoreOptions(messageDiv, button) {
+        const isUser = messageDiv.classList.contains('user');
+        const content = messageDiv.querySelector('.message-text')?.textContent || '';
+        
+        const menu = document.createElement('div');
+        menu.className = 'message-options-menu';
+        menu.innerHTML = `
+            <button class="option-item" data-action="copy">
+                <span>📋</span> Copy message
+            </button>
+            ${!isUser ? `
+            <button class="option-item" data-action="export">
+                <span>📤</span> Export to file
+            </button>
+            ` : ''}
+            <button class="option-item" data-action="delete">
+                <span>🗑️</span> Delete message
+            </button>
+        `;
+        
+        // Position menu
+        const rect = button.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = `${rect.bottom + 5}px`;
+        menu.style.left = `${rect.left - 100}px`;
+        
+        // Add event listeners
+        menu.querySelectorAll('.option-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                this.handleMenuAction(action, messageDiv, content);
+                menu.remove();
+            });
+        });
+        
+        // Close on click outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 10);
+        
+        document.body.appendChild(menu);
+    }
+    
+    /**
+     * Handle menu action
+     */
+    handleMenuAction(action, messageDiv, content) {
+        switch(action) {
+            case 'copy':
+                this.copyMessageToClipboard(content, null);
+                break;
+            case 'export':
+                this.exportMessageToFile(content);
+                break;
+            case 'delete':
+                if (confirm('Delete this message?')) {
+                    messageDiv.remove();
+                }
+                break;
+        }
+    }
+    
+    /**
+     * Export message to file
+     */
+    exportMessageToFile(content) {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `message_${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
     /**
      * Copy message to clipboard
      */
@@ -255,14 +630,24 @@ export class MessageRenderer {
         
         try {
             await navigator.clipboard.writeText(plainText);
-            const originalText = button.textContent;
-            button.textContent = '✅ Đã copy!';
-            button.classList.add('copied');
             
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.classList.remove('copied');
-            }, 2000);
+            if (button) {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '✅';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('copied');
+                }, 2000);
+            } else {
+                // Show temporary notification
+                const notification = document.createElement('div');
+                notification.className = 'copy-notification';
+                notification.textContent = '✅ Copied to clipboard!';
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 2000);
+            }
         } catch (err) {
             console.error('Failed to copy:', err);
             alert('Không thể copy. Vui lòng thử lại!');
@@ -315,9 +700,25 @@ export class MessageRenderer {
         const messageId = messageDiv.dataset.messageId || `msg_${Date.now()}_${Math.random()}`;
         messageDiv.dataset.messageId = messageId;
         
+        // Initialize current version index
+        if (!messageDiv.dataset.currentVersion) {
+            messageDiv.dataset.currentVersion = '0';
+        }
+        
+        // Get corresponding assistant response
+        let assistantMsg = messageDiv.nextElementSibling;
+        while (assistantMsg && !assistantMsg.classList.contains('assistant')) {
+            assistantMsg = assistantMsg.nextElementSibling;
+        }
+        const assistantResponse = assistantMsg ? assistantMsg.querySelector('.message-text')?.innerHTML : '';
+        
         // Only save to history if this is the first edit
         if (!this.messageHistory.has(messageId)) {
-            this.addMessageVersion(messageId, originalContent, new Date().toISOString());
+            this.addMessageVersion(messageId, originalContent, assistantResponse, new Date().toISOString());
+            // Also save to chatManager for persistence
+            if (window.chatManager) {
+                window.chatManager.saveMessageVersion(messageId, originalContent, assistantResponse, new Date().toISOString());
+            }
         }
         
         // Create edit form
@@ -335,8 +736,43 @@ export class MessageRenderer {
         saveBtn.className = 'edit-save-btn';
         saveBtn.textContent = '💾 Lưu & Tạo lại response';
         saveBtn.onclick = () => {
-            if (this.onEditSave) {
-                this.onEditSave(messageDiv, textarea.value, originalContent);
+            const newContent = textarea.value.trim();
+            if (newContent && newContent !== originalContent) {
+                // Find and save old assistant response before removing
+                let nextMsg = messageDiv.nextElementSibling;
+                while (nextMsg && !nextMsg.classList.contains('assistant')) {
+                    nextMsg = nextMsg.nextElementSibling;
+                }
+                const oldResponse = nextMsg ? nextMsg.querySelector('.message-text')?.innerHTML : '';
+                
+                // Save new version with empty response (will be filled after regeneration)
+                this.addMessageVersion(messageId, newContent, '', new Date().toISOString());
+                if (window.chatManager) {
+                    window.chatManager.saveMessageVersion(messageId, newContent, '', new Date().toISOString());
+                }
+                
+                // Update message content
+                const textDiv = messageDiv.querySelector('.message-text');
+                textDiv.textContent = newContent;
+                
+                // Update version indicator
+                const history = this.getMessageHistory(messageId);
+                const currentIdx = history.length - 1;
+                messageDiv.dataset.currentVersion = currentIdx.toString();
+                this.updateVersionIndicator(messageDiv);
+                
+                // Remove edit form
+                editForm.remove();
+                
+                // Find and remove subsequent assistant message
+                if (nextMsg) {
+                    nextMsg.remove();
+                }
+                
+                // Regenerate response with edited message
+                if (window.chatApp && this.onEditSave) {
+                    this.onEditSave(messageDiv, newContent, originalContent);
+                }
             }
         };
         
@@ -357,15 +793,137 @@ export class MessageRenderer {
     /**
      * Add message version to history
      */
-    addMessageVersion(messageId, content, timestamp) {
+    addMessageVersion(messageId, userContent, assistantResponse, timestamp) {
         if (!this.messageHistory.has(messageId)) {
             this.messageHistory.set(messageId, []);
         }
         
         this.messageHistory.get(messageId).push({
-            content: content,
+            userContent: userContent,
+            assistantResponse: assistantResponse,
             timestamp: timestamp
         });
+    }
+    
+    /**
+     * Update version indicator with navigation buttons
+     */
+    updateVersionIndicator(messageDiv) {
+        const messageId = messageDiv.dataset.messageId;
+        if (!messageId) return;
+        
+        const history = this.getMessageHistory(messageId);
+        if (history.length <= 1) return;
+        
+        const currentIdx = parseInt(messageDiv.dataset.currentVersion || '0');
+        const total = history.length;
+        
+        // Find or create version badge in timestamp
+        const timestampDiv = messageDiv.querySelector('.message-timestamp');
+        if (!timestampDiv) return;
+        
+        let versionBadge = timestampDiv.querySelector('.message-version-badge');
+        if (!versionBadge) {
+            versionBadge = document.createElement('span');
+            versionBadge.className = 'message-version-badge';
+            timestampDiv.insertBefore(versionBadge, timestampDiv.firstChild);
+            
+            const separator = document.createElement('span');
+            separator.textContent = ' • ';
+            timestampDiv.insertBefore(separator, versionBadge.nextSibling);
+        }
+        
+        // Create navigation controls
+        const navContainer = document.createElement('span');
+        navContainer.className = 'version-navigation';
+        
+        // Back button
+        const backBtn = document.createElement('button');
+        backBtn.className = 'version-nav-btn';
+        backBtn.innerHTML = '◀';
+        backBtn.title = 'Previous version';
+        backBtn.disabled = currentIdx === 0;
+        backBtn.onclick = () => this.navigateVersion(messageDiv, currentIdx - 1);
+        
+        // Version counter
+        const counter = document.createElement('span');
+        counter.className = 'version-counter';
+        counter.textContent = `${currentIdx + 1}/${total}`;
+        
+        // Forward button
+        const forwardBtn = document.createElement('button');
+        forwardBtn.className = 'version-nav-btn';
+        forwardBtn.innerHTML = '▶';
+        forwardBtn.title = 'Next version';
+        forwardBtn.disabled = currentIdx === total - 1;
+        forwardBtn.onclick = () => this.navigateVersion(messageDiv, currentIdx + 1);
+        
+        navContainer.appendChild(backBtn);
+        navContainer.appendChild(counter);
+        navContainer.appendChild(forwardBtn);
+        
+        versionBadge.innerHTML = '';
+        versionBadge.appendChild(navContainer);
+    }
+    
+    /**
+     * Navigate to specific version
+     */
+    navigateVersion(messageDiv, newIndex) {
+        const messageId = messageDiv.dataset.messageId;
+        const history = this.getMessageHistory(messageId);
+        
+        if (newIndex < 0 || newIndex >= history.length) return;
+        
+        // Update user message content
+        const textDiv = messageDiv.querySelector('.message-text');
+        textDiv.textContent = history[newIndex].userContent;
+        
+        // Update or create assistant response
+        let assistantMsg = messageDiv.nextElementSibling;
+        while (assistantMsg && !assistantMsg.classList.contains('assistant')) {
+            assistantMsg = assistantMsg.nextElementSibling;
+        }
+        
+        // Check if this version has a response (not empty string)
+        const hasResponse = history[newIndex].assistantResponse && history[newIndex].assistantResponse.trim() !== '';
+        
+        if (hasResponse) {
+            if (assistantMsg) {
+                // Update existing assistant message
+                const assistantTextDiv = assistantMsg.querySelector('.message-text');
+                assistantTextDiv.innerHTML = history[newIndex].assistantResponse;
+                
+                // Re-highlight code blocks
+                if (typeof hljs !== 'undefined') {
+                    assistantTextDiv.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                }
+            } else {
+                // Create new assistant message with full structure
+                const chatContainer = messageDiv.parentElement;
+                const model = messageDiv.dataset.model || 'gemini';
+                const context = messageDiv.dataset.context || 'casual';
+                const timestamp = messageDiv.dataset.timestamp || new Date().toLocaleTimeString('vi-VN');
+                
+                // Use addMessage to create properly formatted assistant message
+                const tempContainer = document.createElement('div');
+                this.addMessage(tempContainer, history[newIndex].assistantResponse, false, model, context, timestamp);
+                
+                // Insert the created message after user message
+                const newAssistantMsg = tempContainer.firstChild;
+                messageDiv.parentNode.insertBefore(newAssistantMsg, messageDiv.nextSibling);
+            }
+        }
+        // Note: If no response in this version, keep the current assistant message as-is
+        // Don't remove it - user might be navigating through versions temporarily
+        
+        // Update current version
+        messageDiv.dataset.currentVersion = newIndex.toString();
+        
+        // Refresh version indicator
+        this.updateVersionIndicator(messageDiv);
     }
 
     /**
@@ -402,14 +960,75 @@ export class MessageRenderer {
      * Re-attach event listeners after loading chat
      */
     reattachEventListeners(chatContainer, onEditSave, onCopy, onImageClick) {
-        // Edit buttons
+        // Re-attach all message action buttons
+        chatContainer.querySelectorAll('.message').forEach(messageDiv => {
+            const isUser = messageDiv.classList.contains('user');
+            const content = messageDiv.querySelector('.message-text')?.textContent || '';
+            const contentHTML = messageDiv.querySelector('.message-text')?.innerHTML || '';
+            
+            // Find action buttons container
+            const actionsDiv = messageDiv.querySelector('.message-actions');
+            if (!actionsDiv) return;
+            
+            if (!isUser) {
+                // Assistant message actions
+                const copyBtn = actionsDiv.querySelector('.copy-btn');
+                if (copyBtn) {
+                    copyBtn.onclick = () => this.copyMessageToClipboard(contentHTML, copyBtn);
+                }
+                
+                const likeBtn = actionsDiv.querySelector('.like-btn');
+                if (likeBtn) {
+                    likeBtn.onclick = () => this.toggleFeedback(likeBtn, 'like', messageDiv);
+                }
+                
+                const dislikeBtn = actionsDiv.querySelector('.dislike-btn');
+                if (dislikeBtn) {
+                    dislikeBtn.onclick = () => this.toggleFeedback(dislikeBtn, 'dislike', messageDiv);
+                }
+                
+                const regenBtn = actionsDiv.querySelector('.regenerate-btn');
+                if (regenBtn) {
+                    regenBtn.onclick = () => this.regenerateResponse(messageDiv);
+                }
+                
+                const moreBtn = actionsDiv.querySelector('.more-btn');
+                if (moreBtn) {
+                    moreBtn.onclick = () => this.showMoreOptions(messageDiv, moreBtn);
+                }
+            } else {
+                // User message actions
+                const editBtn = actionsDiv.querySelector('.edit-btn');
+                if (editBtn) {
+                    editBtn.onclick = () => this.showEditForm(messageDiv, content);
+                }
+                
+                const moreBtn = actionsDiv.querySelector('.more-btn');
+                if (moreBtn) {
+                    moreBtn.onclick = () => this.showMoreOptions(messageDiv, moreBtn);
+                }
+            }
+        });
+        
+        // Re-attach version navigation buttons
+        chatContainer.querySelectorAll('.version-nav-btn').forEach(btn => {
+            const messageDiv = btn.closest('.message');
+            if (!messageDiv) return;
+            
+            const currentVersion = parseInt(messageDiv.dataset.currentVersion || '0');
+            const isBack = btn.innerHTML === '◀';
+            const newIndex = isBack ? currentVersion - 1 : currentVersion + 1;
+            
+            btn.onclick = () => this.navigateVersion(messageDiv, newIndex);
+        });
+        
+        // Legacy buttons (old style - keep for compatibility)
         chatContainer.querySelectorAll('.edit-message-btn').forEach(btn => {
             const messageDiv = btn.closest('.message');
             const textContent = messageDiv.querySelector('.message-text')?.textContent || '';
             btn.onclick = () => this.showEditForm(messageDiv, textContent);
         });
         
-        // Copy buttons
         chatContainer.querySelectorAll('.copy-message-btn').forEach(btn => {
             const messageDiv = btn.closest('.message');
             const textContent = messageDiv.querySelector('.message-text')?.textContent || '';

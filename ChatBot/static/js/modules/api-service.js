@@ -14,6 +14,9 @@ export class APIService {
     async sendMessage(message, model, context, tools = [], deepThinking = false, history = [], files = [], memories = [], abortSignal = null) {
         let response;
         
+        // Get current language from localStorage
+        const language = localStorage.getItem('chatbot_language') || 'vi';
+        
         const fetchOptions = {
             method: 'POST',
             signal: abortSignal
@@ -29,6 +32,7 @@ export class APIService {
             formData.append('deep_thinking', deepThinking);
             formData.append('history', JSON.stringify(history));
             formData.append('memory_ids', JSON.stringify(memories));
+            formData.append('language', language);  // Add language
 
             // Append files
             files.forEach((file) => {
@@ -49,7 +53,8 @@ export class APIService {
                 tools: tools,
                 deep_thinking: deepThinking,
                 history: history,
-                memory_ids: memories
+                memory_ids: memories,
+                language: language  // Add language
             });
             
             response = await fetch('/chat', fetchOptions);

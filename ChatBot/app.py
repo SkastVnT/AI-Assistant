@@ -130,21 +130,38 @@ try:
 except:
     genai.configure(api_key=GEMINI_API_KEY_2)
 
-# System prompts for different purposes
-SYSTEM_PROMPTS = {
+# System prompts for different purposes (Vietnamese)
+SYSTEM_PROMPTS_VI = {
     'psychological': """Bạn là một trợ lý tâm lý chuyên nghiệp, thân thiện và đầy empathy. 
     Bạn luôn lắng nghe, thấu hiểu và đưa ra lời khuyên chân thành, tích cực.
     Bạn không phán xét và luôn hỗ trợ người dùng vượt qua khó khăn trong cuộc sống.
-    Hãy trả lời bằng tiếng Việt.""",
+    Hãy trả lời bằng tiếng Việt.
+    
+    MARKDOWN FORMATTING:
+    - Sử dụng ```language để wrap code blocks (ví dụ: ```python, ```javascript)
+    - Đóng code block bằng ``` trên dòng riêng
+    - Dùng `code` cho inline code
+    - Sử dụng **bold**, *italic*, > quote khi cần""",
     
     'lifestyle': """Bạn là một chuyên gia tư vấn lối sống, giúp người dùng tìm ra giải pháp 
     cho các vấn đề trong cuộc sống hàng ngày như công việc, học tập, mối quan hệ, 
     sức khỏe và phát triển bản thân. Hãy đưa ra lời khuyên thiết thực và dễ áp dụng.
-    Hãy trả lời bằng tiếng Việt.""",
+    Hãy trả lời bằng tiếng Việt.
+    
+    MARKDOWN FORMATTING:
+    - Sử dụng ```language để wrap code blocks khi cần
+    - Đóng code block bằng ``` trên dòng riêng
+    - Dùng **bold** để nhấn mạnh điểm quan trọng""",
     
     'casual': """Bạn là một người bạn thân thiết, vui vẻ và dễ gần. 
     Bạn sẵn sàng trò chuyện về mọi chủ đề, chia sẻ câu chuyện và tạo không khí thoải mái.
-    Hãy trả lời bằng tiếng Việt với giọng điệu thân mật.""",
+    Hãy trả lời bằng tiếng Việt với giọng điệu thân mật.
+    
+    MARKDOWN FORMATTING:
+    - Sử dụng ```language để wrap code blocks (ví dụ: ```python, ```json)
+    - Đóng code block bằng ``` trên dòng riêng
+    - Dùng `code` cho inline code
+    - Format lists, links, quotes khi phù hợp""",
     
     'programming': """Bạn là một Senior Software Engineer và Programming Mentor chuyên nghiệp.
     Bạn có kinh nghiệm sâu về nhiều ngôn ngữ lập trình (Python, JavaScript, Java, C++, Go, etc.)
@@ -158,9 +175,84 @@ SYSTEM_PROMPTS = {
     - Hướng dẫn architecture và system design
     - Trả lời câu hỏi về algorithms, data structures
     
-    Luôn format code với markdown (```language), giải thích từng bước logic, 
-    và đưa ra ví dụ cụ thể. Có thể trả lời bằng tiếng Việt hoặc English."""
+    CRITICAL MARKDOWN RULES:
+    - LUÔN LUÔN wrap code trong code blocks với syntax: ```language
+    - VÍ DỤ: ```python cho Python, ```javascript cho JavaScript, ```sql cho SQL
+    - Đóng code block bằng ``` trên dòng RIÊNG BIỆT
+    - Dùng `backticks` cho inline code như tên biến, function names
+    - Format output/results trong code blocks khi cần
+    - Giải thích logic từng bước bằng comments trong code
+    - Cung cấp ví dụ cụ thể với proper syntax highlighting
+    
+    Có thể trả lời bằng tiếng Việt hoặc English."""
 }
+
+# System prompts for different purposes (English)
+SYSTEM_PROMPTS_EN = {
+    'psychological': """You are a professional, friendly, and empathetic psychological assistant.
+    You always listen, understand, and provide sincere and positive advice.
+    You are non-judgmental and always support users in overcoming life's difficulties.
+    Please respond in English.
+    
+    MARKDOWN FORMATTING:
+    - Use ```language to wrap code blocks (e.g., ```python, ```javascript)
+    - Close code blocks with ``` on a separate line
+    - Use `backticks` for inline code
+    - Apply **bold**, *italic*, > quotes as needed""",
+    
+    'lifestyle': """You are a lifestyle consultant expert, helping users find solutions
+    for daily life issues such as work, study, relationships, health, and personal development.
+    Provide practical and easy-to-apply advice.
+    Please respond in English.
+    
+    MARKDOWN FORMATTING:
+    - Use ```language for code blocks when needed
+    - Close with ``` on separate line
+    - Use **bold** for emphasis""",
+    
+    'casual': """You are a friendly, cheerful, and approachable companion.
+    You are ready to chat about any topic, share stories, and create a comfortable atmosphere.
+    Please respond in English with a friendly tone.
+    
+    MARKDOWN FORMATTING:
+    - Use ```language to wrap code blocks
+    - Close code blocks with ``` on separate line
+    - Use `code` for inline code
+    - Format lists, links, quotes appropriately""",
+    
+    'programming': """You are a professional Senior Software Engineer and Programming Mentor.
+    You have deep experience in many programming languages (Python, JavaScript, Java, C++, Go, etc.)
+    and frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
+    
+    Your responsibilities:
+    - Explain code clearly and understandably
+    - Debug and fix bugs efficiently
+    - Suggest best practices and design patterns
+    - Review code and optimize performance
+    - Guide architecture and system design
+    - Answer questions about algorithms and data structures
+    
+    CRITICAL MARKDOWN RULES:
+    - ALWAYS wrap code in code blocks with syntax: ```language
+    - EXAMPLE: ```python for Python, ```javascript for JavaScript, ```sql for SQL
+    - Close code blocks with ``` on a SEPARATE line
+    - Use `backticks` for inline code like variable names, function names
+    - Format outputs/results in code blocks when needed
+    - Explain logic step-by-step with comments in code
+    - Provide concrete examples with proper syntax highlighting
+    
+    Respond in English."""
+}
+
+# Default to Vietnamese
+SYSTEM_PROMPTS = SYSTEM_PROMPTS_VI
+
+
+def get_system_prompts(language='vi'):
+    """Get system prompts based on language"""
+    if language == 'en':
+        return SYSTEM_PROMPTS_EN
+    return SYSTEM_PROMPTS_VI
 
 
 # ============================================================================
@@ -270,16 +362,60 @@ class ChatbotAgent:
         if MONGODB_ENABLED and conversation_id:
             self.conversation_history = load_conversation_history(conversation_id)
         
-    def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None):
+    def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
         """Chat using Google Gemini"""
         try:
             # Use gemini-2.0-flash (newest stable model)
             model = genai.GenerativeModel('gemini-2.0-flash')
-            system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            # Get system prompts based on language
+            prompts = get_system_prompts(language)
+            system_prompt = prompts.get(context, prompts['casual'])
+            
+            thinking_process = None
             
             # Add deep thinking instruction
             if deep_thinking:
-                system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
+                if language == 'en':
+                    system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
+                else:
+                    system_prompt += "\n\nQUAN TRỌNG: Hãy suy nghĩ kỹ càng. Phân tích từ nhiều góc độ, xem xét các trường hợp đặc biệt, và đưa ra câu trả lời toàn diện, có lý lẽ chặt chẽ. Chất lượng quan trọng hơn tốc độ."
+                
+                # Generate thinking process based on content
+                has_file = "**Attached Files Context:**" in message or "File 1:" in message
+                
+                if has_file:
+                    thinking_steps = [
+                        "Reading and parsing attached file(s)...",
+                        "Extracting key information and structure...",
+                        "Identifying main topics and themes...",
+                        "Analyzing content depth and quality...",
+                        "Cross-referencing information...",
+                        "Formulating comprehensive response..."
+                    ] if language == 'en' else [
+                        "Đọc và phân tích file đính kèm...",
+                        "Trích xuất thông tin và cấu trúc chính...",
+                        "Xác định các chủ đề và nội dung chính...",
+                        "Phân tích độ sâu và chất lượng nội dung...",
+                        "Đối chiếu thông tin...",
+                        "Hình thành câu trả lời toàn diện..."
+                    ]
+                else:
+                    thinking_steps = [
+                        "Analyzing user question and context...",
+                        "Breaking down the problem into components...",
+                        "Considering multiple perspectives...",
+                        "Evaluating potential solutions...",
+                        "Synthesizing comprehensive response..."
+                    ] if language == 'en' else [
+                        "Phân tích câu hỏi của người dùng...",
+                        "Chia nhỏ vấn đề thành các phần...",
+                        "Xem xét nhiều góc nhìn khác nhau...",
+                        "Đánh giá các giải pháp khả thi...",
+                        "Tổng hợp câu trả lời toàn diện..."
+                    ]
+                
+                thinking_process = "\n".join(f"{i+1}. {step}" for i, step in enumerate(thinking_steps))
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
@@ -313,20 +449,29 @@ class ChatbotAgent:
             conversation += f"User: {message}\nAssistant:"
             
             response = model.generate_content(conversation)
+            
+            if deep_thinking and thinking_process:
+                return {'response': response.text, 'thinking_process': thinking_process}
             return response.text
             
         except Exception as e:
             return f"Lỗi Gemini: {str(e)}"
     
-    def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None):
+    def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
         """Chat using OpenAI"""
         try:
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
-            system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            
+            # Get system prompts based on language
+            prompts = get_system_prompts(language)
+            system_prompt = prompts.get(context, prompts['casual'])
             
             # Add deep thinking instruction
             if deep_thinking:
-                system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
+                if language == 'en':
+                    system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
+                else:
+                    system_prompt += "\n\nQUAN TRỌNG: Suy nghĩ từng bước. Cung cấp phân tích kỹ lưỡng với lý lẽ chi tiết."
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
@@ -365,7 +510,7 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi OpenAI: {str(e)}"
     
-    def chat_with_deepseek(self, message, context='casual', deep_thinking=False, history=None, memories=None):
+    def chat_with_deepseek(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
         """Chat using DeepSeek (via OpenAI compatible API)"""
         try:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
@@ -417,7 +562,7 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi DeepSeek: {str(e)}"
     
-    def chat_with_qwen(self, message, context='casual', deep_thinking=False):
+    def chat_with_qwen(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using Qwen 1.5b"""
         try:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
@@ -463,7 +608,7 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi Qwen: {str(e)}"
     
-    def chat_with_bloomvn(self, message, context='casual', deep_thinking=False):
+    def chat_with_bloomvn(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using BloomVN-8B (Hugging Face Inference API)"""
         try:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
@@ -517,7 +662,7 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi BloomVN: {str(e)}"
     
-    def chat_with_local_model(self, message, model, context='casual', deep_thinking=False):
+    def chat_with_local_model(self, message, model, context='casual', deep_thinking=False, language='vi'):
         """Chat with local models (BloomVN, Qwen1.5, Qwen2.5)"""
         if not LOCALMODELS_AVAILABLE:
             return "❌ Local models không khả dụng. Vui lòng cài đặt: pip install torch transformers accelerate"
@@ -570,7 +715,7 @@ class ChatbotAgent:
             logger.error(f"Local model error ({model}): {e}")
             return f"❌ Lỗi local model: {str(e)}"
     
-    def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None):
+    def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
         """Main chat method with MongoDB integration"""
         # Save user message to MongoDB
         if MONGODB_ENABLED and self.conversation_id and history is None:
@@ -581,25 +726,34 @@ class ChatbotAgent:
                 metadata={
                     'model': model,
                     'context': context,
-                    'deep_thinking': deep_thinking
+                    'deep_thinking': deep_thinking,
+                    'language': language
                 }
             )
         
-        # Get response from selected model
+        # Get response from selected model (with thinking process if deep_thinking enabled)
+        thinking_process = None
         if model == 'gemini':
-            response = self.chat_with_gemini(message, context, deep_thinking, history, memories)
+            result = self.chat_with_gemini(message, context, deep_thinking, history, memories, language)
         elif model == 'openai':
-            response = self.chat_with_openai(message, context, deep_thinking, history, memories)
+            result = self.chat_with_openai(message, context, deep_thinking, history, memories, language)
         elif model == 'deepseek':
-            response = self.chat_with_deepseek(message, context, deep_thinking, history, memories)
+            result = self.chat_with_deepseek(message, context, deep_thinking, history, memories, language)
         elif model == 'qwen':
-            response = self.chat_with_qwen(message, context, deep_thinking)
+            result = self.chat_with_qwen(message, context, deep_thinking, language)
         elif model == 'bloomvn':
-            response = self.chat_with_bloomvn(message, context, deep_thinking)
+            result = self.chat_with_bloomvn(message, context, deep_thinking, language)
         elif model in ['bloomvn-local', 'qwen1.5-local', 'qwen2.5-local']:
-            response = self.chat_with_local_model(message, model, context, deep_thinking)
+            result = self.chat_with_local_model(message, model, context, deep_thinking, language)
         else:
-            response = "Model không được hỗ trợ."
+            result = f"Model '{model}' không được hỗ trợ" if language == 'vi' else f"Model '{model}' is not supported"
+        
+        # Extract response and thinking process if available
+        if isinstance(result, dict):
+            response = result.get('response', '')
+            thinking_process = result.get('thinking_process', None)
+        else:
+            response = result
         
         # Only save to conversation history if no custom history provided
         if history is None:
@@ -623,11 +777,12 @@ class ChatbotAgent:
                         'model': model,
                         'context': context,
                         'deep_thinking': deep_thinking,
-                        'finish_reason': 'stop'
+                        'finish_reason': 'stop',
+                        'thinking_process': thinking_process
                     }
                 )
         
-        return response
+        return {'response': response, 'thinking_process': thinking_process}
     
     def clear_history(self):
         """Clear conversation history and create new conversation in MongoDB"""
@@ -827,7 +982,7 @@ def index():
     """Home page - Original beautiful UI with full SDXL support"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
-    return render_template('index_original_backup.html')
+    return render_template('index.html')
 
 
 @app.route('/new')
@@ -852,6 +1007,7 @@ def chat():
             model = data.get('model', 'gemini')
             context = data.get('context', 'casual')
             deep_thinking = data.get('deep_thinking', 'false').lower() == 'true'
+            language = data.get('language', 'vi')  # Get language from request
             
             # Safe JSON parsing with error handling
             try:
@@ -880,6 +1036,7 @@ def chat():
             model = data.get('model', 'gemini')
             context = data.get('context', 'casual')
             deep_thinking = data.get('deep_thinking', False)
+            language = data.get('language', 'vi')  # Get language from request
             tools = data.get('tools', [])
             history = data.get('history', None)
             memory_ids = data.get('memory_ids', [])
@@ -936,17 +1093,26 @@ def chat():
             # Save current history
             original_history = chatbot.conversation_history.copy()
             # Use provided history for context
-            response = chatbot.chat(message, model, context, deep_thinking, history, memories)
+            result = chatbot.chat(message, model, context, deep_thinking, history, memories, language)
             # Restore original history (since we don't want to save edit responses to history)
             chatbot.conversation_history = original_history
         else:
-            response = chatbot.chat(message, model, context, deep_thinking, None, memories)
+            result = chatbot.chat(message, model, context, deep_thinking, None, memories, language)
+        
+        # Extract response and thinking_process
+        if isinstance(result, dict):
+            response = result.get('response', '')
+            thinking_process = result.get('thinking_process', None)
+        else:
+            response = result
+            thinking_process = None
         
         return jsonify({
             'response': response,
             'model': model,
             'context': context,
             'deep_thinking': deep_thinking,
+            'thinking_process': thinking_process,
             'tools': tools,
             'timestamp': datetime.now().isoformat()
         })

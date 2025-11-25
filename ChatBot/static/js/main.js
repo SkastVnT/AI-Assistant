@@ -11,6 +11,7 @@ import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
 import { ExportHandler } from './modules/export-handler.js';
+import { initLanguage } from './language-switcher.js';
 
 class ChatBotApp {
     constructor() {
@@ -23,6 +24,10 @@ class ChatBotApp {
         this.memoryManager = new MemoryManager(this.apiService);
         this.imageGen = new ImageGeneration(this.apiService);
         this.exportHandler = new ExportHandler();
+        
+        // Expose chatManager and chatApp globally
+        window.chatManager = this.chatManager;
+        window.chatApp = this;
         
         // State
         this.activeTools = new Set();
@@ -37,6 +42,14 @@ class ChatBotApp {
      */
     async init() {
         console.log('[App] Initializing ChatBot application...');
+        
+        // Initialize language switcher
+        initLanguage();
+        
+        // Listen for chat list update event
+        window.addEventListener('chatListNeedsUpdate', () => {
+            this.renderChatList();
+        });
         
         // Initialize UI elements
         const elements = this.uiUtils.initElements();
@@ -56,7 +69,7 @@ class ChatBotApp {
         console.log('[App] fileInput element:', elements.fileInput);
         
         // Setup file handling with AUTO-ANALYSIS
-        this.fileHandler.setupFileInput(elements.fileInput, async (files) => {
+        const newFileInput = this.fileHandler.setupFileInput(elements.fileInput, async (files) => {
             console.log('[App] ===== FILE UPLOAD CALLBACK =====');
             console.log('[App] Received files:', files.length, files);
             
@@ -70,14 +83,23 @@ class ChatBotApp {
                         console.log('[App] Processed successfully:', fileData.name);
                         processedFiles.push(fileData);
                     } catch (error) {
-                        alert(`❌ Lỗi xử lý file "${file.name}": ${error.message}`);
+                        // Show error in chat instead of alert
+                        const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                        this.messageRenderer.addMessage(
+                            elements.chatContainer,
+                            `❌ **Lỗi xử lý file "${file.name}":** ${error.message}`,
+                            false,
+                            'system',
+                            'error',
+                            errorTimestamp
+                        );
                         console.error('[App] File processing error:', error);
                     }
                 }
                 
                 if (processedFiles.length === 0) {
                     console.log('[App] No files processed');
-                    elements.fileInput.value = '';
+                    newFileInput.value = '';
                     return;
                 }
                 
@@ -88,21 +110,43 @@ class ChatBotApp {
                 }
                 this.saveFilesToCurrentSession();
                 
-                // Show NEW files in chat (not in input area)
+                // Show NEW files in chat with instructions
                 const timestamp = this.uiUtils.formatTimestamp(new Date());
                 this.messageRenderer.addFileMessage(elements.chatContainer, processedFiles, timestamp);
                 
-                // AUTO-ANALYZE: Immediately send to AI for analysis
-                await this.analyzeUploadedFiles(processedFiles);
+                // Show instruction message to user
+                const instructionTimestamp = this.uiUtils.formatTimestamp(new Date());
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    `✅ **Đã tải lên ${processedFiles.length} file.** Bạn có thể hỏi tôi về nội dung file bây giờ! 💬`,
+                    false,
+                    'system',
+                    'info',
+                    instructionTimestamp
+                );
                 
                 // Clear the input
-                elements.fileInput.value = '';
+                newFileInput.value = '';
             } catch (error) {
                 console.error('Upload error:', error);
-                alert('❌ Lỗi upload file: ' + error.message);
-                elements.fileInput.value = '';
+                // Show error in chat instead of alert
+                const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    `❌ **Lỗi upload file:** ${error.message}`,
+                    false,
+                    'system',
+                    'error',
+                    errorTimestamp
+                );
+                newFileInput.value = '';
             }
         });
+        
+        // Update elements reference to use new file input
+        if (newFileInput) {
+            elements.fileInput = newFileInput;
+        }
         
         this.fileHandler.setupPasteHandler(elements.messageInput, async (files) => {
             try {
@@ -117,7 +161,16 @@ class ChatBotApp {
                         const fileData = await this.fileHandler.processFile(file);
                         processedFiles.push(fileData);
                     } catch (error) {
-                        alert(`❌ Lỗi xử lý file "${file.name}": ${error.message}`);
+                        // Show error in chat instead of alert
+                        const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                        this.messageRenderer.addMessage(
+                            elements.chatContainer,
+                            `❌ **Lỗi xử lý file "${file.name}":** ${error.message}`,
+                            false,
+                            'system',
+                            'error',
+                            errorTimestamp
+                        );
                         console.error('File processing error:', error);
                     }
                 }
@@ -130,15 +183,32 @@ class ChatBotApp {
                 }
                 this.saveFilesToCurrentSession();
                 
-                // Show NEW files in chat
+                // Show NEW files in chat with instructions
                 const timestamp = this.uiUtils.formatTimestamp(new Date());
                 this.messageRenderer.addFileMessage(elements.chatContainer, processedFiles, timestamp);
                 
-                // AUTO-ANALYZE
-                await this.analyzeUploadedFiles(processedFiles);
+                // Show instruction message
+                const instructionTimestamp = this.uiUtils.formatTimestamp(new Date());
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    `✅ **Đã paste ${processedFiles.length} file.** Hỏi tôi bất kỳ điều gì về file! 💬`,
+                    false,
+                    'system',
+                    'info',
+                    instructionTimestamp
+                );
             } catch (error) {
                 console.error('Paste error:', error);
-                alert('❌ Lỗi paste file: ' + error.message);
+                // Show error in chat instead of alert
+                const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    `❌ **Lỗi paste file:** ${error.message}`,
+                    false,
+                    'system',
+                    'error',
+                    errorTimestamp
+                );
             }
         });
         
@@ -165,6 +235,18 @@ class ChatBotApp {
         });
         
         console.log('[App] Initialization complete!');
+    }
+
+    /**
+     * Render chat list (wrapper method for event listener)
+     */
+    renderChatList() {
+        this.uiUtils.renderChatList(
+            this.chatManager.chatSessions,
+            this.chatManager.currentChatId,
+            (chatId) => this.handleSwitchChat(chatId),
+            (chatId) => this.handleDeleteChat(chatId)
+        );
     }
 
     /**
@@ -236,6 +318,15 @@ class ChatBotApp {
             });
         }
         
+        // Upload files button
+        const uploadFilesBtn = document.getElementById('uploadFilesBtn');
+        if (uploadFilesBtn && elements.fileInput) {
+            uploadFilesBtn.addEventListener('click', () => {
+                console.log('[App] Upload button clicked, triggering file input');
+                elements.fileInput.click();
+            });
+        }
+        
         // Memory panel
         if (elements.memoryBtn) {
             elements.memoryBtn.addEventListener('click', () => this.toggleMemoryPanel());
@@ -270,6 +361,24 @@ class ChatBotApp {
         // Load messages
         if (session.messages.length > 0) {
             elements.chatContainer.innerHTML = session.messages.join('');
+            
+            // Restore message version history from session
+            if (session.messageVersions) {
+                Object.keys(session.messageVersions).forEach(messageId => {
+                    const versions = session.messageVersions[messageId];
+                    if (versions && versions.length > 0) {
+                        // Restore to messageRenderer's history
+                        this.messageRenderer.messageHistory.set(messageId, versions);
+                        
+                        // Update version indicators for messages with history
+                        const messageDiv = elements.chatContainer.querySelector(`[data-message-id="${messageId}"]`);
+                        if (messageDiv && versions.length > 1) {
+                            messageDiv.dataset.currentVersion = (versions.length - 1).toString();
+                            this.messageRenderer.updateVersionIndicator(messageDiv);
+                        }
+                    }
+                });
+            }
             
             // Reattach event listeners
             this.messageRenderer.reattachEventListeners(
@@ -324,6 +433,9 @@ class ChatBotApp {
             if (fileContext) {
                 message = `${fileContext}\n\n${message || 'Hãy phân tích các file được đính kèm.'}`;
             }
+            // Auto-enable deep thinking when files are attached for better analysis
+            formValues.deepThinking = true;
+            console.log('[App] Auto-enabled Deep Thinking due to attached files');
         }
         
         // Generate message ID for versioning
@@ -342,6 +454,17 @@ class ChatBotApp {
             formValues.context,
             timestamp
         );
+        
+        // If deep thinking is enabled, add thinking container with loading state
+        let thinkingContainer = null;
+        if (formValues.deepThinking) {
+            const thinkingSection = this.messageRenderer.createThinkingSection(null, true);
+            elements.chatContainer.appendChild(thinkingSection);
+            thinkingContainer = thinkingSection;
+            
+            // Scroll to bottom to show thinking
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
         
         // Clear input (but keep files attached for this session)
         this.uiUtils.clearInput();
@@ -373,14 +496,53 @@ class ChatBotApp {
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
             const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
             
-            this.messageRenderer.addMessage(
+            // If deep thinking was enabled and we have thinking_process
+            if (formValues.deepThinking && data.thinking_process && thinkingContainer) {
+                // Update thinking container with actual thinking process
+                this.messageRenderer.updateThinkingContent(thinkingContainer, data.thinking_process);
+            } else if (thinkingContainer) {
+                // Remove thinking container if no thinking process returned
+                thinkingContainer.remove();
+            }
+            
+            const responseMsg = this.messageRenderer.addMessage(
                 elements.chatContainer,
                 responseContent,
                 false,
                 formValues.model,
                 formValues.context,
-                responseTimestamp
+                responseTimestamp,
+                data.thinking_process || null
             );
+            
+            // Update the latest version with the new response
+            // Find the user message with messageId
+            const userMessages = elements.chatContainer.querySelectorAll('.message.user[data-message-id]');
+            if (userMessages.length > 0) {
+                const lastUserMsg = userMessages[userMessages.length - 1];
+                const messageId = lastUserMsg.dataset.messageId;
+                
+                if (messageId) {
+                    // Get history and update last version's response
+                    const history = this.messageRenderer.getMessageHistory(messageId);
+                    if (history.length > 0) {
+                        const lastVersion = history[history.length - 1];
+                        lastVersion.assistantResponse = responseContent;
+                        
+                        // Save to chatManager
+                        if (window.chatManager) {
+                            const session = window.chatManager.getCurrentSession();
+                            if (session && session.messageVersions && session.messageVersions[messageId]) {
+                                const versions = session.messageVersions[messageId];
+                                if (versions.length > 0) {
+                                    versions[versions.length - 1].assistantResponse = responseContent;
+                                    window.chatManager.saveSessions();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             
             // Save to version history (version 1)
             if (!this.messageHistory[this.currentMessageId]) {
@@ -403,6 +565,11 @@ class ChatBotApp {
             }, 100);
             
         } catch (error) {
+            // Remove thinking container if error
+            if (thinkingContainer) {
+                thinkingContainer.remove();
+            }
+            
             // Check if it was aborted by user
             if (error.name === 'AbortError') {
                 console.log('Generation stopped by user');
@@ -888,25 +1055,37 @@ class ChatBotApp {
             );
             
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
+            const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
             
-            if (data.error) {
-                this.messageRenderer.addMessage(
-                    elements.chatContainer,
-                    `❌ **Lỗi:** ${data.error}`,
-                    false,
-                    formValues.model,
-                    formValues.context,
-                    responseTimestamp
-                );
-            } else {
-                this.messageRenderer.addMessage(
-                    elements.chatContainer,
-                    data.response,
-                    false,
-                    formValues.model,
-                    formValues.context,
-                    responseTimestamp
-                );
+            this.messageRenderer.addMessage(
+                elements.chatContainer,
+                responseContent,
+                false,
+                formValues.model,
+                formValues.context,
+                responseTimestamp
+            );
+            
+            // Update version history with the new response
+            const messageId = messageDiv.dataset.messageId;
+            if (messageId) {
+                const history = this.messageRenderer.getMessageHistory(messageId);
+                if (history.length > 0) {
+                    // Update the last version with the response
+                    history[history.length - 1].assistantResponse = responseContent;
+                    
+                    // Save to chatManager localStorage
+                    if (window.chatManager) {
+                        const session = window.chatManager.getCurrentSession();
+                        if (session && session.messageVersions && session.messageVersions[messageId]) {
+                            const versions = session.messageVersions[messageId];
+                            if (versions.length > 0) {
+                                versions[versions.length - 1].assistantResponse = responseContent;
+                                window.chatManager.saveSessions();
+                            }
+                        }
+                    }
+                }
             }
             
             // Save session

@@ -44,6 +44,14 @@ venv_*/
 !**/config/.env.example
 !**/config/__init__.py
 
+# Google OAuth & API Credentials
+**/google_oauth_credentials.json
+**/client_secret*.json
+**/credentials.json
+**/token.json
+**/token.pickle
+**/*_credentials.json
+
 # ============================================
 # IDE & EDITOR
 # ============================================
