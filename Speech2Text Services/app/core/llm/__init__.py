@@ -2,19 +2,19 @@
 LLM clients for speech-to-text models
 - WhisperClient: OpenAI Whisper large-v3
 - PhoWhisperClient: VinAI PhoWhisper-large  
-- QwenClient: Alibaba Qwen2.5-1.5B-Instruct
+- GeminiClient: Google Gemini 2.0 Flash (Free)
 - SpeakerDiarizationClient: pyannote.audio speaker diarization
 """
 
 from .whisper_client import WhisperClient
 from .phowhisper_client import PhoWhisperClient
-from .qwen_client import QwenClient
+from .gemini_client import GeminiClient
 from .diarization_client import SpeakerDiarizationClient, SpeakerSegment
 
 __all__ = [
     "WhisperClient", 
     "PhoWhisperClient", 
-    "QwenClient",
+    "GeminiClient",
     "SpeakerDiarizationClient",
     "SpeakerSegment"
 ]

@@ -27,7 +27,7 @@ warnings.filterwarnings('ignore', message='.*libtorchcodec.*')
 # Add app directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.llm import SpeakerDiarizationClient, WhisperClient, PhoWhisperClient, QwenClient
+from core.llm import SpeakerDiarizationClient, WhisperClient, PhoWhisperClient, GeminiClient
 from core.utils import preprocess_audio
 
 # Load environment with absolute path
@@ -101,7 +101,7 @@ def process_audio_with_diarization(audio_path, session_id):
         'diarization': 0,
         'whisper': 0,
         'phowhisper': 0,
-        'qwen': 0,
+        'gemini': 0,
         'total': 0
     }
     
@@ -259,41 +259,41 @@ def process_audio_with_diarization(audio_path, session_id):
         with open(timeline_file, 'w', encoding='utf-8') as f:
             f.write(timeline_text)
         
-        # ============= STEP 7: QWEN FUSION =============
+        # ============= STEP 7: GEMINI ENHANCEMENT =============
         step_start = time.time()
-        emit_progress('qwen', 92, 'Loading Qwen model for enhancement...')
+        emit_progress('gemini', 92, 'Loading Gemini model for transcript cleaning...')
         
         try:
-            qwen = QwenClient()
-            qwen.load()
+            gemini = GeminiClient()
+            gemini.load()
             
-            # Build dual transcript for Qwen
+            # Build dual transcript for Gemini
             dual_text = f"WHISPER TRANSCRIPT:\n{timeline_text}\n\n"
             dual_text += "PHOWHISPER TRANSCRIPT:\n"
             for i, (trans, pho) in enumerate(zip(segment_transcripts, pho_transcripts)):
                 seg = trans['segment']
                 dual_text += f"[{seg.start_time:.2f}s - {seg.end_time:.2f}s] {seg.speaker_id}: {pho}\n"
             
-            emit_progress('qwen', 95, 'Enhancing with Qwen...')
+            emit_progress('gemini', 95, 'Cleaning transcript with Gemini AI...')
             
             from core.prompts.templates import PromptTemplates
-            prompt = PromptTemplates.build_qwen_prompt(
+            prompt = PromptTemplates.build_gemini_prompt(
                 whisper_text=timeline_text,
                 phowhisper_text=dual_text
             )
             
-            enhanced, gen_time = qwen.generate(prompt, max_new_tokens=4096)
+            enhanced, gen_time = gemini.generate(prompt, max_new_tokens=4096)
             
             enhanced_file = f"{SESSION_DIR}/enhanced_transcript.txt"
             with open(enhanced_file, 'w', encoding='utf-8') as f:
                 f.write(enhanced)
             
-            timings['qwen'] = time.time() - step_start
-            emit_progress('qwen', 98, 'Qwen enhancement complete')
+            timings['gemini'] = time.time() - step_start
+            emit_progress('gemini', 98, 'Gemini enhancement complete')
             
         except Exception as e:
-            timings['qwen'] = time.time() - step_start
-            emit_progress('qwen', 98, f'Qwen skipped: {str(e)}')
+            timings['gemini'] = time.time() - step_start
+            emit_progress('gemini', 98, f'Gemini skipped: {str(e)}')
             enhanced = timeline_text
             enhanced_file = timeline_file
         
@@ -506,7 +506,7 @@ if __name__ == '__main__':
     print("  ✓ Real-time progress tracking")
     print("  ✓ Speaker diarization")
     print("  ✓ Dual model transcription (Whisper + PhoWhisper)")
-    print("  ✓ Qwen enhancement")
+    print("  ✓ Gemini AI transcript cleaning (free)")
     print("  ✓ Results download")
     print()
     print("=" * 80)

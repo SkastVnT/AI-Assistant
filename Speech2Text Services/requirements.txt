@@ -24,8 +24,8 @@ transformers==4.40.0
 accelerate==0.27.2
 sentencepiece==0.2.0
 
-# Qwen2.5-1.5B-Instruct (Smart Fusion LLM)
-# Uses transformers package above
+# Google Gemini (Cloud-based LLM for transcript cleaning)
+google-generativeai>=0.3.0
 
 # Speaker Diarization (UPDATED in v3.5)
 pyannote.audio==3.1.1

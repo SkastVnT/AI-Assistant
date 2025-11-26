@@ -254,6 +254,93 @@ TRANSCRIPT GỐC (từ 2 model speech-to-text, có thể sai chính tả, thiế
         return prompt
     
     @staticmethod
+    def build_gemini_prompt(
+        whisper_text: str,
+        phowhisper_text: str,
+    ) -> str:
+        """
+        Build complete prompt for Gemini model with STT cleaning instructions
+        
+        Args:
+            whisper_text: Transcript from Whisper
+            phowhisper_text: Transcript from PhoWhisper
+            
+        Returns:
+            Complete prompt for Gemini STT cleaning
+        """
+        # Combine both transcripts
+        combined_transcripts = f"""TRANSCRIPT 1 (Whisper large-v3):
+{whisper_text}
+
+TRANSCRIPT 2 (PhoWhisper-large):
+{phowhisper_text}"""
+        
+        # Build Gemini prompt with STT cleaning instructions
+        prompt = f"""You are an expert Speech-to-Text (STT) transcript cleaner and text reconstruction assistant.
+Your job is to clean raw STT output generated from any audio source
+(such as conversations, lectures, interviews, meetings, phone calls, reports, dictations, or noisy recordings).
+
+The STT input may contain:
+– filler words (ờ, à, um, uh, kiểu như, basically…)
+– repeated words
+– misheard phonetics
+– wrong punctuation
+– run-on sentences
+– missing diacritics (especially Vietnamese)
+– broken Unicode
+– background-noise fragments
+– half-cut sentences or word artifacts
+– timestamps or system logs (if present)
+
+==========================
+RULES
+==========================
+
+1. DO NOT invent or add new information. Only reconstruct what the speaker clearly intended.
+2. Remove everything that is NOT part of the spoken content:
+   – timestamps
+   – logs
+   – noise labels
+   – system metadata
+   – [inaudible], [music], etc. (unless they are semantically meaningful)
+3. Fix STT errors:
+   – restore correct Vietnamese diacritics
+   – fix mis-heard words (if obviously intended)
+   – fix merged or split words
+   – remove filler words and repeated words when unnecessary
+   – correct punctuation and sentence boundaries
+4. Preserve meaning exactly as spoken.
+5. Format the output cleanly:
+   – proper paragraphs
+   – clear sentence boundaries
+   – speaker turns if identifiable (e.g., "A:" and "B:")
+6. If the transcript looks like a meeting, phone call, or interview, preserve dialogue structure.
+7. If numbers, names, dates, or codes are recognized, keep them exactly.
+8. Do NOT summarize. Do NOT shorten. Do NOT add or guess missing context.
+
+==========================
+OUTPUT REQUIREMENTS
+==========================
+
+Your output must be:
+✓ Clean  
+✓ Faithful to the spoken content  
+✓ Fully readable  
+✓ No STT noise  
+✓ No invented text  
+
+==========================
+INPUT (RAW SPEECH-TO-TEXT):
+{combined_transcripts}
+==========================
+
+OUTPUT (CLEANED HUMAN-READABLE TEXT):
+"""
+        
+        return prompt
+
+    
+    @staticmethod
     def build_simple_prompt(
         text: str,
         instruction: str = "Sửa lỗi chính tả và ngữ pháp, thêm dấu câu cho đoạn văn sau:",
