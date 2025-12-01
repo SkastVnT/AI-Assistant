@@ -1,0 +1,162 @@
+# Advanced LoRA Training Configuration (v2.2)
+# Optimized with state-of-the-art techniques for best quality
+# Uses: Prodigy optimizer, Min-SNR, EMA, noise offset, buckets
+
+# Model Configuration
+model:
+  pretrained_model_name_or_path: "runwayml/stable-diffusion-v1-5"
+  revision: null
+
+# LoRA Configuration
+lora:
+  rank: 32  # Higher rank for better quality (16-64)
+  alpha: 32  # Alpha = rank for balanced scaling
+  dropout: 0.05  # Small dropout prevents overfitting
+  target_modules:
+    - "to_q"
+    - "to_k"
+    - "to_v"
+    - "to_out.0"
+    - "ff.net.0.proj"
+    - "ff.net.2"
+
+# Dataset Configuration
+dataset:
+  train_data_dir: "data/train"
+  val_data_dir: "data/val"  # Optional validation set
+  resolution: 512
+  center_crop: false  # Keep original composition
+  random_flip: true
+  caption_extension: ".txt"
+  
+  # Multi-resolution training (buckets)
+  use_buckets: true
+  bucket_sizes:
+    - [512, 512]   # Square 1:1
+    - [768, 512]   # Landscape 3:2
+    - [512, 768]   # Portrait 2:3
+    - [640, 640]   # Medium square
+    - [896, 512]   # Wide landscape 16:9
+    - [512, 896]   # Tall portrait 9:16
+    - [704, 704]   # Large square
+  
+  # Caption processing
+  shuffle_caption: true  # Shuffle tags (for booru-style datasets)
+  keep_tokens: 1  # Keep first token (e.g., "1girl")
+  
+  # Latent caching (3-5x faster training)
+  cache_latents: true
+  cache_latents_to_disk: false  # Use RAM for speed
+
+# Training Configuration
+training:
+  # Basic settings
+  num_train_epochs: 15  # More epochs for better learning
+  train_batch_size: 2  # Increase if you have VRAM
+  gradient_accumulation_steps: 2  # Effective batch size = 2*2 = 4
+  
+  # Optimizer: Prodigy (auto-adjusts LR, better than AdamW)
+  optimizer: "prodigy"
+  learning_rate: 1.0  # Fixed for Prodigy (no tuning needed!)
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+  
+  # Learning rate scheduler
+  lr_scheduler: "cosine_with_restarts"
+  lr_warmup_steps: 100
+  lr_num_cycles: 3  # For cosine_with_restarts
+  
+  # ✨ ADVANCED FEATURES (v2.2) ✨
+  
+  # Exponential Moving Average (better generalization)
+  use_ema: true
+  ema_decay: 0.9999
+  
+  # Min-SNR weighting (improves quality by 20-30%)
+  min_snr_gamma: 5.0
+  
+  # Noise offset (better dark/bright image generation)
+  noise_offset: 0.1
+  
+  # Pyramid noise (multi-scale training, slower but better)
+  use_pyramid_noise: false  # Set true for final training
+  pyramid_discount: 0.9
+  
+  # Adaptive loss weighting
+  adaptive_loss_weight: true
+  
+  # ✨ NEW FEATURES (v2.3) ✨
+  
+  # LoRA+ (2-3x faster convergence!)
+  use_loraplus: true
+  loraplus_lr_ratio: 16.0  # Paper recommends 16 for best results
+  loraplus_unet_lr_ratio: 16.0  # Can customize per-module
+  loraplus_text_encoder_lr_ratio: 4.0  # Lower for text encoder stability
+  
+  # Scheduled Huber Loss (robust against outliers/corrupted data)
+  loss_type: "smooth_l1"  # smooth_l1 recommended (better than pure huber or l2)
+  huber_c: 0.1  # Huber parameter (0.05-0.2)
+  huber_schedule: "snr"  # SNR-based scheduling (best quality)
+  
+  # Text encoder training (optional, uses more VRAM)
+  train_text_encoder: false  # Set true for style LoRA
+  text_encoder_lr: 5.0e-5  # Lower LR for text encoder
+  
+  # Training control
+  max_train_steps: null
+  validation_epochs: 2
+  save_steps: 3
+  save_model_epochs: 5
+  
+  # Directories
+  output_dir: "outputs/advanced_lora"
+  checkpoint_dir: "outputs/advanced_lora/checkpoints"
+  
+  # DataLoader
+  dataloader_num_workers: 4
+  pin_memory: true
+  
+  # Performance
+  mixed_precision: "fp16"  # or "bf16" for RTX 30xx+
+  gradient_checkpointing: true
+  enable_xformers_memory_efficient_attention: true
+  
+  # Prior preservation (DreamBooth-style, optional)
+  with_prior_preservation: false
+  prior_loss_weight: 1.0
+  num_class_images: 100
+  class_data_dir: null
+  class_prompt: null
+
+# Logging Configuration
+logging:
+  log_dir: "outputs/advanced_lora/logs"
+  use_tensorboard: true
+  use_wandb: false  # Set true if you use Weights & Biases
+  wandb_project: "lora-training"
+  wandb_run_name: null  # Auto-generated if null
+  log_interval: 10  # Log every N steps
+  save_samples_every_n_epochs: 2  # Generate validation samples
+
+# Output Configuration
+output:
+  output_dir: "outputs/advanced_lora"
+  save_format: "safetensors"  # or "pytorch"
+  save_precision: "fp16"  # or "fp32", "bf16"
+  
+# Sample Generation (for validation)
+sampling:
+  enabled: true
+  num_samples: 4
+  prompts:
+    - "1girl, masterpiece, best quality"
+    - "1boy, detailed face, portrait"
+    - "scenery, landscape, mountain"
+    - "your custom prompt here"
+  negative_prompt: "worst quality, low quality, normal quality, bad anatomy"
+  guidance_scale: 7.5
+  num_inference_steps: 28
+  seed: 42

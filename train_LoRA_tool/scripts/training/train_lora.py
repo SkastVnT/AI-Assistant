@@ -7,10 +7,12 @@ import os
 import sys
 import argparse
 import logging
+import math
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 import yaml
 import torch
+import torch.nn.functional as F
 from accelerate import Accelerator
 from diffusers import (
     AutoencoderKL,
@@ -18,7 +20,9 @@ from diffusers import (
     StableDiffusionPipeline,
     UNet2DConditionModel,
 )
+from diffusers.optimization import get_scheduler
 from transformers import CLIPTextModel, CLIPTokenizer
+import numpy as np
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -34,6 +38,16 @@ from utils.training_utils import (
     validate_model,
     save_checkpoint,
     load_checkpoint,
+)
+from utils.advanced_training import (
+    EMAModel,
+    compute_snr,
+    compute_min_snr_loss_weight,
+    apply_noise_offset,
+    pyramid_noise_like,
+    ProdigyOptimizer,
+    compute_scheduled_huber_loss,
+    apply_loraplus,
 )
 
 
@@ -75,6 +89,35 @@ class LoRATrainer:
         self.current_epoch = 0
         self.current_step = 0
         self.best_loss = float('inf')
+        
+        # Advanced training features
+        self.use_ema = config['training'].get('use_ema', False)
+        self.ema_decay = config['training'].get('ema_decay', 0.9999)
+        self.ema_model = None
+        
+        # Min-SNR weighting (Hang et al. 2023)
+        self.min_snr_gamma = config['training'].get('min_snr_gamma', None)
+        
+        # Noise offset (improves darker/lighter image generation)
+        self.noise_offset = config['training'].get('noise_offset', 0.0)
+        
+        # Adaptive loss weighting
+        self.adaptive_loss_weight = config['training'].get('adaptive_loss_weight', False)
+        
+        # Multi-resolution training (buckets)
+        self.use_buckets = config['dataset'].get('use_buckets', False)
+        self.bucket_sizes = config['dataset'].get('bucket_sizes', [(512, 512), (768, 512), (512, 768)])
+        
+        # LoRA+ (faster convergence with higher LR for B layers)
+        self.use_loraplus = config['training'].get('use_loraplus', False)
+        self.loraplus_lr_ratio = config['training'].get('loraplus_lr_ratio', 16.0)
+        self.loraplus_unet_lr_ratio = config['training'].get('loraplus_unet_lr_ratio', None)
+        self.loraplus_text_encoder_lr_ratio = config['training'].get('loraplus_text_encoder_lr_ratio', None)
+        
+        # Scheduled Huber Loss (robust against outliers)
+        self.loss_type = config['training'].get('loss_type', 'l2')  # 'l2', 'huber', 'smooth_l1'
+        self.huber_c = config['training'].get('huber_c', 0.1)
+        self.huber_schedule = config['training'].get('huber_schedule', 'snr')  # 'snr', 'exponential', 'constant'
         
     def prepare_dataset(self):
         """Prepare training and validation datasets."""

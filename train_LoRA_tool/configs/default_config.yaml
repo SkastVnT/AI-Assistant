@@ -27,6 +27,24 @@ dataset:
   center_crop: true  # Center crop images
   random_flip: true  # Random horizontal flip for augmentation
   caption_extension: ".txt"  # Caption file extension (.txt, .caption, .tags)
+  
+  # Advanced features (NEW v2.2)
+  use_buckets: true  # Multi-resolution training (buckets)
+  bucket_sizes:  # Resolution buckets (auto-generated if empty)
+    - [512, 512]
+    - [768, 512]
+    - [512, 768]
+    - [640, 640]
+    - [896, 512]
+    - [512, 896]
+  
+  # Caption processing
+  shuffle_caption: true  # Shuffle caption tags (for booru-style tags)
+  keep_tokens: 1  # Number of tokens to keep at start (e.g., "1girl")
+  
+  # Latent caching (faster training, more VRAM)
+  cache_latents: true  # Cache VAE latents to disk
+  cache_latents_to_disk: false  # Store latents on disk vs RAM
 
 # Training Configuration
 training:
@@ -36,8 +54,8 @@ training:
   gradient_accumulation_steps: 4  # Accumulate gradients over N steps
   
   # Optimizer settings
-  optimizer: "adamw"  # Optimizer type (adamw, adam, sgd, adafactor)
-  learning_rate: 1.0e-4  # Learning rate
+  optimizer: "prodigy"  # Optimizer type (adamw, adam, prodigy, adafactor)
+  learning_rate: 1.0  # Learning rate (1.0 for Prodigy, 1e-4 for AdamW)
   weight_decay: 0.01  # Weight decay
   adam_beta1: 0.9
   adam_beta2: 0.999
@@ -45,8 +63,30 @@ training:
   max_grad_norm: 1.0  # Gradient clipping
   
   # Learning rate scheduler
-  lr_scheduler: "cosine"  # Scheduler type (constant, linear, cosine, cosine_with_restarts)
+  lr_scheduler: "cosine_with_restarts"  # Scheduler type (constant, linear, cosine, cosine_with_restarts)
   lr_warmup_steps: 100  # Number of warmup steps
+  
+  # Advanced training features (NEW v2.2)
+  use_ema: true  # Use Exponential Moving Average for model weights
+  ema_decay: 0.9999  # EMA decay rate (0.999-0.9999)
+  
+  min_snr_gamma: 5.0  # Min-SNR weighting (improves quality, recommended: 5.0)
+  noise_offset: 0.1  # Noise offset for darker/lighter images (0.0-0.2)
+  use_pyramid_noise: false  # Multi-scale pyramid noise (slower but better)
+  
+  adaptive_loss_weight: true  # Adaptive loss weighting
+  train_text_encoder: false  # Also train text encoder (higher VRAM)
+  
+  # LoRA+ (NEW v2.3) - 2-3x faster convergence
+  use_loraplus: true  # Enable LoRA+ technique
+  loraplus_lr_ratio: 16.0  # Global LR ratio for B layers (paper recommends 16)
+  loraplus_unet_lr_ratio: null  # Specific ratio for UNet (overrides global if set)
+  loraplus_text_encoder_lr_ratio: null  # Specific ratio for Text Encoder
+  
+  # Scheduled Huber Loss (NEW v2.3) - robust against outliers
+  loss_type: "smooth_l1"  # Loss type: 'l2' (MSE), 'huber', 'smooth_l1'
+  huber_c: 0.1  # Huber parameter (delta/beta)
+  huber_schedule: "snr"  # Scheduling: 'snr' (recommended), 'exponential', 'constant'
   
   # Training steps
   max_train_steps: null  # Override epochs with max steps (optional)
@@ -54,6 +94,7 @@ training:
   # Validation and saving
   validation_epochs: 1  # Run validation every N epochs
   save_steps: 2  # Save checkpoint every N epochs
+  save_model_epochs: 5  # Save full model every N epochs
   
   # Output directories
   output_dir: "outputs/lora_models"

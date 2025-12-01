@@ -1,30 +1,109 @@
-# LoRA Training Tool for Stable Diffusion
+# LoRA Training Tool v2.3.1
 
-A comprehensive, production-ready tool for training LoRA (Low-Rank Adaptation) models on image datasets. Optimized for Stable Diffusion fine-tuning with automatic dataset preparation, validation, and advanced training features.
+**Modern WebUI for LoRA Training with AI-powered config recommendations**
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+A comprehensive, production-ready tool for training LoRA (Low-Rank Adaptation) models for Stable Diffusion. Features WebUI interface, AI-powered dataset preparation, Redis caching, and NSFW-safe training.
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0%20Flash-blue.svg)](https://ai.google.dev/)
+[![Redis](https://img.shields.io/badge/cache-Redis-red.svg)](https://redis.io/)
 
-## 🌟 Features
+---
 
-### Core Features
-- **Flexible Dataset Support**: Works with image datasets ranging from 20 to 2000+ images
-- **Automatic Captioning**: Built-in BLIP-based auto-captioning for images
-- **Dataset Validation**: Automatic detection and fixing of corrupted/invalid images
-- **Multiple Configurations**: Pre-configured settings for small/large datasets and SDXL
-- **Memory Efficient**: Gradient checkpointing, mixed precision, and xformers support
-- **Advanced Training**: SNR weighting, noise offset, EMA, prior preservation, and more
-- **Easy to Use**: Simple configuration files and batch scripts for Windows
+## 🚀 Quick Start
 
-### Advanced Features
-- 🔄 **Resume Training**: Continue from any checkpoint
-- 🎨 **Sample Generation**: Generate test images during/after training
-- 📊 **LoRA Analysis**: Detailed model inspection and comparison
-- 🔗 **LoRA Merging**: Merge multiple LoRAs or merge into base model
-- 🔧 **Format Conversion**: Convert between safetensors and PyTorch formats
-- 📈 **Benchmarking**: Compare different configurations automatically
-- 📝 **Comprehensive Logging**: TensorBoard and Wandb support
+```bash
+# 1. Setup (one-time)
+bin\setup.bat
+
+# 2. Start WebUI with Redis
+bin\start_webui_with_redis.bat
+
+# 3. Open browser
+http://127.0.0.1:7860
+```
+
+**See [QUICK_START.md](QUICK_START.md) for detailed guide.**
+
+---
+
+## 🌟 Key Features
+
+### 🌐 WebUI Interface
+- **Modern Dark Theme** - Professional Stable Diffusion-style UI
+- **Real-Time Monitoring** - Live training progress via Socket.IO
+- **Interactive Charts** - Loss and LR visualization
+- **Dataset Tools** - Resize, convert, deduplicate, validate
+- **One-Click Training** - Start from browser
+- **Remote Access** - Monitor from any device
+
+### 🤖 AI-Powered
+- **Gemini 2.0 Flash** - AI config recommendations (FREE tier!)
+- **Smart Hyperparameters** - Optimal LR, epochs, network dim
+- **Privacy-Safe NSFW** - Metadata-only approach (no images sent!)
+- **Auto Analysis** - Dataset quality scoring
+- **Cost Effective** - ~70% API savings with Redis caching
+
+### 🛠️ Dataset Tools
+- **🖼️ Resize Images** - Batch resize to 512x512, 768x768, etc.
+- **🔄 Convert Format** - PNG → WebP/JPG (50% size reduction)
+- **🗑️ Remove Duplicates** - Auto-detect and remove
+- **📁 Organize** - Auto-organize by resolution
+- **✅ Validate** - Check corrupted images, missing captions
+
+### 🔒 NSFW Training
+- **WD14 Tagger** - Local tagging (100% offline)
+- **Privacy-First** - Images never leave your PC
+- **Gemini Compatible** - Use AI with NSFW safely (metadata only!)
+- **See**: [docs/NSFW_TRAINING_GUIDE.md](docs/NSFW_TRAINING_GUIDE.md)
+
+### ⚡ Performance
+- **Redis Caching** - 70% faster with intelligent caching
+- **Task Queue** - FIFO job scheduling
+- **Persistent State** - Resume after crashes
+- **Real-time Updates** - Pub/Sub live progress
+
+### 🎯 Advanced Training
+- **LoRA+** - 2-3x faster convergence
+- **Min-SNR Gamma** - Better loss weighting
+- **Prodigy Optimizer** - Adaptive learning rates
+- **EMA** - Smoother training
+- **Multi-Resolution** - Aspect ratio bucketing
+---
+
+## 📁 Project Structure
+
+```
+train_LoRA_tool/
+├── bin/                    # 🚀 Executable scripts
+│   ├── setup.bat/sh        # One-time environment setup
+│   ├── start_webui_with_redis.bat/sh  # Start WebUI + Redis
+│   ├── stop_redis.bat/sh   # Stop Redis container
+│   └── README.md           # Script documentation
+├── docs/                   # 📚 Documentation
+│   ├── README.md           # Documentation index
+│   ├── changelog/          # Version histories
+│   ├── archive/            # Deprecated docs
+│   ├── QUICK_START.md      # ⭐ Start here
+│   ├── WEBUI_GUIDE.md      # WebUI usage
+│   ├── GEMINI_INTEGRATION.md
+│   ├── REDIS_INTEGRATION.md
+│   └── NSFW_TRAINING_GUIDE.md
+├── configs/                # ⚙️ Training configurations
+├── utils/                  # 🛠️ Core utilities
+│   ├── config_recommender.py  # AI recommendations
+│   ├── dataset_tools.py       # Image processing
+│   └── redis_manager.py       # Caching
+├── webui/                  # 🌐 Web interface
+│   ├── templates/
+│   └── static/
+├── webui.py                # 🖥️ WebUI server
+├── train_network.py        # 🎯 Core training
+└── requirements.txt        # 📦 Dependencies
+```
+
+---
 
 ## 📋 Requirements
 
@@ -40,140 +119,169 @@ A comprehensive, production-ready tool for training LoRA (Low-Rank Adaptation) m
 - 50GB free SSD space
 - Windows 11 or Ubuntu 22.04
 
-## 📚 Documentation
+---
 
-- **[Complete Guide](docs/GUIDE.md)** - Step-by-step tutorial for all features
-- **[Advanced Guide](ADVANCED_GUIDE.md)** - Advanced techniques and optimization
-- **[Feature List](FEATURES.md)** - Complete list of all 80+ features
-- **[Quick Reference](#)** - Command reference and examples
+## 📖 Documentation
 
-## 🚀 Quick Start
+| Document | Description |
+|----------|-------------|
+| **[QUICK_START.md](QUICK_START.md)** | ⭐ Start here - Complete setup guide |
+| **[docs/WEBUI_GUIDE.md](docs/WEBUI_GUIDE.md)** | WebUI features and usage |
+| **[docs/GEMINI_INTEGRATION.md](docs/GEMINI_INTEGRATION.md)** | AI-powered features |
+| **[docs/REDIS_INTEGRATION.md](docs/REDIS_INTEGRATION.md)** | Caching and performance |
+| **[docs/NSFW_TRAINING_GUIDE.md](docs/NSFW_TRAINING_GUIDE.md)** | Safe NSFW training |
+| **[docs/FEATURES.md](docs/FEATURES.md)** | Complete feature list |
+| **[docs/ADVANCED_FEATURES.md](docs/ADVANCED_FEATURES.md)** | Advanced training |
+| **[docs/](docs/)** | All documentation index |
 
-### 1. Installation
+---
 
+## 💻 Usage
+
+### First-Time Setup
 ```bash
-# Clone or navigate to the tool directory
-cd train_LoRA_tool
+# 1. Setup environment (installs PyTorch, dependencies)
+bin\setup.bat
 
-# Run setup script (Windows)
-setup.bat
+# 2. Configure Gemini API (optional but recommended)
+# Add to .env file:
+GOOGLE_API_KEY=your_gemini_api_key_here
 
-# Or manually install
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+# 3. Setup WD14 Tagger (for NSFW/offline tagging)
+bin\setup_wd14.bat
 ```
 
-### 2. Prepare Your Dataset
-
-```
-data/
-├── train/
-│   ├── image1.jpg
-│   ├── image1.txt          # Caption file (optional)
-│   ├── image2.png
-│   ├── image2.txt
-│   └── ...
-└── val/                    # Optional validation set
-    ├── val_image1.jpg
-    └── ...
-```
-
-**Caption Format:**
-- Each image should have a corresponding `.txt` file with the same name
-- Example: `portrait001.jpg` → `portrait001.txt`
-- Caption content: `"a photo of sks person, professional lighting, high quality"`
-
-### 3. Validate and Prepare Dataset
-
+### Start WebUI
 ```bash
-# Validate images
-python -m utils.preprocessing --data_dir data/train --action validate --fix
+# Option A: With Redis (recommended, 70% faster)
+bin\start_webui_with_redis.bat
 
-# Auto-generate captions (optional)
+# Option B: Without Redis
+bin\start_webui.bat
+
+# Access at: http://127.0.0.1:7860
+```
+
+### WebUI Workflow
+1. **Dataset Tab**: Upload images, select folder
+2. **Tools Tab**: Resize, convert, validate dataset
+3. **Model Tab**: Select base model
+4. **Training Tab**: Click "Get AI-Powered Config"
+5. **Start Training**: Monitor in real-time
+
+### Command Line Training
+```bash
+# Activate environment
+lora\Scripts\activate
+
+# Train with AI-recommended config
+python train_network.py --config configs/lora_config_recommended.yaml
+
+# Train small dataset (20-100 images)
+python train_network.py --config configs/lora_config_small.yaml
+
+# Train large dataset (500+ images)  
+python train_network.py --config configs/lora_config_large.yaml
+```
+
+---
+---
+
+## 💡 Example Use Cases
+
+### Character Training (Anime/Person)
+Perfect for: Anime characters, specific people, mascots
+
+**Settings:**
+- Network Dim: 32-64
+- Epochs: 10-15
+- Learning Rate: 1e-4
+- Dataset: 50-200 images
+
+**Usage:**
+```
+<lora:character_name:0.8> 1girl, red hair, blue eyes
+```
+
+### Style Training (Artistic)
+Perfect for: Art styles, rendering techniques
+
+**Settings:**
+- Network Dim: 64-128
+- Epochs: 15-20
+- Learning Rate: 5e-5
+- Dataset: 100-500 images
+
+**Usage:**
+```
+<lora:style_name:0.7> landscape, sunset, watercolor style
+```
+
+### Concept Training (Objects)
+Perfect for: Specific objects, props, concepts
+
+**Settings:**
+- Network Dim: 16-32
+- Epochs: 10-15
+- Learning Rate: 1e-4
+- Dataset: 30-100 images
+
+**Usage:**
+```
+<lora:object_name:0.6> futuristic car, cyberpunk style
+```
+
+---
 python -m utils.preprocessing --data_dir data/train --action caption --prefix "a photo of sks person"
 
 # Split dataset into train/val (optional)
 python -m utils.preprocessing --data_dir data/all_images --action split --val_ratio 0.1
 ```
 
-### 4. Configure Training
+### 5. Configure Training
 
 Choose a configuration based on your dataset size:
 
-**Small Dataset (500-1000 images):**
+**AI-Recommended Config (Best for most cases):**
 ```bash
-copy configs\small_dataset_config.yaml configs\my_config.yaml
+# Use config generated by Gemini AI
+python scripts/training/train_lora.py --config configs/ai_config.yaml
 ```
 
-**Medium Dataset (1000-1500 images):**
+## 🛠️ Advanced Features
+
+### Resume Training
 ```bash
-copy configs\default_config.yaml configs\my_config.yaml
+# Resume from latest checkpoint
+lora\Scripts\activate
+python train_network.py --config configs/my_config.yaml --resume
+
+# Resume from specific epoch
+python train_network.py --config configs/my_config.yaml --resume output/checkpoint-epoch-5.safetensors
 ```
 
-**Large Dataset (1500-2000+ images):**
+### LoRA Analysis & Tools
 ```bash
-copy configs\large_dataset_config.yaml configs\my_config.yaml
+# Analyze trained LoRA
+python utils/analyze_lora.py output/lora_models/my_lora.safetensors
+
+# Merge multiple LoRAs
+python utils/merge_lora.py --loras lora1.safetensors lora2.safetensors --output merged.safetensors
+
+# Convert formats
+python utils/convert_lora.py --input model.pt --output model.safetensors
 ```
 
-**SDXL Training:**
+### Batch Processing
 ```bash
-copy configs\sdxl_config.yaml configs\my_config.yaml
+# Train multiple configs
+python utils/batch_train.py --configs config1.yaml config2.yaml
+
+# Benchmark different settings
+python utils/benchmark.py --dataset data/train --variations lr,network_dim
 ```
 
-Edit `configs/my_config.yaml` to adjust:
-- Dataset paths
-## 📁 Directory Structure
-
-```
-train_LoRA_tool/
-├── configs/                    # Configuration files
-│   ├── default_config.yaml
-│   ├── small_dataset_config.yaml
-│   ├── large_dataset_config.yaml
-│   └── sdxl_config.yaml
-├── data/                       # Your datasets
-│   ├── train/                  # Training images
-│   └── val/                    # Validation images (optional)
-├── docs/                       # Documentation
-│   └── GUIDE.md                # Complete guide
-├── scripts/                    # Helper scripts
-├── prompts/                    # Sample prompts
-│   ├── character_prompts.txt
-│   └── style_prompts.txt
-├── outputs/                    # Training outputs (auto-created)
-│   ├── lora_models/            # Trained LoRA models
-│   ├── checkpoints/            # Training checkpoints
-│   ├── logs/                   # Training logs
-│   └── samples/                # Generated samples
-├── utils/                      # Core utilities
-│   ├── dataset_loader.py
-│   ├── preprocessing.py
-│   ├── logger.py
-│   ├── model_utils.py
-│   ├── lora_layers.py
-│   └── training_utils.py
-├── train_lora.py               # Main training script
-├── resume_training.py          # Resume from checkpoint
-├── generate_samples.py         # Generate test images
-├── analyze_lora.py             # Analyze LoRA models
-├── merge_lora.py               # Merge LoRAs
-├── convert_lora.py             # Format conversion
-├── benchmark.py                # Training benchmark
-├── requirements.txt            # Dependencies
-├── setup.bat                   # Setup (Windows)
-├── train.bat                   # Training launcher
-├── quickstart.bat              # Interactive guide
-├── preprocess.bat              # Preprocessing menu
-├── utilities.bat               # Utilities menu
-├── batch_generate.bat          # Batch generation
-├── README.md                   # This file
-├── ADVANCED_GUIDE.md           # Advanced guide
-├── FEATURES.md                 # Feature list
-└── .gitignore                  # Git ignore rules
-``` ├── checkpoints/            # Training checkpoints
-│   ├── logs/                   # Training logs
-│   └── samples/                # Generated samples (optional)
+---
 ├── utils/                      # Utility modules
 │   ├── dataset_loader.py       # Dataset loading
 │   ├── preprocessing.py        # Dataset preprocessing
@@ -241,11 +349,11 @@ train_LoRA_tool/
 
 ## 📊 Monitoring Training
 
-### Check Logs:
-```bash
-# View latest log
-type outputs\logs\training_*.log
-```
+### WebUI Real-Time Monitoring
+- **Live Loss Chart** - Track training progress visually
+- **Learning Rate Graph** - Monitor LR schedule
+- **Live Logs** - Real-time training output
+- **Sample Generation** - View test images during training
 
 ### TensorBoard (optional):
 ```bash
@@ -256,50 +364,39 @@ use_tensorboard: true
 tensorboard --logdir outputs/tensorboard
 ```
 
-### Wandb (optional):
-```bash
-# Enable in config
-use_wandb: true
-wandb_project: "my-lora-training"
-
-# Login
-wandb login
-```
+---
 
 ## 🔧 Troubleshooting
 
 ### Out of Memory (OOM):
-1. Reduce `train_batch_size` to 1
-2. Increase `gradient_accumulation_steps`
-3. Enable `gradient_checkpointing: true`
-4. Reduce `resolution` (e.g., 512 → 384)
-5. Enable `enable_xformers: true`
+- Reduce `train_batch_size` to 1
+- Increase `gradient_accumulation_steps`
+- Enable `gradient_checkpointing: true`
+- Reduce `resolution` (512 → 384)
 
 ### Training Too Slow:
-1. Enable `mixed_precision: "fp16"`
-2. Enable `cache_latents: true`
-3. Increase `dataloader_num_workers`
-4. Install xformers: `pip install xformers`
+- Enable `mixed_precision: "fp16"`
+- Enable `cache_latents: true`
+- Install xformers: `pip install xformers`
 
 ### Poor Quality Results:
-1. Increase number of epochs
-2. Adjust learning rate (try 5e-5 to 2e-4)
-3. Enable `snr_gamma: 5.0`
-4. Add `noise_offset: 0.05`
-5. Increase dataset size or quality
+- Increase epochs or adjust learning rate
+- Enable `snr_gamma: 5.0`
+- Improve dataset quality
+- Use AI recommendations (click "Get AI-Powered Config")
 
-### Overfitting:
-1. Reduce LoRA rank
-2. Add dropout: `dropout: 0.1`
-3. Increase weight decay
-4. Use validation split
-5. Reduce number of epochs
+### Redis Issues:
+- Ensure Docker is running
+- Restart Redis: `bin\stop_redis.bat` then `bin\start_webui_with_redis.bat`
+- Or use WebUI without Redis: `bin\start_webui.bat`
+
+---
 
 ## 🎨 Using Trained LoRA
 
-### In Stable Diffusion WebUI:
-1. Copy `outputs/lora_models/final_model.safetensors` to `stable-diffusion-webui/models/Lora/`
-2. In prompt, use: `<lora:final_model:0.8>`
+### In Stable Diffusion WebUI (AUTOMATIC1111):
+1. Copy `output/lora_models/final_model.safetensors` to `stable-diffusion-webui/models/Lora/`
+2. In prompt: `<lora:final_model:0.8> your prompt here`
 3. Adjust weight (0.5-1.2) as needed
 
 ### In ComfyUI:
@@ -310,204 +407,82 @@ wandb login
 ### In Code:
 ```python
 from diffusers import StableDiffusionPipeline
-import torch
 
 pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5")
-pipe.load_lora_weights("outputs/lora_models/final_model.safetensors")
+pipe.load_lora_weights("output/lora_models/final_model.safetensors")
 
-image = pipe("a photo of sks person", num_inference_steps=30).images[0]
+image = pipe("your prompt", num_inference_steps=30).images[0]
 ```
 
-## 📖 Examples
-
-### Example 1: Character LoRA
-```yaml
-dataset:
-  train_data_dir: "data/character_photos"
-  resolution: 512
-
-lora:
-  rank: 16
-  alpha: 32
-
-training:
-  num_train_epochs: 15
-  learning_rate: 1.0e-4
-
-logging:
-  sample_prompts:
-    - "a photo of sks person"
-    - "portrait of sks person"
-    - "sks person smiling"
-```
-
-### Example 2: Art Style LoRA
-```yaml
+---
 ## 📊 Training Statistics
 
 | Configuration | GPU | Dataset | Training Time | Model Size |
 |--------------|-----|---------|---------------|------------|
-| SD 1.5, Rank 16 | RTX 3090 | 500 images | 2-3 hours | ~20MB |
-| SD 1.5, Rank 32 | RTX 3090 | 1000 images | 4-6 hours | ~40MB |
-| SDXL, Rank 32 | RTX 4090 | 500 images | 6-8 hours | ~80MB |
-| SDXL, Rank 64 | RTX 4090 | 1000 images | 10-12 hours | ~160MB |
+| SD 1.5, Rank 16 | RTX 3090 | 100 images | 1-2 hours | ~20MB |
+| SD 1.5, Rank 32 | RTX 3090 | 500 images | 3-5 hours | ~40MB |
+| SDXL, Rank 32 | RTX 4090 | 100 images | 4-6 hours | ~80MB |
+| SDXL, Rank 64 | RTX 4090 | 500 images | 8-10 hours | ~160MB |
 
-## 🎯 Use Cases
+---
 
-### Character/Person Training
-- **Images needed**: 20-50
-- **Recommended rank**: 8-16
-- **Training time**: 2-4 hours
-- **Use for**: Consistent character generation, portrait styles
+## 🌟 What's New in v2.3.1
 
-### Art Style Training  
-- **Images needed**: 100-500
-- **Recommended rank**: 16-32
-- **Training time**: 4-8 hours
-- **Use for**: Artistic style transfer, aesthetic consistency
+### WebUI Features
+- ✨ Modern dark theme interface
+- ⚡ Real-time Socket.IO monitoring
+- 🛠️ Dataset processing tools
+- 🤖 AI-powered config recommendations
+- 📊 Interactive charts and metrics
 
-### Concept/Object Training
-- **Images needed**: 50-200
-- **Recommended rank**: 16-24
-- **Training time**: 3-6 hours
-- **Use for**: Specific objects, products, clothing
+### Redis Integration
+- ⚡ 70% faster AI recommendations (caching)
+- 🔄 Task queue for job scheduling
+- 💾 Persistent session management
+- 📈 Training metrics logging
 
-## 🛠️ Included Tools
+### Dataset Tools
+- 🖼️ Batch resize images
+- 🔄 Format conversion (PNG → WebP/JPG)
+- 🗑️ Duplicate detection and removal
+- 📁 Auto-organization by resolution
+- ✅ Dataset validation
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| `train_lora.py` | Main training script | Core training engine |
-| `resume_training.py` | Resume from checkpoint | Continue interrupted training |
-| `generate_samples.py` | Generate test images | Evaluate LoRA quality |
-| `analyze_lora.py` | Analyze LoRA models | Inspect model details |
-| `merge_lora.py` | Merge LoRAs | Combine multiple LoRAs |
-| `convert_lora.py` | Format conversion | Convert between formats |
-| `benchmark.py` | Training benchmark | Compare configurations |
-| `preprocess.bat` | Preprocessing menu | Dataset preparation |
-| `utilities.bat` | Utilities menu | All-in-one tool access |
+### NSFW Training
+- 🔒 100% privacy-safe workflow
+- 🏷️ Local WD14 tagging
+- 🤖 Metadata-only Gemini recommendations
+- 📝 Complete NSFW guide
 
-## 🤝 Contributing
+See [docs/changelog/CHANGELOG_v2.3.1.md](docs/changelog/CHANGELOG_v2.3.1.md) for full changelog.
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+---
 
-**Ways to contribute:**
-- 🐛 Report bugs and issues
-- 💡 Suggest new features
-- 📖 Improve documentation
-- 🔧 Submit pull requests
-- ⭐ Star the project!
+MIT License - Part of AI-Assistant suite. See [LICENSE](LICENSE) for details.
 
-## 📄 License
+---
 
-This project is part of the AI-Assistant suite. Licensed under MIT License - see [LICENSE](LICENSE) for details.
+## 🙏 Credits
 
-## 🙏 Acknowledgments
+- **Kohya-ss** - Original LoRA training scripts
+- **Hugging Face** - Diffusers library
+- **Google DeepMind** - Gemini 2.0 Flash AI
+- **WD14 Tagger** - SmilingWolf's anime tagging model
+- **Redis Labs** - High-performance caching
+- **Community** - Feedback and contributions
 
-- [Diffusers](https://github.com/huggingface/diffusers) by HuggingFace - Diffusion models library
-- [LoRA](https://arxiv.org/abs/2106.09685) paper by Microsoft - Original research
-- [Stable Diffusion](https://github.com/Stability-AI/stablediffusion) by Stability AI - Base models
-- [AUTOMATIC1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui) - WebUI integration
-- [Kohya's Scripts](https://github.com/kohya-ss/sd-scripts) - Training inspiration
-
-## 🌟 Star History
-
-If you find this tool useful, please consider giving it a star! ⭐
-
-## 📊 Project Stats
-
-- **Total Features**: 80+
-- **Python Scripts**: 17
-- **Batch Scripts**: 6
-- **Configurations**: 4
-- **Lines of Code**: 5000+
-- **Documentation Pages**: 4
-    - "landscape in sks style"
-    - "portrait in sks style"
-    - "cityscape in sks style"
-```
-
-## 🤝 Contributing
-
-Feel free to submit issues, feature requests, or pull requests!
-
-## 📄 License
-
-This project is part of the AI-Assistant suite. See LICENSE for details.
-
-## 🙏 Acknowledgments
-
-- [Diffusers](https://github.com/huggingface/diffusers) by HuggingFace
-- [LoRA](https://arxiv.org/abs/2106.09685) paper by Microsoft
-- [Stable Diffusion](https://github.com/Stability-AI/stablediffusion) by Stability AI
-- [AUTOMATIC1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui) WebUI
-
-## 🛠️ Advanced Features
-
-### Resume Training
-```bash
-# Find latest checkpoint and resume
-python resume_training.py
-
-# Resume from specific checkpoint
-python train_lora.py --config configs/my_config.yaml --resume outputs/checkpoints/checkpoint_epoch_5.pt
-```
-
-### Generate Samples
-```bash
-# Generate samples with trained LoRA
-python generate_samples.py --lora_path outputs/lora_models/final_model.safetensors --prompts "a photo of sks person" "portrait of sks person"
-
-# Generate comparison grid with different weights
-python generate_samples.py --lora_path outputs/lora_models/final_model.safetensors --comparison_grid
-```
-
-### Analyze LoRA
-```bash
-# Basic analysis
-python analyze_lora.py outputs/lora_models/final_model.safetensors
-
-# Detailed analysis with weight distribution
-python analyze_lora.py outputs/lora_models/final_model.safetensors --detailed --weights
-
-# Compare two LoRAs
-python analyze_lora.py lora1.safetensors --compare lora2.safetensors
-```
-
-### Merge LoRAs
-```bash
-# Merge multiple LoRAs with weighted average
-python merge_lora.py merge_loras --loras lora1.safetensors lora2.safetensors --weights 0.7 0.3 --output merged.safetensors
-
-# Merge LoRA into base model
-python merge_lora.py merge_to_base --base_model base.safetensors --lora my_lora.safetensors --output merged_model.safetensors --alpha 1.0
-```
-
-### Convert Formats
-```bash
-# Convert safetensors to pytorch
-python convert_lora.py st2pt --input model.safetensors --output model.pt
-
-# Convert pytorch to safetensors
-python convert_lora.py pt2st --input model.pt --output model.safetensors
-
-# Resize LoRA rank
-python convert_lora.py resize --input lora_rank32.safetensors --output lora_rank16.safetensors --rank 16
-```
-
-### Utilities Menu
-```bash
-# Interactive utilities menu (Windows)
-utilities.bat
-```
+---
 
 ## 📞 Support
 
-For issues or questions:
-1. Check the troubleshooting section
-2. Review configuration examples
-3. Check logs in `outputs/logs/`
-4. Open an issue on GitHub
+- **Documentation**: [docs/README.md](docs/README.md)
+- **Quick Start**: [QUICK_START.md](QUICK_START.md)
+- **Scripts**: [bin/README.md](bin/README.md)
+- **Issues**: GitHub Issues
+- **Discussions**: GitHub Discussions
 
 ---
+
+**Made with ❤️ for the Stable Diffusion community**
 
 **Happy Training! 🎨✨**

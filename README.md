@@ -84,17 +84,15 @@ scripts\setup\quickstart.bat  # Interactive wizard
 <tr>
 <td width="50%">
 
-###  **ChatBot AI** 🆕 v2.6
+###  **ChatBot AI**
 <img src="https://img.shields.io/badge/Multi--Model-Support-8B5CF6?style=flat-square" />
 <img src="https://img.shields.io/badge/Image-Generation-EC4899?style=flat-square" />
-<img src="https://img.shields.io/badge/Deep_Thinking-o1_Style-10B981?style=flat-square" />
 
--  Deep Thinking (o1-style reasoning)
--  ChatGPT Actions (Copy, Regenerate, Edit)
--  Gemini 2.0 Flash + GPT-4
--  50MB File Upload
--  Message Versioning
+-  Gemini 2.0 Flash
 -  Stable Diffusion Integration
+-  AI Memory System
+-  Google & GitHub Search
+-  PDF Export
 
 </td>
 <td width="50%">
@@ -266,7 +264,7 @@ graph LR
 |  Service |  Mô Tả |  Port |  Status |  Docs |
 |:-----------|:---------|:--------|:----------|:--------|
 |  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Development-6366F1?style=flat-square" /> | [ Docs](src/hub.py) |
-|  **ChatBot v2.6** 🆕 | Deep Thinking + ChatGPT UI + 50MB Files + Versioning | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
+|  **ChatBot v2.2** 🆕 | Multi-model AI + Auto-File + Streaming + Code Exec | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.2** 🆕 | Natural Language → SQL + AI Learning + Query Optimization | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
 |  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
@@ -283,7 +281,7 @@ graph LR
 </div>
 
 <details open>
-<summary><b>🤖 ChatBot Service (v2.6) 🆕</b></summary>
+<summary><b>🤖 ChatBot Service (v2.2) 🆕</b></summary>
 <br>
 
 ### 🔄 **ChatBot Processing Pipeline**
@@ -494,12 +492,12 @@ graph LR
 <tr>
 <td width="50%">
 
-** ChatBot v2.6 Features:** 🆕
--  Deep Thinking (o1-style reasoning)
--  ChatGPT Actions (Copy, Edit, Regenerate)
--  Message Versioning (navigate responses)
+** ChatBot v2.2 Features:**
 -  Auto-File Analysis (up to 50MB)
--  Markdown Code Blocks (syntax highlighting)
+-  Streaming Response (Real-time)
+-  Context Memory Auto-Management
+-  Code Execution Sandbox
+-  Message History Versioning
 -  Full-screen ChatGPT-like UI
 
 </td>
@@ -1681,7 +1679,7 @@ graph LR
 
 <div align="center">
 
-##  **WHAT'S NEW IN v2.6** 🎉
+##  **WHAT'S NEW IN v2.2** 🎉
 
 </div>
 
@@ -1690,33 +1688,39 @@ graph LR
 <table>
 <tr>
 <th width="25%">Feature</th>
-<th width="25%">v2.5</th>
-<th width="25%">v2.6 🆕</th>
+<th width="25%">v2.0</th>
+<th width="25%">v2.2 🆕</th>
 <th width="25%">Improvement</th>
 </tr>
 <tr>
 <td><b>🤖 ChatBot</b></td>
-<td>Deep Thinking<br/>ChatGPT Actions<br/>File Upload (50MB)</td>
-<td>+ Production Polish<br/>+ Better Docs<br/>+ Stability Fixes<br/>+ UI Refinements</td>
-<td>📚 Complete docs<br/>🐛 More stable<br/>🎨 Smoother UX</td>
+<td>Auto-File Analysis<br/>Stop Generation<br/>Multi-Model</td>
+<td>+ Streaming Response<br/>+ Code Execution<br/>+ Context Memory<br/>+ Advanced Tools</td>
+<td>⚡ 30% faster<br/>🧠 Smarter context<br/>🔧 More tools</td>
 </tr>
 <tr>
-<td><b>📊 Documentation</b></td>
-<td>Basic guides</td>
-<td>+ Comprehensive README<br/>+ Troubleshooting<br/>+ Setup wizards<br/>+ Best practices</td>
-<td>📖 Better guides<br/>🔍 Easy to find<br/>✅ Step-by-step</td>
+<td><b>📊 Text2SQL</b></td>
+<td>AI Learning<br/>Deep Thinking<br/>Multi-DB</td>
+<td>+ Query Optimization<br/>+ Explain Plan<br/>+ Multi-language<br/>+ 5+ Databases</td>
+<td>🎯 Better queries<br/>📈 Visual explain<br/>🌍 More languages</td>
 </tr>
 <tr>
-<td><b>🐛 Stability</b></td>
-<td>Core features</td>
-<td>+ Event listeners fixed<br/>+ Error handling<br/>+ Edge cases<br/>+ Performance</td>
-<td>⚡ Faster load<br/>🛡️ More robust<br/>✨ Better UX</td>
+<td><b>🎨 LoRA Training</b></td>
+<td>N/A</td>
+<td>✨ NEW SERVICE<br/>80+ Features<br/>Production Ready</td>
+<td>🚀 Fine-tune SD<br/>🎭 Custom models<br/>⚡ Fast training</td>
+</tr>
+<tr>
+<td><b>🔧 Export</b></td>
+<td>PDF only</td>
+<td>PDF + Markdown + JSON</td>
+<td>📁 More formats<br/>📊 Better metadata</td>
 </tr>
 <tr>
 <td><b>🎨 UI/UX</b></td>
-<td>Deep Thinking<br/>Message actions</td>
-<td>+ Animation polish<br/>+ Loading states<br/>+ Error messages<br/>+ Visual feedback</td>
-<td>🎯 Clearer state<br/>✨ Smoother flow<br/>💚 Better UX</td>
+<td>Dark Mode<br/>Full-screen</td>
+<td>+ Mobile-friendly<br/>+ Responsive design<br/>+ Better animations</td>
+<td>📱 Cross-device<br/>✨ Smoother UX</td>
 </tr>
 </table>
 
@@ -1726,57 +1730,55 @@ graph LR
 <tr>
 <td width="50%">
 
-###  **ChatBot v2.6** 🆕 (Dec 2025)
+###  **ChatBot v2.2** 🆕 (Dec 2025)
 
-** Production Ready**
+** Streaming Response**
 ```
-✅ Comprehensive documentation
-✅ All features documented
-✅ Troubleshooting guides
-✅ Best practices included
+Real-time token-by-token output
+Watch AI think as it writes!
 ```
 
-** Stability Improvements**
+** Code Execution**
 ```
-✅ Event listener fixes
-✅ Better error handling
-✅ Performance optimized
-✅ Edge cases covered
+Run Python/JavaScript code
+Secure sandbox environment
 ```
 
-** UI Polish**
+** Context Memory**
 ```
 Auto-manage 10K token context
+Smart conversation tracking
 ```
-✅ Smoother animations
-✅ Better loading states  
-✅ Improved error messages
-✅ Visual feedback enhanced
+
+** Enhanced Tools**
+```
+Calculator, WebScraper
+GitHub Search, Google Search
 ```
 
 </td>
 <td width="50%">
 
-###  **Key Improvements v2.6**
+###  **Key Improvements v2.2**
 
--  **Deep Thinking** - o1-style visible reasoning
--  **ChatGPT Actions** - Copy, Edit, Regenerate
--  **Message Versioning** - Navigate responses (◀ 1/2 ▶)
--  **50MB File Upload** - Large document support
--  **Production Polish** - Comprehensive docs
--  **Stability Fixes** - Event listeners, error handling
--  **UI Refinements** - Smoother animations
--  **Better Documentation** - Setup guides, troubleshooting
+-  **Streaming Response** - Token-by-token output
+-  **Code Execution** - Python/JS sandbox
+-  **Context Memory** - 10K tokens auto-managed
+-  **Advanced Tools** - Calculator, WebScraper
+-  **Export Options** - PDF, Markdown, JSON
+-  **Mobile-friendly UI** - Responsive design
+-  **Performance** - 30% faster response
+-  **Multi-format Export** - Enhanced metadata
 
-📚 **[Full Changelog](ChatBot/README.md#changelog)**
+ **[Full Changelog](ChatBot/CHANGELOG.md)**
 
-###  **ChatBot v2.5 Highlights** (Nov 2025)
+###  **Text2SQL v2.2** 🆕 (Dec 2025)
 
--  **Deep Thinking** - See AI's reasoning process
--  **ChatGPT-Style UI** - Action buttons, hover effects
--  **File Analysis** - Auto-enable Deep Thinking
--  **Markdown Support** - Proper code block formatting
--  **Message Versioning** - Track response history
+-  **Multi-language** - Vietnamese + English + more
+-  **Query Optimization** - AI suggests improvements
+-  **Explain Plan** - Visual query execution
+-  **5+ Databases** - ClickHouse, MongoDB, PostgreSQL, MySQL, SQL Server
+-  **Enhanced Learning** - Better AI feedback loop
 
 </td>
 </tr>
