@@ -21,7 +21,7 @@
 
 <br/>
 
-**🌟 Nền tảng tích hợp 4 dịch vụ AI + 1 Hub Gateway 🚀**
+**🌟 Nền tảng tích hợp 5 dịch vụ AI + 1 Hub Gateway 🚀**
 
 [📖 Tính năng](#-tính-năng-nổi-bật) • [⚡ Quick Start](#-quick-start) • [🏗️ Kiến trúc](#️-system-architecture-overview) • [🛠️ Tech Stack](#️-technology-stack) • [📦 Yêu cầu](#-yêu-cầu-hệ-thống) • [📚 Tài liệu](#-tài-liệu)
 
@@ -57,6 +57,13 @@ python app.py
 # 🔷 Option C: Docker (All Services)
 docker-compose up -d
 # ➡️ All services start automatically!
+
+# 🔷 Option D: LoRA Training Tool (New!)
+cd train_LoRA_tool
+scripts\setup\setup.bat  # Windows
+# Or: python -m venv lora && source lora/bin/activate && pip install -r requirements.txt
+scripts\setup\quickstart.bat  # Interactive wizard
+# ➡️ Train custom LoRA models for Stable Diffusion!
 ```
 
 [![Get Started](https://img.shields.io/badge/🚀-Get_Started_Now-6366F1?style=for-the-badge)](docs/GETTING_STARTED.md)
@@ -77,15 +84,17 @@ docker-compose up -d
 <tr>
 <td width="50%">
 
-###  **ChatBot AI**
+###  **ChatBot AI** 🆕 v2.6
 <img src="https://img.shields.io/badge/Multi--Model-Support-8B5CF6?style=flat-square" />
 <img src="https://img.shields.io/badge/Image-Generation-EC4899?style=flat-square" />
+<img src="https://img.shields.io/badge/Deep_Thinking-o1_Style-10B981?style=flat-square" />
 
--  Gemini 2.0 Flash
+-  Deep Thinking (o1-style reasoning)
+-  ChatGPT Actions (Copy, Regenerate, Edit)
+-  Gemini 2.0 Flash + GPT-4
+-  50MB File Upload
+-  Message Versioning
 -  Stable Diffusion Integration
--  AI Memory System
--  Google & GitHub Search
--  PDF Export
 
 </td>
 <td width="50%">
@@ -140,7 +149,7 @@ docker-compose up -d
 
 </div>
 
-> **AI-Assistant** là nền tảng AI tích hợp gồm **4 dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
+> **AI-Assistant** là nền tảng AI tích hợp gồm **5 dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
 
 ### 🏗️ **System Architecture Overview**
 
@@ -159,10 +168,11 @@ graph TB
     end
     
     subgraph AI Services Layer
-    CB[🤖 ChatBot v2.0<br/>Port 5001<br/>Auto-File Analysis<br/>Multi-Model + Stop Gen]
-    T2S[📊 Text2SQL v2.0<br/>Port 5002<br/>AI Learning System<br/>Deep Thinking Mode]
+    CB[🤖 ChatBot v2.2🆕<br/>Port 5001<br/>Streaming + Code Exec<br/>Multi-Model + Context]
+    T2S[📊 Text2SQL v2.2🆕<br/>Port 5002<br/>AI Learning + Deep Thinking<br/>Query Optimization]
     S2T[🎙️ Speech2Text v3.6+<br/>Port 7860<br/>Dual-Model Fusion<br/>Speaker Diarization]
     SD[🎨 Stable Diffusion<br/>Port 7861<br/>Text/Img2Img<br/>LoRA + VAE]
+    LORA[✨ LoRA Training Tool<br/>Local Training<br/>Fine-tune SD Models<br/>Character/Style]
     end
     
     subgraph External AI APIs
@@ -201,6 +211,8 @@ graph TB
     S2T --> FS
     
     SD --> FS
+    LORA --> SD
+    LORA --> FS
     
     CB --> DB1
     CB --> FS
@@ -210,6 +222,7 @@ graph TB
     style T2S fill:#3B82F6,stroke:#2563EB,color:#fff
     style S2T fill:#EF4444,stroke:#DC2626,color:#fff
     style SD fill:#EC4899,stroke:#DB2777,color:#fff
+    style LORA fill:#F59E0B,stroke:#D97706,color:#fff
 ```
 
 ### 🔄 **Service Integration Flow**
@@ -222,9 +235,13 @@ graph LR
     B -->|Query DB| C2[📊 Text2SQL]
     B -->|Transcribe| C3[🎙️ Speech2Text]
     B -->|Generate Art| C4[🎨 SD WebUI]
+    B -->|Train LoRA| C5[✨ LoRA Training]
     
     C1 -->|Need Image?| C4
     C4 -->|Image Ready| C1
+    
+    C5 -->|Trained Model| C4
+    C4 -->|Use LoRA| G
     
     C2 -->|Query Result| E[📊 Data Visualization]
     C3 -->|Transcript| F[📝 Text Processing]
@@ -238,6 +255,7 @@ graph LR
     style C2 fill:#3B82F6,stroke:#2563EB,color:#fff
     style C3 fill:#EF4444,stroke:#DC2626,color:#fff
     style C4 fill:#EC4899,stroke:#DB2777,color:#fff
+    style C5 fill:#F59E0B,stroke:#D97706,color:#fff
     style G fill:#F59E0B,stroke:#D97706,color:#fff
 ```
 
@@ -248,10 +266,11 @@ graph LR
 |  Service |  Mô Tả |  Port |  Status |  Docs |
 |:-----------|:---------|:--------|:----------|:--------|
 |  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Development-6366F1?style=flat-square" /> | [ Docs](src/hub.py) |
-|  **ChatBot v2.0**  | Multi-model AI + Auto-File Analysis + Stop Gen | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
-|  **Text2SQL v2.0**  | Natural Language  SQL + AI Learning | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
+|  **ChatBot v2.6** 🆕 | Deep Thinking + ChatGPT UI + 50MB Files + Versioning | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
+|  **Text2SQL v2.2** 🆕 | Natural Language → SQL + AI Learning + Query Optimization | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
 |  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
+|  **LoRA Training Tool** ✨ | Fine-tune Stable Diffusion with LoRA | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | [ Docs](train_LoRA_tool/README.md) |
 
 </div>
 
@@ -264,7 +283,7 @@ graph LR
 </div>
 
 <details open>
-<summary><b>🤖 ChatBot Service (v2.0)</b></summary>
+<summary><b>🤖 ChatBot Service (v2.6) 🆕</b></summary>
 <br>
 
 ### 🔄 **ChatBot Processing Pipeline**
@@ -358,11 +377,14 @@ graph LR
 |  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  |
 |  **Auto-File Analysis** | Upload & instant AI insights (50MB max) |  NEW v2.0 |
 |  **Stop Generation** | Interrupt AI mid-response & keep output |  NEW v2.0 |
+|  **Streaming Response** | Real-time token-by-token output |  NEW v2.2 |
+|  **Context Memory** | Auto-manage conversation context (10K tokens) |  NEW v2.2 |
+|  **Code Execution** | Run Python/JavaScript in secure sandbox |  NEW v2.2 |
 |  **Image Gen** | Stable Diffusion + LoRA + VAE |  |
 |  **AI Memory** | Lưu trữ conversations & images |  |
 |  **Message Versioning** | Track multiple response versions |  NEW v2.0 |
-|  **Tools** | Google Search, GitHub Search |  |
-|  **Export** | PDF với metadata |  |
+|  **Tools** | Google Search, GitHub Search, Calculator, WebScraper |  v2.2 |
+|  **Export** | PDF với metadata, Markdown, JSON |  v2.2 |
 |  **UI** | Full-screen ChatGPT-like, Dark Mode |  v2.0 |
 
 <div align="right">
@@ -374,7 +396,7 @@ graph LR
 </details>
 
 <details open>
-<summary><b>📊 Text2SQL Service 🆕 MỚI NHẤT v2.0</b></summary>
+<summary><b>📊 Text2SQL Service 🆕 v2.2</b></summary>
 <br>
 
 ### 🔄 **Text2SQL AI Processing Pipeline**
@@ -472,21 +494,23 @@ graph LR
 <tr>
 <td width="50%">
 
-** ChatBot v2.0 Features:**
+** ChatBot v2.6 Features:** 🆕
+-  Deep Thinking (o1-style reasoning)
+-  ChatGPT Actions (Copy, Edit, Regenerate)
+-  Message Versioning (navigate responses)
 -  Auto-File Analysis (up to 50MB)
--  Stop Generation mid-response
--  Message History Versioning
+-  Markdown Code Blocks (syntax highlighting)
 -  Full-screen ChatGPT-like UI
--  Smart Storage Management
 
 </td>
 <td width="50%">
 
-** Text2SQL v2.0 Features:**
--  Vietnamese + English Support
--  Multi-DB Support
--  AI Learning System
--  Deep Thinking Mode
+** Text2SQL v2.2 Features:**
+-  Vietnamese + English + Multi-lang
+-  Multi-DB Support (5+ databases)
+-  AI Learning System with Feedback
+-  Deep Thinking Mode (Chain-of-Thought)
+-  Query Optimization Suggestions
 -  Deploy FREE on Render.com
 
 </td>
@@ -739,6 +763,132 @@ graph LR
 
 ---
 
+<details open>
+<summary><b>🎨 LoRA Training Tool ✨</b></summary>
+<br>
+
+> **Fine-tune Stable Diffusion models with Low-Rank Adaptation (LoRA)**  
+> **Production-ready** training pipeline with 80+ features 🚀
+
+### 🔄 **LoRA Training Pipeline**
+
+```mermaid
+graph LR
+    subgraph Input
+    A1[📁 Dataset<br/>Images + Captions]
+    A2[🎨 Base Model<br/>SD 1.5/XL]
+    A3[⚙️ Config<br/>YAML Preset]
+    end
+    
+    subgraph Training
+    B1[🔍 Preprocessing<br/>Resize/Augment]
+    B2[🧠 LoRA Training<br/>Low-Rank Adapt]
+    B3[💾 Checkpointing<br/>Auto-save]
+    B4[📊 Validation<br/>Sample Gen]
+    end
+    
+    subgraph Output
+    C1[✨ Trained LoRA<br/>safetensors]
+    C2[📈 Training Logs<br/>TensorBoard]
+    C3[🖼️ Sample Images<br/>Comparisons]
+    C4[📦 Merged Model<br/>Optional]
+    end
+    
+    A1 --> B1
+    A2 --> B1
+    A3 --> B1
+    B1 --> B2
+    B2 --> B3
+    B2 --> B4
+    B3 --> C1
+    B4 --> C3
+    B2 --> C2
+    C1 --> C4
+    
+    style A1 fill:#8B5CF6,color:#fff
+    style B2 fill:#EC4899,color:#fff
+    style B3 fill:#F59E0B,color:#fff
+    style C1 fill:#10B981,color:#fff
+    style C4 fill:#3B82F6,color:#fff
+```
+
+#### 🎯 Key Features:
+
+<table>
+<tr>
+<td width="33%">
+
+**🎨 Training Modes**
+- Character/Style LoRA
+- Concept Learning
+- SDXL Support
+- Multi-resolution
+- Resume from Checkpoint
+- Gradient Accumulation
+
+</td>
+<td width="33%">
+
+**⚡ Advanced Options**
+- Mixed Precision (fp16/bf16)
+- Accelerate Integration
+- TensorBoard Logging
+- Auto Validation
+- Sample Generation
+- Prior Preservation
+
+</td>
+<td width="33%">
+
+**🔧 Utilities**
+- LoRA Merging
+- Format Conversion
+- Model Analysis
+- Batch Generation
+- Config Benchmarking
+- Interactive Setup Wizard
+
+</td>
+</tr>
+</table>
+
+#### 📋 Configuration Presets:
+
+| Preset | Dataset Size | Training Time | VRAM | Quality |
+|--------|-------------|---------------|------|---------|
+| **Small Dataset** | 10-50 images | ~30 min | 8 GB | ⭐⭐⭐ |
+| **Default** | 50-200 images | ~1-2 hours | 12 GB | ⭐⭐⭐⭐ |
+| **Large Dataset** | 200-1000 images | ~4-8 hours | 16 GB | ⭐⭐⭐⭐⭐ |
+| **SDXL** | 50-200 images | ~2-4 hours | 24 GB | ⭐⭐⭐⭐⭐ |
+
+#### 🚀 Quick Start:
+
+```bash
+cd train_LoRA_tool
+
+# 1. Interactive Setup Wizard
+.\scripts\setup\quickstart.bat
+
+# 2. Or Manual Training
+.\scripts\setup\setup.bat        # Setup environment
+.\scripts\setup\preprocess.bat   # Prepare dataset
+.\scripts\setup\train.bat        # Start training
+
+# 3. Generate Samples
+.\scripts\setup\batch_generate.bat
+```
+
+<div align="right">
+
+📚 **[Full Documentation](train_LoRA_tool/README.md)** | 🎓 **[Getting Started Guide](train_LoRA_tool/GETTING_STARTED.md)**  
+🔧 **[Advanced Guide](train_LoRA_tool/docs/ADVANCED_GUIDE.md)** | 📊 **[Project Structure](train_LoRA_tool/PROJECT_STRUCTURE.md)**
+
+</div>
+
+</details>
+
+---
+
 <div align="center">
 
 ##  **QUICK START**
@@ -908,6 +1058,19 @@ docker-compose up -d
      launch.py                Main launcher
      modules/                 Core modules
      extensions/              Extensions
+
+  train_LoRA_tool/             LoRA Training Tool ✨
+     scripts/                 Training & utility scripts
+        training/             Main training modules
+        utilities/            Generation & analysis
+        setup/                Batch setup scripts
+     configs/                 YAML configuration presets
+     docs/                    Complete documentation
+     data/                    Training datasets
+     models/                  Trained LoRA models
+     output/                  Generated samples
+     setup.py                 Package installer
+     requirements.txt         Dependencies
 
   src/                         Hub & Core Services
      hub.py                   Hub Gateway (Port 3000)
@@ -1469,12 +1632,14 @@ graph LR
    - ✅ Setup **Stable Diffusion** for image generation
    - ✅ Integrate with ChatBot
    - ✅ Test LoRA & VAE models
+   - ✅ Try **LoRA Training Tool** to create custom models
    - **Goal:** Create amazing art! 🎨
 
 4. **Week 3-4: Professional** 🔴
    - ✅ Setup **Speech2Text** (most complex)
    - ✅ Configure HuggingFace token
    - ✅ Test Vietnamese transcription
+   - ✅ Train custom LoRA for your style/character
    - **Goal:** Master all services! 🏆
 
 ### 🚀 **Deployment Options**
@@ -1516,49 +1681,102 @@ graph LR
 
 <div align="center">
 
-##  **WHAT'S NEW IN v2.0**
+##  **WHAT'S NEW IN v2.6** 🎉
 
 </div>
+
+### 🆕 **Version Comparison**
+
+<table>
+<tr>
+<th width="25%">Feature</th>
+<th width="25%">v2.5</th>
+<th width="25%">v2.6 🆕</th>
+<th width="25%">Improvement</th>
+</tr>
+<tr>
+<td><b>🤖 ChatBot</b></td>
+<td>Deep Thinking<br/>ChatGPT Actions<br/>File Upload (50MB)</td>
+<td>+ Production Polish<br/>+ Better Docs<br/>+ Stability Fixes<br/>+ UI Refinements</td>
+<td>📚 Complete docs<br/>🐛 More stable<br/>🎨 Smoother UX</td>
+</tr>
+<tr>
+<td><b>📊 Documentation</b></td>
+<td>Basic guides</td>
+<td>+ Comprehensive README<br/>+ Troubleshooting<br/>+ Setup wizards<br/>+ Best practices</td>
+<td>📖 Better guides<br/>🔍 Easy to find<br/>✅ Step-by-step</td>
+</tr>
+<tr>
+<td><b>🐛 Stability</b></td>
+<td>Core features</td>
+<td>+ Event listeners fixed<br/>+ Error handling<br/>+ Edge cases<br/>+ Performance</td>
+<td>⚡ Faster load<br/>🛡️ More robust<br/>✨ Better UX</td>
+</tr>
+<tr>
+<td><b>🎨 UI/UX</b></td>
+<td>Deep Thinking<br/>Message actions</td>
+<td>+ Animation polish<br/>+ Loading states<br/>+ Error messages<br/>+ Visual feedback</td>
+<td>🎯 Clearer state<br/>✨ Smoother flow<br/>💚 Better UX</td>
+</tr>
+</table>
+
+---
 
 <table>
 <tr>
 <td width="50%">
 
-###  **ChatBot v2.0** (Nov 2025)
+###  **ChatBot v2.6** 🆕 (Dec 2025)
 
-** Auto-File Analysis**
+** Production Ready**
 ```
-Upload → AI analyzes instantly
-No need to type questions!
-```
-
-** Stop Generation**
-```
-Stop button → Keep partial response
-Continue from there
+✅ Comprehensive documentation
+✅ All features documented
+✅ Troubleshooting guides
+✅ Best practices included
 ```
 
-** Full-Screen UI**
+** Stability Improvements**
 ```
-ChatGPT-like experience
-100vh layout, better visibility
+✅ Event listener fixes
+✅ Better error handling
+✅ Performance optimized
+✅ Edge cases covered
+```
+
+** UI Polish**
+```
+Auto-manage 10K token context
+```
+✅ Smoother animations
+✅ Better loading states  
+✅ Improved error messages
+✅ Visual feedback enhanced
 ```
 
 </td>
 <td width="50%">
 
-###  **Key Improvements**
+###  **Key Improvements v2.6**
 
--  File upload up to **50MB**
--  Image compression (1200px max)
--  Message history versioning
--  Smart storage with auto-cleanup
--  Enhanced chat item visibility
--  GitHub badge integration
--  ES6 modular architecture
--  Performance optimizations
+-  **Deep Thinking** - o1-style visible reasoning
+-  **ChatGPT Actions** - Copy, Edit, Regenerate
+-  **Message Versioning** - Navigate responses (◀ 1/2 ▶)
+-  **50MB File Upload** - Large document support
+-  **Production Polish** - Comprehensive docs
+-  **Stability Fixes** - Event listeners, error handling
+-  **UI Refinements** - Smoother animations
+-  **Better Documentation** - Setup guides, troubleshooting
 
- **[Full Changelog](ChatBot/CHANGELOG.md)**
+📚 **[Full Changelog](ChatBot/README.md#changelog)**
+
+###  **ChatBot v2.5 Highlights** (Nov 2025)
+
+-  **Deep Thinking** - See AI's reasoning process
+-  **ChatGPT-Style UI** - Action buttons, hover effects
+-  **File Analysis** - Auto-enable Deep Thinking
+-  **Markdown Support** - Proper code block formatting
+-  **Message Versioning** - Track response history
 
 </td>
 </tr>
@@ -1949,7 +2167,8 @@ Have an idea? Share it with us!
 
 ![Status](https://img.shields.io/badge/Status-Production_Ready-10B981?style=flat-square)
 ![Maintained](https://img.shields.io/badge/Maintained-Yes-10B981?style=flat-square)
-![Version](https://img.shields.io/badge/Version-2.0.0-3B82F6?style=flat-square)
+![Version](https://img.shields.io/badge/Version-2.2.0-3B82F6?style=flat-square)
+![Updated](https://img.shields.io/badge/Updated-Dec_2025-EC4899?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-EC4899?style=flat-square)
 
 **Made with 💜 by [SkastVnT](https://github.com/SkastVnT) and [Contributors](https://github.com/SkastVnT/AI-Assistant/graphs/contributors)**
