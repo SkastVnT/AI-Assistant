@@ -1,0 +1,15 @@
+# List of prompts for sample generation
+# One prompt per line
+
+# Character samples
+a photo of sks person, portrait, professional lighting
+a photo of sks person, smiling, outdoors, natural light
+a photo of sks person, close-up, high detail
+a photo of sks person, full body, standing, neutral background
+a photo of sks person, side view, cinematic lighting
+
+# Style variations
+sks person in formal attire, business setting
+sks person in casual clothes, relaxed pose
+sks person with different expression, dramatic lighting
+sks person in artistic style, creative composition

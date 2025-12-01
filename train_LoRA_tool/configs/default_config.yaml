@@ -1,0 +1,127 @@
+# LoRA Training Configuration
+# For image datasets with 500-2000 images
+
+# Model Configuration
+model:
+  pretrained_model_name_or_path: "runwayml/stable-diffusion-v1-5"  # or "stabilityai/stable-diffusion-2-1"
+  revision: null  # specific model revision (optional)
+
+# LoRA Configuration
+lora:
+  rank: 16  # LoRA rank (4, 8, 16, 32, 64, 128)
+  alpha: 32  # LoRA alpha (typically 2x rank)
+  dropout: 0.0  # LoRA dropout rate
+  target_modules:  # Which modules to apply LoRA to
+    - "to_q"
+    - "to_k"
+    - "to_v"
+    - "to_out.0"
+    - "ff.net.0.proj"
+    - "ff.net.2"
+
+# Dataset Configuration
+dataset:
+  train_data_dir: "data/train"  # Directory containing training images
+  val_data_dir: null  # Optional validation directory
+  resolution: 512  # Image resolution (512 for SD1.5, 768 for SD2.1, 1024 for SDXL)
+  center_crop: true  # Center crop images
+  random_flip: true  # Random horizontal flip for augmentation
+  caption_extension: ".txt"  # Caption file extension (.txt, .caption, .tags)
+
+# Training Configuration
+training:
+  # Basic settings
+  num_train_epochs: 10  # Number of training epochs
+  train_batch_size: 1  # Batch size per GPU
+  gradient_accumulation_steps: 4  # Accumulate gradients over N steps
+  
+  # Optimizer settings
+  optimizer: "adamw"  # Optimizer type (adamw, adam, sgd, adafactor)
+  learning_rate: 1.0e-4  # Learning rate
+  weight_decay: 0.01  # Weight decay
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0  # Gradient clipping
+  
+  # Learning rate scheduler
+  lr_scheduler: "cosine"  # Scheduler type (constant, linear, cosine, cosine_with_restarts)
+  lr_warmup_steps: 100  # Number of warmup steps
+  
+  # Training steps
+  max_train_steps: null  # Override epochs with max steps (optional)
+  
+  # Validation and saving
+  validation_epochs: 1  # Run validation every N epochs
+  save_steps: 2  # Save checkpoint every N epochs
+  
+  # Output directories
+  output_dir: "outputs/lora_models"
+  checkpoint_dir: "outputs/checkpoints"
+  
+  # DataLoader settings
+  dataloader_num_workers: 4  # Number of data loading workers
+  
+  # Mixed precision training
+  mixed_precision: "fp16"  # fp16, bf16, or no
+  
+  # Gradient checkpointing (save memory)
+  gradient_checkpointing: true
+  
+  # Prior preservation (optional, for dreambooth-style training)
+  with_prior_preservation: false
+  prior_loss_weight: 1.0
+  num_class_images: 100
+  class_data_dir: null
+  class_prompt: null
+
+# Logging Configuration
+logging:
+  log_dir: "outputs/logs"
+  logging_steps: 10  # Log every N steps
+  
+  # Wandb/Tensorboard (optional)
+  use_wandb: false
+  wandb_project: "lora-training"
+  wandb_run_name: null
+  
+  use_tensorboard: false
+  tensorboard_dir: "outputs/tensorboard"
+  
+  # Sample generation during training
+  generate_samples: true
+  sample_steps: 100  # Generate samples every N steps
+  num_samples: 4  # Number of samples to generate
+  sample_prompts:
+    - "a photo of the subject"
+    - "the subject in a park"
+    - "close-up portrait of the subject"
+    - "the subject wearing sunglasses"
+
+# Advanced Settings
+advanced:
+  # Noise offset (improves contrast)
+  noise_offset: 0.0
+  
+  # SNR gamma (from paper "Min-SNR-γ")
+  snr_gamma: null
+  
+  # EMA (Exponential Moving Average)
+  use_ema: false
+  ema_decay: 0.999
+  
+  # XFormers memory efficient attention
+  enable_xformers: true
+  
+  # Text encoder training
+  train_text_encoder: false
+  text_encoder_lr: 5.0e-6
+  
+  # Color jitter augmentation
+  color_jitter: false
+  
+  # Random rotation augmentation
+  random_rotation: false
+  
+  # Cache latents (faster but uses more disk space)
+  cache_latents: false
