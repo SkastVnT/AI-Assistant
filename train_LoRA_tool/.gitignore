@@ -1,0 +1,112 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+venv_*/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Training Outputs
+outputs/
+benchmarks/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.bin
+
+# Logs
+logs/
+*.log
+tensorboard/
+wandb/
+
+# Data
+data/train/*
+data/val/*
+data/examples/*
+!data/train/README.txt
+!data/val/README.txt
+!data/examples/README.txt
+
+# Model files
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.h5
+
+# Cache
+.cache/
+*.pyc
+.pytest_cache/
+
+# OS specific
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Config overrides (keep examples)
+configs/my_*.yaml
+configs/test_*.yaml
+configs/resume_config.yaml
+
+# Checkpoints and training artifacts
+checkpoint*/
+*.pt
+*.safetensors
+
+# Generated samples
+samples/
+*.png
+*.jpg
+*.jpeg
+!data/**/*.jpg
+!data/**/*.png
+
+# Test data
+test_output/

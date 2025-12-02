@@ -1,0 +1,117 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lora-training-tool"
+version = "1.0.0"
+description = "A comprehensive tool for training LoRA models on Stable Diffusion"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["lora", "stable-diffusion", "machine-learning", "deep-learning", "pytorch", "generative-ai"]
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+maintainers = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "diffusers>=0.21.0",
+    "transformers>=4.30.0",
+    "accelerate>=0.20.0",
+    "safetensors>=0.3.0",
+    "xformers>=0.0.20",
+    "bitsandbytes>=0.41.0",
+    "pyyaml>=6.0",
+    "pillow>=9.0.0",
+    "numpy>=1.23.0",
+    "tqdm>=4.65.0",
+    "tensorboard>=2.13.0",
+    "wandb>=0.15.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+]
+notebooks = [
+    "jupyter>=1.0.0",
+    "notebook>=6.4.0",
+    "ipywidgets>=7.6.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/AI-Assistant"
+Documentation = "https://github.com/yourusername/AI-Assistant/tree/main/train_LoRA_tool/docs"
+Repository = "https://github.com/yourusername/AI-Assistant.git"
+Issues = "https://github.com/yourusername/AI-Assistant/issues"
+
+[project.scripts]
+lora-train = "scripts.training.train_lora:main"
+lora-generate = "scripts.utilities.generate_samples:main"
+lora-analyze = "scripts.utilities.analyze_lora:main"
+
+[tool.setuptools]
+packages = ["utils", "src", "config"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.txt", "*.md"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | lora
+  | _build
+  | buck-out
+  | build
+  | dist
+  | outputs
+)/
+'''
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

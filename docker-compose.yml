@@ -134,6 +134,72 @@ services:
       timeout: 10s
       retries: 3
 
+  # Redis Cache for LoRA Training (task queue, caching, session management)
+  redis:
+    image: redis:7-alpine
+    container_name: ai-assistant-redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server 
+      --maxmemory 2gb 
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis-data:/data
+    networks:
+      - ai-assistant-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # LoRA Training WebUI (requires GPU)
+  lora-training:
+    build:
+      context: ./train_LoRA_tool
+      dockerfile: Dockerfile
+    container_name: ai-assistant-lora-training
+    ports:
+      - "7860:7860"
+    environment:
+      - FLASK_PORT=7860
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - ./train_LoRA_tool/.env
+    volumes:
+      - ./train_LoRA_tool/data:/app/data
+      - ./train_LoRA_tool/models:/app/models
+      - ./train_LoRA_tool/output:/app/output
+      - ./train_LoRA_tool/logs:/app/logs
+    networks:
+      - ai-assistant-network
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 16G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   ai-assistant-network:
     driver: bridge
@@ -144,3 +210,4 @@ volumes:
   text2sql-data:
   speech2text-data:
   sd-models:
+  redis-data:

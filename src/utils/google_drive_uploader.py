@@ -320,6 +320,164 @@ class GoogleDriveUploader:
         except HttpError as error:
             print(f"❌ Error listing files: {error}")
             raise
+    
+    def get_existing_files(self, folder_id: str) -> Dict[str, Dict]:
+        """
+        Get existing files in a folder as a dict keyed by filename
+        
+        Args:
+            folder_id: Folder ID to check
+            
+        Returns:
+            Dict mapping filename to file metadata
+        """
+        try:
+            query = f"'{folder_id}' in parents and trashed=false"
+            
+            results = self.service.files().list(
+                q=query,
+                pageSize=1000,
+                fields="files(id, name, mimeType, size, modifiedTime, md5Checksum)"
+            ).execute()
+            
+            files = results.get('files', [])
+            return {file['name']: file for file in files}
+            
+        except HttpError as error:
+            print(f"⚠️  Warning: Could not check existing files: {error}")
+            return {}
+    
+    def upload_folder_smart(
+        self, 
+        folder_path: str, 
+        parent_folder_id: Optional[str] = None,
+        custom_folder_name: Optional[str] = None,
+        exclude_patterns: Optional[List[str]] = None,
+        skip_existing: bool = True
+    ) -> Dict:
+        """
+        Smart upload: check existing files and only upload new/changed files
+        
+        Args:
+            folder_path: Path to folder to upload
+            parent_folder_id: ID of parent folder in Drive
+            custom_folder_name: Custom name for the folder (default: use folder_path name)
+            exclude_patterns: List of patterns to exclude
+            skip_existing: Skip files that already exist
+            
+        Returns:
+            Dict with folder_id, uploaded files, and skipped files
+        """
+        folder_path = Path(folder_path)
+        if not folder_path.exists():
+            raise FileNotFoundError(f"Folder not found: {folder_path}")
+        
+        if exclude_patterns is None:
+            exclude_patterns = ['__pycache__', '*.pyc', '*.log', 'venv*', '.git']
+        
+        # Use custom folder name or default
+        folder_name = custom_folder_name or folder_path.name
+        
+        # Check if folder already exists
+        existing_folders = self.get_existing_files(parent_folder_id) if parent_folder_id else {}
+        
+        if folder_name in existing_folders and existing_folders[folder_name]['mimeType'] == 'application/vnd.google-apps.folder':
+            print(f"📁 Folder '{folder_name}' already exists, uploading to it...")
+            folder_id = existing_folders[folder_name]['id']
+        else:
+            # Create new folder
+            folder_id = self.create_folder(folder_name, parent_folder_id)
+        
+        # Get existing files in this folder
+        existing_files = self.get_existing_files(folder_id)
+        
+        uploaded_files = []
+        skipped_files = []
+        folder_cache = {}
+        
+        # Upload files
+        for item in folder_path.rglob('*'):
+            # Skip excluded patterns
+            if any(item.match(pattern) for pattern in exclude_patterns):
+                continue
+            
+            if item.is_file():
+                try:
+                    # Calculate relative path
+                    rel_path = item.relative_to(folder_path)
+                    
+                    # Create parent folders if needed
+                    current_folder_id = folder_id
+                    if rel_path.parent != Path('.'):
+                        folder_key = str(rel_path.parent)
+                        if folder_key not in folder_cache:
+                            folder_cache[folder_key] = self._ensure_folder_path_smart(
+                                rel_path.parent, folder_id, folder_cache
+                            )
+                        current_folder_id = folder_cache[folder_key]
+                    
+                    # Get existing files in current folder
+                    current_existing = self.get_existing_files(current_folder_id)
+                    
+                    # Check if file already exists
+                    if skip_existing and item.name in current_existing:
+                        existing_file = current_existing[item.name]
+                        file_size = item.stat().st_size
+                        existing_size = int(existing_file.get('size', 0))
+                        
+                        # Skip if same size (basic check)
+                        if file_size == existing_size:
+                            skipped_files.append(str(rel_path))
+                            print(f"⏭️  Skipped (exists): {item.name}")
+                            continue
+                    
+                    # Upload file
+                    file_info = self.upload_file(str(item), current_folder_id)
+                    uploaded_files.append(file_info)
+                    
+                except Exception as e:
+                    print(f"⚠️  Skipping {item.name}: {e}")
+        
+        return {
+            'folder_id': folder_id,
+            'folder_name': folder_name,
+            'uploaded_files': uploaded_files,
+            'skipped_files': skipped_files,
+            'total_files': len(uploaded_files),
+            'total_skipped': len(skipped_files)
+        }
+    
+    def _ensure_folder_path_smart(self, path: Path, parent_id: str, cache: Dict = None) -> str:
+        """Recursively create folder path with smart checking for existing folders"""
+        if cache is None:
+            cache = {}
+            
+        if path == Path('.'):
+            return parent_id
+        
+        # Check cache first
+        cache_key = str(path)
+        if cache_key in cache:
+            return cache[cache_key]
+        
+        # Create parent first
+        if path.parent != Path('.'):
+            parent_cache_key = str(path.parent)
+            if parent_cache_key not in cache:
+                cache[parent_cache_key] = self._ensure_folder_path_smart(path.parent, parent_id, cache)
+            parent_id = cache[parent_cache_key]
+        
+        # Check if folder exists
+        existing_folders = self.get_existing_files(parent_id)
+        if path.name in existing_folders and existing_folders[path.name]['mimeType'] == 'application/vnd.google-apps.folder':
+            folder_id = existing_folders[path.name]['id']
+            print(f"📁 Using existing folder: {path.name}")
+        else:
+            # Create this folder
+            folder_id = self.create_folder(path.name, parent_id)
+        
+        cache[cache_key] = folder_id
+        return folder_id
 
 
 def quick_upload_docs(uploader: GoogleDriveUploader) -> Dict:

@@ -1,0 +1,68 @@
+# Optimized for small datasets (500-1000 images)
+# Inherits from default_config.yaml with adjustments
+
+model:
+  pretrained_model_name_or_path: "runwayml/stable-diffusion-v1-5"
+
+lora:
+  rank: 8  # Smaller rank to prevent overfitting
+  alpha: 16
+  dropout: 0.1  # Add dropout for regularization
+  target_modules:
+    - "to_q"
+    - "to_k"
+    - "to_v"
+    - "to_out.0"
+
+dataset:
+  train_data_dir: "data/train"
+  val_data_dir: "data/val"
+  resolution: 512
+  center_crop: true
+  random_flip: true
+  caption_extension: ".txt"
+
+training:
+  num_train_epochs: 15  # More epochs for small dataset
+  train_batch_size: 1
+  gradient_accumulation_steps: 8  # Larger effective batch size
+  
+  optimizer: "adamw"
+  learning_rate: 5.0e-5  # Lower learning rate
+  weight_decay: 0.02  # Higher weight decay
+  max_grad_norm: 1.0
+  
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 200  # More warmup steps
+  
+  validation_epochs: 2
+  save_steps: 3
+  
+  output_dir: "outputs/lora_models"
+  checkpoint_dir: "outputs/checkpoints"
+  dataloader_num_workers: 2
+  
+  mixed_precision: "fp16"
+  gradient_checkpointing: true
+
+logging:
+  log_dir: "outputs/logs"
+  logging_steps: 5
+  generate_samples: true
+  sample_steps: 50
+  num_samples: 4
+  sample_prompts:
+    - "a photo of sks person"
+    - "sks person smiling"
+    - "portrait of sks person"
+    - "sks person in professional attire"
+
+advanced:
+  noise_offset: 0.05  # Slight noise offset
+  snr_gamma: 5.0  # Enable min-SNR weighting
+  use_ema: false
+  enable_xformers: true
+  train_text_encoder: false
+  color_jitter: true  # Enable augmentation
+  random_rotation: false
+  cache_latents: false

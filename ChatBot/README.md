@@ -1,9 +1,9 @@
-# ChatBot Service - AI Assistant v2.5
+# ChatBot Service - AI Assistant v2.6
 
 Advanced multi-model intelligent chatbot with **Deep Thinking (o1-style)**, ChatGPT-inspired UI, file analysis, and modern features.
 
 <details>
-<summary><strong>🌟 Latest Updates (v2.5)</strong></summary>
+<summary><strong>🌟 Latest Updates (v2.6)</strong></summary>
 
 ### 🧠 Deep Thinking Feature (OpenAI o1-style)
 
@@ -348,6 +348,17 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 <details>
 <summary><strong>🔄 Changelog</strong></summary>
 
+### Version 2.6.0 (December 1, 2025) 🎨
+
+**Production Refinements & Documentation**
+
+- 📚 **Complete Documentation**: Comprehensive README with all v2.5 features documented
+- 🎨 **UI Polish**: Refined Deep Thinking animations and transitions
+- 🐛 **Bug Fixes**: Event listener stability improvements
+- 📊 **Performance**: Optimized file upload handling
+- 🔧 **Code Quality**: Better error handling and logging
+- 📖 **User Guides**: Enhanced troubleshooting and setup instructions
+
 ### Version 2.5.0 (November 25, 2025) 🧠
 
 **Deep Thinking & UX Enhancements**
@@ -391,7 +402,35 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 <details>
 <summary><strong>🆕 What's New Highlights</strong></summary>
 
-## What's New in v2.0?
+## What's New in v2.6?
+
+### Production Ready & Polished
+
+**📚 Documentation Excellence**
+```
+✅ Complete feature documentation
+✅ Troubleshooting guides
+✅ Setup wizards
+✅ Best practices
+```
+
+**🎨 UI Refinements**
+```
+✅ Smoother animations
+✅ Better loading states
+✅ Improved error messages
+✅ Visual polish
+```
+
+**🐛 Stability Improvements**
+```
+✅ Event listener fixes
+✅ Better error handling
+✅ Performance optimizations
+✅ Edge case handling
+```
+
+## What's New in v2.5?
 
 ### Key Highlights
 
