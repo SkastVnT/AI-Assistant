@@ -165,6 +165,34 @@ scripts\setup\quickstart.bat  # Interactive wizard
 
 </td>
 </tr>
+<tr>
+<td width="50%">
+
+###  **LoRA Training Tool**
+<img src="https://img.shields.io/badge/Fine--tuning-SD_Models-F59E0B?style=flat-square" />
+<img src="https://img.shields.io/badge/Production-Ready-10B981?style=flat-square" />
+
+-  Character/Style LoRA Training
+-  SDXL Support
+-  80+ Features
+-  Interactive Setup Wizard
+-  TensorBoard Logging
+
+</td>
+<td width="50%">
+
+###  **Hub Gateway** (Coming Soon)
+<img src="https://img.shields.io/badge/API-Gateway-6366F1?style=flat-square" />
+<img src="https://img.shields.io/badge/Status-Development-F59E0B?style=flat-square" />
+
+-  Service Orchestration
+-  Unified API Interface
+-  Authentication & Security
+-  Rate Limiting
+-  Request Routing
+
+</td>
+</tr>
 </table>
 
 ---
