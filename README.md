@@ -611,10 +611,10 @@ graph TB
     A[🎤 Audio Input<br/>MP3/WAV/M4A/FLAC] --> B[🔊 Preprocessing<br/>16kHz Mono]
     B --> C{🎚️ VAD Enabled?}
     C -->|Yes| D[🎯 Silero VAD<br/>Remove Silence]
-    C -->|No| E[👥 Speaker Diarization]
+    C -->|No| E[👥 Speaker Diarization<br/>pyannote.audio 3.1]
     D --> E
     
-    E[🎙️ pyannote.audio 3.1<br/>Detect Speakers] --> F[📊 Timeline Segmentation<br/>Speaker_00, Speaker_01]
+    E --> F[📊 Timeline Segmentation<br/>Speaker_00, Speaker_01]
     F --> G[✂️ Audio Chunks<br/>by Speaker]
     
     G --> H1[🌍 Whisper large-v3<br/>Global ASR]
