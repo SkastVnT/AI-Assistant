@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# CI fix: corrected syntax error (extra quote) on GEMINI_API_KEY line
+# Ref: d0861426e9d20a560020005122410a5ee240802a
 """
 DUAL MODEL WITH GEMINI SEMANTIC FUSION
 Whisper large-v3 + PhoWhisper-large + Gemini AI Smart Fusion
@@ -18,7 +20,7 @@ import google.generativeai as genai
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
 load_dotenv(env_path)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3")
 
 print(f"[KEY] Gemini API Key: {GEMINI_API_KEY[:20]}...{GEMINI_API_KEY[-4:]}")

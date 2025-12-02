@@ -1,5 +1,7 @@
 # Document Intelligence Service - Requirements
 # Phase 1.5: OCR + AI Enhancement with Gemini 2.0 Flash
+# CI fix: paddlepaddle updated 2.6.1 -> 2.6.2 (unavailable package)
+# Ref: d0861426e9d20a560020005122410a5ee240802a
 
 # Web Framework
 Flask==3.0.0
@@ -7,7 +9,7 @@ Flask-CORS==6.0.0  # Security fix: Updated from 4.0.0 (5 vulnerabilities patched
 
 # OCR Engine (FREE - Vietnamese support)
 paddleocr==2.7.3
-paddlepaddle==2.6.1  # CPU version (stable for Windows)
+paddlepaddle==2.6.2  # CPU version (stable for Windows)
 protobuf>=5.29.5  # Security fix: Updated from 3.20.2 (CVE patched)
 
 # Image Processing
