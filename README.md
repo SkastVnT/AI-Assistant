@@ -356,7 +356,7 @@ graph LR
 
 </div>
 
-<details close>
+<details open>
 <summary><b>🤖 ChatBot Service (v2.2) 🆕</b></summary>
 <br>
 
@@ -469,7 +469,7 @@ graph LR
 
 </details>
 
-<details close>
+<details open>
 <summary><b>📊 Text2SQL Service 🆕 v2.2</b></summary>
 <br>
 
@@ -600,7 +600,7 @@ graph LR
 
 </details>
 
-<details close>
+<details open>
 <summary><b>🎙️ Speech2Text Service (v3.6.0+)</b></summary>
 <br>
 
@@ -688,7 +688,7 @@ graph LR
 
 </details>
 
-<details close>
+<details open>
 <summary><b>🎨 Stable Diffusion WebUI</b></summary>
 <br>
 
@@ -837,7 +837,7 @@ graph LR
 
 ---
 
-<details close>
+<details open>
 <summary><b>🎨 LoRA Training Tool ✨</b></summary>
 <br>
 
@@ -961,7 +961,7 @@ cd train_LoRA_tool
 
 </details>
 
-<details close>
+<details open>
 <summary><b>📄 Document Intelligence Service 🆕</b></summary>
 <br>
 
@@ -1019,7 +1019,7 @@ graph TB
 
 </details>
 
-<details close>
+<details open>
 <summary><b>🖼️ Upscale Tool - Image Enhancement</b></summary>
 <br>
 
