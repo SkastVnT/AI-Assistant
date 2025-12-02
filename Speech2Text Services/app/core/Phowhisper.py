@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# CI fix: corrected syntax error (extra quote) on GEMINI_API_KEY line
+# Ref: d0861426e9d20a560020005122410a5ee240802a
 import os
 import time
 
@@ -13,7 +15,7 @@ from scipy import signal
 # Load environment variables t[?] file .env
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 AUDIO_PATH = os.getenv(
     "AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3"
 )
