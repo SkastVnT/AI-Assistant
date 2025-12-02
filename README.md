@@ -3,7 +3,7 @@
 #  AI-Assistant 
 ### *Nền Tảng Tích Hợp Đa Dịch Vụ AI*
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&width=600&lines=ChatBot+%7C+Text2SQL+%7C+Speech2Text+%7C+Image+Gen;Multi-Model+AI+Platform;Built+with+%E2%9D%A4%EF%B8%8F+by+SkastVnT" alt="Typing SVG" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&width=600&lines=ChatBot+%7C+Text2SQL+%7C+Speech2Text+%7C+Image+Gen;Document+Intelligence+%7C+Upscaling+%7C+LoRA+Training;Multi-Model+AI+Platform;Built+with+%E2%9D%A4%EF%B8%8F+by+SkastVnT" alt="Typing SVG" />
 
 ---
 
@@ -21,7 +21,7 @@
 
 <br/>
 
-**🌟 Nền tảng tích hợp 5 dịch vụ AI + 1 Hub Gateway 🚀**
+**🌟 Nền tảng tích hợp 7+ dịch vụ AI + 1 Hub Gateway 🚀**
 
 [📖 Tính năng](#-tính-năng-nổi-bật) • [⚡ Quick Start](#-quick-start) • [🏗️ Kiến trúc](#️-system-architecture-overview) • [🛠️ Tech Stack](#️-technology-stack) • [📦 Yêu cầu](#-yêu-cầu-hệ-thống) • [📚 Tài liệu](#-tài-liệu)
 
@@ -137,6 +137,34 @@ scripts\setup\quickstart.bat  # Interactive wizard
 
 </td>
 </tr>
+<tr>
+<td width="50%">
+
+###  **Document Intelligence**
+<img src="https://img.shields.io/badge/OCR-Vietnamese-3B82F6?style=flat-square" />
+<img src="https://img.shields.io/badge/AI-Powered-8B5CF6?style=flat-square" />
+
+-  OCR Text Extraction
+-  AI Document Analysis
+-  Auto Classification
+-  Q&A over Documents
+-  AI Translation (8+ languages)
+
+</td>
+<td width="50%">
+
+###  **Upscale Tool**
+<img src="https://img.shields.io/badge/GPU-Accelerated-10B981?style=flat-square" />
+<img src="https://img.shields.io/badge/4K-Ready-EC4899?style=flat-square" />
+
+-  RealESRGAN Models
+-  GPU Acceleration (45x faster)
+-  Multi-GPU Support
+-  CLI + Web UI
+-  Batch Processing
+
+</td>
+</tr>
 </table>
 
 ---
@@ -147,7 +175,7 @@ scripts\setup\quickstart.bat  # Interactive wizard
 
 </div>
 
-> **AI-Assistant** là nền tảng AI tích hợp gồm **5 dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
+> **AI-Assistant** là nền tảng AI tích hợp gồm **7+ dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
 
 ### 🏗️ **System Architecture Overview**
 
@@ -168,9 +196,11 @@ graph TB
     subgraph AI Services Layer
     CB[🤖 ChatBot v2.2🆕<br/>Port 5001<br/>Streaming + Code Exec<br/>Multi-Model + Context]
     T2S[📊 Text2SQL v2.2🆕<br/>Port 5002<br/>AI Learning + Deep Thinking<br/>Query Optimization]
+    DOC[📄 Document Intelligence🆕<br/>Port 5003<br/>OCR + AI Analysis<br/>Vietnamese Optimized]
     S2T[🎙️ Speech2Text v3.6+<br/>Port 7860<br/>Dual-Model Fusion<br/>Speaker Diarization]
     SD[🎨 Stable Diffusion<br/>Port 7861<br/>Text/Img2Img<br/>LoRA + VAE]
     LORA[✨ LoRA Training Tool<br/>Local Training<br/>Fine-tune SD Models<br/>Character/Style]
+    UPS[🖼️ Upscale Tool<br/>RealESRGAN<br/>GPU Accelerated<br/>4K Enhancement]
     end
     
     subgraph External AI APIs
@@ -193,6 +223,7 @@ graph TB
     
     HUB --> CB
     HUB --> T2S
+    HUB --> DOC
     HUB --> S2T
     HUB --> SD
     
@@ -205,10 +236,15 @@ graph TB
     T2S --> DB2
     T2S --> DB3
     
+    DOC --> API1
+    DOC --> FS
+    
     S2T --> API4
     S2T --> FS
     
     SD --> FS
+    SD --> UPS
+    UPS --> FS
     LORA --> SD
     LORA --> FS
     
@@ -218,9 +254,11 @@ graph TB
     style HUB fill:#6366F1,stroke:#4F46E5,color:#fff
     style CB fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style T2S fill:#3B82F6,stroke:#2563EB,color:#fff
+    style DOC fill:#10B981,stroke:#059669,color:#fff
     style S2T fill:#EF4444,stroke:#DC2626,color:#fff
     style SD fill:#EC4899,stroke:#DB2777,color:#fff
     style LORA fill:#F59E0B,stroke:#D97706,color:#fff
+    style UPS fill:#14B8A6,stroke:#0D9488,color:#fff
 ```
 
 ### 🔄 **Service Integration Flow**
@@ -231,30 +269,38 @@ graph LR
     
     B -->|Chat| C1[🤖 ChatBot]
     B -->|Query DB| C2[📊 Text2SQL]
-    B -->|Transcribe| C3[🎙️ Speech2Text]
-    B -->|Generate Art| C4[🎨 SD WebUI]
-    B -->|Train LoRA| C5[✨ LoRA Training]
+    B -->|OCR/Doc Analysis| C3[📄 Doc Intelligence]
+    B -->|Transcribe| C4[🎙️ Speech2Text]
+    B -->|Generate Art| C5[🎨 SD WebUI]
+    B -->|Train LoRA| C6[✨ LoRA Training]
+    B -->|Upscale Image| C7[🖼️ Upscale Tool]
     
-    C1 -->|Need Image?| C4
-    C4 -->|Image Ready| C1
+    C1 -->|Need Image?| C5
+    C5 -->|Image Ready| C1
+    C5 -->|Low Quality?| C7
+    C7 -->|Enhanced| C5
     
-    C5 -->|Trained Model| C4
-    C4 -->|Use LoRA| G
+    C6 -->|Trained Model| C5
+    C5 -->|Use LoRA| G
     
     C2 -->|Query Result| E[📊 Data Visualization]
-    C3 -->|Transcript| F[📝 Text Processing]
+    C3 -->|Extracted Text| F[📝 Text Processing]
+    C4 -->|Transcript| F
     
     C1 --> G[💬 Response]
+    C3 --> G
     E --> G
     F --> G
     
     style B fill:#6366F1,stroke:#4F46E5,color:#fff
     style C1 fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style C2 fill:#3B82F6,stroke:#2563EB,color:#fff
-    style C3 fill:#EF4444,stroke:#DC2626,color:#fff
-    style C4 fill:#EC4899,stroke:#DB2777,color:#fff
-    style C5 fill:#F59E0B,stroke:#D97706,color:#fff
-    style G fill:#F59E0B,stroke:#D97706,color:#fff
+    style C3 fill:#10B981,stroke:#059669,color:#fff
+    style C4 fill:#EF4444,stroke:#DC2626,color:#fff
+    style C5 fill:#EC4899,stroke:#DB2777,color:#fff
+    style C6 fill:#F59E0B,stroke:#D97706,color:#fff
+    style C7 fill:#14B8A6,stroke:#0D9488,color:#fff
+    style G fill:#6366F1,stroke:#4F46E5,color:#fff
 ```
 
 <div align="center">
@@ -266,8 +312,10 @@ graph LR
 |  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Development-6366F1?style=flat-square" /> | [ Docs](src/hub.py) |
 |  **ChatBot v2.2** 🆕 | Multi-model AI + Auto-File + Streaming + Code Exec | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.2** 🆕 | Natural Language → SQL + AI Learning + Query Optimization | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
+|  **Document Intelligence** 📄 | OCR + AI Analysis + Q&A + Translation | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
 |  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
+|  **Upscale Tool** 🖼️ | Image Upscaling (RealESRGAN + GPU) | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | [ Docs](upscale_tool/README.md) |
 |  **LoRA Training Tool** ✨ | Fine-tune Stable Diffusion with LoRA | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | [ Docs](train_LoRA_tool/README.md) |
 
 </div>
@@ -280,7 +328,7 @@ graph LR
 
 </div>
 
-<details open>
+<details close>
 <summary><b>🤖 ChatBot Service (v2.2) 🆕</b></summary>
 <br>
 
@@ -393,7 +441,7 @@ graph LR
 
 </details>
 
-<details open>
+<details close>
 <summary><b>📊 Text2SQL Service 🆕 v2.2</b></summary>
 <br>
 
@@ -524,7 +572,7 @@ graph LR
 
 </details>
 
-<details open>
+<details close>
 <summary><b>🎙️ Speech2Text Service (v3.6.0+)</b></summary>
 <br>
 
@@ -612,7 +660,7 @@ graph LR
 
 </details>
 
-<details open>
+<details close>
 <summary><b>🎨 Stable Diffusion WebUI</b></summary>
 <br>
 
@@ -761,7 +809,7 @@ graph LR
 
 ---
 
-<details open>
+<details close>
 <summary><b>🎨 LoRA Training Tool ✨</b></summary>
 <br>
 
@@ -885,6 +933,125 @@ cd train_LoRA_tool
 
 </details>
 
+<details close>
+<summary><b>📄 Document Intelligence Service 🆕</b></summary>
+<br>
+
+### 🔄 **Document Processing Pipeline**
+
+```mermaid
+graph TB
+    A[📸 Image Upload<br/>Drag & Drop] --> B[🔍 OCR Processing<br/>PaddleOCR]
+    B --> C[📝 Text Extraction<br/>Vietnamese Optimized]
+    C --> D{🧠 AI Analysis Mode}
+    
+    D -->|Classification| E1[🏷️ Auto Classify<br/>Invoice/ID/Contract]
+    D -->|Extraction| E2[🔍 Extract Key Info<br/>Names/Dates/Amounts]
+    D -->|Q&A| E3[💬 Ask Questions<br/>About Content]
+    D -->|Translation| E4[🌐 Translate<br/>8+ Languages]
+    D -->|Summarization| E5[📝 Summarize<br/>Key Points]
+    D -->|Insights| E6[💡 Generate Insights<br/>Deep Analysis]
+    
+    E1 --> F[🤖 Gemini 2.0 Flash]
+    E2 --> F
+    E3 --> F
+    E4 --> F
+    E5 --> F
+    E6 --> F
+    
+    F --> G[✅ AI Response]
+    G --> H[💾 Export TXT/JSON]
+    
+    style A fill:#3B82F6,stroke:#2563EB,color:#fff
+    style B fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style F fill:#10B981,stroke:#059669,color:#fff
+    style G fill:#F59E0B,stroke:#D97706,color:#fff
+```
+
+#### 💎 Key Features:
+
+| Feature | Description | Status |
+|:--------|:------------|:-------|
+| 📸 **OCR** | PaddleOCR Vietnamese support | ✅ |
+| 🧠 **AI Analysis** | Gemini 2.0 Flash FREE | ✅ Phase 1.5 |
+| 🏷️ **Auto Classification** | Intelligent document type detection | ✅ |
+| 🔍 **Smart Extraction** | Extract key information with AI | ✅ |
+| 📝 **Summarization** | Content summarization | ✅ |
+| 💬 **Q&A** | Ask questions about content | ✅ |
+| 🌐 **Translation** | 8+ languages support | ✅ |
+| 💡 **Insights** | Deep document analysis | ✅ |
+| 📊 **Table Extraction** | Detect and parse tables | 🚧 Phase 2 |
+| 📑 **Multi-page PDF** | Batch processing | 🚧 Phase 2 |
+
+<div align="right">
+
+📚 **[Chi tiết đầy đủ ](Document%20Intelligence%20Service/README.md)** | ⚡ **Port**: `5003`
+
+</div>
+
+</details>
+
+<details close>
+<summary><b>🖼️ Upscale Tool - Image Enhancement</b></summary>
+<br>
+
+### 🔄 **Image Upscaling Pipeline**
+
+```mermaid
+graph TB
+    A[📸 Low-Res Image<br/>Input] --> B{🖥️ Processing Mode}
+    
+    B -->|GPU| C1[⚡ GPU Acceleration<br/>CUDA + FP16]
+    B -->|CPU| C2[💻 CPU Processing<br/>Standard]
+    
+    C1 --> D[🎨 Model Selection]
+    C2 --> D
+    
+    D --> E1[📐 RealESRGAN x4plus<br/>General Purpose]
+    D --> E2[🎭 RealESRGAN Anime<br/>Anime/Art]
+    D --> E3[🎯 RealESRNet x4<br/>Conservative]
+    D --> E4[🌟 General Model<br/>Balanced]
+    
+    E1 --> F[🔧 Auto Optimization<br/>Dynamic Tile Sizing]
+    E2 --> F
+    E3 --> F
+    E4 --> F
+    
+    F --> G{🎛️ Enhancement}
+    G --> H[🖼️ 4K Upscaled Image<br/>4x Resolution]
+    H --> I[💾 Save Output]
+    
+    style A fill:#EC4899,stroke:#DB2777,color:#fff
+    style C1 fill:#10B981,stroke:#059669,color:#fff
+    style F fill:#F59E0B,stroke:#D97706,color:#fff
+    style H fill:#3B82F6,stroke:#2563EB,color:#fff
+```
+
+#### 🚀 Performance Comparison:
+
+| Mode | GPU (RTX 3060) | CPU (8-core) | Speedup |
+|:-----|:---------------|:-------------|:--------|
+| **512x512 → 2048x2048** | 2-3s ⚡⚡⚡⚡⚡ | 90-120s ⚡ | 45x |
+| **1024x1024 → 4096x4096** | 8-12s ⚡⚡⚡⚡ | 360-480s ⚡ | 40x |
+
+#### 💎 Key Features:
+
+- ⚡ **GPU Acceleration** - CUDA with FP16 mixed precision (2x faster)
+- 🎨 **4 AI Models** - RealESRGAN x4plus, Anime, RealESRNet, General
+- 🔧 **Auto Optimization** - Dynamic tile sizing based on GPU memory
+- 📊 **Multi-GPU** - Support for multiple GPUs
+- 🖥️ **Dual Interface** - CLI + Gradio Web UI
+- 📦 **Batch Processing** - Process multiple images
+- 🔥 **High Performance** - Up to 45x faster with RTX GPU
+
+<div align="right">
+
+📚 **[Chi tiết đầy đủ ](upscale_tool/README.md)** | 🔧 **[CUDA Setup](upscale_tool/CUDA_SETUP.md)**
+
+</div>
+
+</details>
+
 ---
 
 <div align="center">
@@ -943,7 +1110,29 @@ python app.py
 <tr>
 <td width="50%">
 
-### 3 **Speech2Text**
+### 3 **Document Intelligence** 🆕
+
+```bash
+cd "Document Intelligence Service"
+python -m venv venv_doc
+.\venv_doc\Scripts\activate
+pip install -r requirements.txt
+# Setup .env with GEMINI_API_KEY
+python app.py
+```
+
+<div align="center">
+
+ ** http://localhost:5003**
+
+[![Open](https://img.shields.io/badge/-Docs-3B82F6?style=for-the-badge)](Document%20Intelligence%20Service/README.md)
+
+</div>
+
+</td>
+<td width="50%">
+
+### 4 **Speech2Text**
 
 ```bash
 cd "Speech2Text Services"
@@ -961,9 +1150,11 @@ cd "Speech2Text Services"
 </div>
 
 </td>
+</tr>
+<tr>
 <td width="50%">
 
-### 4 **Stable Diffusion**
+### 5 **Stable Diffusion**
 
 ```bash
 cd stable-diffusion-webui
@@ -979,11 +1170,33 @@ cd stable-diffusion-webui
 </div>
 
 </td>
+<td width="50%">
+
+### 6 **Upscale Tool** 🖼️
+
+```bash
+cd upscale_tool
+python -m venv venv_upscale
+.\venv_upscale\Scripts\activate
+pip install -r requirements.txt
+# For GPU: Follow CUDA_SETUP.md
+python -m src.upscale_tool.web_ui
+```
+
+<div align="center">
+
+ **Local Web UI**
+
+[![Open](https://img.shields.io/badge/-Docs-10B981?style=for-the-badge)](upscale_tool/README.md)
+
+</div>
+
+</td>
 </tr>
 <tr>
 <td width="50%">
 
-### 5 **Hub Gateway** 🆕 (Coming Soon)
+### 7 **Hub Gateway** 🆕 (Coming Soon)
 
 ```bash
 cd src
@@ -1030,7 +1243,7 @@ docker-compose up -d
 ```
  AI-Assistant/
 
-  ChatBot/                     ChatBot Service (v2.0)
+  ChatBot/                     ChatBot Service (v2.2)
      app.py                   Main application
      requirements.txt         Dependencies
      src/                     Source code
@@ -1038,12 +1251,23 @@ docker-compose up -d
      static/                  CSS, JS, images
      Storage/                 Conversations & images
 
-  Text2SQL Services/           Text2SQL Service (v2.0) 
+  Text2SQL Services/           Text2SQL Service (v2.2) 
      app_simple.py            Main application
      requirements.txt         Dependencies
      src/                     Source code
      config/                  Configurations
      data/                    Knowledge base & prompts
+
+  Document Intelligence Service/  Document OCR & AI Analysis (v1.5) 🆕
+     app.py                   Main Flask app
+     requirements.txt         Dependencies
+     src/                     Source code
+        ai/                   Gemini AI integration
+        ocr/                  PaddleOCR engine
+        utils/                File handlers
+     static/                  Frontend assets
+     templates/               HTML templates
+     output/                  Processed results
 
   Speech2Text Services/        Speech2Text Service (v3.6)
      app/                     Web UI application
@@ -1056,6 +1280,16 @@ docker-compose up -d
      launch.py                Main launcher
      modules/                 Core modules
      extensions/              Extensions
+
+  upscale_tool/                Image Upscaling Tool 🆕
+     src/                     Source code
+        upscaler.py           Main upscaler
+        cli.py                CLI interface
+        web_ui.py             Gradio web UI
+     models/                  RealESRGAN models
+     examples/                Usage examples
+     requirements.txt         Dependencies
+     CUDA_SETUP.md            GPU setup guide
 
   train_LoRA_tool/             LoRA Training Tool ✨
      scripts/                 Training & utility scripts
@@ -1309,6 +1543,44 @@ Vietnamese Transcription
 [![Docs](https://img.shields.io/badge/-Documentation-EC4899?style=for-the-badge)](stable-diffusion-webui/README.md)
 
 AI Image Generation
+
+</td>
+</tr>
+<tr>
+<td width="25%" align="center">
+
+### 📄 Document Intelligence
+
+[![Docs](https://img.shields.io/badge/-Documentation-10B981?style=for-the-badge)](Document%20Intelligence%20Service/README.md)
+
+OCR + AI Analysis
+
+</td>
+<td width="25%" align="center">
+
+### 🖼️ Upscale Tool
+
+[![Docs](https://img.shields.io/badge/-Documentation-14B8A6?style=for-the-badge)](upscale_tool/README.md)
+
+Image Enhancement to 4K
+
+</td>
+<td width="25%" align="center">
+
+### ✨ LoRA Training
+
+[![Docs](https://img.shields.io/badge/-Documentation-F59E0B?style=for-the-badge)](train_LoRA_tool/README.md)
+
+Fine-tune SD Models
+
+</td>
+<td width="25%" align="center">
+
+### 🎯 Hub Gateway
+
+[![Docs](https://img.shields.io/badge/-Documentation-6366F1?style=for-the-badge)](src/hub.py)
+
+API Gateway (Coming Soon)
 
 </td>
 </tr>
@@ -1953,18 +2225,18 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 <table>
 <tr>
 <td align="center" width="25%">
-<img src="https://img.shields.io/badge/Services-6_Active-10B981?style=for-the-badge&logo=docker" />
+<img src="https://img.shields.io/badge/Services-8_Active-10B981?style=for-the-badge&logo=docker" />
 <br/>
 <b>Multi-Service Platform</b>
 <br/>
-<sub>ChatBot • Text2SQL • Doc Intel • RAG • Speech2Text • SD</sub>
+<sub>ChatBot • Text2SQL • Doc Intel • Speech2Text • SD • LoRA • Upscale • Hub</sub>
 </td>
 <td align="center" width="25%">
-<img src="https://img.shields.io/badge/AI_Models-7+_Integrated-8B5CF6?style=for-the-badge&logo=openai" />
+<img src="https://img.shields.io/badge/AI_Models-10+_Integrated-8B5CF6?style=for-the-badge&logo=openai" />
 <br/>
 <b>Advanced AI Stack</b>
 <br/>
-<sub>Gemini • GPT-4 • Whisper • SD • Qwen</sub>
+<sub>Gemini • GPT-4 • Whisper • SD • PaddleOCR • RealESRGAN</sub>
 </td>
 <td align="center" width="25%">
 <img src="https://img.shields.io/badge/Lines_of_Code-50K+-3B82F6?style=for-the-badge&logo=github" />
@@ -1989,14 +2261,14 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 📦 Total Size:         ~50 GB (with models)
 📝 Lines of Code:      50,000+
 🗂️ Files:              500+
-📚 Documentation:      21+ comprehensive guides (NEW! +6 RAG docs)
-🤖 AI Models:          7 integrated models
-🔌 API Endpoints:      51+ REST APIs (NEW! +11 RAG endpoints)
-⭐ Features:           109+ implemented (NEW! +9 RAG features)
-🧪 Test Coverage:      180+ tests
-🐳 Docker Ready:       4 Dockerfiles
-🔄 CI/CD Pipeline:     6 jobs automated
-📖 RAG Documentation:  182 KB, 20,000+ words (NEW!)
+📚 Documentation:      25+ comprehensive guides
+🤖 AI Models:          10+ integrated models
+🔌 API Endpoints:      60+ REST APIs
+⭐ Features:           120+ implemented
+🧪 Test Coverage:      200+ tests
+🐳 Docker Ready:       6+ Dockerfiles
+🔄 CI/CD Pipeline:     8 jobs automated
+🎯 Services:           8 active services
 ```
 
 ### 📈 **GitHub Stats**
