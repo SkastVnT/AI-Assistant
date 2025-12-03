@@ -88,11 +88,13 @@ scripts\setup\quickstart.bat  # Interactive wizard
 <img src="https://img.shields.io/badge/Multi--Model-Support-8B5CF6?style=flat-square" />
 <img src="https://img.shields.io/badge/Image-Generation-EC4899?style=flat-square" />
 
--  Gemini 2.0 Flash
+-  Gemini 2.0 Flash + GROK-3 + GPT-4o-mini
+-  🛠️ Custom Prompt System with Visual Indicators
 -  Stable Diffusion Integration
 -  AI Memory System
 -  Google & GitHub Search
--  PDF Export
+-  Deep Thinking Mode (All Models)
+-  PDF Export & File Analysis
 
 </td>
 <td width="50%">

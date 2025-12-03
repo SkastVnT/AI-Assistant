@@ -11,7 +11,7 @@ export class APIService {
     /**
      * Send chat message to backend
      */
-    async sendMessage(message, model, context, tools = [], deepThinking = false, history = [], files = [], memories = [], abortSignal = null) {
+    async sendMessage(message, model, context, tools = [], deepThinking = false, history = [], files = [], memories = [], abortSignal = null, customPrompt = '') {
         let response;
         
         // Get current language from localStorage
@@ -33,6 +33,7 @@ export class APIService {
             formData.append('history', JSON.stringify(history));
             formData.append('memory_ids', JSON.stringify(memories));
             formData.append('language', language);  // Add language
+            formData.append('custom_prompt', customPrompt);  // Add custom prompt
 
             // Append files
             files.forEach((file) => {
@@ -54,7 +55,8 @@ export class APIService {
                 deep_thinking: deepThinking,
                 history: history,
                 memory_ids: memories,
-                language: language  // Add language
+                language: language,  // Add language
+                custom_prompt: customPrompt  // Add custom prompt
             });
             
             response = await fetch('/chat', fetchOptions);

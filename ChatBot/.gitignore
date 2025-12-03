@@ -24,6 +24,7 @@ wheels/
 venv/
 ENV/
 env/
+venv_*/
 
 # IDEs
 .vscode/
@@ -31,19 +32,32 @@ env/
 *.swp
 *.swo
 
-# Environment
+# Environment - CRITICAL: Never commit API keys!
 .env
 .env.local
+.env.production
+.env.*.local
+**/.env
 
 # Logs
 logs/
 *.log
 
-# Data
+# Data - Protect user conversations and memory
 data/cache/
 data/outputs/
+data/memory/**
+data/conversations/**
+Storage/**
 *.db
 *.sqlite
+*.sqlite3
+
+# User uploads and generated content
+Storage/
+Storage/Image_Gen/
+uploads/
+output/
 
 # OS
 .DS_Store

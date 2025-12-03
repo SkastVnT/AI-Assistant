@@ -7,6 +7,7 @@ export class MessageRenderer {
     constructor() {
         this.modelNames = {
             'gemini': 'Gemini',
+            'grok': 'GROK',
             'openai': 'GPT-4o-mini',
             'deepseek': 'DeepSeek',
             'qwen': 'Qwen1.5b',
@@ -51,7 +52,7 @@ export class MessageRenderer {
     /**
      * Create and add message to chat
      */
-    addMessage(chatContainer, content, isUser, model, context, timestamp, thinkingProcess = null) {
+    addMessage(chatContainer, content, isUser, model, context, timestamp, thinkingProcess = null, customPromptUsed = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
         messageDiv.dataset.timestamp = timestamp;
@@ -108,7 +109,10 @@ export class MessageRenderer {
         if (!isUser && model && context) {
             const infoDiv = document.createElement('div');
             infoDiv.className = 'message-info';
-            infoDiv.textContent = `${this.modelNames[model] || model} • ${this.contextNames[context] || context}`;
+            
+            // Add prompt type indicator
+            const promptType = customPromptUsed ? '🛠️ Custom Prompt' : '📝 Base Prompt';
+            infoDiv.textContent = `${this.modelNames[model] || model} • ${this.contextNames[context] || context} • ${promptType}`;
             contentDiv.appendChild(infoDiv);
         }
         

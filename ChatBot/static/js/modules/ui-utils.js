@@ -367,8 +367,8 @@ export class UIUtils {
     updateDeepThinkingVisibility(model) {
         const container = document.getElementById('deepThinkingContainer');
         if (container) {
-            // Only show for DeepSeek models
-            container.style.display = model.includes('deepseek') ? 'flex' : 'none';
+            // Show Deep Thinking for all models
+            container.style.display = 'flex';
         }
     }
 }

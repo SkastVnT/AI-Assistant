@@ -1734,9 +1734,28 @@ body.dark-mode .input-container {
     white-space: nowrap;
 }
 
+/* Custom Prompt Button - Yellow by default */
+#customPromptBtn {
+    background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%) !important;
+    color: #000 !important;
+    border-color: #FFC107;
+}
+
+/* Custom Prompt Button - Green when active */
+#customPromptBtn.active-custom {
+    background: linear-gradient(135deg, #90EE90 0%, #32CD32 100%) !important;
+    color: #000 !important;
+    border-color: #32CD32;
+}
+
 .tool-btn:hover {
     background: #e9ecef !important;
     border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+#customPromptBtn:hover {
+    opacity: 0.9;
     transform: translateY(-1px);
 }
 
@@ -1753,9 +1772,27 @@ body.dark-mode .tool-btn {
     color: #e0e0e0 !important;
 }
 
+/* Keep custom prompt button colors in dark mode */
+body.dark-mode #customPromptBtn {
+    background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%) !important;
+    color: #000 !important;
+    border-color: #FFC107;
+}
+
+body.dark-mode #customPromptBtn.active-custom {
+    background: linear-gradient(135deg, #90EE90 0%, #32CD32 100%) !important;
+    color: #000 !important;
+    border-color: #32CD32;
+}
+
 body.dark-mode .tool-btn:hover {
     background: #3d3d3d !important;
     border-color: #667eea;
+}
+
+body.dark-mode #customPromptBtn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 body.dark-mode .tool-btn.active {
@@ -1889,6 +1926,8 @@ body.dark-mode #messageInput {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     animation: fadeIn 0.3s;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal.active {
@@ -1907,6 +1946,7 @@ body.dark-mode #messageInput {
     overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     animation: slideIn 0.3s;
+    margin: auto;
 }
 
 body.dark-mode .modal-content {

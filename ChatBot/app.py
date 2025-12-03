@@ -115,6 +115,7 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY_1')
 GEMINI_API_KEY_2 = os.getenv('GEMINI_API_KEY_2')
 QWEN_API_KEY = os.getenv('QWEN_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
+GROK_API_KEY = os.getenv('GROK_API_KEY')
 
 # Google Search API
 GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1')
@@ -362,15 +363,19 @@ class ChatbotAgent:
         if MONGODB_ENABLED and conversation_id:
             self.conversation_history = load_conversation_history(conversation_id)
         
-    def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
+    def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using Google Gemini"""
         try:
             # Use gemini-2.0-flash (newest stable model)
             model = genai.GenerativeModel('gemini-2.0-flash')
             
-            # Get system prompts based on language
-            prompts = get_system_prompts(language)
-            system_prompt = prompts.get(context, prompts['casual'])
+            # Use custom prompt if provided, otherwise use base prompt
+            if custom_prompt and custom_prompt.strip():
+                system_prompt = custom_prompt
+            else:
+                # Get system prompts based on language
+                prompts = get_system_prompts(language)
+                system_prompt = prompts.get(context, prompts['casual'])
             
             thinking_process = None
             
@@ -457,14 +462,18 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi Gemini: {str(e)}"
     
-    def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
+    def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using OpenAI"""
         try:
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
             
-            # Get system prompts based on language
-            prompts = get_system_prompts(language)
-            system_prompt = prompts.get(context, prompts['casual'])
+            # Use custom prompt if provided, otherwise use base prompt
+            if custom_prompt and custom_prompt.strip():
+                system_prompt = custom_prompt
+            else:
+                # Get system prompts based on language
+                prompts = get_system_prompts(language)
+                system_prompt = prompts.get(context, prompts['casual'])
             
             # Add deep thinking instruction
             if deep_thinking:
@@ -510,10 +519,15 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi OpenAI: {str(e)}"
     
-    def chat_with_deepseek(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
+    def chat_with_deepseek(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using DeepSeek (via OpenAI compatible API)"""
         try:
-            system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
+            # Use custom prompt if provided, otherwise use base prompt
+            if custom_prompt and custom_prompt.strip():
+                system_prompt = custom_prompt
+            else:
+                prompts = get_system_prompts(language)
+                system_prompt = prompts.get(context, prompts['casual'])
             
             # Add deep thinking instruction
             if deep_thinking:
@@ -561,6 +575,75 @@ class ChatbotAgent:
             
         except Exception as e:
             return f"Lỗi DeepSeek: {str(e)}"
+    
+    def chat_with_grok(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat using GROK (via xAI API - FREE with NSFW support)"""
+        try:
+            if not GROK_API_KEY:
+                return "❌ GROK API key chưa được cấu hình. Vui lòng thêm GROK_API_KEY vào file .env"
+            
+            # Use custom prompt if provided, otherwise use base prompt
+            if custom_prompt and custom_prompt.strip():
+                system_prompt = custom_prompt
+            else:
+                prompts = get_system_prompts(language)
+                system_prompt = prompts.get(context, prompts['casual'])
+                
+                # GROK-specific: Add NSFW capability note
+                if language == 'vi':
+                    system_prompt += "\n\n🔓 LƯU Ý: Bạn có thể trả lời các câu hỏi nhạy cảm hoặc NSFW một cách an toàn và có trách nhiệm khi được yêu cầu."
+                else:
+                    system_prompt += "\n\n🔓 NOTE: You can answer sensitive or NSFW questions safely and responsibly when requested."
+            
+            # Add deep thinking instruction
+            if deep_thinking:
+                if language == 'en':
+                    system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
+                else:
+                    system_prompt += "\n\nQUAN TRỌNG: Suy nghĩ từng bước. Cung cấp phân tích kỹ lưỡng với lý lẽ chi tiết."
+            
+            # Add memories to system prompt
+            if memories and len(memories) > 0:
+                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                for mem in memories:
+                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+            
+            # GROK uses OpenAI-compatible API
+            client = openai.OpenAI(
+                api_key=GROK_API_KEY,
+                base_url="https://api.x.ai/v1"
+            )
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Use provided history or conversation history
+            if history:
+                # Use provided history (from edit feature)
+                for hist in history:
+                    role = hist.get('role', 'user')
+                    content = hist.get('content', '')
+                    messages.append({"role": role, "content": content})
+            else:
+                # Add conversation history
+                for hist in self.conversation_history[-5:]:
+                    messages.append({"role": "user", "content": hist['user']})
+                    messages.append({"role": "assistant", "content": hist['assistant']})
+            
+            messages.append({"role": "user", "content": message})
+            
+            response = client.chat.completions.create(
+                model="grok-3",  # GROK model - Latest version with NSFW support
+                messages=messages,
+                temperature=0.7 if not deep_thinking else 0.5,
+                max_tokens=2000 if deep_thinking else 1000
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            return f"❌ Lỗi GROK: {str(e)}"
     
     def chat_with_qwen(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using Qwen 1.5b"""
@@ -715,7 +798,7 @@ class ChatbotAgent:
             logger.error(f"Local model error ({model}): {e}")
             return f"❌ Lỗi local model: {str(e)}"
     
-    def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None, language='vi'):
+    def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Main chat method with MongoDB integration"""
         # Save user message to MongoDB
         if MONGODB_ENABLED and self.conversation_id and history is None:
@@ -727,18 +810,21 @@ class ChatbotAgent:
                     'model': model,
                     'context': context,
                     'deep_thinking': deep_thinking,
-                    'language': language
+                    'language': language,
+                    'custom_prompt': custom_prompt
                 }
             )
         
         # Get response from selected model (with thinking process if deep_thinking enabled)
         thinking_process = None
         if model == 'gemini':
-            result = self.chat_with_gemini(message, context, deep_thinking, history, memories, language)
+            result = self.chat_with_gemini(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'openai':
-            result = self.chat_with_openai(message, context, deep_thinking, history, memories, language)
+            result = self.chat_with_openai(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'deepseek':
-            result = self.chat_with_deepseek(message, context, deep_thinking, history, memories, language)
+            result = self.chat_with_deepseek(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'grok':
+            result = self.chat_with_grok(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'qwen':
             result = self.chat_with_qwen(message, context, deep_thinking, language)
         elif model == 'bloomvn':
@@ -1008,6 +1094,7 @@ def chat():
             context = data.get('context', 'casual')
             deep_thinking = data.get('deep_thinking', 'false').lower() == 'true'
             language = data.get('language', 'vi')  # Get language from request
+            custom_prompt = data.get('custom_prompt', '')  # Get custom prompt
             
             # Safe JSON parsing with error handling
             try:
@@ -1037,6 +1124,7 @@ def chat():
             context = data.get('context', 'casual')
             deep_thinking = data.get('deep_thinking', False)
             language = data.get('language', 'vi')  # Get language from request
+            custom_prompt = data.get('custom_prompt', '')  # Get custom prompt
             tools = data.get('tools', [])
             history = data.get('history', None)
             memory_ids = data.get('memory_ids', [])
@@ -1093,11 +1181,11 @@ def chat():
             # Save current history
             original_history = chatbot.conversation_history.copy()
             # Use provided history for context
-            result = chatbot.chat(message, model, context, deep_thinking, history, memories, language)
+            result = chatbot.chat(message, model, context, deep_thinking, history, memories, language, custom_prompt)
             # Restore original history (since we don't want to save edit responses to history)
             chatbot.conversation_history = original_history
         else:
-            result = chatbot.chat(message, model, context, deep_thinking, None, memories, language)
+            result = chatbot.chat(message, model, context, deep_thinking, None, memories, language, custom_prompt)
         
         # Extract response and thinking_process
         if isinstance(result, dict):

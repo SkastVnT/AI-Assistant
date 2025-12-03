@@ -62,6 +62,7 @@
                     <span data-lang-key="controls.model">Model:</span>
                     <select id="modelSelect">
                         <option value="gemini" data-lang-key="model.gemini">Gemini (Google) - FREE</option>
+                        <option value="grok" data-lang-key="model.grok">GROK (xAI) - FREE</option>
                         <option value="openai" data-lang-key="model.openai">GPT-4o-mini (OpenAI)</option>
                         <option value="deepseek" data-lang-key="model.deepseek">DeepSeek (Rẻ nhất)</option>
                         <option value="qwen" data-lang-key="model.qwen">Qwen1.5b (Alibaba Cloud)</option>
@@ -133,6 +134,9 @@
         
         <div class="input-container">
             <div class="input-tools">
+                <button class="tool-btn" id="customPromptBtn" title="Tùy chỉnh System Prompt" data-lang-key="tools.customPrompt" data-lang-key-title="tooltip.customPrompt">
+                    🛠️ Custom Prompt
+                </button>
                 <button class="tool-btn" id="googleSearchBtn" title="Tìm kiếm Google" data-lang-key="tools.googleSearch" data-lang-key-title="tooltip.googleSearch">
                     🔍 Google Search
                 </button>
@@ -516,6 +520,56 @@
         </div>
     </div>
     
+    <!-- Custom Prompt Modal -->
+    <div id="customPromptModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px; margin: 50px auto;">
+            <div class="modal-header">
+                <h2>🛠️ <span data-lang-key="customPrompt.title">Custom System Prompt</span></h2>
+                <button class="close-modal" onclick="closeCustomPromptModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label data-lang-key="customPrompt.description">
+                    Nhập system prompt tùy chỉnh của bạn. Nếu để trống, ChatBot sẽ sử dụng base prompt mặc định.
+                </label>
+                <textarea 
+                    id="customPromptText" 
+                    rows="10" 
+                    placeholder="Ví dụ: Bạn là một chuyên gia về lập trình Python với 10 năm kinh nghiệm..."
+                    data-lang-key="customPrompt.placeholder"
+                    style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; font-size: 14px;"
+                ></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button 
+                    onclick="clearCustomPrompt()" 
+                    class="secondary-btn"
+                    data-lang-key="customPrompt.clear"
+                    style="padding: 10px 20px; background: #888; color: white; border: none; border-radius: 8px; cursor: pointer;"
+                >
+                    🗑️ Xóa
+                </button>
+                <button 
+                    onclick="saveCustomPrompt()" 
+                    class="primary-btn"
+                    data-lang-key="customPrompt.save"
+                    style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer;"
+                >
+                    💾 Lưu
+                </button>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 8px; font-size: 12px;">
+                <strong data-lang-key="customPrompt.note">📝 Lưu ý:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    <li data-lang-key="customPrompt.note1">Custom prompt sẽ ghi đè lên prompt mặc định của chế độ hiện tại</li>
+                    <li data-lang-key="customPrompt.note2">Để trống và nhấn "Lưu" để quay lại sử dụng base prompt</li>
+                    <li data-lang-key="customPrompt.note3">Custom prompt được lưu trong session hiện tại</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <!-- Load JavaScript modules -->
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
@@ -541,6 +595,112 @@
                 console.log('Direct onchange setup complete');
             } else {
                 console.error('File input NOT FOUND!');
+            }
+        });
+        
+        // Custom Prompt Modal Functions
+        // Load from localStorage on init
+        let customPromptValue = localStorage.getItem('customPromptValue') || '';
+        let customPromptEnabled = localStorage.getItem('customPromptEnabled') === 'true';
+        
+        function openCustomPromptModal() {
+            const modal = document.getElementById('customPromptModal');
+            const textarea = document.getElementById('customPromptText');
+            textarea.value = customPromptValue || '';
+            modal.style.display = 'flex';  // Use flex to center
+        }
+        
+        function closeCustomPromptModal() {
+            const modal = document.getElementById('customPromptModal');
+            modal.style.display = 'none';
+        }
+        
+        function saveCustomPrompt() {
+            const textarea = document.getElementById('customPromptText');
+            customPromptValue = textarea.value.trim();
+            
+            const btn = document.getElementById('customPromptBtn');
+            const chatContainer = document.getElementById('chatContainer');
+            const timestamp = new Date().toLocaleString('vi-VN');
+            
+            if (customPromptValue) {
+                customPromptEnabled = true;  // Activate custom prompt
+                // Save to localStorage
+                localStorage.setItem('customPromptValue', customPromptValue);
+                localStorage.setItem('customPromptEnabled', 'true');
+                
+                btn.classList.add('active-custom');
+                btn.title = '🛠️ Custom Prompt ĐANG KÍCH HOẠT (Click để chỉnh sửa)';
+                
+                // Show custom prompt in chat
+                if (window.chatApp && window.chatApp.messageRenderer) {
+                    const promptDisplay = `✅ **Prompt đã được custom lại:**\n\n\`\`\`\n${customPromptValue}\n\`\`\``;
+                    window.chatApp.messageRenderer.addMessage(
+                        chatContainer,
+                        promptDisplay,
+                        false,
+                        'System',
+                        'info',
+                        timestamp,
+                        null,
+                        true  // Show as Custom Prompt
+                    );
+                }
+            } else {
+                customPromptEnabled = false;  // Deactivate if empty
+                // Remove from localStorage
+                localStorage.removeItem('customPromptValue');
+                localStorage.removeItem('customPromptEnabled');
+                
+                btn.classList.remove('active-custom');
+                btn.title = 'Tùy chỉnh System Prompt';
+            }
+            
+            closeCustomPromptModal();
+        }
+        
+        function clearCustomPrompt() {
+            customPromptValue = '';
+            customPromptEnabled = false;  // Deactivate custom prompt
+            document.getElementById('customPromptText').value = '';
+            
+            // Remove from localStorage
+            localStorage.removeItem('customPromptValue');
+            localStorage.removeItem('customPromptEnabled');
+            
+            const btn = document.getElementById('customPromptBtn');
+            btn.classList.remove('active-custom');
+            btn.title = 'Tùy chỉnh System Prompt';
+            
+            // Show deletion message in chat
+            const chatContainer = document.getElementById('chatContainer');
+            const timestamp = new Date().toLocaleString('vi-VN');
+            if (window.chatApp && window.chatApp.messageRenderer) {
+                window.chatApp.messageRenderer.addMessage(
+                    chatContainer,
+                    '🗑️ **Đã xóa custom prompt** - Quay lại sử dụng base prompt',
+                    false,
+                    'System',
+                    'info',
+                    timestamp,
+                    null,
+                    false
+                );
+            }
+            
+            closeCustomPromptModal();
+        }
+        
+        // Add event listener for Custom Prompt button
+        document.addEventListener('DOMContentLoaded', function() {
+            const customPromptBtn = document.getElementById('customPromptBtn');
+            if (customPromptBtn) {
+                customPromptBtn.addEventListener('click', openCustomPromptModal);
+                // Restore state from localStorage
+                if (customPromptEnabled) {
+                    customPromptBtn.classList.add('active-custom');
+                    customPromptBtn.title = '🛠️ Custom Prompt ĐANG KÍCH HOẠT (Click để chỉnh sửa)';
+                }
             }
         });
     </script>

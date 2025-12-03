@@ -1,9 +1,33 @@
-# ChatBot Service - AI Assistant v2.6
+# ChatBot Service - AI Assistant v2.7
 
-Advanced multi-model intelligent chatbot with **Deep Thinking (o1-style)**, ChatGPT-inspired UI, file analysis, and modern features.
+Advanced multi-model intelligent chatbot with **Custom Prompt System**, **GROK-3 Integration**, **Deep Thinking**, and modern UI features.
 
 <details>
-<summary><strong>🌟 Latest Updates (v2.6)</strong></summary>
+<summary><strong>🌟 Latest Updates (v2.7)</strong></summary>
+
+### 🛠️ Custom Prompt System (NEW!)
+
+- **Visual Status Indicators**: 
+  - 🟡 Yellow button = Base prompt (default)
+  - 🟢 Green button = Custom prompt active
+- **Persistent Storage**: Custom prompts saved in localStorage
+- **Chat Display**: Full prompt content shown when saved/cleared
+- **Live Indicator**: Message info shows "🛠️ Custom Prompt" or "📝 Base Prompt"
+- **Easy Management**: Save, edit, or clear custom prompts anytime
+
+### 🤖 GROK-3 Model Integration (NEW!)
+
+- **xAI GROK-3**: Latest model from xAI with advanced reasoning
+- **NSFW Support**: Unrestricted conversations when using GROK
+- **Multi-Model Choice**: Switch between Gemini, GROK, GPT-4o-mini, DeepSeek, etc.
+- **Unified Interface**: Same UI for all AI models
+
+### 🧠 Deep Thinking for All Models (ENHANCED!)
+
+- **Universal Support**: Deep Thinking now available for ALL models
+- **Visible Thinking Process**: See AI's reasoning steps in real-time
+- **6-Step Analysis**: Comprehensive reasoning for better responses
+- **Collapsible Sections**: Click to expand/collapse thinking details
 
 ### 🧠 Deep Thinking Feature (OpenAI o1-style)
 

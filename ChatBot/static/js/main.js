@@ -85,13 +85,16 @@ class ChatBotApp {
                     } catch (error) {
                         // Show error in chat instead of alert
                         const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                        const customPromptUsed = window.customPromptEnabled === true;
                         this.messageRenderer.addMessage(
                             elements.chatContainer,
                             `❌ **Lỗi xử lý file "${file.name}":** ${error.message}`,
                             false,
                             'system',
                             'error',
-                            errorTimestamp
+                            errorTimestamp,
+                            null,
+                            customPromptUsed
                         );
                         console.error('[App] File processing error:', error);
                     }
@@ -116,13 +119,16 @@ class ChatBotApp {
                 
                 // Show instruction message to user
                 const instructionTimestamp = this.uiUtils.formatTimestamp(new Date());
+                const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     `✅ **Đã tải lên ${processedFiles.length} file.** Bạn có thể hỏi tôi về nội dung file bây giờ! 💬`,
                     false,
                     'system',
                     'info',
-                    instructionTimestamp
+                    instructionTimestamp,
+                    null,
+                    customPromptUsed
                 );
                 
                 // Clear the input
@@ -131,13 +137,16 @@ class ChatBotApp {
                 console.error('Upload error:', error);
                 // Show error in chat instead of alert
                 const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     `❌ **Lỗi upload file:** ${error.message}`,
                     false,
                     'system',
                     'error',
-                    errorTimestamp
+                    errorTimestamp,
+                    null,
+                    customPromptUsed
                 );
                 newFileInput.value = '';
             }
@@ -163,13 +172,16 @@ class ChatBotApp {
                     } catch (error) {
                         // Show error in chat instead of alert
                         const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                        const customPromptUsed = window.customPromptEnabled === true;
                         this.messageRenderer.addMessage(
                             elements.chatContainer,
                             `❌ **Lỗi xử lý file "${file.name}":** ${error.message}`,
                             false,
                             'system',
                             'error',
-                            errorTimestamp
+                            errorTimestamp,
+                            null,
+                            customPromptUsed
                         );
                         console.error('File processing error:', error);
                     }
@@ -189,25 +201,31 @@ class ChatBotApp {
                 
                 // Show instruction message
                 const instructionTimestamp = this.uiUtils.formatTimestamp(new Date());
+                const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     `✅ **Đã paste ${processedFiles.length} file.** Hỏi tôi bất kỳ điều gì về file! 💬`,
                     false,
                     'system',
                     'info',
-                    instructionTimestamp
+                    instructionTimestamp,
+                    null,
+                    customPromptUsed
                 );
             } catch (error) {
                 console.error('Paste error:', error);
                 // Show error in chat instead of alert
                 const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     `❌ **Lỗi paste file:** ${error.message}`,
                     false,
                     'system',
                     'error',
-                    errorTimestamp
+                    errorTimestamp,
+                    null,
+                    customPromptUsed
                 );
             }
         });
@@ -446,13 +464,16 @@ class ChatBotApp {
         
         // Add user message to chat
         const timestamp = this.uiUtils.formatTimestamp(new Date());
+        const customPromptUsed = window.customPromptEnabled === true;
         this.messageRenderer.addMessage(
             elements.chatContainer,
             message,
             true,
             formValues.model,
             formValues.context,
-            timestamp
+            timestamp,
+            null,
+            customPromptUsed
         );
         
         // If deep thinking is enabled, add thinking container with loading state
@@ -489,7 +510,8 @@ class ChatBotApp {
                 history,
                 this.fileHandler.getFiles(), // Empty for now, all handled in message
                 selectedMemories,
-                this.currentAbortController.signal
+                this.currentAbortController.signal,
+                (window.customPromptEnabled && window.customPromptValue) ? window.customPromptValue : ''  // Only pass if enabled
             );
             
             // Add response to chat with version support
@@ -505,6 +527,9 @@ class ChatBotApp {
                 thinkingContainer.remove();
             }
             
+            // Check if custom prompt is being used
+            const customPromptUsed = window.customPromptEnabled === true;
+            
             const responseMsg = this.messageRenderer.addMessage(
                 elements.chatContainer,
                 responseContent,
@@ -512,7 +537,8 @@ class ChatBotApp {
                 formValues.model,
                 formValues.context,
                 responseTimestamp,
-                data.thinking_process || null
+                data.thinking_process || null,
+                customPromptUsed
             );
             
             // Update the latest version with the new response
@@ -576,13 +602,16 @@ class ChatBotApp {
                 // Don't show error message, user intentionally stopped
             } else {
                 const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     `❌ **Lỗi kết nối:** ${error.message}`,
                     false,
                     formValues.model,
                     formValues.context,
-                    errorTimestamp
+                    errorTimestamp,
+                    null,
+                    customPromptUsed
                 );
                 // Save session with updated timestamp (new message even if error)
                 this.saveCurrentSession(true);
@@ -664,13 +693,17 @@ class ChatBotApp {
                 ? `❌ **Lỗi phân tích:** ${data.error}` 
                 : data.response;
             
+            const customPromptUsed = window.customPromptEnabled === true;
+            
             this.messageRenderer.addMessage(
                 elements.chatContainer,
                 responseContent,
                 false,
                 formValues.model,
                 'programming',
-                responseTimestamp
+                responseTimestamp,
+                null,  // No thinking process
+                customPromptUsed
             );
             
             // Save session
@@ -685,13 +718,16 @@ class ChatBotApp {
             if (error.name !== 'AbortError') {
                 console.error('File analysis error:', error);
                 const errorTimestamp = this.uiUtils.formatTimestamp(new Date());
+                const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     `❌ **Lỗi phân tích file:** ${error.message}`,
                     false,
                     formValues.model,
                     'programming',
-                    errorTimestamp
+                    errorTimestamp,
+                    null,
+                    customPromptUsed
                 );
             }
         } finally {
@@ -977,13 +1013,16 @@ class ChatBotApp {
         const elements = this.uiUtils.elements;
         
         // Show loading message
+        const customPromptUsed = window.customPromptEnabled === true;
         const loadingMsg = this.messageRenderer.addMessage(
             elements.chatContainer,
             '🔄 Đang tạo PDF...',
             false,
             'System',
             'casual',
-            this.uiUtils.formatTimestamp(new Date())
+            this.uiUtils.formatTimestamp(new Date()),
+            null,
+            customPromptUsed
         );
         
         const success = await this.exportHandler.downloadChatAsPDF(
@@ -1056,6 +1095,7 @@ class ChatBotApp {
             
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
             const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            const customPromptUsed = window.customPromptEnabled === true;
             
             this.messageRenderer.addMessage(
                 elements.chatContainer,
@@ -1063,7 +1103,9 @@ class ChatBotApp {
                 false,
                 formValues.model,
                 formValues.context,
-                responseTimestamp
+                responseTimestamp,
+                null,
+                customPromptUsed
             );
             
             // Update version history with the new response
