@@ -13,7 +13,7 @@
 # PyTorch (install first to avoid conflicts)
 torch==2.0.1
 torchaudio==2.0.2
-numpy==1.24.4
+numpy==2.2.6
 
 # ============= CORE AI MODELS =============
 # Whisper (Global ASR)
