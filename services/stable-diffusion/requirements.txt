@@ -24,11 +24,11 @@ psutil>=5.9.0
 
 # ============= WEB UI =============
 fastapi>=0.94.0
-gradio==3.41.2
+gradio==5.31.0
 uvicorn>=0.20.0
 
 # ============= TRANSFORMERS =============
-transformers==4.30.2
+transformers==4.53.0
 open-clip-torch>=2.20.0
 
 # ============= IMAGE PROCESSING =============
