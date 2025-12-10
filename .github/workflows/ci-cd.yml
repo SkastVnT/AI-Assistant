@@ -52,14 +52,14 @@ jobs:
         python-version: '3.10'
     
     - name: Install dependencies
-      working-directory: ./ChatBot
+      working-directory: ./services/chatbot
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov pytest-mock
         pip install -r requirements.txt
     
     - name: Run tests
-      working-directory: ./ChatBot
+      working-directory: ./services/chatbot
       run: |
         pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
       continue-on-error: true
@@ -67,7 +67,7 @@ jobs:
     - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
-        file: ./ChatBot/coverage.xml
+        file: ./services/chatbot/coverage.xml
         flags: chatbot
         name: chatbot-coverage
 
@@ -86,14 +86,14 @@ jobs:
         python-version: '3.10'
     
     - name: Install dependencies
-      working-directory: ./Text2SQL Services
+      working-directory: ./services/text2sql
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
         pip install -r requirements.txt
     
     - name: Run tests
-      working-directory: ./Text2SQL Services
+      working-directory: ./services/text2sql
       run: |
         pytest tests/ -v --cov=. --cov-report=xml
       continue-on-error: true
@@ -101,7 +101,7 @@ jobs:
     - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
-        file: ./Text2SQL Services/coverage.xml
+        file: ./services/text2sql/coverage.xml
         flags: text2sql
         name: text2sql-coverage
 
@@ -129,7 +129,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./Dockerfile
+        file: ./infrastructure/docker/Dockerfile
         push: true
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-hub:latest
@@ -139,8 +139,8 @@ jobs:
     - name: Build and push ChatBot image
       uses: docker/build-push-action@v4
       with:
-        context: ./ChatBot
-        file: ./ChatBot/Dockerfile
+        context: ./services/chatbot
+        file: ./services/chatbot/Dockerfile
         push: true
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-chatbot:latest
@@ -150,8 +150,8 @@ jobs:
     - name: Build and push Text2SQL image
       uses: docker/build-push-action@v4
       with:
-        context: ./Text2SQL Services
-        file: ./Text2SQL Services/Dockerfile
+        context: ./services/text2sql
+        file: ./services/text2sql/Dockerfile
         push: true
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/ai-assistant-text2sql:latest
