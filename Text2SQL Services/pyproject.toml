@@ -1,6 +1,0 @@
-line-length = 79
-select = ["E", "F", "W", "C", "I"]   # ví dụ: chọn mã lỗi bạn quan tâm
-ignore = ["E203", "W503"]           # bỏ qua các rule không muốn
-extend-ignore = []                   # thêm nếu cần
-exclude = ["build", "dist", ".venv", "__pycache__"]
-per-file-ignores = { "tests/*.py" = ["D"] }  # ví dụ

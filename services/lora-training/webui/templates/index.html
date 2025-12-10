@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoRA Training WebUI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🎨 LoRA Training WebUI</h1>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Idle</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Configuration -->
+            <div class="panel config-panel">
+                <h2>⚙️ Configuration</h2>
+                
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('dataset')">Dataset</button>
+                    <button class="tab-btn" onclick="switchTab('tools')">🛠️ Tools</button>
+                    <button class="tab-btn" onclick="switchTab('model')">Model</button>
+                    <button class="tab-btn" onclick="switchTab('training')">Training</button>
+                    <button class="tab-btn" onclick="switchTab('advanced')">Advanced</button>
+                </div>
+
+                <!-- Dataset Tab -->
+                <div id="dataset-tab" class="tab-content active">
+                    <div class="form-group">
+                        <label>Dataset Path</label>
+                        <select id="datasetSelect" onchange="loadDataset()">
+                            <option value="">Select dataset...</option>
+                        </select>
+                        <div class="dataset-info" id="datasetInfo"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <button class="btn btn-secondary" onclick="tagDataset()">
+                            🏷️ Auto-Tag with WD14
+                        </button>
+                        <button class="btn btn-secondary" onclick="analyzeDataset()">
+                            📊 Analyze Quality
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="getAIRecommendations()" style="width: 100%; font-size: 1.1em;">
+                            🤖 Get AI-Powered Config (Gemini)
+                        </button>
+                        <small style="color: #888; display: block; margin-top: 0.5em;">
+                            ⚠️ Privacy-safe: Only dataset metadata sent to Gemini, not your NSFW images
+                        </small>
+                        <select id="trainingGoal" style="margin-top: 0.5em;">
+                            <option value="high_quality">🎯 High Quality (Best results, slower)</option>
+                            <option value="balanced" selected>⚖️ Balanced (Good quality, reasonable speed)</option>
+                            <option value="fast">⚡ Fast (Quick results, lower quality)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Validation Split</label>
+                        <input type="number" id="valSplit" value="0.1" min="0" max="0.5" step="0.05">
+                    </div>
+                </div>
+
+                <!-- Tools Tab -->
+                <div id="tools-tab" class="tab-content">
+                    <h3 style="color: #2196F3; margin-bottom: 1em;">🛠️ Dataset Processing Tools</h3>
+                    
+                    <!-- Resize Tool -->
+                    <div class="tool-section">
+                        <h4>🖼️ Resize Images</h4>
+                        <p style="color: #888; font-size: 0.9em;">Giảm resolution để tiết kiệm VRAM và training time</p>
+                        <div class="form-group">
+                            <label>Target Resolution</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em;">
+                                <input type="number" id="resizeWidth" value="512" min="256" max="2048" step="64" placeholder="Width">
+                                <input type="number" id="resizeHeight" value="512" min="256" max="2048" step="64" placeholder="Height">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5em;">
+                                <input type="checkbox" id="keepAspectRatio" checked>
+                                Keep Aspect Ratio (crop nếu cần)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Quality (1-100)</label>
+                            <input type="number" id="resizeQuality" value="95" min="1" max="100">
+                        </div>
+                        <button class="btn btn-primary" onclick="resizeDataset()" style="width: 100%;">
+                            🖼️ Resize All Images
+                        </button>
+                    </div>
+
+                    <hr style="border: 1px solid #333; margin: 1.5em 0;">
+
+                    <!-- Format Converter -->
+                    <div class="tool-section">
+                        <h4>🔄 Convert Image Format</h4>
+                        <p style="color: #888; font-size: 0.9em;">Convert PNG → WebP/JPG để giảm dung lượng</p>
+                        <div class="form-group">
+                            <label>Target Format</label>
+                            <select id="targetFormat">
+                                <option value="webp">WebP (Recommended - Best compression)</option>
+                                <option value="jpg">JPEG (Compatible)</option>
+                                <option value="png">PNG (Lossless)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quality (1-100)</label>
+                            <input type="number" id="convertQuality" value="95" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5em;">
+                                <input type="checkbox" id="deleteOriginal">
+                                Delete original files after conversion
+                            </label>
+                        </div>
+                        <button class="btn btn-primary" onclick="convertFormat()" style="width: 100%;">
+                            🔄 Convert All Images
+                        </button>
+                    </div>
+
+                    <hr style="border: 1px solid #333; margin: 1.5em 0;">
+
+                    <!-- Deduplicator -->
+                    <div class="tool-section">
+                        <h4>🗑️ Remove Duplicates</h4>
+                        <p style="color: #888; font-size: 0.9em;">Tìm và xóa ảnh trùng lặp trong dataset</p>
+                        <div class="form-group">
+                            <label>Keep Strategy</label>
+                            <select id="keepStrategy">
+                                <option value="first">Keep First (Giữ ảnh đầu tiên)</option>
+                                <option value="last">Keep Last (Giữ ảnh cuối cùng)</option>
+                                <option value="largest">Keep Largest (Giữ file lớn nhất)</option>
+                                <option value="smallest">Keep Smallest (Giữ file nhỏ nhất)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-warning" onclick="deduplicateDataset()" style="width: 100%;">
+                            🗑️ Remove Duplicates
+                        </button>
+                    </div>
+
+                    <hr style="border: 1px solid #333; margin: 1.5em 0;">
+
+                    <!-- Organizer -->
+                    <div class="tool-section">
+                        <h4>📁 Organize by Resolution</h4>
+                        <p style="color: #888; font-size: 0.9em;">Tạo subfolders cho mỗi resolution khác nhau</p>
+                        <button class="btn btn-secondary" onclick="organizeDataset()" style="width: 100%;">
+                            📁 Organize Dataset
+                        </button>
+                    </div>
+
+                    <hr style="border: 1px solid #333; margin: 1.5em 0;">
+
+                    <!-- Validator -->
+                    <div class="tool-section">
+                        <h4>✅ Validate Dataset</h4>
+                        <p style="color: #888; font-size: 0.9em;">Check lỗi: corrupted images, missing captions, etc.</p>
+                        <button class="btn btn-info" onclick="validateDataset()" style="width: 100%;">
+                            ✅ Validate Dataset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Model Tab -->
+                <div id="model-tab" class="tab-content">
+                    <div class="form-group">
+                        <label>Base Model</label>
+                        <select id="baseModel">
+                            <option value="runwayml/stable-diffusion-v1-5">SD 1.5</option>
+                            <option value="stabilityai/stable-diffusion-2-1">SD 2.1</option>
+                            <option value="stabilityai/stable-diffusion-xl-base-1.0">SDXL</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>LoRA Rank</label>
+                        <input type="number" id="loraRank" value="32" min="4" max="128" step="4">
+                    </div>
+
+                    <div class="form-group">
+                        <label>LoRA Alpha</label>
+                        <input type="number" id="loraAlpha" value="64" min="1" max="256">
+                    </div>
+                </div>
+
+                <!-- Training Tab -->
+                <div id="training-tab" class="tab-content">
+                    <div class="form-group">
+                        <label>Learning Rate</label>
+                        <input type="text" id="learningRate" value="1e-4">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Epochs</label>
+                        <input type="number" id="epochs" value="10" min="1" max="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Batch Size</label>
+                        <input type="number" id="batchSize" value="2" min="1" max="16">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Optimizer</label>
+                        <select id="optimizer">
+                            <option value="adamw">AdamW</option>
+                            <option value="adamw8bit">AdamW 8-bit</option>
+                            <option value="prodigy">Prodigy</option>
+                            <option value="lion">Lion</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Advanced Tab -->
+                <div id="advanced-tab" class="tab-content">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="useLoraPlus">
+                            Enable LoRA+ (2-3x faster)
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="useMinSNR">
+                            Enable Min-SNR Weighting
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="useEMA">
+                            Enable EMA
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Loss Type</label>
+                        <select id="lossType">
+                            <option value="mse">MSE</option>
+                            <option value="smooth_l1">Smooth L1</option>
+                            <option value="huber">Huber</option>
+                            <option value="scheduled_huber">Scheduled Huber</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Noise Offset</label>
+                        <input type="number" id="noiseOffset" value="0.1" min="0" max="0.5" step="0.05">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="startBtn" onclick="startTraining()">
+                        ▶️ Start Training
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopTraining()" disabled>
+                        ⏹️ Stop Training
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadConfig()">
+                        📁 Load Config
+                    </button>
+                    <button class="btn btn-secondary" onclick="saveConfig()">
+                        💾 Save Config
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Monitoring -->
+            <div class="panel monitor-panel">
+                <h2>📊 Training Monitor</h2>
+
+                <!-- Progress -->
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span>Epoch: <strong id="currentEpoch">0</strong>/<strong id="totalEpochs">0</strong></span>
+                        <span>Step: <strong id="currentStep">0</strong>/<strong id="totalSteps">0</strong></span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-percent" id="progressPercent">0%</div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Loss</div>
+                        <div class="metric-value" id="lossValue">0.0000</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Learning Rate</div>
+                        <div class="metric-value" id="lrValue">0.0000</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">ETA</div>
+                        <div class="metric-value" id="etaValue">N/A</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">GPU Memory</div>
+                        <div class="metric-value" id="gpuMemory">N/A</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <canvas id="lossChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="lrChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Logs -->
+                <div class="logs-section">
+                    <h3>📝 Logs</h3>
+                    <div class="logs-container" id="logsContainer"></div>
+                    <div class="logs-controls">
+                        <button class="btn-small" onclick="clearLogs()">Clear</button>
+                        <button class="btn-small" onclick="downloadLogs()">Download</button>
+                        <label>
+                            <input type="checkbox" id="autoScroll" checked>
+                            Auto-scroll
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

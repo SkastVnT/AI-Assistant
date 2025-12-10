@@ -1,0 +1,30 @@
+# ============================================================================
+# AI-Assistant Test Dependencies
+# Additional packages required for testing
+# ============================================================================
+
+# Testing Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.2.0
+pytest-xdist>=3.5.0  # Parallel test execution
+
+# Mocking & Fixtures
+faker>=20.0.0  # Generate fake data for testing
+freezegun>=1.4.0  # Mock datetime
+responses>=0.24.0  # Mock HTTP requests
+
+# Coverage Reporting
+coverage[toml]>=7.3.0
+
+# Code Quality
+flake8>=6.1.0
+black>=23.12.0
+isort>=5.13.0
+mypy>=1.7.0
+
+# Additional Testing Utilities
+httpx>=0.25.0  # For async HTTP testing
+factory-boy>=3.3.0  # Test fixtures factory

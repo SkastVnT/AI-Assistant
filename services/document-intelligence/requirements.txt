@@ -1,0 +1,39 @@
+# Document Intelligence Service - Requirements
+# Phase 1.5: OCR + AI Enhancement with Gemini 2.0 Flash
+# CI fix: paddlepaddle updated 2.6.1 -> 2.6.2 (unavailable package)
+# Ref: d0861426e9d20a560020005122410a5ee240802a
+
+# Web Framework
+Flask==3.0.0
+Flask-CORS==6.0.0  # Security fix: Updated from 4.0.0 (5 vulnerabilities patched)
+
+# OCR Engine (FREE - Vietnamese support)
+paddleocr==2.7.3
+paddlepaddle==2.6.2  # CPU version (stable for Windows)
+protobuf>=5.29.5  # Security fix: Updated from 3.20.2 (CVE patched)
+
+# Image Processing
+Pillow>=10.3.0  # Security fix: Updated from 10.1.0 (2 vulnerabilities patched)
+opencv-python>=4.8.1.78  # Security fix: Updated from 4.6.0.66 (CVE-2023-4863 patched)
+
+# PDF Handling
+PyMuPDF==1.23.8  # fitz - fast PDF processing
+
+# AI Integration - Gemini 2.0 Flash (FREE)
+google-generativeai==0.3.2
+
+# Utilities
+python-dotenv==1.0.0
+werkzeug>=3.0.6  # Security fix: Updated from 3.0.1 (3 vulnerabilities patched)
+
+# Data Processing
+numpy==1.24.3
+pandas==2.1.4
+scipy==1.11.4
+scikit-image==0.19.3
+
+# Future: Advanced Document Understanding (Phase 2)
+# layoutparser==0.3.4
+# pytesseract==0.3.10
+# transformers==4.35.0
+# torch==2.1.0

@@ -11,6 +11,8 @@
 ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![AI](https://img.shields.io/badge/AI-Powered-6366F1?style=for-the-badge&logo=openai&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-10B981?style=for-the-badge&logo=opensourceinitiative&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-330+-10B981?style=for-the-badge&logo=pytest&logoColor=white)
+![Coverage](https://img.shields.io/badge/Coverage-85%25+-3B82F6?style=for-the-badge&logo=codecov&logoColor=white)
 
 <br/>
 
@@ -21,9 +23,9 @@
 
 <br/>
 
-**🌟 Nền tảng tích hợp 7+ dịch vụ AI + 1 Hub Gateway 🚀**
+**🌟 Nền tảng tích hợp 8 dịch vụ AI với 330+ unit tests 🚀**
 
-[📖 Tính năng](#-tính-năng-nổi-bật) • [⚡ Quick Start](#-quick-start) • [🏗️ Kiến trúc](#️-system-architecture-overview) • [🛠️ Tech Stack](#️-technology-stack) • [📦 Yêu cầu](#-yêu-cầu-hệ-thống) • [📚 Tài liệu](#-tài-liệu)
+[📖 Features](#-tính-năng-nổi-bật) • [⚡ Quick Start](#-quick-start) • [🎮 Scripts](#-batch-scripts--service-management) • [🧪 Testing](#-testing--quality-assurance) • [🏗️ Architecture](#️-system-architecture-overview) • [📚 Docs](#-tài-liệu)
 
 ---
 
@@ -34,19 +36,24 @@
 git clone https://github.com/SkastVnT/AI-Assistant.git
 cd AI-Assistant
 
-# 2️⃣ Choose a service to start:
+# 2️⃣ Choose a method:
 
-# 🔷 Option A: Text2SQL (Recommended! Easiest)
-cd "Text2SQL Services"
-python -m venv Text2SQL
-.\Text2SQL\Scripts\activate
-pip install -r requirements.txt
-# Create .env and add GEMINI_API_KEY_1=your_key
-python app_simple.py
-# ➡️ Open http://localhost:5002
+# 🔷 Option A: Interactive Menu (Easiest!)
+menu.bat
+# ➡️ Select service from menu, auto-setup & start!
 
-# 🔷 Option B: ChatBot (Most Popular)
-cd ChatBot
+# 🔷 Option B: Start All Services
+start-all.bat
+# ➡️ All 8 services start in separate windows!
+
+# 🔷 Option C: Start Individual Service
+start-chatbot.bat          # Port 5001
+start-text2sql.bat         # Port 5002
+start-stable-diffusion.bat # Port 7861
+# ➡️ See all: start-*.bat files
+
+# 🔷 Option D: Manual Setup (Advanced)
+cd services/chatbot
 python -m venv venv_chatbot
 .\venv_chatbot\Scripts\activate
 pip install -r requirements.txt
@@ -54,19 +61,14 @@ pip install -r requirements.txt
 python app.py
 # ➡️ Open http://localhost:5001
 
-# 🔷 Option C: Docker (All Services)
+# 🔷 Option E: Docker (All Services)
+cd infrastructure/docker
 docker-compose up -d
 # ➡️ All services start automatically!
-
-# 🔷 Option D: LoRA Training Tool (New!)
-cd train_LoRA_tool
-scripts\setup\setup.bat  # Windows
-# Or: python -m venv lora && source lora/bin/activate && pip install -r requirements.txt
-scripts\setup\quickstart.bat  # Interactive wizard
-# ➡️ Train custom LoRA models for Stable Diffusion!
 ```
 
 [![Get Started](https://img.shields.io/badge/🚀-Get_Started_Now-6366F1?style=for-the-badge)](docs/GETTING_STARTED.md)
+[![Scripts Guide](https://img.shields.io/badge/⚡-Scripts_Guide-F59E0B?style=for-the-badge)](SCRIPTS_GUIDE.md)
 [![Download](https://img.shields.io/badge/⬇️-Download_Latest-10B981?style=for-the-badge)](https://github.com/SkastVnT/AI-Assistant/archive/refs/heads/master.zip)
 [![Documentation](https://img.shields.io/badge/📚-Read_Docs-3B82F6?style=for-the-badge)](docs/)
 
@@ -183,15 +185,15 @@ scripts\setup\quickstart.bat  # Interactive wizard
 </td>
 <td width="50%">
 
-###  **Hub Gateway** (Coming Soon)
+###  **Hub Gateway** ✅
 <img src="https://img.shields.io/badge/API-Gateway-6366F1?style=flat-square" />
-<img src="https://img.shields.io/badge/Status-Development-F59E0B?style=flat-square" />
+<img src="https://img.shields.io/badge/Status-Production-10B981?style=flat-square" />
 
 -  Service Orchestration
 -  Unified API Interface
--  Authentication & Security
--  Rate Limiting
--  Request Routing
+-  Rate Limiting & Caching
+-  Health Monitoring
+-  Token Cost Tracking
 
 </td>
 </tr>
@@ -201,11 +203,155 @@ scripts\setup\quickstart.bat  # Interactive wizard
 
 <div align="center">
 
+##  **TESTING & QUALITY ASSURANCE**
+
+</div>
+
+> Dự án được trang bị **comprehensive test suite** với 330+ test cases, mock testing, và 85%+ code coverage.
+
+### 🧪 **Test Suite Overview**
+
+<table>
+<tr>
+<td width="50%">
+
+#### **📊 Test Statistics**
+
+- ✅ **330+ test cases** (unit + integration)
+- ✅ **85%+ code coverage**
+- ✅ **8 services tested**
+- ✅ **20+ mock objects** (no real API calls!)
+- ✅ **~30 seconds** execution time
+- ✅ **CI/CD ready** with pytest
+
+</td>
+<td width="50%">
+
+#### **🎯 Services Tested**
+
+- ✅ Hub Gateway (50 tests)
+- ✅ ChatBot (40 tests)
+- ✅ Text2SQL (35 tests)
+- ✅ Document Intelligence (80 tests)
+- ✅ Speech2Text (70 tests)
+- ✅ LoRA Training (40 tests)
+- ✅ Image Upscale (35 tests)
+- ✅ Stable Diffusion (40 tests)
+
+</td>
+</tr>
+</table>
+
+### 🚀 **Quick Test Run**
+
+```powershell
+# Install test dependencies
+pip install -r requirements-test.txt
+
+# Run all tests with coverage
+.\run-tests.bat  # Windows
+./run-tests.sh   # Linux/Mac
+
+# Run specific service tests
+pytest tests/unit/test_chatbot.py -v
+pytest tests/unit/test_document_intelligence.py -v
+
+# Run by category
+pytest -m unit        # Unit tests only
+pytest -m integration # Integration tests only
+pytest -m smoke       # Quick validation
+```
+
+### 📚 **Test Documentation**
+
+| Document | Description |
+|----------|-------------|
+| [tests/README.md](tests/README.md) | Complete testing guide (4000+ words) |
+| [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md) | 5-minute quick start guide |
+| [COMPLETE_TEST_SUMMARY.md](COMPLETE_TEST_SUMMARY.md) | Detailed test suite overview |
+
+### 🎭 **Mock Testing - No API Keys Required!**
+
+All external services are mocked:
+- 🔷 **Gemini AI** - No Google API key needed
+- 🟣 **OpenAI GPT** - No OpenAI key needed  
+- 💾 **MongoDB** - No database required
+- 🎨 **Stable Diffusion** - No GPU/models needed
+- 🎤 **Whisper** - No audio models needed
+
+➡️ **Run tests completely offline!**
+
+---
+
+<div align="center">
+
+## 🎮 **BATCH SCRIPTS & SERVICE MANAGEMENT**
+
+</div>
+
+> **15 batch scripts** để quản lý tất cả services dễ dàng - Start/Stop individual hoặc tất cả cùng lúc!
+
+### 🚀 **Quick Commands**
+
+<table>
+<tr>
+<td width="50%">
+
+#### **Individual Services**
+```bat
+start-chatbot.bat          # Port 5001
+start-text2sql.bat         # Port 5002
+start-document-intelligence.bat  # Port 5003
+start-speech2text.bat      # Port 7860
+start-stable-diffusion.bat # Port 7861
+start-lora-training.bat    # Port 7862
+start-image-upscale.bat    # Port 7863
+start-hub-gateway.bat      # Port 3000
+```
+
+</td>
+<td width="50%">
+
+#### **Batch Operations**
+```bat
+menu.bat           # Interactive menu
+start-all.bat      # Start all 8 services
+stop-all.bat       # Stop all services
+check-status.bat   # Check service status
+
+# Utilities
+setup-all.bat      # Setup all services
+test-all.bat       # Run 330+ tests
+clean-logs.bat     # Clean all logs
+```
+
+</td>
+</tr>
+</table>
+
+### 📚 **Scripts Documentation**
+
+| Document | Description |
+|----------|-------------|
+| [SCRIPTS_GUIDE.md](SCRIPTS_GUIDE.md) | Complete scripts guide & usage |
+| [FILE_INDEX.md](FILE_INDEX.md) | Complete file index & navigation |
+
+**Features:**
+- ✅ Auto-detect virtual environments
+- ✅ Dependency checking
+- ✅ Port conflict detection
+- ✅ Separate windows for each service
+- ✅ Error handling & logging
+
+---
+
+<div align="center">
+
 ##  **TỔNG QUAN**
 
 </div>
 
-> **AI-Assistant** là nền tảng AI tích hợp gồm **7+ dịch vụ độc lập + 1 Hub Gateway**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready**.
+> **AI-Assistant** là nền tảng AI tích hợp gồm **8 dịch vụ độc lập**, mỗi service có thể chạy riêng hoặc kết hợp với nhau. Dự án được xây dựng với kiến trúc **modular, production-ready, và đầy đủ test coverage**.
 
 ### 🏗️ **System Architecture Overview**
 
@@ -337,16 +483,18 @@ graph LR
 
 ###  **CÁC DỊCH VỤ**
 
-|  Service |  Mô Tả |  Port |  Status |  Docs |
-|:-----------|:---------|:--------|:----------|:--------|
-|  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Development-6366F1?style=flat-square" /> | [ Docs](src/hub.py) |
-|  **ChatBot v2.2** 🆕 | Multi-model AI + Auto-File + Streaming + Code Exec | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](ChatBot/README.md) |
-|  **Text2SQL v2.2** 🆕 | Natural Language → SQL + AI Learning + Query Optimization | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | [ Docs](Text2SQL%20Services/README.md) |
-|  **Document Intelligence** 📄 | OCR + AI Analysis + Q&A + Translation | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | [ Docs](Document%20Intelligence%20Service/README.md) |
-|  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | [ Docs](Speech2Text%20Services/README.md) |
-|  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | [ Docs](stable-diffusion-webui/README.md) |
-|  **Upscale Tool** 🖼️ | Image Upscaling (RealESRGAN + GPU) | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | [ Docs](upscale_tool/README.md) |
-|  **LoRA Training Tool** ✨ | Fine-tune Stable Diffusion with LoRA | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | [ Docs](train_LoRA_tool/README.md) |
+|  Service |  Mô Tả |  Port |  Status |  Tests |  Docs |
+|:-----------|:---------|:--------|:----------|:--------|:--------|
+|  **Hub Gateway**  🆕 | API Gateway & Service Orchestrator | `3000` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | 50 tests | [ Docs](src/hub.py) |
+|  **ChatBot v2.2** 🆕 | Multi-model AI + Auto-File + Streaming + Code Exec | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | 40 tests | [ Docs](ChatBot/README.md) |
+|  **Text2SQL v2.2** 🆕 | Natural Language → SQL + AI Learning + Query Optimization | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | 35 tests | [ Docs](Text2SQL%20Services/README.md) |
+|  **Document Intelligence** 📄 | OCR + AI Analysis + Q&A + Translation | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | 80 tests | [ Docs](Document%20Intelligence%20Service/README.md) |
+|  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | 70 tests | [ Docs](Speech2Text%20Services/README.md) |
+|  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | 40 tests | [ Docs](stable-diffusion-webui/README.md) |
+|  **Upscale Tool** 🖼️ | Image Upscaling (RealESRGAN + GPU) | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | 35 tests | [ Docs](upscale_tool/README.md) |
+|  **LoRA Training Tool** ✨ | Fine-tune Stable Diffusion with LoRA | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | 40 tests | [ Docs](services/lora-training/README.md) |
+
+**Total: 330+ tests across all services**
 
 </div>
 
@@ -956,8 +1104,8 @@ cd train_LoRA_tool
 
 <div align="right">
 
-📚 **[Full Documentation](train_LoRA_tool/README.md)** | 🎓 **[Getting Started Guide](train_LoRA_tool/GETTING_STARTED.md)**  
-🔧 **[Advanced Guide](train_LoRA_tool/docs/ADVANCED_GUIDE.md)** | 📊 **[Project Structure](train_LoRA_tool/PROJECT_STRUCTURE.md)**
+📚 **[Full Documentation](services/lora-training/README.md)** | 🎓 **[Getting Started Guide](services/lora-training/docs/GETTING_STARTED.md)**  
+🔧 **[Advanced Guide](services/lora-training/docs/ADVANCED_FEATURES.md)** | 📊 **[Project Structure](services/lora-training/docs/PROJECT_STRUCTURE.md)**
 
 </div>
 
@@ -1271,47 +1419,73 @@ docker-compose up -d
 </div>
 
 ```
- AI-Assistant/
+📁 AI-Assistant/
 
-  ChatBot/                     ChatBot Service (v2.2)
-     app.py                   Main application
-     requirements.txt         Dependencies
-     src/                     Source code
-     templates/               HTML templates
-     static/                  CSS, JS, images
-     Storage/                 Conversations & images
-
-  Text2SQL Services/           Text2SQL Service (v2.2) 
-     app_simple.py            Main application
-     requirements.txt         Dependencies
-     src/                     Source code
-     config/                  Configurations
-     data/                    Knowledge base & prompts
-
-  Document Intelligence Service/  Document OCR & AI Analysis (v1.5) 🆕
-     app.py                   Main Flask app
-     requirements.txt         Dependencies
-     src/                     Source code
-        ai/                   Gemini AI integration
-        ocr/                  PaddleOCR engine
-        utils/                File handlers
-     static/                  Frontend assets
-     templates/               HTML templates
-     output/                  Processed results
-
-  Speech2Text Services/        Speech2Text Service (v3.6)
-     app/                     Web UI application
-     src/                     Core processing
-     scripts/                 Setup scripts
-     requirements.txt         Dependencies
-
-  stable-diffusion-webui/      Stable Diffusion WebUI
-     webui.bat                Launch script
-     launch.py                Main launcher
-     modules/                 Core modules
-     extensions/              Extensions
-
-  upscale_tool/                Image Upscaling Tool 🆕
+├── 📄 ROOT LEVEL
+│   ├── README.md                          # Main documentation
+│   ├── STRUCTURE.md                       # ⭐ Enterprise structure guide
+│   ├── SCRIPTS_GUIDE.md                   # ⭐ Batch scripts guide
+│   ├── FILE_INDEX.md                      # ⭐ Complete file index
+│   ├── COMPLETE_TEST_SUMMARY.md           # Test suite overview
+│   ├── TESTING_QUICKSTART.md              # Quick testing guide
+│   ├── PROJECT_ORGANIZATION.md            # Organization history
+│   │
+│   ├── 🎮 BATCH SCRIPTS (15 files)
+│   ├── start-*.bat                        # Individual service launchers (8)
+│   ├── start-all.bat / stop-all.bat      # Batch operations
+│   ├── menu.bat                          # Interactive menu
+│   ├── setup-all.bat / test-all.bat      # Setup & testing
+│   └── clean-logs.bat / check-status.bat # Utilities
+│
+├── 🤖 services/                           # All Microservices
+│   ├── chatbot/                          # ChatBot (Port 5001)
+│   ├── text2sql/                         # Text2SQL (Port 5002)
+│   ├── document-intelligence/            # Document Intelligence (Port 5003)
+│   ├── speech2text/                      # Speech2Text (Port 7860)
+│   ├── stable-diffusion/                 # Stable Diffusion (Port 7861)
+│   ├── lora-training/                    # LoRA Training (Port 7862)
+│   ├── image-upscale/                    # Image Upscale (Port 7863)
+│   └── hub-gateway/                      # Hub Gateway (Port 3000)
+│
+├── 🧪 tests/                              # Testing Infrastructure
+│   ├── unit/                             # Unit tests (300+ tests)
+│   ├── integration/                      # Integration tests
+│   ├── mocks/                            # Mock objects (20+)
+│   └── fixtures/                         # Test data
+│
+├── 📚 docs/                               # Documentation Hub
+│   ├── guides/                           # How-to guides
+│   ├── chart_guide/                      # Visualization guides
+│   └── archives/                         # Historical documentation
+│
+├── 🏗️ infrastructure/                     # Infrastructure & DevOps
+│   ├── docker/                           # Docker configs
+│   └── deployment/                       # Deployment scripts
+│
+├── ⚙️ config/                             # Configuration Files
+│   ├── logging_config.py                 # Logging setup
+│   └── model_config.py                   # AI model configs
+│
+├── 🔧 scripts/                            # Utility Scripts
+│   ├── check_system.py                   # System checker
+│   ├── utilities/                        # Helper utilities
+│   ├── archive/                          # Old scripts
+│   └── deprecated/                       # Legacy scripts
+│
+├── 📦 resources/                          # Resources & Assets
+│   ├── models/                           # AI model files
+│   ├── data/                             # Application data
+│   ├── database/                         # Database files
+│   ├── logs/                             # Application logs
+│   ├── templates/                        # Shared templates
+│   ├── examples/                         # Code examples
+│   └── assets/                           # Static assets
+│
+└── 🎨 diagram/                            # Architecture Diagrams
+    ├── 01_usecase_diagram.md
+    ├── 02_class_diagram.md
+    └── ... (9 diagram files)
+```
      src/                     Source code
         upscaler.py           Main upscaler
         cli.py                CLI interface
@@ -1320,30 +1494,9 @@ docker-compose up -d
      examples/                Usage examples
      requirements.txt         Dependencies
      CUDA_SETUP.md            GPU setup guide
-
-  train_LoRA_tool/             LoRA Training Tool ✨
-     scripts/                 Training & utility scripts
-        training/             Main training modules
-        utilities/            Generation & analysis
-        setup/                Batch setup scripts
-     configs/                 YAML configuration presets
-     docs/                    Complete documentation
-     data/                    Training datasets
-     models/                  Trained LoRA models
-     output/                  Generated samples
-     setup.py                 Package installer
-     requirements.txt         Dependencies
-
-  src/                         Hub & Core Services
-     hub.py                   Hub Gateway (Port 3000)
-     handlers/                Request handlers
-     utils/                   Utility functions
-
-  config/                      Global configurations
-  docs/                        Documentation
-  examples/                    Code examples
-  README.md                    This file
 ```
+
+See [STRUCTURE.md](STRUCTURE.md) for complete enterprise-grade structure guide.
 
 ---
 
@@ -1599,7 +1752,7 @@ Image Enhancement to 4K
 
 ### ✨ LoRA Training
 
-[![Docs](https://img.shields.io/badge/-Documentation-F59E0B?style=for-the-badge)](train_LoRA_tool/README.md)
+[![Docs](https://img.shields.io/badge/-Documentation-F59E0B?style=for-the-badge)](services/lora-training/README.md)
 
 Fine-tune SD Models
 
@@ -2325,10 +2478,11 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 🤖 AI Models:          10+ integrated models
 🔌 API Endpoints:      60+ REST APIs
 ⭐ Features:           120+ implemented
-🧪 Test Coverage:      200+ tests
-🐳 Docker Ready:       6+ Dockerfiles
-🔄 CI/CD Pipeline:     8 jobs automated
+🧪 Test Coverage:      330+ tests (85%+ coverage)
+🐳 Docker Ready:       8+ Dockerfiles
+🔄 CI/CD Pipeline:     Automated with pytest
 🎯 Services:           8 active services
+📊 Mock Objects:       20+ for offline testing
 ```
 
 ### 📈 **GitHub Stats**
@@ -2345,9 +2499,9 @@ Cảm ơn các công nghệ và thư viện tuyệt vời:
 graph LR
     A[🎯 v1.0<br/>Basic Services] --> B[🚀 v1.5<br/>Local Models]
     B --> C[⚡ v2.0<br/>Advanced Features]
-    C --> D[🎯 v2.5<br/>Hub Gateway]
-    D --> E[🧪 v3.0<br/>Testing + CI/CD]
-    E --> F[🚀 v4.0<br/>Enterprise Ready]
+    C --> D[🎯 v2.2<br/>Production Ready]
+    D --> E[🧪 v2.3<br/>330+ Tests Added]
+    E --> F[🚀 v3.0<br/>Enterprise Ready]
     
     style A fill:#94A3B8
     style B fill:#3B82F6,color:#fff

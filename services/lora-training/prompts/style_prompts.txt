@@ -1,0 +1,21 @@
+# Sample prompts for style LoRA testing
+# One prompt per line
+
+# Landscapes
+landscape in watercolor style, mountains and trees
+sunset over ocean in artistic style, vibrant colors
+forest scene in painting style, detailed brushwork
+urban cityscape in modern style, contemporary art
+countryside view in traditional style, classic composition
+
+# Portraits
+portrait in artistic style, detailed face
+character in anime style, expressive eyes
+person in oil painting style, realistic textures
+figure in digital art style, vibrant lighting
+
+# Objects
+still life in artistic style, dramatic shadows
+architecture in contemporary style, clean lines
+nature scene in impressionist style, soft colors
+abstract composition in unique style, creative interpretation

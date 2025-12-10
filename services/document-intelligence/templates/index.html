@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📄 Document Intelligence Service</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-alt"></i>
+                    <h1>Document Intelligence</h1>
+                    <span class="badge">v1.0.0 - Phase 1</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-icon" id="helpBtn" title="Help">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                    <button class="btn btn-icon" id="settingsBtn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="layout">
+                <!-- Left Panel - Upload & Controls -->
+                <div class="left-panel">
+                    <div class="panel-card">
+                        <h2 class="panel-title">
+                            <i class="fas fa-upload"></i>
+                            Upload Document
+                        </h2>
+                        
+                        <!-- Upload Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                <h3>Drag & Drop hoặc Click để chọn file</h3>
+                                <p class="upload-hint">Hỗ trợ: JPG, PNG, PDF, TIFF, BMP, WEBP</p>
+                                <p class="upload-size">Kích thước tối đa: 20MB</p>
+                                <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.bmp,.tiff,.webp" hidden>
+                                <button class="btn btn-primary" id="selectFileBtn">
+                                    <i class="fas fa-folder-open"></i> Chọn File
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- File Info -->
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <div class="file-preview">
+                                <img id="previewImage" src="" alt="Preview" style="display: none;">
+                                <div class="file-details">
+                                    <i class="fas fa-file-alt file-icon"></i>
+                                    <div class="file-meta">
+                                        <p class="file-name" id="fileName"></p>
+                                        <p class="file-size" id="fileSize"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-danger btn-sm" id="removeFileBtn">
+                                <i class="fas fa-times"></i> Xóa
+                            </button>
+                        </div>
+
+                        <!-- Processing Options -->
+                        <div class="options-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-sliders-h"></i>
+                                Tùy chọn xử lý
+                            </h3>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="autoRotate" checked>
+                                <label for="autoRotate">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Tự động xoay ảnh
+                                </label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="includeConfidence" checked>
+                                <label for="includeConfidence">
+                                    <i class="fas fa-percentage"></i>
+                                    Hiển thị độ tin cậy
+                                </label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="saveOutput" checked>
+                                <label for="saveOutput">
+                                    <i class="fas fa-save"></i>
+                                    Lưu kết quả
+                                </label>
+                            </div>
+
+                            <div class="option-item">
+                                <label for="minConfidence">
+                                    <i class="fas fa-filter"></i>
+                                    Độ tin cậy tối thiểu: <span id="confidenceValue">50%</span>
+                                </label>
+                                <input type="range" id="minConfidence" min="0" max="100" value="50" class="slider">
+                            </div>
+                        </div>
+
+                        <!-- AI Enhancement Options -->
+                        <div class="options-section" id="aiOptions">
+                            <h3 class="section-title">
+                                <i class="fas fa-brain"></i>
+                                AI Enhancement (Gemini 2.0 Flash)
+                                <span class="badge-ai" id="aiStatusBadge">Checking...</span>
+                            </h3>
+                            
+                            <!-- AI Master Toggle -->
+                            <div class="option-item" style="border-bottom: 2px solid #374151; padding-bottom: 12px; margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <label for="aiMasterToggle" style="margin: 0; cursor: pointer; flex: 1;">
+                                        <i class="fas fa-power-off"></i>
+                                        <strong>Bật/Tắt AI Enhancement</strong>
+                                    </label>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="aiMasterToggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- AI Features (disabled when master toggle is off) -->
+                            <div id="aiFeatures">
+                                <div class="option-item">
+                                    <input type="checkbox" id="aiClassify" checked>
+                                    <label for="aiClassify">
+                                        <i class="fas fa-tag"></i>
+                                        Phân loại document tự động
+                                    </label>
+                                </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="aiExtract" checked>
+                                <label for="aiExtract">
+                                    <i class="fas fa-database"></i>
+                                    Trích xuất thông tin thông minh
+                                </label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="aiSummary" checked>
+                                <label for="aiSummary">
+                                    <i class="fas fa-compress-alt"></i>
+                                    Tóm tắt nội dung
+                                </label>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Process Button -->
+                        <button class="btn btn-success btn-large" id="processBtn" disabled>
+                            <i class="fas fa-magic"></i>
+                            Xử lý Document
+                        </button>
+
+                        <!-- Progress -->
+                        <div class="progress-container" id="progressContainer" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <p class="progress-text" id="progressText">Đang xử lý...</p>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Advanced Tools -->
+                    <div class="panel-card" style="margin-top: 20px;">
+                        <h2 class="panel-title">
+                            <i class="fas fa-toolbox"></i>
+                            Công cụ nâng cao
+                        </h2>
+                        
+                        <div class="tools-grid">
+                            <button class="tool-btn" id="batchBtn" title="Xử lý nhiều file cùng lúc">
+                                <i class="fas fa-layer-group"></i>
+                                <span>Batch Process</span>
+                            </button>
+                            
+                            <button class="tool-btn" id="templatesBtn" title="Template cho văn bản phổ biến">
+                                <i class="fas fa-file-invoice"></i>
+                                <span>Templates</span>
+                            </button>
+                            
+                            <button class="tool-btn" id="historyBtn" title="Xem lịch sử xử lý">
+                                <i class="fas fa-history"></i>
+                                <span>History</span>
+                            </button>
+                            
+                            <button class="tool-btn" id="quickActionsBtn" title="Tác vụ nhanh">
+                                <i class="fas fa-bolt"></i>
+                                <span>Quick Actions</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Card -->
+                    <div class="stats-card" id="statsCard" style="display: none;">
+                        <h3 class="stats-title">📊 Thống kê</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <i class="fas fa-align-left"></i>
+                                <div>
+                                    <p class="stat-label">Text Blocks</p>
+                                    <p class="stat-value" id="statBlocks">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-font"></i>
+                                <div>
+                                    <p class="stat-label">Ký tự</p>
+                                    <p class="stat-value" id="statChars">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-list-ol"></i>
+                                <div>
+                                    <p class="stat-label">Dòng</p>
+                                    <p class="stat-value" id="statLines">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <p class="stat-label">Độ chính xác</p>
+                                    <p class="stat-value" id="statConfidence">0%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Results -->
+                <div class="right-panel">
+                    <div class="panel-card">
+                        <div class="result-header">
+                            <h2 class="panel-title">
+                                <i class="fas fa-file-alt"></i>
+                                Kết quả OCR
+                            </h2>
+                            <div class="result-actions" id="resultActions" style="display: none;">
+                                <button class="btn btn-icon" id="copyBtn" title="Copy">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-icon" id="downloadTxtBtn" title="Download TXT">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn btn-icon" id="downloadJsonBtn" title="Download JSON">
+                                    <i class="fas fa-file-code"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div class="empty-state" id="emptyState">
+                            <i class="fas fa-file-image empty-icon"></i>
+                            <h3>Chưa có kết quả</h3>
+                            <p>Upload document và nhấn "Xử lý" để xem kết quả OCR</p>
+                        </div>
+
+                        <!-- Result Content -->
+                        <div class="result-content" id="resultContent" style="display: none;">
+                            <!-- Tabs -->
+                            <div class="tabs">
+                                <button class="tab-btn active" data-tab="text">
+                                    <i class="fas fa-align-left"></i>
+                                    Text
+                                </button>
+                                <button class="tab-btn" data-tab="blocks">
+                                    <i class="fas fa-th-list"></i>
+                                    Blocks
+                                </button>
+                                <button class="tab-btn" data-tab="ai" id="aiTab" style="display: none;">
+                                    <i class="fas fa-brain"></i>
+                                    AI Analysis
+                                </button>
+                                <button class="tab-btn" data-tab="tools" id="toolsTab" style="display: none;">
+                                    <i class="fas fa-magic"></i>
+                                    Tools
+                                </button>
+                                <button class="tab-btn" data-tab="json">
+                                    <i class="fas fa-code"></i>
+                                    JSON
+                                </button>
+                            </div>
+
+                            <!-- Tab Content -->
+                            <div class="tab-content active" id="textTab">
+                                <div class="text-display">
+                                    <pre id="extractedText"></pre>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="blocksTab">
+                                <div class="blocks-list" id="blocksList"></div>
+                            </div>
+
+                            <div class="tab-content" id="aiTab">
+                                <div class="ai-analysis">
+                                    <!-- Classification -->
+                                    <div class="ai-section" id="aiClassificationSection" style="display: none;">
+                                        <h4 class="ai-section-title">
+                                            <i class="fas fa-tag"></i>
+                                            Phân loại Document
+                                        </h4>
+                                        <div class="ai-content">
+                                            <div class="document-type" id="documentType"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Extraction -->
+                                    <div class="ai-section" id="aiExtractionSection" style="display: none;">
+                                        <h4 class="ai-section-title">
+                                            <i class="fas fa-database"></i>
+                                            Thông tin trích xuất
+                                        </h4>
+                                        <div class="ai-content">
+                                            <div class="extracted-data" id="extractedData"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Summary -->
+                                    <div class="ai-section" id="aiSummarySection" style="display: none;">
+                                        <h4 class="ai-section-title">
+                                            <i class="fas fa-compress-alt"></i>
+                                            Tóm tắt
+                                        </h4>
+                                        
+                                        
+                            <div class="tab-content" id="toolsTab">
+                                <div class="tools-panel">
+                                    <h4 class="tools-section-title">
+                                        <i class="fas fa-magic"></i>
+                                        Text Formatting & Quick Actions
+                                    </h4>
+                                    
+                                    <div class="tools-actions">
+                                        <button class="tool-action-btn" data-action="clean">
+                                            <i class="fas fa-broom"></i>
+                                            Clean Text
+                                            <span class="tool-hint">Xóa duplicate & fix spacing</span>
+                                        </button>
+                                        
+                                        <button class="tool-action-btn" data-action="extract_info">
+                                            <i class="fas fa-search"></i>
+                                            Extract Info
+                                            <span class="tool-hint">Trích xuất số, ngày, email, SDT</span>
+                                        </button>
+                                        
+                                        <button class="tool-action-btn" data-action="capitalize">
+                                            <i class="fas fa-font"></i>
+                                            Capitalize
+                                            <span class="tool-hint">Viết hoa đầu câu</span>
+                                        </button>
+                                        
+                                        <button class="tool-action-btn" data-action="line_numbers">
+                                            <i class="fas fa-list-ol"></i>
+                                            Line Numbers
+                                            <span class="tool-hint">Thêm số dòng</span>
+                                        </button>
+                                        
+                                        <button class="tool-action-btn" data-action="remove_duplicates">
+                                            <i class="fas fa-eraser"></i>
+                                            Remove Duplicates
+                                            <span class="tool-hint">Xóa dòng trùng lặp</span>
+                                        </button>
+                                        
+                                        <button class="tool-action-btn" data-action="fix_spacing">
+                                            <i class="fas fa-align-justify"></i>
+                                            Fix Spacing
+                                            <span class="tool-hint">Sửa khoảng trắng</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="tools-result" id="toolsResult" style="display: none;">
+                                        <h5>Kết quả:</h5>
+                                        <pre id="toolsResultText"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                                        <div class="ai-content">
+                                            <div class="summary-text" id="summaryText"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- AI Tools -->
+                                    <div class="ai-tools">
+                                        <h4 class="ai-section-title">
+                                            <i class="fas fa-tools"></i>
+                                            Công cụ AI
+                                        </h4>
+                                        
+                                        <!-- Q&A -->
+                                        <div class="ai-tool-section">
+                                            <label for="aiQuestion">
+                                                <i class="fas fa-question-circle"></i>
+                                                Hỏi về document:
+                                            </label>
+                                            <div class="qa-input-group">
+                                                <input type="text" id="aiQuestion" placeholder="Ví dụ: Tên người trong document là gì?" class="ai-input">
+                                                <button class="btn btn-primary" id="aiAskBtn">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                    Hỏi
+                                                </button>
+                                            </div>
+                                            <div class="ai-answer" id="aiAnswer" style="display: none;"></div>
+                                        </div>
+
+                                        <!-- Translation -->
+                                        <div class="ai-tool-section">
+                                            <label for="targetLanguage">
+                                                <i class="fas fa-language"></i>
+                                                Dịch sang:
+                                            </label>
+                                            <div class="translate-input-group">
+                                                <select id="targetLanguage" class="ai-select">
+                                                    <option value="en">English</option>
+                                                    <option value="vi">Tiếng Việt</option>
+                                                    <option value="zh">中文 (Chinese)</option>
+                                                    <option value="ja">日本語 (Japanese)</option>
+                                                    <option value="ko">한국어 (Korean)</option>
+                                                    <option value="fr">Français (French)</option>
+                                                    <option value="de">Deutsch (German)</option>
+                                                    <option value="es">Español (Spanish)</option>
+                                                </select>
+                                                <button class="btn btn-primary" id="aiTranslateBtn">
+                                                    <i class="fas fa-globe"></i>
+                                                    Dịch
+                                                </button>
+                                            </div>
+                                            <div class="ai-translation" id="aiTranslation" style="display: none;"></div>
+                                        </div>
+
+                                        <!-- Insights -->
+                                        <div class="ai-tool-section">
+                                            <button class="btn btn-secondary btn-block" id="aiInsightsBtn">
+                                                <i class="fas fa-lightbulb"></i>
+                                                Phân tích chuyên sâu
+                                            </button>
+                                            <div class="ai-insights" id="aiInsights" style="display: none;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="jsonTab">
+                                <div class="json-display">
+                                    <pre id="jsonOutput"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Batch Processing Modal -->
+    <div class="modal" id="batchModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-layer-group"></i> Batch Processing</h3>
+                <button class="modal-close" data-modal="batchModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-hint">Xử lý nhiều file cùng lúc (tối đa 10 files)</p>
+                
+                <div class="batch-upload-area" id="batchUploadArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h4>Chọn nhiều files</h4>
+                    <input type="file" id="batchFileInput" accept=".jpg,.jpeg,.png,.pdf,.bmp,.tiff,.webp" multiple hidden>
+                    <button class="btn btn-primary" id="selectBatchFilesBtn">
+                        <i class="fas fa-folder-open"></i> Chọn Files
+                    </button>
+                </div>
+                
+                <div class="batch-files-list" id="batchFilesList" style="display: none;">
+                    <h4>Files đã chọn: <span id="batchFileCount">0</span></h4>
+                    <div id="batchFilesItems"></div>
+                    <button class="btn btn-success" id="processBatchBtn">
+                        <i class="fas fa-magic"></i> Xử lý Batch
+                    </button>
+                </div>
+                
+                <div class="batch-results" id="batchResults" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div class="modal" id="templatesModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-invoice"></i> Document Templates</h3>
+                <button class="modal-close" data-modal="templatesModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-hint">Template cho các loại văn bản phổ biến ở Việt Nam</p>
+                <div class="templates-list" id="templatesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="historyModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> Processing History</h3>
+                <button class="modal-close" data-modal="historyModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-search">
+                    <input type="text" id="historySearch" placeholder="Tìm kiếm trong history..." class="search-input">
+                    <button class="btn btn-danger btn-sm" id="clearHistoryBtn">
+                        <i class="fas fa-trash"></i> Xóa History
+                    </button>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Modal -->
+    <div class="modal" id="quickActionsModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                <button class="modal-close" data-modal="quickActionsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-hint">Tác vụ nhanh cho text đã trích xuất</p>
+                
+                <div class="quick-actions-grid">
+                    <button class="quick-action-card" data-quick-action="clean">
+                        <i class="fas fa-broom"></i>
+                        <h4>Clean Text</h4>
+                        <p>Xóa duplicate & fix spacing</p>
+                    </button>
+                    
+                    <button class="quick-action-card" data-quick-action="extract">
+                        <i class="fas fa-search"></i>
+                        <h4>Extract Info</h4>
+                        <p>Trích xuất số, ngày, email, SDT</p>
+                    </button>
+                    
+                    <button class="quick-action-card" data-quick-action="capitalize">
+                        <i class="fas fa-font"></i>
+                        <h4>Capitalize</h4>
+                        <p>Viết hoa đầu câu</p>
+                    </button>
+                    
+                    <button class="quick-action-card" data-quick-action="line_numbers">
+                        <i class="fas fa-list-ol"></i>
+                        <h4>Line Numbers</h4>
+                        <p>Thêm số dòng</p>
+                    </button>
+                </div>
+                
+                <div class="quick-action-result" id="quickActionResult" style="display: none;">
+                    <h4>Kết quả:</h4>
+                    <textarea id="quickActionText" class="result-textarea"></textarea>
+                    <button class="btn btn-primary" id="copyQuickActionBtn">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal" id="helpModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-question-circle"></i> Hướng dẫn sử dụng</h2>
+                <button class="modal-close" data-modal="helpModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>📄 Document Intelligence Service</h3>
+                <p>Dịch vụ OCR tự động với AI, hỗ trợ tiếng Việt</p>
+                
+                <h4>🚀 Cách sử dụng:</h4>
+                <ol>
+                    <li>Upload document (ảnh hoặc PDF)</li>
+                    <li>Chọn tùy chọn xử lý nếu cần</li>
+                    <li>Nhấn "Xử lý Document"</li>
+                    <li>Xem kết quả và download nếu cần</li>
+                </ol>
+
+                <h4>📋 Định dạng hỗ trợ:</h4>
+                <ul>
+                    <li>Ảnh: JPG, PNG, BMP, TIFF, WEBP</li>
+                    <li>Document: PDF (multi-page)</li>
+                    <li>Kích thước: Tối đa 20MB</li>
+                </ul>
+
+                <h4>⚙️ Công nghệ:</h4>
+                <ul>
+                    <li>PaddleOCR - FREE, Vietnamese support</li>
+                    <li>High accuracy text extraction</li>
+                    <li>Auto rotation & orientation detection</li>
+                </ul>
+
+                <h4>🎯 Use Cases:</h4>
+                <ul>
+                    <li>CMND/CCCD extraction</li>
+                    <li>Invoice processing</li>
+                    <li>Contract analysis</li>
+                    <li>Form digitization</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/advanced-features.js') }}"></script>
+    <script>
+        // Initialize advanced features after main app loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (window.app && window.AdvancedFeatures) {
+                    window.advancedFeatures = new AdvancedFeatures(window.app);
+                    console.log('✅ Advanced Features initialized');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

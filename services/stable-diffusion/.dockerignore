@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test and documentation
+tests/
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Virtual environments
+venv/
+venv_*/
+env/
+
+# Models (will download at runtime)
+models/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+
+# Outputs and logs
+outputs/
+log/
+
+# Repositories (will clone at runtime if needed)
+repositories/

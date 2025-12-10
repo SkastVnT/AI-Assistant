@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎙️ Speech2Text AI - Chuyển đổi giọng nói thành văn bản</title>
+    
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #42b883;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text-light: #e4e4e4;
+            --border-color: #2d3561;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--card-bg) 100%);
+            min-height: 100vh;
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 20px 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo i {
+            font-size: 2.5em;
+            color: white;
+        }
+
+        .logo-text h1 {
+            font-size: 1.8em;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .logo-text p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+            min-height: calc(100vh - 100px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            height: fit-content;
+            position: sticky;
+            top: 120px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 30px;
+        }
+
+        .sidebar-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 3px dashed var(--primary-color);
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(102, 126, 234, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--success-color);
+            background: rgba(66, 184, 131, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--success-color);
+            background: rgba(66, 184, 131, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: var(--text-light);
+        }
+
+        .upload-subtext {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Selected File Info */
+        .selected-file {
+            display: none;
+            background: rgba(66, 184, 131, 0.1);
+            border: 2px solid var(--success-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .selected-file.active {
+            display: block;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            font-size: 2em;
+            color: var(--success-color);
+        }
+
+        .file-details h4 {
+            color: var(--success-color);
+            margin-bottom: 5px;
+        }
+
+        .file-details p {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+
+        /* Model Selection */
+        .model-select {
+            margin-bottom: 20px;
+        }
+
+        .model-select label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .model-select select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background: var(--dark-bg);
+            color: var(--text-light);
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .model-select select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* Options */
+        .options {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .option-item:last-child {
+            border-bottom: none;
+        }
+
+        .option-label {
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            min-height: 600px;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-header h3 {
+            color: var(--primary-color);
+            font-size: 1.3em;
+        }
+
+        .progress-steps {
+            display: grid;
+            gap: 15px;
+        }
+
+        .progress-step {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .progress-step.active {
+            border-left-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .progress-step.completed {
+            border-left-color: var(--success-color);
+            background: rgba(66, 184, 131, 0.1);
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-status {
+            font-size: 0.85em;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: var(--border-color);
+        }
+
+        .step-status.active {
+            background: var(--primary-color);
+        }
+
+        .step-status.completed {
+            background: var(--success-color);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .step-message {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .results-header h2 {
+            color: var(--success-color);
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .results-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-icon:hover {
+            background: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        /* Transcript Display */
+        .transcript-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 25px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .speaker-segment {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+
+        .speaker-segment:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateX(5px);
+        }
+
+        .speaker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .speaker-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speaker-time {
+            font-size: 0.85em;
+            opacity: 0.7;
+            font-family: 'Courier New', monospace;
+        }
+
+        .speaker-text {
+            line-height: 1.6;
+            color: var(--text-light);
+            font-size: 0.95em;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-3px);
+        }
+
+        .stat-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-icon {
+            font-size: 5em;
+            color: var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .empty-text {
+            font-size: 1.3em;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .empty-subtext {
+            font-size: 0.95em;
+            opacity: 0.7;
+        }
+
+        /* Loading Animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                top: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .logo-text h1 {
+                font-size: 1.3em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-microphone-alt"></i>
+                <div class="logo-text">
+                    <h1>🎙️ Speech2Text AI</h1>
+                    <p>Chuyển đổi giọng nói thành văn bản với AI</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i>
+                    Làm mới
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Upload Section -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-upload"></i> Tải file audio</h3>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-text">Kéo thả file vào đây</div>
+                    <div class="upload-subtext">hoặc nhấp để chọn file</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".mp3,.wav,.m4a,.flac,.ogg">
+                </div>
+
+                <!-- Selected File Info -->
+                <div class="selected-file" id="selectedFileInfo">
+                    <div class="file-info">
+                        <div class="file-icon">
+                            <i class="fas fa-file-audio"></i>
+                        </div>
+                        <div class="file-details">
+                            <h4 id="fileName">-</h4>
+                            <p id="fileSize">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Selection -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-brain"></i> Cấu hình</h3>
+                
+                <div class="model-select">
+                    <label>Model Transcription:</label>
+                    <select id="modelSelect">
+                        <option value="phowhisper">PhoWhisper (Tiếng Việt tối ưu)</option>
+                        <option value="whisper-large-v3">Whisper Large V3</option>
+                        <option value="whisper-medium">Whisper Medium</option>
+                    </select>
+                </div>
+
+                <div class="model-select">
+                    <label>Diarization Model:</label>
+                    <select id="diarizationModel">
+                        <option value="pyannote">Pyannote 3.1 (Tốt nhất)</option>
+                        <option value="simple">Simple Diarization</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-cog"></i> Tùy chọn</h3>
+                <div class="options">
+                    <div class="option-item">
+                        <span class="option-label">
+                            <i class="fas fa-users"></i>
+                            Nhận diện người nói
+                        </span>
+                        <label class="switch">
+                            <input type="checkbox" id="enableDiarization" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-item">
+                        <span class="option-label">
+                            <i class="fas fa-clock"></i>
+                            Thêm timestamp
+                        </span>
+                        <label class="switch">
+                            <input type="checkbox" id="enableTimestamp" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-item">
+                        <span class="option-label">
+                            <i class="fas fa-brain"></i>
+                            AI Enhancement
+                        </span>
+                        <label class="switch">
+                            <input type="checkbox" id="enableAI">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Process Button -->
+            <button class="btn btn-primary" id="processBtn" disabled>
+                <i class="fas fa-play"></i>
+                Bắt đầu xử lý
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">
+                    <i class="fas fa-microphone-alt-slash"></i>
+                </div>
+                <div class="empty-text">Chưa có file audio nào</div>
+                <div class="empty-subtext">Vui lòng tải lên file audio để bắt đầu chuyển đổi</div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section" id="progressSection">
+                <div class="progress-header">
+                    <h3><i class="fas fa-spinner fa-spin"></i> Đang xử lý...</h3>
+                    <button class="btn-icon" onclick="cancelProcessing()">
+                        <i class="fas fa-times"></i>
+                        Hủy
+                    </button>
+                </div>
+
+                <div class="progress-steps" id="progressSteps">
+                    <!-- Progress steps will be added dynamically -->
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <div class="results-header">
+                    <h2><i class="fas fa-check-circle"></i> Kết quả</h2>
+                    <div class="results-actions">
+                        <button class="btn-icon" onclick="copyTranscript()">
+                            <i class="fas fa-copy"></i>
+                            Sao chép
+                        </button>
+                        <button class="btn-icon" onclick="downloadTranscript()">
+                            <i class="fas fa-download"></i>
+                            Tải xuống
+                        </button>
+                        <button class="btn-icon" onclick="shareTranscript()">
+                            <i class="fas fa-share-alt"></i>
+                            Chia sẻ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats will be added dynamically -->
+                </div>
+
+                <!-- Transcript -->
+                <div class="transcript-container" id="transcriptContainer">
+                    <!-- Transcript will be added dynamically -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Socket.IO connection
+        const socket = io();
+
+        // State
+        let selectedFile = null;
+        let currentSessionId = null;
+        let isProcessing = false;
+
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFileInfo = document.getElementById('selectedFileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const processBtn = document.getElementById('processBtn');
+        const emptyState = document.getElementById('emptyState');
+        const progressSection = document.getElementById('progressSection');
+        const resultsSection = document.getElementById('resultsSection');
+
+        // File Upload Handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            // Validate file type
+            const validTypes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/flac', 'audio/ogg'];
+            if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|flac|ogg)$/i)) {
+                alert('⚠️ Vui lòng chọn file audio hợp lệ (MP3, WAV, M4A, FLAC, OGG)');
+                return;
+            }
+
+            selectedFile = file;
+            
+            // Update UI
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            selectedFileInfo.classList.add('active');
+            processBtn.disabled = false;
+
+            console.log('File selected:', file.name, formatFileSize(file.size));
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Process Button Handler
+        processBtn.addEventListener('click', async () => {
+            if (!selectedFile || isProcessing) return;
+
+            isProcessing = true;
+            currentSessionId = Date.now().toString();
+
+            // Hide empty state, show progress
+            emptyState.style.display = 'none';
+            resultsSection.classList.remove('active');
+            progressSection.classList.add('active');
+            processBtn.disabled = true;
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('audio', selectedFile);
+            formData.append('model', document.getElementById('modelSelect').value);
+            formData.append('enable_diarization', document.getElementById('enableDiarization').checked);
+            formData.append('enable_timestamp', document.getElementById('enableTimestamp').checked);
+            formData.append('enable_ai', document.getElementById('enableAI').checked);
+            formData.append('session_id', currentSessionId);
+
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                console.log('File uploaded, processing started');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Lỗi khi tải file: ' + error.message);
+                resetUI();
+            }
+        });
+
+        // Socket.IO Event Handlers
+        socket.on('connect', () => {
+            console.log('✅ Connected to server');
+        });
+
+        socket.on('progress', (data) => {
+            console.log('Progress:', data);
+            updateProgress(data);
+        });
+
+        socket.on('complete', (data) => {
+            console.log('Complete:', data);
+            displayResults(data);
+            isProcessing = false;
+            processBtn.disabled = false;
+        });
+
+        socket.on('error', (data) => {
+            console.error('Error:', data);
+            alert('❌ Lỗi: ' + data.message);
+            resetUI();
+        });
+
+        function updateProgress(data) {
+            const stepsContainer = document.getElementById('progressSteps');
+            
+            // Create or update step
+            let stepEl = document.getElementById(`step-${data.step}`);
+            if (!stepEl) {
+                stepEl = document.createElement('div');
+                stepEl.id = `step-${data.step}`;
+                stepEl.className = 'progress-step';
+                stepEl.innerHTML = `
+                    <div class="step-header">
+                        <div class="step-title">
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                            <span class="step-name">${getStepName(data.step)}</span>
+                        </div>
+                        <span class="step-status active">${data.progress}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${data.progress}%"></div>
+                    </div>
+                    <div class="step-message">${data.message}</div>
+                `;
+                stepsContainer.appendChild(stepEl);
+            } else {
+                // Update existing step
+                stepEl.querySelector('.step-status').textContent = `${data.progress}%`;
+                stepEl.querySelector('.progress-fill').style.width = `${data.progress}%`;
+                stepEl.querySelector('.step-message').textContent = data.message;
+                
+                if (data.progress === 100) {
+                    stepEl.classList.remove('active');
+                    stepEl.classList.add('completed');
+                    stepEl.querySelector('.step-status').classList.remove('active');
+                    stepEl.querySelector('.step-status').classList.add('completed');
+                    stepEl.querySelector('.fa-spin').classList.remove('fa-spin', 'fa-circle-notch');
+                    stepEl.querySelector('.fa-spin').classList.add('fa-check');
+                }
+            }
+        }
+
+        function getStepName(step) {
+            const steps = {
+                'preprocessing': '📝 Tiền xử lý audio',
+                'diarization': '👥 Nhận diện người nói',
+                'transcription': '🎙️ Chuyển đổi giọng nói',
+                'enhancement': '✨ Cải thiện văn bản',
+                'finalization': '✅ Hoàn thành'
+            };
+            return steps[step] || step;
+        }
+
+        function displayResults(data) {
+            progressSection.classList.remove('active');
+            resultsSection.classList.add('active');
+
+            // Display stats
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-value">${data.stats.speakers || 0}</div>
+                    <div class="stat-label">Số người nói</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-value">${formatDuration(data.stats.duration || 0)}</div>
+                    <div class="stat-label">Thời lượng</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-comment"></i></div>
+                    <div class="stat-value">${data.stats.segments || 0}</div>
+                    <div class="stat-label">Đoạn hội thoại</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-stopwatch"></i></div>
+                    <div class="stat-value">${data.stats.processing_time || 0}s</div>
+                    <div class="stat-label">Thời gian xử lý</div>
+                </div>
+            `;
+
+            // Display transcript
+            const transcriptContainer = document.getElementById('transcriptContainer');
+            let transcriptHTML = '';
+            
+            if (data.transcript && data.transcript.length > 0) {
+                data.transcript.forEach((segment, index) => {
+                    transcriptHTML += `
+                        <div class="speaker-segment">
+                            <div class="speaker-header">
+                                <span class="speaker-name">
+                                    <i class="fas fa-user"></i>
+                                    ${segment.speaker || 'Speaker ' + (index + 1)}
+                                </span>
+                                <span class="speaker-time">${formatTimestamp(segment.start)} - ${formatTimestamp(segment.end)}</span>
+                            </div>
+                            <div class="speaker-text">${segment.text}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                transcriptHTML = '<p style="text-align:center;opacity:0.7;">Không có transcript</p>';
+            }
+            
+            transcriptContainer.innerHTML = transcriptHTML;
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatTimestamp(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function resetUI() {
+            isProcessing = false;
+            processBtn.disabled = !selectedFile;
+            progressSection.classList.remove('active');
+            if (!selectedFile) {
+                emptyState.style.display = 'block';
+            }
+        }
+
+        function copyTranscript() {
+            const segments = document.querySelectorAll('.speaker-segment');
+            let text = '';
+            segments.forEach(seg => {
+                const speaker = seg.querySelector('.speaker-name').textContent.trim();
+                const time = seg.querySelector('.speaker-time').textContent.trim();
+                const content = seg.querySelector('.speaker-text').textContent.trim();
+                text += `${speaker} [${time}]\n${content}\n\n`;
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Đã sao chép transcript!');
+            });
+        }
+
+        function downloadTranscript() {
+            const segments = document.querySelectorAll('.speaker-segment');
+            let text = '';
+            segments.forEach(seg => {
+                const speaker = seg.querySelector('.speaker-name').textContent.trim();
+                const time = seg.querySelector('.speaker-time').textContent.trim();
+                const content = seg.querySelector('.speaker-text').textContent.trim();
+                text += `${speaker} [${time}]\n${content}\n\n`;
+            });
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transcript_${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function shareTranscript() {
+            if (navigator.share) {
+                const segments = document.querySelectorAll('.speaker-segment');
+                let text = '';
+                segments.forEach(seg => {
+                    const content = seg.querySelector('.speaker-text').textContent.trim();
+                    text += content + '\n\n';
+                });
+                
+                navigator.share({
+                    title: 'Speech2Text Transcript',
+                    text: text
+                });
+            } else {
+                alert('Trình duyệt không hỗ trợ tính năng chia sẻ');
+            }
+        }
+
+        function cancelProcessing() {
+            if (confirm('Bạn có chắc muốn hủy quá trình xử lý?')) {
+                socket.emit('cancel', { session_id: currentSessionId });
+                resetUI();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,508 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant</title>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Sidebar Toggle (Mobile) -->
+    <div class="sidebar-toggle" id="sidebarToggle">
+        ☰
+    </div>
+    
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>💬 Lịch sử Chat</h3>
+                <button class="new-chat-btn" id="newChatBtn">+ Mới</button>
+            </div>
+            <div style="padding: 10px; font-size: 11px; color: #888; border-bottom: 1px solid #333;">
+                <span id="storageInfo">Đang tính...</span>
+            </div>
+            <div class="chat-list" id="chatList">
+                <!-- Chat items will be dynamically added here -->
+            </div>
+        </div>
+        
+        <!-- Main Chat Container -->
+        <div class="container">
+        <div class="header">
+            <h1>🤖 AI ChatBot Assistant</h1>
+            <p>Hỗ trợ tâm lý, tâm sự và giải pháp đời sống</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group"> 
+                <label>
+                    Model:
+                    <select id="modelSelect">
+                        <option value="gemini">Gemini (Google) - FREE</option>
+                        <option value="openai">GPT-4o-mini (OpenAI)</option>
+                        <option value="deepseek">DeepSeek (Rẻ nhất)</option>
+                        <option value="qwen">Qwen1.5b (Alibaba Cloud)</option>
+                        <option value="bloomvn">BloomVN-8B API (Tiếng Việt) - FREE</option>
+                        <optgroup label="🖥️ Local Models (FREE - No Internet)">
+                            <option value="qwen1.5-local">🖥️ Qwen1.5-1.8B Local</option>
+                            <option value="bloomvn-local">🖥️ BloomVN-8B Local</option>
+                            <option value="qwen2.5-local">🖥️ Qwen2.5-14B Local ⭐</option>
+                        </optgroup>
+                    </select>
+                </label>
+                
+                <label>
+                    Chế độ:
+                    <select id="contextSelect">
+                        <option value="casual">Trò chuyện vui vẻ</option>
+                        <option value="psychological">Tâm lý - Tâm sự</option>
+                        <option value="lifestyle">Giải pháp đời sống</option>
+                        <option value="programming">💻 Hỗ trợ lập trình</option>
+                    </select>
+                </label>
+                
+                <div class="checkbox-container" id="deepThinkingContainer">
+                    <input type="checkbox" id="deepThinkingCheck">
+                    <label for="deepThinkingCheck">🧠 Suy luận sâu</label>
+                </div>
+                
+                <button class="download-btn" id="downloadBtn" title="Tải xuống lịch sử chat">
+                    📥 Tải chat
+                </button>
+                <button class="image-gen-btn" id="imageGenBtn" title="Tạo ảnh bằng AI">
+                    🎨 Tạo ảnh
+                </button>
+                <button class="memory-btn" id="memoryBtn" title="Quản lý bộ nhớ AI">
+                    🧠 AI học tập
+                </button>
+                <button class="dark-mode-toggle" id="darkModeBtn" title="Toggle Dark Mode">🌙</button>
+                <button id="clearBtn">🗑️ Xóa lịch sử</button>
+            </div>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message assistant">
+                <div class="message-content">
+                    <div>Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
+                    <div class="message-info">Gemini • Trò chuyện vui vẻ</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Memory Panel (hidden by default) -->
+        <div class="memory-panel" id="memoryPanel" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong>📚 Bài học đã lưu (chọn để kích hoạt):</strong>
+                <button class="new-chat-btn" id="saveMemoryBtn" style="padding: 5px 12px; font-size: 12px;">
+                    💾 Lưu chat này
+                </button>
+            </div>
+            <div id="memoryList">
+                <!-- Memory items will be loaded here -->
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Đang suy nghĩ...</span>
+        </div>
+        
+        <div class="input-container">
+            <div class="input-tools">
+                <button class="tool-btn" id="googleSearchBtn" title="Tìm kiếm Google">
+                    🔍 Search
+                </button>
+                <button class="tool-btn" id="githubBtn" title="Kết nối GitHub">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </button>
+                <button class="tool-btn" id="imageGenToolBtn" title="Tạo ảnh từ text prompt (Text2Img)">
+                    🎨 Text2Img
+                </button>
+                <button class="tool-btn" id="img2imgToolBtn" title="Tạo ảnh từ upload (Img2Img)">
+                    🖼️ Img2Img
+                </button>
+                <label class="file-label" title="Upload tài liệu (txt, pdf, doc, code files)">
+                    📎 Files
+                    <input type="file" class="file-input" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css" multiple>
+                </label>
+            </div>
+            <div class="file-list" id="fileList">
+                <!-- Uploaded files will appear here -->
+            </div>
+            <div class="input-group">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng, Ctrl+V để paste)"
+                    rows="1"
+                ></textarea>
+                <button id="sendBtn">Gửi</button>
+            </div>
+        </div>
+        </div> <!-- Close container -->
+    </div> <!-- Close main-wrapper -->
+    
+    <!-- Image Generation Modal -->
+    <div id="imageGenModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎨 Tạo ảnh bằng AI</h2>
+                <button class="close-modal" onclick="closeImageModal()">&times;</button>
+            </div>
+            
+            <div id="sdStatus" class="sd-status offline">
+                Đang kiểm tra Stable Diffusion...
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="image-gen-tabs">
+                <button class="tab-btn active" onclick="switchImageGenTab('text2img')">
+                    ✍️ Tạo ảnh từ prompt
+                </button>
+                <button class="tab-btn" onclick="switchImageGenTab('img2img')">
+                    🖼️ Tạo ảnh theo hình ảnh
+                </button>
+            </div>
+
+            <!-- Shared Model Selection -->
+            <div class="form-group">
+                <label>Model Checkpoint:</label>
+                <select id="modelCheckpoint">
+                    <option value="">Đang tải...</option>
+                </select>
+            </div>
+
+            <!-- Text2Img Tab Content -->
+            <div id="text2imgTab" class="tab-content active">
+            
+            <div class="form-group">
+                <label>Prompt (Mô tả ảnh bạn muốn tạo):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    <button onclick="randomPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                </div>
+                <textarea id="imagePrompt" rows="4" placeholder="1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Negative Prompt (Những gì KHÔNG muốn có):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    <button onclick="randomNegativePrompt()" style="padding: 5px 15px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                </div>
+                <textarea id="negativePrompt" rows="3" placeholder="bad quality, blurry, distorted, ugly, worst quality"></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Width:</label>
+                    <select id="imageWidth">
+                        <option value="512" selected>512 (Safe)</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Height:</label>
+                    <select id="imageHeight">
+                        <option value="512" selected>512 (Safe)</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Steps <span id="stepsLabel">(20-50 khuyến nghị)</span>:</label>
+                    <input type="number" id="imageSteps" value="20" min="1" max="150">
+                </div>
+                
+                <div class="form-group">
+                    <label>CFG Scale <span id="cfgLabel">(7-12 khuyến nghị)</span>:</label>
+                    <input type="number" id="cfgScale" value="7" min="1" max="30" step="0.5">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Sampler:</label>
+                <select id="samplerSelect">
+                    <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                    <option value="Euler a">Euler a</option>
+                    <option value="Euler">Euler</option>
+                    <option value="DDIM">DDIM</option>
+                    <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="restoreFaces">
+                        Restore Faces (GFPGAN)
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableHR">
+                        Hires. Fix (Chất lượng cao)
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Lora Selection Section -->
+            <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
+                <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <button type="button" id="addLoraBtn" class="secondary-btn" onclick="addLoraSelection()">
+                        ➕ Thêm Lora
+                    </button>
+                </div>
+            </div>
+            
+            <!-- VAE Selection -->
+            <div class="form-group">
+                <label>🔧 VAE Model:</label>
+                <select id="vaeSelect">
+                    <option value="">Automatic (Mặc định)</option>
+                </select>
+            </div>
+            
+            <button class="generate-btn" id="generateImageBtn" onclick="generateImage()">
+                🎨 Tạo ảnh
+            </button>
+
+            </div>
+            <!-- End Text2Img Tab -->
+
+            <!-- Img2Img Tab Content -->
+            <div id="img2imgTab" class="tab-content" style="display: none;">
+                
+                <!-- Upload Image Section -->
+                <div class="form-group">
+                    <label>📤 Upload hình ảnh gốc (Bắt buộc):</label>
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('sourceImage').click()">
+                        <div id="uploadPlaceholder">
+                            <span style="font-size: 48px;">📷</span>
+                            <p>Click để chọn ảnh hoặc kéo thả vào đây</p>
+                            <p style="font-size: 12px; color: #999;">Hỗ trợ: JPG, PNG, WebP</p>
+                        </div>
+                        <img id="sourceImagePreview" style="display: none; max-width: 100%; max-height: 300px; border-radius: 8px;">
+                    </div>
+                    <input type="file" id="sourceImage" accept="image/*" style="display: none;" onchange="handleSourceImageUpload(event)">
+                </div>
+
+                <!-- Extract Features Section -->
+                <div id="featureExtractionSection" style="display: none;">
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <label style="font-weight: 600;">🔍 Trích xuất đặc trưng:</label>
+                            <label style="font-size: 13px;">
+                                <input type="checkbox" id="deepThinkingMode">
+                                🧠 Deep Thinking Mode (Chi tiết hơn)
+                            </label>
+                        </div>
+                        
+                        <!-- Multi-Model Selection -->
+                        <div style="margin-bottom: 10px; padding: 10px; background: rgba(255, 152, 0, 0.1); border-radius: 4px;">
+                            <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">
+                                🎯 Extraction Models (Chọn nhiều model = chính xác hơn nhưng chậm hơn):
+                            </label>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <label style="font-size: 12px; cursor: pointer;">
+                                    <input type="checkbox" id="modelDeepDanbooru" value="deepdanbooru" checked>
+                                    DeepDanbooru (Anime) 🎨
+                                </label>
+                                <label style="font-size: 12px; cursor: pointer;">
+                                    <input type="checkbox" id="modelCLIP" value="clip">
+                                    CLIP (General) 🌐
+                                </label>
+                                <label style="font-size: 12px; cursor: pointer;">
+                                    <input type="checkbox" id="modelWD14" value="wd14">
+                                    WD14 Tagger (Anime+) ⭐
+                                </label>
+                            </div>
+                            <p style="font-size: 11px; color: #666; margin-top: 5px;">
+                                💡 Tip: Chọn nhiều model để ensemble extraction (tags được nhiều model đồng ý = confidence cao hơn)
+                            </p>
+                        </div>
+                        
+                        <button class="extract-btn" onclick="extractFeatures()" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                            🔬 Trích xuất đặc trưng
+                        </button>
+                        <div id="extractedTags" style="display: none;">
+                            <div style="margin-bottom: 10px; padding: 8px; background: rgba(255, 152, 0, 0.1); border-radius: 4px; font-size: 13px;">
+                                💡 <strong>Tip:</strong> Click vào checkbox để loại bỏ toàn bộ category, hoặc click từng tag để loại bỏ riêng lẻ
+                            </div>
+                            <div id="tagsList" style="max-height: 350px; overflow-y: auto; padding: 10px; background: #2a2a2a; border-radius: 4px; margin-bottom: 10px;">
+                                <!-- Tags will be populated here by category -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt Section for Img2Img -->
+                <div class="form-group">
+                    <label>Prompt bổ sung (có thể tùy chỉnh % bên dưới):</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                        <button onclick="randomImg2ImgPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                    </div>
+                    <textarea id="img2imgPrompt" rows="3" placeholder="Nhập prompt bổ sung để điều chỉnh ảnh..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Negative Prompt:</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                        <button onclick="randomImg2ImgNegativePrompt()" style="padding: 5px 15px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                    </div>
+                    <textarea id="img2imgNegativePrompt" rows="2" placeholder="bad quality, blurry, distorted"></textarea>
+                </div>
+
+                <!-- Image Size for Img2Img -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Width:</label>
+                        <select id="img2imgWidth">
+                            <option value="512">512</option>
+                            <option value="768" selected>768</option>
+                            <option value="1024">1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1440">1440 (HD)</option>
+                            <option value="1920">1920 (FHD)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Height:</label>
+                        <select id="img2imgHeight">
+                            <option value="512">512</option>
+                            <option value="768" selected>768</option>
+                            <option value="1024">1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1440">1440 (HD)</option>
+                            <option value="1920">1920 (FHD)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Generation Settings for Img2Img -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Denoising Strength:</label>
+                        <input type="number" id="denoisingStrength" value="0.6" min="0" max="1" step="0.05">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Feature Weight (%):</label>
+                        <input type="number" id="featureWeight" value="80" min="0" max="100" step="5">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Steps:</label>
+                        <input type="number" id="img2imgSteps" value="30" min="1" max="150">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>CFG Scale:</label>
+                        <input type="number" id="img2imgCfgScale" value="7" min="1" max="30" step="0.5">
+                    </div>
+                </div>
+                
+                <!-- Lora Selection for Img2Img -->
+                <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
+                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                        <button type="button" id="addImg2imgLoraBtn" class="secondary-btn" onclick="addImg2imgLoraSelection()">
+                            ➕ Thêm Lora
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- VAE Selection for Img2Img -->
+                <div class="form-group">
+                    <label>🔧 VAE Model:</label>
+                    <select id="img2imgVaeSelect">
+                        <option value="">Automatic (Mặc định)</option>
+                    </select>
+                </div>
+
+                <button class="generate-btn" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>
+                    🎨 Tạo ảnh từ hình ảnh
+                </button>
+
+            </div>
+            <!-- End Img2Img Tab -->
+            
+            <div id="generatedImageContainer" style="display: none;">
+                <img id="generatedImage" class="generated-image" alt="Generated Image">
+                <div class="image-actions">
+                    <button class="copy-to-chat-btn" onclick="copyImageToChat()">
+                        💬 Gửi vào Chat
+                    </button>
+                    <button class="download-image-btn" onclick="downloadGeneratedImage()">
+                        📥 Tải xuống
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Preview Modal (Discord-style) -->
+    <div id="imagePreviewModal" class="image-preview-modal">
+        <div class="image-preview-controls">
+            <button class="preview-control-btn" onclick="downloadPreviewImage()" title="Download">
+                📥
+            </button>
+            <button class="preview-control-btn" onclick="zoomPreviewImage(-0.2)" title="Zoom Out">
+                🔍-
+            </button>
+            <button class="preview-control-btn" onclick="zoomPreviewImage(0.2)" title="Zoom In">
+                🔍+
+            </button>
+            <button class="preview-control-btn" onclick="resetPreviewZoom()" title="Reset Zoom">
+                ⟲
+            </button>
+        </div>
+        <span class="image-preview-close" onclick="closeImagePreview()">&times;</span>
+        <img id="imagePreviewContent" class="image-preview-content" src="" alt="Preview">
+        <div id="imagePreviewInfo" class="image-preview-info"></div>
+    </div>
+    
+    <!-- Message History Modal -->
+    <div id="historyModal" class="history-modal">
+        <div class="history-modal-content">
+            <div class="modal-header">
+                <h2>📜 Lịch sử chỉnh sửa</h2>
+                <button onclick="closeHistoryModal()" style="background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Đóng</button>
+            </div>
+            <div id="historyContent"></div>
+        </div>
+    </div>
+    
+
+    <!-- Load JavaScript modules -->
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

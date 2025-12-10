@@ -1,8 +1,0 @@
-# Models folder
-# Pretrained models will be downloaded here
-
-# Download models using:
-# python download_models.py
-
-# Or download manually from:
-# https://github.com/xinntao/Real-ESRGAN/releases
