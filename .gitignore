@@ -11,6 +11,11 @@ dist/
 build/
 *.egg
 MANIFEST
+.python-version
+**/__init__.py  # Ignore all __init__.py files
+LICENSE
+SECURITY
+
 
 # ============================================
 # VIRTUAL ENVIRONMENT
@@ -33,6 +38,8 @@ venv_*/
 !.env.example
 *.key
 *.pem
+LICENSE
+SECURITY
 
 # ============================================
 # CONFIG FILES (Sensitive)
@@ -117,53 +124,98 @@ node_modules/
 # ============================================
 
 # Document Intelligence Service
-Document Intelligence Service/DIS/
-Document Intelligence Service/output/*.json
-Document Intelligence Service/output/*.txt
-
-# RAG Services
-RAG Services/RAG/
+services/document-intelligence/DIS/
+services/document-intelligence/output/*.json
+services/document-intelligence/output/*.txt
 
 # ChatBot
-ChatBot/Storage/Image_Gen/*.png
-ChatBot/Storage/Image_Gen/*.jpg
-ChatBot/Storage/Image_Gen/*.jpeg
-ChatBot/Storage/Image_Gen/*.json
-ChatBot/data/memory/*/
-ChatBot/models/BloomVN-8B-chat/
-ChatBot/models/Qwen2.5-14B-Instruct/
-ChatBot/models/Qwen1.5-1.8B-Chat/
+services/chatbot/Storage/Image_Gen/*.png
+services/chatbot/Storage/Image_Gen/*.jpg
+services/chatbot/Storage/Image_Gen/*.jpeg
+services/chatbot/Storage/Image_Gen/*.json
+services/chatbot/data/memory/*/
+services/chatbot/models/BloomVN-8B-chat/
+services/chatbot/models/Qwen2.5-14B-Instruct/
+services/chatbot/models/Qwen1.5-1.8B-Chat/
 
 # Speech2Text
-Speech2Text Services/data/audio/**/*.wav
-Speech2Text Services/data/audio/**/*.mp3
-Speech2Text Services/results/**/*.txt
-Speech2Text Services/logs/*.log
-Speech2Text Services/data/cache/
-Speech2Text Services/speech/
-Speech2Text Services/s2t/
-Speech2Text Services/app/s2t/
+services/speech2text/data/audio/**/*.wav
+services/speech2text/data/audio/**/*.mp3
+services/speech2text/results/**/*.txt
+services/speech2text/logs/*.log
+services/speech2text/data/cache/
+services/speech2text/speech/
+services/speech2text/s2t/
+services/speech2text/app/s2t/
 
 # Text2SQL
-Text2SQL Services/sample/uploaded/*.jsonl
-Text2SQL Services/speech/
-Text2SQL Services/Text2SQL/
+services/text2sql/sample/uploaded/*.jsonl
+services/text2sql/speech/
+services/text2sql/Text2SQL/
 
 # Stable Diffusion
-stable-diffusion-webui/models/Stable-diffusion/*.safetensors
-stable-diffusion-webui/models/Stable-diffusion/*.ckpt
-stable-diffusion-webui/models/Lora/*.safetensors
-stable-diffusion-webui/models/VAE/*.safetensors
-stable-diffusion-webui/models/VAE/*.pt
-stable-diffusion-webui/models/ESRGAN/**/*.pth
-stable-diffusion-webui/models/GFPGAN/**/*.pth
-stable-diffusion-webui/models/Codeformer/**/*.pth
-stable-diffusion-webui/models/OrangeMixs/
-stable-diffusion-webui/outputs/**/*.png
-stable-diffusion-webui/outputs/**/*.jpg
-stable-diffusion-webui/log/
-stable-diffusion-webui/tmp/
-stable-diffusion-webui/cache.json
+services/stable-diffusion/models/Stable-diffusion/*.safetensors
+services/stable-diffusion/models/Stable-diffusion/*.ckpt
+services/stable-diffusion/models/Lora/*.safetensors
+services/stable-diffusion/models/VAE/*.safetensors
+services/stable-diffusion/models/VAE/*.pt
+services/stable-diffusion/models/ESRGAN/**/*.pth
+services/stable-diffusion/models/GFPGAN/**/*.pth
+services/stable-diffusion/models/Codeformer/**/*.pth
+services/stable-diffusion/models/OrangeMixs/Models/**/*
+services/stable-diffusion/outputs/**/*.png
+services/stable-diffusion/outputs/**/*.jpg
+services/stable-diffusion/log/
+services/stable-diffusion/tmp/
+services/stable-diffusion/cache.json
+
+# LoRA Training
+services/lora-training/lora/
+services/lora-training/data/train/**/*.png
+services/lora-training/data/train/**/*.jpg
+services/lora-training/output/**/*
+services/lora-training/models/**/*.safetensors
+services/lora-training/models/**/*.ckpt
+
+# Image Upscale
+services/image-upscale/data/input/**/*.png
+services/image-upscale/data/input/**/*.jpg
+services/image-upscale/data/output/**/*.png
+services/image-upscale/data/output/**/*.jpg
+services/image-upscale/examples/test_*.png
+
+# Hub Gateway
+services/hub-gateway/logs/*.log
+services/hub-gateway/cache/
+
+# ============================================
+# RESOURCES FOLDER
+# ============================================
+resources/data/output/**/*.png
+resources/data/output/**/*.jpg
+resources/logs/**/*.log
+resources/models/**/*.bin
+resources/models/**/*.safetensors
+resources/models/**/*.ckpt
+resources/models/**/*.pth
+resources/database/backups/
+resources/templates/temp/
+
+# ============================================
+# COMMON PATTERNS (All Services)
+# ============================================
+**/uploads/**/*
+**/downloads/**/*
+**/output/**/*.png
+**/output/**/*.jpg
+**/output/**/*.jpeg
+**/logs/**/*.log
+**/cache/**/*
+**/tmp/**/*
+**/temp/**/*
+**/test_output/
+**/Storage/**/*.png
+**/Storage/**/*.jpg
 
 # Keep folder structure
 !**/.gitkeep

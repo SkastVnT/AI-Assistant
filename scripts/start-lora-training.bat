@@ -15,18 +15,16 @@ echo   - Redis Caching
 echo   - Training Monitoring
 echo.
 
-cd services\lora-training
-
-REM Check if virtual environment exists
-if exist "lora\Scripts\activate.bat" (
-    echo Using virtual environment...
-    call lora\Scripts\activate.bat
-) else (
-    echo WARNING: Virtual environment not found!
-    echo Please run setup first.
+REM Setup virtual environment and dependencies
+call "%~dp0setup-venv.bat"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to setup environment
     pause
     exit /b 1
 )
+
+cd services\lora-training
 
 echo.
 echo Starting LoRA Training WebUI...

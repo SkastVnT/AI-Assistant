@@ -14,15 +14,16 @@ echo   - ScuNET GAN
 echo   - Batch Processing
 echo.
 
-cd services\image-upscale
-
-REM Check if virtual environment exists
-if exist "venv\Scripts\activate.bat" (
-    echo Using virtual environment...
-    call venv\Scripts\activate.bat
-) else (
-    echo Using global Python...
+REM Setup virtual environment and dependencies
+call "%~dp0setup-venv.bat"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to setup environment
+    pause
+    exit /b 1
 )
+
+cd services\image-upscale
 
 echo.
 echo Starting Image Upscale Tool...

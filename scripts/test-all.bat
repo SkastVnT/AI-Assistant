@@ -32,16 +32,17 @@ echo.
 echo Running pytest...
 echo.
 
-REM Run pytest with coverage
-pytest tests/ -v --cov=services --cov=config --cov-report=html --cov-report=term
+REM Activate virtual environment if exists
+if exist ".venv\Scripts\activate.bat" (
+    call .venv\Scripts\activate.bat
+)
+
+REM Run pytest (simple mode without coverage to avoid dependency issues)
+pytest tests/ -v
 
 echo.
 echo ================================================================================
 echo.
 echo Test run complete!
-echo.
-echo Coverage report generated in: htmlcov/index.html
-echo.
-echo To view coverage report, open: htmlcov\index.html
 echo.
 pause

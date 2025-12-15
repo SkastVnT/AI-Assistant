@@ -1,88 +1,265 @@
 # ============================================================================
-# AI-Assistant Root Project
+# AI-Assistant - Unified Requirements
 # Python: 3.10.6
 # Repository: https://github.com/SkastVnT/AI-Assistant
-# Description: Unified AI Assistant Hub with multiple services
+# Description: All dependencies for all services in one place
 # ============================================================================
 
-# ============= SERVICES =============
-# 1. ChatBot               - Multi-model chatbot with local LLM support
-# 2. Text2SQL Services     - Natural language to SQL conversion
-# 3. Speech2Text Services  - Vietnamese speech-to-text transcription
-# 4. Stable Diffusion WebUI - Advanced image generation
+# ============================================================================
+# SERVICES INCLUDED
+# ============================================================================
+# 1. Hub Gateway            - Main coordinator (Port 3000)
+# 2. ChatBot                - Multi-model chatbot (Port 5001)
+# 3. Text2SQL               - NL to SQL conversion (Port 5002)
+# 4. Document Intelligence  - OCR + AI enhancement (Port 5003)
+# 5. Speech2Text            - Vietnamese ASR (Port 7860)
+# 6. Stable Diffusion       - Image generation (Port 7861)
+# 7. LoRA Training          - Model fine-tuning (Port 7862)
+# 8. Image Upscale          - AI upscaling (Port 7863)
 #
-# Each service has its own virtual environment and requirements.txt
-# Navigate to service folder and follow its README.md for setup
+# NOTE: You can install all at once or per-service using service-specific
+#       requirements.txt files in services/*/requirements.txt
+# ============================================================================
 
-# ============= ROOT HUB DEPENDENCIES =============
-# These are for the main coordinator/hub only
+# ============================================================================
+# PYTORCH - INSTALL FIRST (Required for most services)
+# ============================================================================
+# GPU (CUDA 11.8):
+#   pip install torch==2.0.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# CPU only:
+#   pip install torch torchvision torchaudio
+# ============================================================================
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+numpy<2.0.0  # PyTorch compatibility
 
-# Web Framework
+# ============================================================================
+# CORE WEB FRAMEWORKS (All Services)
+# ============================================================================
 flask==3.0.0
-flask-cors==6.0.0  # Updated from 4.0.0 - Security fix for vulnerabilities
+flask-cors==6.0.0  # Security fix from 4.0.0
+flask-socketio>=5.3.0
+python-socketio>=5.10.0
 python-dotenv==1.0.0
-werkzeug>=3.0.0
+werkzeug>=3.0.6  # Security fix
+eventlet>=0.33.0
 
-# Utilities
-requests>=2.31.0
-pyyaml>=6.0.0
+# FastAPI (Stable Diffusion, Image Upscale)
+fastapi>=0.94.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
 
-# Logging
+# Gradio (Stable Diffusion, Image Upscale)
+gradio>=3.0.0
+
+# ============================================================================
+# AI APIs & MODELS
+# ============================================================================
+# OpenAI
+openai>=1.0.0
+
+# Google Gemini
+google-generativeai>=0.8.5
+
+# Transformers & HuggingFace
+transformers>=4.40.0
+accelerate>=0.27.0
+sentencepiece>=0.2.0
+safetensors>=0.4.0
+huggingface-hub>=0.21.4
+peft>=0.4.0
+
+# Sentence Transformers (ChatBot)
+sentence-transformers>=2.2.2
+
+# ============================================================================
+# DATABASE & CACHING
+# ============================================================================
+# MongoDB
+pymongo>=4.6.0
+dnspython>=2.4.0
+
+# Redis
+redis>=5.0.0
+
+# ClickHouse
+clickhouse-connect>=0.7.7
+
+# ============================================================================
+# SPEECH & AUDIO PROCESSING (Speech2Text)
+# ============================================================================
+# ASR Models
+faster-whisper==1.0.3
+pyannote.audio==3.1.1
+
+# Audio Processing
+librosa==0.10.1
+soundfile==0.12.1
+audioread==3.0.1
+av>=12.0.0
+scipy>=1.11.0
+pydub>=0.25.1
+
+# ============================================================================
+# IMAGE PROCESSING & UPSCALING
+# ============================================================================
+# Core Image
+Pillow>=10.3.0  # Security fix
+opencv-python==4.6.0.66  # Pinned for paddleocr compatibility
+
+# OCR (Document Intelligence)
+paddleocr==2.7.3
+paddlepaddle==2.6.2
+PyMuPDF==1.23.8
+scikit-image>=0.19.3
+
+# Upscaling & Enhancement
+basicsr>=1.4.2
+facexlib>=0.2.5
+gfpgan>=1.3.5
+realesrgan>=0.3.0
+timm>=0.9.0
+einops>=0.4.0
+lpips>=0.1.4
+resize-right>=0.0.2
+piexif>=1.1.3
+blendmodes>=2022.0.0
+kornia>=0.7.0
+tomesd>=0.1.3
+
+# ============================================================================
+# STABLE DIFFUSION SPECIFIC
+# ============================================================================
+open-clip-torch>=2.20.0
+omegaconf>=2.2.3
+lark>=1.1.5
+inflection>=0.5.1
+pytorch_lightning>=2.0.0
+torchdiffeq>=0.2.3
+torchsde>=0.2.5
+clean-fid>=0.1.35
+
+# ============================================================================
+# DATA PROCESSING & SCIENCE
+# ============================================================================
+pandas>=2.0.0
+scikit-learn>=1.3.0
+sqlparse>=0.4.4
+openpyxl>=3.1.0
+matplotlib>=3.7.0
+albumentations>=1.3.0
+
+# ============================================================================
+# UTILITIES
+# ============================================================================
+# Progress & CLI
+tqdm>=4.65.0
 colorama>=0.4.6
+rich==13.7.0
 
-# Google Drive API
+# Config & Data
+pyyaml>=6.0.0
+jsonschema>=4.17.0
+jsonmerge>=1.9.0
+protobuf==3.20.2  # Pinned for paddlepaddle compatibility on Windows (requires <=3.20.2)
+
+# File & Network
+requests>=2.31.0
+aiofiles>=23.0.0
+GitPython>=3.1.0
+filelock>=3.12.0
+watchdog>=2.0.0
+
+# System
+psutil>=5.9.0
+
+# ============================================================================
+# OPTIMIZATION & ACCELERATION
+# ============================================================================
+xformers>=0.0.20  # Memory efficient attention
+bitsandbytes>=0.41.0; sys_platform != 'win32'  # 8-bit optimization (Linux only)
+
+# ============================================================================
+# MONITORING & LOGGING
+# ============================================================================
+tensorboard>=2.13.0
+wandb>=0.15.0
+
+# ============================================================================
+# GOOGLE SERVICES (Hub Gateway)
+# ============================================================================
 google-auth>=2.25.0
 google-auth-oauthlib>=1.2.0
 google-auth-httplib2>=0.2.0
 google-api-python-client>=2.110.0
 
 # ============================================================================
-# QUICK START
+# DEVELOPMENT & TESTING
+# ============================================================================
+pytest>=7.4.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+mypy>=1.8.0
+
+# ============================================================================
+# INSTALLATION GUIDE
 # ============================================================================
 #
-# 1. Clone repository:
-#    git clone https://github.com/SkastVnT/AI-Assistant.git
-#    cd AI-Assistant
+# OPTION 1: Install All Services (Recommended for development)
+# ---------------------------------------------------------------
+# 1. Create virtual environment:
+#    python -m venv venv_ai_assistant
 #
-# 2. Choose a service to setup:
-#    - cd ChatBot              (for chatbot service)
-#    - cd "Text2SQL Services"  (for SQL conversion)
-#    - cd "Speech2Text Services" (for transcription)
-#    - cd stable-diffusion-webui (for image generation)
+# 2. Activate:
+#    Windows: .\venv_ai_assistant\Scripts\activate
+#    Linux/Mac: source venv_ai_assistant/bin/activate
 #
-# 3. Follow service-specific README.md for detailed setup
+# 3. Install PyTorch with CUDA:
+#    pip install torch==2.0.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 #
-# 4. Each service runs independently with its own:
-#    - Virtual environment (venv_*)
-#    - requirements.txt
-#    - Configuration (.env)
-#    - Port number
+# 4. Install all dependencies:
+#    pip install -r requirements.txt
 #
-# ============================================================================
-# SERVICE PORTS (Default)
-# ============================================================================
-# ChatBot:              http://localhost:5000
-# Text2SQL:             http://localhost:5001
-# Speech2Text:          http://localhost:5002
-# Stable Diffusion:     http://localhost:7860
+# 5. Setup environment:
+#    Copy .env.example to .env and configure
+#
+# 6. Start services:
+#    menu.bat (interactive menu)
+#    OR scripts\start-all.bat (start all services)
+#
+# OPTION 2: Install Per-Service (Recommended for production)
+# ---------------------------------------------------------------
+# Navigate to specific service folder and install:
+#    cd services/chatbot
+#    pip install -r requirements.txt
+#
+# Each service has its own requirements.txt with minimal dependencies
 #
 # ============================================================================
 # SYSTEM REQUIREMENTS
 # ============================================================================
 # - Python 3.10.6
-# - NVIDIA GPU with CUDA 11.8 (for AI models)
+# - NVIDIA GPU with CUDA 11.8 (6GB+ VRAM, 8GB+ recommended)
 # - 16GB+ RAM (32GB recommended)
 # - 50GB+ free disk space
 # - Windows 10/11 or Linux
 #
 # ============================================================================
-# DOCUMENTATION
+# SERVICE DOCUMENTATION
 # ============================================================================
-# - README.md              - Main project documentation
-# - docs/                  - Additional guides
-# - ChatBot/README.md      - ChatBot service guide
-# - Text2SQL Services/README.md - Text2SQL guide
-# - Speech2Text Services/README.md - Speech2Text guide
-# - stable-diffusion-webui/README.md - SD WebUI guide
+# - README.md                           - Main project guide
+# - docs/STRUCTURE.md                   - Project structure
+# - docs/SCRIPTS_GUIDE.md               - Batch scripts guide
+# - services/chatbot/README.md          - ChatBot service
+# - services/text2sql/README.md         - Text2SQL service
+# - services/speech2text/README.md      - Speech2Text service
+# - services/document-intelligence/README.md - OCR service
+# - services/stable-diffusion/README.md - Image generation
+# - services/lora-training/README.md    - LoRA training
+# - services/image-upscale/README.md    - Image upscaling
 #
 # ============================================================================

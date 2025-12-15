@@ -14,15 +14,16 @@ echo   - Table Detection
 echo   - Multi-format Support
 echo.
 
-cd services\document-intelligence
-
-REM Check if virtual environment exists
-if exist "venv\Scripts\activate.bat" (
-    echo Using virtual environment...
-    call venv\Scripts\activate.bat
-) else (
-    echo Using global Python...
+REM Setup virtual environment and dependencies
+call "%~dp0setup-venv.bat"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to setup environment
+    pause
+    exit /b 1
 )
+
+cd services\document-intelligence
 
 echo.
 echo Starting Document Intelligence Service...

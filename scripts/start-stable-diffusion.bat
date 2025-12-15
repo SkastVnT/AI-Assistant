@@ -15,6 +15,16 @@ echo   - LoRA/VAE Support
 echo   - ControlNet
 echo.
 
+REM Setup virtual environment and dependencies for other services
+REM Note: Stable Diffusion has its own venv managed by webui.bat
+call "%~dp0setup-venv.bat"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to setup main environment
+    pause
+    exit /b 1
+)
+
 cd services\stable-diffusion
 
 echo.

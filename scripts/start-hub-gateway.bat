@@ -8,17 +8,21 @@ echo Port: 3000
 echo Path: services/hub-gateway/
 echo.
 
-cd services\hub-gateway
-
-REM Check if virtual environment exists
-if exist "venv\Scripts\activate.bat" (
-    echo Using virtual environment...
-    call venv\Scripts\activate.bat
-) else (
-    echo Using global Python...
+REM Setup virtual environment and dependencies
+call "%~dp0setup-venv.bat"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to setup environment
+    pause
+    exit /b 1
 )
 
+cd services\hub-gateway
+
+echo.
 echo Starting Hub Gateway...
+echo Access at: http://localhost:3000
+echo.
 python hub.py
 
 pause

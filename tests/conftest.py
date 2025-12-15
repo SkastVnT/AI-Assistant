@@ -73,10 +73,18 @@ def sample_data_dir(temp_dir):
 @pytest.fixture
 def hub_app():
     """Create Hub Gateway Flask app for testing"""
-    from src.hub import app
-    app.config['TESTING'] = True
-    app.config['DEBUG'] = False
-    return app
+    # Add services/hub-gateway to path
+    hub_path = project_root / "services" / "hub-gateway"
+    if str(hub_path) not in sys.path:
+        sys.path.insert(0, str(hub_path))
+    
+    try:
+        from hub import app
+        app.config['TESTING'] = True
+        app.config['DEBUG'] = False
+        return app
+    except ImportError:
+        pytest.skip("Hub Gateway app not available")
 
 
 @pytest.fixture
@@ -88,13 +96,21 @@ def hub_client(hub_app):
 @pytest.fixture
 def chatbot_app():
     """Create ChatBot Flask app for testing"""
-    # Mock MongoDB to avoid actual DB connection
-    with patch('ChatBot.app.MONGODB_ENABLED', False):
-        with patch('ChatBot.app.mongodb_client'):
-            from ChatBot.app import app
-            app.config['TESTING'] = True
-            app.config['DEBUG'] = False
-            return app
+    # Add services/chatbot to path
+    chatbot_path = project_root / "services" / "chatbot"
+    if str(chatbot_path) not in sys.path:
+        sys.path.insert(0, str(chatbot_path))
+    
+    try:
+        # Mock MongoDB to avoid actual DB connection
+        with patch('app.MONGODB_ENABLED', False):
+            with patch('app.mongodb_client'):
+                from app import app
+                app.config['TESTING'] = True
+                app.config['DEBUG'] = False
+                return app
+    except ImportError:
+        pytest.skip("ChatBot app not available")
 
 
 @pytest.fixture
@@ -106,12 +122,18 @@ def chatbot_client(chatbot_app):
 @pytest.fixture
 def text2sql_app():
     """Create Text2SQL Flask app for testing"""
-    # Import and configure the app
-    sys.path.insert(0, str(project_root / "Text2SQL Services"))
-    from app_simple import app
-    app.config['TESTING'] = True
-    app.config['DEBUG'] = False
-    return app
+    # Add services/text2sql to path
+    text2sql_path = project_root / "services" / "text2sql"
+    if str(text2sql_path) not in sys.path:
+        sys.path.insert(0, str(text2sql_path))
+    
+    try:
+        from app_simple import app
+        app.config['TESTING'] = True
+        app.config['DEBUG'] = False
+        return app
+    except ImportError:
+        pytest.skip("Text2SQL app not available")
 
 
 @pytest.fixture

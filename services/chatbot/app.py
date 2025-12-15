@@ -364,103 +364,150 @@ class ChatbotAgent:
             self.conversation_history = load_conversation_history(conversation_id)
         
     def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
-        """Chat using Google Gemini"""
-        try:
-            # Use gemini-2.0-flash (newest stable model)
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            
-            # Use custom prompt if provided, otherwise use base prompt
-            if custom_prompt and custom_prompt.strip():
-                system_prompt = custom_prompt
-            else:
-                # Get system prompts based on language
-                prompts = get_system_prompts(language)
-                system_prompt = prompts.get(context, prompts['casual'])
-            
-            thinking_process = None
-            
-            # Add deep thinking instruction
-            if deep_thinking:
-                if language == 'en':
-                    system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
+        """Chat using Google Gemini with quota handling - rotate between 2 API keys"""
+        import time
+        
+        # List of Gemini configurations to try (only gemini-2.0-flash, rotate keys)
+        gemini_configs = [
+            (GEMINI_API_KEY, 'gemini-2.0-flash'),      # Key 1
+            (GEMINI_API_KEY_2, 'gemini-2.0-flash'),    # Key 2
+        ]
+        
+        last_error = None
+        
+        for idx, (api_key, model_name) in enumerate(gemini_configs):
+            try:
+                # Configure with current API key
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel(model_name)
+                
+                # Use custom prompt if provided, otherwise use base prompt
+                if custom_prompt and custom_prompt.strip():
+                    system_prompt = custom_prompt
                 else:
-                    system_prompt += "\n\nQUAN TRỌNG: Hãy suy nghĩ kỹ càng. Phân tích từ nhiều góc độ, xem xét các trường hợp đặc biệt, và đưa ra câu trả lời toàn diện, có lý lẽ chặt chẽ. Chất lượng quan trọng hơn tốc độ."
+                    # Get system prompts based on language
+                    prompts = get_system_prompts(language)
+                    system_prompt = prompts.get(context, prompts['casual'])
                 
-                # Generate thinking process based on content
-                has_file = "**Attached Files Context:**" in message or "File 1:" in message
+                thinking_process = None
                 
-                if has_file:
-                    thinking_steps = [
-                        "Reading and parsing attached file(s)...",
-                        "Extracting key information and structure...",
-                        "Identifying main topics and themes...",
-                        "Analyzing content depth and quality...",
-                        "Cross-referencing information...",
-                        "Formulating comprehensive response..."
-                    ] if language == 'en' else [
-                        "Đọc và phân tích file đính kèm...",
-                        "Trích xuất thông tin và cấu trúc chính...",
-                        "Xác định các chủ đề và nội dung chính...",
-                        "Phân tích độ sâu và chất lượng nội dung...",
-                        "Đối chiếu thông tin...",
-                        "Hình thành câu trả lời toàn diện..."
-                    ]
-                else:
-                    thinking_steps = [
-                        "Analyzing user question and context...",
-                        "Breaking down the problem into components...",
-                        "Considering multiple perspectives...",
-                        "Evaluating potential solutions...",
-                        "Synthesizing comprehensive response..."
-                    ] if language == 'en' else [
-                        "Phân tích câu hỏi của người dùng...",
-                        "Chia nhỏ vấn đề thành các phần...",
-                        "Xem xét nhiều góc nhìn khác nhau...",
-                        "Đánh giá các giải pháp khả thi...",
-                        "Tổng hợp câu trả lời toàn diện..."
-                    ]
-                
-                thinking_process = "\n".join(f"{i+1}. {step}" for i, step in enumerate(thinking_steps))
-            
-            # Add memories to system prompt
-            if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
-                for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
-                system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
-            
-            # Build conversation context
-            conversation = f"{system_prompt}\n\n"
-            
-            # Use provided history or conversation history
-            history_to_use = history if history is not None else self.conversation_history[-5:]
-            
-            if history:
-                # Use provided history (from edit feature)
-                for hist in history:
-                    role = hist.get('role', 'user')
-                    content = hist.get('content', '')
-                    if role == 'user':
-                        conversation += f"User: {content}\n"
+                # Add deep thinking instruction
+                if deep_thinking:
+                    if language == 'en':
+                        system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
                     else:
-                        conversation += f"Assistant: {content}\n"
-                conversation += "\n"
-            else:
-                # Use conversation history
-                for hist in history_to_use:
-                    conversation += f"User: {hist['user']}\nAssistant: {hist['assistant']}\n\n"
-            
-            conversation += f"User: {message}\nAssistant:"
-            
-            response = model.generate_content(conversation)
-            
-            if deep_thinking and thinking_process:
-                return {'response': response.text, 'thinking_process': thinking_process}
-            return response.text
-            
-        except Exception as e:
-            return f"Lỗi Gemini: {str(e)}"
+                        system_prompt += "\n\nQUAN TRỌNG: Hãy suy nghĩ kỹ càng. Phân tích từ nhiều góc độ, xem xét các trường hợp đặc biệt, và đưa ra câu trả lời toàn diện, có lý lẽ chặt chẽ. Chất lượng quan trọng hơn tốc độ."
+                    
+                    # Generate thinking process based on content
+                    has_file = "**Attached Files Context:**" in message or "File 1:" in message
+                    
+                    if has_file:
+                        thinking_steps = [
+                            "Reading and parsing attached file(s)...",
+                            "Extracting key information and structure...",
+                            "Identifying main topics and themes...",
+                            "Analyzing content depth and quality...",
+                            "Cross-referencing information...",
+                            "Formulating comprehensive response..."
+                        ] if language == 'en' else [
+                            "Đọc và phân tích file đính kèm...",
+                            "Trích xuất thông tin và cấu trúc chính...",
+                            "Xác định các chủ đề và nội dung chính...",
+                            "Phân tích độ sâu và chất lượng nội dung...",
+                            "Đối chiếu thông tin...",
+                            "Hình thành câu trả lời toàn diện..."
+                        ]
+                    else:
+                        thinking_steps = [
+                            "Analyzing user question and context...",
+                            "Breaking down the problem into components...",
+                            "Considering multiple perspectives...",
+                            "Evaluating potential solutions...",
+                            "Synthesizing comprehensive response..."
+                        ] if language == 'en' else [
+                            "Phân tích câu hỏi của người dùng...",
+                            "Chia nhỏ vấn đề thành các phần...",
+                            "Xem xét nhiều góc nhìn khác nhau...",
+                            "Đánh giá các giải pháp khả thi...",
+                            "Tổng hợp câu trả lời toàn diện..."
+                        ]
+                    
+                    thinking_process = "\n".join(f"{i+1}. {step}" for i, step in enumerate(thinking_steps))
+                
+                # Add memories to system prompt
+                if memories and len(memories) > 0:
+                    system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                    for mem in memories:
+                        system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+                    system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+                
+                # Build conversation context
+                conversation = f"{system_prompt}\n\n"
+                
+                # Use provided history or conversation history
+                history_to_use = history if history is not None else self.conversation_history[-5:]
+                
+                if history:
+                    # Use provided history (from edit feature)
+                    for hist in history:
+                        role = hist.get('role', 'user')
+                        content = hist.get('content', '')
+                        if role == 'user':
+                            conversation += f"User: {content}\n"
+                        else:
+                            conversation += f"Assistant: {content}\n"
+                    conversation += "\n"
+                else:
+                    # Use conversation history
+                    for hist in history_to_use:
+                        conversation += f"User: {hist['user']}\nAssistant: {hist['assistant']}\n\n"
+                
+                conversation += f"User: {message}\nAssistant:"
+                
+                # Try to generate response
+                response = model.generate_content(conversation)
+                
+                # Success! Return response
+                key_num = "1" if api_key == GEMINI_API_KEY else "2"
+                logger.info(f"✅ Gemini success: API Key #{key_num}, Model: {model_name}")
+                
+                # Add model info if not using default
+                model_notice = ""
+                if model_name != 'gemini-2.0-flash' or idx > 0:
+                    model_notice = f"\n\n---\n*✨ Using: Gemini API Key #{key_num}, Model: {model_name}*"
+                
+                if deep_thinking and thinking_process:
+                    return {'response': response.text + model_notice, 'thinking_process': thinking_process}
+                return response.text + model_notice
+                
+            except Exception as e:
+                error_msg = str(e)
+                last_error = error_msg
+                
+                # Check if quota exceeded
+                if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
+                    key_num = "1" if api_key == GEMINI_API_KEY else "2"
+                    logger.warning(f"⚠️ Gemini quota exceeded - API Key #{key_num}, Model: {model_name}")
+                    
+                    # If not the last config, continue to next
+                    if idx < len(gemini_configs) - 1:
+                        logger.info(f"🔄 Trying next Gemini configuration...")
+                        time.sleep(1)  # Small delay before retry
+                        continue
+                    else:
+                        # All Gemini configs exhausted
+                        logger.error(f"❌ All Gemini configurations exhausted")
+                        error_notice = "⚠️ Tất cả API keys và models của Gemini đã vượt quota. Vui lòng thử lại sau hoặc chuyển sang model khác." if language == 'vi' else "⚠️ All Gemini API keys and models quota exceeded. Please try again later or switch to another model."
+                        return error_notice
+                else:
+                    # Other error, continue to next config
+                    logger.error(f"❌ Gemini error (Key #{key_num}, {model_name}): {error_msg}")
+                    if idx < len(gemini_configs) - 1:
+                        continue
+        
+        # If all attempts failed
+        return f"Lỗi Gemini: {last_error}"
     
     def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using OpenAI"""

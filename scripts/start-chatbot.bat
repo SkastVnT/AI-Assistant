@@ -14,31 +14,16 @@ echo   - Chat History with MongoDB
 echo   - File Upload & Analysis
 echo.
 
-cd services\chatbot
-
-REM Check if virtual environment exists
-if exist "venv_chatbot\Scripts\activate.bat" (
-    echo Using virtual environment...
-    call venv_chatbot\Scripts\activate.bat
-) else if exist "venv_chatbot_3113\Scripts\activate.bat" (
-    echo Using virtual environment (Python 3.11.3)...
-    call venv_chatbot_3113\Scripts\activate.bat
-) else (
-    echo WARNING: Virtual environment not found!
-    echo Please run setup first.
-    pause
-    exit /b 1
-)
-
-echo.
-echo Checking dependencies...
-python -c "import numpy; print(f'NumPy: {numpy.__version__}')" 2>nul
+REM Setup virtual environment and dependencies
+call "%~dp0setup-venv.bat"
 if errorlevel 1 (
-    echo ERROR: Dependencies not installed!
-    echo Please run: pip install -r requirements.txt
+    echo.
+    echo [ERROR] Failed to setup environment
     pause
     exit /b 1
 )
+
+cd services\chatbot
 
 echo.
 echo Starting ChatBot...

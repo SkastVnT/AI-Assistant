@@ -30,39 +30,55 @@ echo.
 echo NOTE: Each service will open in a new window.
 echo       You can close individual services by closing their windows.
 echo.
+
+REM Check Python version first
+call "%~dp0check-python.bat"
+echo.
+
+REM Setup virtual environment and dependencies
+echo Checking virtual environment and dependencies...
+call "%~dp0setup-venv.bat"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to setup environment
+    pause
+    exit /b 1
+)
+
+echo.
 pause
 
 echo.
 echo [1/8] Starting Hub Gateway...
-start "AI Hub Gateway - Port 3000" cmd /k "start-hub-gateway.bat"
+start "AI Hub Gateway - Port 3000" cmd /k "%~dp0start-hub-gateway.bat"
 timeout /t 2 >nul
 
 echo [2/8] Starting ChatBot Service...
-start "ChatBot Service - Port 5001" cmd /k "start-chatbot.bat"
+start "ChatBot Service - Port 5001" cmd /k "%~dp0start-chatbot.bat"
 timeout /t 2 >nul
 
 echo [3/8] Starting Text2SQL Service...
-start "Text2SQL Service - Port 5002" cmd /k "start-text2sql.bat"
+start "Text2SQL Service - Port 5002" cmd /k "%~dp0start-text2sql.bat"
 timeout /t 2 >nul
 
 echo [4/8] Starting Document Intelligence...
-start "Document Intelligence - Port 5003" cmd /k "start-document-intelligence.bat"
+start "Document Intelligence - Port 5003" cmd /k "%~dp0start-document-intelligence.bat"
 timeout /t 2 >nul
 
 echo [5/8] Starting Speech2Text Service...
-start "Speech2Text Service - Port 7860" cmd /k "start-speech2text.bat"
+start "Speech2Text Service - Port 7860" cmd /k "%~dp0start-speech2text.bat"
 timeout /t 2 >nul
 
 echo [6/8] Starting Stable Diffusion...
-start "Stable Diffusion - Port 7861" cmd /k "start-stable-diffusion.bat"
+start "Stable Diffusion - Port 7861" cmd /k "%~dp0start-stable-diffusion.bat"
 timeout /t 2 >nul
 
 echo [7/8] Starting LoRA Training...
-start "LoRA Training - Port 7862" cmd /k "start-lora-training.bat"
+start "LoRA Training - Port 7862" cmd /k "%~dp0start-lora-training.bat"
 timeout /t 2 >nul
 
 echo [8/8] Starting Image Upscale...
-start "Image Upscale - Port 7863" cmd /k "start-image-upscale.bat"
+start "Image Upscale - Port 7863" cmd /k "%~dp0start-image-upscale.bat"
 timeout /t 2 >nul
 
 echo.
