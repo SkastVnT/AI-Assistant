@@ -3039,6 +3039,11 @@ def mcp_status():
 
 
 if __name__ == '__main__':
-    # debug=False: Tắt auto-reload và debugger (dùng cho production)
-    # debug=True: Bật auto-reload khi sửa code (dùng khi develop)
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    import os
+    # Use environment variable to control debug mode
+    # Set DEBUG=1 for development, otherwise production mode
+    debug_mode = os.getenv('DEBUG', '0') == '1'
+    host = os.getenv('HOST', '127.0.0.1')  # Default to localhost for security
+    port = int(os.getenv('PORT', '5001'))
+    
+    app.run(debug=debug_mode, host=host, port=port)

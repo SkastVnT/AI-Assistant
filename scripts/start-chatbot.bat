@@ -30,6 +30,12 @@ echo.
 echo Starting ChatBot...
 echo Access at: http://localhost:5001
 echo.
+echo Development mode: Set DEBUG=1 for auto-reload
+echo Production mode: Default (DEBUG=0)
+echo.
+set DEBUG=1
+set HOST=0.0.0.0
+set PORT=5001
 python app.py
 
 pause

@@ -655,12 +655,12 @@ Return ONLY a JSON array of tags, e.g.: ["technology", "python", "tutorial"]
     def _generate_conversation_id(self) -> str:
         """Generate unique conversation ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        random_hash = hashlib.md5(os.urandom(16)).hexdigest()[:8]
+        random_hash = hashlib.md5(os.urandom(16), usedforsecurity=False).hexdigest()[:8]
         return f"conv_{timestamp}_{random_hash}"
     
     def _generate_message_id(self) -> str:
         """Generate unique message ID"""
-        return hashlib.md5(os.urandom(16)).hexdigest()[:16]
+        return hashlib.md5(os.urandom(16), usedforsecurity=False).hexdigest()[:16]
     
     def get_statistics(self) -> Dict:
         """Get conversation statistics"""
