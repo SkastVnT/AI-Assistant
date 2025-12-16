@@ -133,15 +133,19 @@ docker-compose up -d
 <tr>
 <td width="50%">
 
-###  **Speech2Text**
+###  **Speech2Text v3.7+** 🆕
 <img src="https://img.shields.io/badge/Accuracy-98%25-10B981?style=flat-square" />
 <img src="https://img.shields.io/badge/Vietnamese-Optimized-EF4444?style=flat-square" />
+<img src="https://img.shields.io/badge/FREE-Gemini_2.0-6366F1?style=flat-square" />
 
--  Dual-Model Fusion
--  Speaker Diarization
--  Vietnamese Fine-tuned
--  Real-time WebUI
--  Multi-format Support
+-  Dual-Model Fusion (Whisper + PhoWhisper)
+-  👥 Speaker Diarization (pyannote.audio 3.1)
+-  🇻🇳 Vietnamese Fine-tuned Models
+-  ✨ Gemini 2.0 Flash Enhancement (FREE)
+-  🔄 Auto-Fallback Chain (4 LLMs)
+-  ⚡ CPU-Optimized (No GPU Required)
+-  🎨 Modern UI with Real-time Progress
+-  🎵 Multi-format Support (MP3/WAV/M4A/FLAC)
 
 </td>
 <td width="50%">
@@ -506,7 +510,7 @@ graph LR
 |  **ChatBot v2.2** 🆕 | Multi-model AI + Auto-File + Streaming + Code Exec | `5001` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | 40 tests | [ Docs](ChatBot/README.md) |
 |  **Text2SQL v2.2** 🆕 | Natural Language → SQL + AI Learning + Query Optimization | `5002` | <img src="https://img.shields.io/badge/-Production-3B82F6?style=flat-square" /> | 35 tests | [ Docs](Text2SQL%20Services/README.md) |
 |  **Document Intelligence** 📄 | OCR + AI Analysis + Q&A + Translation | `5003` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | 80 tests | [ Docs](Document%20Intelligence%20Service/README.md) |
-|  **Speech2Text** | Vietnamese Transcription + Diarization | `7860` | <img src="https://img.shields.io/badge/-Beta-F59E0B?style=flat-square" /> | 70 tests | [ Docs](Speech2Text%20Services/README.md) |
+|  **Speech2Text v3.7+** 🆕 | Vietnamese Transcription + Multi-LLM + Auto-Fallback | `7860` | <img src="https://img.shields.io/badge/-Production-10B981?style=flat-square" /> | 70 tests | [ Docs](Speech2Text%20Services/README.md) |
 |  **Stable Diffusion** | AI Image Generation (AUTOMATIC1111) | `7861` | <img src="https://img.shields.io/badge/-Ready-10B981?style=flat-square" /> | 40 tests | [ Docs](stable-diffusion-webui/README.md) |
 |  **Upscale Tool** 🖼️ | Image Upscaling (RealESRGAN + GPU) | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | 35 tests | [ Docs](upscale_tool/README.md) |
 |  **LoRA Training Tool** ✨ | Fine-tune Stable Diffusion with LoRA | `N/A` | <img src="https://img.shields.io/badge/-Production_Ready-10B981?style=flat-square" /> | 40 tests | [ Docs](services/lora-training/README.md) |
@@ -770,7 +774,7 @@ graph LR
 </details>
 
 <details open>
-<summary><b>🎙️ Speech2Text Service (v3.6.0+)</b></summary>
+<summary><b>🎙️ Speech2Text Service (v3.7.0+) 🆕</b></summary>
 <br>
 
 ### 🔄 **Speech2Text Dual-Model Pipeline**
@@ -796,12 +800,21 @@ graph TB
     J --> K[⚖️ Weighted Merge]
     K --> L[📝 Fused Transcript]
     
-    L --> M{🧠 Qwen Enhancement?}
-    M -->|Yes| N[🤖 Qwen2.5-1.5B<br/>Smart Fusion]
+    L --> M{� LLM Enhancement?}
+    M -->|Yes| N1[🤖 Try Gemini 2.0 Flash<br/>30s timeout]
     M -->|No| O[📄 Raw Transcript]
-    N --> P[✨ Grammar + Punctuation<br/>Speaker Labels]
-    P --> Q[📋 Enhanced Output]
-    O --> Q
+    
+    N1 -->|Success| P[✨ Enhanced Output]
+    N1 -->|Fail/Timeout| N2[🔄 Try Grok<br/>30s timeout]
+    N2 -->|Success| P
+    N2 -->|Fail/Timeout| N3[🔄 Try DeepSeek<br/>30s timeout]
+    N3 -->|Success| P
+    N3 -->|Fail/Timeout| N4[🔄 Try OpenAI<br/>30s timeout]
+    N4 -->|Success| P
+    N4 -->|All Failed| O
+    
+    O --> Q[📋 Final Output]
+    P --> Q
     
     Q --> R1[📝 Timeline TXT]
     Q --> R2[📊 JSON Metadata]
@@ -815,7 +828,11 @@ graph TB
     style E fill:#8B5CF6,stroke:#7C3AED,color:#fff
     style H1 fill:#3B82F6,stroke:#2563EB,color:#fff
     style H2 fill:#10B981,stroke:#059669,color:#fff
-    style N fill:#F59E0B,stroke:#D97706,color:#fff
+    style N1 fill:#6366F1,stroke:#4F46E5,color:#fff
+    style N2 fill:#EC4899,stroke:#DB2777,color:#fff
+    style N3 fill:#F59E0B,stroke:#D97706,color:#fff
+    style N4 fill:#14B8A6,stroke:#0D9488,color:#fff
+    style P fill:#10B981,stroke:#059669,color:#fff
     style S fill:#EC4899,stroke:#DB2777,color:#fff
 ```
 
@@ -826,28 +843,54 @@ graph LR
     A[🔊 Preprocessing<br/>10-15%] --> B[👥 Diarization<br/>20-40%]
     B --> C[🌍 Whisper<br/>55-75%]
     C --> D[🇻🇳 PhoWhisper<br/>78-88%]
-    D --> E[🧠 Qwen Fusion<br/>92-98%]
+    D --> E[� Multi-LLM Chain<br/>92-98%]
     E --> F[✅ Complete<br/>100%]
     
     style A fill:#94A3B8
     style B fill:#8B5CF6,color:#fff
     style C fill:#3B82F6,color:#fff
     style D fill:#10B981,color:#fff
-    style E fill:#F59E0B,color:#fff
+    style E fill:#6366F1,color:#fff
     style F fill:#EC4899,color:#fff
+```
+
+### 🔄 **Auto-Fallback Chain (30s timeout/model)**
+
+```mermaid
+graph LR
+    A[🤖 Start LLM Enhancement] --> B[💎 Gemini 2.0 Flash<br/>FREE Tier]
+    B -->|Success| Z[✅ Done]
+    B -->|Fail/Timeout| C[🔄 Grok]
+    C -->|Success| Z
+    C -->|Fail/Timeout| D[🔄 DeepSeek]
+    D -->|Success| Z
+    D -->|Fail/Timeout| E[🔄 OpenAI]
+    E -->|Success| Z
+    E -->|All Failed| F[⚠️ Use Raw Transcript]
+    
+    style A fill:#94A3B8
+    style B fill:#6366F1,color:#fff
+    style C fill:#EC4899,color:#fff
+    style D fill:#F59E0B,color:#fff
+    style E fill:#14B8A6,color:#fff
+    style Z fill:#10B981,color:#fff
+    style F fill:#EF4444,color:#fff
 ```
 
 #### 🔬 Công nghệ:
 
-| Feature | Technology | Accuracy |
-|:--------|:-----------|:---------|
-| 🎯 **Transcription** | Whisper + PhoWhisper Fusion | 98%+ |
-| 👥 **Diarization** | pyannote.audio 3.1 | 95-98% |
-| 🇻🇳 **Vietnamese** | Fine-tuned models | 98%+ |
-| ✨ **Enhancement** | Qwen2.5-1.5B-Instruct | High |
-| ⚡ **VAD** | Silero VAD | 30-50% speedup |
+| Feature | Technology | Performance |
+|:--------|:-----------|:------------|
+| 🎯 **Transcription** | Whisper large-v3 + PhoWhisper Fusion | 98%+ accuracy |
+| 👥 **Diarization** | pyannote.audio 3.1 | 95-98% accuracy |
+| 🇻🇳 **Vietnamese** | Fine-tuned PhoWhisper models | 98%+ accuracy |
+| ✨ **Enhancement** | Gemini 2.0 Flash (FREE) | High quality |
+| 🔄 **Auto-Fallback** | Gemini → Grok → DeepSeek → OpenAI | 30s timeout/model |
+| ⚡ **Processing** | CPU-optimized (no GPU required) | Stable |
+| 🎨 **Modern UI** | Real-time progress, Chart.js visualization | Fast |
 
-**🎵 Supported Formats:** MP3, WAV, M4A, FLAC
+**🎵 Supported Formats:** MP3, WAV, M4A, FLAC  
+**🆓 FREE Tier:** Gemini 2.0 Flash API (no cost)
 
 <div align="right">
 

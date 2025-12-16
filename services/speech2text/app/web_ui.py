@@ -322,88 +322,158 @@ def process_audio_with_diarization(audio_path, session_id):
         selected_model = wait_for_model_selection(session_id, timeout=30)
         emit_progress('model_selection', 92, f'Selected model: {selected_model}')
         
-        # ============= STEP 8: LLM ENHANCEMENT WITH MULTI-MODEL SUPPORT =============
+        # ============= STEP 8: LLM ENHANCEMENT WITH AUTO-FALLBACK CHAIN =============
         step_start = time.time()
-        emit_progress('llm_enhancement', 93, f'Loading {selected_model.upper()} model for transcript cleaning...')
         
         clean_text = None
         llm_success = False
+        enhanced_file = None
         
-        try:
-            # Initialize MultiLLMClient with selected model
-            multi_llm = MultiLLMClient(model_type=selected_model)
-            multi_llm.load()
+        # Build dual transcript for LLM (build once, use for all models)
+        dual_text = f"WHISPER TRANSCRIPT:\n{timeline_text}\n\n"
+        dual_text += "PHOWHISPER TRANSCRIPT:\n"
+        for i, (trans, pho) in enumerate(zip(segment_transcripts, pho_transcripts)):
+            seg = trans['segment']
+            dual_text += f"[{seg.start_time:.2f}s - {seg.end_time:.2f}s] {seg.speaker_id}: {pho}\n"
+        
+        # Define fallback chain: selected model -> grok -> deepseek -> openai
+        fallback_chain = [selected_model]
+        
+        # Add fallback models (avoid duplicates)
+        for fallback in ['grok', 'deepseek', 'openai']:
+            if fallback not in fallback_chain:
+                fallback_chain.append(fallback)
+        
+        print(f"[LLM FALLBACK] Chain: {' -> '.join(fallback_chain)}")
+        
+        # Try each model in the chain
+        for model_idx, current_model in enumerate(fallback_chain):
+            if llm_success:
+                break  # Already succeeded, skip remaining models
             
-            # Build dual transcript for LLM
-            dual_text = f"WHISPER TRANSCRIPT:\n{timeline_text}\n\n"
-            dual_text += "PHOWHISPER TRANSCRIPT:\n"
-            for i, (trans, pho) in enumerate(zip(segment_transcripts, pho_transcripts)):
-                seg = trans['segment']
-                dual_text += f"[{seg.start_time:.2f}s - {seg.end_time:.2f}s] {seg.speaker_id}: {pho}\n"
-            
-            emit_progress('llm_enhancement', 95, f'Cleaning transcript with {selected_model.upper()} AI...')
-            
-            # Define progress callback for detailed monitoring
-            def llm_progress_callback(message):
-                """Forward LLM progress to frontend"""
-                socketio.emit('llm_progress', {
-                    'message': message,
-                    'model': selected_model
-                })
-                print(f"[LLM PROGRESS] {message}")
-            
-            # Use clean_transcript method which has auto-retry for Gemini
-            clean_text, gen_time = multi_llm.clean_transcript(
-                whisper_text=timeline_text,
-                phowhisper_text=dual_text,
-                max_new_tokens=4096,
-                progress_callback=llm_progress_callback  # Pass callback for detailed monitoring
-            )
-            
-            if clean_text:
-                llm_success = True
-                enhanced_file = f"{SESSION_DIR}/enhanced_transcript.txt"
-                with open(enhanced_file, 'w', encoding='utf-8') as f:
-                    f.write(clean_text)
+            try:
+                emit_progress('llm_enhancement', 93, f'Loading {current_model.upper()} model for transcript cleaning...')
                 
-                timings[selected_model] = time.time() - step_start
-                success_msg = f'{selected_model.upper()} enhancement complete ({gen_time:.2f}s)'
-                emit_progress('llm_enhancement', 98, success_msg)
+                # Initialize MultiLLMClient with current model
+                multi_llm = MultiLLMClient(model_type=current_model)
+                multi_llm.load()
+                
+                emit_progress('llm_enhancement', 95, f'Cleaning transcript with {current_model.upper()} AI...')
+                
+                # Define progress callback for detailed monitoring
+                def llm_progress_callback(message):
+                    """Forward LLM progress to frontend"""
+                    socketio.emit('llm_progress', {
+                        'message': message,
+                        'model': current_model
+                    })
+                    print(f"[LLM PROGRESS] {message}")
+                
+                # Use clean_transcript with 30s timeout
+                import signal
+                from contextlib import contextmanager
+                
+                class TimeoutException(Exception):
+                    pass
+                
+                @contextmanager
+                def time_limit(seconds):
+                    """Context manager for timeout (Windows compatible using threading)"""
+                    import threading
+                    
+                    timer = None
+                    timed_out = [False]  # Use list to allow modification in nested function
+                    
+                    def timeout_handler():
+                        timed_out[0] = True
+                    
+                    try:
+                        timer = threading.Timer(seconds, timeout_handler)
+                        timer.start()
+                        yield timed_out
+                    finally:
+                        if timer:
+                            timer.cancel()
+                
+                # Try with 30s timeout
+                clean_text = None
+                gen_time = 0
+                
+                with time_limit(30) as timed_out:
+                    model_start = time.time()
+                    clean_text, gen_time = multi_llm.clean_transcript(
+                        whisper_text=timeline_text,
+                        phowhisper_text=dual_text,
+                        max_new_tokens=4096,
+                        progress_callback=llm_progress_callback
+                    )
+                    
+                    # Check if we timed out during processing
+                    if timed_out[0]:
+                        raise TimeoutException(f"{current_model.upper()} timeout after 30s")
+                
+                if clean_text:
+                    llm_success = True
+                    enhanced_file = f"{SESSION_DIR}/enhanced_transcript.txt"
+                    with open(enhanced_file, 'w', encoding='utf-8') as f:
+                        f.write(clean_text)
+                    
+                    timings[current_model] = time.time() - step_start
+                    success_msg = f'{current_model.upper()} enhancement complete ({gen_time:.2f}s)'
+                    emit_progress('llm_enhancement', 98, success_msg)
+                    socketio.emit('llm_progress', {
+                        'message': f'✅ {success_msg}',
+                        'model': current_model
+                    })
+                    selected_model = current_model  # Update selected model for results
+                    break  # Success! Exit fallback chain
+                else:
+                    raise Exception("LLM returned empty result")
+                
+            except Exception as e:
+                timings[current_model] = time.time() - step_start
+                error_msg = f'LLM enhancement failed: {str(e)[:100]}'
+                error_type = type(e).__name__
+                
+                # Provide helpful error messages
+                if "timeout" in str(e).lower() or isinstance(e, TimeoutException):
+                    error_msg = f'❌ {current_model.upper()} timeout after 30s'
+                elif "quota" in str(e).lower() or "429" in str(e):
+                    error_msg = f'❌ {current_model.upper()} quota exhausted'
+                elif "api key" in str(e).lower() or "404" in str(e) or "not found" in str(e).lower():
+                    error_msg = f'❌ {current_model.upper()} API key invalid or model not available'
+                elif "not installed" in str(e).lower():
+                    error_msg = f'❌ {current_model.upper()} dependencies not installed'
+                elif "network" in str(e).lower() or "connection" in str(e).lower():
+                    error_msg = f'❌ {current_model.upper()} network error'
+                else:
+                    error_msg = f'❌ {current_model.upper()} error ({error_type}): {str(e)[:80]}'
+                
+                emit_progress('llm_enhancement', 94, error_msg)
+                print(f"[ERROR] {current_model.upper()} failed ({error_type}): {str(e)}")
+                
                 socketio.emit('llm_progress', {
-                    'message': f'✅ {success_msg}',
-                    'model': selected_model
+                    'message': error_msg,
+                    'model': current_model,
+                    'error': True,
+                    'error_type': error_type
                 })
-            else:
-                raise Exception("LLM returned empty result")
-            
-        except Exception as e:
-            timings[selected_model] = time.time() - step_start
-            error_msg = f'LLM enhancement failed: {str(e)[:100]}'
-            error_type = type(e).__name__
-            
-            # Provide helpful error messages
-            if "quota" in str(e).lower() or "429" in str(e):
-                error_msg = f'❌ All {selected_model.upper()} API keys quota exhausted. Try another model.'
-            elif "api key" in str(e).lower():
-                error_msg = f'❌ {selected_model.upper()} API key invalid or missing. Check .env file.'
-            elif "not installed" in str(e).lower():
-                error_msg = f'❌ {selected_model.upper()} dependencies not installed. Check requirements.txt'
-            elif "network" in str(e).lower() or "connection" in str(e).lower():
-                error_msg = f'❌ Network error accessing {selected_model.upper()} API. Check internet connection.'
-            else:
-                error_msg = f'❌ {selected_model.upper()} error ({error_type}): {str(e)[:80]}'
-            
-            emit_progress('llm_enhancement', 98, error_msg)
-            print(f"[ERROR] LLM enhancement failed ({error_type}): {str(e)}")
-            print(f"[ERROR] Stack trace available in logs")
-            
-            socketio.emit('llm_progress', {
-                'message': error_msg,
-                'model': selected_model,
-                'error': True,
-                'error_type': error_type
-            })
-            # Don't set enhanced, will handle in results with fallback
+                
+                # If not last model in chain, try next one
+                if model_idx < len(fallback_chain) - 1:
+                    next_model = fallback_chain[model_idx + 1]
+                    fallback_msg = f'🔄 Trying fallback: {next_model.upper()}'
+                    emit_progress('llm_enhancement', 94, fallback_msg)
+                    socketio.emit('llm_progress', {
+                        'message': fallback_msg,
+                        'model': next_model
+                    })
+                    print(f"[FALLBACK] Switching to {next_model.upper()}")
+                    continue  # Try next model
+                else:
+                    # Last model failed, give up
+                    print(f"[ERROR] All models in chain failed")
+                    break
         
         # ============= FINALIZE =============
         emit_progress('complete', 100, 'Processing complete!')
