@@ -45,7 +45,10 @@ class PhoWhisperClient:
             self.model_name = model_name
             print(f"[PhoWhisper] Will download from HuggingFace: {model_name}")
         
-        self.device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
+        # Force CPU mode to avoid cuDNN dependency
+        self.device = "cpu"
+        if device is not None:
+            print(f"[PhoWhisper] Ignoring device={device}, using CPU to avoid cuDNN issues")
         self.chunk_duration = chunk_duration
         self.pipe = None
         self._is_loaded = False
@@ -62,25 +65,14 @@ class PhoWhisperClient:
         print(f"[PhoWhisper] Loading {self.model_name} on {self.device}...")
         start_time = time.time()
         
-        try:
-            # Try GPU with float16
-            self.pipe = pipeline(
-                "automatic-speech-recognition",
-                model=self.model_name,
-                device=self.device if self.device != "cpu" else -1,
-                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            )
-            print("[PhoWhisper] GPU acceleration enabled")
-        except Exception as e:
-            print(f"[PhoWhisper] GPU error: {e}")
-            print("[PhoWhisper] Falling back to CPU...")
-            self.pipe = pipeline(
-                "automatic-speech-recognition",
-                model=self.model_name,
-                device=-1,
-            )
-            self.device = "cpu"
-            print("[PhoWhisper] CPU fallback")
+        # Always use CPU mode (device=-1 for transformers pipeline)
+        self.pipe = pipeline(
+            "automatic-speech-recognition",
+            model=self.model_name,
+            device=-1,  # CPU mode
+            torch_dtype=torch.float32,
+        )
+        print("[PhoWhisper] CPU mode loaded successfully")
             
         load_time = time.time() - start_time
         self._is_loaded = True

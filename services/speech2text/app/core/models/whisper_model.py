@@ -49,23 +49,13 @@ class WhisperClient:
         """
         self.model_name = model_name
         
-        # Smart device selection with cuDNN check
-        if device is None:
-            if torch.cuda.is_available() and check_cudnn_available():
-                self.device = "cuda"
-                print("[Whisper] CUDA with cuDNN detected")
-            elif torch.cuda.is_available():
-                print("[Whisper] CUDA available but cuDNN missing - using CPU")
-                self.device = "cpu"
-            else:
-                self.device = "cpu"
-        else:
-            self.device = device
+        # Force CPU mode to avoid cuDNN dependency
+        # cuDNN is not included in PyTorch CUDA wheels and causes crashes
+        self.device = "cpu"
+        self.compute_type = "int8"  # CPU optimized
         
-        if compute_type is None:
-            self.compute_type = "float16" if self.device == "cuda" else "int8"
-        else:
-            self.compute_type = compute_type
+        if device is not None:
+            print(f"[Whisper] Ignoring device={device}, using CPU to avoid cuDNN issues")
             
         self.model = None
         self._is_loaded = False
