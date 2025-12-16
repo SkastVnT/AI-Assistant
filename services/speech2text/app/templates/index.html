@@ -703,12 +703,23 @@
                 return; // Stop execution if Socket.IO not loaded
             }
             
-            const socket = io();
-            console.log('[DEBUG] Socket.IO initialized');
+            // Initialize Socket.IO with explicit configuration
+            const socket = io({
+                transports: ['polling', 'websocket'],
+                upgrade: true,
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5,
+                timeout: 10000
+            });
+            console.log('[DEBUG] Socket.IO initialized with config');
+            console.log('[DEBUG] Connecting to:', window.location.origin);
             
             // Debug: Socket connection events
             socket.on('connect', () => {
                 console.log('[WebSocket] ✅ Connected to server');
+                console.log('[WebSocket] Socket ID:', socket.id);
+                console.log('[WebSocket] Transport:', socket.io.engine.transport.name);
             });
             
             socket.on('disconnect', () => {
@@ -717,6 +728,8 @@
             
             socket.on('connect_error', (error) => {
                 console.error('[WebSocket] Connection error:', error);
+                console.error('[WebSocket] Error type:', error.type);
+                console.error('[WebSocket] Error message:', error.message);
                 alert('❌ WebSocket connection failed!\n\nServer may be offline. Please check console for details.');
             });
             
