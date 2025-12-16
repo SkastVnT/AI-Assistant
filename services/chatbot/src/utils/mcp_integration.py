@@ -8,12 +8,10 @@ Tích hợp Model Context Protocol vào ChatBot để:
 - Enhanced AI responses with file context
 """
 
-import os
-import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -59,15 +57,20 @@ class MCPClient:
         Returns:
             True if success
         """
-        path = Path(folder_path)
+        try:
+            path = Path(folder_path).resolve()
+        except (ValueError, OSError) as e:
+            logger.error(f"Invalid folder path: {sanitize_for_log(str(e))}")
+            return False
+            
         if not path.exists() or not path.is_dir():
-            logger.error(f"Invalid folder: {folder_path}")
+            logger.error("Invalid folder: path does not exist or is not a directory")
             return False
         
-        folder_abs = str(path.absolute())
+        folder_abs = str(path)
         if folder_abs not in self.selected_folders:
             self.selected_folders.append(folder_abs)
-            logger.info(f"📁 Added folder: {folder_abs}")
+            logger.info(f"📁 Added folder: {sanitize_for_log(folder_abs)}")
         
         return True
     
@@ -75,7 +78,7 @@ class MCPClient:
         """Remove folder khỏi danh sách"""
         if folder_path in self.selected_folders:
             self.selected_folders.remove(folder_path)
-            logger.info(f"🗑️ Removed folder: {folder_path}")
+            logger.info(f"🗑️ Removed folder: {sanitize_for_log(folder_path)}")
     
     def list_files_in_folder(self, folder_path: str = None) -> List[Dict[str, Any]]:
         """
@@ -163,18 +166,18 @@ class MCPClient:
         if not self.enabled:
             return None
         
-        path = Path(file_path)
+        # Validate path safety first
+        if not validate_path_safety(file_path, self.selected_folders):
+            logger.warning("Attempted access to file outside allowed folders")
+            return {"error": "File not in allowed folders"}
+        
+        try:
+            path = Path(file_path).resolve()
+        except (ValueError, OSError):
+            return {"error": "Invalid file path"}
+            
         if not path.exists() or not path.is_file():
             return {"error": "File not found"}
-        
-        # Check if file is in allowed folders
-        is_allowed = any(
-            str(path.absolute()).startswith(folder)
-            for folder in self.selected_folders
-        )
-        
-        if not is_allowed:
-            return {"error": "File not in allowed folders"}
         
         try:
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -192,7 +195,8 @@ class MCPClient:
                 'truncated': total_lines > max_lines
             }
         except Exception as e:
-            return {"error": str(e)}
+            logger.error(f"❌ Error reading file: {sanitize_for_log(str(type(e).__name__))}")
+            return {"error": "Failed to read file"}
     
     def get_code_context(self, user_message: str, selected_files: list = None) -> Optional[str]:
         """
@@ -214,11 +218,15 @@ class MCPClient:
         if selected_files and len(selected_files) > 0:
             logger.info(f"📌 Using {len(selected_files)} selected files for context")
             for file_path in selected_files[:5]:  # Max 5 files
-                logger.info(f"📖 Reading file: {file_path}")
+                # Validate path before logging
+                if not validate_path_safety(file_path, self.selected_folders):
+                    logger.warning("Skipping file outside allowed folders")
+                    continue
+                    
                 file_content = self.read_file(file_path, max_lines=200)  # Increase to 200 lines
                 if file_content and 'content' in file_content:
-                    file_name = file_content['name']
-                    logger.info(f"✅ Successfully read {file_name} ({file_content['returned_lines']} lines)")
+                    file_name = sanitize_for_log(file_content['name'])
+                    logger.info(f"✅ Successfully read file ({file_content['returned_lines']} lines)")
                     context_parts.append(f"\n### 📄 File: {file_name}\n")
                     context_parts.append("```")
                     # Detect language from extension
@@ -228,9 +236,9 @@ class MCPClient:
                     context_parts.append(file_content['content'])
                     context_parts.append("\n```\n")
                 elif file_content and 'error' in file_content:
-                    logger.error(f"❌ Error reading {file_path}: {file_content['error']}")
+                    logger.error("❌ Error reading file from selection")
                 else:
-                    logger.warning(f"⚠️ No content for {file_path}")
+                    logger.warning("⚠️ No content available for file")
         else:
             # Fallback: tìm files tự động theo keywords
             keywords = [word for word in user_message.lower().split() if len(word) > 3]

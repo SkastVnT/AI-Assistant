@@ -2872,7 +2872,7 @@ def mcp_enable():
         logger.error(f"MCP enable error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to enable MCP integration'
         }), 500
 
 
@@ -2889,7 +2889,7 @@ def mcp_disable():
         logger.error(f"MCP disable error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to disable MCP integration'
         }), 500
 
 
@@ -2916,7 +2916,7 @@ def mcp_add_folder():
         logger.error(f"MCP add folder error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to add folder'
         }), 500
 
 
@@ -2943,7 +2943,7 @@ def mcp_remove_folder():
         logger.error(f"MCP remove folder error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to remove folder'
         }), 500
 
 
@@ -2963,7 +2963,7 @@ def mcp_list_files():
         logger.error(f"MCP list files error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to list files'
         }), 500
 
 
@@ -2985,7 +2985,7 @@ def mcp_search_files():
         logger.error(f"MCP search files error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to search files'
         }), 500
 
 
@@ -3018,7 +3018,7 @@ def mcp_read_file():
         logger.error(f"MCP read file error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to read file'
         }), 500
 
 
@@ -3034,7 +3034,7 @@ def mcp_status():
         logger.error(f"MCP status error: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to get MCP status'
         }), 500
 
 
