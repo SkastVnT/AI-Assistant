@@ -16,6 +16,39 @@ from typing import Dict, List, Any, Optional
 logger = logging.getLogger(__name__)
 
 
+def sanitize_for_log(text: str) -> str:
+    """Sanitize text for logging to prevent log injection"""
+    if not text:
+        return ""
+    # Remove control characters, newlines, and limit length
+    sanitized = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', '', str(text))
+    return sanitized[:200]  # Limit to 200 chars
+
+
+def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optional[Path]:
+    """
+    Safely validate and resolve a path
+    Returns None if path is invalid or potentially malicious
+    """
+    try:
+        # Resolve to absolute path, following symlinks
+        resolved = Path(path_str).resolve()
+        
+        # Check if path exists if required
+        if must_exist and not resolved.exists():
+            return None
+            
+        # Prevent path traversal attacks - ensure no suspicious patterns
+        path_parts = resolved.parts
+        if '..' in path_parts or any(part.startswith('.') and len(part) > 1 for part in path_parts[:-1]):
+            logger.warning("Suspicious path detected")
+            return None
+            
+        return resolved
+    except (ValueError, OSError, RuntimeError):
+        return None
+
+
 class MCPClient:
     """
     MCP Client for ChatBot to communicate with MCP Server
@@ -57,20 +90,21 @@ class MCPClient:
         Returns:
             True if success
         """
-        try:
-            path = Path(folder_path).resolve()
-        except (ValueError, OSError) as e:
-            logger.error(f"Invalid folder path: {sanitize_for_log(str(e))}")
+        # Validate and resolve path safely
+        path = validate_and_resolve_path(folder_path, must_exist=True)
+        if path is None:
+            logger.error("Invalid or suspicious folder path provided")
             return False
             
-        if not path.exists() or not path.is_dir():
-            logger.error("Invalid folder: path does not exist or is not a directory")
+        if not path.is_dir():
+            logger.error("Path is not a directory")
             return False
         
         folder_abs = str(path)
         if folder_abs not in self.selected_folders:
             self.selected_folders.append(folder_abs)
-            logger.info(f"📁 Added folder: {sanitize_for_log(folder_abs)}")
+            # Only log the folder name, not full path
+            logger.info(f"📁 Added folder: {sanitize_for_log(path.name)}")
         
         return True
     
@@ -97,12 +131,14 @@ class MCPClient:
         all_files = []
         
         for folder in folders_to_scan:
-            path = Path(folder)
-            if not path.exists():
+            # Validate path before using
+            validated_path = validate_and_resolve_path(folder, must_exist=True)
+            if validated_path is None:
+                logger.warning("Skipping invalid folder in scan")
                 continue
             
             try:
-                for file_path in path.rglob("*"):
+                for file_path in validated_path.rglob("*"):
                     if file_path.is_file():
                         # Skip certain files
                         if any(skip in str(file_path) for skip in [
@@ -113,14 +149,14 @@ class MCPClient:
                         
                         all_files.append({
                             'path': str(file_path),
-                            'relative_path': str(file_path.relative_to(path)),
+                            'relative_path': str(file_path.relative_to(validated_path)),
                             'name': file_path.name,
                             'extension': file_path.suffix,
                             'size': file_path.stat().st_size,
                             'modified': file_path.stat().st_mtime
                         })
-            except Exception as e:
-                logger.error(f"Error scanning {folder}: {e}")
+            except Exception:
+                logger.error("Error scanning folder")
         
         return all_files
     
@@ -166,18 +202,25 @@ class MCPClient:
         if not self.enabled:
             return None
         
-        # Validate path safety first
-        if not validate_path_safety(file_path, self.selected_folders):
-            logger.warning("Attempted access to file outside allowed folders")
-            return {"error": "File not in allowed folders"}
-        
-        try:
-            path = Path(file_path).resolve()
-        except (ValueError, OSError):
+        # Validate and resolve path safely
+        path = validate_and_resolve_path(file_path, must_exist=True)
+        if path is None:
+            logger.warning("Invalid or suspicious file path")
             return {"error": "Invalid file path"}
+        
+        # Check if file is within allowed folders
+        path_str = str(path)
+        is_allowed = any(
+            path_str.startswith(str(validate_and_resolve_path(folder, must_exist=False) or ""))
+            for folder in self.selected_folders
+        )
+        
+        if not is_allowed:
+            logger.warning("File not in allowed folders")
+            return {"error": "File not in allowed folders"}
             
-        if not path.exists() or not path.is_file():
-            return {"error": "File not found"}
+        if not path.is_file():
+            return {"error": "Not a file"}
         
         try:
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -218,8 +261,9 @@ class MCPClient:
         if selected_files and len(selected_files) > 0:
             logger.info(f"📌 Using {len(selected_files)} selected files for context")
             for file_path in selected_files[:5]:  # Max 5 files
-                # Validate path before logging
-                if not validate_path_safety(file_path, self.selected_folders):
+                # Validate path before processing
+                validated_path = validate_and_resolve_path(file_path, must_exist=True)
+                if validated_path is None:
                     logger.warning("Skipping file outside allowed folders")
                     continue
                     
@@ -317,8 +361,9 @@ def inject_code_context(user_message: str, mcp_client: MCPClient = None, selecte
     if context:
         # Prepend context to message
         enhanced_message = f"{context}\n\n---\n\n**USER QUESTION:**\n{user_message}"
-        logger.info(f"📝 Injected code context ({len(context)} chars, {len(selected_files or [])} files)")
-        logger.debug(f"Context preview: {context[:200]}...")
+        file_count = len(selected_files) if selected_files else 0
+        logger.info(f"📝 Injected code context ({len(context)} chars, {file_count} files)")
+        # Don't log context preview to avoid log injection
         return enhanced_message
     else:
         logger.warning("⚠️ No context generated despite MCP being enabled")
