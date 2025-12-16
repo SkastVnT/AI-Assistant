@@ -296,7 +296,14 @@ class MultiLLMClient:
                     phowhisper=phowhisper_text
                 )
             
-            return self._generate_with_gemini_retry(prompt, **generation_kwargs)
+            # Extract parameters with defaults
+            max_new_tokens = generation_kwargs.pop('max_new_tokens', 4096)
+            temperature = generation_kwargs.pop('temperature', 0.3)
+            top_p = generation_kwargs.pop('top_p', 0.9)
+            
+            return self._generate_with_gemini_retry(
+                prompt, max_new_tokens, temperature, top_p, **generation_kwargs
+            )
         
         # For other models
         return self.client.clean_transcript(

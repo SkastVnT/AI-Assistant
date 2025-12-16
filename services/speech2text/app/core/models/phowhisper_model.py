@@ -10,6 +10,11 @@ import numpy as np
 from typing import Tuple, Optional, List
 from pathlib import Path
 
+# PyTorch 2.0 compatibility - add LRScheduler alias if missing
+if not hasattr(torch.optim.lr_scheduler, 'LRScheduler'):
+    torch.optim.lr_scheduler.LRScheduler = torch.optim.lr_scheduler._LRScheduler
+    print("[PhoWhisper] Added PyTorch 2.0 compatibility shim for LRScheduler")
+
 
 class PhoWhisperClient:
     """

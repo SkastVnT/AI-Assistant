@@ -435,10 +435,24 @@ async function clearServerSessions() {
     }
 }
 
-// Model selection dialog (placeholder)
+// Model selection dialog
 function showModelSelection(data) {
-    console.log('[MODEL] Show selection dialog:', data);
-    // TODO: Implement model selection UI
+    console.log('[MODEL] Model selection requested:', data);
+    addLog('🤖 Please select AI model for enhancement', 'info');
+    
+    // Get selected model from dropdown
+    const modelSelect = document.getElementById('modelSelect');
+    const selectedModel = modelSelect ? modelSelect.value : 'gemini';
+    
+    console.log('[MODEL] Auto-selecting:', selectedModel);
+    
+    // Send selection to server
+    socket.emit('model_selected', {
+        session_id: data.session_id,
+        model: selectedModel
+    });
+    
+    addLog(`✅ Selected model: ${selectedModel.toUpperCase()}`, 'success');
 }
 
 // LLM progress update (placeholder)

@@ -209,6 +209,9 @@ def process_audio_with_diarization(audio_path, session_id):
             emit_progress('diarization', 40, f'Detected {num_speakers} speakers, {len(segments)} segments')
             
         except Exception as e:
+            print(f"[ERROR] Diarization failed: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             emit_progress('diarization', 40, f'Diarization failed, using full audio: {str(e)}')
             from core.llm.diarization_client import SpeakerSegment
             segments = [SpeakerSegment(
