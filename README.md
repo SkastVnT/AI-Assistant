@@ -107,6 +107,8 @@ docker-compose up -d
 
 -  Gemini 2.0 Flash + GROK-3 + GPT-4o-mini
 -  🛠️ Custom Prompt System with Visual Indicators
+-  🔌 MCP Integration with File Browser & Context Injection
+-  📂 Collapsible Sidebar for File Management
 -  Stable Diffusion Integration
 -  AI Memory System
 -  Google & GitHub Search
@@ -614,6 +616,7 @@ graph LR
 | Feature | Description | Status |
 |:--------|:------------|:-------|
 |  **Multi-Model** | Gemini 2.0, GPT-4, DeepSeek, Qwen, BloomVN |  |
+|  **MCP Integration** | File browser, context injection, standalone mode |  NEW v2.2 |
 |  **Auto-File Analysis** | Upload & instant AI insights (50MB max) |  NEW v2.0 |
 |  **Stop Generation** | Interrupt AI mid-response & keep output |  NEW v2.0 |
 |  **Streaming Response** | Real-time token-by-token output |  NEW v2.2 |
@@ -624,7 +627,7 @@ graph LR
 |  **Message Versioning** | Track multiple response versions |  NEW v2.0 |
 |  **Tools** | Google Search, GitHub Search, Calculator, WebScraper |  v2.2 |
 |  **Export** | PDF với metadata, Markdown, JSON |  v2.2 |
-|  **UI** | Full-screen ChatGPT-like, Dark Mode |  v2.0 |
+|  **UI** | Full-screen ChatGPT-like, Dark Mode, Collapsible Sidebar |  v2.2 |
 
 <div align="right">
 
@@ -734,12 +737,13 @@ graph LR
 <td width="50%">
 
 ** ChatBot v2.2 Features:**
+-  🔌 MCP Integration (File Browser + Context Injection)
 -  Auto-File Analysis (up to 50MB)
 -  Streaming Response (Real-time)
 -  Context Memory Auto-Management
 -  Code Execution Sandbox
 -  Message History Versioning
--  Full-screen ChatGPT-like UI
+-  Full-screen ChatGPT-like UI with Collapsible Sidebar
 
 </td>
 <td width="50%">
