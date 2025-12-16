@@ -32,11 +32,19 @@ class PhoWhisperClient:
         Initialize PhoWhisper client
         
         Args:
-            model_name: HuggingFace model name
+            model_name: HuggingFace model name or local path
             device: Device to use (cuda:0, cpu, or None for auto)
             chunk_duration: Audio chunk duration in seconds
         """
-        self.model_name = model_name
+        # Check if local model exists, use it instead of downloading
+        local_model_path = Path(__file__).parent.parent.parent / "models" / "PhoWhisper-large"
+        if local_model_path.exists():
+            self.model_name = str(local_model_path)
+            print(f"[PhoWhisper] Using local model: {self.model_name}")
+        else:
+            self.model_name = model_name
+            print(f"[PhoWhisper] Will download from HuggingFace: {model_name}")
+        
         self.device = device or ("cuda:0" if torch.cuda.is_available() else "cpu")
         self.chunk_duration = chunk_duration
         self.pipe = None

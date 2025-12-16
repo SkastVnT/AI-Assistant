@@ -183,6 +183,7 @@ services/speech2text/data/cache/
 services/speech2text/speech/
 services/speech2text/s2t/
 services/speech2text/app/s2t/
+services/speech2text/models/PhoWhisper-large/
 
 # Old structure (root level)
 Speech2Text Services/data/audio/**/*.wav
