@@ -30,18 +30,26 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
     Safely validate and resolve a path
     Returns None if path is invalid or potentially malicious
     """
+    if not path_str or not isinstance(path_str, str):
+        return None
+    
+    # Check for path traversal patterns BEFORE creating Path object
+    if '..' in path_str or path_str.startswith('.'):
+        logger.warning("Path traversal attempt detected")
+        return None
+    
+    # Check for suspicious characters
+    if any(char in path_str for char in ['\0', '\n', '\r']):
+        logger.warning("Suspicious characters in path")
+        return None
+    
     try:
-        # Resolve to absolute path, following symlinks
-        resolved = Path(path_str).resolve()
+        # Now safe to create Path object with pre-validated string
+        resolved = Path(path_str).resolve(strict=must_exist)
         
-        # Check if path exists if required
-        if must_exist and not resolved.exists():
-            return None
-            
-        # Prevent path traversal attacks - ensure no suspicious patterns
-        path_parts = resolved.parts
-        if '..' in path_parts or any(part.startswith('.') and len(part) > 1 for part in path_parts[:-1]):
-            logger.warning("Suspicious path detected")
+        # Double-check after resolution
+        if '..' in resolved.parts:
+            logger.warning("Path traversal in resolved path")
             return None
             
         return resolved
@@ -103,8 +111,8 @@ class MCPClient:
         folder_abs = str(path)
         if folder_abs not in self.selected_folders:
             self.selected_folders.append(folder_abs)
-            # Only log the folder name, not full path
-            logger.info(f"📁 Added folder: {sanitize_for_log(path.name)}")
+            # Don't log user-provided paths
+            logger.info("📁 Folder added successfully")
         
         return True
     
@@ -112,7 +120,7 @@ class MCPClient:
         """Remove folder khỏi danh sách"""
         if folder_path in self.selected_folders:
             self.selected_folders.remove(folder_path)
-            logger.info(f"🗑️ Removed folder: {sanitize_for_log(folder_path)}")
+            logger.info("🗑️ Folder removed successfully")
     
     def list_files_in_folder(self, folder_path: str = None) -> List[Dict[str, Any]]:
         """
@@ -264,18 +272,19 @@ class MCPClient:
                 # Validate path before processing
                 validated_path = validate_and_resolve_path(file_path, must_exist=True)
                 if validated_path is None:
-                    logger.warning("Skipping file outside allowed folders")
+                    logger.warning("Skipping invalid or restricted file")
                     continue
-                    
-                file_content = self.read_file(file_path, max_lines=200)  # Increase to 200 lines
+                
+                # Use validated path string
+                file_content = self.read_file(str(validated_path), max_lines=200)
                 if file_content and 'content' in file_content:
-                    file_name = sanitize_for_log(file_content['name'])
-                    logger.info(f"✅ Successfully read file ({file_content['returned_lines']} lines)")
-                    context_parts.append(f"\n### 📄 File: {file_name}\n")
+                    logger.info("✅ File read successfully")
+                    # Don't log file name to avoid injection
+                    context_parts.append("\n### 📄 File\n")
                     context_parts.append("```")
-                    # Detect language from extension
-                    ext = file_name.split('.')[-1] if '.' in file_name else ''
-                    context_parts.append(ext)
+                    # Safely get extension from validated path (not user input)
+                    safe_ext = validated_path.suffix.lstrip('.') if validated_path.suffix else 'txt'
+                    context_parts.append(safe_ext)
                     context_parts.append("\n")
                     context_parts.append(file_content['content'])
                     context_parts.append("\n```\n")
