@@ -13,9 +13,13 @@ echo.
 REM Change to script directory
 cd /d "%~dp0"
 
-REM Activate virtual environment
-if exist "app\s2t\Scripts\activate.bat" (
+REM Activate virtual environment (check root venv first, then local)
+if exist "..\..\\.venv\Scripts\activate.bat" (
+    call ..\..\\.venv\Scripts\activate.bat
+    echo [OK] Using root virtual environment
+) else if exist "app\s2t\Scripts\activate.bat" (
     call app\s2t\Scripts\activate.bat
+    echo [OK] Using local virtual environment
 ) else (
     echo [WARNING] Virtual environment not found, using system Python
 )
