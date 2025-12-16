@@ -27,7 +27,7 @@ warnings.filterwarnings('ignore', message='.*libtorchcodec.*')
 # Add app directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.llm import SpeakerDiarizationClient, WhisperClient, PhoWhisperClient, GeminiClient
+from core.llm import SpeakerDiarizationClient, WhisperClient, PhoWhisperClient, GeminiClient, MultiLLMClient
 from core.utils import preprocess_audio
 
 # Load environment with absolute path
@@ -65,6 +65,13 @@ processing_state = {
     'error': None
 }
 
+# Global state for model selection
+model_selection_state = {
+    'waiting': False,
+    'selected_model': None,
+    'session_id': None
+}
+
 # Allowed extensions
 ALLOWED_EXTENSIONS = {'mp3', 'wav', 'm4a', 'flac', 'ogg'}
 
@@ -86,6 +93,49 @@ def emit_progress(step, progress, message):
     
     # Also print to console for debugging
     print(f"[PROGRESS] {step}: {progress}% - {message}")
+
+def wait_for_model_selection(session_id, timeout=30):
+    """
+    Wait for user to select a model, with timeout
+    
+    Args:
+        session_id: Current session ID
+        timeout: Maximum wait time in seconds (default: 30)
+    
+    Returns:
+        str: Selected model ('gemini', 'openai', 'deepseek') or 'gemini' if timeout
+    """
+    import time
+    global model_selection_state
+    
+    # Initialize selection state
+    model_selection_state['waiting'] = True
+    model_selection_state['selected_model'] = None
+    model_selection_state['session_id'] = session_id
+    
+    # Emit request to frontend
+    socketio.emit('model_selection_request', {
+        'session_id': session_id,
+        'timeout': timeout,
+        'available_models': ['gemini', 'openai', 'deepseek']
+    })
+    
+    # Wait for selection with timeout
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if model_selection_state['selected_model'] is not None:
+            selected = model_selection_state['selected_model']
+            # Reset state
+            model_selection_state['waiting'] = False
+            model_selection_state['selected_model'] = None
+            return selected
+        time.sleep(0.1)  # Check every 100ms
+    
+    # Timeout - reset state and return default
+    model_selection_state['waiting'] = False
+    model_selection_state['selected_model'] = None
+    print(f"[TIMEOUT] No model selected in {timeout}s, defaulting to Gemini")
+    return 'gemini'
 
 def process_audio_with_diarization(audio_path, session_id):
     """
@@ -259,43 +309,95 @@ def process_audio_with_diarization(audio_path, session_id):
         with open(timeline_file, 'w', encoding='utf-8') as f:
             f.write(timeline_text)
         
-        # ============= STEP 7: GEMINI ENHANCEMENT =============
+        # ============= STEP 7: MODEL SELECTION & WAIT =============
+        emit_progress('model_selection', 90, 'Waiting for model selection...')
+        
+        # Wait for user to select a model (30s timeout, defaults to Gemini)
+        selected_model = wait_for_model_selection(session_id, timeout=30)
+        emit_progress('model_selection', 92, f'Selected model: {selected_model}')
+        
+        # ============= STEP 8: LLM ENHANCEMENT WITH MULTI-MODEL SUPPORT =============
         step_start = time.time()
-        emit_progress('gemini', 92, 'Loading Gemini model for transcript cleaning...')
+        emit_progress('llm_enhancement', 93, f'Loading {selected_model.upper()} model for transcript cleaning...')
+        
+        clean_text = None
+        llm_success = False
         
         try:
-            gemini = GeminiClient()
-            gemini.load()
+            # Initialize MultiLLMClient with selected model
+            multi_llm = MultiLLMClient(model_type=selected_model)
+            multi_llm.load()
             
-            # Build dual transcript for Gemini
+            # Build dual transcript for LLM
             dual_text = f"WHISPER TRANSCRIPT:\n{timeline_text}\n\n"
             dual_text += "PHOWHISPER TRANSCRIPT:\n"
             for i, (trans, pho) in enumerate(zip(segment_transcripts, pho_transcripts)):
                 seg = trans['segment']
                 dual_text += f"[{seg.start_time:.2f}s - {seg.end_time:.2f}s] {seg.speaker_id}: {pho}\n"
             
-            emit_progress('gemini', 95, 'Cleaning transcript with Gemini AI...')
+            emit_progress('llm_enhancement', 95, f'Cleaning transcript with {selected_model.upper()} AI...')
             
-            from core.prompts.templates import PromptTemplates
-            prompt = PromptTemplates.build_gemini_prompt(
+            # Define progress callback for detailed monitoring
+            def llm_progress_callback(message):
+                """Forward LLM progress to frontend"""
+                socketio.emit('llm_progress', {
+                    'message': message,
+                    'model': selected_model
+                })
+                print(f"[LLM PROGRESS] {message}")
+            
+            # Use clean_transcript method which has auto-retry for Gemini
+            clean_text, gen_time = multi_llm.clean_transcript(
                 whisper_text=timeline_text,
-                phowhisper_text=dual_text
+                phowhisper_text=dual_text,
+                max_new_tokens=4096,
+                progress_callback=llm_progress_callback  # Pass callback for detailed monitoring
             )
             
-            enhanced, gen_time = gemini.generate(prompt, max_new_tokens=4096)
-            
-            enhanced_file = f"{SESSION_DIR}/enhanced_transcript.txt"
-            with open(enhanced_file, 'w', encoding='utf-8') as f:
-                f.write(enhanced)
-            
-            timings['gemini'] = time.time() - step_start
-            emit_progress('gemini', 98, 'Gemini enhancement complete')
+            if clean_text:
+                llm_success = True
+                enhanced_file = f"{SESSION_DIR}/enhanced_transcript.txt"
+                with open(enhanced_file, 'w', encoding='utf-8') as f:
+                    f.write(clean_text)
+                
+                timings[selected_model] = time.time() - step_start
+                success_msg = f'{selected_model.upper()} enhancement complete ({gen_time:.2f}s)'
+                emit_progress('llm_enhancement', 98, success_msg)
+                socketio.emit('llm_progress', {
+                    'message': f'✅ {success_msg}',
+                    'model': selected_model
+                })
+            else:
+                raise Exception("LLM returned empty result")
             
         except Exception as e:
-            timings['gemini'] = time.time() - step_start
-            emit_progress('gemini', 98, f'Gemini skipped: {str(e)}')
-            enhanced = timeline_text
-            enhanced_file = timeline_file
+            timings[selected_model] = time.time() - step_start
+            error_msg = f'LLM enhancement failed: {str(e)[:100]}'
+            error_type = type(e).__name__
+            
+            # Provide helpful error messages
+            if "quota" in str(e).lower() or "429" in str(e):
+                error_msg = f'❌ All {selected_model.upper()} API keys quota exhausted. Try another model.'
+            elif "api key" in str(e).lower():
+                error_msg = f'❌ {selected_model.upper()} API key invalid or missing. Check .env file.'
+            elif "not installed" in str(e).lower():
+                error_msg = f'❌ {selected_model.upper()} dependencies not installed. Check requirements.txt'
+            elif "network" in str(e).lower() or "connection" in str(e).lower():
+                error_msg = f'❌ Network error accessing {selected_model.upper()} API. Check internet connection.'
+            else:
+                error_msg = f'❌ {selected_model.upper()} error ({error_type}): {str(e)[:80]}'
+            
+            emit_progress('llm_enhancement', 98, error_msg)
+            print(f"[ERROR] LLM enhancement failed ({error_type}): {str(e)}")
+            print(f"[ERROR] Stack trace available in logs")
+            
+            socketio.emit('llm_progress', {
+                'message': error_msg,
+                'model': selected_model,
+                'error': True,
+                'error_type': error_type
+            })
+            # Don't set enhanced, will handle in results with fallback
         
         # ============= FINALIZE =============
         emit_progress('complete', 100, 'Processing complete!')
@@ -316,10 +418,13 @@ def process_audio_with_diarization(audio_path, session_id):
             'num_speakers': len(set(seg.speaker_id for seg in segments)),
             'num_segments': len(segments),
             'timeline': timeline_text,
-            'enhanced': enhanced,
+            'enhanced': clean_text if llm_success else timeline_text,  # Fallback to timeline if LLM failed
+            'clean_text': clean_text,  # Separate field for clean text (None if failed)
+            'llm_success': llm_success,  # Flag to indicate if LLM succeeded
+            'selected_model': selected_model,  # Which model was used
             'files': {
                 'timeline': timeline_file,
-                'enhanced': enhanced_file,
+                'enhanced': enhanced_file if llm_success else timeline_file,
                 'segments': segments_file,
                 'audio_segments': segment_dir
             },
@@ -414,6 +519,38 @@ def upload_file():
 def get_status():
     """Get current processing status"""
     return jsonify(processing_state)
+
+@socketio.on('model_selected')
+def handle_model_selection(data):
+    """
+    Handle model selection from client
+    
+    Expected data:
+        {
+            'session_id': str,
+            'model': str  # 'gemini', 'openai', or 'deepseek'
+        }
+    """
+    global model_selection_state
+    
+    session_id = data.get('session_id')
+    selected_model = data.get('model', 'gemini')
+    
+    # Validate model
+    valid_models = ['gemini', 'openai', 'deepseek']
+    if selected_model not in valid_models:
+        selected_model = 'gemini'
+    
+    # Only accept if we're waiting for this session
+    if model_selection_state['waiting'] and model_selection_state['session_id'] == session_id:
+        model_selection_state['selected_model'] = selected_model
+        print(f"[MODEL SELECTED] Session {session_id}: {selected_model}")
+        
+        # Emit confirmation
+        socketio.emit('model_selection_confirmed', {
+            'session_id': session_id,
+            'model': selected_model
+        })
 
 @app.route('/download/<session_id>/<file_type>')
 def download_file(session_id, file_type):

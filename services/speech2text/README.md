@@ -21,9 +21,13 @@
 
 ## 🎉 What's New in v3.6.0+
 
+- ✅ **Multi-Model LLM Support** - Choose between Gemini (Free), OpenAI (GPT-4o-mini), or DeepSeek for transcript enhancement
+- ✅ **4-Key Retry Mechanism** - Automatic retry with 4 Gemini API keys to prevent quota issues
+- ✅ **Interactive Model Selection** - 30-second countdown modal to select your preferred AI model
+- ✅ **Real-time Monitoring** - Detailed progress notifications showing API key retry attempts
+- ✅ **Graceful Fallback** - Returns raw transcript if LLM enhancement fails
 - ✅ **Web UI Ready** - Professional web interface with real-time progress
 - ✅ **Fixed Dependencies** - All dependency conflicts resolved
-- ✅ **Gemini AI Integration** - Cloud-based transcript cleaning with Google Gemini 2.0 Flash (Free)
 - ✅ **Clean Installation** - Step-by-step setup guides included
 - ✅ **Full Documentation** - Complete troubleshooting & usage guides
 - ✅ **Production Ready** - Tested and optimized for real-world use
@@ -41,7 +45,8 @@
 - 🎙️ **Speaker Diarization** - 95-98% accuracy with pyannote.audio 3.1
 - 🇻🇳 **Vietnamese Optimized** - Perfect Vietnamese phonetics & grammar
 - ⚡ **Voice Activity Detection** - Smart VAD for faster processing
-- 🧠 **AI Enhancement** - Gemini 2.0 Flash for STT transcript cleaning (Free API)
+- 🧠 **Multi-LLM Enhancement** - Choose Gemini (Free), OpenAI, or DeepSeek for transcript cleaning
+- 🔄 **4-Key Retry** - Automatic retry with 4 Gemini API keys (prevents quota issues)
 - 🚀 **CPU/GPU Support** - Works on any hardware, cloud-based AI enhancement
 
 </td>
@@ -49,11 +54,12 @@
 
 ### 💻 User Experience
 - 🌐 **Web UI** - Real-time processing with drag & drop
-- � **Live Progress** - WebSocket-based status updates
-- � **Session Management** - Organized results with timestamps
+- 🤖 **Interactive Model Selection** - 30s countdown modal to choose AI model
+- 📊 **Live Progress** - WebSocket-based status updates with retry notifications
+- 📁 **Session Management** - Organized results with timestamps
 - 📥 **Multi-Format** - MP3, WAV, M4A, FLAC support
 - 📝 **Export Options** - TXT, JSON, Timeline formats
-- 📦 **100% Free** - No paid APIs required
+- 📦 **100% Free** - Free tier available (Gemini)
 
 </td>
 </tr>
@@ -63,12 +69,16 @@
 
 ## 🤖 AI Models
 
-| Model | Purpose | Provider | Accuracy |
-|-------|---------|----------|----------|
-| **Whisper large-v3** | Global speech recognition (99 languages) | OpenAI | 95%+ |
-| **PhoWhisper-large** | Vietnamese ASR specialist | VinAI | 98%+ |
-| **Gemini 2.0 Flash** | STT transcript cleaning & enhancement | Google | 98%+ |
-| **pyannote.audio 3.1** | Speaker diarization | pyannote | 95-98% |
+| Model | Purpose | Provider | Accuracy | Cost |
+|-------|---------|----------|----------|------|
+| **Whisper large-v3** | Global speech recognition (99 languages) | OpenAI | 95%+ | Free |
+| **PhoWhisper-large** | Vietnamese ASR specialist | VinAI | 98%+ | Free |
+| **Gemini 2.0 Flash** | STT transcript cleaning & enhancement (4 keys) | Google | 98%+ | **FREE** |
+| **GPT-4o-mini** | Alternative LLM for transcript cleaning | OpenAI | 98%+ | $0.15/1M tokens |
+| **DeepSeek Chat** | Cost-effective LLM alternative | DeepSeek | 97%+ | $0.14/1M tokens |
+| **pyannote.audio 3.1** | Speaker diarization | pyannote | 95-98% | Free |
+
+> **💡 Tip:** Use Gemini (Free) for unlimited processing. OpenAI/DeepSeek available if quota exceeded.
 
 ---
 
@@ -87,7 +97,9 @@ cd Speech2Text
 # 3. Configure API keys
 # Edit .env file and add:
 # - HF_TOKEN (for speaker diarization): https://huggingface.co/settings/tokens
-# - GEMINI_API_KEY (for transcript cleaning): https://aistudio.google.com/apikey
+# - GEMINI_API_KEY_1 to _4 (for transcript cleaning - FREE): https://aistudio.google.com/apikey
+# - OPENAI_API_KEY (optional, for GPT-4o-mini): https://platform.openai.com/api-keys
+# - DEEPSEEK_API_KEY (optional, for DeepSeek): https://platform.deepseek.com/api-keys
 
 # 4. Launch Web UI
 .\start_webui.bat
@@ -95,7 +107,10 @@ cd Speech2Text
 # 5. Open browser → http://localhost:5000
 ```
 
-**📝 Note:** First run will download AI models (~10GB). Requires internet connection.
+**📝 Note:** 
+- First run will download AI models (~10GB). Requires internet connection.
+- **FREE:** Get 4 Gemini API keys (free tier) to avoid quota limits
+- **PAID:** OpenAI/DeepSeek optional for higher quality ($0.14-0.15/1M tokens)
 
 ---
 
@@ -110,10 +125,12 @@ cd Speech2Text
 **Features:**
 - 🎯 Drag & drop audio upload
 - 📊 Real-time progress tracking
+- 🤖 **Interactive model selection** (Gemini/OpenAI/DeepSeek)
+- 🔄 **Automatic retry notifications** (4 Gemini keys)
 - 🎙️ Speaker diarization visualization
 - 📝 Live transcript preview
 - 💾 One-click download results
-- � Session history
+- 📁 Session history
 
 </td>
 <td width="50%">
@@ -123,8 +140,14 @@ cd Speech2Text
 2. Speaker diarization (20-40%)
 3. Whisper transcription (55-75%)
 4. PhoWhisper transcription (78-88%)
-5. Gemini AI cleaning (92-98%)
-6. Results ready (100%)
+5. **Model selection** (90-92%) - 30s countdown
+6. **LLM enhancement** (93-98%) - Auto-retry with 4 keys
+7. Results ready (100%)
+
+**Model Selection:**
+- ✨ **Gemini** (Default) - FREE, 4-key retry
+- 🧠 **OpenAI** - GPT-4o-mini ($0.15/1M)
+- 🚀 **DeepSeek** - High quality ($0.14/1M)
 
 </td>
 </tr>
@@ -213,6 +236,13 @@ docker-compose up --build
 - **HuggingFace Token:** Required for speaker diarization
   - Get token: https://huggingface.co/settings/tokens
   - Accept license: https://huggingface.co/pyannote/speaker-diarization-3.1
+- **LLM API Keys (choose one or all):**
+  - **Gemini (FREE):** Get 4 keys from https://aistudio.google.com/apikey
+    - Add as: `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`, `GEMINI_API_KEY_4`
+  - **OpenAI (Paid):** Get from https://platform.openai.com/api-keys
+    - Add as: `OPENAI_API_KEY=sk-proj-...`
+  - **DeepSeek (Paid):** Get from https://platform.deepseek.com/api-keys
+    - Add as: `DEEPSEEK_API_KEY=sk-...`
 
 ---
 
@@ -226,12 +256,37 @@ docker-compose up --build
 .\scripts\fix_dependencies.bat
 ```
 
+**Issue: All Gemini API keys quota exhausted**
+```powershell
+# Solution 1: Wait 1 minute for quota reset (free tier)
+# Solution 2: Use OpenAI or DeepSeek model
+# Solution 3: Get more Gemini API keys (up to 4 supported)
+```
+
+**Issue: "Model selection timed out"**
+```powershell
+# Solution: System auto-selects Gemini after 30 seconds
+# No action needed - processing continues automatically
+```
+
+**Issue: LLM enhancement failed**
+```powershell
+# System behavior: Returns raw Whisper+PhoWhisper transcript
+# Check: API keys in .env file
+# Check: Internet connection
+# Fallback: Results still available without LLM cleaning
+```
+
 **Issue: Gemini API key not configured**
 ```powershell
-# Solution: Get free Gemini API key
+# Solution: Get 4 free Gemini API keys
 # 1. Visit: https://aistudio.google.com/apikey
-# 2. Create API key (free tier)
-# 3. Add to .env: GEMINI_API_KEY=your_key_here
+# 2. Create 4 API keys (free tier)
+# 3. Add to .env: 
+#    GEMINI_API_KEY_1=your_key_1
+#    GEMINI_API_KEY_2=your_key_2
+#    GEMINI_API_KEY_3=your_key_3
+#    GEMINI_API_KEY_4=your_key_4
 ```
 
 **Issue: Speaker diarization fails (403 error)**

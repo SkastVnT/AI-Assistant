@@ -338,9 +338,172 @@
         .transcript-box::-webkit-scrollbar-thumb:hover {
             background: #764ba2;
         }
+        
+        /* Model Selection Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+        
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-title {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .modal-subtitle {
+            color: #666;
+            font-size: 1em;
+        }
+        
+        .countdown-display {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .countdown-timer {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .countdown-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .model-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .model-option {
+            background: #f8f9ff;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .model-option:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+            transform: translateY(-3px);
+        }
+        
+        .model-option.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .model-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .model-name {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .model-description {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+        
+        .model-option.selected .model-description {
+            opacity: 1;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Model Selection Modal -->
+    <div id="modelModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🤖 Select AI Model</div>
+                <div class="modal-subtitle">Choose which model to use for transcript enhancement</div>
+            </div>
+            
+            <div class="countdown-display">
+                <div class="countdown-timer" id="countdownTimer">30</div>
+                <div class="countdown-label">Auto-selecting Gemini in <span id="countdownText">30</span> seconds...</div>
+            </div>
+            
+            <div class="model-options">
+                <div class="model-option" data-model="gemini" onclick="selectModel('gemini')">
+                    <div class="model-icon">✨</div>
+                    <div class="model-name">Gemini</div>
+                    <div class="model-description">Free & Fast</div>
+                </div>
+                
+                <div class="model-option" data-model="openai" onclick="selectModel('openai')">
+                    <div class="model-icon">🧠</div>
+                    <div class="model-name">OpenAI</div>
+                    <div class="model-description">GPT-4o-mini</div>
+                </div>
+                
+                <div class="model-option" data-model="deepseek" onclick="selectModel('deepseek')">
+                    <div class="model-icon">🚀</div>
+                    <div class="model-name">DeepSeek</div>
+                    <div class="model-description">High Quality</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -936,6 +1099,49 @@
             console.log('Connected to server:', data.message);
         });
         
+        socket.on('llm_progress', (data) => {
+            // Show detailed LLM progress (retry attempts, API key switching)
+            console.log('[LLM Progress]', data.message);
+            
+            // Create/update progress notification
+            let llmNotification = document.getElementById('llmProgressNotification');
+            if (!llmNotification) {
+                llmNotification = document.createElement('div');
+                llmNotification.id = 'llmProgressNotification';
+                llmNotification.style.cssText = `
+                    position: fixed;
+                    bottom: 80px;
+                    right: 20px;
+                    background: ${data.error ? '#f44336' : '#2196f3'};
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    z-index: 9999;
+                    max-width: 400px;
+                    animation: slideIn 0.3s ease;
+                    font-size: 0.9em;
+                `;
+                document.body.appendChild(llmNotification);
+            }
+            
+            llmNotification.style.background = data.error ? '#f44336' : '#2196f3';
+            llmNotification.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 4px;">
+                    ${data.model.toUpperCase()} Model
+                </div>
+                <div>${data.message}</div>
+            `;
+            
+            // Auto-hide success messages after 3s
+            if (!data.error && data.message.includes('✅')) {
+                setTimeout(() => {
+                    if (llmNotification) llmNotification.remove();
+                }, 3000);
+            }
+        });
+
+        
         socket.on('progress', (data) => {
             updateProgress(data.step, data.progress, data.message);
             
@@ -984,6 +1190,96 @@
             clearState();
         });
         
+        // Model selection handling
+        let countdownInterval = null;
+        let selectedModelGlobal = null;
+        
+        socket.on('model_selection_request', (data) => {
+            console.log('Model selection requested:', data);
+            showModelSelectionModal(data.timeout || 30);
+        });
+        
+        socket.on('model_selection_confirmed', (data) => {
+            console.log('Model selection confirmed:', data.model);
+            hideModelSelectionModal();
+            showNotification(`Selected model: ${data.model.toUpperCase()}`, 'success');
+        });
+        
+        function showModelSelectionModal(timeout) {
+            const modal = document.getElementById('modelModal');
+            const countdownTimer = document.getElementById('countdownTimer');
+            const countdownText = document.getElementById('countdownText');
+            
+            // Reset selection
+            selectedModelGlobal = null;
+            document.querySelectorAll('.model-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Show modal
+            modal.classList.add('active');
+            
+            // Start countdown
+            let timeLeft = timeout;
+            countdownTimer.textContent = timeLeft;
+            countdownText.textContent = timeLeft;
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdownTimer.textContent = timeLeft;
+                countdownText.textContent = timeLeft;
+                
+                // Change color as time runs out
+                if (timeLeft <= 10) {
+                    countdownTimer.style.color = '#ff9800';
+                }
+                if (timeLeft <= 5) {
+                    countdownTimer.style.color = '#f44336';
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    if (!selectedModelGlobal) {
+                        // Auto-select Gemini on timeout
+                        selectModel('gemini', true);
+                    }
+                }
+            }, 1000);
+        }
+        
+        function hideModelSelectionModal() {
+            const modal = document.getElementById('modelModal');
+            modal.classList.remove('active');
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            // Reset countdown color
+            document.getElementById('countdownTimer').style.color = '#667eea';
+        }
+        
+        function selectModel(model, isAutoSelected = false) {
+            selectedModelGlobal = model;
+            
+            // Update UI
+            document.querySelectorAll('.model-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`[data-model=\"${model}\"]`).classList.add('selected');
+            
+            // Send selection to server
+            socket.emit('model_selected', {
+                session_id: currentSessionId,
+                model: model
+            });
+            
+            // Show notification
+            const selectionType = isAutoSelected ? '(Auto-selected)' : '';
+            console.log(`Model selected: ${model} ${selectionType}`);
+        }
+        
         // Update progress
         function updateProgress(step, progress, message) {
             const stepIcons = {
@@ -993,7 +1289,8 @@
                 'whisper': '🎤',
                 'phowhisper': '🇻🇳',
                 'timeline': '📝',
-                'qwen': '✨',
+                'model_selection': '🤖',
+                'llm_enhancement': '✨',
                 'complete': '✅'
             };
             
@@ -1015,23 +1312,32 @@
             document.getElementById('statSpeakers').textContent = data.num_speakers;
             document.getElementById('statSegments').textContent = data.num_segments;
             
-            // Add model badges to results section
+            // Add model badges to results section (with selected model info)
             if (data.metadata && data.metadata.models) {
-                addModelBadgesToResults(data.metadata.models);
+                addModelBadgesToResults(data.metadata.models, data.selected_model);
             }
             
-            // Add metadata section if available
+            // Add metadata section if available (with LLM success info)
             if (data.metadata) {
-                addMetadataDisplay(data.metadata, isRestored);
+                addMetadataDisplay(data.metadata, isRestored, data.llm_success, data.selected_model);
             }
             
             // Timeline transcript
             const timelineBox = document.getElementById('timelineTranscript');
             timelineBox.innerHTML = formatTranscript(data.timeline);
             
-            // Enhanced transcript
+            // Enhanced transcript (show warning if LLM failed)
             const enhancedBox = document.getElementById('enhancedTranscript');
-            enhancedBox.innerHTML = formatTranscript(data.enhanced);
+            if (data.llm_success) {
+                enhancedBox.innerHTML = formatTranscript(data.enhanced);
+            } else {
+                enhancedBox.innerHTML = `
+                    <div style="background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 15px; border-radius: 5px;">
+                        <strong>⚠️ LLM Enhancement Failed</strong><br>
+                        Showing raw timeline transcript instead. Model: ${data.selected_model || 'unknown'}
+                    </div>
+                    ${formatTranscript(data.enhanced)}
+                `;
             
             // Download links
             document.getElementById('downloadTimeline').href = `/download/${data.session_id}/timeline`;
@@ -1048,7 +1354,7 @@
         }
         
         // Add model badges to results section with click navigation
-        function addModelBadgesToResults(models) {
+        function addModelBadgesToResults(models, selectedModel) {
             const badgesContainer = document.getElementById('modelBadges');
             if (!badgesContainer) return;
             
@@ -1060,6 +1366,36 @@
             ];
             
             let html = '';
+            
+            // Add selected LLM model badge at the beginning if available
+            if (selectedModel) {
+                const llmColors = {
+                    'gemini': '#667eea',
+                    'openai': '#42b883',
+                    'deepseek': '#ff6b6b'
+                };
+                const llmNames = {
+                    'gemini': 'Gemini 2.0 Flash',
+                    'openai': 'GPT-4o-mini',
+                    'deepseek': 'DeepSeek Chat'
+                };
+                html += `<div class="model-badge" style="
+                    background: ${llmColors[selectedModel] || '#9c27b0'}; 
+                    color: white; 
+                    padding: 8px 15px; 
+                    border-radius: 20px; 
+                    font-weight: 600; 
+                    font-size: 0.9em;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    user-select: none;
+                    border: 2px solid #ffd700;
+                " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';" 
+                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">`;
+                html += `✨ LLM: ${llmNames[selectedModel] || selectedModel.toUpperCase()}`;
+                html += '</div>';
+            }
+            
             modelBadges.forEach(badge => {
                 html += `<div class="model-badge" data-target="${badge.target}" style="
                     background: ${badge.color}; 
@@ -1098,7 +1434,7 @@
         }
         
         // Add metadata display
-        function addMetadataDisplay(metadata, isRestored) {
+        function addMetadataDisplay(metadata, isRestored, llmSuccess, selectedModel) {
             // Check if metadata already exists
             let metadataCard = document.getElementById('metadataCard');
             if (!metadataCard) {
@@ -1120,13 +1456,27 @@
             }
             html += '</div>';
             
-            // Processing info (removed duplicate model badges - they're now in results section)
+            // Processing info
             html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">';
             
             if (currentSessionId) {
                 html += '<div style="background: white; padding: 15px; border-radius: 10px;">';
                 html += '<div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Session ID</div>';
                 html += `<div style="font-weight: 600; color: #333; font-family: monospace; font-size: 0.85em;">${currentSessionId}</div>`;
+                html += '</div>';
+            }
+            
+            // Add selected model display
+            if (selectedModel) {
+                const modelEmojis = { 'gemini': '✨', 'openai': '🧠', 'deepseek': '🚀' };
+                const modelNames = { 'gemini': 'Gemini', 'openai': 'OpenAI', 'deepseek': 'DeepSeek' };
+                const statusColor = llmSuccess ? '#4caf50' : '#f44336';
+                const statusText = llmSuccess ? '✅ Success' : '❌ Failed';
+                
+                html += '<div style="background: white; padding: 15px; border-radius: 10px;">';
+                html += '<div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">LLM Model</div>';
+                html += `<div style="font-weight: 600; color: #333;">${modelEmojis[selectedModel]} ${modelNames[selectedModel]}</div>`;
+                html += `<div style="color: ${statusColor}; font-size: 0.85em; margin-top: 5px;">${statusText}</div>`;
                 html += '</div>';
             }
             
