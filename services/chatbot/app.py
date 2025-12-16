@@ -20,8 +20,8 @@ import json
 from pathlib import Path
 import shutil
 
-# Import rate limiter and cache
-sys.path.append(str(Path(__file__).parent.parent.parent))
+# Import rate limiter and cache - insert at beginning of path to prioritize root config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config.rate_limiter import get_gemini_key_with_rate_limit, wait_for_openai_rate_limit, get_rate_limit_stats
 from config.response_cache import get_cached_response, cache_response, get_all_cache_stats
 

@@ -77,7 +77,10 @@ class SpeakerDiarizationClient:
         self.max_speakers = max_speakers
         
         self.pipeline = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Force CPU to avoid cuDNN dependency issues
+        # pyannote.audio requires cuDNN which is not included in PyTorch CUDA wheels
+        self.device = "cpu"
+        print("[DIARIZATION] Using CPU mode (cuDNN not available for GPU)")
         
         print(f"[DIARIZATION] Initialized with model: {model_name}")
         print(f"[DIARIZATION] Device: {self.device}")
@@ -104,9 +107,8 @@ class SpeakerDiarizationClient:
                 token=self.hf_token
             )
             
-            # Move to GPU if available
-            if self.device == "cuda":
-                self.pipeline.to(torch.device("cuda"))
+            # Keep on CPU (cuDNN not available)
+            print("[DIARIZATION] Running on CPU (faster than GPU without cuDNN)")
             
             load_time = time.time() - load_start
             print(f"[OK] Diarization pipeline loaded in {load_time:.2f}s")
