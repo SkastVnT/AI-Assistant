@@ -590,6 +590,47 @@
                 </button>
             </div>
             
+            <!-- Immediate test script -->
+            <script>
+                (function() {
+                    console.log('[IMMEDIATE] Testing element access...');
+                    const testUploadArea = document.getElementById('uploadArea');
+                    const testFileInput = document.getElementById('fileInput');
+                    const testUploadBtn = document.getElementById('uploadBtn');
+                    
+                    console.log('[IMMEDIATE] uploadArea:', testUploadArea);
+                    console.log('[IMMEDIATE] fileInput:', testFileInput);
+                    console.log('[IMMEDIATE] uploadBtn:', testUploadBtn);
+                    
+                    if (testUploadArea) {
+                        testUploadArea.onclick = function() {
+                            console.log('[CLICK] Upload area clicked!');
+                            if (testFileInput) testFileInput.click();
+                        };
+                        console.log('[IMMEDIATE] Click handler attached to uploadArea');
+                    }
+                    
+                    if (testFileInput) {
+                        testFileInput.onchange = function() {
+                            console.log('[CHANGE] File selected:', this.files[0]?.name);
+                            if (testUploadBtn && this.files.length > 0) {
+                                testUploadBtn.disabled = false;
+                                console.log('[IMMEDIATE] Upload button enabled');
+                            }
+                        };
+                        console.log('[IMMEDIATE] Change handler attached to fileInput');
+                    }
+                    
+                    if (testUploadBtn) {
+                        testUploadBtn.onclick = function() {
+                            console.log('[CLICK] Upload button clicked!');
+                            alert('Button works! File: ' + (testFileInput.files[0]?.name || 'none'));
+                        };
+                        console.log('[IMMEDIATE] Click handler attached to uploadBtn');
+                    }
+                })();
+            </script>
+            
             <!-- Progress Container -->
             <div class="progress-container" id="progressContainer">
                 <h3 style="margin-bottom: 20px; color: #333;">⏳ Processing...</h3>
@@ -690,18 +731,16 @@
     </div>
     
     <script>
-        // Wrap everything in DOMContentLoaded to ensure DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            // Debug: Check if Socket.IO loaded
-            console.log('[DEBUG] Socket.IO loaded:', typeof io !== 'undefined');
-            console.log('[DEBUG] Socket.IO version:', typeof io !== 'undefined' ? io.version : 'NOT LOADED');
-            
-            // Initialize Socket.IO
-            if (typeof io === 'undefined') {
-                alert('❌ ERROR: Socket.IO library failed to load!\n\nPlease check your internet connection and reload the page.');
-                console.error('[FATAL] Socket.IO not loaded - WebSocket will not work!');
-                return; // Stop execution if Socket.IO not loaded
-            }
+        // Script is at bottom of body - DOM is ready
+        // Debug: Check if Socket.IO loaded
+        console.log('[DEBUG] Socket.IO loaded:', typeof io !== 'undefined');
+        console.log('[DEBUG] Socket.IO version:', typeof io !== 'undefined' ? io.version : 'NOT LOADED');
+        
+        // Initialize Socket.IO
+        if (typeof io === 'undefined') {
+            alert('❌ ERROR: Socket.IO library failed to load!\n\nPlease check your internet connection and reload the page.');
+            console.error('[FATAL] Socket.IO not loaded - WebSocket will not work!');
+        } else {
             
             // Initialize Socket.IO with explicit configuration
             const socket = io({
@@ -759,8 +798,8 @@
             if (!uploadArea || !fileInput || !uploadBtn) {
                 console.error('[FATAL] Required elements not found!');
                 alert('❌ ERROR: UI elements not found!\n\nPlease refresh the page.');
-                return;
-            }
+            } else {
+                console.log('[SUCCESS] All elements found, attaching event listeners...');
         
         // ===== STATE PERSISTENCE =====
         const STATE_KEY = 'vistral_s2t_state';
@@ -1615,7 +1654,7 @@
         `;
         document.head.appendChild(style);
         
-        }); // End DOMContentLoaded
+        } // End if Socket.IO loaded
     </script>
 </body>
 </html>
