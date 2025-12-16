@@ -4,8 +4,6 @@ REM Setup Virtual Environment & Dependencies
 REM Activates .venv, checks pip list vs requirements.txt, installs if needed
 REM ============================================================================
 
-setlocal enabledelayedexpansion
-
 REM Get project root (parent of scripts folder)
 set "PROJECT_ROOT=%~dp0.."
 cd /d "%PROJECT_ROOT%"
@@ -31,13 +29,18 @@ if exist ".venv\Scripts\activate.bat" (
     set NEED_INSTALL=0
     
     REM Check critical packages
-    findstr /i "flask" temp_pip_list.txt >nul || set NEED_INSTALL=1
-    findstr /i "torch" temp_pip_list.txt >nul || set NEED_INSTALL=1
-    findstr /i "transformers" temp_pip_list.txt >nul || set NEED_INSTALL=1
-    findstr /i "gradio" temp_pip_list.txt >nul || set NEED_INSTALL=1
-    findstr /i "mcp" temp_pip_list.txt >nul || set NEED_INSTALL=1
+    findstr /i "flask" temp_pip_list.txt >nul
+    if errorlevel 1 set NEED_INSTALL=1
+    findstr /i "torch" temp_pip_list.txt >nul
+    if errorlevel 1 set NEED_INSTALL=1
+    findstr /i "transformers" temp_pip_list.txt >nul
+    if errorlevel 1 set NEED_INSTALL=1
+    findstr /i "gradio" temp_pip_list.txt >nul
+    if errorlevel 1 set NEED_INSTALL=1
+    findstr /i "mcp" temp_pip_list.txt >nul
+    if errorlevel 1 set NEED_INSTALL=1
     
-    if !NEED_INSTALL!==1 (
+    if "%NEED_INSTALL%"=="1" (
         echo [MISSING] Some critical packages not found
         echo.
         echo Upgrading pip...
@@ -89,9 +92,8 @@ if exist ".venv\Scripts\activate.bat" (
 
 echo.
 echo ============================================================================
-echo [SUCCESS] Virtual environment ready!
+echo [SUCCESS] Virtual environment ready
 echo ============================================================================
 echo.
 
-endlocal
 exit /b 0
