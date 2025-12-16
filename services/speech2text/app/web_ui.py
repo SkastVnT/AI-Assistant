@@ -455,6 +455,23 @@ def index():
     """Main page (original UI)"""
     return render_template('index.html')
 
+@app.route('/test')
+def test_simple():
+    """Simple test page for debugging"""
+    return render_template('test_simple.html')
+
+@app.route('/debug/info')
+def debug_info():
+    """Debug endpoint to check server status"""
+    import flask_socketio
+    return jsonify({
+        'status': 'running',
+        'flask_socketio_version': flask_socketio.__version__,
+        'processing_state': processing_state,
+        'endpoints': [str(rule) for rule in app.url_map.iter_rules()],
+        'socketio_async_mode': socketio.async_mode
+    })
+
 @app.route('/modern')
 def modern():
     """Modern UI (ChatBot-style)"""
