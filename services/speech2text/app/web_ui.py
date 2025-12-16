@@ -20,6 +20,9 @@ from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+# Force CPU-only (cuDNN not installed properly on this system)
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 # Suppress torchcodec warnings (non-critical, PhoWhisper has fallback)
 warnings.filterwarnings('ignore', message='.*torchcodec.*')
 warnings.filterwarnings('ignore', message='.*libtorchcodec.*')
@@ -265,10 +268,6 @@ def process_audio_with_diarization(audio_path, session_id):
         timings['whisper'] = time.time() - step_start
         emit_progress('whisper', 75, 'Whisper transcription complete')
         
-        # Unload Whisper to free GPU memory
-        whisper.unload()
-        emit_progress('whisper', 76, 'Whisper model unloaded, freeing GPU memory...')
-        
         # ============= STEP 5: PHOWHISPER TRANSCRIPTION =============
         step_start = time.time()
         emit_progress('phowhisper', 78, 'Loading PhoWhisper model...')
@@ -288,10 +287,6 @@ def process_audio_with_diarization(audio_path, session_id):
             
             timings['phowhisper'] = time.time() - step_start
             emit_progress('phowhisper', 88, 'PhoWhisper transcription complete')
-            
-            # Unload PhoWhisper to free GPU memory
-            phowhisper.unload()
-            emit_progress('phowhisper', 89, 'PhoWhisper model unloaded, freeing GPU memory...')
             
         except Exception as e:
             timings['phowhisper'] = time.time() - step_start
