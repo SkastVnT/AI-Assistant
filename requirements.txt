@@ -101,7 +101,7 @@ pydub>=0.25.1
 # IMAGE & DOCUMENT PROCESSING
 # ============================================================================
 Pillow>=10.3.0
-opencv-python>=4.8.1.78
+opencv-python==4.6.0.66  # Pinned for paddleocr compatibility
 paddleocr==2.7.3
 paddlepaddle==2.6.2
 PyMuPDF==1.23.8
