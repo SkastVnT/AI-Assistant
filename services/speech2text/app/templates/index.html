@@ -690,48 +690,64 @@
     </div>
     
     <script>
-        // Debug: Check if Socket.IO loaded
-        console.log('[DEBUG] Socket.IO loaded:', typeof io !== 'undefined');
-        console.log('[DEBUG] Socket.IO version:', typeof io !== 'undefined' ? io.version : 'NOT LOADED');
-        
-        // Initialize Socket.IO
-        if (typeof io === 'undefined') {
-            alert('❌ ERROR: Socket.IO library failed to load!\n\nPlease check your internet connection and reload the page.');
-            console.error('[FATAL] Socket.IO not loaded - WebSocket will not work!');
-        }
-        
-        const socket = io();
-        console.log('[DEBUG] Socket.IO initialized');
-        
-        // Debug: Socket connection events
-        socket.on('connect', () => {
-            console.log('[WebSocket] ✅ Connected to server');
-        });
-        
-        socket.on('disconnect', () => {
-            console.log('[WebSocket] ❌ Disconnected from server');
-        });
-        
-        socket.on('connect_error', (error) => {
-            console.error('[WebSocket] Connection error:', error);
-            alert('❌ WebSocket connection failed!\n\nServer may be offline. Please check console for details.');
-        });
-        
-        let selectedFile = null;
-        let currentSessionId = null;
-        let lastUploadedFile = null;  // Store file for re-processing
-        
-        // Elements
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const progressContainer = document.getElementById('progressContainer');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const errorMessage = document.getElementById('errorMessage');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
-        const stepLabel = document.getElementById('stepLabel');
-        const stepProgress = document.getElementById('stepProgress');
+        // Wrap everything in DOMContentLoaded to ensure DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Debug: Check if Socket.IO loaded
+            console.log('[DEBUG] Socket.IO loaded:', typeof io !== 'undefined');
+            console.log('[DEBUG] Socket.IO version:', typeof io !== 'undefined' ? io.version : 'NOT LOADED');
+            
+            // Initialize Socket.IO
+            if (typeof io === 'undefined') {
+                alert('❌ ERROR: Socket.IO library failed to load!\n\nPlease check your internet connection and reload the page.');
+                console.error('[FATAL] Socket.IO not loaded - WebSocket will not work!');
+                return; // Stop execution if Socket.IO not loaded
+            }
+            
+            const socket = io();
+            console.log('[DEBUG] Socket.IO initialized');
+            
+            // Debug: Socket connection events
+            socket.on('connect', () => {
+                console.log('[WebSocket] ✅ Connected to server');
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('[WebSocket] ❌ Disconnected from server');
+            });
+            
+            socket.on('connect_error', (error) => {
+                console.error('[WebSocket] Connection error:', error);
+                alert('❌ WebSocket connection failed!\n\nServer may be offline. Please check console for details.');
+            });
+            
+            let selectedFile = null;
+            let currentSessionId = null;
+            let lastUploadedFile = null;  // Store file for re-processing
+            
+            // Elements
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const stepLabel = document.getElementById('stepLabel');
+            const stepProgress = document.getElementById('stepProgress');
+            
+            // Debug: Check if elements exist
+            console.log('[DEBUG] Elements found:', {
+                uploadArea: !!uploadArea,
+                fileInput: !!fileInput,
+                uploadBtn: !!uploadBtn
+            });
+            
+            if (!uploadArea || !fileInput || !uploadBtn) {
+                console.error('[FATAL] Required elements not found!');
+                alert('❌ ERROR: UI elements not found!\n\nPlease refresh the page.');
+                return;
+            }
         
         // ===== STATE PERSISTENCE =====
         const STATE_KEY = 'vistral_s2t_state';
@@ -775,41 +791,9 @@
         // NOTE: Restore feature DISABLED to ensure users always see fresh results
         // after prompt updates. Old cached results may contain noise/ads.
         
-        // Restore state on page load
-        window.addEventListener('load', () => {
-            // DISABLED: Auto-restore causes confusion when prompts are updated
-            // Users see old results (with noise) instead of fresh processing
-            
-            /* COMMENTED OUT - RESTORE DISABLED
-            const savedState = loadState();
-            if (savedState) {
-                if (savedState.status === 'processing' && savedState.progress) {
-                    // Restore processing state
-                    progressContainer.classList.add('active');
-                    updateProgress(
-                        savedState.progress.step, 
-                        savedState.progress.progress, 
-                        savedState.progress.message + ' (Restored from session)'
-                    );
-                    currentSessionId = savedState.sessionId;
-                    uploadBtn.disabled = true;
-                    
-                    // Show recovery notification
-                    showNotification('🔄 Session restored! Continue where you left off.', 'info');
-                    
-                } else if (savedState.status === 'complete' && savedState.results) {
-                    // Restore complete results
-                    currentSessionId = savedState.sessionId;
-                    displayResults(savedState.results, true);
-                    showNotification('✅ Previous results restored!', 'success');
-                }
-            }
-            */
-            
-            // Instead: Always start fresh, clear any old cache
-            clearState();
-            console.log('[CACHE] Auto-cleared localStorage on page load to ensure fresh results');
-        });
+        // Clear cache on initialization (already inside DOMContentLoaded)
+        clearState();
+        console.log('[CACHE] Auto-cleared localStorage on page load to ensure fresh results');
         
         // Clear Cache button handler
         document.getElementById('clearCacheBtn').addEventListener('click', () => {
@@ -1617,6 +1601,8 @@
             }
         `;
         document.head.appendChild(style);
+        
+        }); // End DOMContentLoaded
     </script>
 </body>
 </html>
