@@ -15,6 +15,7 @@ MANIFEST
 **/__init__.py  # Ignore all __init__.py files
 LICENSE
 SECURITY
+**/*.pyc
 
 
 # ============================================
@@ -29,6 +30,19 @@ venv.bak/
 venv_*/
 **/venv/
 **/venv_*/
+**/venv_*_*/
+lora/
+**/lora/Scripts/
+**/lora/Lib/
+**/lora/Include/
+
+# Service-specific venv folders (non-standard names)
+**/speech/
+**/s2t/
+**/Text2SQL/
+**/Speech2Text/
+!services/speech2text/
+!services/text2sql/
 
 # ============================================
 # ENVIRONMENT & SECRETS
@@ -151,6 +165,15 @@ services/chatbot/models/BloomVN-8B-chat/
 services/chatbot/models/Qwen2.5-14B-Instruct/
 services/chatbot/models/Qwen1.5-1.8B-Chat/
 
+# Old structure (root level)
+ChatBot/Storage/**/*.json
+ChatBot/Storage/**/*.png
+ChatBot/Storage/**/*.jpg
+ChatBot/data/memory/**/
+ChatBot/models/BloomVN-8B-chat/
+ChatBot/models/Qwen2.5-14B-Instruct/
+ChatBot/models/Qwen1.5-1.8B-Chat/
+
 # Speech2Text
 services/speech2text/data/audio/**/*.wav
 services/speech2text/data/audio/**/*.mp3
@@ -161,10 +184,22 @@ services/speech2text/speech/
 services/speech2text/s2t/
 services/speech2text/app/s2t/
 
+# Old structure (root level)
+Speech2Text Services/data/audio/**/*.wav
+Speech2Text Services/data/audio/**/*.mp3
+Speech2Text Services/data/results/**/*.txt
+Speech2Text Services/data/results/**/*.wav
+Speech2Text Services/data/models/
+
 # Text2SQL
 services/text2sql/sample/uploaded/*.jsonl
 services/text2sql/speech/
 services/text2sql/Text2SQL/
+
+# Old structure (root level)
+Text2SQL Services/data/connections/**/*.json
+Text2SQL Services/sample/**/*
+Text2SQL Services/uploads/**/*
 
 # Stable Diffusion
 services/stable-diffusion/models/Stable-diffusion/*.safetensors
@@ -181,6 +216,9 @@ services/stable-diffusion/outputs/**/*.jpg
 services/stable-diffusion/log/
 services/stable-diffusion/tmp/
 services/stable-diffusion/cache.json
+
+# Old structure (root level) - as embedded git repo
+stable-diffusion-webui/
 
 # LoRA Training
 services/lora-training/lora/
