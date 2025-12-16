@@ -4,6 +4,7 @@ Sử dụng Gemini, DeepSeek, OpenAI, Qwen, BloomVN và Local Models
 """
 
 import os
+import sys
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, send_file
 import openai
@@ -18,6 +19,11 @@ import logging
 import json
 from pathlib import Path
 import shutil
+
+# Import rate limiter and cache
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from config.rate_limiter import get_gemini_key_with_rate_limit, wait_for_openai_rate_limit, get_rate_limit_stats
+from config.response_cache import get_cached_response, cache_response, get_all_cache_stats
 
 # MongoDB imports
 from bson import ObjectId
@@ -90,6 +96,10 @@ app = Flask(__name__,
             static_folder='static',
             static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
+
+# 🆕 Register Monitor Dashboard
+from config.monitor import register_monitor
+register_monitor(app)
 
 # Initialize MongoDB connection
 try:
@@ -369,12 +379,37 @@ class ChatbotAgent:
         """Chat using Google Gemini with quota handling - rotate between 4 API keys"""
         import time
         
-        # List of Gemini configurations to try (only gemini-1.5-flash, rotate keys)
+        model_name = 'gemini-1.5-flash'
+        
+        # 🆕 Check cache first
+        cache_key_params = {
+            'context': context,
+            'deep_thinking': deep_thinking,
+            'language': language,
+            'custom_prompt': custom_prompt[:50] if custom_prompt else None
+        }
+        cached = get_cached_response(message, model_name, provider='gemini', **cache_key_params)
+        if cached:
+            logger.info(f"✅ Using cached response for Gemini")
+            return cached
+        
+        # List of Gemini API keys
+        gemini_keys = [GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4]
+        
+        # 🆕 Get best key with rate limiting
+        try:
+            best_key_index = get_gemini_key_with_rate_limit()
+            api_key = gemini_keys[best_key_index]
+            logger.info(f"🔑 Using Gemini Key #{best_key_index + 1} with rate limiter")
+        except Exception as e:
+            logger.error(f"❌ Rate limiter error: {e}, falling back to key rotation")
+            best_key_index = 0
+            api_key = gemini_keys[0]
+        
+        # List of Gemini configurations to try (start from best key)
         gemini_configs = [
-            (GEMINI_API_KEY, 'gemini-1.5-flash'),      # Key 1
-            (GEMINI_API_KEY_2, 'gemini-1.5-flash'),    # Key 2
-            (GEMINI_API_KEY_3, 'gemini-1.5-flash'),    # Key 3
-            (GEMINI_API_KEY_4, 'gemini-1.5-flash'),    # Key 4
+            (gemini_keys[(best_key_index + i) % 4], model_name)
+            for i in range(4)
         ]
         
         last_error = None
@@ -481,9 +516,14 @@ class ChatbotAgent:
                 if model_name != 'gemini-1.5-flash' or idx > 0:
                     model_notice = f"\n\n---\n*✨ Using: Gemini API Key #{key_num}, Model: {model_name}*"
                 
+                result_text = response.text + model_notice
+                
+                # 🆕 Cache the successful response
+                cache_response(message, model_name, result_text, provider='gemini', **cache_key_params)
+                
                 if deep_thinking and thinking_process:
-                    return {'response': response.text + model_notice, 'thinking_process': thinking_process}
-                return response.text + model_notice
+                    return {'response': result_text, 'thinking_process': thinking_process}
+                return result_text
                 
             except Exception as e:
                 error_msg = str(e)
@@ -502,7 +542,7 @@ class ChatbotAgent:
                     else:
                         # All Gemini configs exhausted
                         logger.error(f"❌ All Gemini configurations exhausted")
-                        error_notice = "⚠️ Tất cả API keys và models của Gemini đã vượt quota. Vui lòng thử lại sau hoặc chuyển sang model khác." if language == 'vi' else "⚠️ All Gemini API keys and models quota exceeded. Please try again later or switch to another model."
+                        error_notice = "⚠️ Tất cả API keys của Gemini đã vượt quota. Vui lòng thử lại sau hoặc chuyển sang model khác." if language == 'vi' else "⚠️ All Gemini API keys quota exceeded. Please try again later or switch to another model."
                         return error_notice
                 else:
                     # Other error, continue to next config
@@ -515,6 +555,23 @@ class ChatbotAgent:
     
     def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using OpenAI"""
+        model_name = 'gpt-4o-mini'
+        
+        # 🆕 Check cache first
+        cache_key_params = {
+            'context': context,
+            'deep_thinking': deep_thinking,
+            'language': language,
+            'custom_prompt': custom_prompt[:50] if custom_prompt else None
+        }
+        cached = get_cached_response(message, model_name, provider='openai', **cache_key_params)
+        if cached:
+            logger.info(f"✅ Using cached response for OpenAI")
+            return cached
+        
+        # 🆕 Wait for rate limit
+        wait_for_openai_rate_limit()
+        
         try:
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
             
@@ -565,7 +622,12 @@ class ChatbotAgent:
                 max_tokens=2000 if deep_thinking else 1000  # More tokens for deep thinking
             )
             
-            return response.choices[0].message.content
+            result = response.choices[0].message.content
+            
+            # 🆕 Cache the response
+            cache_response(message, model_name, result, provider='openai', **cache_key_params)
+            
+            return result
             
         except Exception as e:
             return f"Lỗi OpenAI: {str(e)}"

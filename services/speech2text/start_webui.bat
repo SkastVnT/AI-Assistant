@@ -10,13 +10,24 @@ echo  Starting VistralS2T Web UI...
 echo ================================================================================
 echo.
 
+REM Change to script directory
+cd /d "%~dp0"
+
 REM Activate virtual environment
-call app\s2t\Scripts\activate.bat
+if exist "app\s2t\Scripts\activate.bat" (
+    call app\s2t\Scripts\activate.bat
+) else (
+    echo [WARNING] Virtual environment not found, using system Python
+)
 
 REM Suppress Python warnings (torchcodec, deprecations)
 set PYTHONWARNINGS=ignore
 
-REM Run web UI from app directory without changing to it
-python app\web_ui.py
+REM Change to app directory and run web UI
+cd app
+python web_ui.py
+
+REM Pause to see errors
+pause
 
 pause

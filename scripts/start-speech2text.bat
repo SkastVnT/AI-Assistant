@@ -29,6 +29,9 @@ echo.
 echo Starting Speech2Text Service...
 echo Access at: http://localhost:5001
 echo.
-python app\web_ui.py
+
+REM Change to app directory before running
+cd app
+python web_ui.py
 
 pause

@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VistralS2T - Speech to Text with Speaker Diarization</title>
     
-    <!-- Socket.IO -->
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <!-- Socket.IO - Try multiple CDN sources -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" 
+            onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js'"></script>
     
     <style>
         * {
@@ -689,8 +690,32 @@
     </div>
     
     <script>
+        // Debug: Check if Socket.IO loaded
+        console.log('[DEBUG] Socket.IO loaded:', typeof io !== 'undefined');
+        console.log('[DEBUG] Socket.IO version:', typeof io !== 'undefined' ? io.version : 'NOT LOADED');
+        
         // Initialize Socket.IO
+        if (typeof io === 'undefined') {
+            alert('❌ ERROR: Socket.IO library failed to load!\n\nPlease check your internet connection and reload the page.');
+            console.error('[FATAL] Socket.IO not loaded - WebSocket will not work!');
+        }
+        
         const socket = io();
+        console.log('[DEBUG] Socket.IO initialized');
+        
+        // Debug: Socket connection events
+        socket.on('connect', () => {
+            console.log('[WebSocket] ✅ Connected to server');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('[WebSocket] ❌ Disconnected from server');
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('[WebSocket] Connection error:', error);
+            alert('❌ WebSocket connection failed!\n\nServer may be offline. Please check console for details.');
+        });
         
         let selectedFile = null;
         let currentSessionId = null;

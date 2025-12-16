@@ -631,6 +631,13 @@ def handle_cancel():
 
 
 if __name__ == '__main__':
+    # Set UTF-8 encoding for Windows console
+    import sys
+    import io
+    if sys.platform == 'win32':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    
     print("=" * 80)
     print("VISTRAL S2T - WEB UI SERVER")
     print("=" * 80)
@@ -641,12 +648,12 @@ if __name__ == '__main__':
     print(f"Open browser at: http://localhost:{port}")
     print()
     print("Features:")
-    print("  ✓ Audio upload (mp3, wav, m4a, flac)")
-    print("  ✓ Real-time progress tracking")
-    print("  ✓ Speaker diarization")
-    print("  ✓ Dual model transcription (Whisper + PhoWhisper)")
-    print("  ✓ Gemini AI transcript cleaning (free)")
-    print("  ✓ Results download")
+    print("  [OK] Audio upload (mp3, wav, m4a, flac)")
+    print("  [OK] Real-time progress tracking")
+    print("  [OK] Speaker diarization")
+    print("  [OK] Dual model transcription (Whisper + PhoWhisper)")
+    print("  [OK] Gemini AI transcript cleaning (free)")
+    print("  [OK] Results download")
     print()
     print("=" * 80)
     
@@ -654,9 +661,11 @@ if __name__ == '__main__':
     port = int(os.getenv('SPEECH2TEXT_PORT', 5001))
     host = os.getenv('FLASK_HOST', '127.0.0.1')  # Localhost only for security
     
-    # Run with eventlet for WebSocket support
+    # Run with socketio for WebSocket support
+    # Use debug=False to avoid issues with reloader
     socketio.run(app, 
                  host=host, 
                  port=port, 
-                 debug=True,
-                 use_reloader=False)
+                 debug=False,  # Changed from True to False to prevent crash
+                 use_reloader=False,
+                 log_output=True)
