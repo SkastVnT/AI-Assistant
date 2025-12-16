@@ -478,7 +478,8 @@ class TestRateLimitingIntegration:
         blocked_count = 0
         
         for i in range(10):
-            if limiter.is_allowed('test_client'):
+            is_allowed, remaining = limiter.is_allowed('test_client')
+            if is_allowed:
                 allowed_count += 1
             else:
                 blocked_count += 1

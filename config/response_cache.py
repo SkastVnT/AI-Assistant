@@ -138,7 +138,7 @@ class FileBasedCache(ResponseCache):
     def __init__(self, cache_dir='cache', **kwargs):
         super().__init__(**kwargs)
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_file = self.cache_dir / 'llm_responses.json'
         
         # Load existing cache

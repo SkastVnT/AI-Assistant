@@ -98,19 +98,32 @@ def chatbot_app():
     """Create ChatBot Flask app for testing"""
     # Add services/chatbot to path
     chatbot_path = project_root / "services" / "chatbot"
+    
+    # Add both chatbot path and project root to sys.path for imports
     if str(chatbot_path) not in sys.path:
         sys.path.insert(0, str(chatbot_path))
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
     
     try:
-        # Mock MongoDB to avoid actual DB connection
-        with patch('app.MONGODB_ENABLED', False):
-            with patch('app.mongodb_client'):
-                from app import app
-                app.config['TESTING'] = True
-                app.config['DEBUG'] = False
-                return app
-    except ImportError:
-        pytest.skip("ChatBot app not available")
+        # Import chatbot app specifically
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("chatbot_app", chatbot_path / "app.py")
+        if spec and spec.loader:
+            chatbot_module = importlib.util.module_from_spec(spec)
+            
+            # Mock MongoDB to avoid actual DB connection
+            with patch.object(chatbot_module, 'MONGODB_ENABLED', False, create=True):
+                with patch.object(chatbot_module, 'mongodb_client', None, create=True):
+                    spec.loader.exec_module(chatbot_module)
+                    app = chatbot_module.app
+                    app.config['TESTING'] = True
+                    app.config['DEBUG'] = False
+                    return app
+        else:
+            pytest.skip("ChatBot app not available")
+    except (ImportError, AttributeError) as e:
+        pytest.skip(f"ChatBot app not available: {e}")
 
 
 @pytest.fixture
