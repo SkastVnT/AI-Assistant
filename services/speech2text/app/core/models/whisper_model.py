@@ -49,26 +49,11 @@ class WhisperClient:
         """
         self.model_name = model_name
         
-        # Smart device selection - GPU if cuDNN available
-        if device is None:
-            if torch.cuda.is_available():
-                try:
-                    # Test cuDNN availability
-                    import ctranslate2
-                    self.device = "cuda"
-                    self.compute_type = "float16"
-                    print(f"[Whisper] Using GPU (CUDA) with cuDNN")
-                except Exception as e:
-                    print(f"[Whisper] cuDNN test failed: {e}")
-                    self.device = "cpu"
-                    self.compute_type = "int8"
-                    print(f"[Whisper] Falling back to CPU")
-            else:
-                self.device = "cpu"
-                self.compute_type = "int8"
-        else:
-            self.device = device
-            self.compute_type = "float16" if device == "cuda" else "int8"
+        # Force CPU - CUDA version mismatch
+        # PyTorch built for CUDA 11.8 but cuDNN installed in CUDA 13.0
+        self.device = "cpu"
+        self.compute_type = "int8"
+        print(f"[Whisper] Using CPU (CUDA version mismatch: PyTorch 11.8 vs cuDNN 13.0)")
             
         self.model = None
         self._is_loaded = False

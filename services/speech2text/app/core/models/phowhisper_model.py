@@ -45,16 +45,9 @@ class PhoWhisperClient:
             self.model_name = model_name
             print(f"[PhoWhisper] Will download from HuggingFace: {model_name}")
         
-        # GPU if available (cuDNN installed)
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = "cuda:0"
-                print(f"[PhoWhisper] Using GPU (CUDA)")
-            else:
-                self.device = "cpu"
-                print(f"[PhoWhisper] Using CPU")
-        else:
-            self.device = device
+        # Force CPU - CUDA version mismatch
+        self.device = "cpu"
+        print(f"[PhoWhisper] Using CPU (CUDA 11.8/13.0 mismatch)")
         self.chunk_duration = chunk_duration
         self.pipe = None
         self._is_loaded = False
@@ -71,17 +64,14 @@ class PhoWhisperClient:
         print(f"[PhoWhisper] Loading {self.model_name} on {self.device}...")
         start_time = time.time()
         
-        # Use GPU if available
-        device_id = 0 if self.device == "cuda:0" else -1  # 0 for GPU, -1 for CPU
-        torch_dtype = torch.float16 if device_id == 0 else torch.float32
-        
+        # CPU mode
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=self.model_name,
-            device=device_id,
-            torch_dtype=torch_dtype,
+            device=-1,  # CPU
+            torch_dtype=torch.float32,
         )
-        print(f"[PhoWhisper] Loaded successfully on {self.device}")
+        print(f"[PhoWhisper] Loaded successfully on CPU")
             
         load_time = time.time() - start_time
         self._is_loaded = True

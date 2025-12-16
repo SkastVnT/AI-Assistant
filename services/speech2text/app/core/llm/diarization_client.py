@@ -101,10 +101,11 @@ class SpeakerDiarizationClient:
         load_start = time.time()
         
         try:
-            # Load pipeline with authentication (use 'token' instead of deprecated 'use_auth_token')
+            # Load pipeline with authentication
+            # Note: pyannote.audio 3.1.1 uses 'use_auth_token' not 'token'
             self.pipeline = Pipeline.from_pretrained(
                 self.model_name,
-                token=self.hf_token
+                use_auth_token=self.hf_token
             )
             
             # Keep on CPU (cuDNN not available)
