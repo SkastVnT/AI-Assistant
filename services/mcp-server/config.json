@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ai-assistant": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\Asus\\Downloads\\Compressed\\AI-Assistant\\services\\mcp-server\\server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "C:\\Users\\Asus\\Downloads\\Compressed\\AI-Assistant"
+      }
+    }
+  }
+}

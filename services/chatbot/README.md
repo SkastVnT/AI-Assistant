@@ -1,11 +1,28 @@
-# ChatBot Service - AI Assistant v2.7
+# ChatBot Service - AI Assistant v2.8
 
-Advanced multi-model intelligent chatbot with **Custom Prompt System**, **GROK-3 Integration**, **Deep Thinking**, and modern UI features.
+Advanced multi-model intelligent chatbot with **MCP Integration**, **Custom Prompt System**, **GROK-3 Integration**, **Deep Thinking**, and modern UI features.
 
 <details>
-<summary><strong>🌟 Latest Updates (v2.7)</strong></summary>
+<summary><strong>🌟 Latest Updates (v2.8)</strong></summary>
 
-### 🛠️ Custom Prompt System (NEW!)
+### 🔗 MCP Integration (NEW! ⭐)
+
+- **Model Context Protocol**: Access local files and code directly from ChatBot
+- **Folder Selection**: Choose folders from your local disk system
+- **Automatic Context Injection**: AI reads relevant files before answering
+- **Smart File Search**: Finds and reads code files based on your questions
+- **Visual Controls**: Simple UI toggle to enable/disable MCP
+- **Multi-Folder Support**: Add multiple project folders simultaneously
+- **Code-Aware AI**: Better responses with actual code context
+
+**Quick Start:**
+1. Toggle "🔗 MCP: Truy cập file local" in UI
+2. Click "📁 Chọn folder" and enter path
+3. Ask questions about your code!
+
+📖 **[Read Full MCP Documentation →](QUICKSTART_MCP.md)**
+
+### 🛠️ Custom Prompt System
 
 - **Visual Status Indicators**: 
   - 🟡 Yellow button = Base prompt (default)

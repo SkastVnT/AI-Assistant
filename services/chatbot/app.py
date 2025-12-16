@@ -1160,6 +1160,11 @@ def chat():
             except:
                 memory_ids = []
             
+            try:
+                mcp_selected_files = json.loads(data.get('mcp_selected_files', '[]')) if data.get('mcp_selected_files') else []
+            except:
+                mcp_selected_files = []
+            
             # Handle uploaded files
             files = request.files.getlist('files')
             # TODO: Process files if needed
@@ -1175,9 +1180,16 @@ def chat():
             tools = data.get('tools', [])
             history = data.get('history', None)
             memory_ids = data.get('memory_ids', [])
+            mcp_selected_files = data.get('mcp_selected_files', [])  # MCP selected files
         
         if not message:
             return jsonify({'error': 'Tin nhắn trống'}), 400
+        
+        # ===== MCP INTEGRATION: Inject code context =====
+        if mcp_client.enabled:
+            logger.info(f"[MCP] Injecting code context (selected files: {len(mcp_selected_files)})")
+            message = inject_code_context(message, mcp_client, mcp_selected_files)
+        # ================================================
         
         session_id = session.get('session_id')
         chatbot = get_chatbot(session_id)
@@ -2838,7 +2850,200 @@ def delete_image(filename):
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================================
+# MCP INTEGRATION ROUTES
+# ============================================================================
+
+from src.utils.mcp_integration import get_mcp_client, inject_code_context
+
+# Global MCP client
+mcp_client = get_mcp_client()
+
+@app.route('/api/mcp/enable', methods=['POST'])
+def mcp_enable():
+    """Enable MCP integration"""
+    try:
+        success = mcp_client.enable()
+        return jsonify({
+            'success': success,
+            'status': mcp_client.get_status()
+        })
+    except Exception as e:
+        logger.error(f"MCP enable error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to enable MCP integration'
+        }), 500
+
+
+@app.route('/api/mcp/disable', methods=['POST'])
+def mcp_disable():
+    """Disable MCP integration"""
+    try:
+        mcp_client.disable()
+        return jsonify({
+            'success': True,
+            'status': mcp_client.get_status()
+        })
+    except Exception as e:
+        logger.error(f"MCP disable error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to disable MCP integration'
+        }), 500
+
+
+@app.route('/api/mcp/add-folder', methods=['POST'])
+def mcp_add_folder():
+    """Add folder to MCP access list"""
+    try:
+        data = request.get_json()
+        folder_path = data.get('folder_path')
+        
+        if not folder_path:
+            return jsonify({
+                'success': False,
+                'error': 'Folder path is required'
+            }), 400
+        
+        success = mcp_client.add_folder(folder_path)
+        
+        return jsonify({
+            'success': success,
+            'status': mcp_client.get_status()
+        })
+    except Exception as e:
+        logger.error(f"MCP add folder error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to add folder'
+        }), 500
+
+
+@app.route('/api/mcp/remove-folder', methods=['POST'])
+def mcp_remove_folder():
+    """Remove folder from MCP access list"""
+    try:
+        data = request.get_json()
+        folder_path = data.get('folder_path')
+        
+        if not folder_path:
+            return jsonify({
+                'success': False,
+                'error': 'Folder path is required'
+            }), 400
+        
+        mcp_client.remove_folder(folder_path)
+        
+        return jsonify({
+            'success': True,
+            'status': mcp_client.get_status()
+        })
+    except Exception as e:
+        logger.error(f"MCP remove folder error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to remove folder'
+        }), 500
+
+
+@app.route('/api/mcp/list-files', methods=['GET'])
+def mcp_list_files():
+    """List files in selected folders"""
+    try:
+        folder_path = request.args.get('folder')
+        files = mcp_client.list_files_in_folder(folder_path)
+        
+        return jsonify({
+            'success': True,
+            'files': files,
+            'count': len(files)
+        })
+    except Exception as e:
+        logger.error(f"MCP list files error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to list files'
+        }), 500
+
+
+@app.route('/api/mcp/search-files', methods=['GET'])
+def mcp_search_files():
+    """Search files in selected folders"""
+    try:
+        query = request.args.get('query', '')
+        file_type = request.args.get('type', 'all')
+        
+        files = mcp_client.search_files(query, file_type)
+        
+        return jsonify({
+            'success': True,
+            'files': files,
+            'count': len(files)
+        })
+    except Exception as e:
+        logger.error(f"MCP search files error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to search files'
+        }), 500
+
+
+@app.route('/api/mcp/read-file', methods=['GET'])
+def mcp_read_file():
+    """Read file content"""
+    try:
+        file_path = request.args.get('path')
+        max_lines = int(request.args.get('max_lines', 500))
+        
+        if not file_path:
+            return jsonify({
+                'success': False,
+                'error': 'File path is required'
+            }), 400
+        
+        content = mcp_client.read_file(file_path, max_lines)
+        
+        if content and 'error' in content:
+            return jsonify({
+                'success': False,
+                'error': content['error']
+            }), 400
+        
+        return jsonify({
+            'success': True,
+            'content': content
+        })
+    except Exception as e:
+        logger.error(f"MCP read file error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to read file'
+        }), 500
+
+
+@app.route('/api/mcp/status', methods=['GET'])
+def mcp_status():
+    """Get MCP client status"""
+    try:
+        return jsonify({
+            'success': True,
+            'status': mcp_client.get_status()
+        })
+    except Exception as e:
+        logger.error(f"MCP status error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to get MCP status'
+        }), 500
+
+
 if __name__ == '__main__':
-    # debug=False: Tắt auto-reload và debugger (dùng cho production)
-    # debug=True: Bật auto-reload khi sửa code (dùng khi develop)
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    import os
+    # Use environment variable to control debug mode
+    # Set DEBUG=1 for development, otherwise production mode
+    debug_mode = os.getenv('DEBUG', '0') == '1'
+    host = os.getenv('HOST', '127.0.0.1')  # Default to localhost for security
+    port = int(os.getenv('PORT', '5001'))
+    
+    app.run(debug=debug_mode, host=host, port=port)

@@ -38,6 +38,7 @@ numpy<2.0.0  # PyTorch compatibility
 # CORE WEB FRAMEWORKS (All Services)
 # ============================================================================
 flask==3.0.0
+redis>=5.0.0
 flask-cors==6.0.0  # Security fix from 4.0.0
 flask-socketio>=5.3.0
 python-socketio>=5.10.0
@@ -193,6 +194,20 @@ google-auth>=2.25.0
 google-auth-oauthlib>=1.2.0
 google-auth-httplib2>=0.2.0
 google-api-python-client>=2.110.0
+
+# ============================================================================
+# MODEL CONTEXT PROTOCOL (MCP Server + ChatBot Integration)
+# ============================================================================
+# MCP SDK - FREE & Open Source (MIT License)
+mcp[cli]>=1.0.0  # FastMCP server framework
+
+# For Memory System (MCP Server V2.0)
+# SQLite built-in with Python, no extra packages needed
+
+# For ChatBot MCP Integration (NEW in v2.8)
+# - MCPClient uses 'requests' for optional MCP Server connection (already included above)
+# - File operations use built-in modules: pathlib, logging, json, typing
+# - No additional dependencies required for ChatBot MCP feature
 
 # ============================================================================
 # DEVELOPMENT & TESTING

@@ -45,6 +45,386 @@ body.dark-mode .sidebar {
     background: #1e1e1e;
 }
 
+/* Content Wrapper - Chat + MCP Sidebar */
+.content-wrapper {
+    display: flex;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* MCP Sidebar (Right Panel) */
+.mcp-sidebar {
+    width: 0;
+    background: #f8f9fa;
+    border-left: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.mcp-sidebar.open {
+    width: 380px;
+    border-left: 1px solid #dee2e6;
+    opacity: 1;
+}
+
+.mcp-toggle-btn {
+    position: fixed;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px 0 0 6px;
+    padding: 10px 8px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #667eea;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.mcp-toggle-btn:hover {
+    background: #f3f4f6;
+    border-color: #667eea;
+    transform: translateY(-50%) translateX(-2px);
+    box-shadow: -4px 0 12px rgba(0,0,0,0.2);
+}
+
+.mcp-toggle-btn.sidebar-open {
+    right: 390px; /* Moves with sidebar */
+}
+
+body.dark-mode .mcp-toggle-btn {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #a78bfa;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .mcp-toggle-btn:hover {
+    background: #3a3a3a;
+    border-color: #764ba2;
+    box-shadow: -4px 0 12px rgba(0,0,0,0.4);
+}
+
+body.dark-mode .mcp-sidebar {
+    background: #1e1e1e;
+    border-left-color: #333;
+}
+
+.mcp-sidebar-header {
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    background: white;
+}
+
+body.dark-mode .mcp-sidebar-header {
+    background: #2d2d2d;
+    border-bottom-color: #333;
+}
+
+.mcp-btn {
+    padding: 6px 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    flex: 1;
+}
+
+.mcp-btn:hover {
+    background: #5568d3;
+    transform: translateY(-1px);
+}
+
+.mcp-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+body.dark-mode .mcp-btn {
+    background: #764ba2;
+}
+
+body.dark-mode .mcp-btn:hover {
+    background: #5a3a7a;
+}
+
+.mcp-status-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: #e9ecef;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+body.dark-mode .mcp-status-badge {
+    background: #3a3a3a;
+    color: #ccc;
+}
+
+.mcp-status-badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+body.dark-mode .mcp-status-badge.active {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+.mcp-folder-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+/* MCP File Browser */
+.mcp-file-browser {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 10px;
+}
+
+.mcp-search-box {
+    margin-bottom: 10px;
+}
+
+.mcp-search-box input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+body.dark-mode .mcp-search-box input {
+    background: #2d2d2d;
+    border-color: #444;
+    color: white;
+}
+
+.mcp-file-list {
+    flex: 1;
+    overflow-y: auto;
+    border-radius: 6px;
+}
+
+.mcp-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+}
+
+.mcp-empty-state p:first-child {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.mcp-file-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    background: white;
+    border: 1px solid #e9ecef;
+}
+
+.mcp-file-item:hover {
+    background: #f3f4f6;
+    border-color: #667eea;
+}
+
+body.dark-mode .mcp-file-item {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .mcp-file-item:hover {
+    background: #3a3a3a;
+    border-color: #764ba2;
+}
+
+.mcp-file-item.selected {
+    background: #e7e9fc;
+    border-color: #667eea;
+}
+
+body.dark-mode .mcp-file-item.selected {
+    background: #3730a3;
+    border-color: #a78bfa;
+}
+
+.mcp-file-icon {
+    font-size: 16px;
+}
+
+.mcp-file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.mcp-file-name {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mcp-file-path {
+    font-size: 10px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mcp-file-size {
+    font-size: 10px;
+    color: #999;
+}
+
+.mcp-selected-files {
+    padding: 10px;
+    border-top: 1px solid #dee2e6;
+    background: #f8f9fa;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+body.dark-mode .mcp-selected-files {
+    background: #2d2d2d;
+    border-top-color: #444;
+}
+
+.selected-file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #667eea;
+    color: white;
+    border-radius: 12px;
+    font-size: 11px;
+    margin: 2px;
+}
+
+.selected-file-chip .remove {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.selected-file-chip .remove:hover {
+    opacity: 0.7;
+}
+
+/* MCP Controls - Old (Keep for compatibility) */
+.mcp-controls {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border-left: 4px solid #667eea;
+}
+
+body.dark-mode .mcp-controls {
+    background: #2d2d2d;
+    border-left-color: #764ba2;
+}
+
+.mcp-controls .checkbox-container label {
+    font-weight: 600;
+    color: #667eea;
+}
+
+body.dark-mode .mcp-controls .checkbox-container label {
+    color: #a78bfa;
+}
+
+#mcpStatus {
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: #e9ecef;
+}
+
+body.dark-mode #mcpStatus {
+    background: #3a3a3a;
+}
+
+#mcpStatus.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+body.dark-mode #mcpStatus.active {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+#mcpFolderList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mcp-folder-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #e7e9fc;
+    border-radius: 16px;
+    font-size: 11px;
+    color: #4c51bf;
+}
+
+body.dark-mode .mcp-folder-tag {
+    background: #3730a3;
+    color: #c7d2fe;
+}
+
+.mcp-folder-tag .remove-folder {
+    cursor: pointer;
+    color: #ef4444;
+    font-weight: bold;
+    padding: 0 4px;
+    border-radius: 50%;
+}
+
+.mcp-folder-tag .remove-folder:hover {
+    background: #fee2e2;
+}
+
+body.dark-mode .mcp-folder-tag .remove-folder:hover {
+    background: #7f1d1d;
+}
+
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid #dee2e6;

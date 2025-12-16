@@ -35,6 +35,7 @@ if exist ".venv\Scripts\activate.bat" (
     findstr /i "torch" temp_pip_list.txt >nul || set NEED_INSTALL=1
     findstr /i "transformers" temp_pip_list.txt >nul || set NEED_INSTALL=1
     findstr /i "gradio" temp_pip_list.txt >nul || set NEED_INSTALL=1
+    findstr /i "mcp" temp_pip_list.txt >nul || set NEED_INSTALL=1
     
     if !NEED_INSTALL!==1 (
         echo [MISSING] Some critical packages not found

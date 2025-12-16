@@ -368,6 +368,7 @@ async function sendMessage() {
                 context,
                 deep_thinking: deepThinking,
                 ai_learning: aiLearning,
+                mcp_selected_files: window.mcpController ? window.mcpController.getSelectedFilePaths() : [],
                 memory_context: memoryContext,
                 memory_ids,
                 files: fileContents

@@ -3,7 +3,13 @@ Redis Cache Manager - Performance Optimization
 Implements intelligent caching for AI responses, API calls, and static data
 """
 
-import redis
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    redis = None
+
 import json
 import hashlib
 import logging
@@ -33,6 +39,11 @@ class CacheManager:
         Args:
             redis_url: Redis connection URL (default: from env or localhost)
         """
+        if not REDIS_AVAILABLE:
+            self.enabled = False
+            logger.warning("⚠️ Redis package not installed. Caching disabled.")
+            return
+        
         self.redis_url = redis_url or os.getenv('REDIS_URL', 'redis://localhost:6379/0')
         
         try:

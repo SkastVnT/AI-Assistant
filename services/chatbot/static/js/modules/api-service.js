@@ -34,6 +34,10 @@ export class APIService {
             formData.append('memory_ids', JSON.stringify(memories));
             formData.append('language', language);  // Add language
             formData.append('custom_prompt', customPrompt);  // Add custom prompt
+            
+            // Add MCP selected files
+            const mcpFiles = window.mcpController ? window.mcpController.getSelectedFilePaths() : [];
+            formData.append('mcp_selected_files', JSON.stringify(mcpFiles));
 
             // Append files
             files.forEach((file) => {
@@ -47,6 +51,9 @@ export class APIService {
             fetchOptions.headers = {
                 'Content-Type': 'application/json'
             };
+            // Get MCP selected files
+            const mcpFiles = window.mcpController ? window.mcpController.getSelectedFilePaths() : [];
+            
             fetchOptions.body = JSON.stringify({
                 message: message,
                 model: model,
@@ -55,6 +62,7 @@ export class APIService {
                 deep_thinking: deepThinking,
                 history: history,
                 memory_ids: memories,
+                mcp_selected_files: mcpFiles,
                 language: language,  // Add language
                 custom_prompt: customPrompt  // Add custom prompt
             });

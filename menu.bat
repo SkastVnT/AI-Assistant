@@ -32,6 +32,7 @@ echo   5. Speech2Text            (Port 7860)
 echo   6. Stable Diffusion       (Port 7861)
 echo   7. LoRA Training          (Port 7862)
 echo   8. Image Upscale          (Port 7863)
+echo   9. MCP Server             (AI Assistant Protocol)
 echo.
 echo   [BATCH OPERATIONS]
 echo   A. Start ALL Services
@@ -60,6 +61,7 @@ if /i "%choice%"=="5" start "Speech2Text" cmd /k "scripts\start-speech2text.bat"
 if /i "%choice%"=="6" start "Stable Diffusion" cmd /k "scripts\start-stable-diffusion.bat" & goto MENU
 if /i "%choice%"=="7" start "LoRA Training" cmd /k "scripts\start-lora-training.bat" & goto MENU
 if /i "%choice%"=="8" start "Image Upscale" cmd /k "scripts\start-image-upscale.bat" & goto MENU
+if /i "%choice%"=="9" start "MCP Server" cmd /k "scripts\start-mcp.bat" & goto MENU
 
 if /i "%choice%"=="A" call scripts\start-all.bat & goto MENU
 if /i "%choice%"=="S" call scripts\stop-all.bat & goto MENU

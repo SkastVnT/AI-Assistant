@@ -12,6 +12,10 @@ jobs:
   security-scan:
     name: Run Security Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     
     steps:
     - name: Checkout code
