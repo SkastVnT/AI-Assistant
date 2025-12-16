@@ -28,14 +28,14 @@ class GeminiClient:
     
     def __init__(
         self,
-        model_name: str = "gemini-2.0-flash-exp",
+        model_name: str = "gemini-1.5-flash",
         api_key: Optional[str] = None,
     ):
         """
         Initialize Gemini client
         
         Args:
-            model_name: Gemini model name (default: gemini-2.0-flash-exp - free tier)
+            model_name: Gemini model name (default: gemini-1.5-flash - free tier)
             api_key: Google API key (reads from GEMINI_API_KEY env if None)
         """
         if not GEMINI_AVAILABLE:

@@ -4,7 +4,7 @@ echo   Starting Speech2Text Service
 echo ========================================
 echo.
 echo Service: Audio Transcription + Diarization
-echo Port: 7860
+echo Port: 5001 (SPEECH2TEXT_PORT in .env)
 echo Path: services/speech2text/
 echo.
 echo Features:
@@ -27,7 +27,7 @@ cd services\speech2text
 
 echo.
 echo Starting Speech2Text Service...
-echo Access at: http://localhost:7860
+echo Access at: http://localhost:5001
 echo.
 python app\web_ui.py
 

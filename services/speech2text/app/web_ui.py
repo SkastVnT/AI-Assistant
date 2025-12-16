@@ -636,7 +636,9 @@ if __name__ == '__main__':
     print("=" * 80)
     print()
     print("Starting server...")
-    print("Open browser at: http://localhost:5000")
+    # Get port from environment
+    port = int(os.getenv('SPEECH2TEXT_PORT', 5001))
+    print(f"Open browser at: http://localhost:{port}")
     print()
     print("Features:")
     print("  ✓ Audio upload (mp3, wav, m4a, flac)")
@@ -648,9 +650,13 @@ if __name__ == '__main__':
     print()
     print("=" * 80)
     
+    # Get port from environment or use default
+    port = int(os.getenv('SPEECH2TEXT_PORT', 5001))
+    host = os.getenv('FLASK_HOST', '127.0.0.1')  # Localhost only for security
+    
     # Run with eventlet for WebSocket support
     socketio.run(app, 
-                 host='0.0.0.0', 
-                 port=5001, 
+                 host=host, 
+                 port=port, 
                  debug=True,
                  use_reloader=False)

@@ -25,10 +25,10 @@ echo ===========================================================================
 echo.
 echo   [SERVICES - Start Individual]
 echo   1. Hub Gateway            (Port 3000)
-echo   2. ChatBot                (Port 5001)
+echo   2. ChatBot                (Port 5000)
 echo   3. Text2SQL               (Port 5002)
 echo   4. Document Intelligence  (Port 5003)
-echo   5. Speech2Text            (Port 7860)
+echo   5. Speech2Text            (Port 5001)
 echo   6. Stable Diffusion       (Port 7861)
 echo   7. LoRA Training          (Port 7862)
 echo   8. Image Upscale          (Port 7863)

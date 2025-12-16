@@ -14,8 +14,19 @@ load_dotenv()
 
 # Import individual clients
 from .gemini_client import GeminiClient, GEMINI_AVAILABLE
-from .openai_client import OpenAIClient, OPENAI_AVAILABLE
-from .deepseek_client import DeepSeekClient, DEEPSEEK_AVAILABLE
+
+# Optional imports - handle missing dependencies gracefully
+try:
+    from .openai_client import OpenAIClient, OPENAI_AVAILABLE
+except ImportError:
+    OpenAIClient = None
+    OPENAI_AVAILABLE = False
+
+try:
+    from .deepseek_client import DeepSeekClient, DEEPSEEK_AVAILABLE
+except ImportError:
+    DeepSeekClient = None
+    DEEPSEEK_AVAILABLE = False
 
 
 class MultiLLMClient:

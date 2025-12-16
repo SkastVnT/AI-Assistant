@@ -17,10 +17,10 @@ echo.
 echo This will start all AI Assistant services in separate windows:
 echo.
 echo   [1] Hub Gateway            Port 3000  - API Orchestrator
-echo   [2] ChatBot                Port 5001  - Multi-Model AI Chat
+echo   [2] ChatBot                Port 5000  - Multi-Model AI Chat
 echo   [3] Text2SQL               Port 5002  - SQL Query Generation
 echo   [4] Document Intelligence  Port 5003  - OCR + AI Analysis
-echo   [5] Speech2Text            Port 7860  - Audio Transcription
+echo   [5] Speech2Text            Port 5001  - Audio Transcription
 echo   [6] Stable Diffusion       Port 7861  - Image Generation
 echo   [7] LoRA Training          Port 7862  - Model Fine-tuning
 echo   [8] Image Upscale          Port 7863  - Image Enhancement
@@ -54,7 +54,7 @@ start "AI Hub Gateway - Port 3000" cmd /k "%~dp0start-hub-gateway.bat"
 timeout /t 2 >nul
 
 echo [2/8] Starting ChatBot Service...
-start "ChatBot Service - Port 5001" cmd /k "%~dp0start-chatbot.bat"
+start "ChatBot Service - Port 5000" cmd /k "%~dp0start-chatbot.bat"
 timeout /t 2 >nul
 
 echo [3/8] Starting Text2SQL Service...

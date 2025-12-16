@@ -12,8 +12,20 @@ LLM clients for speech-to-text models
 from .whisper_client import WhisperClient
 from .phowhisper_client import PhoWhisperClient
 from .gemini_client import GeminiClient
-from .openai_client import OpenAIClient
-from .deepseek_client import DeepSeekClient
+
+# Optional imports - allow graceful failure if dependencies missing
+try:
+    from .openai_client import OpenAIClient
+except ImportError:
+    OpenAIClient = None
+    print("[WARNING] OpenAIClient not available - openai library not installed or incompatible")
+
+try:
+    from .deepseek_client import DeepSeekClient
+except ImportError:
+    DeepSeekClient = None
+    print("[WARNING] DeepSeekClient not available - openai library not installed or incompatible")
+
 from .multi_llm_client import MultiLLMClient
 from .diarization_client import SpeakerDiarizationClient, SpeakerSegment
 

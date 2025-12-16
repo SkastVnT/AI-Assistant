@@ -29,6 +29,7 @@
 # CPU only:
 #   pip install torch torchvision torchaudio
 # ============================================================================
+setuptools<81.0.0  # Avoid pkg_resources deprecation warning (pyannote.audio compatibility)
 torch>=2.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0
@@ -57,8 +58,9 @@ gradio>=3.0.0
 # ============================================================================
 # AI APIs & MODELS
 # ============================================================================
-# OpenAI
+# OpenAI (fix pydantic compatibility issue)
 openai>=1.0.0
+pydantic>=2.0.0,<3.0.0  # Required by openai, fix compatibility
 
 # Google Gemini
 google-generativeai>=0.8.5
@@ -70,9 +72,14 @@ sentencepiece>=0.2.0
 safetensors>=0.4.0
 huggingface-hub>=0.21.4
 peft>=0.4.0
+datasets>=2.14.0  # Required for LoRA training
 
 # Sentence Transformers (ChatBot)
 sentence-transformers>=2.2.2
+
+# Diffusion Models (Stable Diffusion)
+diffusers>=0.21.0
+k-diffusion>=0.0.16  # Required for Stable Diffusion samplers
 
 # ============================================================================
 # DATABASE & CACHING
@@ -87,12 +94,20 @@ redis>=5.0.0
 # ClickHouse
 clickhouse-connect>=0.7.7
 
+# SQLite (built-in with Python, but FTS5 support for MCP)
+# No additional package needed - uses built-in sqlite3
+
 # ============================================================================
 # SPEECH & AUDIO PROCESSING (Speech2Text)
 # ============================================================================
 # ASR Models
 faster-whisper==1.0.3
 pyannote.audio==3.1.1
+speechbrain>=1.0.0  # Required by pyannote.audio
+pyannote.core>=5.0.0  # Core utilities
+pyannote.database>=5.0.0  # Database utilities
+pyannote.metrics>=3.2.0  # Evaluation metrics
+pyannote.pipeline>=3.0.0  # Pipeline utilities
 
 # Audio Processing
 librosa==0.10.1
@@ -136,7 +151,9 @@ open-clip-torch>=2.20.0
 omegaconf>=2.2.3
 lark>=1.1.5
 inflection>=0.5.1
-pytorch_lightning>=2.0.0
+pytorch_lightning
+k-diffusion>=0.0.16  # Diffusion samplers
+diffusers>=0.21.0  # HuggingFace diffusers>=2.0.0
 torchdiffeq>=0.2.3
 torchsde>=0.2.5
 clean-fid>=0.1.35
@@ -200,14 +217,19 @@ google-api-python-client>=2.110.0
 # ============================================================================
 # MCP SDK - FREE & Open Source (MIT License)
 mcp[cli]>=1.0.0  # FastMCP server framework
-
 # For Memory System (MCP Server V2.0)
-# SQLite built-in with Python, no extra packages needed
+# SQLite built-in with Python, FTS5 extension enabled by default in Python 3.11+
+# For Python 3.10, sqlite3 module supports FTS5 if compiled with it (usually default)
 
 # For ChatBot MCP Integration (NEW in v2.8)
 # - MCPClient uses 'requests' for optional MCP Server connection (already included above)
 # - File operations use built-in modules: pathlib, logging, json, typing
 # - No additional dependencies required for ChatBot MCP feature
+
+# Additional MCP dependencies
+httpx>=0.27.0  # HTTP client for MCP
+anyio>=4.0.0  # Async I/O for MCP
+starlette>=0.27.0  # ASGI framework for MCP server
 
 # ============================================================================
 # DEVELOPMENT & TESTING

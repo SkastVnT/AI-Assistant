@@ -22,7 +22,7 @@ app = FastAPI(title="Gemini Proxy Service", version="1.0.0")
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     logger.info("Gemini AI initialized successfully")
 else:
     logger.warning("GEMINI_API_KEY not found")
@@ -155,7 +155,7 @@ async def root():
     return {
         "service": "Gemini Proxy Service",
         "version": "1.0.0",
-        "description": "Cloud AI fusion using Google Gemini 2.0-flash-exp",
+        "description": "Cloud AI fusion using Google Gemini 1.5-flash",
         "endpoints": ["/fuse", "/health"],
         "status": "available" if model else "unavailable"
     }

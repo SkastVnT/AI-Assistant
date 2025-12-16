@@ -4,7 +4,7 @@ echo   Starting ChatBot Service
 echo ========================================
 echo.
 echo Service: Multi-Model AI ChatBot
-echo Port: 5001
+echo Port: 5000 (CHATBOT_PORT in .env)
 echo Path: services/chatbot/
 echo.
 echo Features:
@@ -28,14 +28,14 @@ cd services\chatbot
 
 echo.
 echo Starting ChatBot...
-echo Access at: http://localhost:5001
+echo Access at: http://localhost:5000
 echo.
 echo Development mode: Set DEBUG=1 for auto-reload
 echo Production mode: Default (DEBUG=0)
 echo.
 set DEBUG=1
-set HOST=0.0.0.0
-set PORT=5001
+set HOST=127.0.0.1
+set CHATBOT_PORT=5000
 python app.py
 
 pause

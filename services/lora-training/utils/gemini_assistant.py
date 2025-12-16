@@ -53,7 +53,7 @@ class GeminiLoRAAssistant:
         genai.configure(api_key=self.api_key)
         
         # Use Gemini 2.0 Flash (fastest, cheapest, best for training)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Safety settings (permissive for anime/art content)
         self.safety_settings = [

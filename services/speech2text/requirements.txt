@@ -10,9 +10,13 @@
 # This will install in correct order: PyTorch → AI Models → Audio → Web UI
 
 # ============= CORE FOUNDATION =============
+# System packages (pin to avoid deprecation warnings)
+setuptools<81.0.0  # Avoid pkg_resources deprecation warning
+
 # PyTorch (install first to avoid conflicts)
 torch==2.0.1
 torchaudio==2.0.2
+torchvision==0.15.2  # Required by pyannote.audio
 numpy==1.24.4
 
 # ============= CORE AI MODELS =============
@@ -32,6 +36,11 @@ openai>=1.0.0  # For GPT-4o-mini and DeepSeek (OpenAI-compatible API)
 
 # Speaker Diarization (UPDATED in v3.5)
 pyannote.audio==3.1.1
+speechbrain>=1.0.0  # Required by pyannote.audio
+pyannote.core>=5.0.0  # Core utilities for pyannote
+pyannote.database>=5.0.0  # Database utilities
+pyannote.metrics>=3.2.0  # Evaluation metrics
+pyannote.pipeline>=3.0.0  # Pipeline utilities
 # Note: Requires HF_TOKEN for model access
 # Accept license at: https://huggingface.co/pyannote/speaker-diarization-3.1
 

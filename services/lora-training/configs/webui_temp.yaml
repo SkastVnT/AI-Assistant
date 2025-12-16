@@ -1,0 +1,16 @@
+model:
+  pretrained_model_name_or_path: runwayml/stable-diffusion-v1-5
+lora:
+  rank: 32
+  alpha: 64
+training:
+  train_data_dir: data\train
+  num_train_epochs: 10
+  train_batch_size: 2
+  learning_rate: 0.0001
+  optimizer: adamw
+  use_loraplus: false
+  use_min_snr: false
+  use_ema: false
+  loss_type: mse
+  noise_offset: 0.1

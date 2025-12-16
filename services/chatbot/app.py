@@ -113,6 +113,8 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY_1')
 GEMINI_API_KEY_2 = os.getenv('GEMINI_API_KEY_2')
+GEMINI_API_KEY_3 = os.getenv('GEMINI_API_KEY_3')
+GEMINI_API_KEY_4 = os.getenv('GEMINI_API_KEY_4')
 QWEN_API_KEY = os.getenv('QWEN_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 GROK_API_KEY = os.getenv('GROK_API_KEY')
@@ -260,7 +262,7 @@ def get_system_prompts(language='vi'):
 # MONGODB CONVERSATION MANAGEMENT
 # ============================================================================
 
-def get_or_create_conversation(user_id, model='gemini-2.0-flash'):
+def get_or_create_conversation(user_id, model='gemini-1.5-flash'):
     """Get active conversation or create new one"""
     if not MONGODB_ENABLED:
         return None
@@ -364,13 +366,15 @@ class ChatbotAgent:
             self.conversation_history = load_conversation_history(conversation_id)
         
     def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
-        """Chat using Google Gemini with quota handling - rotate between 2 API keys"""
+        """Chat using Google Gemini with quota handling - rotate between 4 API keys"""
         import time
         
-        # List of Gemini configurations to try (only gemini-2.0-flash, rotate keys)
+        # List of Gemini configurations to try (only gemini-1.5-flash, rotate keys)
         gemini_configs = [
-            (GEMINI_API_KEY, 'gemini-2.0-flash'),      # Key 1
-            (GEMINI_API_KEY_2, 'gemini-2.0-flash'),    # Key 2
+            (GEMINI_API_KEY, 'gemini-1.5-flash'),      # Key 1
+            (GEMINI_API_KEY_2, 'gemini-1.5-flash'),    # Key 2
+            (GEMINI_API_KEY_3, 'gemini-1.5-flash'),    # Key 3
+            (GEMINI_API_KEY_4, 'gemini-1.5-flash'),    # Key 4
         ]
         
         last_error = None
@@ -469,12 +473,12 @@ class ChatbotAgent:
                 response = model.generate_content(conversation)
                 
                 # Success! Return response
-                key_num = "1" if api_key == GEMINI_API_KEY else "2"
+                key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
                 logger.info(f"✅ Gemini success: API Key #{key_num}, Model: {model_name}")
                 
                 # Add model info if not using default
                 model_notice = ""
-                if model_name != 'gemini-2.0-flash' or idx > 0:
+                if model_name != 'gemini-1.5-flash' or idx > 0:
                     model_notice = f"\n\n---\n*✨ Using: Gemini API Key #{key_num}, Model: {model_name}*"
                 
                 if deep_thinking and thinking_process:
@@ -487,7 +491,7 @@ class ChatbotAgent:
                 
                 # Check if quota exceeded
                 if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                    key_num = "1" if api_key == GEMINI_API_KEY else "2"
+                    key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
                     logger.warning(f"⚠️ Gemini quota exceeded - API Key #{key_num}, Model: {model_name}")
                     
                     # If not the last config, continue to next
@@ -1406,7 +1410,7 @@ def create_new_conversation():
         
         conv = ConversationDB.create_conversation(
             user_id=user_id,
-            model=data.get('model', 'gemini-2.0-flash'),
+            model=data.get('model', 'gemini-1.5-flash'),
             title=data.get('title', 'New Chat')
         )
         
@@ -3044,6 +3048,6 @@ if __name__ == '__main__':
     # Set DEBUG=1 for development, otherwise production mode
     debug_mode = os.getenv('DEBUG', '0') == '1'
     host = os.getenv('HOST', '127.0.0.1')  # Default to localhost for security
-    port = int(os.getenv('PORT', '5001'))
+    port = int(os.getenv('CHATBOT_PORT', '5000'))  # Changed from PORT to CHATBOT_PORT
     
     app.run(debug=debug_mode, host=host, port=port)
