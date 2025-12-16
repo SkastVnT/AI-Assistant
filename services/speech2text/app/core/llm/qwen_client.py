@@ -210,7 +210,7 @@ class QwenClient:
         """
         if prompt_template is None:
             # Use default fusion prompt
-            from app.core.prompts import build_fusion_prompt
+            from core.prompts import build_fusion_prompt
             prompt = build_fusion_prompt(whisper_text, phowhisper_text)
         else:
             prompt = prompt_template.format(

@@ -154,7 +154,7 @@ class OpenAIClient:
         """
         if prompt_template is None:
             # Use default STT cleaning prompt
-            from app.core.prompts.templates import PromptTemplates
+            from core.prompts.templates import PromptTemplates
             prompt = PromptTemplates.build_gemini_prompt(whisper_text, phowhisper_text)
         else:
             prompt = prompt_template.format(

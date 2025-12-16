@@ -16,9 +16,9 @@ from dotenv import load_dotenv
 load_dotenv("app/config/.env")
 
 # Import clients
-from app.core.models import WhisperClient, PhoWhisperClient, QwenClient
-from app.core.utils import preprocess_audio, setup_logger, log_transcription, log_fusion
-from app.core.handlers import handle_error, validate_audio_path, AudioError
+from core.models import WhisperClient, PhoWhisperClient, QwenClient
+from core.utils import preprocess_audio, setup_logger, log_transcription, log_fusion
+from core.handlers import handle_error, validate_audio_path, AudioError
 
 # Setup logging
 logger = setup_logger()

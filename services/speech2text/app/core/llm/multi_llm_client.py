@@ -288,7 +288,7 @@ class MultiLLMClient:
         if self.model_type == "gemini" and len(self.gemini_keys) > 1:
             # Build prompt
             if prompt_template is None:
-                from app.core.prompts.templates import PromptTemplates
+                from core.prompts.templates import PromptTemplates
                 prompt = PromptTemplates.build_gemini_prompt(whisper_text, phowhisper_text)
             else:
                 prompt = prompt_template.format(
