@@ -11,7 +11,8 @@ echo Features:
 echo   - Gemini 2.0 Flash, GPT-4o Mini, DeepSeek
 echo   - Text-to-Image AI (Stable Diffusion)
 echo   - Chat History with MongoDB
-echo   - File Upload & Analysis
+echo   - File Upload ^& Analysis
+echo   - MCP Integration for Code Access
 echo.
 
 REM Setup virtual environment and dependencies

@@ -69,6 +69,7 @@ docker-compose up -d
 
 [![Get Started](https://img.shields.io/badge/🚀-Get_Started_Now-6366F1?style=for-the-badge)](docs/GETTING_STARTED.md)
 [![Scripts Guide](https://img.shields.io/badge/⚡-Scripts_Guide-F59E0B?style=for-the-badge)](SCRIPTS_GUIDE.md)
+[![MCP Server](https://img.shields.io/badge/🔌-MCP_Server-EC4899?style=for-the-badge)](services/mcp-server/README.md)
 [![Download](https://img.shields.io/badge/⬇️-Download_Latest-10B981?style=for-the-badge)](https://github.com/SkastVnT/AI-Assistant/archive/refs/heads/master.zip)
 [![Documentation](https://img.shields.io/badge/📚-Read_Docs-3B82F6?style=for-the-badge)](docs/)
 
@@ -84,6 +85,20 @@ docker-compose up -d
 
 <table>
 <tr>
+<td width="50%">
+
+### 🔌 **MCP Server** ✨ NEW!
+<img src="https://img.shields.io/badge/FREE-100%25-10B981?style=flat-square" />
+<img src="https://img.shields.io/badge/Open--Source-MIT-3B82F6?style=flat-square" />
+
+- 🆓 **100% Free** - No API keys needed
+- 🔧 **6 Tools** - Search, Read, Analyze
+- 📦 **4 Resources** - Configs, Docs, Data
+- 💬 **3 Prompts** - Code Review, Debug, Explain
+- 🤖 **Claude Desktop** Compatible
+- 🚀 **5-min Setup** - Just pip install!
+
+</td>
 <td width="50%">
 
 ###  **ChatBot AI**

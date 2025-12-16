@@ -104,25 +104,78 @@
             </div>
         </div>
         
-        <div class="chat-container" id="chatContainer">
-            <div class="message assistant">
-                <div class="message-content">
-                    <div data-lang-key="chat.welcome">Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
-                    <div class="message-info">Gemini • <span data-lang-key="controls.mode.casual">Trò chuyện vui vẻ</span></div>
+        <!-- Main Content Area with Chat and MCP File Browser -->
+        <div class="content-wrapper">
+            <!-- Chat Container (Left) -->
+            <div class="chat-section">
+                <div class="chat-container" id="chatContainer">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <div data-lang-key="chat.welcome">Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
+                            <div class="message-info">Gemini • <span data-lang-key="controls.mode.casual">Trò chuyện vui vẻ</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Memory Panel (hidden by default) -->
+                <div class="memory-panel" id="memoryPanel" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong data-lang-key="memory.title">📚 Bài học đã lưu (chọn để kích hoạt):</strong>
+                        <button class="new-chat-btn" id="saveMemoryBtn" style="padding: 5px 12px; font-size: 12px;" data-lang-key="memory.save">
+                            💾 Lưu chat này
+                        </button>
+                    </div>
+                    <div id="memoryList">
+                        <!-- Memory items will be loaded here -->
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Memory Panel (hidden by default) -->
-        <div class="memory-panel" id="memoryPanel" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <strong data-lang-key="memory.title">📚 Bài học đã lưu (chọn để kích hoạt):</strong>
-                <button class="new-chat-btn" id="saveMemoryBtn" style="padding: 5px 12px; font-size: 12px;" data-lang-key="memory.save">
-                    💾 Lưu chat này
-                </button>
-            </div>
-            <div id="memoryList">
-                <!-- Memory items will be loaded here -->
+            
+            <!-- MCP Toggle Button (Always Visible) -->
+            <button class="mcp-toggle-btn" id="mcpToggleBtn" title="Mở rộng MCP">
+                ▶
+            </button>
+            
+            <!-- MCP File Browser Sidebar (Right) -->
+            <div class="mcp-sidebar" id="mcpSidebar">
+                <div class="mcp-sidebar-header">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <input type="checkbox" id="mcpEnabledCheck">
+                        <label for="mcpEnabledCheck" style="margin: 0; font-weight: 600;">
+                            🔗 <span data-lang-key="mcp.enable">MCP File Browser</span>
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <button class="mcp-btn" id="mcpSelectFolderBtn" disabled>
+                            📁 <span data-lang-key="mcp.selectFolder">Chọn folder</span>
+                        </button>
+                        <span id="mcpStatus" class="mcp-status-badge">
+                            <span data-lang-key="mcp.status.disabled">⚪ Tắt</span>
+                        </span>
+                    </div>
+                    <div id="mcpFolderList" class="mcp-folder-tags" style="display: none;">
+                        <!-- Selected folders will appear here -->
+                    </div>
+                </div>
+                
+                <div class="mcp-file-browser" id="mcpFileBrowser">
+                    <div class="mcp-search-box">
+                        <input type="text" id="mcpFileSearch" placeholder="🔍 Tìm file..." disabled>
+                    </div>
+                    <div class="mcp-file-list" id="mcpFileList">
+                        <div class="mcp-empty-state">
+                            <p>📂 Chưa chọn folder</p>
+                            <p style="font-size: 11px; color: #888;">Bật MCP và chọn folder để xem files</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mcp-selected-files" id="mcpSelectedFiles" style="display: none;">
+                    <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: #667eea;">
+                        📌 Files đã chọn (<span id="selectedFileCount">0</span>)
+                    </div>
+                    <div id="selectedFileList"></div>
+                </div>
             </div>
         </div>
         
@@ -573,6 +626,7 @@
 
     <!-- Load JavaScript modules -->
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mcp.js') }}"></script>
     
     <!-- Temporary test script -->
     <script>

@@ -1,0 +1,11 @@
+# MCP Server Requirements
+# Tất cả dependencies này đều MIỄN PHÍ và MÃ NGUỒN MỞ
+
+# Model Context Protocol SDK (Official - MIT License)
+mcp[cli]>=1.0.0
+
+# Optional: Nếu muốn test server
+# pytest>=7.4.0
+# httpx>=0.24.0
+
+# Note: FastMCP đã được include trong mcp[cli]
