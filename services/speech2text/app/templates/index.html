@@ -3,1661 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VistralS2T - Speech to Text with Speaker Diarization</title>
-    
-    <!-- Socket.IO - Try multiple CDN sources -->
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" 
-            onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js'"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-        
-        .header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-        
-        .main-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-            margin-bottom: 30px;
-        }
-        
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8f9ff;
-        }
-        
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
-        }
-        
-        .upload-area.dragover {
-            border-color: #42b883;
-            background: #e8f5e9;
-        }
-        
-        .upload-icon {
-            font-size: 4em;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-        
-        .upload-text {
-            font-size: 1.3em;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .upload-subtext {
-            color: #666;
-            font-size: 0.9em;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .btn {
-            padding: 15px 40px;
-            font-size: 1.1em;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            display: inline-block;
-            text-decoration: none;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-        
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .progress-container {
-            display: none;
-            margin-top: 30px;
-        }
-        
-        .progress-container.active {
-            display: block;
-        }
-        
-        .progress-step {
-            margin-bottom: 20px;
-        }
-        
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .progress-bar-container {
-            height: 30px;
-            background: #e0e0e0;
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        
-        .step-icon {
-            margin-right: 8px;
-        }
-        
-        .results-container {
-            display: none;
-            margin-top: 30px;
-        }
-        
-        .results-container.active {
-            display: block;
-        }
-        
-        .result-card {
-            background: #f8f9ff;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            border-left: 5px solid #667eea;
-        }
-        
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .result-title {
-            font-size: 1.3em;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .result-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-item {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 2em;
-            font-weight: 700;
-            color: #667eea;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-        
-        .transcript-box {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            max-height: 500px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            line-height: 1.8;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        
-        .speaker-segment {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9ff;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .speaker-time {
-            color: #667eea;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-        
-        .speaker-id {
-            color: #764ba2;
-            font-weight: 700;
-        }
-        
-        .speaker-text {
-            margin-top: 8px;
-            color: #333;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .download-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .btn-download {
-            background: #42b883;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-download:hover {
-            background: #35a372;
-            transform: translateY(-2px);
-        }
-        
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 5px solid #c62828;
-            display: none;
-        }
-        
-        .error-message.active {
-            display: block;
-        }
-        
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .footer {
-            text-align: center;
-            color: white;
-            margin-top: 40px;
-            opacity: 0.8;
-        }
-        
-        /* Scrollbar styling */
-        .transcript-box::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        .transcript-box::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        .transcript-box::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
-        }
-        
-        .transcript-box::-webkit-scrollbar-thumb:hover {
-            background: #764ba2;
-        }
-        
-        /* Model Selection Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 9998;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .modal-overlay.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 600px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            animation: slideUp 0.3s ease;
-            position: relative;
-        }
-        
-        .modal-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .modal-title {
-            font-size: 2em;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .modal-subtitle {
-            color: #666;
-            font-size: 1em;
-        }
-        
-        .countdown-display {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .countdown-timer {
-            font-size: 3em;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-        
-        .countdown-label {
-            color: #666;
-            font-size: 0.9em;
-        }
-        
-        .model-options {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .model-option {
-            background: #f8f9ff;
-            border: 3px solid #e0e0e0;
-            border-radius: 15px;
-            padding: 25px 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .model-option:hover {
-            border-color: #667eea;
-            background: #f0f2ff;
-            transform: translateY(-3px);
-        }
-        
-        .model-option.selected {
-            border-color: #667eea;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .model-icon {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        .model-name {
-            font-weight: 700;
-            font-size: 1.1em;
-            margin-bottom: 5px;
-        }
-        
-        .model-description {
-            font-size: 0.85em;
-            opacity: 0.8;
-        }
-        
-        .model-option.selected .model-description {
-            opacity: 1;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-            from { 
-                transform: translateY(50px);
-                opacity: 0;
-            }
-            to { 
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-    </style>
+    <title>VistralS2T - Speech-to-Text with AI-Powered Speaker Diarization</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Model Selection Modal -->
-    <div id="modelModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">🤖 Select AI Model</div>
-                <div class="modal-subtitle">Choose which model to use for transcript enhancement</div>
-            </div>
-            
-            <div class="countdown-display">
-                <div class="countdown-timer" id="countdownTimer">30</div>
-                <div class="countdown-label">Auto-selecting Gemini in <span id="countdownText">30</span> seconds...</div>
-            </div>
-            
-            <div class="model-options">
-                <div class="model-option" data-model="gemini" onclick="selectModel('gemini')">
-                    <div class="model-icon">✨</div>
-                    <div class="model-name">Gemini</div>
-                    <div class="model-description">Free & Fast</div>
-                </div>
-                
-                <div class="model-option" data-model="openai" onclick="selectModel('openai')">
-                    <div class="model-icon">🧠</div>
-                    <div class="model-name">OpenAI</div>
-                    <div class="model-description">GPT-4o-mini</div>
-                </div>
-                
-                <div class="model-option" data-model="deepseek" onclick="selectModel('deepseek')">
-                    <div class="model-icon">🚀</div>
-                    <div class="model-name">DeepSeek</div>
-                    <div class="model-description">High Quality</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <div class="container">
         <!-- Header -->
-        <div class="header">
-            <h1>🎤 VistralS2T</h1>
-            <p>Speech-to-Text with AI-Powered Speaker Diarization</p>
-            
-            <!-- Clear Cache Button -->
-            <button id="clearCacheBtn" style="
-                position: absolute;
-                top: 20px;
-                right: 180px;
-                background: rgba(244, 67, 54, 0.9);
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 0.9em;
-                transition: all 0.3s;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            " onmouseover="this.style.background='rgba(211, 47, 47, 1)'; this.style.transform='scale(1.05)';" 
-               onmouseout="this.style.background='rgba(244, 67, 54, 0.9)'; this.style.transform='scale(1)';">
-                🗑️ Clear Cache
-            </button>
-            
-            <!-- Force Clear Sessions Button -->
-            <button id="clearSessionsBtn" style="
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                background: rgba(156, 39, 176, 0.9);
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 0.9em;
-                transition: all 0.3s;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            " onmouseover="this.style.background='rgba(123, 31, 162, 1)'; this.style.transform='scale(1.05)';" 
-               onmouseout="this.style.background='rgba(156, 39, 176, 0.9)'; this.style.transform='scale(1)';">
-                💥 Clear Server
-            </button>
-        </div>
-        
-        <!-- Help Banner -->
-        <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 20px;
-            margin: -10px 0 20px 0;
-            border-radius: 8px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        ">
-            <span style="font-size: 18px;">💡</span>
-            <div>
-                <strong>Transcript vẫn có nhiễu/quảng cáo?</strong> Đây là kết quả cũ được restore từ cache. 
-                Hãy click <strong style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">💥 Clear Server</strong> 
-                → <strong style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">🗑️ Clear Cache</strong> 
-                → Upload lại file để xử lý với prompt mới!
+        <header>
+            <h1>🎙️ VistralS2T - Speech-to-Text WebUI</h1>
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Ready</span>
             </div>
-        </div>
-        
-        <!-- Main Card -->
-        <div class="main-card">
-            <!-- Upload Area -->
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">Click to upload or drag & drop audio file</div>
-                <div class="upload-subtext">Supports MP3, WAV, M4A, FLAC (Max 500MB)</div>
-                <input type="file" id="fileInput" class="file-input" accept=".mp3,.wav,.m4a,.flac,.ogg">
-            </div>
-            
-            <div style="text-align: center; margin-top: 20px;">
-                <button id="uploadBtn" class="btn btn-primary" disabled>
-                    🚀 Start Processing
-                </button>
-            </div>
-            
-            <!-- Immediate test script -->
-            <script>
-                (function() {
-                    console.log('[IMMEDIATE] Testing element access...');
-                    const testUploadArea = document.getElementById('uploadArea');
-                    const testFileInput = document.getElementById('fileInput');
-                    const testUploadBtn = document.getElementById('uploadBtn');
-                    
-                    console.log('[IMMEDIATE] uploadArea:', testUploadArea);
-                    console.log('[IMMEDIATE] fileInput:', testFileInput);
-                    console.log('[IMMEDIATE] uploadBtn:', testUploadBtn);
-                    
-                    if (testUploadArea) {
-                        testUploadArea.onclick = function() {
-                            console.log('[CLICK] Upload area clicked!');
-                            if (testFileInput) testFileInput.click();
-                        };
-                        console.log('[IMMEDIATE] Click handler attached to uploadArea');
-                    }
-                    
-                    if (testFileInput) {
-                        testFileInput.onchange = function() {
-                            console.log('[CHANGE] File selected:', this.files[0]?.name);
-                            if (testUploadBtn && this.files.length > 0) {
-                                testUploadBtn.disabled = false;
-                                console.log('[IMMEDIATE] Upload button enabled');
-                            }
-                        };
-                        console.log('[IMMEDIATE] Change handler attached to fileInput');
-                    }
-                    
-                    if (testUploadBtn) {
-                        testUploadBtn.onclick = function() {
-                            console.log('[CLICK] Upload button clicked!');
-                            alert('Button works! File: ' + (testFileInput.files[0]?.name || 'none'));
-                        };
-                        console.log('[IMMEDIATE] Click handler attached to uploadBtn');
-                    }
-                })();
-            </script>
-            
-            <!-- Progress Container -->
-            <div class="progress-container" id="progressContainer">
-                <h3 style="margin-bottom: 20px; color: #333;">⏳ Processing...</h3>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Upload & Configuration -->
+            <div class="panel config-panel">
+                <h2>📤 Audio Upload</h2>
                 
-                <div class="progress-step">
-                    <div class="progress-label">
-                        <span><span class="step-icon">🎵</span> <span id="stepLabel">Initializing...</span></span>
-                        <span id="stepProgress">0%</span>
+                <!-- Upload Area -->
+                <div class="upload-zone" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Click to upload or drag & drop audio file</div>
+                    <div class="upload-subtext">Supports MP3, WAV, M4A, FLAC (Max 500MB)</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".mp3,.wav,.m4a,.flac,.ogg">
+                </div>
+
+                <!-- File Info -->
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                </div>
+
+                <!-- Processing Options -->
+                <div class="options-section">
+                    <h3>⚙️ Processing Options</h3>
+                    
+                    <div class="form-group">
+                        <label>AI Model for Enhancement</label>
+                        <select id="modelSelect">
+                            <option value="gemini" selected>🤖 Gemini (Free, Recommended)</option>
+                            <option value="openai">🧠 OpenAI GPT-4</option>
+                            <option value="deepseek">🔬 DeepSeek</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableDiarization" checked>
+                            Enable Speaker Diarization
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Min Speakers</label>
+                        <input type="number" id="minSpeakers" value="2" min="1" max="10">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Max Speakers</label>
+                        <input type="number" id="maxSpeakers" value="5" min="1" max="10">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="uploadBtn" disabled>
+                        🚀 Start Processing
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" disabled>
+                        ⏹️ Stop
+                    </button>
+                </div>
+
+                <!-- Cache Management -->
+                <div class="cache-section">
+                    <h3>🗑️ Cache Management</h3>
+                    <button class="btn btn-secondary btn-small" id="clearCacheBtn">
+                        Clear Cache
+                    </button>
+                    <button class="btn btn-warning btn-small" id="clearServerBtn">
+                        Clear Server
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Monitoring & Results -->
+            <div class="panel monitor-panel">
+                <h2>📊 Processing Monitor</h2>
+
+                <!-- Progress Section -->
+                <div class="progress-section" id="progressSection" style="display: none;">
+                    <div class="progress-info">
+                        <span id="currentStep">Initializing...</span>
+                        <span id="progressPercent">0%</span>
                     </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progressBar" style="width: 0%;">
-                            <span id="progressText">0%</span>
-                        </div>
+                        <div class="progress-bar" id="progressBar"></div>
                     </div>
                 </div>
-                
-                <div class="loading-spinner"></div>
-            </div>
-            
-            <!-- Error Message -->
-            <div class="error-message" id="errorMessage"></div>
-            
-            <!-- Results Container -->
-            <div class="results-container" id="resultsContainer">
-                <div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">✅ Processing Complete!</div>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Duration</div>
+                        <div class="metric-value" id="metricDuration">-</div>
                     </div>
-                    
-                    <!-- AI Models Used Section -->
-                    <div id="modelsUsedSection" style="margin: 20px 0;">
-                        <h4 style="color: #333; margin-bottom: 10px;">🤖 AI Models Used</h4>
-                        <div id="modelBadges" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-                            <!-- Model badges will be inserted here -->
-                        </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Speakers</div>
+                        <div class="metric-value" id="metricSpeakers">-</div>
                     </div>
-                    
-                    <div class="result-stats">
-                        <div class="stat-item">
-                            <div class="stat-value" id="statDuration">-</div>
-                            <div class="stat-label">Duration (seconds)</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="statSpeakers">-</div>
-                            <div class="stat-label">Speakers Detected</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="statSegments">-</div>
-                            <div class="stat-label">Total Segments</div>
-                        </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Segments</div>
+                        <div class="metric-value" id="metricSegments">-</div>
                     </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Processing Time</div>
+                        <div class="metric-value" id="metricProcessTime">-</div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-section" id="chartsSection" style="display: none;">
+                    <h3>📈 Model Performance</h3>
+                    <div class="chart-container">
+                        <canvas id="timingChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Results Tabs -->
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <h3>📝 Transcription Results</h3>
                     
-                    <h4 id="timelineHeader" style="margin: 20px 0 10px 0; color: #333;">
-                        📄 Timeline Transcript <span style="color: #4caf50; font-size: 0.85em;">(Whisper large-v3)</span>
-                    </h4>
-                    <div class="transcript-box" id="timelineTranscript"></div>
-                    
-                    <h4 id="enhancedHeader" style="margin: 20px 0 10px 0; color: #333;">
-                        ✨ Enhanced Transcript <span style="color: #9c27b0; font-size: 0.85em;">(PhoWhisper-large + Qwen2.5-1.5B)</span>
-                    </h4>
-                    <div class="transcript-box" id="enhancedTranscript"></div>
-                    
-                    <h4 style="margin: 20px 0 10px 0; color: #333;">⬇️ Download Results</h4>
-                    <div class="download-buttons">
-                        <a href="#" class="btn-download" id="downloadTimeline">
-                            📝 Timeline Transcript
-                        </a>
-                        <a href="#" class="btn-download" id="downloadEnhanced">
-                            ✨ Enhanced Transcript
-                        </a>
-                        <a href="#" class="btn-download" id="downloadSegments">
-                            📊 Speaker Segments
-                        </a>
-                        <button class="btn-download" id="processAgain" style="background: #ff9800; border: none; cursor: pointer;">
-                            🔄 Process Again
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchResultTab('timeline')">
+                            ⏱️ Timeline
+                        </button>
+                        <button class="tab-btn" onclick="switchResultTab('enhanced')">
+                            ✨ Enhanced
                         </button>
                     </div>
-                    
-                    <!-- Model Performance Timings -->
-                    <h4 style="margin: 20px 0 10px 0; color: #333;">⏱️ Model Performance</h4>
-                    <div id="modelTimings" style="
-                        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                        border-radius: 12px;
-                        padding: 20px;
-                        margin-bottom: 20px;
-                    ">
-                        <!-- Timings will be inserted here -->
+
+                    <div class="tab-content active" id="timeline-tab">
+                        <div class="transcript-box" id="timelineTranscript"></div>
+                    </div>
+
+                    <div class="tab-content" id="enhanced-tab">
+                        <div class="transcript-box" id="enhancedTranscript"></div>
+                    </div>
+
+                    <!-- Download Buttons -->
+                    <div class="download-buttons">
+                        <button class="btn btn-download" id="downloadTimeline">
+                            📄 Download Timeline
+                        </button>
+                        <button class="btn btn-download" id="downloadEnhanced">
+                            ✨ Download Enhanced
+                        </button>
+                        <button class="btn btn-download" id="downloadSegments">
+                            📊 Download Segments
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Logs Section -->
+                <div class="logs-section">
+                    <h3>📋 Processing Logs</h3>
+                    <div class="logs-container" id="logsContainer"></div>
+                    <div class="logs-controls">
+                        <button class="btn-small" onclick="clearLogs()">Clear</button>
+                        <label>
+                            <input type="checkbox" id="autoScroll" checked>
+                            Auto-scroll
+                        </label>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <p>VistralS2T v3.6 - Powered by Whisper, PhoWhisper, Qwen & pyannote.audio</p>
-            <p style="font-size: 0.9em; margin-top: 5px;">✨ Enhanced with State Persistence & Model Metadata</p>
-        </div>
-    </div>
-    
-    <script>
-        // Script is at bottom of body - DOM is ready
-        // Debug: Check if Socket.IO loaded
-        console.log('[DEBUG] Socket.IO loaded:', typeof io !== 'undefined');
-        console.log('[DEBUG] Socket.IO version:', typeof io !== 'undefined' ? io.version : 'NOT LOADED');
-        
-        // Initialize Socket.IO
-        if (typeof io === 'undefined') {
-            alert('❌ ERROR: Socket.IO library failed to load!\n\nPlease check your internet connection and reload the page.');
-            console.error('[FATAL] Socket.IO not loaded - WebSocket will not work!');
-        } else {
-            
-            // Initialize Socket.IO with explicit configuration
-            const socket = io({
-                transports: ['polling', 'websocket'],
-                upgrade: true,
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionAttempts: 5,
-                timeout: 10000
-            });
-            console.log('[DEBUG] Socket.IO initialized with config');
-            console.log('[DEBUG] Connecting to:', window.location.origin);
-            
-            // Debug: Socket connection events
-            socket.on('connect', () => {
-                console.log('[WebSocket] ✅ Connected to server');
-                console.log('[WebSocket] Socket ID:', socket.id);
-                console.log('[WebSocket] Transport:', socket.io.engine.transport.name);
-            });
-            
-            socket.on('disconnect', () => {
-                console.log('[WebSocket] ❌ Disconnected from server');
-            });
-            
-            socket.on('connect_error', (error) => {
-                console.error('[WebSocket] Connection error:', error);
-                console.error('[WebSocket] Error type:', error.type);
-                console.error('[WebSocket] Error message:', error.message);
-                alert('❌ WebSocket connection failed!\n\nServer may be offline. Please check console for details.');
-            });
-            
-            let selectedFile = null;
-            let currentSessionId = null;
-            let lastUploadedFile = null;  // Store file for re-processing
-            
-            // Elements
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('fileInput');
-            const uploadBtn = document.getElementById('uploadBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const resultsContainer = document.getElementById('resultsContainer');
-            const errorMessage = document.getElementById('errorMessage');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const stepLabel = document.getElementById('stepLabel');
-            const stepProgress = document.getElementById('stepProgress');
-            
-            // Debug: Check if elements exist
-            console.log('[DEBUG] Elements found:', {
-                uploadArea: !!uploadArea,
-                fileInput: !!fileInput,
-                uploadBtn: !!uploadBtn
-            });
-            
-            if (!uploadArea || !fileInput || !uploadBtn) {
-                console.error('[FATAL] Required elements not found!');
-                alert('❌ ERROR: UI elements not found!\n\nPlease refresh the page.');
-            } else {
-                console.log('[SUCCESS] All elements found, attaching event listeners...');
-        
-        // ===== STATE PERSISTENCE =====
-        const STATE_KEY = 'vistral_s2t_state';
-        
-        function saveState(state) {
-            try {
-                localStorage.setItem(STATE_KEY, JSON.stringify({
-                    ...state,
-                    timestamp: Date.now()
-                }));
-            } catch (e) {
-                console.warn('Failed to save state to localStorage:', e);
-            }
-        }
-        
-        function loadState() {
-            try {
-                const saved = localStorage.getItem(STATE_KEY);
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    // Only restore if less than 1 hour old
-                    if (Date.now() - state.timestamp < 3600000) {
-                        return state;
-                    }
-                }
-            } catch (e) {
-                console.warn('Failed to load state from localStorage:', e);
-            }
-            return null;
-        }
-        
-        function clearState() {
-            try {
-                localStorage.removeItem(STATE_KEY);
-            } catch (e) {
-                console.warn('Failed to clear state:', e);
-            }
-        }
-        
-        // ===== DISABLE RESTORE TO PREVENT SHOWING OLD CACHED RESULTS =====
-        // NOTE: Restore feature DISABLED to ensure users always see fresh results
-        // after prompt updates. Old cached results may contain noise/ads.
-        
-        // Clear cache on initialization (already inside DOMContentLoaded)
-        clearState();
-        console.log('[CACHE] Auto-cleared localStorage on page load to ensure fresh results');
-        
-        // Clear Cache button handler
-        document.getElementById('clearCacheBtn').addEventListener('click', () => {
-            if (confirm('🗑️ Xóa toàn bộ cache và reset Web UI?\n\nSẽ xóa:\n- Session đã lưu\n- Kết quả cũ\n- File đã upload\n\nBạn có chắc chắn?')) {
-                // Clear localStorage
-                clearState();
-                
-                // Reset UI
-                progressContainer.classList.remove('active');
-                resultsContainer.classList.remove('active');
-                errorMessage.classList.remove('active');
-                
-                // Reset upload area
-                selectedFile = null;
-                lastUploadedFile = null;
-                fileInput.value = '';
-                uploadArea.querySelector('.upload-text').textContent = 'Click to upload or drag & drop audio file';
-                uploadBtn.disabled = true;
-                uploadBtn.textContent = '🚀 Start Processing';
-                
-                // Clear results
-                document.getElementById('statDuration').textContent = '-';
-                document.getElementById('statSpeakers').textContent = '-';
-                document.getElementById('statSegments').textContent = '-';
-                document.getElementById('timelineTranscript').innerHTML = '';
-                document.getElementById('enhancedTranscript').innerHTML = '';
-                
-                // Remove metadata card if exists
-                const metadataCard = document.getElementById('metadataCard');
-                if (metadataCard) {
-                    metadataCard.remove();
-                }
-                
-                // Clear model badges
-                const modelBadges = document.getElementById('modelBadges');
-                if (modelBadges) {
-                    modelBadges.innerHTML = '';
-                }
-                
-                showNotification('✅ Cache cleared! Web UI reset to fresh state.', 'success');
-            }
-        });
-        
-        // Clear Server button handler
-        document.getElementById('clearSessionsBtn').addEventListener('click', async () => {
-            if (confirm('💥 FORCE CLEAR tất cả session trên server?\n\n⚠️ Cảnh báo: Sẽ xóa vĩnh viễn:\n- Tất cả session folders trong data/results/sessions/\n- Tất cả transcripts đã xử lý\n- Tất cả cache của Qwen model\n\n🔄 Sau khi xóa, server sẽ xử lý lại từ đầu với prompt mới!\n\nBạn có chắc chắn?')) {
-                try {
-                    // Call backend to clear sessions
-                    const response = await fetch('/clear-sessions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        // Also clear localStorage for complete reset
-                        clearState();
-                        
-                        // Reset UI
-                        progressContainer.classList.remove('active');
-                        resultsContainer.classList.remove('active');
-                        errorMessage.classList.remove('active');
-                        
-                        // Reset upload area
-                        selectedFile = null;
-                        lastUploadedFile = null;
-                        fileInput.value = '';
-                        uploadArea.querySelector('.upload-text').textContent = 'Click to upload or drag & drop audio file';
-                        uploadBtn.disabled = true;
-                        uploadBtn.textContent = '🚀 Start Processing';
-                        
-                        // Clear results
-                        document.getElementById('statDuration').textContent = '-';
-                        document.getElementById('statSpeakers').textContent = '-';
-                        document.getElementById('statSegments').textContent = '-';
-                        document.getElementById('timelineTranscript').innerHTML = '';
-                        document.getElementById('enhancedTranscript').innerHTML = '';
-                        
-                        // Remove metadata card
-                        const metadataCard = document.getElementById('metadataCard');
-                        if (metadataCard) {
-                            metadataCard.remove();
-                        }
-                        
-                        // Clear model badges
-                        const modelBadges = document.getElementById('modelBadges');
-                        if (modelBadges) {
-                            modelBadges.innerHTML = '';
-                        }
-                        
-                        showNotification(`💥 Server cache cleared! Deleted ${data.sessions_deleted} session(s). Next processing will use latest prompt!`, 'success');
-                    } else {
-                        showNotification('❌ Failed to clear server cache: ' + (data.error || 'Unknown error'), 'error');
-                    }
-                } catch (error) {
-                    console.error('Clear sessions error:', error);
-                    showNotification('❌ Error clearing server cache: ' + error.message, 'error');
-                }
-            }
-        });
-        
-        // Upload area click
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                handleFileSelect();
-            }
-        });
-        
-        // File selection
-        fileInput.addEventListener('change', handleFileSelect);
-        
-        function handleFileSelect() {
-            if (fileInput.files.length > 0) {
-                const newFile = fileInput.files[0];
-                
-                // Auto-clear cache if different file
-                if (lastUploadedFile && lastUploadedFile.name !== newFile.name) {
-                    clearState();
-                    console.log('[CACHE] Auto-cleared cache: Different file detected');
-                    showNotification('🔄 New file detected, cache cleared automatically', 'info');
-                }
-                
-                selectedFile = newFile;
-                uploadArea.querySelector('.upload-text').textContent = `Selected: ${selectedFile.name}`;
-                uploadBtn.disabled = false;
-            }
-        }
-        
-        // Upload button
-        uploadBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-            await processAudioFile(selectedFile);
-        });
-        
-        // Shared upload and processing function
-        async function processAudioFile(file) {
-            // Reset UI
-            progressContainer.classList.remove('active');
-            resultsContainer.classList.remove('active');
-            errorMessage.classList.remove('active');
-            clearState();
-            
-            // Upload file
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            try {
-                uploadBtn.disabled = true;
-                uploadBtn.textContent = '⏳ Uploading...';
-                
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Upload failed');
-                }
-                
-                currentSessionId = data.session_id;
-                lastUploadedFile = file;  // Store file for re-processing
-                progressContainer.classList.add('active');
-                uploadBtn.textContent = '🚀 Start Processing';
-                
-                // Save initial state
-                saveState({
-                    status: 'processing',
-                    sessionId: currentSessionId,
-                    fileName: file.name,
-                    fileSize: file.size,
-                    startTime: Date.now(),
-                    progress: {
-                        step: 'initializing',
-                        progress: 0,
-                        message: 'Starting...'
-                    }
-                });
-                
-            } catch (error) {
-                showError(error.message);
-                uploadBtn.disabled = false;
-                uploadBtn.textContent = '🚀 Start Processing';
-                clearState();
-            }
-        }
-        
-        // Setup Process Again button
-        function setupProcessAgainButton() {
-            const processAgainBtn = document.getElementById('processAgain');
-            if (processAgainBtn && lastUploadedFile) {
-                processAgainBtn.onclick = async () => {
-                    // Clear localStorage first to ensure fresh processing
-                    clearState();
-                    
-                    // Clear old results from UI
-                    progressContainer.classList.remove('active');
-                    resultsContainer.classList.remove('active');
-                    
-                    showNotification('🔄 Re-processing with latest prompt...', 'info');
-                    await processAudioFile(lastUploadedFile);
-                };
-                processAgainBtn.style.display = 'inline-flex';
-            } else if (processAgainBtn) {
-                processAgainBtn.style.display = 'none';
-            }
-        }
-        
-        // Display model timings with visual bars
-        function displayModelTimings(timings) {
-            const timingsContainer = document.getElementById('modelTimings');
-            if (!timingsContainer || !timings) return;
-            
-            const modelInfo = [
-                { key: 'preprocessing', name: 'Preprocessing', icon: '🎵', color: '#4caf50' },
-                { key: 'diarization', name: 'Speaker Diarization', icon: '🔍', color: '#2196f3' },
-                { key: 'whisper', name: 'Whisper (large-v3)', icon: '🎤', color: '#4caf50' },
-                { key: 'phowhisper', name: 'PhoWhisper (large)', icon: '🇻🇳', color: '#ff5722' },
-                { key: 'qwen', name: 'Qwen Enhancement', icon: '✨', color: '#9c27b0' }
-            ];
-            
-            const maxTime = Math.max(...modelInfo.map(m => timings[m.key] || 0));
-            
-            let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
-            
-            modelInfo.forEach(model => {
-                const time = timings[model.key] || 0;
-                const minutes = Math.floor(time / 60);
-                const seconds = (time % 60).toFixed(1);
-                const percentage = maxTime > 0 ? (time / maxTime) * 100 : 0;
-                
-                const timeStr = minutes > 0 
-                    ? `${minutes}m ${seconds}s` 
-                    : `${seconds}s`;
-                
-                html += `
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="min-width: 200px; font-weight: 600; color: #333;">
-                            ${model.icon} ${model.name}
-                        </div>
-                        <div style="flex: 1; background: #e0e0e0; border-radius: 10px; height: 24px; position: relative; overflow: hidden;">
-                            <div style="
-                                width: ${percentage}%; 
-                                height: 100%; 
-                                background: linear-gradient(90deg, ${model.color}, ${model.color}dd);
-                                border-radius: 10px;
-                                transition: width 0.5s ease;
-                            "></div>
-                        </div>
-                        <div style="min-width: 80px; text-align: right; font-weight: 700; color: ${model.color};">
-                            ${timeStr}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            // Total time
-            const totalMinutes = Math.floor(timings.total / 60);
-            const totalSeconds = (timings.total % 60).toFixed(1);
-            const totalTimeStr = totalMinutes > 0 
-                ? `${totalMinutes}m ${totalSeconds}s` 
-                : `${totalSeconds}s`;
-            
-            html += `
-                <div style="
-                    margin-top: 10px; 
-                    padding-top: 15px; 
-                    border-top: 2px solid #999;
-                    display: flex; 
-                    align-items: center; 
-                    gap: 10px;
-                    font-size: 1.1em;
-                ">
-                    <div style="min-width: 200px; font-weight: 700; color: #333;">
-                        ⏱️ Total Processing Time
-                    </div>
-                    <div style="flex: 1;"></div>
-                    <div style="min-width: 80px; text-align: right; font-weight: 700; color: #333; font-size: 1.2em;">
-                        ${totalTimeStr}
-                    </div>
-                </div>
-            `;
-            
-            html += '</div>';
-            timingsContainer.innerHTML = html;
-        }
-        
-        // Socket.IO events
-        socket.on('connected', (data) => {
-            console.log('Connected to server:', data.message);
-        });
-        
-        socket.on('llm_progress', (data) => {
-            // Show detailed LLM progress (retry attempts, API key switching)
-            console.log('[LLM Progress]', data.message);
-            
-            // Create/update progress notification
-            let llmNotification = document.getElementById('llmProgressNotification');
-            if (!llmNotification) {
-                llmNotification = document.createElement('div');
-                llmNotification.id = 'llmProgressNotification';
-                llmNotification.style.cssText = `
-                    position: fixed;
-                    bottom: 80px;
-                    right: 20px;
-                    background: ${data.error ? '#f44336' : '#2196f3'};
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                    z-index: 9999;
-                    max-width: 400px;
-                    animation: slideIn 0.3s ease;
-                    font-size: 0.9em;
-                `;
-                document.body.appendChild(llmNotification);
-            }
-            
-            llmNotification.style.background = data.error ? '#f44336' : '#2196f3';
-            llmNotification.innerHTML = `
-                <div style="font-weight: 600; margin-bottom: 4px;">
-                    ${data.model.toUpperCase()} Model
-                </div>
-                <div>${data.message}</div>
-            `;
-            
-            // Auto-hide success messages after 3s
-            if (!data.error && data.message.includes('✅')) {
-                setTimeout(() => {
-                    if (llmNotification) llmNotification.remove();
-                }, 3000);
-            }
-        });
 
-        
-        socket.on('progress', (data) => {
-            updateProgress(data.step, data.progress, data.message);
-            
-            // Save progress state
-            saveState({
-                status: 'processing',
-                sessionId: currentSessionId,
-                progress: {
-                    step: data.step,
-                    progress: data.progress,
-                    message: data.message
-                }
-            });
-        });
-        
-        socket.on('complete', (data) => {
-            // Add metadata
-            const enrichedData = {
-                ...data,
-                metadata: {
-                    models: {
-                        whisper: 'large-v3',
-                        phowhisper: 'vinai/PhoWhisper-large',
-                        qwen: 'Qwen/Qwen2.5-1.5B-Instruct',
-                        diarization: 'pyannote/speaker-diarization-3.1'
-                    },
-                    processingTime: data.processingTime || null,
-                    completedAt: new Date().toISOString()
-                }
-            };
-            
-            displayResults(enrichedData);
-            
-            // Save completed state
-            saveState({
-                status: 'complete',
-                sessionId: currentSessionId,
-                results: enrichedData
-            });
-        });
-        
-        socket.on('error', (data) => {
-            showError(data.message);
-            progressContainer.classList.remove('active');
-            uploadBtn.disabled = false;
-            clearState();
-        });
-        
-        // Model selection handling
-        let countdownInterval = null;
-        let selectedModelGlobal = null;
-        
-        socket.on('model_selection_request', (data) => {
-            console.log('Model selection requested:', data);
-            showModelSelectionModal(data.timeout || 30);
-        });
-        
-        socket.on('model_selection_confirmed', (data) => {
-            console.log('Model selection confirmed:', data.model);
-            hideModelSelectionModal();
-            showNotification(`Selected model: ${data.model.toUpperCase()}`, 'success');
-        });
-        
-        function showModelSelectionModal(timeout) {
-            const modal = document.getElementById('modelModal');
-            const countdownTimer = document.getElementById('countdownTimer');
-            const countdownText = document.getElementById('countdownText');
-            
-            // Reset selection
-            selectedModelGlobal = null;
-            document.querySelectorAll('.model-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            
-            // Show modal
-            modal.classList.add('active');
-            
-            // Start countdown
-            let timeLeft = timeout;
-            countdownTimer.textContent = timeLeft;
-            countdownText.textContent = timeLeft;
-            
-            if (countdownInterval) clearInterval(countdownInterval);
-            
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                countdownTimer.textContent = timeLeft;
-                countdownText.textContent = timeLeft;
-                
-                // Change color as time runs out
-                if (timeLeft <= 10) {
-                    countdownTimer.style.color = '#ff9800';
-                }
-                if (timeLeft <= 5) {
-                    countdownTimer.style.color = '#f44336';
-                }
-                
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    if (!selectedModelGlobal) {
-                        // Auto-select Gemini on timeout
-                        selectModel('gemini', true);
-                    }
-                }
-            }, 1000);
-        }
-        
-        function hideModelSelectionModal() {
-            const modal = document.getElementById('modelModal');
-            modal.classList.remove('active');
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-            // Reset countdown color
-            document.getElementById('countdownTimer').style.color = '#667eea';
-        }
-        
-        function selectModel(model, isAutoSelected = false) {
-            selectedModelGlobal = model;
-            
-            // Update UI
-            document.querySelectorAll('.model-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            document.querySelector(`[data-model=\"${model}\"]`).classList.add('selected');
-            
-            // Send selection to server
-            socket.emit('model_selected', {
-                session_id: currentSessionId,
-                model: model
-            });
-            
-            // Show notification
-            const selectionType = isAutoSelected ? '(Auto-selected)' : '';
-            console.log(`Model selected: ${model} ${selectionType}`);
-        }
-        
-        // Update progress
-        function updateProgress(step, progress, message) {
-            const stepIcons = {
-                'preprocessing': '🎵',
-                'diarization': '🔍',
-                'segmentation': '✂️',
-                'whisper': '🎤',
-                'phowhisper': '🇻🇳',
-                'timeline': '📝',
-                'model_selection': '🤖',
-                'llm_enhancement': '✨',
-                'complete': '✅'
-            };
-            
-            const icon = stepIcons[step] || '⏳';
-            stepLabel.innerHTML = `${icon} ${message}`;
-            stepProgress.textContent = `${progress}%`;
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `${progress}%`;
-        }
-        
-        // Display results
-        function displayResults(data, isRestored = false) {
-            progressContainer.classList.remove('active');
-            resultsContainer.classList.add('active');
-            uploadBtn.disabled = false;
-            
-            // Stats
-            document.getElementById('statDuration').textContent = data.duration.toFixed(1);
-            document.getElementById('statSpeakers').textContent = data.num_speakers;
-            document.getElementById('statSegments').textContent = data.num_segments;
-            
-            // Add model badges to results section (with selected model info)
-            if (data.metadata && data.metadata.models) {
-                addModelBadgesToResults(data.metadata.models, data.selected_model);
-            }
-            
-            // Add metadata section if available (with LLM success info)
-            if (data.metadata) {
-                addMetadataDisplay(data.metadata, isRestored, data.llm_success, data.selected_model);
-            }
-            
-            // Timeline transcript
-            const timelineBox = document.getElementById('timelineTranscript');
-            timelineBox.innerHTML = formatTranscript(data.timeline);
-            
-            // Enhanced transcript (show warning if LLM failed)
-            const enhancedBox = document.getElementById('enhancedTranscript');
-            if (data.llm_success) {
-                enhancedBox.innerHTML = formatTranscript(data.enhanced);
-            } else {
-                enhancedBox.innerHTML = `
-                    <div style="background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 15px; border-radius: 5px;">
-                        <strong>⚠️ LLM Enhancement Failed</strong><br>
-                        Showing raw timeline transcript instead. Model: ${data.selected_model || 'unknown'}
-                    </div>
-                    ${formatTranscript(data.enhanced)}
-                `;
-            
-            // Download links
-            document.getElementById('downloadTimeline').href = `/download/${data.session_id}/timeline`;
-            document.getElementById('downloadEnhanced').href = `/download/${data.session_id}/enhanced`;
-            document.getElementById('downloadSegments').href = `/download/${data.session_id}/segments`;
-            
-            // Display model timings
-            if (data.timings) {
-                displayModelTimings(data.timings);
-            }
-            
-            // Setup Process Again button
-            setupProcessAgainButton();
-        }
-        
-        // Add model badges to results section with click navigation
-        function addModelBadgesToResults(models, selectedModel) {
-            const badgesContainer = document.getElementById('modelBadges');
-            if (!badgesContainer) return;
-            
-            const modelBadges = [
-                { name: 'Whisper', value: models.whisper, color: '#4caf50', target: 'timelineHeader' },
-                { name: 'PhoWhisper', value: models.phowhisper.split('/')[1], color: '#ff5722', target: 'enhancedHeader' },
-                { name: 'Qwen', value: models.qwen.split('/')[1], color: '#9c27b0', target: 'enhancedHeader' },
-                { name: 'Diarization', value: models.diarization.split('/')[1], color: '#2196f3', target: 'timelineHeader' }
-            ];
-            
-            let html = '';
-            
-            // Add selected LLM model badge at the beginning if available
-            if (selectedModel) {
-                const llmColors = {
-                    'gemini': '#667eea',
-                    'openai': '#42b883',
-                    'deepseek': '#ff6b6b'
-                };
-                const llmNames = {
-                    'gemini': 'Gemini 2.0 Flash',
-                    'openai': 'GPT-4o-mini',
-                    'deepseek': 'DeepSeek Chat'
-                };
-                html += `<div class="model-badge" style="
-                    background: ${llmColors[selectedModel] || '#9c27b0'}; 
-                    color: white; 
-                    padding: 8px 15px; 
-                    border-radius: 20px; 
-                    font-weight: 600; 
-                    font-size: 0.9em;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    user-select: none;
-                    border: 2px solid #ffd700;
-                " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';" 
-                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">`;
-                html += `✨ LLM: ${llmNames[selectedModel] || selectedModel.toUpperCase()}`;
-                html += '</div>';
-            }
-            
-            modelBadges.forEach(badge => {
-                html += `<div class="model-badge" data-target="${badge.target}" style="
-                    background: ${badge.color}; 
-                    color: white; 
-                    padding: 8px 15px; 
-                    border-radius: 20px; 
-                    font-weight: 600; 
-                    font-size: 0.9em;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    user-select: none;
-                " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';" 
-                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">`;
-                html += `${badge.name}: ${badge.value}`;
-                html += '</div>';
-            });
-            
-            badgesContainer.innerHTML = html;
-            
-            // Add click handlers
-            document.querySelectorAll('.model-badge').forEach(badge => {
-                badge.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target');
-                    const targetElement = document.getElementById(targetId);
-                    if (targetElement) {
-                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        // Flash effect
-                        targetElement.style.transition = 'background-color 0.5s';
-                        targetElement.style.backgroundColor = '#fff3e0';
-                        setTimeout(() => {
-                            targetElement.style.backgroundColor = '';
-                        }, 1000);
-                    }
-                });
-            });
-        }
-        
-        // Add metadata display
-        function addMetadataDisplay(metadata, isRestored, llmSuccess, selectedModel) {
-            // Check if metadata already exists
-            let metadataCard = document.getElementById('metadataCard');
-            if (!metadataCard) {
-                metadataCard = document.createElement('div');
-                metadataCard.id = 'metadataCard';
-                metadataCard.className = 'result-card';
-                metadataCard.style.background = '#fff9e6';
-                metadataCard.style.borderLeft = '5px solid #ff9800';
-                
-                // Insert before timeline
-                const resultsContainer = document.getElementById('resultsContainer');
-                resultsContainer.insertBefore(metadataCard, resultsContainer.firstChild);
-            }
-            
-            let html = '<div class="result-header">';
-            html += '<div class="result-title">📊 Processing Information</div>';
-            if (isRestored) {
-                html += '<div style="background: #2196f3; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9em;">🔄 Restored Session</div>';
-            }
-            html += '</div>';
-            
-            // Processing info
-            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">';
-            
-            if (currentSessionId) {
-                html += '<div style="background: white; padding: 15px; border-radius: 10px;">';
-                html += '<div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Session ID</div>';
-                html += `<div style="font-weight: 600; color: #333; font-family: monospace; font-size: 0.85em;">${currentSessionId}</div>`;
-                html += '</div>';
-            }
-            
-            // Add selected model display
-            if (selectedModel) {
-                const modelEmojis = { 'gemini': '✨', 'openai': '🧠', 'deepseek': '🚀' };
-                const modelNames = { 'gemini': 'Gemini', 'openai': 'OpenAI', 'deepseek': 'DeepSeek' };
-                const statusColor = llmSuccess ? '#4caf50' : '#f44336';
-                const statusText = llmSuccess ? '✅ Success' : '❌ Failed';
-                
-                html += '<div style="background: white; padding: 15px; border-radius: 10px;">';
-                html += '<div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">LLM Model</div>';
-                html += `<div style="font-weight: 600; color: #333;">${modelEmojis[selectedModel]} ${modelNames[selectedModel]}</div>`;
-                html += `<div style="color: ${statusColor}; font-size: 0.85em; margin-top: 5px;">${statusText}</div>`;
-                html += '</div>';
-            }
-            
-            if (metadata.completedAt) {
-                const completedTime = new Date(metadata.completedAt);
-                html += '<div style="background: white; padding: 15px; border-radius: 10px;">';
-                html += '<div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Completed At</div>';
-                html += `<div style="font-weight: 600; color: #333;">${completedTime.toLocaleString()}</div>`;
-                html += '</div>';
-            }
-            
-            if (metadata.processingTime) {
-                html += '<div style="background: white; padding: 15px; border-radius: 10px;">';
-                html += '<div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Processing Time</div>';
-                html += `<div style="font-weight: 600; color: #333;">${(metadata.processingTime / 60).toFixed(1)} minutes</div>`;
-                html += '</div>';
-            }
-            
-            html += '</div>';
-            
-            metadataCard.innerHTML = html;
-        }
-        
-        // Show notification
-        function showNotification(message, type = 'info') {
-            const colors = {
-                info: '#2196f3',
-                success: '#4caf50',
-                warning: '#ff9800',
-                error: '#f44336'
-            };
-            
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${colors[type]};
-                color: white;
-                padding: 15px 25px;
-                border-radius: 10px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                z-index: 10000;
-                animation: slideIn 0.3s ease;
-                font-weight: 600;
-            `;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-        
-        // Format transcript with speaker highlighting
-        function formatTranscript(text) {
-            const lines = text.split('\n');
-            let html = '';
-            
-            for (let line of lines) {
-                // Match speaker segments like [0.00s - 12.34s] SPEAKER_00:
-                const match = line.match(/\[([\d.]+)s\s*-\s*([\d.]+)s\]\s*(\w+):/);
-                
-                if (match) {
-                    const [_, start, end, speaker] = match;
-                    html += `<div class="speaker-segment">`;
-                    html += `<div class="speaker-time">[${start}s - ${end}s] <span class="speaker-id">${speaker}</span></div>`;
-                } else if (line.trim().startsWith('Hệ thống:') || 
-                          line.trim().startsWith('Nhân viên:') || 
-                          line.trim().startsWith('Khách hàng:')) {
-                    const parts = line.split(':');
-                    html += `<div class="speaker-segment">`;
-                    html += `<div class="speaker-id">${parts[0]}:</div>`;
-                    html += `<div class="speaker-text">${parts.slice(1).join(':')}</div>`;
-                    html += `</div>`;
-                } else if (line.trim()) {
-                    if (html.includes('speaker-segment') && !html.endsWith('</div>')) {
-                        html += `<div class="speaker-text">${escapeHtml(line)}</div></div>`;
-                    } else {
-                        html += `<div>${escapeHtml(line)}</div>`;
-                    }
-                } else {
-                    html += '<br>';
-                }
-            }
-            
-            return html || escapeHtml(text);
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // Show error
-        function showError(message) {
-            errorMessage.textContent = `❌ Error: ${message}`;
-            errorMessage.classList.add('active');
-        }
-        
-        // Add CSS animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        } // End if Socket.IO loaded
-    </script>
-    
-    <!-- Main JavaScript -->
+        <!-- Footer -->
+        <footer>
+            <p>VistralS2T v3.7 - Powered by Whisper, PhoWhisper, Qwen & pyannote.audio</p>
+            <p style="font-size: 0.9em; opacity: 0.8;">✨ AI-Enhanced Transcription with Real-time Monitoring</p>
+        </footer>
+    </div>
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
