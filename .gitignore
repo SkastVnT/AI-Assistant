@@ -41,6 +41,19 @@ venv_*/
 LICENSE
 SECURITY
 
+# All .env files in any directory
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.test
+
+# API Keys and tokens
+**/api_key.txt
+**/token.txt
+**/*_key.txt
+**/*_token.txt
+
 # ============================================
 # CONFIG FILES (Sensitive)
 # ============================================
