@@ -26,14 +26,14 @@
 # PYTORCH - INSTALL FIRST (Required for most services)
 # ============================================================================
 # For GPU (CUDA 11.8):
-#   pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+#   pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
 # For CPU only:
 #   pip install torch torchvision torchaudio
 # ============================================================================
 setuptools<81.0.0
-torch==2.0.1
-torchvision==0.15.2
-torchaudio==2.0.2
+torch==2.1.2
+torchvision==0.16.2
+torchaudio==2.1.2
 numpy>=1.20.0,<2.0.0
 
 # ============================================================================
@@ -58,7 +58,7 @@ watchdog>=2.0.0
 openai>=1.0.0
 pydantic>=2.0.0,<3.0.0
 google-generativeai>=0.8.5
-transformers>=4.40.0
+transformers>=4.35,<4.40
 accelerate>=0.27.0
 sentencepiece>=0.2.0
 safetensors>=0.4.0
