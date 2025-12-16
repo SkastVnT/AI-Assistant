@@ -45,10 +45,16 @@ class PhoWhisperClient:
             self.model_name = model_name
             print(f"[PhoWhisper] Will download from HuggingFace: {model_name}")
         
-        # Force CPU mode to avoid cuDNN dependency
-        self.device = "cpu"
-        if device is not None:
-            print(f"[PhoWhisper] Ignoring device={device}, using CPU to avoid cuDNN issues")
+        # GPU if available (cuDNN installed)
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = "cuda:0"
+                print(f"[PhoWhisper] Using GPU (CUDA)")
+            else:
+                self.device = "cpu"
+                print(f"[PhoWhisper] Using CPU")
+        else:
+            self.device = device
         self.chunk_duration = chunk_duration
         self.pipe = None
         self._is_loaded = False
@@ -65,20 +71,37 @@ class PhoWhisperClient:
         print(f"[PhoWhisper] Loading {self.model_name} on {self.device}...")
         start_time = time.time()
         
-        # Always use CPU mode (device=-1 for transformers pipeline)
+        # Use GPU if available
+        device_id = 0 if self.device == "cuda:0" else -1  # 0 for GPU, -1 for CPU
+        torch_dtype = torch.float16 if device_id == 0 else torch.float32
+        
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=self.model_name,
-            device=-1,  # CPU mode
-            torch_dtype=torch.float32,
+            device=device_id,
+            torch_dtype=torch_dtype,
         )
-        print("[PhoWhisper] CPU mode loaded successfully")
+        print(f"[PhoWhisper] Loaded successfully on {self.device}")
             
         load_time = time.time() - start_time
         self._is_loaded = True
         
         print(f"[PhoWhisper] Loaded in {load_time:.2f}s")
         return load_time
+    
+    def unload(self):
+        """Unload model to free GPU/CPU memory"""
+        if self.pipe is not None:
+            del self.pipe
+            self.pipe = None
+            self._is_loaded = False
+            if "cuda" in str(self.device):
+                import gc
+                gc.collect()
+                torch.cuda.empty_cache()
+                print(f"[PhoWhisper] Model unloaded, GPU memory freed")
+            else:
+                print(f"[PhoWhisper] Model unloaded")
         
     def transcribe(
         self,

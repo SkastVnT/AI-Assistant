@@ -49,13 +49,26 @@ class WhisperClient:
         """
         self.model_name = model_name
         
-        # Force CPU mode to avoid cuDNN dependency
-        # cuDNN is not included in PyTorch CUDA wheels and causes crashes
-        self.device = "cpu"
-        self.compute_type = "int8"  # CPU optimized
-        
-        if device is not None:
-            print(f"[Whisper] Ignoring device={device}, using CPU to avoid cuDNN issues")
+        # Smart device selection - GPU if cuDNN available
+        if device is None:
+            if torch.cuda.is_available():
+                try:
+                    # Test cuDNN availability
+                    import ctranslate2
+                    self.device = "cuda"
+                    self.compute_type = "float16"
+                    print(f"[Whisper] Using GPU (CUDA) with cuDNN")
+                except Exception as e:
+                    print(f"[Whisper] cuDNN test failed: {e}")
+                    self.device = "cpu"
+                    self.compute_type = "int8"
+                    print(f"[Whisper] Falling back to CPU")
+            else:
+                self.device = "cpu"
+                self.compute_type = "int8"
+        else:
+            self.device = device
+            self.compute_type = "float16" if device == "cuda" else "int8"
             
         self.model = None
         self._is_loaded = False
@@ -99,6 +112,20 @@ class WhisperClient:
         
         print(f"[Whisper] Loaded in {load_time:.2f}s")
         return load_time
+    
+    def unload(self):
+        """Unload model to free GPU/CPU memory"""
+        if self.model is not None:
+            del self.model
+            self.model = None
+            self._is_loaded = False
+            if self.device == "cuda":
+                import gc
+                gc.collect()
+                torch.cuda.empty_cache()
+                print(f"[Whisper] Model unloaded, GPU memory freed")
+            else:
+                print(f"[Whisper] Model unloaded")
         
     def transcribe(
         self,
