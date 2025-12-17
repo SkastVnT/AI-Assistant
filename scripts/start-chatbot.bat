@@ -1,4 +1,7 @@
 @echo off
+REM Navigate to project root (parent of scripts folder)
+cd /d "%~dp0.."
+
 echo ========================================
 echo   Starting ChatBot Service
 echo ========================================
@@ -33,7 +36,7 @@ echo.
 echo Development mode: Set DEBUG=1 for auto-reload
 echo Production mode: Default (DEBUG=0)
 echo.
-set DEBUG=1
+REM set DEBUG=1
 set HOST=127.0.0.1
 set CHATBOT_PORT=5000
 python app.py

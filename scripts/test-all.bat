@@ -2,6 +2,9 @@
 title AI Assistant - Run All Tests
 color 0E
 
+REM Navigate to project root (parent of scripts folder)
+cd /d "%~dp0.."
+
 echo ================================================================================
 echo.
 echo                    AI Assistant Test Suite Runner

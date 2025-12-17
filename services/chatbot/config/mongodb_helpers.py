@@ -16,7 +16,20 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import DESCENDING, ASCENDING
-from config.mongodb_config import get_db
+
+# Import get_db - will be injected from parent
+# This allows importlib to load this module without package context
+try:
+    from .mongodb_config import get_db
+except ImportError:
+    # Fallback for importlib loading
+    import importlib.util
+    from pathlib import Path
+    mongodb_config_path = Path(__file__).parent / 'mongodb_config.py'
+    spec = importlib.util.spec_from_file_location("_mongodb_config", mongodb_config_path)
+    _mongodb_config = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_mongodb_config)
+    get_db = _mongodb_config.get_db
 
 
 # ============================================================================

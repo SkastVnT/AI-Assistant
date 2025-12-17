@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================================
 REM Check Python Version
-REM Requires: Python 3.10.x or 3.11.x
+REM Requires: Python 3.11.x (Recommended: 3.11.9)
 REM ============================================================================
 
 echo Checking Python version...
@@ -15,14 +15,14 @@ for /f "tokens=1,2 delims=." %%a in ("%PYTHON_VERSION%") do (
     set PYTHON_MINOR=%%b
 )
 
-REM Check if Python 3.10.x or 3.11.x
-if "%PYTHON_MAJOR%.%PYTHON_MINOR%"=="3.10" (
-    echo [OK] Python %PYTHON_VERSION% detected (3.10.x - Compatible)
+REM Check if Python 3.11.x (Recommended) or 3.10.x
+if "%PYTHON_MAJOR%.%PYTHON_MINOR%"=="3.11" (
+    echo [OK] Python %PYTHON_VERSION% detected (3.11.x - Recommended)
     exit /b 0
 )
 
-if "%PYTHON_MAJOR%.%PYTHON_MINOR%"=="3.11" (
-    echo [OK] Python %PYTHON_VERSION% detected (3.11.x - Compatible)
+if "%PYTHON_MAJOR%.%PYTHON_MINOR%"=="3.10" (
+    echo [OK] Python %PYTHON_VERSION% detected (3.10.x - Compatible)
     exit /b 0
 )
 
@@ -31,7 +31,8 @@ echo.
 echo ============================================================================
 echo [WARNING] Python version %PYTHON_VERSION% detected!
 echo.
-echo Recommended versions: Python 3.10.x or 3.11.x
+echo Recommended version: Python 3.11.9
+echo Also compatible: Python 3.10.x
 echo Current version may cause compatibility issues.
 echo.
 echo You can continue, but some packages may not work correctly.

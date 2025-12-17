@@ -1147,7 +1147,55 @@ graph LR
 | **Large Dataset** | 200-1000 images | ~4-8 hours | 16 GB | ⭐⭐⭐⭐⭐ |
 | **SDXL** | 50-200 images | ~2-4 hours | 24 GB | ⭐⭐⭐⭐⭐ |
 
-#### 🚀 Quick Start:
+#### 🚀 Quick Start
+
+### For End-Users (First Time Setup)
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/SkastVnT/AI-Assistant.git
+cd AI-Assistant
+```
+
+2. **Run interactive menu** (Easiest!)
+```bash
+menu.bat
+```
+Then select: **`0. Quick Setup`** → Auto-installs everything!
+
+**OR** manual setup:
+```bash
+scripts\SETUP.bat
+```
+
+This will automatically:
+- ✅ Check Python version (3.10.6+ required)
+- ✅ Create virtual environment
+- ✅ Install PyTorch with CUDA support
+- ✅ Install all dependencies
+- ✅ Setup `.env` files
+
+3. **Configure API keys**
+
+Edit `services/chatbot/.env` and add:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Get your API key: https://makersuite.google.com/app/apikey
+
+4. **Start ChatBot**
+
+From menu: Select `2. ChatBot`
+
+OR directly:
+```bash
+scripts\start-chatbot.bat
+```
+
+5. **Access**: http://localhost:5000
+
+📖 **For detailed setup instructions, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**:
 
 ```bash
 cd train_LoRA_tool

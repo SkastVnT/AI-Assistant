@@ -4,6 +4,9 @@ REM AI-Assistant - Start MCP Server
 REM Shortcut from root directory
 REM ==================================================
 
+REM Navigate to project root (parent of scripts folder)
+cd /d "%~dp0.."
+
 echo.
 echo ============================================
 echo   AI-Assistant MCP Server Launcher

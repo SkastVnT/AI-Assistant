@@ -8,7 +8,7 @@ import sys
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, send_file
 import openai
-import google.generativeai as genai
+from google import genai
 from datetime import datetime
 import uuid
 import base64
@@ -20,21 +20,33 @@ import json
 from pathlib import Path
 import shutil
 
-# Import rate limiter and cache - insert at beginning of path to prioritize root config
+# Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config.rate_limiter import get_gemini_key_with_rate_limit, wait_for_openai_rate_limit, get_rate_limit_stats
 from config.response_cache import get_cached_response, cache_response, get_all_cache_stats
 
-# MongoDB imports
+# MongoDB imports - import directly from files to avoid package conflict
 from bson import ObjectId
-from config.mongodb_config import mongodb_client, get_db
-from config.mongodb_helpers import (
-    ConversationDB, 
-    MessageDB, 
-    MemoryDB, 
-    FileDB,
-    UserSettingsDB
-)
+import importlib.util
+
+# Load mongodb_config from service directory
+mongodb_config_path = Path(__file__).parent / 'config' / 'mongodb_config.py'
+spec = importlib.util.spec_from_file_location("mongodb_config_chatbot", mongodb_config_path)
+mongodb_config_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mongodb_config_module)
+mongodb_client = mongodb_config_module.mongodb_client
+get_db = mongodb_config_module.get_db
+
+# Load mongodb_helpers from service directory
+mongodb_helpers_path = Path(__file__).parent / 'config' / 'mongodb_helpers.py'
+spec = importlib.util.spec_from_file_location("mongodb_helpers_chatbot", mongodb_helpers_path)
+mongodb_helpers_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mongodb_helpers_module)
+ConversationDB = mongodb_helpers_module.ConversationDB
+MessageDB = mongodb_helpers_module.MessageDB
+MemoryDB = mongodb_helpers_module.MemoryDB
+FileDB = mongodb_helpers_module.FileDB
+UserSettingsDB = mongodb_helpers_module.UserSettingsDB
 
 # Setup logging
 logging.basicConfig(
@@ -137,11 +149,11 @@ GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 # GitHub API
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
-# Configure Gemini - try both keys
+# Initialize Gemini client with new SDK
 try:
-    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 except:
-    genai.configure(api_key=GEMINI_API_KEY_2)
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {
@@ -379,7 +391,7 @@ class ChatbotAgent:
         """Chat using Google Gemini with quota handling - rotate between 4 API keys"""
         import time
         
-        model_name = 'gemini-1.5-flash'
+        model_name = 'gemini-2.0-flash-exp'
         
         # 🆕 Check cache first
         cache_key_params = {
@@ -416,9 +428,8 @@ class ChatbotAgent:
         
         for idx, (api_key, model_name) in enumerate(gemini_configs):
             try:
-                # Configure with current API key
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel(model_name)
+                # Create new client with current API key
+                client = genai.Client(api_key=api_key)
                 
                 # Use custom prompt if provided, otherwise use base prompt
                 if custom_prompt and custom_prompt.strip():
@@ -504,8 +515,11 @@ class ChatbotAgent:
                 
                 conversation += f"User: {message}\nAssistant:"
                 
-                # Try to generate response
-                response = model.generate_content(conversation)
+                # Generate response using new SDK
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=conversation
+                )
                 
                 # Success! Return response
                 key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
@@ -529,9 +543,11 @@ class ChatbotAgent:
                 error_msg = str(e)
                 last_error = error_msg
                 
+                # Determine key number for logging
+                key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
+                
                 # Check if quota exceeded
                 if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                    key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
                     logger.warning(f"⚠️ Gemini quota exceeded - API Key #{key_num}, Model: {model_name}")
                     
                     # If not the last config, continue to next
@@ -1274,6 +1290,137 @@ def chat():
                 logger.info(f"[TOOLS] Running GitHub Search for: {message}")
                 github_result = github_search_tool(message)
                 tool_results.append(f"## 🐙 GitHub Search Results\n\n{github_result}")
+            
+            if 'image-generation' in tools:
+                logger.info(f"[TOOLS] AI-powered image generation with Stable Diffusion")
+                
+                # Step 1: Sử dụng AI để tạo prompt chi tiết từ mô tả của user
+                prompt_request = f"""Bạn là chuyên gia tạo prompt cho Stable Diffusion.
+
+NHIỆM VỤ: Chuyển đổi mô tả của người dùng thành prompt CHÍNH XÁC, KHÔNG được tự ý thêm bớt nội dung.
+
+⚠️ QUY TẮC BẮT BUỘC:
+1. CHỈ mô tả ĐÚNG những gì user yêu cầu, KHÔNG tự ý thêm con người nếu user không nói
+2. Nếu user nói về VẬT/CẢNH (landscape, building, sky, ocean, mountain, tree, flower, city, architecture, nature, scenery):
+   - Prompt: CHỈ mô tả cảnh vật, TUYỆT ĐỐI KHÔNG thêm người
+   - has_people: false
+   - Negative phải có: "no humans, no people, no person, no character"
+   
+3. Nếu user NÓI RÕ về NGƯỜI (girl, boy, man, woman, person, character, portrait):
+   - Prompt: Mô tả người theo yêu cầu (trang phục lịch sự, không gợi cảm)
+   - has_people: true
+   - Negative phải có NSFW filter mạnh
+
+4. NSFW Protection (BẮT BUỘC mọi trường hợp):
+   - TUYỆT ĐỐI KHÔNG tạo: nude, naked, underwear, bikini, revealing clothes, sexy poses
+   - Negative PHẢI CÓ đầy đủ: nsfw, r18, nude, naked, explicit, sexual, porn, underwear, revealing
+
+MÔ TẢ CỦA NGƯỜI DÙNG: "{message}"
+
+Trả về JSON (TUÂN THỦ NGHIÊM NGẶT):
+{{
+    "prompt": "CHỈ mô tả ĐÚNG yêu cầu user, KHÔNG tự thêm người nếu user không nói",
+    "negative_prompt": "bad quality, blurry, lowres, worst quality",
+    "explanation": "giải thích ngắn",
+    "has_people": false (CHỈ true nếu user NÓI RÕ về người)
+}}
+
+CHỈ trả JSON, không text khác."""
+
+                try:
+                    # Gọi AI để tạo prompt (sử dụng model hiện tại)
+                    ai_response = chatbot.chat(prompt_request, model=model, context='programming', language='vi')
+                    response_text = ai_response.get('response', ai_response) if isinstance(ai_response, dict) else ai_response
+                    
+                    # Parse JSON response
+                    import re
+                    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                    if json_match:
+                        prompt_data = json.loads(json_match.group())
+                        generated_prompt = prompt_data.get('prompt', '')
+                        generated_neg = prompt_data.get('negative_prompt', '')
+                        explanation = prompt_data.get('explanation', '')
+                        has_people = prompt_data.get('has_people', False)  # Default to False - safer
+                        
+                        # STRONG NSFW filters - ALWAYS append
+                        nsfw_filters = "nsfw, r18, nude, naked, explicit, sexual, porn, hentai, erotic, underwear, panties, bra, lingerie, bikini, swimsuit, revealing clothes, cleavage, suggestive, lewd, ecchi, seductive, provocative, inappropriate content, adult content, xxx"
+                        if "nsfw" not in generated_neg.lower():
+                            generated_neg = f"{generated_neg}, {nsfw_filters}" if generated_neg else nsfw_filters
+                        
+                        # Add "humans" filter if NOT about people (negative = things to AVOID)
+                        if not has_people:
+                            avoid_people = "humans, people, person, persons, character, characters, figure, figures, man, men, woman, women, girl, girls, boy, boys, human figure"
+                            if "human" not in generated_neg.lower():
+                                generated_neg = f"{generated_neg}, {avoid_people}"
+                            logger.info(f"[TOOLS] Added 'humans' to negative - avoid people in scenery/object image")
+                        else:
+                            # For people images, add extra clothing safety
+                            clothing_safety = "fully clothed, modest clothing, appropriate attire, safe for work, family friendly"
+                            if clothing_safety not in generated_prompt.lower():
+                                generated_prompt = f"{generated_prompt}, {clothing_safety}"
+                            logger.info(f"[TOOLS] Added clothing safety for people image")
+                        
+                        logger.info(f"[TOOLS] Generated prompt: {generated_prompt[:100]}...")
+                        
+                        # Step 2: Tự động tạo ảnh với Stable Diffusion
+                        from src.utils.sd_client import get_sd_client
+                        
+                        sd_client = get_sd_client()
+                        image_params = {
+                            'prompt': generated_prompt,
+                            'negative_prompt': generated_neg,
+                            'width': 512,
+                            'height': 512,
+                            'steps': 30,
+                            'cfg_scale': 7.0,
+                            'sampler_name': 'DPM++ 2M Karras',
+                            'seed': -1,
+                            'save_images': False  # Return base64 directly
+                        }
+                        
+                        logger.info(f"[TOOLS] Generating image with SD...")
+                        sd_result = sd_client.txt2img(**image_params)
+                        
+                        if sd_result.get('images'):
+                            # Lấy ảnh đầu tiên (base64)
+                            image_base64 = sd_result['images'][0]
+                            
+                            result_msg = f"""## 🎨 Ảnh đã được tạo thành công!
+
+**Mô tả gốc:** {message}
+
+**Generated Prompt:**
+```
+{generated_prompt}
+```
+
+**Negative Prompt:**
+```
+{generated_neg}
+```
+
+**Giải thích:** {explanation}
+
+**Ảnh được tạo:**
+<img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
+
+---
+🎯 **Thông số:**
+- Kích thước: {image_params['width']}x{image_params['height']}
+- Steps: {image_params['steps']} | CFG: {image_params['cfg_scale']}
+- Sampler: {image_params['sampler_name']}"""
+                            
+                            tool_results.append(result_msg)
+                        else:
+                            tool_results.append(f"## 🎨 Image Generation\n\nLỗi: Stable Diffusion không trả về ảnh.\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
+                    else:
+                        tool_results.append(f"## 🎨 Image Generation\n\nKhông thể tạo prompt tự động. Response: {response_text}\n\nVui lòng sử dụng Image Generator panel thủ công.")
+                        
+                except Exception as e:
+                    logger.error(f"[TOOLS] Error in image generation: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    tool_results.append(f"## 🎨 Image Generation\n\nLỗi: {str(e)}\n\nVui lòng kiểm tra:\n1. Stable Diffusion có đang chạy?\n2. API có được bật không?\n3. Xem logs để biết chi tiết.")
         
         # If tools were used, return tool results
         if tool_results:
@@ -1544,8 +1691,11 @@ def sd_models():
         models = sd_client.get_models()
         current = sd_client.get_current_model()
         
+        # Format models as simple array of strings (titles)
+        model_titles = [model.get('title', model.get('model_name', 'Unknown')) for model in models]
+        
         return jsonify({
-            'models': models,
+            'models': model_titles,
             'current_model': current['model']
         })
         
@@ -1837,10 +1987,20 @@ def sd_loras():
         sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
         sd_client = get_sd_client(sd_api_url)
         
-        loras = sd_client.get_loras()
+        loras_raw = sd_client.get_loras()
+        
+        # Convert to simple array with just name/alias
+        loras_simple = []
+        if isinstance(loras_raw, list):
+            for lora in loras_raw:
+                if isinstance(lora, dict):
+                    name = lora.get('alias') or lora.get('name') or str(lora)
+                    loras_simple.append({'name': name})
+                else:
+                    loras_simple.append({'name': str(lora)})
         
         return jsonify({
-            'loras': loras
+            'loras': loras_simple
         })
         
     except Exception as e:
@@ -1857,10 +2017,21 @@ def sd_vaes():
         sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
         sd_client = get_sd_client(sd_api_url)
         
-        vaes = sd_client.get_vaes()
+        vaes_raw = sd_client.get_vaes()
+        
+        # Convert to simple string array
+        vae_names = []
+        if isinstance(vaes_raw, list):
+            for vae in vaes_raw:
+                if isinstance(vae, dict):
+                    # Extract name/model_name from dict
+                    name = vae.get('model_name') or vae.get('name') or str(vae)
+                    vae_names.append(name)
+                else:
+                    vae_names.append(str(vae))
         
         return jsonify({
-            'vaes': vaes
+            'vaes': vae_names
         })
         
     except Exception as e:

@@ -219,7 +219,7 @@ async function loadSamplers() {
         const response = await fetch('/api/sd/samplers');
         const data = await response.json();
         
-        const samplerSelect = document.getElementById('samplerName');
+        const samplerSelect = document.getElementById('samplerSelect');
         if (samplerSelect && data.success) {
             samplerSelect.innerHTML = data.samplers.map(s => 
                 `<option value="${s.name}">${s.name}</option>`
@@ -233,7 +233,7 @@ async function loadSamplers() {
 function adjustStepsAndCFG() {
     const width = parseInt(document.getElementById('imageWidth').value);
     const height = parseInt(document.getElementById('imageHeight').value);
-    const stepsInput = document.getElementById('steps');
+    const stepsInput = document.getElementById('imageSteps');
     const cfgInput = document.getElementById('cfgScale');
     
     const totalPixels = width * height;
@@ -251,18 +251,27 @@ function adjustStepsAndCFG() {
 }
 
 async function generateImage() {
-    const prompt = document.getElementById('prompt').value.trim();
-    const negativePrompt = document.getElementById('negativePrompt').value.trim();
+    const prompt = document.getElementById('imagePrompt').value.trim();
+    let negativePrompt = document.getElementById('negativePrompt').value.trim();
     const width = parseInt(document.getElementById('imageWidth').value);
     const height = parseInt(document.getElementById('imageHeight').value);
-    const steps = parseInt(document.getElementById('steps').value);
+    const steps = parseInt(document.getElementById('imageSteps').value);
     const cfgScale = parseFloat(document.getElementById('cfgScale').value);
-    const samplerName = document.getElementById('samplerName').value;
-    const seed = parseInt(document.getElementById('seed').value);
+    const samplerName = document.getElementById('samplerSelect').value;
+    const seed = -1; // Random seed
     
     if (!prompt) {
         alert('Vui lòng nhập prompt!');
         return;
+    }
+    
+    // Auto-append NSFW filters (respects hidden toggle from img2img.js)
+    const nsfwFilterEnabled = localStorage.getItem('_nsfw_filter') !== 'off';
+    if (nsfwFilterEnabled) {
+        const nsfwFilters = 'nsfw, r18, nude, naked, explicit, sexual, porn, hentai, underwear, panties, bra, bikini, revealing clothes, suggestive, lewd, ecchi, inappropriate content';
+        if (!negativePrompt.toLowerCase().includes('nsfw')) {
+            negativePrompt = negativePrompt ? `${negativePrompt}, ${nsfwFilters}` : nsfwFilters;
+        }
     }
     
     const generateBtn = document.getElementById('generateImageBtn');
@@ -338,7 +347,7 @@ function copyImageToChat() {
     if (window.currentGeneratedImage) {
         const metadata = `
 🖼️ Image: ${window.currentGeneratedImage}
-📝 Prompt: ${document.getElementById('prompt').value.substring(0, 100)}...`;
+📝 Prompt: ${document.getElementById('imagePrompt').value.substring(0, 100)}...`;
         
         addMessage(
             `<img src="${window.currentGeneratedImage}" alt="Generated" style="max-width: 100%; border-radius: 8px;"><br>${metadata}`,

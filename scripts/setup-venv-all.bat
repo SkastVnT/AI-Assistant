@@ -79,7 +79,7 @@ if exist ".venv\Scripts\activate.bat" (
     
 ) else (
     echo [INFO] Virtual environment not found
-    echo        Creating new virtual environment...
+    echo        Creating new virtual environment with Python 3.11...
     echo.
     
     REM Create new venv
@@ -88,9 +88,9 @@ if exist ".venv\Scripts\activate.bat" (
         echo [ERROR] Failed to create virtual environment
         echo.
         echo Troubleshooting:
-        echo   - Make sure Python is installed and in PATH
+        echo   - Make sure Python 3.11.x is installed and in PATH
         echo   - Try: python --version
-        echo   - Required: Python 3.10.x or 3.11.x
+        echo   - Required: Python 3.11.x (Recommended: 3.11.9)
         pause
         exit /b 1
     )

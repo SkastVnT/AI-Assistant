@@ -2,6 +2,9 @@
 title AI Assistant - Start All Services
 color 0A
 
+REM Navigate to project root (parent of scripts folder)
+cd /d "%~dp0.."
+
 echo ================================================================================
 echo.
 echo     █████╗ ██╗    ██████╗ ██╗   ██╗██╗██╗     ██████╗ ███████╗██████╗ 

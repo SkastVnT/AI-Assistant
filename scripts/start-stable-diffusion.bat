@@ -1,4 +1,7 @@
 @echo off
+REM Navigate to project root (parent of scripts folder)
+cd /d "%~dp0.."
+
 echo ========================================
 echo   Starting Stable Diffusion WebUI
 echo ========================================
