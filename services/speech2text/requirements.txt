@@ -29,7 +29,7 @@ accelerate==0.27.2
 sentencepiece==0.2.0
 
 # Google Gemini (Cloud-based LLM for transcript cleaning)
-google-generativeai>=0.3.0
+google-genai>=0.2.0
 
 # OpenAI & DeepSeek (Alternative LLMs for transcript cleaning)
 openai>=1.0.0  # For GPT-4o-mini and DeepSeek (OpenAI-compatible API)
