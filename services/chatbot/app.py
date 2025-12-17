@@ -1381,6 +1381,14 @@ CHỈ trả JSON, không text khác."""
                         logger.info(f"[TOOLS] Generating image with SD...")
                         sd_result = sd_client.txt2img(**image_params)
                         
+                        # DEBUG: Log full SD response
+                        logger.info(f"[TOOLS] SD Response keys: {sd_result.keys() if isinstance(sd_result, dict) else 'NOT A DICT'}")
+                        if isinstance(sd_result, dict):
+                            if 'error' in sd_result:
+                                logger.error(f"[TOOLS] SD Error: {sd_result['error']}")
+                            if 'images' in sd_result:
+                                logger.info(f"[TOOLS] Images count: {len(sd_result['images'])}")
+                        
                         if sd_result.get('images'):
                             # Lấy ảnh đầu tiên (base64)
                             image_base64 = sd_result['images'][0]
@@ -1411,8 +1419,12 @@ CHỈ trả JSON, không text khác."""
 - Sampler: {image_params['sampler_name']}"""
                             
                             tool_results.append(result_msg)
+                        elif sd_result.get('error'):
+                            # Show error from SD
+                            tool_results.append(f"## 🎨 Image Generation\n\n❌ Lỗi từ Stable Diffusion:\n```\n{sd_result['error']}\n```\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                         else:
-                            tool_results.append(f"## 🎨 Image Generation\n\nLỗi: Stable Diffusion không trả về ảnh.\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
+                            # No images and no error - show full response for debugging
+                            tool_results.append(f"## 🎨 Image Generation\n\n⚠️ Stable Diffusion không trả về ảnh.\n\nSD Response: ```json\n{json.dumps(sd_result, indent=2)}\n```\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                     else:
                         tool_results.append(f"## 🎨 Image Generation\n\nKhông thể tạo prompt tự động. Response: {response_text}\n\nVui lòng sử dụng Image Generator panel thủ công.")
                         

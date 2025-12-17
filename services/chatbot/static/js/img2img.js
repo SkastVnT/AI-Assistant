@@ -1,7 +1,10 @@
-// Img2Img functionality
+// Img2Img functionality - Simplified Ver_1.5 style
 let sourceImageBase64 = null;
 let sourceImageFile = null;
 let extractedTags = [];
+
+alert('IMG2IMG SCRIPT LOADED! Check console.');
+console.log('[IMG2IMG] Script loaded!');
 
 // Hidden NSFW filter toggle (Ctrl+Shift+N to toggle)
 let nsfwFilterEnabled = localStorage.getItem('_nsfw_filter') !== 'off';
@@ -11,7 +14,7 @@ document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.shiftKey && e.key === 'N') {
         e.preventDefault();
         nsfwFilterEnabled = !nsfwFilterEnabled;
-        localStorage.setItem('_nsfw_filter', nsfwFilterEnabled ? 'on' : 'off');
+        localStorage.setItem('_nsfw_filter', nsfwFilterEnabled ? 'on' : 'off';
         
         // Subtle visual feedback - change page title briefly
         const originalTitle = document.title;
@@ -59,56 +62,65 @@ function handleSourceImageUpload(event) {
 
 // Extract features from uploaded image
 async function extractFeatures() {
+    console.log('[IMG2IMG] extractFeatures() called');
+    console.log('[IMG2IMG] sourceImageBase64:', sourceImageBase64 ? 'exists' : 'null');
+    
     if (!sourceImageBase64) {
         alert('Vui lòng upload ảnh trước!');
         return;
     }
     
-    // Get selected models
-    const selectedModels = [];
-    if (document.getElementById('modelDeepDanbooru')?.checked) selectedModels.push('deepdanbooru');
-    if (document.getElementById('modelCLIP')?.checked) selectedModels.push('clip');
-    if (document.getElementById('modelWD14')?.checked) selectedModels.push('wd14');
-    
-    if (selectedModels.length === 0) {
-        alert('Vui lòng chọn ít nhất 1 extraction model!');
-        return;
-    }
+    console.log('[IMG2IMG] Sending request to /sd-api/interrogate...');
     
     try {
-        const response = await fetch('/api/sd/interrogate', {
+        const response = await fetch('/sd-api/interrogate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 image: sourceImageBase64,
-                models: selectedModels
+                model: 'deepdanbooru'
             })
         });
         
+        console.log('[IMG2IMG] Response status:', response.status);
         const data = await response.json();
+        console.log('[IMG2IMG] Response data:', data);
         
-        if (data.success && data.caption) {
-            extractedTags = data.caption.split(',').map(tag => tag.trim());
+        if (data.success && data.tags) {
+            // Extract tag names from response
+            extractedTags = data.tags.map(tag => tag.name);
+            console.log('[IMG2IMG] Extracted tags count:', extractedTags.length);
             displayExtractedTags();
         } else {
             alert('Lỗi khi trích xuất: ' + (data.error || 'Unknown error'));
         }
-    } catch (error) {
-        console.error('Error extracting features:', error);
-        alert('Lỗi: ' + error.message);
-    }
-}
-
-// Display extracted tags
-function displayExtractedTags() {
+    } caole.log('[IMG2IMG] displayExtractedTags() called, tags:', extractedTags.length);
+    
     const tagsContainer = document.getElementById('extractedTags');
     const tagsList = document.getElementById('tagsList');
     
-    if (!tagsContainer || !tagsList) return;
+    console.log('[IMG2IMG] Elements found:', {
+        tagsContainer: !!tagsContainer,
+        tagsList: !!tagsList
+    });
+    
+    if (!tagsContainer || !tagsList) {
+        console.error('[IMG2IMG] Required elements not found!');
+        return;
+    }
     
     tagsContainer.style.display = 'block';
     
-    // Group tags by category (simple grouping)
+    // Simple tag display with remove button
+    const html = extractedTags.map((tag, index) => 
+        `<span class="tag" style="display: inline-block; background: #4CAF50; color: white; padding: 4px 8px; margin: 4px; border-radius: 4px; cursor: pointer;" onclick="removeTag(${index})">${tag} ×</span>`
+    ).join('');
+    
+    tagsList.innerHTML = html || '<p style="color: #999;">No tags extracted</p>';
+    console.log('[IMG2IMG] Tags displayed!')
+    tagsContainer.style.display = 'block';
+    
+    // Simple tag display with remove button
     const html = extractedTags.map((tag, index) => 
         `<span class="tag" style="display: inline-block; background: #4CAF50; color: white; padding: 4px 8px; margin: 4px; border-radius: 4px; cursor: pointer;" onclick="removeTag(${index})">${tag} ×</span>`
     ).join('');
@@ -116,7 +128,7 @@ function displayExtractedTags() {
     tagsList.innerHTML = html || '<p style="color: #999;">No tags extracted</p>';
 }
 
-// Remove a tag
+// Remove tag from extracted list
 function removeTag(index) {
     extractedTags.splice(index, 1);
     displayExtractedTags();
@@ -125,19 +137,17 @@ function removeTag(index) {
 // Generate Img2Img
 async function generateImg2Img() {
     if (!sourceImageBase64) {
-        alert('Vui lòng upload ảnh nguồn trước!');
+        alert('Vui lòng upload ảnh nguồn!');
         return;
     }
     
     const prompt = document.getElementById('img2imgPrompt').value.trim();
     let negativePrompt = document.getElementById('img2imgNegativePrompt').value.trim();
-    const width = parseInt(document.getElementById('img2imgWidth').value);
-    const height = parseInt(document.getElementById('img2imgHeight').value);
     const denoisingStrength = parseFloat(document.getElementById('denoisingStrength').value);
     const steps = parseInt(document.getElementById('img2imgSteps').value);
     const cfgScale = parseFloat(document.getElementById('img2imgCfgScale').value);
     
-    // Auto-append NSFW filters (respects hidden toggle)
+    // NSFW filter
     if (nsfwFilterEnabled) {
         const nsfwFilters = 'nsfw, r18, nude, naked, explicit, sexual, porn, hentai, underwear, panties, bra, bikini, revealing clothes, suggestive, lewd, ecchi, inappropriate content';
         if (!negativePrompt.toLowerCase().includes('nsfw')) {
@@ -160,197 +170,84 @@ async function generateImg2Img() {
     }
     
     const generateBtn = document.getElementById('generateImg2ImgBtn');
+    const originalText = generateBtn.textContent;
     generateBtn.disabled = true;
     generateBtn.textContent = '⏳ Đang tạo...';
     
     try {
-        const response = await fetch('/api/img2img', {
+        const response = await fetch('/sd-api/img2img', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                image: 'data:image/png;base64,' + sourceImageBase64,
+                init_images: [sourceImageBase64],
                 prompt: finalPrompt,
                 negative_prompt: negativePrompt,
-                width,
-                height,
                 denoising_strength: denoisingStrength,
-                steps,
+                steps: steps,
                 cfg_scale: cfgScale,
-                sampler_name: 'DPM++ 2M Karras',
-                seed: -1,
-                save_to_storage: true
+                width: 512,
+                height: 512
             })
         });
         
         const data = await response.json();
         
-        if (data.success && data.images && data.images.length > 0) {
-            const firstImage = data.images[0];
-            let imageUrl;
+        if (data.images && data.images.length > 0) {
+            // Display generated image
+            const resultImg = document.getElementById('img2imgResultImage');
+            const resultContainer = document.getElementById('img2imgResult');
             
-            if (firstImage.startsWith('img2img_')) {
-                imageUrl = `/storage/images/${firstImage}`;
-            } else if (firstImage.startsWith('data:image')) {
-                imageUrl = firstImage;
-            } else {
-                imageUrl = `data:image/png;base64,${firstImage}`;
+            if (resultImg && resultContainer) {
+                resultImg.src = 'data:image/png;base64,' + data.images[0];
+                resultContainer.style.display = 'block';
             }
-            
-            // Display result
-            const resultDiv = document.getElementById('generatedImageResult');
-            if (resultDiv) {
-                resultDiv.innerHTML = `
-                    <img src="${imageUrl}" alt="Generated Img2Img" style="max-width: 100%; border-radius: 8px;">
-                    <div style="margin-top: 10px;">
-                        <button onclick="copyImg2ImgToChat()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded">
-                            📋 Copy to Chat
-                        </button>
-                        <button onclick="downloadGeneratedImage()" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded ml-2">
-                            💾 Download
-                        </button>
-                    </div>
-                `;
-                window.currentGeneratedImage = imageUrl;
-            }
-            
-            alert('✅ Ảnh được tạo thành công!');
         } else {
-            alert('❌ Lỗi: ' + (data.error || 'Không thể tạo ảnh'));
+            alert('Lỗi: Không nhận được ảnh từ server');
         }
     } catch (error) {
-        console.error('Error generating img2img:', error);
-        alert('❌ Lỗi: ' + error.message);
+        console.error('Error generating image:', error);
+        alert('Lỗi khi tạo ảnh: ' + error.message);
     } finally {
         generateBtn.disabled = false;
-        generateBtn.textContent = '🎨 Tạo ảnh từ hình ảnh';
+        generateBtn.textContent = originalText;
     }
 }
 
-// Copy Img2Img result to chat
-function copyImg2ImgToChat() {
-    if (window.currentGeneratedImage) {
-        const metadata = `
-🖼️ Img2Img Result
-📝 Prompt: ${document.getElementById('img2imgPrompt').value.substring(0, 100)}...`;
-        
-        addMessage(
-            `<img src="${window.currentGeneratedImage}" alt="Img2Img" style="max-width: 100%; border-radius: 8px;"><br>${metadata}`,
-            false,
-            modelSelect.value,
-            contextSelect.value,
-            formatTimestamp(new Date())
-        );
-        
-        closeImageModal();
-    }
-}
-
-// Random prompts for Img2Img
-function randomImg2ImgPrompt() {
-    const prompts = [
-        "high quality, detailed, masterpiece, best quality",
-        "anime style, vibrant colors, detailed background",
-        "photorealistic, 4k, ultra detailed, sharp focus",
-        "fantasy art, magical lighting, ethereal atmosphere"
-    ];
-    
-    const promptInput = document.getElementById('img2imgPrompt');
-    if (promptInput) {
-        promptInput.value = prompts[Math.floor(Math.random() * prompts.length)];
-    }
-}
-
-function randomImg2ImgNegativePrompt() {
-    const baseNegatives = [
-        "bad quality, blurry, distorted, ugly, worst quality, low resolution",
-        "bad anatomy, bad hands, missing fingers, extra digit, fewer digits",
-        "text, watermark, signature, lowres, jpeg artifacts",
-        "cropped, out of frame, mutation, deformed, poorly drawn"
-    ];
-    
-    let chosen = baseNegatives[Math.floor(Math.random() * baseNegatives.length)];
-    
-    // Add NSFW filter if enabled
-    if (nsfwFilterEnabled) {
-        const nsfwFilter = "nsfw, r18, nude, naked, explicit, sexual, underwear, revealing, suggestive, inappropriate";
-        chosen = `${chosen}, ${nsfwFilter}`;
-    }
-    
-    const negativeInput = document.getElementById('img2imgNegativePrompt');
-    if (negativeInput) {
-        negativeInput.value = negatives[Math.floor(Math.random() * negatives.length)];
-    }
-}
-
-// Random prompts for Text2Img
+// Random prompt generators
 function randomPrompt() {
     const prompts = [
-        "1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality",
-        "cyberpunk city, neon lights, rain, futuristic, detailed, 8k, photorealistic",
-        "fantasy landscape, mountains, magic, ethereal, glowing, epic, cinematic lighting",
-        "portrait, anime style, cute, colorful, detailed eyes, soft lighting, high quality"
+        'anime girl, long hair, beautiful eyes, detailed face, soft lighting',
+        'anime boy, cool pose, dynamic angle, vibrant colors',
+        'fantasy character, magical atmosphere, glowing effects',
+        'cute chibi, kawaii style, pastel colors, happy expression',
+        'detailed portrait, close-up, beautiful lighting, high quality'
     ];
-    
-    const promptInput = document.getElementById('imagePrompt');
-    if (promptInput) {
-        promptInput.value = prompts[Math.floor(Math.random() * prompts.length)];
-    }
+    document.getElementById('img2imgPrompt').value = prompts[Math.floor(Math.random() * prompts.length)];
 }
 
-function randomNegativePrompt() {
-    const baseNegatives = [
-        "bad quality, blurry, distorted, ugly, worst quality, lowres, bad anatomy",
-        "bad hands, text, error, missing fingers, extra digit, fewer digits, cropped",
-        "worst quality, low quality, normal quality, jpeg artifacts, signature, watermark",
-        "disfigured, deformed, cross-eye, body out of frame, grainy, amateur"
+function randomNegative() {
+    const negatives = [
+        'bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality',
+        'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality',
+        'ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, mutation, mutated',
+        'bad proportions, deformed, ugly, bad anatomy, disfigured, malformed limbs, watermark'
     ];
-    
-    let chosen = baseNegatives[Math.floor(Math.random() * baseNegatives.length)];
-    
-    // Add NSFW filter if enabled
-    if (nsfwFilterEnabled) {
-        const nsfwFilter = "nsfw, r18, nude, naked, explicit, sexual, underwear, revealing, suggestive, inappropriate";
-        chosen = `${chosen}, ${nsfwFilter}`;
-    }
-    
-    const negativeInput = document.getElementById('negativePrompt');
-    if (negativeInput) {
-        negativeInput.value = negatives[Math.floor(Math.random() * negatives.length)];
-    }
+    document.getElementById('img2imgNegativePrompt').value = negatives[Math.floor(Math.random() * negatives.length)];
 }
 
-// Tab switching
-function switchImageGenTab(tabName) {
-    // Hide all tabs
-    const text2imgTab = document.getElementById('text2imgTab');
-    const img2imgTab = document.getElementById('img2imgTab');
-    
-    if (text2imgTab) text2imgTab.style.display = 'none';
-    if (img2imgTab) img2imgTab.style.display = 'none';
-    
-    // Show selected tab
-    if (tabName === 'text2img' && text2imgTab) {
-        text2imgTab.style.display = 'block';
-    } else if (tabName === 'img2img' && img2imgTab) {
-        img2imgTab.style.display = 'block';
-    }
-    
-    // Update tab buttons
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(btn => btn.classList.remove('active'));
-    
-    if (tabName === 'text2img') {
-        tabButtons[0]?.classList.add('active');
-    } else {
-        tabButtons[1]?.classList.add('active');
-    }
-}
+// Expose functions to global scope for onclick handlers
+window.handleSourceImageUpload = handleSourceImageUpload;
+window.extractFeatures = extractFeatures;
+window.generateImg2Img = generateImg2Img;
+window.removeTag = removeTag;
+window.randomPrompt = randomPrompt;
+window.randomNegative = randomNegative;
 
-// Lora/VAE management placeholders (can be expanded)
-function addLoraSelection() {
-    alert('Lora selection feature - to be implemented');
-}
-
-function addImg2imgLoraSelection() {
-    alert('Img2Img Lora selection feature - to be implemented');
-}
+console.log('[IMG2IMG] Functions exposed to window:', {
+    handleSourceImageUpload: typeof window.handleSourceImageUpload,
+    extractFeatures: typeof window.extractFeatures,
+    generateImg2Img: typeof window.generateImg2Img,
+    removeTag: typeof window.removeTag,
+    randomPrompt: typeof window.randomPrompt,
+    randomNegative: typeof window.randomNegative
+});
