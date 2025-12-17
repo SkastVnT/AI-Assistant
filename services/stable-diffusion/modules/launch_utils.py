@@ -330,7 +330,7 @@ def prepare_environment():
     codeformer_commit_hash = os.environ.get('CODEFORMER_COMMIT_HASH', "c5b4593074ba6214284d6acd5f1719b6c5d739af")
     blip_commit_hash = os.environ.get('BLIP_COMMIT_HASH', "48211a1594f1321b00f14c9f7a5b4813144b2fb9")
     taming_transformers_commit_hash = os.environ.get('TAMING_TRANSFORMERS_COMMIT_HASH', "24268930bf1dce879235a7fddd0b2355b84d7ea6")
-    midas_commit_hash = os.environ.get('MIDAS_COMMIT_HASH', "457dc6ed3f4c5870f1ec45aba871c936b0f452fe")
+    midas_commit_hash = os.environ.get('MIDAS_COMMIT_HASH', "6e134c7c8f3f0db3cf9b93c0b3b72b2888199868")
 
     try:
         # the existence of this file is a signal to webui.sh/bat that webui needs to be restarted when it stops execution
