@@ -35,9 +35,9 @@ echo.
 
 REM Check if main script exists
 if exist "src\upscale_tool\app.py" (
-    python src\upscale_tool\app.py
+    ..\..\\.venv\Scripts\python.exe src\upscale_tool\app.py
 ) else if exist "app.py" (
-    python app.py
+    ..\..\\.venv\Scripts\python.exe app.py
 ) else (
     echo ERROR: Main script not found!
     echo Please check the installation.
