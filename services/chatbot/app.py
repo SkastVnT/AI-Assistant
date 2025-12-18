@@ -306,7 +306,7 @@ def get_system_prompts(language='vi'):
 # MONGODB CONVERSATION MANAGEMENT
 # ============================================================================
 
-def get_or_create_conversation(user_id, model='gemini-1.5-flash'):
+def get_or_create_conversation(user_id, model='gemini-2.0-flash'):
     """Get active conversation or create new one"""
     if not MONGODB_ENABLED:
         return None
@@ -549,7 +549,7 @@ class ChatbotAgent:
                 
                 # Add model info if not using default
                 model_notice = ""
-                if model_name != 'gemini-1.5-flash' or idx > 0:
+                if model_name != 'gemini-2.0-flash' or idx > 0:
                     model_notice = f"\n\n---\n*✨ Using: Gemini API Key #{key_num}, Model: {model_name}*"
                 
                 result_text = response.text + model_notice
@@ -1653,7 +1653,7 @@ def create_new_conversation():
         
         conv = ConversationDB.create_conversation(
             user_id=user_id,
-            model=data.get('model', 'gemini-1.5-flash'),
+            model=data.get('model', 'gemini-2.0-flash'),
             title=data.get('title', 'New Chat')
         )
         
@@ -2439,7 +2439,9 @@ def share_image_imgbb():
         if ',' in base64_image:
             base64_image = base64_image.split(',')[1]
         
-        logger.info(f"[ImgBB Share] Uploading image: {title}")
+        # Sanitize title to prevent log injection
+        safe_title = title.replace('\n', '\\n').replace('\r', '\\r') if title else 'Untitled'
+        logger.info(f"[ImgBB Share] Uploading image: {safe_title}")
         
         try:
             uploader = ImgBBUploader()
