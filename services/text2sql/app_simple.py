@@ -854,7 +854,16 @@ def list_database_connections():
 def use_database_connection(connection_id):
     """Set active database connection"""
     global active_db_connection
-    
+
+    # Validate that connection_id is a valid UUID (prevents path traversal)
+    try:
+        uuid_obj = uuid.UUID(connection_id, version=4)
+    except (ValueError, AttributeError, TypeError):
+        return jsonify({
+            "status": "error",
+            "message": "Invalid connection ID"
+        }), 400
+
     try:
         connection_file = CONNECTIONS_DIR / f"{connection_id}.json"
         
