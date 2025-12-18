@@ -1360,6 +1360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.toggleCategory = (category) => app.imageGen.toggleCategory(category);
     window.copyImageToChat = () => app.imageGen.sendImageToChat();
     window.downloadGeneratedImage = () => app.imageGen.downloadGeneratedImage();
+    window.shareImageToImgBB = () => app.imageGen.shareImageToImgBB();
     window.handleSourceImageUpload = (event) => app.imageGen.handleSourceImageUpload(event);
     
     // Expose message rendering functions

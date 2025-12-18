@@ -372,7 +372,7 @@ export class ImageGeneration {
                     height: parseInt(document.getElementById('img2imgHeight')?.value) || 512,
                     denoising_strength: parseFloat(document.getElementById('denoisingStrength')?.value) || 0.75,
                     sampler_name: document.getElementById('img2imgSampler')?.value || 'DPM++ 2M Karras',
-                    seed: -1,
+                    seed: parseInt(document.getElementById('img2imgSeed')?.value) || -1,
                     lora_models: this.getSelectedLoras('img2imgLoraList'),
                     vae: document.getElementById('img2imgVaeSelect')?.value || ''
                 };
@@ -402,6 +402,115 @@ export class ImageGeneration {
         if (imgElement && container) {
             imgElement.src = 'data:image/png;base64,' + base64Image;
             container.style.display = 'block';
+            
+            // Auto-save image to storage
+            this.autoSaveImage(base64Image);
+        }
+    }
+    
+    /**
+     * Auto-save generated image to storage and chat history
+     */
+    async autoSaveImage(base64Image) {
+        try {
+            // Collect metadata
+            const metadata = {
+                prompt: document.getElementById('img2imgPrompt')?.value || document.getElementById('imagePrompt')?.value || 'N/A',
+                negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || document.getElementById('negativePrompt')?.value || 'N/A',
+                model: document.getElementById('modelCheckpoint')?.value || 'N/A',
+                sampler: document.getElementById('img2imgSampler')?.value || document.getElementById('samplerSelect')?.value || 'N/A',
+                steps: document.getElementById('img2imgSteps')?.value || document.getElementById('imageSteps')?.value || 'N/A',
+                cfg_scale: document.getElementById('img2imgCfgScale')?.value || document.getElementById('cfgScale')?.value || 'N/A',
+                width: document.getElementById('img2imgWidth')?.value || document.getElementById('imageWidth')?.value || 'N/A',
+                height: document.getElementById('img2imgHeight')?.value || document.getElementById('imageHeight')?.value || 'N/A',
+                denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
+                lora_models: this.getSelectedLoras('loraList').concat(this.getSelectedLoras('img2imgLoraList')).map(l => l.name).join(', ') || 'None',
+                vae: document.getElementById('img2imgVaeSelect')?.value || document.getElementById('vaeSelect')?.value || 'Auto',
+                seed: document.getElementById('img2imgSeed')?.value || document.getElementById('imageSeed')?.value || '-1'
+            };
+            
+            console.log('[Auto-Save] Saving image with metadata:', metadata);
+            
+            const response = await fetch('/api/save-generated-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: base64Image,
+                    metadata: metadata
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('[Auto-Save] ✅ Saved:', data.filename);
+                if (data.cloud_url) {
+                    console.log('[Auto-Save] ☁️ ImgBB:', data.cloud_url);
+                }
+            }
+            
+        } catch (error) {
+            console.error('[Auto-Save] Error:', error);
+            // Don't show alert, just log error
+        }
+    }
+    
+    /**
+     * Share image to ImgBB
+     */
+    async shareImageToImgBB() {
+        if (!this.currentGeneratedImage) {
+            alert('❌ Không có ảnh để share!');
+            return;
+        }
+        
+        try {
+            const prompt = document.getElementById('img2imgPrompt')?.value || document.getElementById('imagePrompt')?.value || 'AI Generated';
+            const title = prompt.substring(0, 50).replace(/[^a-zA-Z0-9 ]/g, '_');
+            
+            console.log('[ImgBB Share] Uploading...');
+            
+            const response = await fetch('/api/share-image-imgbb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: this.currentGeneratedImage.image,
+                    title: title
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.url) {
+                console.log('[ImgBB Share] ✅ Success:', data.url);
+                
+                // Copy to clipboard
+                try {
+                    await navigator.clipboard.writeText(data.url);
+                    alert(`✅ Link đã được copy vào clipboard!\n\n🔗 ${data.url}`);
+                } catch (clipError) {
+                    // Fallback: Show prompt to copy
+                    prompt(`✅ ImgBB Link (Ctrl+C to copy):\n\n`, data.url);
+                }
+            } else {
+                throw new Error(data.error || 'Share failed');
+            }
+            
+        } catch (error) {
+            console.error('[ImgBB Share] Error:', error);
+            alert('❌ Lỗi khi share lên ImgBB: ' + error.message);
         }
     }
 
@@ -640,13 +749,14 @@ Prompt:`;
                 prompt: document.getElementById('img2imgPrompt')?.value || document.getElementById('imagePrompt')?.value || 'N/A',
                 negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || document.getElementById('negativePrompt')?.value || 'N/A',
                 model: document.getElementById('modelCheckpoint')?.value || 'N/A',
-                sampler: document.getElementById('samplerSelect')?.value || document.getElementById('img2imgSampler')?.value || 'N/A',
-                steps: document.getElementById('imageSteps')?.value || document.getElementById('img2imgSteps')?.value || 'N/A',
-                cfg_scale: document.getElementById('cfgScale')?.value || document.getElementById('img2imgCfgScale')?.value || 'N/A',
-                size: `${document.getElementById('imageWidth')?.value || document.getElementById('img2imgWidth')?.value}x${document.getElementById('imageHeight')?.value || document.getElementById('img2imgHeight')?.value}`,
+                sampler: document.getElementById('img2imgSampler')?.value || document.getElementById('samplerSelect')?.value || 'N/A',
+                steps: document.getElementById('img2imgSteps')?.value || document.getElementById('imageSteps')?.value || 'N/A',
+                cfg_scale: document.getElementById('img2imgCfgScale')?.value || document.getElementById('cfgScale')?.value || 'N/A',
+                size: `${document.getElementById('img2imgWidth')?.value || document.getElementById('imageWidth')?.value}x${document.getElementById('img2imgHeight')?.value || document.getElementById('imageHeight')?.value}`,
                 denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
                 lora_models: this.getSelectedLoras('loraList').concat(this.getSelectedLoras('img2imgLoraList')).map(l => l.name).join(', ') || 'None',
-                vae: document.getElementById('vaeSelect')?.value || document.getElementById('img2imgVaeSelect')?.value || 'Auto'
+                vae: document.getElementById('img2imgVaeSelect')?.value || document.getElementById('vaeSelect')?.value || 'Auto',
+                seed: document.getElementById('img2imgSeed')?.value || document.getElementById('imageSeed')?.value || '-1'
             };
             
             // Create message HTML with image and metadata

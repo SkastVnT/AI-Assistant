@@ -489,6 +489,24 @@
                     </div>
                 </div>
                 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sampler:</label>
+                        <select id="img2imgSampler">
+                            <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                            <option value="Euler a">Euler a</option>
+                            <option value="Euler">Euler</option>
+                            <option value="DDIM">DDIM</option>
+                            <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Seed:</label>
+                        <input type="number" id="img2imgSeed" value="-1" placeholder="-1 = Random">
+                    </div>
+                </div>
+                
                 <!-- Lora Selection for Img2Img -->
                 <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                     <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
@@ -519,6 +537,9 @@
                 <div class="image-actions">
                     <button class="copy-to-chat-btn" onclick="copyImageToChat()">
                         💬 Gửi vào Chat
+                    </button>
+                    <button class="share-btn" onclick="shareImageToImgBB()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        🔗 Share (ImgBB)
                     </button>
                     <button class="download-image-btn" onclick="downloadGeneratedImage()">
                         📥 Tải xuống

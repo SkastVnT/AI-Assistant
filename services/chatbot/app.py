@@ -2418,6 +2418,155 @@ def img2img():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/share-image-imgbb', methods=['POST'])
+def share_image_imgbb():
+    """
+    Upload generated image to ImgBB and return shareable link
+    
+    Body params:
+        - image (str): Base64 encoded image
+        - title (str): Optional title for the image
+    """
+    try:
+        data = request.json
+        base64_image = data.get('image', '')
+        title = data.get('title', f'AI_Generated_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+        
+        if not base64_image:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        # Remove data:image/...;base64, prefix if present
+        if ',' in base64_image:
+            base64_image = base64_image.split(',')[1]
+        
+        logger.info(f"[ImgBB Share] Uploading image: {title}")
+        
+        try:
+            uploader = ImgBBUploader()
+            result = uploader.upload(base64_image, title=title)
+            
+            if result and result.get('url'):
+                logger.info(f"[ImgBB Share] ✅ Success: {result['url']}")
+                return jsonify({
+                    'success': True,
+                    'url': result['url'],
+                    'display_url': result.get('display_url', result['url']),
+                    'delete_url': result.get('delete_url'),
+                    'thumb_url': result.get('thumb', {}).get('url'),
+                    'title': title
+                })
+            else:
+                logger.error(f"[ImgBB Share] ❌ Upload failed: {result}")
+                return jsonify({'error': 'ImgBB upload failed'}), 500
+                
+        except Exception as upload_error:
+            logger.error(f"[ImgBB Share] ❌ Error: {str(upload_error)}")
+            return jsonify({'error': f'ImgBB upload error: {str(upload_error)}'}), 500
+        
+    except Exception as e:
+        logger.error(f"[ImgBB Share] ❌ Exception: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/save-generated-image', methods=['POST'])
+def save_generated_image():
+    """
+    Save generated image to storage and chat history
+    
+    Body params:
+        - image (str): Base64 encoded image
+        - metadata (dict): Generation parameters (prompt, negative, model, etc.)
+    """
+    try:
+        data = request.json
+        base64_image = data.get('image', '')
+        metadata = data.get('metadata', {})
+        
+        if not base64_image:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        # Remove prefix if present
+        if ',' in base64_image:
+            base64_image = base64_image.split(',')[1]
+        
+        # Decode image
+        image_bytes = base64.b64decode(base64_image)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Save to storage
+        storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        
+        filename = f"img_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.png"
+        filepath = storage_dir / filename
+        
+        image.save(filepath, 'PNG')
+        logger.info(f"[Save Image] 💾 Saved to: {filepath}")
+        
+        # Upload to ImgBB if enabled
+        cloud_url = None
+        delete_url = None
+        
+        if CLOUD_UPLOAD_ENABLED:
+            try:
+                uploader = ImgBBUploader()
+                cloud_result = uploader.upload(base64_image, title=filename)
+                
+                if cloud_result and cloud_result.get('url'):
+                    cloud_url = cloud_result['url']
+                    delete_url = cloud_result.get('delete_url')
+                    logger.info(f"[Save Image] ☁️ ImgBB: {cloud_url}")
+            except Exception as cloud_error:
+                logger.warning(f"[Save Image] ⚠️ ImgBB upload failed: {cloud_error}")
+        
+        # Save to chat history
+        conversation_id = session.get('conversation_id')
+        user_id = session.get('user_id', 'anonymous')
+        
+        # Create conversation if needed
+        if not conversation_id:
+            conversation = get_or_create_conversation(
+                user_id=user_id,
+                model=metadata.get('model', 'stable-diffusion'),
+                title=f"Image: {metadata.get('prompt', 'Generated')[:30]}..."
+            )
+            conversation_id = str(conversation['_id'])
+            session['conversation_id'] = conversation_id
+        
+        # Save message with image
+        images_data = [{
+            'url': f"/static/Storage/Image_Gen/{filename}",
+            'cloud_url': cloud_url,
+            'delete_url': delete_url,
+            'caption': metadata.get('prompt', 'AI Generated Image'),
+            'generated': True,
+            'service': 'imgbb' if cloud_url else 'local',
+            'mime_type': 'image/png'
+        }]
+        
+        save_message_to_db(
+            conversation_id=conversation_id,
+            role='assistant',
+            content=f"🎨 Generated image with prompt: {metadata.get('prompt', 'N/A')}",
+            images=images_data,
+            metadata=metadata
+        )
+        
+        logger.info(f"[Save Image] ✅ Saved to chat history: {conversation_id}")
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'filepath': f"/static/Storage/Image_Gen/{filename}",
+            'cloud_url': cloud_url,
+            'delete_url': delete_url
+        })
+        
+    except Exception as e:
+        logger.error(f"[Save Image] ❌ Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/sd-interrupt', methods=['POST'])
 def sd_interrupt():
     """Dừng việc tạo ảnh đang chạy"""
