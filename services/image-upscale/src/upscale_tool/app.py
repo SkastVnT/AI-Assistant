@@ -35,7 +35,7 @@ def run_gradio():
     
     interface.launch(
         server_name="127.0.0.1",
-        server_port=7861,
+        server_port=7863,
         share=False,
         inbrowser=False,
         quiet=False,

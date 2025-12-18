@@ -596,7 +596,7 @@ class UpscaleWebUI:
         return interface
 
 
-def launch_ui(share=False, server_port=7861, debug=False):
+def launch_ui(share=False, server_port=7863, debug=False):
     """Launch web UI"""
     ui = UpscaleWebUI()
     interface = ui.create_interface()
