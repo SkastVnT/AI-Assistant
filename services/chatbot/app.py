@@ -1059,7 +1059,7 @@ def google_search_tool(query):
             return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
         
         # Log config for debugging
-        logger.info(f"[GOOGLE SEARCH] API Key (first 10 chars): {GOOGLE_SEARCH_API_KEY_1[:10]}...")
+        logger.info(f"[GOOGLE SEARCH] API Key present: {'Yes' if GOOGLE_SEARCH_API_KEY_1 else 'No'}")
         logger.info(f"[GOOGLE SEARCH] CSE ID: {GOOGLE_CSE_ID}")
         logger.info(f"[GOOGLE SEARCH] Query: {query}")
         
