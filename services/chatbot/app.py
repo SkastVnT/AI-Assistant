@@ -522,8 +522,8 @@ class ChatbotAgent:
                 )
                 
                 # Success! Return response
-                key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
-                logger.info(f"✅ Gemini success: API Key #{key_num}, Model: {model_name}")
+                # key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
+                logger.info(f"✅ Gemini success: Model: {model_name}")
                 
                 # Add model info if not using default
                 model_notice = ""
@@ -544,11 +544,11 @@ class ChatbotAgent:
                 last_error = error_msg
                 
                 # Determine key number for logging
-                key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
+                # key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
                 
                 # Check if quota exceeded
                 if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                    logger.warning(f"⚠️ Gemini quota exceeded - API Key #{key_num}, Model: {model_name}")
+                    logger.warning(f"⚠️ Gemini quota exceeded - Model: {model_name}")
                     
                     # If not the last config, continue to next
                     if idx < len(gemini_configs) - 1:
@@ -562,7 +562,7 @@ class ChatbotAgent:
                         return error_notice
                 else:
                     # Other error, continue to next config
-                    logger.error(f"❌ Gemini error (Key #{key_num}, {model_name}): {error_msg}")
+                    logger.error(f"❌ Gemini error (Model: {model_name}): {error_msg}")
                     if idx < len(gemini_configs) - 1:
                         continue
         
