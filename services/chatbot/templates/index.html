@@ -515,13 +515,23 @@
                     </div>
                 </div>
                 
+                <!-- Sampler for Img2Img -->
+                <div class="form-group">
+                    <label>Sampler:</label>
+                    <select id="img2imgSampler">
+                        <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                        <option value="Euler a">Euler a</option>
+                        <option value="Euler">Euler</option>
+                        <option value="DDIM">DDIM</option>
+                        <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                    </select>
+                </div>
+                
                 <!-- Lora Selection for Img2Img -->
                 <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                     <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
-                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <button type="button" id="addImg2imgLoraBtn" class="secondary-btn" onclick="addImg2imgLoraSelection()">
-                            ➕ Thêm Lora
-                        </button>
+                    <div id="img2imgLoraList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+                        <!-- LoRA checkboxes will be populated here -->
                     </div>
                 </div>
                 
