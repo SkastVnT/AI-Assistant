@@ -420,6 +420,11 @@ def enable_midas_autodownload():
     location automatically.
     """
 
+    # Check if midas.api is available (compatibility check for older SD versions)
+    if not hasattr(midas, 'api'):
+        print("Warning: midas.api not available, skipping MiDaS autodownload setup")
+        return
+
     midas_path = os.path.join(paths.models_path, 'midas')
 
     # stable-diffusion-stability-ai hard-codes the midas model path to

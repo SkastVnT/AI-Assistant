@@ -4,6 +4,9 @@ pauseecho.echo [INFO] Created START_CHATBOT.bat for quick accessecho pause >> ST
 # Repository: https://github.com/SkastVnT/AI-Assistant
 # Description: All dependencies for all services (merged from services/*/requirements.txt)
 # Last Updated: 2025-12-17
+# Description: All dependencies for all services (merged from services/*/requirements.txt)
+# Repository: https://github.com/SkastVnT/AI-Assistant
+# Python: 3.10.6+ (Recommended: 3.11.x)
 # ============================================================================
 
 # ============================================================================
@@ -57,15 +60,15 @@ watchdog>=2.0.0
 # ============================================================================
 openai>=1.0.0
 pydantic>=2.0.0,<3.0.0
-google-genai>=1.55.0  # Gemini 2.0 Flash SDK (migrated from google-generativeai)
-transformers>=4.35,<4.40
+google-genai>=0.2.0
+transformers>=4.41,<4.50
 accelerate>=0.27.0
 sentencepiece>=0.2.0
 safetensors>=0.4.0
 huggingface-hub>=0.21.4
 peft>=0.4.0
 datasets>=2.14.0
-protobuf>=3.20.0,<=3.20.2  # Pinned for paddlepaddle compatibility on Windows
+protobuf>=3.20.0,<=3.20.2
 omegaconf>=2.3.0
 sentence-transformers>=2.2.2
 diffusers>=0.21.0
@@ -101,7 +104,7 @@ pydub>=0.25.1
 # IMAGE & DOCUMENT PROCESSING
 # ============================================================================
 Pillow>=10.3.0
-opencv-python==4.6.0.66  # Pinned for paddleocr compatibility
+opencv-python>=4.8.1.78  # Security fix: GHSA-qr4w-53vh-m672 (HIGH severity)
 paddleocr==2.7.3
 paddlepaddle==2.6.2
 PyMuPDF==1.23.8
@@ -151,8 +154,7 @@ psutil>=5.9.0
 # ============================================================================
 # OPTIMIZATION
 # ============================================================================
-xformers>=0.0.20
-bitsandbytes>=0.41.0; sys_platform != 'win32'
+xformers==0.0.23.post1
 
 # ============================================================================
 # MONITORING & LOGGING
@@ -193,7 +195,7 @@ mypy>=1.8.0
 #    Linux/Mac: source .venv/bin/activate
 #
 # 3. Install PyTorch with CUDA (GPU):
-#    pip install torch==2.6.0 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+#    pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
 #
 #    OR PyTorch CPU only:
 #    pip install torch torchvision torchaudio

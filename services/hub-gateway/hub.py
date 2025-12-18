@@ -8,19 +8,19 @@ from flask_cors import CORS
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
+# Add project root to path (go up 2 levels: hub-gateway -> services -> root)
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from config.model_config import HubConfig
 from config.logging_config import setup_logging
-from src.handlers.error_handler import (
+from handlers.error_handler import (
     HubException, 
     handle_hub_exception, 
     handle_generic_exception,
     error_handler
 )
-from src.utils.rate_limiter import rate_limit
+from utils.rate_limiter import rate_limit
 
 # Initialize Flask app
 app = Flask(__name__, template_folder='../templates')

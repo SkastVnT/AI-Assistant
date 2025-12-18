@@ -33,11 +33,14 @@ echo Starting Image Upscale Tool...
 echo Access at: http://localhost:7863
 echo.
 
-REM Check if main script exists
+REM Set PYTHONPATH to include src directory
+set PYTHONPATH=%CD%\src;%PYTHONPATH%
+
+REM Check if main script exists and run as module
 if exist "src\upscale_tool\app.py" (
-    python src\upscale_tool\app.py
+    ..\..\\.venv\Scripts\python.exe -m upscale_tool.app
 ) else if exist "app.py" (
-    python app.py
+    ..\..\\.venv\Scripts\python.exe app.py
 ) else (
     echo ERROR: Main script not found!
     echo Please check the installation.

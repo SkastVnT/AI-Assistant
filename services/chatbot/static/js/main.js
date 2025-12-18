@@ -1168,6 +1168,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // Helper function to display extracted tags for Img2Img
+    function displayExtractedTags(tags, categories) {
+        const container = document.getElementById('extractedTags');
+        const list = document.getElementById('tagsList');
+        
+        if (!container || !list) {
+            console.error('[Display Tags] Container or list not found');
+            return;
+        }
+        
+        // Category icons
+        const categoryIcons = {
+            hair: '💇', eyes: '👀', face: '😊', clothing: '👗',
+            accessories: '💍', body: '🧘', pose: '🤸', background: '🌄',
+            character: '👤', style: '🎨', quality: '⭐', other: '🏷️'
+        };
+        
+        // Build HTML by category
+        let html = '';
+        Object.keys(categories).forEach(catName => {
+            const catTags = categories[catName];
+            if (!catTags || catTags.length === 0) return;
+            
+            const icon = categoryIcons[catName] || '🏷️';
+            const catTitle = catName.charAt(0).toUpperCase() + catName.slice(1);
+            
+            html += `
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory('${catName}')">
+                        ${icon} <strong>${catTitle}</strong> (${catTags.length})
+                        <span class="category-toggle">▼</span>
+                    </div>
+                    <div class="category-tags">
+                        ${catTags.map(tag => `
+                            <span class="tag-item" onclick="toggleTag('${tag.name}')" 
+                                  title="Confidence: ${(tag.confidence * 100).toFixed(1)}%">
+                                ${tag.name} <small>(${(tag.confidence * 100).toFixed(0)}%)</small>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+        container.style.display = 'block';
+        
+        // Enable generate button
+        const generateBtn = document.getElementById('generateImg2ImgBtn');
+        if (generateBtn) {
+            generateBtn.disabled = false;
+        }
+        
+        console.log('[Display Tags] Displayed', tags.length, 'tags in', Object.keys(categories).length, 'categories');
+    }
+    
     // Expose image generation functions for onclick handlers
     window.closeImageModal = () => app.imageGen.closeModal();
     window.switchImageGenTab = (tab) => app.imageGen.switchTab(tab);
@@ -1179,14 +1235,142 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addImg2imgLoraSelection = () => app.imageGen.addImg2imgLoraSelection();
     window.removeLoraSelection = (id) => app.imageGen.removeLoraSelection(id);
     window.removeImg2imgLoraSelection = (id) => app.imageGen.removeImg2imgLoraSelection(id);
-    window.generateImage = () => app.imageGen.generateText2Img();
-    window.generateImg2Img = () => app.imageGen.generateImg2Img();
-    window.extractFeatures = () => app.imageGen.extractFeatures();
+    
+    window.generateImage = async () => {
+        const btn = document.getElementById('generateImageBtn');
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang tạo ảnh...';
+        
+        try {
+            await app.imageGen.generateText2Img();
+            app.uiUtils.showAlert('✅ Đã tạo ảnh thành công!');
+        } catch (error) {
+            console.error('[Generate Image] Error:', error);
+            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+    
+    window.generateImg2Img = async () => {
+        const btn = document.getElementById('generateImg2ImgBtn');
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang tạo ảnh...';
+        
+        try {
+            await app.imageGen.generateImg2Img();
+            app.uiUtils.showAlert('✅ Đã tạo ảnh thành công!');
+        } catch (error) {
+            console.error('[Generate Img2Img] Error:', error);
+            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+    
+    window.extractFeatures = async () => {
+        const btn = event.target;
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang trích xuất...';
+        
+        try {
+            const data = await app.imageGen.extractFeatures();
+            
+            if (data && data.tags) {
+                // Display tags in UI
+                displayExtractedTags(data.tags, data.categories || {});
+                alert(`✅ Đã trích xuất ${data.tags.length} tags!`);
+            }
+        } catch (error) {
+            console.error('[Extract Features] Error:', error);
+            alert('❌ Lỗi: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+    
+    window.autoGeneratePromptFromTags = async () => {
+        const btn = event.target;
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '🤖 Đang tạo prompt bằng Grok AI...';
+        
+        try {
+            const result = await app.imageGen.generatePromptFromTags();
+            
+            if (result && result.prompt) {
+                // Fill the generated prompt into img2img prompt textarea
+                const promptTextarea = document.getElementById('img2imgPrompt');
+                const negativeTextarea = document.getElementById('img2imgNegativePrompt');
+                
+                if (promptTextarea) {
+                    promptTextarea.value = result.prompt;
+                    
+                    // Smooth scroll to prompt textarea
+                    promptTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Highlight the textarea briefly
+                    promptTextarea.style.transition = 'all 0.3s';
+                    promptTextarea.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.6)';
+                    setTimeout(() => {
+                        promptTextarea.style.boxShadow = '';
+                    }, 1500);
+                }
+                
+                // Fill negative prompt with NSFW filtering
+                if (negativeTextarea && result.negative_prompt) {
+                    negativeTextarea.value = result.negative_prompt;
+                    
+                    // Brief highlight for negative prompt too
+                    negativeTextarea.style.transition = 'all 0.3s';
+                    negativeTextarea.style.boxShadow = '0 0 20px rgba(255, 87, 34, 0.6)';
+                    setTimeout(() => {
+                        negativeTextarea.style.boxShadow = '';
+                    }, 1500);
+                }
+                
+                const promptPreview = result.prompt ? result.prompt.substring(0, 80) : 'N/A';
+                const negativePreview = result.negative_prompt ? result.negative_prompt.substring(0, 60) : 'N/A';
+                alert(`✅ Đã tạo prompt tự động!\n\n📝 Prompt: ${promptPreview}...\n\n🚫 Negative (có lọc NSFW): ${negativePreview}...`);
+            }
+        } catch (error) {
+            console.error('[Auto-Generate Prompt] Error:', error);
+            alert('❌ Lỗi: ' + error.message + '\n\n💡 Kiểm tra GROK_API_KEY trong file .env');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+    
     window.toggleTag = (tag) => app.imageGen.toggleTag(tag);
     window.toggleCategory = (category) => app.imageGen.toggleCategory(category);
-    window.copyImageToChat = () => app.imageGen.copyImageToChat();
+    window.copyImageToChat = () => app.imageGen.sendImageToChat();
     window.downloadGeneratedImage = () => app.imageGen.downloadGeneratedImage();
+    window.shareImageToImgBB = () => app.imageGen.shareImageToImgBB();
     window.handleSourceImageUpload = (event) => app.imageGen.handleSourceImageUpload(event);
+    window.closeGeneratedImageOverlay = (event) => {
+        const container = document.getElementById('generatedImageContainer');
+        if (container) {
+            // If event is provided and clicked element is the overlay (not modal content), close it
+            if (!event || event.target === container) {
+                container.style.display = 'none';
+            }
+        }
+    };
     
     // Expose message rendering functions
     window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);

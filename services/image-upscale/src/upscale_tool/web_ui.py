@@ -333,7 +333,7 @@ class UpscaleWebUI:
         }
         """
         
-        with gr.Blocks(title="AI Image Upscaler", css=custom_css, theme=gr.themes.Soft()) as interface:
+        with gr.Blocks(title="AI Image Upscaler") as interface:
             gr.Markdown(
                 """
                 # 🎨 AI Image Upscaler - Super Resolution
@@ -356,7 +356,7 @@ class UpscaleWebUI:
                             input_gif_file = gr.File(
                                 label="Upload GIF File",
                                 file_types=[".gif"],
-                                type="file"
+                                type="filepath"
                             )
                         
                         with gr.Tab("Select from Folder"):
@@ -589,10 +589,14 @@ class UpscaleWebUI:
                 outputs=info_text
             )
         
+        # Store custom_css as interface attribute for later use
+        interface.custom_css = custom_css
+        interface.custom_theme = gr.themes.Soft()
+        
         return interface
 
 
-def launch_ui(share=False, server_port=7861, debug=False):
+def launch_ui(share=False, server_port=7863, debug=False):
     """Launch web UI"""
     ui = UpscaleWebUI()
     interface = ui.create_interface()

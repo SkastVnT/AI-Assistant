@@ -67,7 +67,7 @@ if errorlevel 1 (
     set NEED_INSTALL=1
 )
 
-python -c "import google.genai" >nul 2>&1
+python -c "from google import genai" >nul 2>&1
 if errorlevel 1 (
     echo [MISSING] google-genai
     set NEED_INSTALL=1

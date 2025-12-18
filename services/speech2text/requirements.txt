@@ -14,7 +14,7 @@
 setuptools<81.0.0  # Avoid pkg_resources deprecation warning
 
 # PyTorch (install first to avoid conflicts)
-torch==2.0.1
+torch==2.6.0
 torchaudio==2.0.2
 torchvision==0.15.2  # Required by pyannote.audio
 numpy==1.24.4
@@ -29,7 +29,7 @@ accelerate==0.27.2
 sentencepiece==0.2.0
 
 # Google Gemini (Cloud-based LLM for transcript cleaning)
-google-generativeai>=0.3.0
+google-genai>=0.2.0
 
 # OpenAI & DeepSeek (Alternative LLMs for transcript cleaning)
 openai>=1.0.0  # For GPT-4o-mini and DeepSeek (OpenAI-compatible API)

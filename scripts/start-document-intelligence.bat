@@ -32,6 +32,6 @@ echo.
 echo Starting Document Intelligence Service...
 echo Access at: http://localhost:5003
 echo.
-python app.py
+..\..\\.venv\Scripts\python.exe app.py
 
 pause

@@ -39,6 +39,8 @@ echo.
 REM set DEBUG=1
 set HOST=127.0.0.1
 set CHATBOT_PORT=5000
-python app.py
+
+REM Use Python from .venv explicitly
+..\..\\.venv\Scripts\python.exe app.py
 
 pause

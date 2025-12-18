@@ -13,7 +13,7 @@ safetensors>=0.3.1
 peft>=0.4.0
 
 # AI Integration (NEW v2.3)
-google-generativeai>=0.3.0  # Gemini 2.0 Flash for AI-powered captions and analysis
+google-genai>=0.2.0  # Gemini 2.0 Flash for AI-powered captions and analysis
 
 # WebUI (NEW v2.3.1)
 flask>=3.0.0  # Web framework
@@ -24,7 +24,7 @@ eventlet>=0.33.0  # Async server
 
 # Image processing
 Pillow>=9.5.0
-opencv-python>=4.7.0
+opencv-python>=4.8.1.78  # Security fix: GHSA-qr4w-53vh-m672 (HIGH severity)
 
 # Data handling
 numpy>=1.24.0

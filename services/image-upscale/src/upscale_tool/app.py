@@ -17,15 +17,30 @@ def home():
 
 def run_gradio():
     """Run Gradio in separate thread"""
-    from . import web_ui
+    try:
+        from . import web_ui
+    except ImportError:
+        # Fallback for when running as script
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import web_ui
+    
     ui = web_ui.UpscaleWebUI()
     interface = ui.create_interface()
+    
+    # Get custom CSS and theme from interface
+    custom_css = getattr(interface, 'custom_css', None)
+    custom_theme = getattr(interface, 'custom_theme', None)
+    
     interface.launch(
         server_name="127.0.0.1",
-        server_port=7861,
+        server_port=7863,
         share=False,
         inbrowser=False,
-        quiet=False
+        quiet=False,
+        theme=custom_theme,
+        css=custom_css
     )
 
 

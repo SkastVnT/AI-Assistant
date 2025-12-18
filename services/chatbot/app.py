@@ -96,12 +96,35 @@ else:
 
 # Import local model loader
 try:
+    # Attempt to import with timeout protection
+    import signal
+    
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Local model loader import timeout")
+    
+    # Set 10 second timeout for import (only on Unix-like systems)
+    try:
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(10)
+    except (AttributeError, ValueError):
+        # Windows doesn't support SIGALRM, skip timeout
+        pass
+    
     from src.utils.local_model_loader import model_loader
+    
+    # Cancel alarm if import succeeded
+    try:
+        signal.alarm(0)
+    except (AttributeError, ValueError):
+        # Ignore alarm errors on Windows where signal.alarm is not supported
+        pass
+    
     LOCALMODELS_AVAILABLE = True
     logger.info("✅ Local model loader imported successfully")
-except Exception as e:
+except (ImportError, TimeoutError, Exception) as e:
     LOCALMODELS_AVAILABLE = False
     logger.warning(f"⚠️ Local models not available: {e}")
+    logger.info("💡 Local models disabled - ChatBot will work without them")
 
 # Initialize Flask app with static folder
 app = Flask(__name__, 
@@ -284,7 +307,7 @@ def get_system_prompts(language='vi'):
 # MONGODB CONVERSATION MANAGEMENT
 # ============================================================================
 
-def get_or_create_conversation(user_id, model='gemini-1.5-flash'):
+def get_or_create_conversation(user_id, model='gemini-2.0-flash'):
     """Get active conversation or create new one"""
     if not MONGODB_ENABLED:
         return None
@@ -533,7 +556,7 @@ class ChatbotAgent:
                 
                 # Add model info if not using default
                 model_notice = ""
-                if model_name != 'gemini-1.5-flash' or idx > 0:
+                if model_name != 'gemini-2.0-flash' or idx > 0:
                     model_notice = f"\n\n---\n*✨ Using: Gemini API Key #{key_num}, Model: {model_name}*"
                 
                 result_text = response.text + model_notice
@@ -1394,6 +1417,14 @@ CHỈ trả JSON, không text khác."""
                         logger.info(f"[TOOLS] Generating image with SD...")
                         sd_result = sd_client.txt2img(**image_params)
                         
+                        # DEBUG: Log full SD response
+                        logger.info(f"[TOOLS] SD Response keys: {sd_result.keys() if isinstance(sd_result, dict) else 'NOT A DICT'}")
+                        if isinstance(sd_result, dict):
+                            if 'error' in sd_result:
+                                logger.error(f"[TOOLS] SD Error: {sd_result['error']}")
+                            if 'images' in sd_result:
+                                logger.info(f"[TOOLS] Images count: {len(sd_result['images'])}")
+                        
                         if sd_result.get('images'):
                             # Lấy ảnh đầu tiên (base64)
                             image_base64 = sd_result['images'][0]
@@ -1424,8 +1455,12 @@ CHỈ trả JSON, không text khác."""
 - Sampler: {image_params['sampler_name']}"""
                             
                             tool_results.append(result_msg)
+                        elif sd_result.get('error'):
+                            # Show error from SD
+                            tool_results.append(f"## 🎨 Image Generation\n\n❌ Lỗi từ Stable Diffusion:\n```\n{sd_result['error']}\n```\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                         else:
-                            tool_results.append(f"## 🎨 Image Generation\n\nLỗi: Stable Diffusion không trả về ảnh.\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
+                            # No images and no error - show full response for debugging
+                            tool_results.append(f"## 🎨 Image Generation\n\n⚠️ Stable Diffusion không trả về ảnh.\n\nSD Response: ```json\n{json.dumps(sd_result, indent=2)}\n```\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                     else:
                         tool_results.append(f"## 🎨 Image Generation\n\nKhông thể tạo prompt tự động. Response: {response_text}\n\nVui lòng sử dụng Image Generator panel thủ công.")
                         
@@ -1632,7 +1667,7 @@ def create_new_conversation():
         
         conv = ConversationDB.create_conversation(
             user_id=user_id,
-            model=data.get('model', 'gemini-1.5-flash'),
+            model=data.get('model', 'gemini-2.0-flash'),
             title=data.get('title', 'New Chat')
         )
         
@@ -2051,6 +2086,135 @@ def sd_vaes():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/generate-prompt-grok', methods=['POST'])
+def generate_prompt_grok():
+    """
+    Tạo prompt tối ưu từ extracted tags sử dụng GROK FREE API
+    
+    Body params:
+        - context (str): Context về tags đã trích xuất
+        - tags (list): List các tags đã extract
+    """
+    try:
+        data = request.json
+        context = data.get('context', '')
+        tags = data.get('tags', [])
+        
+        if not tags:
+            return jsonify({'error': 'Tags không được để trống'}), 400
+        
+        # Use GROK to generate optimized prompt
+        try:
+            from openai import OpenAI
+            
+            # Get GROK API key from env
+            api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
+            if not api_key:
+                return jsonify({'error': 'GROK API key not configured. Please add GROK_API_KEY to .env'}), 500
+            
+            # Initialize xAI Grok client (OpenAI-compatible)
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.x.ai/v1"
+            )
+            
+            # Call GROK with context
+            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags using Grok-3")
+            
+            response = client.chat.completions.create(
+                model="grok-3",  # Grok-3 model from xAI
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
+
+Your task:
+1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features
+2. Generate a NEGATIVE prompt: Things to avoid (low quality, artifacts, NSFW content, etc.)
+3. ALWAYS filter out NSFW/inappropriate content from positive prompt
+4. Return JSON format: {"prompt": "...", "negative_prompt": "..."}
+
+Rules:
+- Positive prompt: Focus on visual quality, composition, style
+- Negative prompt: Include SFW filters (nsfw, nude, sexual, explicit, adult content) + quality issues
+- Both prompts should be comma-separated tags
+- Keep anime/illustration style consistent
+- DO NOT explain, just output JSON"""
+                    },
+                    {
+                        "role": "user",
+                        "content": context
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=400,
+                top_p=1,
+                stream=False,
+                response_format={"type": "json_object"}
+            )
+            
+            # Extract generated prompts
+            result_text = response.choices[0].message.content.strip()
+            
+            logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
+            
+            try:
+                result_json = json.loads(result_text)
+                generated_prompt = result_json.get('prompt', '').strip()
+                generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
+                
+                # Ensure negative prompt always has NSFW filters
+                if not generated_negative:
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution'
+                elif 'nsfw' not in generated_negative.lower():
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
+                    
+            except json.JSONDecodeError as e:
+                # Fallback if JSON parsing fails
+                logger.warning(f"[GROK Prompt] Failed to parse JSON: {str(e)}")
+                logger.warning(f"[GROK Prompt] Raw text: {result_text}")
+                generated_prompt = result_text
+                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
+            
+            logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
+            logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
+            
+            return jsonify({
+                'success': True,
+                'prompt': generated_prompt,
+                'negative_prompt': generated_negative,
+                'tags_used': len(tags)
+            })
+            
+        except Exception as grok_error:
+            logger.error(f"[GROK Prompt] GROK API Error: {str(grok_error)}")
+            
+            # Fallback: Generate prompt from tags directly
+            logger.info("[GROK Prompt] Using fallback method")
+            
+            # Simple fallback: Join tags with commas and add quality tags
+            prompt_parts = tags[:30]  # Limit to 30 tags
+            quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
+            
+            fallback_prompt = ', '.join(prompt_parts + quality_tags)
+            fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
+            
+            # Log the error details, but do not expose them to the user
+            logger.warning(f"[GROK Prompt] Exception in fallback: {str(grok_error)}")
+            return jsonify({
+                'success': True,
+                'prompt': fallback_prompt,
+                'negative_prompt': fallback_negative,
+                'tags_used': len(tags),
+                'fallback': True,
+                'fallback_reason': "internal_error"
+            })
+            
+    except Exception as e:
+        logger.error(f"[GROK Prompt] Error: {str(e)}")
+        return jsonify({'error': 'Failed to generate prompt'}), 500
+
+
 @app.route('/api/img2img', methods=['POST'])
 @app.route('/sd-api/img2img', methods=['POST'])  # Alias for frontend compatibility
 def img2img():
@@ -2115,7 +2279,7 @@ def img2img():
         # Kiểm tra lỗi
         if 'error' in result:
             logger.error(f"[IMG2IMG] SD Error: {result['error']}")
-            return jsonify(result), 500
+            return jsonify({'error': 'Failed to generate image'}), 500
         
         # Get base64 images from result
         base64_images = result.get('images', [])
@@ -2266,6 +2430,156 @@ def img2img():
         import traceback
         error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
         logger.error(f"[IMG2IMG] {error_msg}")
+        return jsonify({'error': 'Failed to process img2img request'}), 500
+
+
+@app.route('/api/share-image-imgbb', methods=['POST'])
+def share_image_imgbb():
+    """
+    Upload generated image to ImgBB and return shareable link
+    
+    Body params:
+        - image (str): Base64 encoded image
+        - title (str): Optional title for the image
+    """
+    try:
+        data = request.json
+        base64_image = data.get('image', '')
+        title = data.get('title', f'AI_Generated_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+        
+        if not base64_image:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        # Remove data:image/...;base64, prefix if present
+        if ',' in base64_image:
+            base64_image = base64_image.split(',')[1]
+        
+        # Sanitize title to prevent log injection
+        safe_title = title.replace('\n', '\\n').replace('\r', '\\r') if title else 'Untitled'
+        logger.info(f"[ImgBB Share] Uploading image: {safe_title}")
+        
+        try:
+            uploader = ImgBBUploader()
+            result = uploader.upload(base64_image, title=title)
+            
+            if result and result.get('url'):
+                logger.info(f"[ImgBB Share] ✅ Success: {result['url']}")
+                return jsonify({
+                    'success': True,
+                    'url': result['url'],
+                    'display_url': result.get('display_url', result['url']),
+                    'delete_url': result.get('delete_url'),
+                    'thumb_url': result.get('thumb', {}).get('url'),
+                    'title': title
+                })
+            else:
+                logger.error(f"[ImgBB Share] ❌ Upload failed: {result}")
+                return jsonify({'error': 'ImgBB upload failed'}), 500
+                
+        except Exception as upload_error:
+            logger.error(f"[ImgBB Share] ❌ Error: {str(upload_error)}")
+            return jsonify({'error': 'Failed to upload image to ImgBB'}), 500
+        
+    except Exception as e:
+        logger.error(f"[ImgBB Share] ❌ Exception: {str(e)}")
+        return jsonify({'error': 'Failed to process image share request'}), 500
+
+
+@app.route('/api/save-generated-image', methods=['POST'])
+def save_generated_image():
+    """
+    Save generated image to storage and chat history
+    
+    Body params:
+        - image (str): Base64 encoded image
+        - metadata (dict): Generation parameters (prompt, negative, model, etc.)
+    """
+    try:
+        data = request.json
+        base64_image = data.get('image', '')
+        metadata = data.get('metadata', {})
+        
+        if not base64_image:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        # Remove prefix if present
+        if ',' in base64_image:
+            base64_image = base64_image.split(',')[1]
+        
+        # Decode image
+        image_bytes = base64.b64decode(base64_image)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Save to storage
+        storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        
+        filename = f"img_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.png"
+        filepath = storage_dir / filename
+        
+        image.save(filepath, 'PNG')
+        logger.info(f"[Save Image] 💾 Saved to: {filepath}")
+        
+        # Upload to ImgBB if enabled
+        cloud_url = None
+        delete_url = None
+        
+        if CLOUD_UPLOAD_ENABLED:
+            try:
+                uploader = ImgBBUploader()
+                cloud_result = uploader.upload(base64_image, title=filename)
+                
+                if cloud_result and cloud_result.get('url'):
+                    cloud_url = cloud_result['url']
+                    delete_url = cloud_result.get('delete_url')
+                    logger.info(f"[Save Image] ☁️ ImgBB: {cloud_url}")
+            except Exception as cloud_error:
+                logger.warning(f"[Save Image] ⚠️ ImgBB upload failed: {cloud_error}")
+        
+        # Save to chat history
+        conversation_id = session.get('conversation_id')
+        user_id = session.get('user_id', 'anonymous')
+        
+        # Create conversation if needed
+        if not conversation_id:
+            conversation = get_or_create_conversation(
+                user_id=user_id,
+                model=metadata.get('model', 'stable-diffusion')
+            )
+            conversation_id = str(conversation['_id'])
+            session['conversation_id'] = conversation_id
+        
+        # Save message with image
+        images_data = [{
+            'url': f"/static/Storage/Image_Gen/{filename}",
+            'cloud_url': cloud_url,
+            'delete_url': delete_url,
+            'caption': metadata.get('prompt', 'AI Generated Image'),
+            'generated': True,
+            'service': 'imgbb' if cloud_url else 'local',
+            'mime_type': 'image/png'
+        }]
+        
+        save_message_to_db(
+            conversation_id=conversation_id,
+            role='assistant',
+            content=f"🎨 Generated image with prompt: {metadata.get('prompt', 'N/A')}",
+            images=images_data,
+            metadata=metadata
+        )
+        
+        logger.info(f"[Save Image] ✅ Saved to chat history: {conversation_id}")
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'filepath': f"/static/Storage/Image_Gen/{filename}",
+            'cloud_url': cloud_url,
+            'delete_url': delete_url
+        })
+        
+    except Exception as e:
+        logger.error(f"[Save Image] ❌ Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
