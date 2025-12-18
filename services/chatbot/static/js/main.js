@@ -1235,8 +1235,47 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addImg2imgLoraSelection = () => app.imageGen.addImg2imgLoraSelection();
     window.removeLoraSelection = (id) => app.imageGen.removeLoraSelection(id);
     window.removeImg2imgLoraSelection = (id) => app.imageGen.removeImg2imgLoraSelection(id);
-    window.generateImage = () => app.imageGen.generateText2Img();
-    window.generateImg2Img = () => app.imageGen.generateImg2Img();
+    
+    window.generateImage = async () => {
+        const btn = document.getElementById('generateImageBtn');
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang tạo ảnh...';
+        
+        try {
+            await app.imageGen.generateText2Img();
+            app.uiUtils.showAlert('✅ Đã tạo ảnh thành công!');
+        } catch (error) {
+            console.error('[Generate Image] Error:', error);
+            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+    
+    window.generateImg2Img = async () => {
+        const btn = document.getElementById('generateImg2ImgBtn');
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang tạo ảnh...';
+        
+        try {
+            await app.imageGen.generateImg2Img();
+            app.uiUtils.showAlert('✅ Đã tạo ảnh thành công!');
+        } catch (error) {
+            console.error('[Generate Img2Img] Error:', error);
+            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+    
     window.extractFeatures = async () => {
         const btn = event.target;
         if (!btn) return;

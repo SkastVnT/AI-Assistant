@@ -242,6 +242,22 @@ export class ImageGeneration {
      */
     async generateText2Img(params) {
         try {
+            // If params not provided, collect from UI
+            if (!params) {
+                params = {
+                    prompt: document.getElementById('imagePrompt')?.value || '',
+                    negative_prompt: document.getElementById('negativePrompt')?.value || '',
+                    steps: parseInt(document.getElementById('steps')?.value) || 20,
+                    cfg_scale: parseFloat(document.getElementById('cfgScale')?.value) || 7.0,
+                    width: parseInt(document.getElementById('width')?.value) || 512,
+                    height: parseInt(document.getElementById('height')?.value) || 512,
+                    sampler: document.getElementById('sampler')?.value || 'Euler a',
+                    model: document.getElementById('modelSelect')?.value || '',
+                    loras: this.getSelectedLoras('loraList'),
+                    vae: document.getElementById('vaeSelect')?.value || ''
+                };
+            }
+            
             const data = await this.apiService.generateImage(params);
             if (data.image) {
                 this.currentGeneratedImage = data;
@@ -261,6 +277,30 @@ export class ImageGeneration {
      */
     async generateImg2Img(params) {
         try {
+            // If params not provided, collect from UI
+            if (!params) {
+                if (!this.sourceImageBase64) {
+                    throw new Error('Please upload a source image first');
+                }
+                
+                params = {
+                    init_img: this.sourceImageBase64.split(',')[1], // Remove data:image/... prefix
+                    prompt: document.getElementById('img2imgPrompt')?.value || '',
+                    negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || '',
+                    steps: parseInt(document.getElementById('img2imgSteps')?.value) || 20,
+                    cfg_scale: parseFloat(document.getElementById('img2imgCfgScale')?.value) || 7.0,
+                    width: parseInt(document.getElementById('img2imgWidth')?.value) || 512,
+                    height: parseInt(document.getElementById('img2imgHeight')?.value) || 512,
+                    denoising_strength: parseFloat(document.getElementById('denoisingStrength')?.value) || 0.75,
+                    sampler: document.getElementById('img2imgSampler')?.value || 'Euler a',
+                    model: document.getElementById('img2imgModelSelect')?.value || '',
+                    loras: this.getSelectedLoras('img2imgLoraList'),
+                    vae: document.getElementById('img2imgVaeSelect')?.value || '',
+                    // Include active tags from feature extraction
+                    tags: this.getActiveTags()
+                };
+            }
+            
             const data = await this.apiService.generateImg2Img(params);
             if (data.image) {
                 this.currentGeneratedImage = data;
