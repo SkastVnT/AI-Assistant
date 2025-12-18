@@ -175,3 +175,25 @@ Licenses for borrowed code can be found in `Settings -> Licenses` screen, and al
 - Restart sampling - lambertae - https://github.com/Newbeeer/diffusion_restart_sampling
 - Initial Gradio script - posted on 4chan by an Anonymous user. Thank you Anonymous user.
 - (You)
+
+## Troubleshooting
+
+### ModuleNotFoundError: No module named 'ldm.data.util'
+
+If you encounter this error when starting Stable Diffusion, it means the stub modules for missing dependencies are not created. Run the following command to fix it:
+
+```powershell
+.\create-stub-modules.ps1
+```
+
+This script creates:
+- `ldm/data/util.py` - AddMiDaS class for depth2img functionality  
+- `ldm/modules/midas/api.py` - MiDaS API stub for depth estimation
+- `ldm/modules/midas/__init__.py` - MiDaS module initialization
+
+These files are minimal implementations that allow Stable Diffusion to start without the full MiDaS repository clone.
+
+**Why are these needed?**  
+The stable-diffusion repository expects certain modules (AddMiDaS, midas.api) that are not included in the base stable-diffusion-stability-ai repository. Rather than cloning the full MiDaS repository, we provide stub implementations that handle the basic functionality needed for depth estimation features.
+
+**Note:** These stub files are created in the `repositories/` folder which is git-ignored. You need to run the script after each fresh clone of the repository.
