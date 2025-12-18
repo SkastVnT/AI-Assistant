@@ -1528,7 +1528,8 @@ def clear():
         return jsonify({'message': 'Đã xóa lịch sử chat'})
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Clear History] Error: {str(e)}")
+        return jsonify({'error': 'Failed to clear chat history'}), 500
 
 
 @app.route('/history', methods=['GET'])
@@ -1543,7 +1544,8 @@ def history():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[History] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve chat history'}), 500
 
 
 # ============================================================================
@@ -1735,7 +1737,8 @@ def sd_models():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[SD Models] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve SD models'}), 500
 
 
 @app.route('/api/sd-change-model', methods=['POST'])
@@ -2039,7 +2042,8 @@ def sd_loras():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[LoRAs] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve LoRAs'}), 500
 
 
 @app.route('/api/sd-vaes', methods=['GET'])
@@ -2070,7 +2074,8 @@ def sd_vaes():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[VAEs] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve VAEs'}), 500
 
 
 @app.route('/api/generate-prompt-grok', methods=['POST'])
@@ -2584,7 +2589,8 @@ def sd_interrupt():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Save Image] Error: {str(e)}")
+        return jsonify({'error': 'Failed to save generated image'}), 500
 
 
 @app.route('/api/extract-anime-features-multi', methods=['POST'])
@@ -2978,7 +2984,8 @@ def local_models_status():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Local Model Status] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve local model status'}), 500
 
 
 @app.route('/api/unload-model', methods=['POST'])
@@ -3002,7 +3009,8 @@ def unload_model():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Unload Model] Error: {str(e)}")
+        return jsonify({'error': 'Failed to unload model'}), 500
 
 
 # ============================================================================
@@ -3149,7 +3157,8 @@ def list_memories():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Memory List] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve memories'}), 500
 
 
 @app.route('/api/memory/get/<memory_id>', methods=['GET'])
@@ -3169,7 +3178,8 @@ def get_memory(memory_id):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Get Memory] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve memory'}), 500
 
 
 @app.route('/api/memory/delete/<memory_id>', methods=['DELETE'])
@@ -3269,7 +3279,8 @@ def update_memory(memory_id):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Add Memory] Error: {str(e)}")
+        return jsonify({'error': 'Failed to add memory'}), 500
 
 
 # ============================================================================
@@ -3336,7 +3347,8 @@ def serve_image(filename):
         return send_file(filepath, mimetype='image/png')
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Get Image] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve image'}), 500
 
 
 @app.route('/api/list-images', methods=['GET'])
@@ -3372,7 +3384,8 @@ def list_images():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[List Images] Error: {str(e)}")
+        return jsonify({'error': 'Failed to list images'}), 500
 
 
 @app.route('/api/delete-image/<filename>', methods=['DELETE'])
@@ -3396,7 +3409,8 @@ def delete_image(filename):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Delete Image] Error: {str(e)}")
+        return jsonify({'error': 'Failed to delete image'}), 500
 
 
 # ============================================================================
