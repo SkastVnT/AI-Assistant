@@ -202,8 +202,51 @@ export class ImageGeneration {
                         <label for="lora-${lora}">${lora}</label>
                     </div>
                 `).join('');
+                
+                // Auto-select recommended LoRAs
+                this.autoSelectRecommendedLoras(container);
             }
         });
+    }
+    
+    /**
+     * Auto-select recommended LoRA models
+     */
+    autoSelectRecommendedLoras(container) {
+        // Define recommended LoRA patterns (case-insensitive)
+        const recommendedPatterns = [
+            /detail/i,
+            /quality/i,
+            /enhance/i,
+            /add.*detail/i,
+            /realistic/i,
+            /improvement/i
+        ];
+        
+        let selectedCount = 0;
+        const maxAutoSelect = 2; // Auto-select max 2 LoRAs
+        
+        container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            if (selectedCount >= maxAutoSelect) return;
+            
+            const loraName = checkbox.value;
+            const shouldSelect = recommendedPatterns.some(pattern => pattern.test(loraName));
+            
+            if (shouldSelect) {
+                checkbox.checked = true;
+                selectedCount++;
+                console.log(`[Auto-Select] Selected LoRA: ${loraName}`);
+            }
+        });
+        
+        // If no recommended LoRAs found, select the first one
+        if (selectedCount === 0 && this.loras.length > 0) {
+            const firstCheckbox = container.querySelector('input[type="checkbox"]');
+            if (firstCheckbox) {
+                firstCheckbox.checked = true;
+                console.log(`[Auto-Select] Selected first LoRA: ${firstCheckbox.value}`);
+            }
+        }
     }
 
     /**
@@ -215,8 +258,43 @@ export class ImageGeneration {
             if (select && this.vaes.length > 0) {
                 select.innerHTML = '<option value="">Default</option>' + 
                     this.vaes.map(vae => `<option value="${vae}">${vae}</option>`).join('');
+                
+                // Auto-select recommended VAE
+                this.autoSelectRecommendedVae(select);
             }
         });
+    }
+    
+    /**
+     * Auto-select recommended VAE
+     */
+    autoSelectRecommendedVae(select) {
+        // Define recommended VAE patterns (case-insensitive)
+        const recommendedPatterns = [
+            /anime.*vae/i,
+            /anything.*vae/i,
+            /vae.*ft.*mse/i,
+            /blessed2/i,
+            /orangemix/i
+        ];
+        
+        // Try to find and select a recommended VAE
+        for (let i = 0; i < select.options.length; i++) {
+            const option = select.options[i];
+            const vaeName = option.value;
+            
+            if (vaeName && recommendedPatterns.some(pattern => pattern.test(vaeName))) {
+                select.selectedIndex = i;
+                console.log(`[Auto-Select] Selected VAE: ${vaeName}`);
+                return;
+            }
+        }
+        
+        // If no recommended VAE found but VAEs exist, select the first non-default one
+        if (this.vaes.length > 0 && select.options.length > 1) {
+            select.selectedIndex = 1; // Select first VAE (skip "Default" option)
+            console.log(`[Auto-Select] Selected first VAE: ${select.options[1].value}`);
+        }
     }
 
     /**
