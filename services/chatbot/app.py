@@ -116,6 +116,7 @@ try:
     try:
         signal.alarm(0)
     except (AttributeError, ValueError):
+        # Ignore alarm errors on Windows where signal.alarm is not supported
         pass
     
     LOCALMODELS_AVAILABLE = True
@@ -2140,7 +2141,6 @@ Rules:
             )
             
             # Extract generated prompts
-            import json
             result_text = response.choices[0].message.content.strip()
             
             logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
@@ -2197,7 +2197,7 @@ Rules:
             
     except Exception as e:
         logger.error(f"[GROK Prompt] Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to generate prompt'}), 500
 
 
 @app.route('/api/img2img', methods=['POST'])
@@ -2264,7 +2264,7 @@ def img2img():
         # Kiểm tra lỗi
         if 'error' in result:
             logger.error(f"[IMG2IMG] SD Error: {result['error']}")
-            return jsonify(result), 500
+            return jsonify({'error': 'Failed to generate image'}), 500
         
         # Get base64 images from result
         base64_images = result.get('images', [])
@@ -2415,7 +2415,7 @@ def img2img():
         import traceback
         error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
         logger.error(f"[IMG2IMG] {error_msg}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to process img2img request'}), 500
 
 
 @app.route('/api/share-image-imgbb', methods=['POST'])
@@ -2463,11 +2463,11 @@ def share_image_imgbb():
                 
         except Exception as upload_error:
             logger.error(f"[ImgBB Share] ❌ Error: {str(upload_error)}")
-            return jsonify({'error': f'ImgBB upload error: {str(upload_error)}'}), 500
+            return jsonify({'error': 'Failed to upload image to ImgBB'}), 500
         
     except Exception as e:
         logger.error(f"[ImgBB Share] ❌ Exception: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to process image share request'}), 500
 
 
 @app.route('/api/save-generated-image', methods=['POST'])
