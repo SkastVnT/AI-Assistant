@@ -423,7 +423,13 @@ class ChatbotAgent:
             'language': language,
             'custom_prompt': custom_prompt[:50] if custom_prompt else None
         }
-        cached = get_cached_response(message, model_name, provider='gemini', **cache_key_params)
+        cached = get_cached_response(
+            message,
+            model_name,
+            provider='gemini',
+            api_key_index=best_key_index,
+            **cache_key_params
+        )
         if cached:
             logger.info(f"✅ Using cached response for Gemini")
             return cached
@@ -556,7 +562,14 @@ class ChatbotAgent:
                 result_text = response.text + model_notice
                 
                 # 🆕 Cache the successful response
-                cache_response(message, model_name, result_text, provider='gemini', **cache_key_params)
+                cache_response(
+                    message,
+                    model_name,
+                    result_text,
+                    provider='gemini',
+                    api_key_index=idx,  # or best_key_index as appropriate
+                    **cache_key_params
+                )
                 
                 if deep_thinking and thinking_process:
                     return {'response': result_text, 'thinking_process': thinking_process}
@@ -2198,6 +2211,135 @@ Rules:
                 'tags_used': len(tags),
                 'fallback': True,
                 'fallback_reason': str(grok_error)
+            })
+            
+    except Exception as e:
+        logger.error(f"[GROK Prompt] Error: {str(e)}")
+        return jsonify({'error': 'Failed to generate prompt'}), 500
+
+
+@app.route('/api/generate-prompt-grok', methods=['POST'])
+def generate_prompt_grok():
+    """
+    Tạo prompt tối ưu từ extracted tags sử dụng GROK FREE API
+    
+    Body params:
+        - context (str): Context về tags đã trích xuất
+        - tags (list): List các tags đã extract
+    """
+    try:
+        data = request.json
+        context = data.get('context', '')
+        tags = data.get('tags', [])
+        
+        if not tags:
+            return jsonify({'error': 'Tags không được để trống'}), 400
+        
+        # Use GROK to generate optimized prompt
+        try:
+            from openai import OpenAI
+            
+            # Get GROK API key from env
+            api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
+            if not api_key:
+                return jsonify({'error': 'GROK API key not configured. Please add GROK_API_KEY to .env'}), 500
+            
+            # Initialize xAI Grok client (OpenAI-compatible)
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.x.ai/v1"
+            )
+            
+            # Call GROK with context
+            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags using Grok-3")
+            
+            response = client.chat.completions.create(
+                model="grok-3",  # Grok-3 model from xAI
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
+
+Your task:
+1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features
+2. Generate a NEGATIVE prompt: Things to avoid (low quality, artifacts, NSFW content, etc.)
+3. ALWAYS filter out NSFW/inappropriate content from positive prompt
+4. Return JSON format: {"prompt": "...", "negative_prompt": "..."}
+
+Rules:
+- Positive prompt: Focus on visual quality, composition, style
+- Negative prompt: Include SFW filters (nsfw, nude, sexual, explicit, adult content) + quality issues
+- Both prompts should be comma-separated tags
+- Keep anime/illustration style consistent
+- DO NOT explain, just output JSON"""
+                    },
+                    {
+                        "role": "user",
+                        "content": context
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=400,
+                top_p=1,
+                stream=False,
+                response_format={"type": "json_object"}
+            )
+            
+            # Extract generated prompts
+            result_text = response.choices[0].message.content.strip()
+            
+            logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
+            
+            try:
+                result_json = json.loads(result_text)
+                generated_prompt = result_json.get('prompt', '').strip()
+                generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
+                
+                # Ensure negative prompt always has NSFW filters
+                if not generated_negative:
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution'
+                elif 'nsfw' not in generated_negative.lower():
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
+                    
+            except json.JSONDecodeError as e:
+                # Fallback if JSON parsing fails
+                logger.warning(f"[GROK Prompt] Failed to parse JSON: {str(e)}")
+                logger.warning(f"[GROK Prompt] Raw text: {result_text}")
+                generated_prompt = result_text
+                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
+            
+            logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
+            logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
+            
+            return jsonify({
+                'success': True,
+                'prompt': generated_prompt,
+                'negative_prompt': generated_negative,
+                'tags_used': len(tags)
+            })
+            
+        except Exception as grok_error:
+            logger.error(f"[GROK Prompt] GROK API Error: {str(grok_error)}")
+            
+            # Fallback: Generate prompt from tags directly
+            logger.info("[GROK Prompt] Using fallback method")
+            
+            # Simple fallback: Join tags with commas and add quality tags
+            prompt_parts = tags[:30]  # Limit to 30 tags
+            quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
+            
+            fallback_prompt = ', '.join(prompt_parts + quality_tags)
+            fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
+            
+            # Log the error details, but do not expose them to the user
+            logger.warning(f"[GROK Prompt] Exception in fallback: {str(grok_error)}")
+            return jsonify({
+                'success': True,
+                'prompt': fallback_prompt,
+                'negative_prompt': fallback_negative,
+                'tags_used': len(tags),
+                'fallback': True,
+                'fallback_reason': "internal_error"
             })
             
     except Exception as e:

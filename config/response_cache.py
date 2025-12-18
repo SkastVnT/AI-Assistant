@@ -35,11 +35,15 @@ class ResponseCache:
         """
         Tạo cache key từ prompt và params
         """
-        # Combine all params
+        # Eliminate sensitive fields (such as raw API keys) from kwargs before hashing
+        non_sensitive_kwargs = {
+            k: v for k, v in kwargs.items()
+            if not (k.lower() in {"api_key", "apikey", "gemini_api_key", "key"} or "api_key" in k.lower())
+        }
         params = {
             'prompt': prompt,
             'model': model,
-            **kwargs
+            **non_sensitive_kwargs
         }
         
         # Create hash
