@@ -542,14 +542,24 @@ class ChatbotAgent:
             except Exception as e:
                 error_msg = str(e)
                 last_error = error_msg
-                
+
+                # Redact any Gemini API key from the error message before logging
+                def redact_keys(text):
+                    keys = [GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4]
+                    for key in keys:
+                        if key:
+                            text = text.replace(key, "[REDACTED]")
+                    return text
+
+                redacted_error_msg = redact_keys(error_msg)
+
                 # Determine key number for logging
                 key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
-                
+
                 # Check if quota exceeded
                 if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
                     logger.warning(f"⚠️ Gemini quota exceeded - API Key #{key_num}, Model: {model_name}")
-                    
+
                     # If not the last config, continue to next
                     if idx < len(gemini_configs) - 1:
                         logger.info(f"🔄 Trying next Gemini configuration...")
@@ -562,10 +572,10 @@ class ChatbotAgent:
                         return error_notice
                 else:
                     # Other error, continue to next config
-                    logger.error(f"❌ Gemini error (Key #{key_num}, {model_name}): {error_msg}")
+                    logger.error(f"❌ Gemini error (Key #{key_num}, {model_name}): {redacted_error_msg}")
                     if idx < len(gemini_configs) - 1:
                         continue
-        
+
         # If all attempts failed
         return f"Lỗi Gemini: {last_error}"
     
