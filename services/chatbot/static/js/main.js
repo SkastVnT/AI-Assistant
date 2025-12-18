@@ -1310,13 +1310,15 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.textContent = '🤖 Đang tạo prompt bằng Grok AI...';
         
         try {
-            const generatedPrompt = await app.imageGen.generatePromptFromTags();
+            const result = await app.imageGen.generatePromptFromTags();
             
-            if (generatedPrompt) {
+            if (result && result.prompt) {
                 // Fill the generated prompt into img2img prompt textarea
                 const promptTextarea = document.getElementById('img2imgPrompt');
+                const negativeTextarea = document.getElementById('img2imgNegativePrompt');
+                
                 if (promptTextarea) {
-                    promptTextarea.value = generatedPrompt;
+                    promptTextarea.value = result.prompt;
                     
                     // Smooth scroll to prompt textarea
                     promptTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1329,7 +1331,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 1500);
                 }
                 
-                alert(`✅ Đã tạo prompt tự động!\n\n${generatedPrompt.substring(0, 100)}...`);
+                // Fill negative prompt with NSFW filtering
+                if (negativeTextarea && result.negative_prompt) {
+                    negativeTextarea.value = result.negative_prompt;
+                    
+                    // Brief highlight for negative prompt too
+                    negativeTextarea.style.transition = 'all 0.3s';
+                    negativeTextarea.style.boxShadow = '0 0 20px rgba(255, 87, 34, 0.6)';
+                    setTimeout(() => {
+                        negativeTextarea.style.boxShadow = '';
+                    }, 1500);
+                }
+                
+                alert(`✅ Đã tạo prompt tự động!\n\n📝 Prompt: ${result.prompt.substring(0, 80)}...\n\n🚫 Negative (có lọc NSFW): ${result.negative_prompt.substring(0, 60)}...`);
             }
         } catch (error) {
             console.error('[Auto-Generate Prompt] Error:', error);
@@ -1342,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.toggleTag = (tag) => app.imageGen.toggleTag(tag);
     window.toggleCategory = (category) => app.imageGen.toggleCategory(category);
-    window.copyImageToChat = () => app.imageGen.copyImageToChat();
+    window.copyImageToChat = () => app.imageGen.sendImageToChat();
     window.downloadGeneratedImage = () => app.imageGen.downloadGeneratedImage();
     window.handleSourceImageUpload = (event) => app.imageGen.handleSourceImageUpload(event);
     

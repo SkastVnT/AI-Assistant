@@ -2112,7 +2112,20 @@ def generate_prompt_grok():
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation. Generate natural, flowing prompts that combine extracted features into coherent descriptions."
+                        "content": """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
+
+Your task:
+1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features
+2. Generate a NEGATIVE prompt: Things to avoid (low quality, artifacts, NSFW content, etc.)
+3. ALWAYS filter out NSFW/inappropriate content from positive prompt
+4. Return JSON format: {"prompt": "...", "negative_prompt": "..."}
+
+Rules:
+- Positive prompt: Focus on visual quality, composition, style
+- Negative prompt: Include SFW filters (nsfw, nude, sexual, explicit, adult content) + quality issues
+- Both prompts should be comma-separated tags
+- Keep anime/illustration style consistent
+- DO NOT explain, just output JSON"""
                     },
                     {
                         "role": "user",
@@ -2120,19 +2133,33 @@ def generate_prompt_grok():
                     }
                 ],
                 temperature=0.7,
-                max_tokens=300,
+                max_tokens=400,
                 top_p=1,
-                stream=False
+                stream=False,
+                response_format={"type": "json_object"}
             )
             
-            # Extract generated prompt
-            generated_prompt = response.choices[0].message.content.strip()
+            # Extract generated prompts
+            import json
+            result_text = response.choices[0].message.content.strip()
             
-            logger.info(f"[GROK Prompt] Generated: {generated_prompt[:100]}...")
+            try:
+                result_json = json.loads(result_text)
+                generated_prompt = result_json.get('prompt', '').strip()
+                generated_negative = result_json.get('negative_prompt', '').strip()
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                logger.warning(f"[GROK Prompt] Failed to parse JSON, using raw text")
+                generated_prompt = result_text
+                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality'
+            
+            logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
+            logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
             
             return jsonify({
                 'success': True,
                 'prompt': generated_prompt,
+                'negative_prompt': generated_negative,
                 'tags_used': len(tags)
             })
             
@@ -2147,10 +2174,12 @@ def generate_prompt_grok():
             quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
             
             fallback_prompt = ', '.join(prompt_parts + quality_tags)
+            fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
             
             return jsonify({
                 'success': True,
                 'prompt': fallback_prompt,
+                'negative_prompt': fallback_negative,
                 'tags_used': len(tags),
                 'fallback': True,
                 'fallback_reason': str(grok_error)

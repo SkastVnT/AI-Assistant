@@ -559,7 +559,11 @@ Prompt:`;
             
             if (data.success && data.prompt) {
                 console.log(`[Grok Prompt] Generated prompt (${data.tags_used} tags)`);
-                return data.prompt;
+                console.log(`[Grok Prompt] Generated negative prompt`);
+                return {
+                    prompt: data.prompt,
+                    negative_prompt: data.negative_prompt || ''
+                };
             } else {
                 throw new Error(data.error || 'Failed to generate prompt');
             }
@@ -614,12 +618,80 @@ Prompt:`;
     }
 
     /**
-     * Send generated image to chat
+     * Send generated image to chat with metadata
      */
-    sendImageToChat(onSendToChat) {
-        if (!this.currentGeneratedImage || !onSendToChat) return;
+    sendImageToChat() {
+        if (!this.currentGeneratedImage) {
+            console.error('[Image Gen] No image to send');
+            return;
+        }
         
-        onSendToChat(this.currentGeneratedImage);
+        try {
+            const chatContainer = document.getElementById('chatContainer');
+            if (!chatContainer) {
+                console.error('[Image Gen] Chat container not found');
+                return;
+            }
+            
+            // Collect metadata from current generation
+            const metadata = {
+                prompt: document.getElementById('img2imgPrompt')?.value || document.getElementById('imagePrompt')?.value || 'N/A',
+                negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || document.getElementById('negativePrompt')?.value || 'N/A',
+                model: document.getElementById('modelCheckpoint')?.value || 'N/A',
+                sampler: document.getElementById('samplerSelect')?.value || document.getElementById('img2imgSampler')?.value || 'N/A',
+                steps: document.getElementById('imageSteps')?.value || document.getElementById('img2imgSteps')?.value || 'N/A',
+                cfg_scale: document.getElementById('cfgScale')?.value || document.getElementById('img2imgCfgScale')?.value || 'N/A',
+                size: `${document.getElementById('imageWidth')?.value || document.getElementById('img2imgWidth')?.value}x${document.getElementById('imageHeight')?.value || document.getElementById('img2imgHeight')?.value}`,
+                denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
+                lora_models: this.getSelectedLoras('loraList').concat(this.getSelectedLoras('img2imgLoraList')).map(l => l.name).join(', ') || 'None',
+                vae: document.getElementById('vaeSelect')?.value || document.getElementById('img2imgVaeSelect')?.value || 'Auto'
+            };
+            
+            // Create message HTML with image and metadata
+            const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            const messageHtml = `
+                <div class="message ai">
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-role">🎨 AI Image Generation</span>
+                            <span class="message-timestamp">${timestamp}</span>
+                        </div>
+                        <div class="message-body">
+                            <img src="data:image/png;base64,${this.currentGeneratedImage.image}" 
+                                 style="max-width: 100%; border-radius: 8px; margin-bottom: 10px; cursor: pointer;"
+                                 onclick="openImagePreview(this)" />
+                            <div style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px;">
+                                <div style="margin-bottom: 8px;"><strong>📝 Prompt:</strong> ${metadata.prompt}</div>
+                                <div style="margin-bottom: 8px;"><strong>🚫 Negative:</strong> ${metadata.negative_prompt}</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                                    <div><strong>🤖 Model:</strong> ${metadata.model}</div>
+                                    <div><strong>⚙️ Sampler:</strong> ${metadata.sampler}</div>
+                                    <div><strong>🔢 Steps:</strong> ${metadata.steps}</div>
+                                    <div><strong>🎚️ CFG:</strong> ${metadata.cfg_scale}</div>
+                                    <div><strong>📐 Size:</strong> ${metadata.size}</div>
+                                    ${metadata.denoising_strength !== 'N/A' ? `<div><strong>🔧 Denoising:</strong> ${metadata.denoising_strength}</div>` : ''}
+                                    <div><strong>🎨 LoRA:</strong> ${metadata.lora_models}</div>
+                                    <div><strong>🔧 VAE:</strong> ${metadata.vae}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Append to chat
+            chatContainer.insertAdjacentHTML('beforeend', messageHtml);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            console.log('[Image Gen] Image sent to chat with metadata');
+            
+            // Show success feedback
+            alert('✅ Đã gửi ảnh vào chat với đầy đủ thông tin!');
+            
+        } catch (error) {
+            console.error('[Image Gen] Error sending to chat:', error);
+            alert('❌ Lỗi khi gửi ảnh vào chat: ' + error.message);
+        }
     }
 
     /**
