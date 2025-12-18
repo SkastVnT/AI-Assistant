@@ -291,8 +291,11 @@ export class ImageGeneration {
     /**
      * Handle source image upload for Img2Img
      */
-    handleSourceImageUpload(file) {
-        if (!file || !file.type.startsWith('image/')) {
+    handleSourceImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
             alert('⚠️ Vui lòng chọn file hình ảnh!');
             return;
         }
@@ -311,6 +314,22 @@ export class ImageGeneration {
                 preview.src = this.sourceImageBase64;
                 preview.style.display = 'block';
                 placeholder.style.display = 'none';
+            }
+            
+            // Show feature extraction section
+            const extractSection = document.getElementById('featureExtractionSection');
+            if (extractSection) {
+                extractSection.style.display = 'block';
+            }
+            
+            // Reset extracted tags
+            this.extractedTags = [];
+            this.filteredTags.clear();
+            this.filteredCategories.clear();
+            
+            const extractedTagsEl = document.getElementById('extractedTags');
+            if (extractedTagsEl) {
+                extractedTagsEl.style.display = 'none';
             }
             
             // Auto-detect image size

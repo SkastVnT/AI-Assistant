@@ -1168,6 +1168,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // Helper function to display extracted tags for Img2Img
+    function displayExtractedTags(tags, categories) {
+        const container = document.getElementById('extractedTags');
+        const list = document.getElementById('tagsList');
+        
+        if (!container || !list) {
+            console.error('[Display Tags] Container or list not found');
+            return;
+        }
+        
+        // Category icons
+        const categoryIcons = {
+            hair: '💇', eyes: '👀', face: '😊', clothing: '👗',
+            accessories: '💍', body: '🧘', pose: '🤸', background: '🌄',
+            character: '👤', style: '🎨', quality: '⭐', other: '🏷️'
+        };
+        
+        // Build HTML by category
+        let html = '';
+        Object.keys(categories).forEach(catName => {
+            const catTags = categories[catName];
+            if (!catTags || catTags.length === 0) return;
+            
+            const icon = categoryIcons[catName] || '🏷️';
+            const catTitle = catName.charAt(0).toUpperCase() + catName.slice(1);
+            
+            html += `
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory('${catName}')">
+                        ${icon} <strong>${catTitle}</strong> (${catTags.length})
+                        <span class="category-toggle">▼</span>
+                    </div>
+                    <div class="category-tags">
+                        ${catTags.map(tag => `
+                            <span class="tag-item" onclick="toggleTag('${tag.name}')" 
+                                  title="Confidence: ${(tag.confidence * 100).toFixed(1)}%">
+                                ${tag.name} <small>(${(tag.confidence * 100).toFixed(0)}%)</small>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+        container.style.display = 'block';
+        
+        // Enable generate button
+        const generateBtn = document.getElementById('generateImg2ImgBtn');
+        if (generateBtn) {
+            generateBtn.disabled = false;
+        }
+        
+        console.log('[Display Tags] Displayed', tags.length, 'tags in', Object.keys(categories).length, 'categories');
+    }
+    
     // Expose image generation functions for onclick handlers
     window.closeImageModal = () => app.imageGen.closeModal();
     window.switchImageGenTab = (tab) => app.imageGen.switchTab(tab);
@@ -1181,7 +1237,30 @@ document.addEventListener('DOMContentLoaded', () => {
     window.removeImg2imgLoraSelection = (id) => app.imageGen.removeImg2imgLoraSelection(id);
     window.generateImage = () => app.imageGen.generateText2Img();
     window.generateImg2Img = () => app.imageGen.generateImg2Img();
-    window.extractFeatures = () => app.imageGen.extractFeatures();
+    window.extractFeatures = async () => {
+        const btn = event.target;
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang trích xuất...';
+        
+        try {
+            const data = await app.imageGen.extractFeatures();
+            
+            if (data && data.tags) {
+                // Display tags in UI
+                displayExtractedTags(data.tags, data.categories || {});
+                alert(`✅ Đã trích xuất ${data.tags.length} tags!`);
+            }
+        } catch (error) {
+            console.error('[Extract Features] Error:', error);
+            alert('❌ Lỗi: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
     window.toggleTag = (tag) => app.imageGen.toggleTag(tag);
     window.toggleCategory = (category) => app.imageGen.toggleCategory(category);
     window.copyImageToChat = () => app.imageGen.copyImageToChat();
