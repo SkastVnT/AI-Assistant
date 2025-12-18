@@ -31,7 +31,7 @@
 #   pip install torch torchvision torchaudio
 # ============================================================================
 setuptools<81.0.0
-torch==2.1.2
+torch==2.6.0
 torchvision==0.16.2
 torchaudio==2.1.2
 numpy>=1.20.0,<2.0.0
