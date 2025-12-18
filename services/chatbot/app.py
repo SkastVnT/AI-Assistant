@@ -172,11 +172,21 @@ GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 # GitHub API
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
-# Initialize Gemini client with new SDK
+# Initialize Gemini client with new SDK (optional - fallback to None if no key)
+gemini_client = None
 try:
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-except:
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
+    if GEMINI_API_KEY:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        logger.info("✅ Gemini API initialized with primary key")
+except Exception as e:
+    logger.warning(f"⚠️ Primary Gemini key failed: {e}")
+    try:
+        if GEMINI_API_KEY_2:
+            gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
+            logger.info("✅ Gemini API initialized with backup key")
+    except Exception as e2:
+        logger.warning(f"⚠️ Backup Gemini key failed: {e2}")
+        logger.warning("⚠️ Gemini API not available - Chat functionality will be limited")
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {

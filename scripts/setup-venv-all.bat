@@ -3,6 +3,9 @@ setlocal enabledelayedexpansion
 title AI Assistant - Setup Virtual Environment
 color 0A
 
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 REM Get the project root (parent of scripts directory)
 cd /d "%~dp0.."
 

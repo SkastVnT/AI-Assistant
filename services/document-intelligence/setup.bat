@@ -2,6 +2,9 @@
 REM Document Intelligence Service - Setup Script
 REM Phase 1: Basic OCR & WebUI
 
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 echo ========================================
 echo Document Intelligence Service - Setup
 echo Phase 1: Basic OCR with FREE models

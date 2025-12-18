@@ -1,4 +1,7 @@
 @echo off
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 title AI Assistant - Start All Services
 color 0A
 

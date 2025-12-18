@@ -8,6 +8,9 @@ REM Author: SkastVnT
 REM Version: 1.0.0
 REM ============================================================================
 
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 setlocal enabledelayedexpansion
 
 REM Colors for output (Windows 10+)
