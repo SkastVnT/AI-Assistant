@@ -557,12 +557,14 @@ Prompt:`;
             
             const data = await response.json();
             
+            console.log('[Grok Prompt] Response data:', data);
+            
             if (data.success && data.prompt) {
-                console.log(`[Grok Prompt] Generated prompt (${data.tags_used} tags)`);
-                console.log(`[Grok Prompt] Generated negative prompt`);
+                console.log(`[Grok Prompt] Generated prompt (${data.tags_used} tags):`, data.prompt);
+                console.log(`[Grok Prompt] Generated negative prompt:`, data.negative_prompt);
                 return {
                     prompt: data.prompt,
-                    negative_prompt: data.negative_prompt || ''
+                    negative_prompt: data.negative_prompt || 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality'
                 };
             } else {
                 throw new Error(data.error || 'Failed to generate prompt');

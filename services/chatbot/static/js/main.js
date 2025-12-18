@@ -1343,7 +1343,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 1500);
                 }
                 
-                alert(`✅ Đã tạo prompt tự động!\n\n📝 Prompt: ${result.prompt.substring(0, 80)}...\n\n🚫 Negative (có lọc NSFW): ${result.negative_prompt.substring(0, 60)}...`);
+                const promptPreview = result.prompt ? result.prompt.substring(0, 80) : 'N/A';
+                const negativePreview = result.negative_prompt ? result.negative_prompt.substring(0, 60) : 'N/A';
+                alert(`✅ Đã tạo prompt tự động!\n\n📝 Prompt: ${promptPreview}...\n\n🚫 Negative (có lọc NSFW): ${negativePreview}...`);
             }
         } catch (error) {
             console.error('[Auto-Generate Prompt] Error:', error);

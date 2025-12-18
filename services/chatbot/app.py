@@ -2143,15 +2143,25 @@ Rules:
             import json
             result_text = response.choices[0].message.content.strip()
             
+            logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
+            
             try:
                 result_json = json.loads(result_text)
                 generated_prompt = result_json.get('prompt', '').strip()
-                generated_negative = result_json.get('negative_prompt', '').strip()
-            except json.JSONDecodeError:
+                generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
+                
+                # Ensure negative prompt always has NSFW filters
+                if not generated_negative:
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution'
+                elif 'nsfw' not in generated_negative.lower():
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
+                    
+            except json.JSONDecodeError as e:
                 # Fallback if JSON parsing fails
-                logger.warning(f"[GROK Prompt] Failed to parse JSON, using raw text")
+                logger.warning(f"[GROK Prompt] Failed to parse JSON: {str(e)}")
+                logger.warning(f"[GROK Prompt] Raw text: {result_text}")
                 generated_prompt = result_text
-                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality'
+                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
             
             logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
             logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
