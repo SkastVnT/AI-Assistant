@@ -423,7 +423,13 @@ class ChatbotAgent:
             'language': language,
             'custom_prompt': custom_prompt[:50] if custom_prompt else None
         }
-        cached = get_cached_response(message, model_name, provider='gemini', **cache_key_params)
+        cached = get_cached_response(
+            message,
+            model_name,
+            provider='gemini',
+            api_key_index=best_key_index,
+            **cache_key_params
+        )
         if cached:
             logger.info(f"✅ Using cached response for Gemini")
             return cached
@@ -556,7 +562,14 @@ class ChatbotAgent:
                 result_text = response.text + model_notice
                 
                 # 🆕 Cache the successful response
-                cache_response(message, model_name, result_text, provider='gemini', **cache_key_params)
+                cache_response(
+                    message,
+                    model_name,
+                    result_text,
+                    provider='gemini',
+                    api_key_index=idx,  # or best_key_index as appropriate
+                    **cache_key_params
+                )
                 
                 if deep_thinking and thinking_process:
                     return {'response': result_text, 'thinking_process': thinking_process}
