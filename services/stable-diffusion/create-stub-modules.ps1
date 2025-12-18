@@ -207,8 +207,38 @@ def _create_dummy_model(model_type):
     Set-Content -Path $midasApiPath -Value $midasApiContent -Encoding UTF8
     Write-Host "[3/3] ✅ Created $midasApiPath" -ForegroundColor Green
 } else {
-    Write-Host "[3/3] ✅ $midasApiPath already exists" -ForegroundColor Green
+    Write-Host "[3/4] ✅ $midasApiPath already exists" -ForegroundColor Green
+}
+
+# Add LatentDepth2ImageDiffusion stub to ddpm.py
+$ddpmPath = "$ldmRoot\models\diffusion\ddpm.py"
+if (Test-Path $ddpmPath) {
+    $ddpmContent = Get-Content $ddpmPath -Raw
+    
+    # Check if stub already exists
+    if ($ddpmContent -notmatch "class LatentDepth2ImageDiffusion") {
+        Write-Host "[4/4] Adding LatentDepth2ImageDiffusion stub to ddpm.py..." -ForegroundColor Yellow
+        
+        $stubClass = @"
+
+
+class LatentDepth2ImageDiffusion:
+    '''
+    Stub class for depth-to-image diffusion model.
+    This is a minimal implementation to allow isinstance checks in processing.py
+    The actual depth2img functionality is handled by the depth_model in the SD model.
+    '''
+    pass
+"@
+        
+        Add-Content -Path $ddpmPath -Value $stubClass -Encoding UTF8
+        Write-Host "[4/4] ✅ Added LatentDepth2ImageDiffusion stub to ddpm.py" -ForegroundColor Green
+    } else {
+        Write-Host "[4/4] ✅ LatentDepth2ImageDiffusion already exists in ddpm.py" -ForegroundColor Green
+    }
+} else {
+    Write-Host "[4/4] ⚠️  Warning: ddpm.py not found at $ddpmPath" -ForegroundColor Yellow
 }
 
 Write-Host "`n✅ All stub modules created successfully!" -ForegroundColor Green
-Write-Host "Stable Diffusion should now start without ModuleNotFoundError" -ForegroundColor Cyan
+Write-Host "Stable Diffusion should now start without import errors" -ForegroundColor Cyan
