@@ -2199,13 +2199,15 @@ Rules:
             fallback_prompt = ', '.join(prompt_parts + quality_tags)
             fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
             
+            # Log the error details, but do not expose them to the user
+            logger.warning(f"[GROK Prompt] Exception in fallback: {str(grok_error)}")
             return jsonify({
                 'success': True,
                 'prompt': fallback_prompt,
                 'negative_prompt': fallback_negative,
                 'tags_used': len(tags),
                 'fallback': True,
-                'fallback_reason': str(grok_error)
+                'fallback_reason': "internal_error"
             })
             
     except Exception as e:
