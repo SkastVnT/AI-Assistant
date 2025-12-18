@@ -9,7 +9,7 @@
 ## 🎯 Objectives Completed
 
 ### 1. Fix Gemini Model Error ✅
-**Issue**: Model `gemini-1.5-flash` returning 404 error  
+**Issue**: Model `gemini-2.0-flash` returning 404 error  
 **Solution**: Updated to `gemini-2.0-flash` in 2 locations
 
 **Files Modified**:
@@ -17,7 +17,7 @@
 
 ```python
 # Before
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 # After
 model = genai.GenerativeModel("gemini-2.0-flash")
@@ -225,7 +225,7 @@ model = genai.GenerativeModel("gemini-2.0-flash")
 ## 🐛 Issues Fixed
 
 ### Issue 1: Gemini Model 404 Error
-**Error**: `404 models/gemini-1.5-flash is not found for API version v1beta`  
+**Error**: `404 models/gemini-2.0-flash is not found for API version v1beta`  
 **Root Cause**: Model deprecated or unavailable  
 **Solution**: Updated to `gemini-2.0-flash`  
 **Status**: ✅ Fixed - App reloaded successfully

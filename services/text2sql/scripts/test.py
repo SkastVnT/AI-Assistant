@@ -296,7 +296,7 @@ Schema(s):
 User question: {question}
 
 Return ONLY the SQL query (no explanations)."""
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     try:
         resp = model.generate_content(prompt)
         return extract_sql(resp.text or "") or ""
@@ -355,7 +355,7 @@ Additional notes:
 {extra or "(none)"}
 
 Return ONLY the revised SQL (no explanations)."""
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     try:
         resp = model.generate_content(prompt)
         return extract_sql(resp.text or "") or prev_sql

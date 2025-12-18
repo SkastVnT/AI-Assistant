@@ -123,7 +123,7 @@ SQL Query:"""
         try:
             # Configure with current API key
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash")
             response = model.generate_content(prompt)
             sql = extract_sql(response.text)
             
@@ -284,7 +284,7 @@ Return ONLY the JSON, no other text."""
             for idx, api_key in enumerate(gemini_keys):
                 try:
                     genai.configure(api_key=api_key)
-                    model_obj = genai.GenerativeModel("gemini-1.5-flash")
+                    model_obj = genai.GenerativeModel("gemini-2.0-flash")
                     response = model_obj.generate_content(prompt)
                     text = response.text.strip()
                     

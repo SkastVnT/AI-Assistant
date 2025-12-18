@@ -270,7 +270,7 @@ if __name__ == '__main__':
     
     # Test Gemini cache
     prompt = "What is AI?"
-    model = "gemini-1.5-flash"
+    model = "gemini-2.0-flash"
     
     # First call - MISS
     result = get_cached_response(prompt, model, provider='gemini')

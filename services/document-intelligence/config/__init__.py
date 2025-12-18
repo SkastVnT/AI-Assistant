@@ -36,7 +36,7 @@ OCR_CONFIG = {
 # AI Enhancement Configuration
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 ENABLE_AI_ENHANCEMENT = (os.getenv('ENABLE_AI_ENHANCEMENT', 'True') == 'True') and bool(GEMINI_API_KEY)
-AI_MODEL = os.getenv('AI_MODEL', 'gemini-1.5-flash')
+AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash')
 
 # AI Features
 AI_FEATURES = {

@@ -163,7 +163,7 @@ class GeminiConfigRecommender:
             raise ValueError("GEMINI_API_KEY not found. Set it in environment or pass as parameter.")
         
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
     
     def recommend_config(self, metadata: Dict[str, Any], 
                         training_goal: str = "high_quality") -> Dict[str, Any]:
