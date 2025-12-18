@@ -269,15 +269,40 @@ def process_text():
 def download_result(filename):
     """Download processed result file"""
     try:
-        filepath = Path(app.config['OUTPUT_FOLDER']) / filename
+        output_folder = Path(app.config['OUTPUT_FOLDER']).resolve()
+        requested_path = (output_folder / filename).resolve()
         
-        if not filepath.exists():
+        # Ensure the requested path is within the output folder
+        try:
+            # Python 3.9+ provides is_relative_to, fallback for older Python is manual check
+            if hasattr(requested_path, "is_relative_to"):
+                if not requested_path.is_relative_to(output_folder):
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid file path'
+                    }), 400
+            else:
+                # Fallback for Python < 3.9
+                if str(requested_path).startswith(str(output_folder) + os.sep):
+                    pass
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Invalid file path'
+                    }), 400
+        except Exception:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid file path'
+            }), 400
+
+        if not requested_path.exists():
             return jsonify({
                 'success': False,
                 'error': 'File not found'
             }), 404
         
-        return send_file(str(filepath), as_attachment=True)
+        return send_file(str(requested_path), as_attachment=True)
         
     except Exception as e:
         logger.error(f"❌ Download error: {e}")
