@@ -2529,8 +2529,7 @@ def save_generated_image():
         if not conversation_id:
             conversation = get_or_create_conversation(
                 user_id=user_id,
-                model=metadata.get('model', 'stable-diffusion'),
-                title=f"Image: {metadata.get('prompt', 'Generated')[:30]}..."
+                model=metadata.get('model', 'stable-diffusion')
             )
             conversation_id = str(conversation['_id'])
             session['conversation_id'] = conversation_id
