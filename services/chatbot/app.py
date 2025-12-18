@@ -2050,6 +2050,92 @@ def sd_vaes():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/generate-prompt-grok', methods=['POST'])
+def generate_prompt_grok():
+    """
+    Tạo prompt tối ưu từ extracted tags sử dụng GROK FREE API
+    
+    Body params:
+        - context (str): Context về tags đã trích xuất
+        - tags (list): List các tags đã extract
+    """
+    try:
+        data = request.json
+        context = data.get('context', '')
+        tags = data.get('tags', [])
+        
+        if not tags:
+            return jsonify({'error': 'Tags không được để trống'}), 400
+        
+        # Use GROK to generate optimized prompt
+        try:
+            import groq
+            
+            # Get GROK API key from env
+            api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
+            if not api_key:
+                return jsonify({'error': 'GROK API key not configured'}), 500
+            
+            # Initialize GROK client
+            client = groq.Groq(api_key=api_key)
+            
+            # Call GROK with context
+            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags")
+            
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",  # GROK FREE model
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation. Generate natural, flowing prompts that combine extracted features into coherent descriptions."
+                    },
+                    {
+                        "role": "user",
+                        "content": context
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=300,
+                top_p=1,
+                stream=False
+            )
+            
+            # Extract generated prompt
+            generated_prompt = response.choices[0].message.content.strip()
+            
+            logger.info(f"[GROK Prompt] Generated: {generated_prompt[:100]}...")
+            
+            return jsonify({
+                'success': True,
+                'prompt': generated_prompt,
+                'tags_used': len(tags)
+            })
+            
+        except Exception as grok_error:
+            logger.error(f"[GROK Prompt] GROK API Error: {str(grok_error)}")
+            
+            # Fallback: Generate prompt from tags directly
+            logger.info("[GROK Prompt] Using fallback method")
+            
+            # Simple fallback: Join tags with commas and add quality tags
+            prompt_parts = tags[:30]  # Limit to 30 tags
+            quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
+            
+            fallback_prompt = ', '.join(prompt_parts + quality_tags)
+            
+            return jsonify({
+                'success': True,
+                'prompt': fallback_prompt,
+                'tags_used': len(tags),
+                'fallback': True,
+                'fallback_reason': str(grok_error)
+            })
+            
+    except Exception as e:
+        logger.error(f"[GROK Prompt] Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/img2img', methods=['POST'])
 @app.route('/sd-api/img2img', methods=['POST'])  # Alias for frontend compatibility
 def img2img():

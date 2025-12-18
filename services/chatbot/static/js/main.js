@@ -1300,6 +1300,20 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.textContent = originalText;
         }
     };
+    
+    window.generatePromptFromGrok = async () => {
+        try {
+            await app.imageGen.generatePromptFromTags();
+        } catch (error) {
+            console.error('[GROK Prompt] Error:', error);
+            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+        }
+    };
+    
+    window.toggleImg2ImgMode = () => {
+        app.imageGen.toggleSmartMode();
+    };
+    
     window.toggleTag = (tag) => app.imageGen.toggleTag(tag);
     window.toggleCategory = (category) => app.imageGen.toggleCategory(category);
     window.copyImageToChat = () => app.imageGen.copyImageToChat();
