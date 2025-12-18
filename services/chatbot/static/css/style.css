@@ -2685,30 +2685,119 @@ body.dark-mode .tag-category {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
+/* Generated Image Overlay Modal */
+.generated-image-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.generated-image-modal {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+body.dark-mode .generated-image-modal {
+    background: #2d3748;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.generated-image-close {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: 3px solid white;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    z-index: 10001;
+}
+
+.generated-image-close:hover {
+    transform: rotate(90deg) scale(1.1);
+    background: linear-gradient(135deg, #764ba2, #f093fb);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+body.dark-mode .generated-image-close {
+    border-color: #2d3748;
+}
+
+.generated-image-preview {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 12px;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
 .image-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 15px;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: center;
 }
 
 .image-actions button {
-    flex: 1;
-    padding: 10px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 14px;
     transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.copy-to-chat-btn {
-    background: #28a745;
-    color: white;
-}
-
-.copy-to-chat-btn:hover {
-    background: #218838;
+.image-actions button:hover {
     transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.share-btn:hover {
+    filter: brightness(1.1);
 }
 
 .download-image-btn {

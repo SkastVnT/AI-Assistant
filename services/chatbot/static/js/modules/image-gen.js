@@ -401,10 +401,15 @@ export class ImageGeneration {
         
         if (imgElement && container) {
             imgElement.src = 'data:image/png;base64,' + base64Image;
-            container.style.display = 'block';
+            container.style.display = 'flex'; // Use flex for overlay
             
             // Auto-save image to storage
             this.autoSaveImage(base64Image);
+            
+            // Auto-send to chat immediately (no button click needed)
+            setTimeout(() => {
+                this.sendImageToChat();
+            }, 500); // Small delay to ensure image is displayed first
         }
     }
     
@@ -797,12 +802,11 @@ Prompt:`;
             
             console.log('[Image Gen] Image sent to chat with metadata');
             
-            // Show success feedback
-            alert('✅ Đã gửi ảnh vào chat với đầy đủ thông tin!');
+            // Silent success - no alert popup
             
         } catch (error) {
             console.error('[Image Gen] Error sending to chat:', error);
-            alert('❌ Lỗi khi gửi ảnh vào chat: ' + error.message);
+            // Silent error - just log, no alert
         }
     }
 

@@ -532,18 +532,19 @@
             </div>
             <!-- End Img2Img Tab -->
             
-            <div id="generatedImageContainer" style="display: none;">
-                <img id="generatedImage" class="generated-image" alt="Generated Image">
-                <div class="image-actions">
-                    <button class="copy-to-chat-btn" onclick="copyImageToChat()">
-                        💬 Gửi vào Chat
-                    </button>
-                    <button class="share-btn" onclick="shareImageToImgBB()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                        🔗 Share (ImgBB)
-                    </button>
-                    <button class="download-image-btn" onclick="downloadGeneratedImage()">
-                        📥 Tải xuống
-                    </button>
+            <!-- Generated Image Overlay Modal -->
+            <div id="generatedImageContainer" class="generated-image-overlay" style="display: none;" onclick="closeGeneratedImageOverlay(event)">
+                <div class="generated-image-modal" onclick="event.stopPropagation()">
+                    <button class="generated-image-close" onclick="closeGeneratedImageOverlay()">&times;</button>
+                    <img id="generatedImage" class="generated-image-preview" alt="Generated Image">
+                    <div class="image-actions">
+                        <button class="share-btn" onclick="shareImageToImgBB()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                            🔗 Share (ImgBB)
+                        </button>
+                        <button class="download-image-btn" onclick="downloadGeneratedImage()">
+                            📥 Tải xuống
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

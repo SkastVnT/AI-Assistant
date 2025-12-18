@@ -1362,6 +1362,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadGeneratedImage = () => app.imageGen.downloadGeneratedImage();
     window.shareImageToImgBB = () => app.imageGen.shareImageToImgBB();
     window.handleSourceImageUpload = (event) => app.imageGen.handleSourceImageUpload(event);
+    window.closeGeneratedImageOverlay = (event) => {
+        const container = document.getElementById('generatedImageContainer');
+        if (container) {
+            // If event is provided and clicked element is the overlay (not modal content), close it
+            if (!event || event.target === container) {
+                container.style.display = 'none';
+            }
+        }
+    };
     
     // Expose message rendering functions
     window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);
