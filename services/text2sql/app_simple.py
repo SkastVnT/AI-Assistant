@@ -857,8 +857,15 @@ def use_database_connection(connection_id):
     
     try:
         connection_file = CONNECTIONS_DIR / f"{connection_id}.json"
-        
-        if not connection_file.exists():
+        # Normalize and ensure the final path is inside CONNECTIONS_DIR
+        connection_file_resolved = connection_file.resolve()
+        if not str(connection_file_resolved).startswith(str(CONNECTIONS_DIR.resolve())):
+            return jsonify({
+                "status": "error",
+                "message": "Invalid connection id"
+            }), 400
+
+        if not connection_file_resolved.exists():
             return jsonify({
                 "status": "error",
                 "message": "Connection không tồn tại"
