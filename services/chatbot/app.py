@@ -1541,7 +1541,8 @@ def clear():
         return jsonify({'message': 'Đã xóa lịch sử chat'})
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Clear History] Error: {str(e)}")
+        return jsonify({'error': 'Failed to clear chat history'}), 500
 
 
 @app.route('/history', methods=['GET'])
@@ -1556,7 +1557,8 @@ def history():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[History] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve chat history'}), 500
 
 
 # ============================================================================
@@ -1748,7 +1750,8 @@ def sd_models():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[SD Models] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve SD models'}), 500
 
 
 @app.route('/api/sd-change-model', methods=['POST'])
@@ -2052,7 +2055,8 @@ def sd_loras():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[LoRAs] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve LoRAs'}), 500
 
 
 @app.route('/api/sd-vaes', methods=['GET'])
@@ -2083,7 +2087,135 @@ def sd_vaes():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[VAEs] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve VAEs'}), 500
+
+
+@app.route('/api/generate-prompt-grok', methods=['POST'])
+def generate_prompt_grok():
+    """
+    Tạo prompt tối ưu từ extracted tags sử dụng GROK FREE API
+    
+    Body params:
+        - context (str): Context về tags đã trích xuất
+        - tags (list): List các tags đã extract
+    """
+    try:
+        data = request.json
+        context = data.get('context', '')
+        tags = data.get('tags', [])
+        
+        if not tags:
+            return jsonify({'error': 'Tags không được để trống'}), 400
+        
+        # Use GROK to generate optimized prompt
+        try:
+            from openai import OpenAI
+            
+            # Get GROK API key from env
+            api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
+            if not api_key:
+                return jsonify({'error': 'GROK API key not configured. Please add GROK_API_KEY to .env'}), 500
+            
+            # Initialize xAI Grok client (OpenAI-compatible)
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.x.ai/v1"
+            )
+            
+            # Call GROK with context
+            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags using Grok-3")
+            
+            response = client.chat.completions.create(
+                model="grok-3",  # Grok-3 model from xAI
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
+
+Your task:
+1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features
+2. Generate a NEGATIVE prompt: Things to avoid (low quality, artifacts, NSFW content, etc.)
+3. ALWAYS filter out NSFW/inappropriate content from positive prompt
+4. Return JSON format: {"prompt": "...", "negative_prompt": "..."}
+
+Rules:
+- Positive prompt: Focus on visual quality, composition, style
+- Negative prompt: Include SFW filters (nsfw, nude, sexual, explicit, adult content) + quality issues
+- Both prompts should be comma-separated tags
+- Keep anime/illustration style consistent
+- DO NOT explain, just output JSON"""
+                    },
+                    {
+                        "role": "user",
+                        "content": context
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=400,
+                top_p=1,
+                stream=False,
+                response_format={"type": "json_object"}
+            )
+            
+            # Extract generated prompts
+            result_text = response.choices[0].message.content.strip()
+            
+            logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
+            
+            try:
+                result_json = json.loads(result_text)
+                generated_prompt = result_json.get('prompt', '').strip()
+                generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
+                
+                # Ensure negative prompt always has NSFW filters
+                if not generated_negative:
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution'
+                elif 'nsfw' not in generated_negative.lower():
+                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
+                    
+            except json.JSONDecodeError as e:
+                # Fallback if JSON parsing fails
+                logger.warning(f"[GROK Prompt] Failed to parse JSON: {str(e)}")
+                logger.warning(f"[GROK Prompt] Raw text: {result_text}")
+                generated_prompt = result_text
+                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
+            
+            logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
+            logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
+            
+            return jsonify({
+                'success': True,
+                'prompt': generated_prompt,
+                'negative_prompt': generated_negative,
+                'tags_used': len(tags)
+            })
+            
+        except Exception as grok_error:
+            logger.error(f"[GROK Prompt] GROK API Error: {str(grok_error)}")
+            
+            # Fallback: Generate prompt from tags directly
+            logger.info("[GROK Prompt] Using fallback method")
+            
+            # Simple fallback: Join tags with commas and add quality tags
+            prompt_parts = tags[:30]  # Limit to 30 tags
+            quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
+            
+            fallback_prompt = ', '.join(prompt_parts + quality_tags)
+            fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
+            
+            return jsonify({
+                'success': True,
+                'prompt': fallback_prompt,
+                'negative_prompt': fallback_negative,
+                'tags_used': len(tags),
+                'fallback': True,
+                'fallback_reason': str(grok_error)
+            })
+            
+    except Exception as e:
+        logger.error(f"[GROK Prompt] Error: {str(e)}")
+        return jsonify({'error': 'Failed to generate prompt'}), 500
 
 
 @app.route('/api/generate-prompt-grok', methods=['POST'])
@@ -2599,7 +2731,8 @@ def sd_interrupt():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Save Image] Error: {str(e)}")
+        return jsonify({'error': 'Failed to save generated image'}), 500
 
 
 @app.route('/api/extract-anime-features-multi', methods=['POST'])
@@ -2993,7 +3126,8 @@ def local_models_status():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Local Model Status] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve local model status'}), 500
 
 
 @app.route('/api/unload-model', methods=['POST'])
@@ -3017,7 +3151,8 @@ def unload_model():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Unload Model] Error: {str(e)}")
+        return jsonify({'error': 'Failed to unload model'}), 500
 
 
 # ============================================================================
@@ -3164,7 +3299,8 @@ def list_memories():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Memory List] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve memories'}), 500
 
 
 @app.route('/api/memory/get/<memory_id>', methods=['GET'])
@@ -3184,7 +3320,8 @@ def get_memory(memory_id):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Get Memory] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve memory'}), 500
 
 
 @app.route('/api/memory/delete/<memory_id>', methods=['DELETE'])
@@ -3284,7 +3421,8 @@ def update_memory(memory_id):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Add Memory] Error: {str(e)}")
+        return jsonify({'error': 'Failed to add memory'}), 500
 
 
 # ============================================================================
@@ -3351,7 +3489,8 @@ def serve_image(filename):
         return send_file(filepath, mimetype='image/png')
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Get Image] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve image'}), 500
 
 
 @app.route('/api/list-images', methods=['GET'])
@@ -3387,7 +3526,8 @@ def list_images():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[List Images] Error: {str(e)}")
+        return jsonify({'error': 'Failed to list images'}), 500
 
 
 @app.route('/api/delete-image/<filename>', methods=['DELETE'])
@@ -3411,7 +3551,8 @@ def delete_image(filename):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[Delete Image] Error: {str(e)}")
+        return jsonify({'error': 'Failed to delete image'}), 500
 
 
 # ============================================================================

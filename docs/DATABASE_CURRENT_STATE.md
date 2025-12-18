@@ -47,7 +47,7 @@ ChatBot/Storage/
 {
   "id": "uuid-string",
   "user_id": null,
-  "model": "gemini-1.5-flash",
+  "model": "gemini-2.0-flash",
   "title": "Conversation Title",
   "messages": [
     {

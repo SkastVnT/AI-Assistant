@@ -208,7 +208,7 @@ User question: {question}
 Write a valid SQL query (ClickHouse style).
 Do not explain, just output the SQL.
 """
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     resp = model.generate_content(prompt)
     return resp.text.strip()
 
@@ -242,7 +242,7 @@ Constraints:
 - Keep it as a single final query if possible.
 - Return ONLY the final SQL, no explanation.
 """
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     resp = model.generate_content(prompt)
     return resp.text.strip()
 
