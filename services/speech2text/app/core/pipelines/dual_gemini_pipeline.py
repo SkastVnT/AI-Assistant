@@ -23,7 +23,10 @@ load_dotenv(env_path)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3")
 
-print(f"[KEY] Gemini API Key: {GEMINI_API_KEY[:20]}...{GEMINI_API_KEY[-4:]}")
+if GEMINI_API_KEY:
+    print("[KEY] Gemini API Key loaded successfully.")
+else:
+    print("[WARNING] Gemini API Key not found in environment variables.")
 
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
