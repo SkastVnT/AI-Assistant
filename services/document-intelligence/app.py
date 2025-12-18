@@ -269,7 +269,17 @@ def process_text():
 def download_result(filename):
     """Download processed result file"""
     try:
-        filepath = Path(app.config['OUTPUT_FOLDER']) / filename
+        # Sanitize filename and check resolved path is within OUTPUT_FOLDER
+        safe_filename = secure_filename(filename)
+        output_folder = Path(app.config['OUTPUT_FOLDER']).resolve()
+        filepath = (output_folder / safe_filename).resolve()
+        
+        # Prevent path traversal: ensure file is inside OUTPUT_FOLDER
+        if not str(filepath).startswith(str(output_folder)):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid file path'
+            }), 400
         
         if not filepath.exists():
             return jsonify({
