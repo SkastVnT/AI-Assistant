@@ -251,9 +251,10 @@ export class ImageGeneration {
                     cfg_scale: parseFloat(document.getElementById('cfgScale')?.value) || 7.0,
                     width: parseInt(document.getElementById('width')?.value) || 512,
                     height: parseInt(document.getElementById('height')?.value) || 512,
-                    sampler: document.getElementById('sampler')?.value || 'Euler a',
-                    model: document.getElementById('modelSelect')?.value || '',
-                    loras: this.getSelectedLoras('loraList'),
+                    sampler_name: document.getElementById('sampler')?.value || 'DPM++ 2M Karras',
+                    seed: -1,
+                    batch_size: 1,
+                    lora_models: this.getSelectedLoras('loraList'),
                     vae: document.getElementById('vaeSelect')?.value || ''
                 };
             }
@@ -284,20 +285,18 @@ export class ImageGeneration {
                 }
                 
                 params = {
-                    init_img: this.sourceImageBase64.split(',')[1], // Remove data:image/... prefix
+                    image: this.sourceImageBase64.split(',')[1], // Remove data:image/... prefix
                     prompt: document.getElementById('img2imgPrompt')?.value || '',
                     negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || '',
-                    steps: parseInt(document.getElementById('img2imgSteps')?.value) || 20,
+                    steps: parseInt(document.getElementById('img2imgSteps')?.value) || 30,
                     cfg_scale: parseFloat(document.getElementById('img2imgCfgScale')?.value) || 7.0,
                     width: parseInt(document.getElementById('img2imgWidth')?.value) || 512,
                     height: parseInt(document.getElementById('img2imgHeight')?.value) || 512,
                     denoising_strength: parseFloat(document.getElementById('denoisingStrength')?.value) || 0.75,
-                    sampler: document.getElementById('img2imgSampler')?.value || 'Euler a',
-                    model: document.getElementById('img2imgModelSelect')?.value || '',
-                    loras: this.getSelectedLoras('img2imgLoraList'),
-                    vae: document.getElementById('img2imgVaeSelect')?.value || '',
-                    // Include active tags from feature extraction
-                    tags: this.getActiveTags()
+                    sampler_name: document.getElementById('img2imgSampler')?.value || 'DPM++ 2M Karras',
+                    seed: -1,
+                    lora_models: this.getSelectedLoras('img2imgLoraList'),
+                    vae: document.getElementById('img2imgVaeSelect')?.value || ''
                 };
             }
             
