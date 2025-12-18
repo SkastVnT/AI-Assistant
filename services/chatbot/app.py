@@ -96,12 +96,34 @@ else:
 
 # Import local model loader
 try:
+    # Attempt to import with timeout protection
+    import signal
+    
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Local model loader import timeout")
+    
+    # Set 10 second timeout for import (only on Unix-like systems)
+    try:
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(10)
+    except (AttributeError, ValueError):
+        # Windows doesn't support SIGALRM, skip timeout
+        pass
+    
     from src.utils.local_model_loader import model_loader
+    
+    # Cancel alarm if import succeeded
+    try:
+        signal.alarm(0)
+    except (AttributeError, ValueError):
+        pass
+    
     LOCALMODELS_AVAILABLE = True
     logger.info("✅ Local model loader imported successfully")
-except Exception as e:
+except (ImportError, TimeoutError, Exception) as e:
     LOCALMODELS_AVAILABLE = False
     logger.warning(f"⚠️ Local models not available: {e}")
+    logger.info("💡 Local models disabled - ChatBot will work without them")
 
 # Initialize Flask app with static folder
 app = Flask(__name__, 
@@ -2069,21 +2091,24 @@ def generate_prompt_grok():
         
         # Use GROK to generate optimized prompt
         try:
-            import groq
+            from openai import OpenAI
             
             # Get GROK API key from env
             api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
             if not api_key:
-                return jsonify({'error': 'GROK API key not configured'}), 500
+                return jsonify({'error': 'GROK API key not configured. Please add GROK_API_KEY to .env'}), 500
             
-            # Initialize GROK client
-            client = groq.Groq(api_key=api_key)
+            # Initialize xAI Grok client (OpenAI-compatible)
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.x.ai/v1"
+            )
             
             # Call GROK with context
-            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags")
+            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags using Grok-3")
             
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",  # GROK FREE model
+                model="grok-3",  # Grok-3 model from xAI
                 messages=[
                     {
                         "role": "system",

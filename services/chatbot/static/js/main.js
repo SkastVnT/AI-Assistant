@@ -1301,17 +1301,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    window.generatePromptFromGrok = async () => {
+    window.autoGeneratePromptFromTags = async () => {
+        const btn = event.target;
+        if (!btn) return;
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '🤖 Đang tạo prompt bằng Grok AI...';
+        
         try {
-            await app.imageGen.generatePromptFromTags();
+            const generatedPrompt = await app.imageGen.generatePromptFromTags();
+            
+            if (generatedPrompt) {
+                // Fill the generated prompt into img2img prompt textarea
+                const promptTextarea = document.getElementById('img2imgPrompt');
+                if (promptTextarea) {
+                    promptTextarea.value = generatedPrompt;
+                    
+                    // Smooth scroll to prompt textarea
+                    promptTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Highlight the textarea briefly
+                    promptTextarea.style.transition = 'all 0.3s';
+                    promptTextarea.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.6)';
+                    setTimeout(() => {
+                        promptTextarea.style.boxShadow = '';
+                    }, 1500);
+                }
+                
+                alert(`✅ Đã tạo prompt tự động!\n\n${generatedPrompt.substring(0, 100)}...`);
+            }
         } catch (error) {
-            console.error('[GROK Prompt] Error:', error);
-            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+            console.error('[Auto-Generate Prompt] Error:', error);
+            alert('❌ Lỗi: ' + error.message + '\n\n💡 Kiểm tra GROK_API_KEY trong file .env');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
         }
-    };
-    
-    window.toggleImg2ImgMode = () => {
-        app.imageGen.toggleSmartMode();
     };
     
     window.toggleTag = (tag) => app.imageGen.toggleTag(tag);

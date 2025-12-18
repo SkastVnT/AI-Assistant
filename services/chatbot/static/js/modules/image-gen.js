@@ -19,63 +19,6 @@ export class ImageGeneration {
         this.extractedCategories = {};
         this.filteredTags = new Set();
         this.filteredCategories = new Set();
-        
-        // Smart mode state
-        this.smartModeEnabled = false;
-    }
-    
-    /**
-     * Toggle Img2Img Smart Mode
-     */
-    toggleSmartMode() {
-        const toggle = document.getElementById('smartModeToggle');
-        this.smartModeEnabled = toggle ? toggle.checked : false;
-        
-        // Update UI based on mode
-        const featureWeightInput = document.getElementById('featureWeight');
-        const denoisingInput = document.getElementById('denoisingStrength');
-        const deepThinkingSection = document.getElementById('deepThinkingImg2Img');
-        const smartModeHint = document.getElementById('smartModeHint');
-        const promptPercentage = document.getElementById('promptPercentage');
-        
-        if (this.smartModeEnabled) {
-            // Smart Mode: 80% features + 20% prompt
-            if (featureWeightInput) {
-                featureWeightInput.disabled = false;
-                featureWeightInput.value = 80;
-            }
-            if (denoisingInput) {
-                denoisingInput.value = 0.4; // Lower for more similarity
-            }
-            if (deepThinkingSection) {
-                deepThinkingSection.style.display = 'block';
-            }
-            if (smartModeHint) {
-                smartModeHint.style.display = 'inline';
-            }
-            if (promptPercentage) {
-                promptPercentage.textContent = 100 - (featureWeightInput?.value || 80);
-            }
-            
-            console.log('[Smart Mode] Enabled - 80% features + 20% prompt');
-        } else {
-            // Manual Mode: Full control
-            if (featureWeightInput) {
-                featureWeightInput.disabled = true;
-                featureWeightInput.value = 0;
-            }
-            if (denoisingInput) {
-                denoisingInput.value = 0.6; // Higher for more variation
-            }
-            if (deepThinkingSection) {
-                deepThinkingSection.style.display = 'none';
-            }
-            if (smartModeHint) {
-                smartModeHint.style.display = 'none';
-            }
-            
-            console.log('[Smart Mode] Disabled - Manual control');
-        }
     }
 
     /**
@@ -419,48 +362,11 @@ export class ImageGeneration {
                     throw new Error('Please upload a source image first');
                 }
                 
-                // Check if Smart Mode is enabled
-                const smartModeEnabled = this.smartModeEnabled;
-                const featureWeight = parseInt(document.getElementById('featureWeight')?.value) || 80;
-                const deepThinking = document.getElementById('deepThinkingExtract')?.checked || false;
-                
-                // Build prompt based on mode
-                let finalPrompt = document.getElementById('img2imgPrompt')?.value || '';
-                
-                if (smartModeEnabled && this.extractedTags.length > 0) {
-                    // Smart Mode: Combine extracted tags with user prompt
-                    // Filter out removed tags
-                    const activeTags = this.extractedTags
-                        .filter(tag => !this.filteredTags.has(tag.name))
-                        .map(tag => tag.name);
-                    
-                    // Weight calculation: 80% features, 20% user prompt
-                    const featurePrompt = activeTags.slice(0, Math.floor(activeTags.length * (featureWeight / 100))).join(', ');
-                    const userPromptWeight = 100 - featureWeight;
-                    
-                    if (finalPrompt) {
-                        // Combine: Features first, then user prompt
-                        finalPrompt = `${featurePrompt}, ${finalPrompt}`;
-                    } else {
-                        // Only features
-                        finalPrompt = featurePrompt;
-                    }
-                    
-                    console.log(`[Smart Mode] Generated prompt (${featureWeight}% features + ${userPromptWeight}% user): ${finalPrompt.substring(0, 100)}...`);
-                }
-                
-                // Adjust steps for deep thinking
-                let steps = parseInt(document.getElementById('img2imgSteps')?.value) || 30;
-                if (smartModeEnabled && deepThinking) {
-                    steps = Math.max(steps, 50); // Minimum 50 steps for deep thinking
-                    console.log(`[Deep Thinking] Increased steps to ${steps}`);
-                }
-                
                 params = {
                     image: this.sourceImageBase64.split(',')[1], // Remove data:image/... prefix
-                    prompt: finalPrompt,
+                    prompt: document.getElementById('img2imgPrompt')?.value || '',
                     negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || '',
-                    steps: steps,
+                    steps: parseInt(document.getElementById('img2imgSteps')?.value) || 30,
                     cfg_scale: parseFloat(document.getElementById('img2imgCfgScale')?.value) || 7.0,
                     width: parseInt(document.getElementById('img2imgWidth')?.value) || 512,
                     height: parseInt(document.getElementById('img2imgHeight')?.value) || 512,
@@ -468,8 +374,7 @@ export class ImageGeneration {
                     sampler_name: document.getElementById('img2imgSampler')?.value || 'DPM++ 2M Karras',
                     seed: -1,
                     lora_models: this.getSelectedLoras('img2imgLoraList'),
-                    vae: document.getElementById('img2imgVaeSelect')?.value || '',
-                    save_to_storage: true // Auto-save generated images
+                    vae: document.getElementById('img2imgVaeSelect')?.value || ''
                 };
             }
             
@@ -477,12 +382,6 @@ export class ImageGeneration {
             if (data.image) {
                 this.currentGeneratedImage = data;
                 this.displayGeneratedImage(data.image);
-                
-                // Auto-send to chat if save_to_storage is true
-                if (params.save_to_storage && data.cloud_url) {
-                    console.log('[Img2Img] Image saved, cloud URL:', data.cloud_url);
-                }
-                
                 return data;
             } else {
                 throw new Error(data.error || 'Failed to generate image');
@@ -582,10 +481,10 @@ export class ImageGeneration {
                 this.extractedTags = data.tags;
                 this.extractedCategories = data.categories;
                 
-                // Enable GROK prompt button after successful extraction
-                const grokPromptBtn = document.getElementById('grokPromptBtn');
-                if (grokPromptBtn) {
-                    grokPromptBtn.disabled = false;
+                // Enable auto-generate prompt button
+                const autoGenBtn = document.getElementById('autoGeneratePromptBtn');
+                if (autoGenBtn) {
+                    autoGenBtn.style.display = 'block';
                 }
                 
                 return data;
@@ -594,6 +493,79 @@ export class ImageGeneration {
             }
         } catch (error) {
             console.error('Feature extraction error:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Auto-generate prompt from extracted tags using Grok AI
+     */
+    async generatePromptFromTags() {
+        if (!this.extractedTags || this.extractedTags.length === 0) {
+            throw new Error('No tags extracted. Please extract features first.');
+        }
+        
+        try {
+            // Get active tags (exclude filtered ones)
+            const activeTags = this.getActiveTags();
+            
+            if (activeTags.length === 0) {
+                throw new Error('All tags are filtered. Please keep some tags active.');
+            }
+            
+            // Prepare context for Grok
+            const tagsByCategory = {};
+            for (const [category, tags] of Object.entries(this.extractedCategories)) {
+                if (!this.filteredCategories.has(category)) {
+                    tagsByCategory[category] = tags
+                        .filter(tag => !this.filteredTags.has(tag.name))
+                        .map(tag => `${tag.name} (${(tag.confidence * 100).toFixed(1)}%)`);
+                }
+            }
+            
+            const context = `Generate a natural, high-quality Stable Diffusion prompt for anime/illustration image generation based on these extracted features:
+
+${Object.entries(tagsByCategory).map(([cat, tags]) => `${cat}: ${tags.join(', ')}`).join('\n')}
+
+Requirements:
+1. Create a flowing, natural prompt that combines these features
+2. Add quality boosters like "masterpiece", "best quality", "highly detailed"
+3. Keep anime/illustration style consistent
+4. Focus on visual details and composition
+5. Make it concise but descriptive (max 150 words)
+6. DO NOT include negative prompts
+7. DO NOT explain, just output the prompt text
+
+Prompt:`;
+            
+            // Call API
+            const response = await fetch('/api/generate-prompt-grok', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    context: context,
+                    tags: activeTags
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.prompt) {
+                console.log(`[Grok Prompt] Generated prompt (${data.tags_used} tags)`);
+                return data.prompt;
+            } else {
+                throw new Error(data.error || 'Failed to generate prompt');
+            }
+            
+        } catch (error) {
+            console.error('[Grok Prompt] Error:', error);
             throw error;
         }
     }
@@ -629,105 +601,6 @@ export class ImageGeneration {
                     this.filteredTags.add(tag.name);
                 });
             }
-        }
-    }
-
-    /**
-     * Generate optimized prompt from extracted tags using GROK API
-     */
-    async generatePromptFromTags() {
-        if (!this.extractedTags || this.extractedTags.length === 0) {
-            alert('⚠️ Vui lòng trích xuất đặc trưng trước!');
-            return;
-        }
-        
-        const grokPromptBtn = document.getElementById('grokPromptBtn');
-        const originalText = grokPromptBtn ? grokPromptBtn.textContent : '';
-        
-        try {
-            if (grokPromptBtn) {
-                grokPromptBtn.disabled = true;
-                grokPromptBtn.textContent = '⏳ Đang tạo prompt...';
-            }
-            
-            // Filter out removed tags
-            const activeTags = this.extractedTags.filter(tag => 
-                !this.filteredTags.has(tag.name)
-            );
-            
-            // Group tags by category for better context
-            const tagsByCategory = {};
-            activeTags.forEach(tag => {
-                if (!tagsByCategory[tag.category]) {
-                    tagsByCategory[tag.category] = [];
-                }
-                tagsByCategory[tag.category].push(tag.name);
-            });
-            
-            // Build context for GROK
-            const context = `Generate a high-quality Stable Diffusion prompt for anime/illustration based on these extracted features:
-
-Character: ${tagsByCategory['character']?.join(', ') || 'N/A'}
-Style: ${tagsByCategory['style']?.join(', ') || 'N/A'}  
-Appearance: ${tagsByCategory['appearance']?.join(', ') || 'N/A'}
-Clothing: ${tagsByCategory['clothing']?.join(', ') || 'N/A'}
-Background: ${tagsByCategory['background']?.join(', ') || 'N/A'}
-Quality: ${tagsByCategory['quality']?.join(', ') || 'N/A'}
-
-Requirements:
-1. Create a natural, flowing prompt (not just comma-separated tags)
-2. Prioritize character and style details
-3. Add quality tags at the end (masterpiece, best quality, etc.)
-4. Keep it under 150 words
-5. Make it suitable for anime/illustration generation
-6. ONLY return the prompt text, no explanations
-
-Prompt:`;
-
-            // Call GROK API through backend
-            const response = await fetch('/api/generate-prompt-grok', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    context: context,
-                    tags: activeTags.map(t => t.name)
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success && data.prompt) {
-                // Auto-fill the prompt
-                const promptTextarea = document.getElementById('img2imgPrompt');
-                if (promptTextarea) {
-                    promptTextarea.value = data.prompt.trim();
-                }
-                
-                // Show success notification
-                alert('✅ Đã tạo prompt tự động từ GROK!');
-                console.log('[GROK Prompt] Generated:', data.prompt);
-                
-                return data.prompt;
-            } else {
-                throw new Error(data.error || 'Failed to generate prompt');
-            }
-            
-        } catch (error) {
-            console.error('[GROK Prompt] Error:', error);
-            alert(`❌ Lỗi tạo prompt: ${error.message}`);
-        } finally {
-            if (grokPromptBtn) {
-                grokPromptBtn.disabled = false;
-                grokPromptBtn.textContent = originalText;
-            }
-        }
-    }
         }
     }
 
@@ -850,72 +723,9 @@ Prompt:`;
      * Copy generated image to chat
      */
     copyImageToChat() {
-        if (!this.currentGeneratedImage || !this.currentGeneratedImage.image) {
-            console.warn('[Copy to Chat] No image to copy');
-            return;
-        }
-        
-        try {
-            // Get chat container
-            const chatContainer = document.getElementById('chatMessages');
-            if (!chatContainer) {
-                console.error('[Copy to Chat] Chat container not found');
-                return;
-            }
-            
-            // Create message element
-            const timestamp = new Date().toLocaleString('vi-VN');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message assistant';
-            messageDiv.style.marginBottom = '20px';
-            
-            // Build message content
-            let messageContent = `<div style="padding: 15px; background: rgba(103, 126, 234, 0.1); border-radius: 10px;">`;
-            messageContent += `<div style="font-weight: 600; margin-bottom: 10px;">🎨 Ảnh đã tạo</div>`;
-            
-            // Add image thumbnail
-            const imageUrl = this.currentGeneratedImage.cloud_url || `data:image/png;base64,${this.currentGeneratedImage.image}`;
-            messageContent += `<div style="margin: 10px 0;">`;
-            messageContent += `<img src="${imageUrl}" alt="Generated Image" style="max-width: 100%; max-height: 400px; border-radius: 8px; cursor: pointer;" onclick="window.open('${imageUrl}', '_blank')">`;
-            messageContent += `</div>`;
-            
-            // Add metadata if available
-            if (this.currentGeneratedImage.prompt) {
-                messageContent += `<div style="font-size: 12px; color: #888; margin-top: 10px;">`;
-                messageContent += `<strong>Prompt:</strong> ${this.currentGeneratedImage.prompt.substring(0, 100)}...`;
-                messageContent += `</div>`;
-            }
-            
-            if (this.currentGeneratedImage.cloud_url) {
-                messageContent += `<div style="font-size: 12px; margin-top: 8px;">`;
-                messageContent += `<a href="${this.currentGeneratedImage.cloud_url}" target="_blank" style="color: #667eea;">🔗 Mở ảnh full size</a>`;
-                messageContent += `</div>`;
-            }
-            
-            messageContent += `<div style="font-size: 11px; color: #aaa; margin-top: 8px;">${timestamp}</div>`;
-            messageContent += `</div>`;
-            
-            messageDiv.innerHTML = messageContent;
-            
-            // Append to chat
-            chatContainer.appendChild(messageDiv);
-            
-            // Scroll to bottom
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            // Close image gen modal
-            this.closeModal();
-            
-            console.log('[Copy to Chat] Image sent to chat successfully');
-            
-            // Show notification
-            if (window.chatApp && window.chatApp.uiUtils) {
-                window.chatApp.uiUtils.showAlert('✅ Đã gửi ảnh vào chat!');
-            }
-            
-        } catch (error) {
-            console.error('[Copy to Chat] Error:', error);
-            alert('❌ Lỗi khi gửi ảnh vào chat: ' + error.message);
+        if (this.currentGeneratedImage) {
+            console.log('[Image Gen] Copy to chat:', this.currentGeneratedImage);
+            // Implementation to send image to chat
         }
     }
     

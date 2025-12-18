@@ -370,17 +370,6 @@
             <!-- Img2Img Tab Content -->
             <div id="img2imgTab" class="tab-content" style="display: none;">
                 
-                <!-- Mode Selection -->
-                <div class="form-group" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                    <label style="color: white; font-weight: 600; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="smartModeToggle" onchange="toggleImg2ImgMode()" style="width: 20px; height: 20px; cursor: pointer;">
-                        <span>🧠 Smart Mode - Tự động tạo dựa trên đặc trưng ảnh (80% Features + 20% Prompt)</span>
-                    </label>
-                    <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin: 8px 0 0 30px;">
-                        ✨ Bật để tự động trích xuất và tạo ảnh giống ảnh gốc. Tắt để kiểm soát hoàn toàn.
-                    </p>
-                </div>
-                
                 <!-- Upload Image Section -->
                 <div class="form-group">
                     <label>📤 Upload hình ảnh gốc (Bắt buộc):</label>
@@ -403,15 +392,9 @@
                             <span style="font-size: 12px; color: #888;">Sử dụng DeepDanbooru 🎨</span>
                         </div>
                         
-                        <div style="display: flex; gap: 10px;">
-                            <button class="extract-btn" onclick="extractFeatures()" style="flex: 1; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #ff9800, #ff5722); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s;">
-                                🔬 Trích xuất đặc trưng
-                            </button>
-                            
-                            <button class="grok-prompt-btn" onclick="generatePromptFromGrok()" style="flex: 1; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s;" disabled id="grokPromptBtn">
-                                ✨ Tự tạo prompt (GROK)
-                            </button>
-                        </div>
+                        <button class="extract-btn" onclick="extractFeatures()" style="width: 100%; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #ff9800, #ff5722); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s;">
+                            🔬 Trích xuất đặc trưng
+                        </button>
                         
                         <div id="extractedTags" style="display: none;">
                             <div style="margin-bottom: 10px; padding: 10px; background: rgba(103, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px; font-size: 13px;">
@@ -420,22 +403,30 @@
                             <div id="tagsList" style="max-height: 400px; overflow-y: auto; border-radius: 8px;">
                                 <!-- Tags will be populated here by category -->
                             </div>
+                            
+                            <!-- Auto-generate Prompt Button -->
+                            <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px;">
+                                <button 
+                                    id="autoGeneratePromptBtn" 
+                                    onclick="autoGeneratePromptFromTags()" 
+                                    style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: none;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                    🤖 Tạo prompt tự động từ đặc trưng (GROK AI)
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Prompt Section for Img2Img -->
-                <div class="form-group" id="img2imgPromptSection">
-                    <label>
-                        <span id="promptLabelText">Prompt bổ sung (có thể tùy chỉnh % bên dưới):</span>
-                        <span id="smartModeHint" style="display: none; color: #888; font-size: 12px; margin-left: 10px;">
-                            (Chỉ chiếm <span id="promptPercentage">20</span>% ảnh hưởng)
-                        </span>
-                    </label>
+                <div class="form-group">
+                    <label>Prompt tạo ảnh:</label>
                     <div style="display: flex; gap: 10px; margin-bottom: 5px;">
                         <button onclick="randomImg2ImgPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                        <span style="font-size: 11px; color: #888; align-self: center;">💡 Có thể để trống, nhấn nút Auto-generate bên trên</span>
                     </div>
-                    <textarea id="img2imgPrompt" rows="3" placeholder="Nhập prompt bổ sung để điều chỉnh ảnh..."></textarea>
+                    <textarea id="img2imgPrompt" rows="3" placeholder="Nhập prompt hoặc sử dụng Auto-generate từ đặc trưng..."></textarea>
                 </div>
 
                 <div class="form-group">
@@ -476,31 +467,14 @@
                 <!-- Generation Settings for Img2Img -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label>
-                            Denoising Strength:
-                            <span style="font-size: 11px; color: #888;" id="denoisingHint">(0.6-0.8 Manual / 0.3-0.5 Smart)</span>
-                        </label>
+                        <label>Denoising Strength:</label>
                         <input type="number" id="denoisingStrength" value="0.6" min="0" max="1" step="0.05">
                     </div>
                     
                     <div class="form-group">
-                        <label>
-                            Feature Weight (%):
-                            <span style="font-size: 11px; color: #888;">(Smart mode only)</span>
-                        </label>
-                        <input type="number" id="featureWeight" value="80" min="0" max="100" step="5" disabled>
+                        <label>Feature Weight (%):</label>
+                        <input type="number" id="featureWeight" value="80" min="0" max="100" step="5">
                     </div>
-                </div>
-                
-                <!-- Deep Thinking Toggle for Smart Mode -->
-                <div class="form-group" id="deepThinkingImg2Img" style="display: none; background: rgba(76, 175, 80, 0.1); padding: 12px; border-radius: 8px; border-left: 3px solid #4CAF50;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="deepThinkingExtract" style="width: 18px; height: 18px; cursor: pointer;">
-                        <span style="font-weight: 600;">🧠 Suy luận sâu (Chậm hơn nhưng kỹ hơn)</span>
-                    </label>
-                    <p style="font-size: 12px; color: #666; margin: 8px 0 0 28px;">
-                        Trích xuất đặc trưng chi tiết hơn, tăng steps lên 50-70
-                    </p>
                 </div>
 
                 <div class="form-row">
@@ -515,23 +489,13 @@
                     </div>
                 </div>
                 
-                <!-- Sampler for Img2Img -->
-                <div class="form-group">
-                    <label>Sampler:</label>
-                    <select id="img2imgSampler">
-                        <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
-                        <option value="Euler a">Euler a</option>
-                        <option value="Euler">Euler</option>
-                        <option value="DDIM">DDIM</option>
-                        <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
-                    </select>
-                </div>
-                
                 <!-- Lora Selection for Img2Img -->
                 <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                     <label style="font-weight: 600;">🎨 Lora Models (Tùy chọn):</label>
-                    <div id="img2imgLoraList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px;">
-                        <!-- LoRA checkboxes will be populated here -->
+                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                        <button type="button" id="addImg2imgLoraBtn" class="secondary-btn" onclick="addImg2imgLoraSelection()">
+                            ➕ Thêm Lora
+                        </button>
                     </div>
                 </div>
                 
