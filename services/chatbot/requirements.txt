@@ -17,7 +17,7 @@ dnspython>=2.4.0  # Required for MongoDB SRV connection
 
 # ============= AI APIs =============
 openai>=1.0.0
-google-genai>=0.2.0
+google-generativeai>=0.3.0
 
 # ============= IMAGE PROCESSING =============
 Pillow>=10.0.0
