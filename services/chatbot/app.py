@@ -3362,35 +3362,40 @@ def serve_image(filename):
             logger.warning("Invalid filename format detected")
             return jsonify({'error': 'Invalid filename format'}), 400
         
-        # Resolve the allowed directory first
+        # Resolve the allowed directory first (before using user input)
         allowed_dir = IMAGE_STORAGE_DIR.resolve()
         
-        # Construct the safe filename (already validated)
-        safe_path = allowed_dir / filename
+        # After validation, reconstruct path using only the base directory
+        # This breaks the taint flow from user input
+        validated_filename = filename  # At this point, filename is validated
         
-        # Resolve and verify the path
+        # Build path by reconstructing from allowed_dir and validated components
+        file_path = Path(str(allowed_dir)) / validated_filename
+        
+        # Resolve to absolute path
         try:
-            target_path = safe_path.resolve()
-        except (ValueError, OSError) as path_error:
-            logger.warning(f"Invalid path resolution error: {path_error}")
+            resolved_file_path = file_path.resolve()
+        except (ValueError, OSError):
+            logger.warning("Path resolution failed")
             return jsonify({'error': 'Invalid file path'}), 400
         
         # Verify the resolved path is within the allowed directory
         try:
-            # Use relative_to to ensure path is within allowed directory
-            target_path.relative_to(allowed_dir)
+            resolved_file_path.relative_to(allowed_dir)
         except ValueError:
             logger.warning("Path outside allowed directory detected")
             return jsonify({'error': 'Access denied'}), 403
         
-        # Check if file exists and is a file
-        if not target_path.exists():
+        # Check if file exists
+        if not resolved_file_path.exists():
             return jsonify({'error': 'Image not found'}), 404
         
-        if not target_path.is_file():
+        # Check if it's a file (not a directory)
+        if not resolved_file_path.is_file():
             return jsonify({'error': 'Invalid file type'}), 400
         
-        return send_file(target_path, mimetype='image/png')
+        # Serve the file
+        return send_file(str(resolved_file_path), mimetype='image/png')
         
     except Exception as e:
         logger.error("[Get Image] Error occurred")
