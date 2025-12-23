@@ -131,6 +131,8 @@ try:
     # Note: The thread is marked as daemon, so if the import hangs, it will continue
     # running in the background but will be terminated when the main process exits.
     # This is acceptable since it's only used during startup and prevents blocking.
+    # Resource leak warning: If the import involves resource allocation (e.g., file handles,
+    # network connections), these may not be cleaned up properly if the thread is abandoned.
     import_thread = threading.Thread(target=import_with_timeout, daemon=True)
     import_thread.start()
     import_thread.join(timeout=10)  # 10 second timeout
@@ -3528,8 +3530,7 @@ def serve_image(filename):
         
         # Additional validation: reject if basename extraction removed content
         # This catches attempts like "../../../etc/passwd" which would become "passwd"
-        # Also catches if URL decoding revealed hidden path separators
-        if not safe_filename or safe_filename != decoded_filename or decoded_filename != filename:
+        if not safe_filename or safe_filename != decoded_filename:
             logger.warning(f"Path traversal attempt detected: {sanitize_for_log(filename)}")
             return jsonify({'error': 'Invalid file path'}), 403
 
