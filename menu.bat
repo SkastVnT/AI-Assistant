@@ -22,8 +22,6 @@ echo.
 echo                           Service Manager v2.4
 echo ================================================================================
 echo.
-echo   [SETUP - First Time Users]
-echo   0. Quick Setup            (Auto-install everything)
 echo.
 echo   [SERVICES - Start Individual]
 echo   1. Hub Gateway            (Port 3000)
@@ -56,7 +54,6 @@ echo ===========================================================================
 echo.
 set /p choice="Select option: "
 
-if /i "%choice%"=="0" start "Quick Setup" cmd /k "scripts\SETUP.bat" & goto MENU
 if /i "%choice%"=="1" start "Hub Gateway" cmd /k "scripts\start-hub-gateway.bat" & goto MENU
 if /i "%choice%"=="2" start "ChatBot" cmd /k "scripts\start-chatbot.bat" & goto MENU
 if /i "%choice%"=="3" start "Text2SQL" cmd /k "scripts\start-text2sql.bat" & goto MENU
