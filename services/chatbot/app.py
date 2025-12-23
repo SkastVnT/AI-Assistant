@@ -19,6 +19,8 @@ import logging
 import json
 from pathlib import Path
 import shutil
+import threading
+from urllib.parse import unquote
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -59,6 +61,23 @@ logger = logging.getLogger(__name__)
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.INFO)
 
+# Helper function to sanitize log messages
+import re
+def sanitize_for_log(text):
+    """
+    Sanitize text for safe logging by removing control characters and ANSI escape sequences.
+    This prevents log injection attacks (CWE-117).
+    """
+    if not text:
+        return ''
+    # Remove ANSI escape sequences (e.g., \x1b[31m for colors)
+    text = re.sub(r'\x1b\[[0-9;]*m', '', str(text))
+    # Remove all control characters (ASCII 0-31 except tab, and 127)
+    text = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', text)
+    # Replace newlines and carriage returns with escaped versions for readability
+    text = text.replace('\n', '\\n').replace('\r', '\\r')
+    return text
+
 # Load environment variables
 load_dotenv()
 
@@ -96,29 +115,32 @@ else:
 
 # Import local model loader
 try:
-    # Attempt to import with timeout protection
-    import signal
+    # Attempt to import with timeout protection using threading
+    # This approach works cross-platform (Windows and Unix)
+    import_result = {'success': False, 'error': None, 'module': None}
     
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Local model loader import timeout")
+    def import_with_timeout():
+        try:
+            from src.utils.local_model_loader import model_loader
+            import_result['module'] = model_loader
+            import_result['success'] = True
+        except Exception as e:
+            import_result['error'] = e
     
-    # Set 10 second timeout for import (only on Unix-like systems)
-    try:
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(10)
-    except (AttributeError, ValueError):
-        # Windows doesn't support SIGALRM, skip timeout
-        pass
+    # Start import in a separate thread
+    import_thread = threading.Thread(target=import_with_timeout, daemon=True)
+    import_thread.start()
+    import_thread.join(timeout=10)  # 10 second timeout
     
-    from src.utils.local_model_loader import model_loader
+    if import_thread.is_alive():
+        # Import is still running after timeout
+        raise TimeoutError("Local model loader import timeout after 10 seconds")
     
-    # Cancel alarm if import succeeded
-    try:
-        signal.alarm(0)
-    except (AttributeError, ValueError):
-        # Ignore alarm errors on Windows where signal.alarm is not supported
-        pass
+    if not import_result['success']:
+        # Import failed with an exception
+        raise import_result['error'] or ImportError("Unknown import error")
     
+    model_loader = import_result['module']
     LOCALMODELS_AVAILABLE = True
     logger.info("✅ Local model loader imported successfully")
 except (ImportError, TimeoutError, Exception) as e:
@@ -2597,7 +2619,7 @@ def share_image_imgbb():
             base64_image = base64_image.split(',')[1]
         
         # Sanitize title to prevent log injection
-        safe_title = title.replace('\n', '\\n').replace('\r', '\\r') if title else 'Untitled'
+        safe_title = sanitize_for_log(title) if title else 'Untitled'
         logger.info(f"[ImgBB Share] Uploading image: {safe_title}")
         
         try:
@@ -3492,14 +3514,24 @@ def save_image():
 def serve_image(filename):
     """Serve saved images"""
     try:
-        # Validate filename to prevent path traversal attacks
-        # Reject any value containing path separators or traversal patterns
-        if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
-            logger.warning(f"Invalid filename received: {filename}")
-            return jsonify({'error': 'Invalid file path'}), 400
+        # First, URL-decode the filename to handle encoded path separators
+        # This catches attacks like "..%2F..%2Fetc%2Fpasswd"
+        decoded_filename = unquote(filename)
+        
+        # Sanitize filename to prevent path traversal attacks
+        # Use os.path.basename() to extract only the filename component
+        # This handles path separators, unicode variations, and complex traversal patterns
+        safe_filename = os.path.basename(decoded_filename)
+        
+        # Additional validation: reject if basename extraction removed content
+        # This catches attempts like "../../../etc/passwd" which would become "passwd"
+        # Also catches if URL decoding revealed hidden path separators
+        if not safe_filename or safe_filename != decoded_filename or decoded_filename != filename:
+            logger.warning(f"Path traversal attempt detected: {filename}")
+            return jsonify({'error': 'Invalid file path'}), 403
 
         # Construct the filepath using the validated filename
-        filepath = IMAGE_STORAGE_DIR / filename
+        filepath = IMAGE_STORAGE_DIR / safe_filename
         
         # Resolve to absolute path and verify it's within the allowed directory
         try:
