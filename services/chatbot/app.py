@@ -3492,20 +3492,24 @@ def save_image():
 def serve_image(filename):
     """Serve saved images"""
     try:
-        # Sanitize filename to prevent path traversal attacks
-        # Remove any directory separators and null bytes
-        safe_filename = filename.replace('/', '').replace('\\', '').replace('\0', '')
-        
-        # Construct the filepath
-        filepath = IMAGE_STORAGE_DIR / safe_filename
+        # Validate filename to prevent path traversal attacks
+        # Reject any value containing path separators or traversal patterns
+        if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
+            logger.warning(f"Invalid filename received: {filename}")
+            return jsonify({'error': 'Invalid file path'}), 400
+
+        # Construct the filepath using the validated filename
+        filepath = IMAGE_STORAGE_DIR / filename
         
         # Resolve to absolute path and verify it's within the allowed directory
         try:
             resolved_path = filepath.resolve()
             allowed_dir = IMAGE_STORAGE_DIR.resolve()
             
-            # Check if the resolved path is within the allowed directory
-            if not str(resolved_path).startswith(str(allowed_dir)):
+            # Ensure the resolved path is within the allowed directory
+            try:
+                resolved_path.relative_to(allowed_dir)
+            except ValueError:
                 logger.warning(f"Path traversal attempt detected: {filename}")
                 return jsonify({'error': 'Invalid file path'}), 403
         except (ValueError, OSError) as path_error:
