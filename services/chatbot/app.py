@@ -21,6 +21,7 @@ from pathlib import Path
 import shutil
 import threading
 from urllib.parse import unquote
+import re
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -62,7 +63,6 @@ werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.INFO)
 
 # Helper function to sanitize log messages
-import re
 def sanitize_for_log(text):
     """
     Sanitize text for safe logging by removing control characters and ANSI escape sequences.
@@ -128,6 +128,9 @@ try:
             import_result['error'] = e
     
     # Start import in a separate thread
+    # Note: The thread is marked as daemon, so if the import hangs, it will continue
+    # running in the background but will be terminated when the main process exits.
+    # This is acceptable since it's only used during startup and prevents blocking.
     import_thread = threading.Thread(target=import_with_timeout, daemon=True)
     import_thread.start()
     import_thread.join(timeout=10)  # 10 second timeout
@@ -3527,7 +3530,7 @@ def serve_image(filename):
         # This catches attempts like "../../../etc/passwd" which would become "passwd"
         # Also catches if URL decoding revealed hidden path separators
         if not safe_filename or safe_filename != decoded_filename or decoded_filename != filename:
-            logger.warning(f"Path traversal attempt detected: {filename}")
+            logger.warning(f"Path traversal attempt detected: {sanitize_for_log(filename)}")
             return jsonify({'error': 'Invalid file path'}), 403
 
         # Construct the filepath using the validated filename
@@ -3542,10 +3545,10 @@ def serve_image(filename):
             try:
                 resolved_path.relative_to(allowed_dir)
             except ValueError:
-                logger.warning(f"Path traversal attempt detected: {filename}")
+                logger.warning(f"Path traversal attempt detected: {sanitize_for_log(filename)}")
                 return jsonify({'error': 'Invalid file path'}), 403
         except (ValueError, OSError) as path_error:
-            logger.warning(f"Invalid path resolution: {filename} - {path_error}")
+            logger.warning(f"Invalid path resolution: {sanitize_for_log(filename)} - {path_error}")
             return jsonify({'error': 'Invalid file path'}), 400
         
         if not resolved_path.exists():
