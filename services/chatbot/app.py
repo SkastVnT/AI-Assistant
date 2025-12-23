@@ -19,6 +19,7 @@ import logging
 import json
 from pathlib import Path
 import shutil
+import threading
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -96,31 +97,34 @@ else:
 
 # Import local model loader
 try:
-    # Attempt to import with timeout protection
-    import signal
+    # Attempt to import with timeout protection using threading (cross-platform)
+    import_result = {'success': False, 'error': None}
     
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Local model loader import timeout")
+    def import_with_timeout():
+        """Import local model loader in a separate thread"""
+        try:
+            from src.utils.local_model_loader import model_loader
+            import_result['model_loader'] = model_loader
+            import_result['success'] = True
+        except Exception as e:
+            import_result['error'] = e
     
-    # Set 10 second timeout for import (only on Unix-like systems)
-    try:
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(10)
-    except (AttributeError, ValueError):
-        # Windows doesn't support SIGALRM, skip timeout
-        pass
+    # Create and start import thread with 10-second timeout
+    import_thread = threading.Thread(target=import_with_timeout, daemon=True)
+    import_thread.start()
+    import_thread.join(timeout=10.0)
     
-    from src.utils.local_model_loader import model_loader
+    if import_thread.is_alive():
+        # Thread is still running after timeout
+        raise TimeoutError("Local model loader import timeout after 10 seconds")
     
-    # Cancel alarm if import succeeded
-    try:
-        signal.alarm(0)
-    except (AttributeError, ValueError):
-        # Ignore alarm errors on Windows where signal.alarm is not supported
-        pass
-    
-    LOCALMODELS_AVAILABLE = True
-    logger.info("✅ Local model loader imported successfully")
+    if import_result['success']:
+        model_loader = import_result['model_loader']
+        LOCALMODELS_AVAILABLE = True
+        logger.info("✅ Local model loader imported successfully")
+    else:
+        raise import_result.get('error', ImportError("Import failed"))
+        
 except (ImportError, TimeoutError, Exception) as e:
     LOCALMODELS_AVAILABLE = False
     logger.warning(f"⚠️ Local models not available: {e}")
@@ -2597,7 +2601,14 @@ def share_image_imgbb():
             base64_image = base64_image.split(',')[1]
         
         # Sanitize title to prevent log injection
-        safe_title = title.replace('\n', '\\n').replace('\r', '\\r') if title else 'Untitled'
+        # Remove all control characters including ANSI escape sequences
+        if title:
+            # Remove control characters (0x00-0x1F and 0x7F-0x9F)
+            safe_title = ''.join(char for char in title if ord(char) >= 0x20 and ord(char) != 0x7F)
+            # Limit length to prevent log flooding
+            safe_title = safe_title[:200] if safe_title else 'Untitled'
+        else:
+            safe_title = 'Untitled'
         logger.info(f"[ImgBB Share] Uploading image: {safe_title}")
         
         try:
@@ -3493,8 +3504,14 @@ def serve_image(filename):
     """Serve saved images"""
     try:
         # Sanitize filename to prevent path traversal attacks
-        # Remove any directory separators and null bytes
-        safe_filename = filename.replace('/', '').replace('\\', '').replace('\0', '')
+        # Use os.path.basename to extract only the filename component
+        # This handles encoded separators, unicode variations, and '../' sequences
+        safe_filename = os.path.basename(filename)
+        
+        # Additional validation: reject empty filenames or those that are just dots
+        if not safe_filename or safe_filename in ('.', '..'):
+            logger.warning(f"Invalid filename detected: {filename}")
+            return jsonify({'error': 'Invalid filename'}), 400
         
         # Construct the filepath
         filepath = IMAGE_STORAGE_DIR / safe_filename
