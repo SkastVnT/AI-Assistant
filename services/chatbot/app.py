@@ -424,7 +424,7 @@ class ChatbotAgent:
         """Chat using Google Gemini with quota handling - rotate between 4 API keys"""
         import time
         
-        model_name = 'gemini-2.0-flash-exp'
+        model_name = 'gemini-2.0-flash'
         
         # 🆕 Check cache first
         cache_key_params = {
@@ -3350,30 +3350,38 @@ def save_image():
 def serve_image(filename):
     """Serve saved images"""
     try:
-        # Sanitize filename to prevent path traversal attacks
-        # Remove any directory separators and null bytes
-        safe_filename = filename.replace('/', '').replace('\\', '').replace('\0', '')
+        # Validate filename to prevent path traversal attacks
+        # Reject any value containing path separators or traversal patterns
+        if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
+            logger.warning(f"Path traversal attempt detected: {filename}")
+            return jsonify({'error': 'Invalid filename'}), 400
         
-        # Construct the filepath
-        filepath = IMAGE_STORAGE_DIR / safe_filename
+        # Additional validation: only allow alphanumeric, underscore, dash, and dot
+        import re
+        if not re.match(r'^[a-zA-Z0-9_\-\.]+$', filename):
+            logger.warning(f"Invalid filename format: {filename}")
+            return jsonify({'error': 'Invalid filename format'}), 400
         
-        # Resolve to absolute path and verify it's within the allowed directory
+        # Resolve the allowed directory first
+        allowed_dir = IMAGE_STORAGE_DIR.resolve()
+        
+        # Construct and resolve the full path
         try:
-            resolved_path = filepath.resolve()
-            allowed_dir = IMAGE_STORAGE_DIR.resolve()
-            
-            # Check if the resolved path is within the allowed directory
-            if not str(resolved_path).startswith(str(allowed_dir)):
-                logger.warning(f"Path traversal attempt detected: {filename}")
-                return jsonify({'error': 'Invalid file path'}), 403
+            target_path = (allowed_dir / filename).resolve()
         except (ValueError, OSError) as path_error:
             logger.warning(f"Invalid path resolution: {filename} - {path_error}")
             return jsonify({'error': 'Invalid file path'}), 400
         
-        if not resolved_path.exists():
+        # Verify the resolved path is within the allowed directory
+        if not str(target_path).startswith(str(allowed_dir) + os.sep):
+            logger.warning(f"Path outside allowed directory: {filename}")
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Check if file exists
+        if not target_path.exists() or not target_path.is_file():
             return jsonify({'error': 'Image not found'}), 404
         
-        return send_file(resolved_path, mimetype='image/png')
+        return send_file(target_path, mimetype='image/png')
         
     except Exception as e:
         logger.error(f"[Get Image] Error: {str(e)}")

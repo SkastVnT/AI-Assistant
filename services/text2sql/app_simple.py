@@ -15,7 +15,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 import openai
 
 # Load environment variables
@@ -28,8 +28,7 @@ GEMINI_API_KEY_3 = os.getenv("GEMINI_API_KEY_3")
 GEMINI_API_KEY_4 = os.getenv("GEMINI_API_KEY_4")
 # Try first available key for initial config
 GEMINI_API_KEY = GEMINI_API_KEY_1 or GEMINI_API_KEY_2 or os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Client will be created per-request with rotation
 
 # Configure OpenAI, DeepSeek, and GROK
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -122,10 +121,12 @@ SQL Query:"""
     last_error = None
     for idx, api_key in enumerate(gemini_keys):
         try:
-            # Configure with current API key
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(prompt)
+            # Create client with current API key
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             sql = extract_sql(response.text)
             
             # Success!
@@ -331,9 +332,11 @@ Return ONLY the JSON, no other text."""
             last_error = None
             for idx, api_key in enumerate(gemini_keys):
                 try:
-                    genai.configure(api_key=api_key)
-                    model_obj = genai.GenerativeModel("gemini-2.0-flash")
-                    response = model_obj.generate_content(prompt)
+                    client = genai.Client(api_key=api_key)
+                    response = client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=prompt
+                    )
                     text = response.text.strip()
                     
                     if idx > 0:

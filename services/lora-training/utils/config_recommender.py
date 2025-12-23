@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 import json
 from collections import Counter
-import google.generativeai as genai
+from google import genai
 
 
 class DatasetMetadataAnalyzer:
@@ -162,8 +162,7 @@ class GeminiConfigRecommender:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not found. Set it in environment or pass as parameter.")
         
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.client = genai.Client(api_key=self.api_key)
     
     def recommend_config(self, metadata: Dict[str, Any], 
                         training_goal: str = "high_quality") -> Dict[str, Any]:
@@ -258,7 +257,10 @@ Provide your recommendation:"""
 
         try:
             # Call Gemini API
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             response_text = response.text
             
             # Extract JSON from response

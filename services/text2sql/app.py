@@ -23,7 +23,7 @@ import os
 import random
 import re
 
-import google.generativeai as genai
+from google import genai
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
@@ -38,7 +38,7 @@ except Exception:
 # ====== Load env & SDK ======
 load_dotenv()
 REQUIRE_KNOWN_TABLE = os.getenv("SQLCODER_REQUIRE_KNOWN_TABLE", "1") == "1"
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 SQLCODER_BACKEND = os.getenv("SQLCODER_BACKEND", "hf").lower()
 SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "defog/sqlcoder-7b-2")
 REFINE_STRATEGY = os.getenv("REFINE_STRATEGY", "gemini").lower()
@@ -208,8 +208,10 @@ User question: {question}
 Write a valid SQL query (ClickHouse style).
 Do not explain, just output the SQL.
 """
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    resp = model.generate_content(prompt)
+    resp = gemini_client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt
+    )
     return resp.text.strip()
 
 
@@ -242,8 +244,10 @@ Constraints:
 - Keep it as a single final query if possible.
 - Return ONLY the final SQL, no explanation.
 """
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    resp = model.generate_content(prompt)
+    resp = gemini_client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt
+    )
     return resp.text.strip()
 
 
