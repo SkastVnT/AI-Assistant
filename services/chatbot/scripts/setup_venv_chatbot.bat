@@ -1,4 +1,7 @@
 @echo off
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 echo ================================================================
 echo   SETUP CHATBOT VIRTUAL ENVIRONMENT
 echo ================================================================

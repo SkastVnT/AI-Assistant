@@ -8,7 +8,7 @@ import uvicorn
 import os
 import time
 import logging
-import google.generativeai as genai
+from google import genai
 import redis
 import json
 
@@ -21,12 +21,11 @@ app = FastAPI(title="Gemini Proxy Service", version="1.0.0")
 # Initialize Gemini
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    client = genai.Client(api_key=GEMINI_API_KEY)
     logger.info("Gemini AI initialized successfully")
 else:
     logger.warning("GEMINI_API_KEY not found")
-    model = None
+    client = None
 
 # Redis for caching
 redis_client = None
@@ -55,7 +54,7 @@ class TranscriptionRequest(BaseModel):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    gemini_status = "available" if model else "unavailable"
+    gemini_status = "available" if client else "unavailable"
     redis_status = "available" if redis_client else "unavailable"
     
     return {
@@ -69,7 +68,7 @@ async def health_check():
 @app.post("/fuse", response_model=FusionResponse)
 async def fuse_transcripts(request: FusionRequest):
     """Fuse two transcripts using Gemini AI"""
-    if not model:
+    if not client:
         raise HTTPException(status_code=503, detail="Gemini API not available")
     
     try:
@@ -111,7 +110,10 @@ Y[?]U C[?]U:
 TRANSCRIPT CU[?]I:"""
 
         # Call Gemini API
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
         fused_text = response.text.strip()
         
         processing_time = time.time() - start_time
@@ -157,7 +159,7 @@ async def root():
         "version": "1.0.0",
         "description": "Cloud AI fusion using Google Gemini 1.5-flash",
         "endpoints": ["/fuse", "/health"],
-        "status": "available" if model else "unavailable"
+        "status": "available" if client else "unavailable"
     }
 
 if __name__ == "__main__":

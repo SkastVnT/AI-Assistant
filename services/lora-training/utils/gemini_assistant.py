@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import json
 from PIL import Image
-import google.generativeai as genai
+from google import genai
 
 
 class GeminiLoRAAssistant:
@@ -50,10 +50,7 @@ class GeminiLoRAAssistant:
             )
         
         # Configure Gemini
-        genai.configure(api_key=self.api_key)
-        
-        # Use Gemini 2.0 Flash (fastest, cheapest, best for training)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.client = genai.Client(api_key=self.api_key)
         
         # Safety settings (permissive for anime/art content)
         self.safety_settings = [
@@ -155,8 +152,9 @@ Example: masterpiece, best quality, 1girl, blue hair, anime style, outdoors, sun
         prompt = prompts.get(style, prompts["detailed"]).get(focus, prompts["detailed"]["all"])
         
         # Generate caption
-        response = self.model.generate_content(
-            [prompt, image],
+        response = self.client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=[prompt, image],
             safety_settings=self.safety_settings
         )
         
@@ -258,8 +256,9 @@ Output JSON format:
         image_objects = [Image.open(img) for img in sampled]
         
         # Generate analysis
-        response = self.model.generate_content(
-            [prompt] + image_objects,
+        response = self.client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=[prompt] + image_objects,
             safety_settings=self.safety_settings
         )
         
@@ -328,8 +327,9 @@ Output JSON:
     "reasoning": "explanation here"
 }}"""
         
-        response = self.model.generate_content(
-            prompt,
+        response = self.client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
             safety_settings=self.safety_settings
         )
         
@@ -389,8 +389,9 @@ Output: specific, comma-separated tags"""
         
         prompt = prompts.get(focus, prompts["quality"]).format(tags=tags)
         
-        response = self.model.generate_content(
-            prompt,
+        response = self.client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
             safety_settings=self.safety_settings
         )
         
@@ -422,8 +423,9 @@ Check for:
 Answer: "OK" or "OUTLIER: reason"
 Be concise."""
                 
-                response = self.model.generate_content(
-                    [prompt, image],
+                response = self.client.models.generate_content(
+                    model='gemini-2.0-flash',
+                    contents=[prompt, image],
                     safety_settings=self.safety_settings
                 )
                 

@@ -4,7 +4,7 @@
 import os
 import time
 
-import google.generativeai as genai
+from google import genai
 import librosa
 import numpy as np
 import soundfile as sf
@@ -58,9 +58,8 @@ if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
     exit(1)
 
 # C[?]u h[?]nh Gemini
-genai.configure(api_key=GEMINI_API_KEY)
 # S[?] d[?]ng gemini-2.5-flash (model m[?]i nh[?]t)
-model = genai.GenerativeModel("models/gemini-2.5-flash")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 # ============= AUDIO PREPROCESSING =============
@@ -415,7 +414,10 @@ Transcript c[?] th[?] ch[?]a:
 """
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
         cleaned_text = response.text.strip()
         gemini_time = time.time() - gemini_start
 

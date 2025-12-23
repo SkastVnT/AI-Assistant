@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    import google.generativeai as genai
+    from google import genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
@@ -47,7 +47,7 @@ class GeminiClient:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
             
-        self.model = None
+        self.client = None
         self._is_loaded = False
         
     def load(self) -> float:
@@ -61,11 +61,8 @@ class GeminiClient:
         start_time = time.time()
         
         try:
-            # Configure Gemini API
-            genai.configure(api_key=self.api_key)
-            
-            # Initialize model
-            self.model = genai.GenerativeModel(self.model_name)
+            # Initialize Gemini client
+            self.client = genai.Client(api_key=self.api_key)
             
             load_time = time.time() - start_time
             self._is_loaded = True
@@ -106,16 +103,17 @@ class GeminiClient:
         
         try:
             # Configure generation parameters
-            generation_config = genai.GenerationConfig(
-                temperature=temperature,
-                top_p=top_p,
-                max_output_tokens=max_new_tokens,
-            )
+            config = {
+                'temperature': temperature,
+                'top_p': top_p,
+                'max_output_tokens': max_new_tokens,
+            }
             
             # Generate response
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=config
             )
             
             # Extract text from response

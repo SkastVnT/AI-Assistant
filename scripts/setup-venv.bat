@@ -8,6 +8,9 @@ title AI-Assistant - Virtual Environment Setup
 color 0A
 setlocal enabledelayedexpansion
 
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 REM Get project root (parent of scripts folder)
 set "PROJECT_ROOT=%~dp0.."
 cd /d "%PROJECT_ROOT%"
@@ -96,15 +99,42 @@ if %NEED_INSTALL%==1 (
     echo [INFO] This may take several minutes...
     echo.
     
-    pip install -r requirements.txt
-    if errorlevel 1 (
-        echo.
-        echo [WARNING] Some packages failed to install
-        echo [INFO] Trying to continue anyway...
-    ) else (
-        echo.
-        echo [OK] Dependencies installed successfully
-    )
+    REM Try requirements.txt first, but don't fail if it errors
+    echo [Step 1/2] Attempting to install from requirements.txt...
+    pip install -r requirements.txt 2>nul
+    
+    REM Install critical packages individually
+    echo.
+    echo [Step 2/2] Installing critical packages individually...
+    echo.
+    
+    echo   [1/8] Flask web framework...
+    python -m pip install flask flask-cors python-dotenv werkzeug --disable-pip-version-check
+    
+    echo   [2/8] Database drivers...
+    python -m pip install pymongo dnspython redis --disable-pip-version-check
+    
+    echo   [3/8] NumPy...
+    python -m pip install "numpy<2.0.0" --disable-pip-version-check
+    
+    echo   [4/8] PyTorch ^(this may take a while^)...
+    python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --disable-pip-version-check
+    
+    echo   [5/8] AI/ML transformers...
+    python -m pip install transformers accelerate sentencepiece protobuf --disable-pip-version-check
+    
+    echo   [6/8] Semantic search...
+    python -m pip install sentence-transformers scipy scikit-learn --disable-pip-version-check
+    
+    echo   [7/8] AI APIs...
+    python -m pip install google-genai openai --disable-pip-version-check
+    
+    echo   [8/8] Gradio UI and utilities...
+    python -m pip install gradio Pillow requests aiofiles pyyaml jsonschema tqdm --disable-pip-version-check
+    
+    echo.
+    echo [OK] Critical packages installation completed
+    echo [INFO] Some optional packages may need manual installation
 ) else (
     echo [OK] All critical packages are installed
 )

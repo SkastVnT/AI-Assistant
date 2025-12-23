@@ -13,7 +13,7 @@ import numpy as np
 import soundfile as sf
 from dotenv import load_dotenv
 from scipy import signal
-import google.generativeai as genai
+from google import genai
 
 # ============= CONFIGURATION =============
 # Load .env from config folder
@@ -26,7 +26,7 @@ AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449
 print(f"[KEY] Gemini API Key: {GEMINI_API_KEY[:20]}...{GEMINI_API_KEY[-4:]}")
 
 # Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Create directories
 def create_directories():
@@ -227,8 +227,6 @@ print(f"\n[AI] STEP 3: Gemini AI Semantic Fusion...")
 fusion_start = time.time()
 
 try:
-    model = genai.GenerativeModel("gemini-2.5-flash")
-    
     prompt = f"""Ban la chuyen gia tieng Viet. Nhiem vu cua ban la SMART FUSION hai transcript tu hai model AI khac nhau de tao ra mot transcript chinh xac nhat.
 
 **TRANSCRIPT 1 - Whisper large-v3:**
@@ -248,7 +246,10 @@ try:
 **CHI TRA VE BAN TRANSCRIPT CUOI CUNG, KHONG GIAI THICH.**"""
 
     print("[AI] Sending to Gemini AI...")
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt
+    )
     fused_text = response.text.strip()
     
     fusion_time = time.time() - fusion_start

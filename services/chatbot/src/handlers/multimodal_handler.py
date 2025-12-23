@@ -13,7 +13,7 @@ import mimetypes
 from PIL import Image
 import io
 
-import google.generativeai as genai
+from google import genai
 from openai import OpenAI
 
 logger = logging.getLogger(__name__)
@@ -60,11 +60,10 @@ class MultimodalHandler:
         
         # Initialize clients
         if self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.gemini_vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            self.gemini_client = genai.Client(api_key=self.gemini_api_key)
             logger.info("✅ Gemini Vision initialized")
         else:
-            self.gemini_vision_model = None
+            self.gemini_client = None
             logger.warning("⚠️ Gemini API key not found")
         
         if self.openai_api_key:
@@ -108,7 +107,7 @@ class MultimodalHandler:
         start_time = time.time()
         
         try:
-            if model == "gemini" and self.gemini_vision_model:
+            if model == "gemini" and self.gemini_client:
                 result = self._analyze_with_gemini(image_path, prompt, language)
             elif model == "gpt4-vision" and self.openai_client:
                 result = self._analyze_with_gpt4_vision(image_path, prompt, language)
@@ -166,7 +165,10 @@ Trả về JSON format:
 """
         
         # Call Gemini Vision
-        response = self.gemini_vision_model.generate_content([enhanced_prompt, image])
+        response = self.gemini_client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=[enhanced_prompt, image]
+        )
         
         # Parse response
         try:
@@ -183,7 +185,7 @@ Trả về JSON format:
                 'mood': ''
             }
         
-        result['model_used'] = 'gemini-2.0-flash-exp'
+        result['model_used'] = 'gemini-2.0-flash'
         result['raw_response'] = response.text
         
         return result

@@ -172,11 +172,21 @@ GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 # GitHub API
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
-# Initialize Gemini client with new SDK
+# Initialize Gemini client with new SDK (optional - fallback to None if no key)
+gemini_client = None
 try:
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-except:
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
+    if GEMINI_API_KEY:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        logger.info("✅ Gemini API initialized with primary key")
+except Exception as e:
+    logger.warning(f"⚠️ Primary Gemini key failed: {e}")
+    try:
+        if GEMINI_API_KEY_2:
+            gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
+            logger.info("✅ Gemini API initialized with backup key")
+    except Exception as e2:
+        logger.warning(f"⚠️ Backup Gemini key failed: {e2}")
+        logger.warning("⚠️ Gemini API not available - Chat functionality will be limited")
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {
@@ -414,7 +424,7 @@ class ChatbotAgent:
         """Chat using Google Gemini with quota handling - rotate between 4 API keys"""
         import time
         
-        model_name = 'gemini-2.0-flash-exp'
+        model_name = 'gemini-2.0-flash'
         
         # 🆕 Check cache first
         cache_key_params = {
@@ -423,13 +433,7 @@ class ChatbotAgent:
             'language': language,
             'custom_prompt': custom_prompt[:50] if custom_prompt else None
         }
-        cached = get_cached_response(
-            message,
-            model_name,
-            provider='gemini',
-            api_key_index=best_key_index,
-            **cache_key_params
-        )
+        cached = get_cached_response(message, model_name, provider='gemini', **cache_key_params)
         if cached:
             logger.info(f"✅ Using cached response for Gemini")
             return cached
@@ -562,14 +566,7 @@ class ChatbotAgent:
                 result_text = response.text + model_notice
                 
                 # 🆕 Cache the successful response
-                cache_response(
-                    message,
-                    model_name,
-                    result_text,
-                    provider='gemini',
-                    api_key_index=idx,  # or best_key_index as appropriate
-                    **cache_key_params
-                )
+                cache_response(message, model_name, result_text, provider='gemini', **cache_key_params)
                 
                 if deep_thinking and thinking_process:
                     return {'response': result_text, 'thinking_process': thinking_process}
@@ -2218,135 +2215,6 @@ Rules:
         return jsonify({'error': 'Failed to generate prompt'}), 500
 
 
-@app.route('/api/generate-prompt-grok', methods=['POST'])
-def generate_prompt_grok():
-    """
-    Tạo prompt tối ưu từ extracted tags sử dụng GROK FREE API
-    
-    Body params:
-        - context (str): Context về tags đã trích xuất
-        - tags (list): List các tags đã extract
-    """
-    try:
-        data = request.json
-        context = data.get('context', '')
-        tags = data.get('tags', [])
-        
-        if not tags:
-            return jsonify({'error': 'Tags không được để trống'}), 400
-        
-        # Use GROK to generate optimized prompt
-        try:
-            from openai import OpenAI
-            
-            # Get GROK API key from env
-            api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
-            if not api_key:
-                return jsonify({'error': 'GROK API key not configured. Please add GROK_API_KEY to .env'}), 500
-            
-            # Initialize xAI Grok client (OpenAI-compatible)
-            client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.x.ai/v1"
-            )
-            
-            # Call GROK with context
-            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags using Grok-3")
-            
-            response = client.chat.completions.create(
-                model="grok-3",  # Grok-3 model from xAI
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
-
-Your task:
-1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features
-2. Generate a NEGATIVE prompt: Things to avoid (low quality, artifacts, NSFW content, etc.)
-3. ALWAYS filter out NSFW/inappropriate content from positive prompt
-4. Return JSON format: {"prompt": "...", "negative_prompt": "..."}
-
-Rules:
-- Positive prompt: Focus on visual quality, composition, style
-- Negative prompt: Include SFW filters (nsfw, nude, sexual, explicit, adult content) + quality issues
-- Both prompts should be comma-separated tags
-- Keep anime/illustration style consistent
-- DO NOT explain, just output JSON"""
-                    },
-                    {
-                        "role": "user",
-                        "content": context
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=400,
-                top_p=1,
-                stream=False,
-                response_format={"type": "json_object"}
-            )
-            
-            # Extract generated prompts
-            result_text = response.choices[0].message.content.strip()
-            
-            logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
-            
-            try:
-                result_json = json.loads(result_text)
-                generated_prompt = result_json.get('prompt', '').strip()
-                generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
-                
-                # Ensure negative prompt always has NSFW filters
-                if not generated_negative:
-                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution'
-                elif 'nsfw' not in generated_negative.lower():
-                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
-                    
-            except json.JSONDecodeError as e:
-                # Fallback if JSON parsing fails
-                logger.warning(f"[GROK Prompt] Failed to parse JSON: {str(e)}")
-                logger.warning(f"[GROK Prompt] Raw text: {result_text}")
-                generated_prompt = result_text
-                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
-            
-            logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
-            logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
-            
-            return jsonify({
-                'success': True,
-                'prompt': generated_prompt,
-                'negative_prompt': generated_negative,
-                'tags_used': len(tags)
-            })
-            
-        except Exception as grok_error:
-            logger.error(f"[GROK Prompt] GROK API Error: {str(grok_error)}")
-            
-            # Fallback: Generate prompt from tags directly
-            logger.info("[GROK Prompt] Using fallback method")
-            
-            # Simple fallback: Join tags with commas and add quality tags
-            prompt_parts = tags[:30]  # Limit to 30 tags
-            quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
-            
-            fallback_prompt = ', '.join(prompt_parts + quality_tags)
-            fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
-            
-            # Log the error details, but do not expose them to the user
-            logger.warning(f"[GROK Prompt] Exception in fallback: {str(grok_error)}")
-            return jsonify({
-                'success': True,
-                'prompt': fallback_prompt,
-                'negative_prompt': fallback_negative,
-                'tags_used': len(tags),
-                'fallback': True,
-                'fallback_reason': "internal_error"
-            })
-            
-    except Exception as e:
-        logger.error(f"[GROK Prompt] Error: {str(e)}")
-        return jsonify({'error': 'Failed to generate prompt'}), 500
-
-
 @app.route('/api/img2img', methods=['POST'])
 @app.route('/sd-api/img2img', methods=['POST'])  # Alias for frontend compatibility
 def img2img():
@@ -3482,14 +3350,55 @@ def save_image():
 def serve_image(filename):
     """Serve saved images"""
     try:
-        filepath = IMAGE_STORAGE_DIR / filename
-        if not filepath.exists():
+        # Validate filename to prevent path traversal attacks
+        # Reject any value containing path separators or traversal patterns
+        if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
+            logger.warning("Path traversal attempt detected")
+            return jsonify({'error': 'Invalid filename'}), 400
+        
+        # Additional validation: only allow alphanumeric, underscore, dash, and dot
+        import re
+        if not re.match(r'^[a-zA-Z0-9_\-\.]+$', filename):
+            logger.warning("Invalid filename format detected")
+            return jsonify({'error': 'Invalid filename format'}), 400
+        
+        # Resolve the allowed directory first (before using user input)
+        allowed_dir = IMAGE_STORAGE_DIR.resolve()
+        
+        # After validation, reconstruct path using only the base directory
+        # This breaks the taint flow from user input
+        validated_filename = filename  # At this point, filename is validated
+        
+        # Build path by reconstructing from allowed_dir and validated components
+        file_path = Path(str(allowed_dir)) / validated_filename
+        
+        # Resolve to absolute path
+        try:
+            resolved_file_path = file_path.resolve()
+        except (ValueError, OSError):
+            logger.warning("Path resolution failed")
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        # Verify the resolved path is within the allowed directory
+        try:
+            resolved_file_path.relative_to(allowed_dir)
+        except ValueError:
+            logger.warning("Path outside allowed directory detected")
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Check if file exists
+        if not resolved_file_path.exists():
             return jsonify({'error': 'Image not found'}), 404
         
-        return send_file(filepath, mimetype='image/png')
+        # Check if it's a file (not a directory)
+        if not resolved_file_path.is_file():
+            return jsonify({'error': 'Invalid file type'}), 400
+        
+        # Serve the file
+        return send_file(str(resolved_file_path), mimetype='image/png')
         
     except Exception as e:
-        logger.error(f"[Get Image] Error: {str(e)}")
+        logger.error("[Get Image] Error occurred")
         return jsonify({'error': 'Failed to retrieve image'}), 500
 
 

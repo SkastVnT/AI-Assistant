@@ -2,6 +2,9 @@
 title AI Assistant - Complete Health Check
 color 0D
 
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 REM Navigate to project root (parent of scripts folder)
 cd /d "%~dp0.."
 

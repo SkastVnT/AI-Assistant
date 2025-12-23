@@ -2,6 +2,9 @@
 title AI Assistant - Setup All Services (AI-Enhanced)
 color 0D
 
+REM Force UTF-8 encoding to prevent Unicode errors
+chcp 65001 >nul 2>&1
+
 REM Get the project root
 cd /d "%~dp0.."
 

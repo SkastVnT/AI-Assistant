@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Text2SQL Service - Simplified Version for Testing
 AI Assistant - Natural Language to SQL Query Conversion
@@ -15,7 +15,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 import openai
 
 # Load environment variables
@@ -28,12 +28,12 @@ GEMINI_API_KEY_3 = os.getenv("GEMINI_API_KEY_3")
 GEMINI_API_KEY_4 = os.getenv("GEMINI_API_KEY_4")
 # Try first available key for initial config
 GEMINI_API_KEY = GEMINI_API_KEY_1 or GEMINI_API_KEY_2 or os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Client will be created per-request with rotation
 
-# Configure OpenAI and DeepSeek
+# Configure OpenAI, DeepSeek, and GROK
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+GROK_API_KEY = os.getenv("GROK_API_KEY")
 
 # Flask app
 app = Flask(__name__)
@@ -121,15 +121,17 @@ SQL Query:"""
     last_error = None
     for idx, api_key in enumerate(gemini_keys):
         try:
-            # Configure with current API key
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(prompt)
+            # Create client with current API key
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             sql = extract_sql(response.text)
             
             # Success!
             if idx > 0:
-                print(f"✅ Gemini success with API Key #{idx+1}")
+                print(f"âœ… Gemini success with API Key #{idx+1}")
             return sql, "success"
             
         except Exception as e:
@@ -138,11 +140,11 @@ SQL Query:"""
             
             # Check if quota exceeded
             if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                print(f"⚠️ Gemini quota exceeded - API Key #{idx+1}")
+                print(f"âš ï¸ Gemini quota exceeded - API Key #{idx+1}")
                 
                 # If not the last key, try next
                 if idx < len(gemini_keys) - 1:
-                    print(f"🔄 Trying next Gemini API key...")
+                    print(f"ðŸ”„ Trying next Gemini API key...")
                     time.sleep(1)
                     continue
             # Other errors - return immediately
@@ -242,7 +244,54 @@ SQL Query:"""
     except Exception as e:
         return None, str(e)
 
-def generate_questions_from_schema(schema_text, db_type="clickhouse", model="gemini"):
+def generate_sql_grok(schema_text, question, db_type="clickhouse", deep_thinking=False):
+    """Generate SQL using GROK (xAI - FREE with better SQL generation)"""
+    if not GROK_API_KEY:
+        return None, "GROK API key not configured"
+    
+    thinking_instruction = ""
+    if deep_thinking:
+        thinking_instruction = """Think step by step:
+1. Identify the tables and columns involved
+2. Determine the relationships and joins needed
+3. Consider filters, aggregations, and sorting
+4. Optimize the query for performance\n\n"""
+    
+    prompt = f"""{thinking_instruction}You are an expert SQL developer specializing in {db_type.upper()}.
+
+Database Schema:
+{schema_text}
+
+User Question: {question}
+
+Generate a precise SQL query that answers the question.
+Requirements:
+- Use {db_type.upper()} syntax
+- Include LIMIT 100 for SELECT queries unless specified
+- Return ONLY the SQL query, no explanations
+
+SQL Query:"""
+    
+    try:
+        client = openai.OpenAI(
+            api_key=GROK_API_KEY,
+            base_url="https://api.x.ai/v1"
+        )
+        response = client.chat.completions.create(
+            model="grok-3",
+            messages=[
+                {"role": "system", "content": f"You are an expert {db_type.upper()} SQL developer."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=1000
+        )
+        sql = extract_sql(response.choices[0].message.content)
+        return sql, "success"
+    except Exception as e:
+        return None, str(e)
+
+def generate_questions_from_schema(schema_text, db_type="clickhouse", model="grok"):
     """Generate 5 sample questions with SQL queries from schema"""
     import time
     
@@ -283,13 +332,15 @@ Return ONLY the JSON, no other text."""
             last_error = None
             for idx, api_key in enumerate(gemini_keys):
                 try:
-                    genai.configure(api_key=api_key)
-                    model_obj = genai.GenerativeModel("gemini-2.0-flash")
-                    response = model_obj.generate_content(prompt)
+                    client = genai.Client(api_key=api_key)
+                    response = client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=prompt
+                    )
                     text = response.text.strip()
                     
                     if idx > 0:
-                        print(f"✅ Gemini questions generation success with API Key #{idx+1}")
+                        print(f"âœ… Gemini questions generation success with API Key #{idx+1}")
                     break  # Success!
                     
                 except Exception as e:
@@ -297,9 +348,9 @@ Return ONLY the JSON, no other text."""
                     last_error = error_msg
                     
                     if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                        print(f"⚠️ Gemini quota exceeded - API Key #{idx+1}")
+                        print(f"âš ï¸ Gemini quota exceeded - API Key #{idx+1}")
                         if idx < len(gemini_keys) - 1:
-                            print(f"🔄 Trying next Gemini API key...")
+                            print(f"ðŸ”„ Trying next Gemini API key...")
                             time.sleep(1)
                             continue
                     raise e
@@ -337,6 +388,23 @@ Return ONLY the JSON, no other text."""
                 max_tokens=2000
             )
             text = response.choices[0].message.content.strip()
+        elif model == "grok":
+            if not GROK_API_KEY:
+                raise Exception("GROK API key not configured")
+            client = openai.OpenAI(
+                api_key=GROK_API_KEY,
+                base_url="https://api.x.ai/v1"
+            )
+            response = client.chat.completions.create(
+                model="grok-3",
+                messages=[
+                    {"role": "system", "content": f"You are an expert {db_type.upper()} SQL developer."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5,
+                max_tokens=2000
+            )
+            text = response.choices[0].message.content.strip()
         else:
             raise Exception(f"Unsupported model: {model}")
         
@@ -354,9 +422,9 @@ Return ONLY the JSON, no other text."""
 def detect_question_generation_intent(message):
     """Detect if user wants to generate questions from schema"""
     keywords = [
-        "tạo câu hỏi", "câu hỏi", "generate questions", "sample questions",
-        "ví dụ", "examples", "mẫu", "gợi ý", "suggest", "tạo ra",
-        "cho tôi", "give me", "show me", "các câu", "query examples"
+        "táº¡o cÃ¢u há»i", "cÃ¢u há»i", "generate questions", "sample questions",
+        "vÃ­ dá»¥", "examples", "máº«u", "gá»£i Ã½", "suggest", "táº¡o ra",
+        "cho tÃ´i", "give me", "show me", "cÃ¡c cÃ¢u", "query examples"
     ]
     
     message_lower = message.lower()
@@ -365,9 +433,9 @@ def detect_question_generation_intent(message):
 def detect_sql_learning_intent(message):
     """Detect if user is providing correct SQL for learning"""
     keywords = [
-        "câu sql", "sql này", "query này", "tôi có câu sql",
-        "đây là sql", "this is sql", "correct sql", "sql đúng",
-        "học", "learn", "lưu", "save", "nhớ", "remember"
+        "cÃ¢u sql", "sql nÃ y", "query nÃ y", "tÃ´i cÃ³ cÃ¢u sql",
+        "Ä‘Ã¢y lÃ  sql", "this is sql", "correct sql", "sql Ä‘Ãºng",
+        "há»c", "learn", "lÆ°u", "save", "nhá»›", "remember"
     ]
     
     message_lower = message.lower()
@@ -475,7 +543,7 @@ def chat():
     
     data = request.get_json()
     message = data.get("message", "").strip()
-    model = data.get("model", "gemini")
+    model = data.get("model", "grok")  # Default to GROK (FREE, better SQL generation)
     db_type = data.get("db_type", "clickhouse")
     deep_thinking = data.get("deep_thinking", False)
     
@@ -496,7 +564,7 @@ def chat():
     
     # Check if user wants to generate questions
     if detect_question_generation_intent(message):
-        if model in ["gemini", "openai", "deepseek"]:
+        if model in ["grok", "gemini", "openai", "deepseek"]:
             questions, result = generate_questions_from_schema(schema_text, db_type, model)
             
             if result == "success" and questions:
@@ -507,7 +575,7 @@ def chat():
                     "status": "success",
                     "type": "questions",
                     "questions": questions,
-                    "message": f"Đã tạo {len(questions)} câu hỏi mẫu từ schema",
+                    "message": f"ÄÃ£ táº¡o {len(questions)} cÃ¢u há»i máº«u tá»« schema",
                     "model": model,
                     "db_type": db_type
                 })
@@ -536,7 +604,7 @@ def chat():
             
             if not learned_for:
                 # Use a generic description
-                learned_for = "Câu SQL được cung cấp"
+                learned_for = "CÃ¢u SQL Ä‘Æ°á»£c cung cáº¥p"
             
             # Save to knowledge base
             session_name = save_learned_sql(learned_for, provided_sql)
@@ -544,7 +612,7 @@ def chat():
             return jsonify({
                 "status": "success",
                 "type": "learned",
-                "message": f"✅ Đã học SQL cho câu hỏi: {learned_for}",
+                "message": f"âœ… ÄÃ£ há»c SQL cho cÃ¢u há»i: {learned_for}",
                 "session": session_name,
                 "question": learned_for,
                 "sql": provided_sql
@@ -554,7 +622,9 @@ def chat():
     sql = None
     result = None
     
-    if model == "gemini":
+    if model == "grok":
+        sql, result = generate_sql_grok(schema_text, message, db_type, deep_thinking)
+    elif model == "gemini":
         sql, result = generate_sql_gemini(schema_text, message, db_type, deep_thinking)
     elif model == "openai":
         sql, result = generate_sql_openai(schema_text, message, db_type, deep_thinking)
@@ -563,7 +633,7 @@ def chat():
     else:
         return jsonify({
             "status": "error",
-            "message": f"Model {model} not supported. Supported models: gemini, openai, deepseek"
+            "message": f"Model {model} not supported. Supported models: grok, gemini, openai, deepseek"
         }), 400
     
     if result == "success" and sql:
@@ -612,7 +682,13 @@ def health_check():
     return jsonify({
         "status": "ok",
         "service": "Text2SQL",
-        "api_configured": bool(GEMINI_API_KEY),
+        "api_configured": {
+            "grok": bool(GROK_API_KEY),
+            "gemini": bool(GEMINI_API_KEY),
+            "openai": bool(OPENAI_API_KEY),
+            "deepseek": bool(DEEPSEEK_API_KEY)
+        },
+        "default_model": "grok",
         "schemas_loaded": len(uploaded_schemas)
     })
 
@@ -713,7 +789,7 @@ def test_database_connection():
             else:
                 return jsonify({
                     "status": "error",
-                    "message": "ClickHouse chỉ hỗ trợ localhost connection"
+                    "message": "ClickHouse chá»‰ há»— trá»£ localhost connection"
                 }), 400
             
             # Test query
@@ -723,7 +799,7 @@ def test_database_connection():
             
             return jsonify({
                 "status": "success",
-                "message": f"✅ Kết nối ClickHouse thành công! Version: {version}",
+                "message": f"âœ… Káº¿t ná»‘i ClickHouse thÃ nh cÃ´ng! Version: {version}",
                 "version": version
             })
             
@@ -737,7 +813,7 @@ def test_database_connection():
                 if not uri:
                     return jsonify({
                         "status": "error",
-                        "message": "URI không được để trống cho MongoDB Atlas"
+                        "message": "URI khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng cho MongoDB Atlas"
                     }), 400
                 
                 client = MongoClient(uri, serverSelectionTimeoutMS=5000)
@@ -763,20 +839,20 @@ def test_database_connection():
             
             return jsonify({
                 "status": "success",
-                "message": f"✅ Kết nối MongoDB thành công! Version: {version}",
+                "message": f"âœ… Káº¿t ná»‘i MongoDB thÃ nh cÃ´ng! Version: {version}",
                 "version": version
             })
         
         else:
             return jsonify({
                 "status": "error",
-                "message": f"Database type không được hỗ trợ: {db_type}"
+                "message": f"Database type khÃ´ng Ä‘Æ°á»£c há»— trá»£: {db_type}"
             }), 400
             
     except Exception as e:
         return jsonify({
             "status": "error",
-            "message": f"❌ Lỗi kết nối: {str(e)}"
+            "message": f"âŒ Lá»—i káº¿t ná»‘i: {str(e)}"
         }), 500
 
 
@@ -809,14 +885,14 @@ def save_database_connection():
         
         return jsonify({
             "status": "success",
-            "message": "💾 Đã lưu connection config",
+            "message": "ðŸ’¾ ÄÃ£ lÆ°u connection config",
             "connection": connection_config
         })
         
     except Exception as e:
         return jsonify({
             "status": "error",
-            "message": f"Lỗi lưu connection: {str(e)}"
+            "message": f"Lá»—i lÆ°u connection: {str(e)}"
         }), 500
 
 
@@ -861,7 +937,7 @@ def use_database_connection(connection_id):
         if not connection_file.exists():
             return jsonify({
                 "status": "error",
-                "message": "Connection không tồn tại"
+                "message": "Connection khÃ´ng tá»“n táº¡i"
             }), 404
         
         with open(connection_file, "r", encoding="utf-8") as f:
@@ -874,7 +950,7 @@ def use_database_connection(connection_id):
             active_db_connection = connection_config
             return jsonify({
                 "status": "success",
-                "message": f"✅ Đang sử dụng connection: {connection_config['name']}",
+                "message": f"âœ… Äang sá»­ dá»¥ng connection: {connection_config['name']}",
                 "connection": connection_config
             })
         else:
@@ -901,7 +977,7 @@ def delete_database_connection(connection_id):
         if not connection_file.exists():
             return jsonify({
                 "status": "error",
-                "message": "Connection không tồn tại"
+                "message": "Connection khÃ´ng tá»“n táº¡i"
             }), 404
         
         # Clear active connection if it's being deleted
@@ -912,7 +988,7 @@ def delete_database_connection(connection_id):
         
         return jsonify({
             "status": "success",
-            "message": "🗑️ Đã xóa connection"
+            "message": "ðŸ—‘ï¸ ÄÃ£ xÃ³a connection"
         })
         
     except Exception as e:
@@ -982,11 +1058,12 @@ def test_connection_internal(connection_config):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5002))
     print(f"\n{'='*60}")
-    print(f"🗄️  Text2SQL Service Starting...")
+    print(f"ðŸ—„ï¸  Text2SQL Service Starting...")
     print(f"{'='*60}")
-    print(f"📍 URL: http://localhost:{port}")
-    print(f"🤖 Model: Gemini (Google)")
-    print(f"🗄️  Databases: ClickHouse, MongoDB, SQL Server, PostgreSQL, MySQL")
+    print(f"ðŸ“ URL: http://localhost:{port}")
+    print(f" Default Model: GROK-3 (xAI - FREE)")
+    print(f" Available Models: grok, gemini, openai, deepseek")
+    print(f"ðŸ—„ï¸  Databases: ClickHouse, MongoDB, SQL Server, PostgreSQL, MySQL")
     print(f"{'='*60}\n")
     
     app.run(host="0.0.0.0", port=port, debug=True)
