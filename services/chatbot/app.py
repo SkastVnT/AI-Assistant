@@ -3350,11 +3350,30 @@ def save_image():
 def serve_image(filename):
     """Serve saved images"""
     try:
-        filepath = IMAGE_STORAGE_DIR / filename
-        if not filepath.exists():
+        # Sanitize filename to prevent path traversal attacks
+        # Remove any directory separators and null bytes
+        safe_filename = filename.replace('/', '').replace('\\', '').replace('\0', '')
+        
+        # Construct the filepath
+        filepath = IMAGE_STORAGE_DIR / safe_filename
+        
+        # Resolve to absolute path and verify it's within the allowed directory
+        try:
+            resolved_path = filepath.resolve()
+            allowed_dir = IMAGE_STORAGE_DIR.resolve()
+            
+            # Check if the resolved path is within the allowed directory
+            if not str(resolved_path).startswith(str(allowed_dir)):
+                logger.warning(f"Path traversal attempt detected: {filename}")
+                return jsonify({'error': 'Invalid file path'}), 403
+        except (ValueError, OSError) as path_error:
+            logger.warning(f"Invalid path resolution: {filename} - {path_error}")
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        if not resolved_path.exists():
             return jsonify({'error': 'Image not found'}), 404
         
-        return send_file(filepath, mimetype='image/png')
+        return send_file(resolved_path, mimetype='image/png')
         
     except Exception as e:
         logger.error(f"[Get Image] Error: {str(e)}")
