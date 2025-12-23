@@ -72,6 +72,22 @@ logger = logging.getLogger(__name__)
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.INFO)
 
+# Helper function to sanitize log messages
+def sanitize_for_log(text):
+    """
+    Sanitize text for safe logging by removing control characters and ANSI escape sequences.
+    This prevents log injection attacks (CWE-117).
+    """
+    if not text:
+        return ''
+    # Remove ANSI escape sequences (e.g., \x1b[31m for colors)
+    text = re.sub(r'\x1b\[[0-9;]*m', '', str(text))
+    # Remove all control characters (ASCII 0-31 except tab, and 127)
+    text = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', text)
+    # Replace newlines and carriage returns with escaped versions for readability
+    text = text.replace('\n', '\\n').replace('\r', '\\r')
+    return text
+
 # Load environment variables
 load_dotenv()
 
@@ -3537,7 +3553,7 @@ def serve_image(filename):
             return jsonify({'error': 'Invalid file path'}), 400
 
         # Construct the filepath using the validated filename
-        filepath = IMAGE_STORAGE_DIR / filename
+        filepath = IMAGE_STORAGE_DIR / safe_filename
         
         # Resolve to absolute path and verify it's within the allowed directory
         try:
