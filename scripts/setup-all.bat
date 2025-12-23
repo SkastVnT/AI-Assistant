@@ -46,8 +46,44 @@ if not exist ".venv\Scripts\activate.bat" (
     echo   Setting up main environment
     echo ========================================
     echo.
+    
+    REM Detect GPU before creating environment
+    echo [INFO] Detecting GPU capabilities...
+    set HAS_NVIDIA_GPU=0
+    nvidia-smi >nul 2>&1
+    if not errorlevel 1 (
+        echo [OK] NVIDIA GPU detected - Will install CUDA-enabled PyTorch
+        set HAS_NVIDIA_GPU=1
+    ) else (
+        echo [INFO] No NVIDIA GPU detected - Will install CPU-only PyTorch
+    )
+    echo.
+    
     python -m venv .venv
     call .venv\Scripts\activate.bat
+    
+    REM Install PyTorch first (critical for other packages)
+    echo ========================================
+    echo   Installing PyTorch
+    echo ========================================
+    echo.
+    if !HAS_NVIDIA_GPU! EQU 1 (
+        echo [INFO] Installing PyTorch 2.6.0 with CUDA 11.8 support...
+        echo [INFO] This enables GPU acceleration for all AI services
+        echo.
+        pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+        
+        if errorlevel 1 (
+            echo [WARNING] CUDA installation failed, trying CPU version...
+            pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2
+        )
+    ) else (
+        echo [INFO] Installing CPU-only PyTorch...
+        pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2
+    )
+    echo.
+    
+    echo [INFO] Installing other dependencies...
     pip install -r requirements.txt
 ) else (
     call .venv\Scripts\activate.bat

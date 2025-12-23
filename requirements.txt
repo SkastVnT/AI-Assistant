@@ -28,15 +28,22 @@ pauseecho.echo [INFO] Created START_CHATBOT.bat for quick accessecho pause >> ST
 # ============================================================================
 # PYTORCH - INSTALL FIRST (Required for most services)
 # ============================================================================
-# For GPU (CUDA 11.8):
+# The setup scripts will automatically detect your GPU and install the correct version:
+#
+# For GPU (CUDA 11.8) - Automatic if NVIDIA GPU detected:
 #   pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
-# For CPU only:
-#   pip install torch torchvision torchaudio
+#
+# For CPU only - Automatic if no GPU detected:
+#   pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2
+#
+# To manually check your GPU: python scripts/utilities/check_gpu.py
 # ============================================================================
+# NOTE: Do not uncomment these lines - let setup scripts handle PyTorch installation
+# torch==2.6.0
+# torchvision==0.16.2
+# torchaudio==2.1.2
+
 setuptools<81.0.0
-torch==2.6.0
-torchvision==0.16.2
-torchaudio==2.1.2
 numpy>=1.20.0,<2.0.0
 
 # ============================================================================
