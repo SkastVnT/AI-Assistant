@@ -20,8 +20,18 @@ import json
 from pathlib import Path
 import shutil
 import threading
-from urllib.parse import unquote
-import re
+
+
+def sanitize_for_log(value):
+    """
+    Remove characters that can cause log injection (such as newlines and carriage returns)
+    from the given value before logging it.
+    """
+    if value is None:
+        return ""
+    text = str(value)
+    # Remove CR and LF characters to prevent log forging via line breaks
+    return text.replace("\r", "").replace("\n", "")
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -115,39 +125,37 @@ else:
 
 # Import local model loader
 try:
-    # Attempt to import with timeout protection using threading
-    # This approach works cross-platform (Windows and Unix)
-    import_result = {'success': False, 'error': None, 'module': None}
+    # Attempt to import with timeout protection using threading (cross-platform)
+    import_result = {'success': False, 'error': None}
     
     def import_with_timeout():
+        """Import local model loader in a separate thread"""
         try:
             from src.utils.local_model_loader import model_loader
-            import_result['module'] = model_loader
+            import_result['model_loader'] = model_loader
             import_result['success'] = True
         except Exception as e:
             import_result['error'] = e
     
-    # Start import in a separate thread
-    # Note: The thread is marked as daemon, so if the import hangs, it will continue
-    # running in the background but will be terminated when the main process exits.
-    # This is acceptable since it's only used during startup and prevents blocking.
-    # Resource leak warning: If the import involves resource allocation (e.g., file handles,
-    # network connections), these may not be cleaned up properly if the thread is abandoned.
+    # Create and start import thread with 10-second timeout
     import_thread = threading.Thread(target=import_with_timeout, daemon=True)
     import_thread.start()
-    import_thread.join(timeout=10)  # 10 second timeout
+    import_thread.join(timeout=10.0)
     
     if import_thread.is_alive():
-        # Import is still running after timeout
+        # Thread is still running after timeout
+        # Note: The thread will continue in the background (as a daemon thread)
+        # but we proceed without local models. This is acceptable for a one-time
+        # startup import that may be stuck or very slow.
         raise TimeoutError("Local model loader import timeout after 10 seconds")
     
-    if not import_result['success']:
-        # Import failed with an exception
-        raise import_result['error'] or ImportError("Unknown import error")
-    
-    model_loader = import_result['module']
-    LOCALMODELS_AVAILABLE = True
-    logger.info("✅ Local model loader imported successfully")
+    if import_result['success']:
+        model_loader = import_result['model_loader']
+        LOCALMODELS_AVAILABLE = True
+        logger.info("✅ Local model loader imported successfully")
+    else:
+        raise import_result.get('error', ImportError("Import failed"))
+        
 except (ImportError, TimeoutError, Exception) as e:
     LOCALMODELS_AVAILABLE = False
     logger.warning(f"⚠️ Local models not available: {e}")
@@ -2624,7 +2632,14 @@ def share_image_imgbb():
             base64_image = base64_image.split(',')[1]
         
         # Sanitize title to prevent log injection
-        safe_title = sanitize_for_log(title) if title else 'Untitled'
+        # Remove all control characters including ANSI escape sequences
+        if title:
+            # Remove control characters (0x00-0x1F and 0x7F-0x9F)
+            safe_title = ''.join(char for char in title if ord(char) >= 0x20 and not (0x7F <= ord(char) <= 0x9F))
+            # Limit length to prevent log flooding
+            safe_title = safe_title[:200] if safe_title else 'Untitled'
+        else:
+            safe_title = 'Untitled'
         logger.info(f"[ImgBB Share] Uploading image: {safe_title}")
         
         try:
@@ -3519,20 +3534,23 @@ def save_image():
 def serve_image(filename):
     """Serve saved images"""
     try:
-        # First, URL-decode the filename to handle encoded path separators
-        # This catches attacks like "..%2F..%2Fetc%2Fpasswd"
-        decoded_filename = unquote(filename)
-        
         # Sanitize filename to prevent path traversal attacks
-        # Use os.path.basename() to extract only the filename component
-        # This handles path separators, unicode variations, and complex traversal patterns
-        safe_filename = os.path.basename(decoded_filename)
+        # Use os.path.basename to extract only the filename component
+        # This handles encoded separators, unicode variations, and '../' sequences
+        safe_filename = os.path.basename(filename)
         
-        # Additional validation: reject if basename extraction removed content
-        # This catches attempts like "../../../etc/passwd" which would become "passwd"
-        if not safe_filename or safe_filename != decoded_filename:
-            logger.warning(f"Path traversal attempt detected: {sanitize_for_log(filename)}")
-            return jsonify({'error': 'Invalid file path'}), 403
+        # Additional validation: reject empty filenames or those that are just dots
+        if not safe_filename or safe_filename in ('.', '..'):
+            logger.warning(f"Invalid filename detected: {sanitize_for_log(filename)}")
+            return jsonify({'error': 'Invalid filename'}), 400
+        
+        # Construct the filepath
+        filepath = IMAGE_STORAGE_DIR / safe_filename
+        # Validate filename to prevent path traversal attacks
+        # Reject any value containing path separators or traversal patterns
+        if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
+            logger.warning(f"Invalid filename received: {sanitize_for_log(filename)}")
+            return jsonify({'error': 'Invalid file path'}), 400
 
         # Construct the filepath using the validated filename
         filepath = IMAGE_STORAGE_DIR / safe_filename
@@ -3549,7 +3567,9 @@ def serve_image(filename):
                 logger.warning(f"Path traversal attempt detected: {sanitize_for_log(filename)}")
                 return jsonify({'error': 'Invalid file path'}), 403
         except (ValueError, OSError) as path_error:
-            logger.warning(f"Invalid path resolution: {sanitize_for_log(filename)} - {path_error}")
+            logger.warning(
+                f"Invalid path resolution: {sanitize_for_log(filename)} - {sanitize_for_log(path_error)}"
+            )
             return jsonify({'error': 'Invalid file path'}), 400
         
         if not resolved_path.exists():
@@ -3558,7 +3578,7 @@ def serve_image(filename):
         return send_file(resolved_path, mimetype='image/png')
         
     except Exception as e:
-        logger.error(f"[Get Image] Error: {str(e)}")
+        logger.error(f"[Get Image] Error: {sanitize_for_log(e)}")
         return jsonify({'error': 'Failed to retrieve image'}), 500
 
 
