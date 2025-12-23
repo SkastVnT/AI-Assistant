@@ -116,6 +116,9 @@ try:
     
     if import_thread.is_alive():
         # Thread is still running after timeout
+        # Note: The thread will continue in the background (as a daemon thread)
+        # but we proceed without local models. This is acceptable for a one-time
+        # startup import that may be stuck or very slow.
         raise TimeoutError("Local model loader import timeout after 10 seconds")
     
     if import_result['success']:
@@ -2604,7 +2607,7 @@ def share_image_imgbb():
         # Remove all control characters including ANSI escape sequences
         if title:
             # Remove control characters (0x00-0x1F and 0x7F-0x9F)
-            safe_title = ''.join(char for char in title if ord(char) >= 0x20 and ord(char) != 0x7F)
+            safe_title = ''.join(char for char in title if ord(char) >= 0x20 and not (0x7F <= ord(char) <= 0x9F))
             # Limit length to prevent log flooding
             safe_title = safe_title[:200] if safe_title else 'Untitled'
         else:
