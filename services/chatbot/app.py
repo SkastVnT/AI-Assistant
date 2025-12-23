@@ -21,6 +21,18 @@ from pathlib import Path
 import shutil
 import threading
 
+
+def sanitize_for_log(value):
+    """
+    Remove characters that can cause log injection (such as newlines and carriage returns)
+    from the given value before logging it.
+    """
+    if value is None:
+        return ""
+    text = str(value)
+    # Remove CR and LF characters to prevent log forging via line breaks
+    return text.replace("\r", "").replace("\n", "")
+
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config.rate_limiter import get_gemini_key_with_rate_limit, wait_for_openai_rate_limit, get_rate_limit_stats
@@ -3513,7 +3525,7 @@ def serve_image(filename):
         
         # Additional validation: reject empty filenames or those that are just dots
         if not safe_filename or safe_filename in ('.', '..'):
-            logger.warning(f"Invalid filename detected: {filename}")
+            logger.warning(f"Invalid filename detected: {sanitize_for_log(filename)}")
             return jsonify({'error': 'Invalid filename'}), 400
         
         # Construct the filepath
@@ -3521,7 +3533,7 @@ def serve_image(filename):
         # Validate filename to prevent path traversal attacks
         # Reject any value containing path separators or traversal patterns
         if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
-            logger.warning(f"Invalid filename received: {filename}")
+            logger.warning(f"Invalid filename received: {sanitize_for_log(filename)}")
             return jsonify({'error': 'Invalid file path'}), 400
 
         # Construct the filepath using the validated filename
@@ -3536,10 +3548,12 @@ def serve_image(filename):
             try:
                 resolved_path.relative_to(allowed_dir)
             except ValueError:
-                logger.warning(f"Path traversal attempt detected: {filename}")
+                logger.warning(f"Path traversal attempt detected: {sanitize_for_log(filename)}")
                 return jsonify({'error': 'Invalid file path'}), 403
         except (ValueError, OSError) as path_error:
-            logger.warning(f"Invalid path resolution: {filename} - {path_error}")
+            logger.warning(
+                f"Invalid path resolution: {sanitize_for_log(filename)} - {sanitize_for_log(path_error)}"
+            )
             return jsonify({'error': 'Invalid file path'}), 400
         
         if not resolved_path.exists():
@@ -3548,7 +3562,7 @@ def serve_image(filename):
         return send_file(resolved_path, mimetype='image/png')
         
     except Exception as e:
-        logger.error(f"[Get Image] Error: {str(e)}")
+        logger.error(f"[Get Image] Error: {sanitize_for_log(e)}")
         return jsonify({'error': 'Failed to retrieve image'}), 500
 
 
