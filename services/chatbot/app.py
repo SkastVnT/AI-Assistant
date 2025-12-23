@@ -3353,38 +3353,47 @@ def serve_image(filename):
         # Validate filename to prevent path traversal attacks
         # Reject any value containing path separators or traversal patterns
         if '/' in filename or '\\' in filename or '..' in filename or '\0' in filename:
-            logger.warning(f"Path traversal attempt detected: {filename}")
+            logger.warning("Path traversal attempt detected")
             return jsonify({'error': 'Invalid filename'}), 400
         
         # Additional validation: only allow alphanumeric, underscore, dash, and dot
         import re
         if not re.match(r'^[a-zA-Z0-9_\-\.]+$', filename):
-            logger.warning(f"Invalid filename format: {filename}")
+            logger.warning("Invalid filename format detected")
             return jsonify({'error': 'Invalid filename format'}), 400
         
         # Resolve the allowed directory first
         allowed_dir = IMAGE_STORAGE_DIR.resolve()
         
-        # Construct and resolve the full path
+        # Construct the safe filename (already validated)
+        safe_path = allowed_dir / filename
+        
+        # Resolve and verify the path
         try:
-            target_path = (allowed_dir / filename).resolve()
+            target_path = safe_path.resolve()
         except (ValueError, OSError) as path_error:
-            logger.warning(f"Invalid path resolution: {filename} - {path_error}")
+            logger.warning(f"Invalid path resolution error: {path_error}")
             return jsonify({'error': 'Invalid file path'}), 400
         
         # Verify the resolved path is within the allowed directory
-        if not str(target_path).startswith(str(allowed_dir) + os.sep):
-            logger.warning(f"Path outside allowed directory: {filename}")
+        try:
+            # Use relative_to to ensure path is within allowed directory
+            target_path.relative_to(allowed_dir)
+        except ValueError:
+            logger.warning("Path outside allowed directory detected")
             return jsonify({'error': 'Access denied'}), 403
         
-        # Check if file exists
-        if not target_path.exists() or not target_path.is_file():
+        # Check if file exists and is a file
+        if not target_path.exists():
             return jsonify({'error': 'Image not found'}), 404
+        
+        if not target_path.is_file():
+            return jsonify({'error': 'Invalid file type'}), 400
         
         return send_file(target_path, mimetype='image/png')
         
     except Exception as e:
-        logger.error(f"[Get Image] Error: {str(e)}")
+        logger.error("[Get Image] Error occurred")
         return jsonify({'error': 'Failed to retrieve image'}), 500
 
 
