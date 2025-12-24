@@ -302,39 +302,6 @@ if not exist "data\audio" (
 echo.
 
 REM ============================================================================
-REM STEP 10: Check .env & HuggingFace Token
-REM ============================================================================
-echo %YELLOW%[CONFIG]%RESET% Checking configuration...
-
-if not exist ".env" (
-    echo %YELLOW%[WARN]%RESET% .env file not found
-    echo.
-    echo Required for speaker diarization:
-    echo - HF_TOKEN (from https://huggingface.co/settings/tokens)
-    echo.
-    echo Create .env file with:
-    echo HF_TOKEN=your_huggingface_token
-    echo.
-    echo You must also accept licenses at:
-    echo https://huggingface.co/pyannote/speaker-diarization-3.1
-    echo https://huggingface.co/pyannote/segmentation-3.0
-    echo.
-) else (
-    echo %GREEN%[OK]%RESET% .env file exists
-    
-    REM Check for HF token
-    findstr /i "HF_TOKEN" .env >nul 2>&1
-    if errorlevel 1 (
-        echo %YELLOW%[WARN]%RESET% No HF_TOKEN found in .env
-        echo %YELLOW%[INFO]%RESET% Speaker diarization will not work without it
-    ) else (
-        echo %GREEN%[OK]%RESET% HF_TOKEN configured
-    )
-)
-
-echo.
-
-REM ============================================================================
 REM MODEL DOWNLOAD INFO
 REM ============================================================================
 echo %YELLOW%[INFO]%RESET% AI Models Information:

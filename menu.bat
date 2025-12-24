@@ -21,7 +21,8 @@ echo    ╚═╝  ╚═╝╚═╝    ╚══════╝╚════
 echo.
 echo                           Service Manager v2.4
 echo ================================================================================
-echo.
+echo [BUILD_GUIDE at first run]: Type V -^> P -^> A
+echo. 
 echo.
 echo   [SERVICES - Start Individual]
 echo   1. Hub Gateway            (Port 3000)
@@ -42,7 +43,6 @@ echo.
 echo   [UTILITIES]
 echo   T. Run Tests
 echo   H. Health Check ALL (AI-Powered)
-echo   L. Activate venv
 echo   K. Clean Logs
 echo   P. Setup All Services
 echo   V. Setup venv for all
@@ -70,7 +70,6 @@ if /i "%choice%"=="C" start "Check Status" cmd /k "scripts\archive\check-status.
 
 if /i "%choice%"=="T" start "Run Tests" cmd /k "scripts\test-all.bat" & goto MENU
 if /i "%choice%"=="H" start "Health Check" cmd /k "scripts\health-check-all.bat" & goto MENU
-if /i "%choice%"=="L" call .venv\Scripts\activate.bat & exit /b
 if /i "%choice%"=="K" start "Clean Logs" cmd /k "scripts\archive\clean-logs.bat" & goto MENU
 if /i "%choice%"=="P" start "Setup All Services" cmd /k "scripts\setup-all.bat" & goto MENU
 if /i "%choice%"=="V" start "Setup venv" cmd /k "scripts\setup-venv-all.bat" & goto MENU

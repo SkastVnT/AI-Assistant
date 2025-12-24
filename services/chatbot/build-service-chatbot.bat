@@ -287,43 +287,6 @@ if errorlevel 1 (
 echo.
 
 REM ============================================================================
-REM STEP 8: Check .env Configuration
-REM ============================================================================
-echo %YELLOW%[BONUS]%RESET% Checking configuration...
-
-if not exist ".env" (
-    echo %YELLOW%[WARN]%RESET% .env file not found
-    
-    if exist ".env.example" (
-        echo %YELLOW%[INFO]%RESET% Copy .env.example to .env and configure API keys
-        echo.
-        echo Required API keys:
-        echo - GEMINI_API_KEY or OPENAI_API_KEY
-        echo - STABILITY_API_KEY (optional, for image generation)
-    ) else (
-        echo %YELLOW%[INFO]%RESET% Create .env file with your API keys
-    )
-    echo.
-) else (
-    echo %GREEN%[OK]%RESET% .env file exists
-    
-    REM Check for API keys
-    findstr /i "GEMINI_API_KEY" .env >nul 2>&1
-    if errorlevel 1 (
-        findstr /i "OPENAI_API_KEY" .env >nul 2>&1
-        if errorlevel 1 (
-            echo %YELLOW%[WARN]%RESET% No AI API key found in .env
-        ) else (
-            echo %GREEN%[OK]%RESET% OpenAI API key configured
-        )
-    ) else (
-        echo %GREEN%[OK]%RESET% Gemini API key configured
-    )
-)
-
-echo.
-
-REM ============================================================================
 REM BUILD COMPLETE
 REM ============================================================================
 echo %GREEN%============================================================%RESET%
@@ -331,11 +294,11 @@ echo %GREEN%  BUILD COMPLETE - %SERVICE_NAME% SERVICE%RESET%
 echo %GREEN%============================================================%RESET%
 echo.
 echo Next steps:
-echo 1. Configure .env file with your API keys (if not done)
-echo 2. Run the service: start_chatbot.bat
-echo 3. Access at: http://localhost:5001
+echo 1. Configure .env file with your API keys (optional)
+echo 2. Start the service from menu or run: scripts\start-chatbot.bat
+echo 3. Access at: http://localhost:5000
 echo.
-echo For troubleshooting, see: BUILD_GUIDE.md
+echo Note: Service will start without API keys but some features may be limited.
 echo.
 
 pause

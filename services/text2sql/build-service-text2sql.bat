@@ -306,35 +306,6 @@ if not exist "uploads" (
 echo.
 
 REM ============================================================================
-REM STEP 9: Check .env Configuration
-REM ============================================================================
-echo %YELLOW%[CONFIG]%RESET% Checking configuration...
-
-if not exist ".env" (
-    echo %YELLOW%[WARN]%RESET% .env file not found
-    echo.
-    echo Required API keys:
-    echo - GEMINI_API_KEY_1 (primary)
-    echo - GEMINI_API_KEY_2 (optional, fallback)
-    echo.
-    echo Create .env file with:
-    echo GEMINI_API_KEY_1=your_gemini_api_key
-    echo.
-) else (
-    echo %GREEN%[OK]%RESET% .env file exists
-    
-    REM Check for Gemini API key
-    findstr /i "GEMINI_API_KEY" .env >nul 2>&1
-    if errorlevel 1 (
-        echo %YELLOW%[WARN]%RESET% No Gemini API key found in .env
-    ) else (
-        echo %GREEN%[OK]%RESET% Gemini API key configured
-    )
-)
-
-echo.
-
-REM ============================================================================
 REM BUILD COMPLETE
 REM ============================================================================
 echo %GREEN%============================================================%RESET%
