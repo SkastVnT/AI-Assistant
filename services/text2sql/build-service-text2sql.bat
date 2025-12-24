@@ -208,13 +208,13 @@ if errorlevel 1 (
     for /f "tokens=2" %%v in ('python -c "import flask; print('Flask:', flask.__version__)" 2^>^&1') do echo %GREEN%[OK]%RESET% Flask %%v
 )
 
-REM Check google-generativeai
-python -c "import google.generativeai" >nul 2>&1
+REM Check google-genai (new package name)
+python -c "import google.genai" >nul 2>&1
 if errorlevel 1 (
-    echo %RED%[FAIL]%RESET% google-generativeai
+    echo %RED%[FAIL]%RESET% google-genai
     set CRITICAL_FAILED=1
 ) else (
-    echo %GREEN%[OK]%RESET% google-generativeai
+    echo %GREEN%[OK]%RESET% google-genai
 )
 
 REM Check pandas

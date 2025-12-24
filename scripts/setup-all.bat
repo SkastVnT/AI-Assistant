@@ -90,10 +90,10 @@ if not exist ".venv\Scripts\activate.bat" (
 )
 
 REM Install health checker dependencies if needed
-pip show google-generativeai >nul 2>&1
+pip show google-genai >nul 2>&1
 if errorlevel 1 (
     echo Installing AI dependencies for health checker...
-    pip install google-generativeai openai python-dotenv
+    pip install google-genai openai python-dotenv
 )
 
 echo.
