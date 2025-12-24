@@ -15,7 +15,7 @@ timm>=0.6.0
 
 # Utilities
 tqdm>=4.60.0
-opencv-python==4.6.0.66  # Version compatible with paddleocr 2.7.3
+opencv-python==4.8.1.78  # Version compatible with paddleocr 2.7.3
 pyyaml>=5.4.0
 requests>=2.25.0
 python-dotenv>=0.19.0
