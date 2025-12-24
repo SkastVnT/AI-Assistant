@@ -94,6 +94,8 @@ pip show google-genai >nul 2>&1
 if errorlevel 1 (
     echo Installing AI dependencies for health checker...
     pip install google-genai openai python-dotenv
+) else (
+    echo Health checker AI dependencies already installed
 )
 
 echo.

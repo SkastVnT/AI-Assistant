@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # VistralS2T - Vietnamese Speech-to-Text System
 # Version: 3.6.0 - Code Restructuring & Modular Architecture
 # Python: 3.10.6 (managed by pyenv)
@@ -136,23 +136,8 @@ pydub>=0.25.1
 # ============================================================================
 #
 # DUAL-MODEL PIPELINE:
-# ┌──────────────┐
-# │   Audio      │ (32kHz, preprocessed)
-# └──────┬───────┘
-#        │
-#        ├─────────────────────┬─────────────────────┐
-#        ▼                     ▼                     ▼
-#  Whisper large-v3    PhoWhisper-large      (30s chunks)
-#  (Global ASR)        (Vietnamese ASR)
-#        │                     │
-#        └─────────┬───────────┘
-#                  ▼
-#       Qwen2.5-1.5B-Instruct
-#       (Smart Fusion LLM)
-#                  │
-#                  ▼
-#        Final Transcript
-#   (3-role speaker separation)
+# Audio Input -> Whisper large-v3 + PhoWhisper-large -> Qwen2.5 Fusion -> Final Transcript
+# Output: 3-role speaker separation (System, Staff, Customer)
 #
 # OUTPUT STRUCTURE:
 # - app/output/raw/        - Individual model outputs
@@ -171,15 +156,15 @@ pydub>=0.25.1
 # FEATURES
 # ============================================================================
 #
-# ✅ 100% FREE models (no paid APIs)
-# ✅ Vietnamese-optimized (PhoWhisper + Qwen fusion)
-# ✅ Dual transcription for maximum accuracy
-# ✅ Smart fusion (takes best parts from both models)
-# ✅ 3-role speaker separation (Hệ thống, Nhân viên, Khách hàng)
-# ✅ Context-aware role detection
-# ✅ Docker deployment ready
-# ✅ Complete rebuild automation (rebuild_project.bat)
-# ✅ Health checks (check.py)
+# - 100% FREE models (no paid APIs)
+# - Vietnamese-optimized (PhoWhisper + Qwen fusion)
+# - Dual transcription for maximum accuracy
+# - Smart fusion (takes best parts from both models)
+# - 3-role speaker separation (System, Staff, Customer)
+# - Context-aware role detection
+# - Docker deployment ready
+# - Complete rebuild automation
+# - Health checks included
 #
 # ============================================================================
 # DOCUMENTATION
