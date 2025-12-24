@@ -21,7 +21,7 @@ echo    ╚═╝  ╚═╝╚═╝    ╚══════╝╚════
 echo.
 echo                           Service Manager v2.4
 echo ================================================================================
-echo [BUILD_GUIDE at first run]: Type V -^> P -^> A
+echo [BUILD_GUIDE at first run]: Type P -^> A
 echo. 
 echo.
 echo   [SERVICES - Start Individual]
@@ -45,7 +45,6 @@ echo   T. Run Tests
 echo   H. Health Check ALL (AI-Powered)
 echo   K. Clean Logs
 echo   P. Setup All Services
-echo   V. Setup venv for all
 echo.
 echo   [EXIT]
 echo   Q. Quit
@@ -72,7 +71,6 @@ if /i "%choice%"=="T" start "Run Tests" cmd /k "scripts\test-all.bat" & goto MEN
 if /i "%choice%"=="H" start "Health Check" cmd /k "scripts\health-check-all.bat" & goto MENU
 if /i "%choice%"=="K" start "Clean Logs" cmd /k "scripts\archive\clean-logs.bat" & goto MENU
 if /i "%choice%"=="P" start "Setup All Services" cmd /k "scripts\setup-all.bat" & goto MENU
-if /i "%choice%"=="V" start "Setup venv" cmd /k "scripts\setup-venv-all.bat" & goto MENU
 
 if /i "%choice%"=="Q" exit
 
