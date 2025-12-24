@@ -302,14 +302,37 @@ Return ONLY valid JSON, no markdown."""
         return None
     
     def auto_fix(self, fix_commands: List[str]) -> bool:
-        """Execute auto-fix commands"""
+        """Execute auto-fix commands or install packages"""
         print("\n[FIX] Attempting auto-fix...")
+        
+        # Get pip path
+        if os.name == 'nt':  # Windows
+            pip_path = self.venv_path / "Scripts" / "pip.exe"
+        else:
+            pip_path = self.venv_path / "bin" / "pip"
         
         for cmd in fix_commands:
             print(f"[RUN] {cmd}")
+            
+            # Check if this is a package spec (contains == or >=, etc) or a command
+            is_package = any(op in cmd for op in ['==', '>=', '<=', '>', '<', '~=', '; sys_platform'])
+            
+            if is_package:
+                # Skip Windows-only exclusions
+                if 'sys_platform' in cmd and 'win32' in cmd and os.name == 'nt':
+                    print("[SKIP] Package excluded on Windows")
+                    continue
+                
+                # Install via pip
+                install_cmd = f'"{pip_path}" install "{cmd}"'
+                print(f"[PIP] Installing: {cmd}")
+            else:
+                # Execute as command
+                install_cmd = cmd
+            
             try:
                 result = subprocess.run(
-                    cmd,
+                    install_cmd,
                     shell=True,
                     capture_output=True,
                     text=True,

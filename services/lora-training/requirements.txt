@@ -24,7 +24,7 @@ eventlet>=0.33.0  # Async server
 
 # Image processing
 Pillow>=9.5.0
-opencv-python>=4.8.1.78  # Security fix: GHSA-qr4w-53vh-m672 (HIGH severity)
+opencv-python==4.6.0.66  # Version compatible with paddleocr 2.7.3
 
 # Data handling
 numpy>=1.24.0

@@ -68,18 +68,18 @@ if not exist ".venv\Scripts\activate.bat" (
     echo ========================================
     echo.
     if !HAS_NVIDIA_GPU! EQU 1 (
-        echo [INFO] Installing PyTorch 2.6.0 with CUDA 11.8 support...
+        echo [INFO] Installing PyTorch 2.1.2 with CUDA 11.8 support...
         echo [INFO] This enables GPU acceleration for all AI services
         echo.
-        pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+        pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
         
         if errorlevel 1 (
             echo [WARNING] CUDA installation failed, trying CPU version...
-            pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2
+            pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
         )
     ) else (
         echo [INFO] Installing CPU-only PyTorch...
-        pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2
+        pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
     )
     echo.
     
@@ -103,7 +103,7 @@ echo ========================================
 echo   Installing Root Dependencies
 echo ========================================
 echo.
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 
 echo.
 echo ========================================
@@ -177,7 +177,8 @@ cd services\speech2text
 if not exist "venv" (
     python -m venv venv
     call venv\Scripts\activate.bat
-    pip install -r requirements.txt
+    REM Force UTF-8 encoding for requirements.txt
+    python -m pip install --use-pep517 -r requirements.txt
 )
 cd ..\..
 echo Running AI health check for Speech2Text...

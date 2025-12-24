@@ -14,7 +14,7 @@ protobuf>=5.29.5  # Security fix: Updated from 3.20.2 (CVE patched)
 
 # Image Processing
 Pillow>=10.3.0  # Security fix: Updated from 10.1.0 (2 vulnerabilities patched)
-opencv-python>=4.8.1.78  # Security fix: Updated from 4.6.0.66 (CVE-2023-4863 patched)
+opencv-python==4.6.0.66  # Version compatible with paddleocr 2.7.3
 
 # PDF Handling
 PyMuPDF==1.23.8  # fitz - fast PDF processing
