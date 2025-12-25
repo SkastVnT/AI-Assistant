@@ -1731,7 +1731,7 @@ def sd_health():
         traceback.print_exc()
         response = jsonify({
             'status': 'error',
-            'error': str(e)
+            'message': 'Đã xảy ra lỗi khi kiểm tra trạng thái Stable Diffusion.'
         })
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         return response, 500
