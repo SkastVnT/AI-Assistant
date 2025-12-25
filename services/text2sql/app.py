@@ -1841,4 +1841,4 @@ if __name__ == "__main__":
     # Gợi ý chạy:
     #   set GEMINI_API_KEY=... (Windows) / export GEMINI_API_KEY=... (Linux/Mac)
     #   python gpt41.py
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002)
