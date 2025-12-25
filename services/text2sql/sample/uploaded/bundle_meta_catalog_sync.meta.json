@@ -1,0 +1,13 @@
+{
+  "files": [
+    "cdn.meta_catalog_sync.json"
+  ],
+  "tables": [
+    "meta_catalog_sync"
+  ],
+  "id_map": {
+    "meta_catalog_sync": "01"
+  },
+  "bundle_file": "bundle_meta_catalog_sync.txt",
+  "memories_file": null
+}

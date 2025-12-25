@@ -1,0 +1,13 @@
+{
+  "files": [
+    "chotdonai_cs.mv_fb_conversation_detail.txt"
+  ],
+  "tables": [
+    "mv_fb_conversation_detail"
+  ],
+  "id_map": {
+    "mv_fb_conversation_detail": "01"
+  },
+  "bundle_file": "bundle_mv_fb_conversation_detail.txt",
+  "memories_file": null
+}

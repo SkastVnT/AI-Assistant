@@ -36,12 +36,36 @@ except Exception:
     get_client = None
 
 # ====== Load env & SDK ======
-load_dotenv()
+# Load .env from root directory (2 levels up)
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+load_dotenv(env_path)
 REQUIRE_KNOWN_TABLE = os.getenv("SQLCODER_REQUIRE_KNOWN_TABLE", "1") == "1"
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 SQLCODER_BACKEND = os.getenv("SQLCODER_BACKEND", "hf").lower()
 SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "defog/sqlcoder-7b-2")
 REFINE_STRATEGY = os.getenv("REFINE_STRATEGY", "gemini").lower()
+
+# ====== GROK API Configuration ======
+GROK_API_KEY = os.getenv("GROK_API_KEY")
+GROK_API_BASE = "https://api.x.ai/v1"
+DEFAULT_MODEL = os.getenv("DEFAULT_SQL_MODEL", "grok")  # Default to Grok
+
+# ====== OpenAI API Configuration ======
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# ====== DeepSeek API Configuration ======
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_API_BASE = "https://api.deepseek.com"
+
+# Debug: Print API key status
+print(f"[CONFIG] GROK_API_KEY: {'✓ Loaded' if GROK_API_KEY else '✗ Missing'}")
+print(f"[CONFIG] OPENAI_API_KEY: {'✓ Loaded' if OPENAI_API_KEY else '✗ Missing'}")
+print(f"[CONFIG] DEEPSEEK_API_KEY: {'✓ Loaded' if DEEPSEEK_API_KEY else '✗ Missing'}")
+print(f"[CONFIG] GEMINI_API_KEY: {'✓ Loaded' if os.getenv('GEMINI_API_KEY') else '✗ Missing'}")
+print(f"[CONFIG] DEFAULT_MODEL: {DEFAULT_MODEL}")
+
+# Import OpenAI SDK
+import openai
 
 
 # ====== Flask app & constants ======
@@ -213,6 +237,165 @@ Do not explain, just output the SQL.
         contents=prompt
     )
     return resp.text.strip()
+
+
+# ====== Generate SQL with GROK (Default) ======
+def generate_sql_with_grok(schema_text: str, question: str) -> str:
+    """Generate SQL using GROK API (xAI) - Default model"""
+    if not GROK_API_KEY:
+        raise ValueError("GROK_API_KEY not configured")
+    
+    prompt = f"""You are an expert SQL engineer specialized in ClickHouse.
+
+Database schema(s):
+{schema_text}
+
+User question: {question}
+
+Write a valid SQL query for ClickHouse.
+- Return ONLY the SQL query, no explanation.
+- If it's a SELECT without explicit LIMIT, add LIMIT 20.
+- Use proper ClickHouse syntax.
+"""
+    
+    client = openai.OpenAI(
+        api_key=GROK_API_KEY,
+        base_url=GROK_API_BASE
+    )
+    
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": "You are an expert SQL engineer. Output ONLY valid SQL queries without any explanation or markdown."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.1,
+        max_tokens=1000
+    )
+    
+    return response.choices[0].message.content.strip()
+
+
+# ====== Generate SQL with OpenAI GPT-4 ======
+def generate_sql_with_openai(schema_text: str, question: str) -> str:
+    """
+    Gọi OpenAI GPT-4 API để tạo SQL query.
+    """
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY not configured")
+    
+    prompt = f"""You are an expert SQL query generator. Given the following database schema and question, generate a valid SQL query.
+
+Database Schema:
+{schema_text}
+
+Question: {question}
+
+Generate ONLY the SQL query without any explanation. The query should be valid and optimized."""
+    
+    try:
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert SQL query generator."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+            max_tokens=500
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"OpenAI API error: {str(e)}")
+
+
+# ====== Generate SQL with DeepSeek ======
+def generate_sql_with_deepseek(schema_text: str, question: str) -> str:
+    """
+    Gọi DeepSeek API để tạo SQL query.
+    """
+    if not DEEPSEEK_API_KEY:
+        raise ValueError("DEEPSEEK_API_KEY not configured")
+    
+    prompt = f"""You are an expert SQL query generator. Given the following database schema and question, generate a valid SQL query.
+
+Database Schema:
+{schema_text}
+
+Question: {question}
+
+Generate ONLY the SQL query without any explanation. The query should be valid and optimized."""
+    
+    try:
+        client = openai.OpenAI(
+            api_key=DEEPSEEK_API_KEY,
+            base_url=DEEPSEEK_API_BASE
+        )
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": "You are an expert SQL query generator."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+            max_tokens=500
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"DeepSeek API error: {str(e)}")
+
+
+# ====== Generate Refined SQL with GROK ======
+def generate_refined_sql_with_grok(
+    schema_text: str, question: str, prev_sql: str, feedback: str, extra_context: str
+) -> str:
+    """Refine SQL using GROK API"""
+    if not GROK_API_KEY:
+        raise ValueError("GROK_API_KEY not configured")
+    
+    fb = (feedback or "").strip()
+    extra = (extra_context or "").strip()
+    
+    prompt = f"""You are an advanced SQL engineer specialized in ClickHouse.
+
+Database schema(s):
+{schema_text}
+
+User question:
+{question}
+
+Previous SQL (needs fix):
+{prev_sql}
+
+Short critique of what's wrong:
+{fb if fb else "The previous SQL did not fully answer the question."}
+
+Additional user notes / constraints to apply:
+{extra if extra else "(no additional notes)"}
+
+Revise the SQL so that it correctly answers the question.
+Constraints:
+- Use ClickHouse SQL dialect.
+- Keep it as a single final query if possible.
+- Return ONLY the final SQL, no explanation.
+"""
+    
+    client = openai.OpenAI(
+        api_key=GROK_API_KEY,
+        base_url=GROK_API_BASE
+    )
+    
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": "You are an expert SQL engineer. Output ONLY valid SQL queries without any explanation or markdown."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.1,
+        max_tokens=1000
+    )
+    
+    return response.choices[0].message.content.strip()
 
 
 def generate_refined_sql(
@@ -575,13 +758,26 @@ Return ONLY the final SQL. No markdown fences, no explanation.
 
 # Extract SQL from text
 def hybrid_refine_sql(
-    schema_text: str, question: str, prev_sql: str, feedback: str, extra: str
+    schema_text: str, question: str, prev_sql: str, feedback: str, extra: str, model: str = None
 ) -> tuple[str, str]:
     """
     Trả về (sql, source):
-      source in {"refined_gemini","refined_sqlcoder","refined_sqlcoder+gemini"}
+      source in {"refined_grok","refined_gemini","refined_sqlcoder","refined_sqlcoder+gemini"}
     """
-    if REFINE_STRATEGY == "sqlcoder":
+    model = model or DEFAULT_MODEL
+    
+    # GROK - Default and preferred
+    if model == "grok":
+        try:
+            sql = generate_refined_sql_with_grok(schema_text, question, prev_sql, feedback, extra)
+            return extract_sql(sql), "refined_grok"
+        except Exception as e:
+            # Fallback to Gemini
+            print(f"Grok refine error: {e}, falling back to Gemini")
+            sql = extract_sql(generate_refined_sql(schema_text, question, prev_sql, feedback, extra))
+            return sql, "refined_gemini"
+    
+    if model == "sqlcoder" or REFINE_STRATEGY == "sqlcoder":
         sql1 = (
             generate_refined_sql_with_sqlcoder(
                 schema_text, question, prev_sql, feedback, extra
@@ -590,7 +786,7 @@ def hybrid_refine_sql(
         )
         return sql1, "refined_sqlcoder"
 
-    if REFINE_STRATEGY == "gemini":
+    if model == "gemini" or REFINE_STRATEGY == "gemini":
         sql2 = extract_sql(
             generate_refined_sql(schema_text, question, prev_sql, feedback, extra)
         )
@@ -641,18 +837,56 @@ def looks_valid_sql(sql: str) -> bool:
 
 
 # ====== Hybrid Generate SQL ======
-def hybrid_generate_sql(schema_text: str, question: str) -> tuple[str, str]:
+def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> tuple[str, str]:
     """
-    Trả (sql, source): source in {"sqlcoder","gemini","sqlcoder+gemini"}
+    Trả (sql, source): source in {"grok","openai","deepseek","sqlcoder","gemini","sqlcoder+gemini","cascade"}
+    model: "grok" (default), "openai", "deepseek", "gemini", "sqlcoder", "cascade"
     """
-    if HYBRID_STRATEGY == "gemini_only":
+    model = model or DEFAULT_MODEL
+    
+    # GROK - Default and preferred
+    if model == "grok":
+        try:
+            print(f"[DEBUG] Using Grok-3 for SQL generation...")
+            sql = generate_sql_with_grok(schema_text, question)
+            print(f"[DEBUG] Grok-3 success! SQL: {sql[:100]}...")
+            return extract_sql(sql), "grok"
+        except Exception as e:
+            # Fallback to Gemini if Grok fails
+            print(f"[ERROR] Grok error: {e}, falling back to Gemini")
+            sql = generate_sql_with_gemini(schema_text, question)
+            return extract_sql(sql), "gemini"
+    
+    # OpenAI GPT-4
+    if model == "openai":
+        try:
+            print(f"[DEBUG] Using OpenAI GPT-4 for SQL generation...")
+            sql = generate_sql_with_openai(schema_text, question)
+            print(f"[DEBUG] OpenAI success! SQL: {sql[:100]}...")
+            return extract_sql(sql), "openai"
+        except Exception as e:
+            print(f"[ERROR] OpenAI error: {e}, falling back to Gemini")
+            sql = generate_sql_with_gemini(schema_text, question)
+            return extract_sql(sql), "gemini"
+    
+    # DeepSeek
+    if model == "deepseek":
+        try:
+            sql = generate_sql_with_deepseek(schema_text, question)
+            return extract_sql(sql), "deepseek"
+        except Exception as e:
+            print(f"DeepSeek error: {e}, falling back to Gemini")
+            sql = generate_sql_with_gemini(schema_text, question)
+            return extract_sql(sql), "gemini"
+    
+    if model == "gemini" or HYBRID_STRATEGY == "gemini_only":
         return generate_sql_with_gemini(schema_text, question), "gemini"
 
-    if HYBRID_STRATEGY == "sqlcoder_only":
+    if model == "sqlcoder" or HYBRID_STRATEGY == "sqlcoder_only":
         sql1 = generate_sql_with_sqlcoder(schema_text, question)
         return (sql1 or ""), "sqlcoder"
 
-    # cascade
+    # cascade (model == "cascade")
     sql1 = generate_sql_with_sqlcoder(schema_text, question)  # đã extract_sql
     if sql1 and looks_valid_sql(sql1):
         return sql1, "sqlcoder"
@@ -1065,7 +1299,7 @@ def pretrain_file():
 # ====== Home ======
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index_modern.html")
 
 
 # ====== Upload schema ======
@@ -1361,6 +1595,8 @@ def chat():
     global pending_question
     data = request.get_json(force=True)
     msg = (data.get("message") or "").strip()
+    model = (data.get("model") or DEFAULT_MODEL).strip()  # Get model from request
+    
     if not msg:
         return jsonify({"response": "⚠️ Tin nhắn rỗng"}), 200
 
@@ -1373,7 +1609,7 @@ def chat():
                 pending_question = None
                 return jsonify({"response": "⚠️ Vui lòng upload schema trước"}), 200
             try:
-                sql, src = hybrid_generate_sql(schema_text, pending_question)
+                sql, src = hybrid_generate_sql(schema_text, pending_question, model)
                 sql = extract_sql(sql)
                 q = pending_question
                 pending_question = None
@@ -1500,6 +1736,7 @@ def refine():
     prev_sql = (data.get("sql") or "").strip()
     feedback = (data.get("feedback") or "").strip()
     extra_context = (data.get("extra_context") or "").strip()
+    model = (data.get("model") or DEFAULT_MODEL).strip()  # Get model from request
 
     if not question or not prev_sql:
         return jsonify({"error": "Thiếu question hoặc sql"}), 400
@@ -1510,7 +1747,7 @@ def refine():
 
     try:
         new_sql, src = hybrid_refine_sql(
-            schema_text, question, prev_sql, feedback, extra_context
+            schema_text, question, prev_sql, feedback, extra_context, model
         )
         new_sql = extract_sql(new_sql)
         exec_data, exec_status = try_execute_sql(new_sql)
@@ -1604,4 +1841,4 @@ if __name__ == "__main__":
     # Gợi ý chạy:
     #   set GEMINI_API_KEY=... (Windows) / export GEMINI_API_KEY=... (Linux/Mac)
     #   python gpt41.py
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=True)

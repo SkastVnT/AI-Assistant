@@ -1,0 +1,2 @@
+{"question": "Đếm tổng số bản ghi trong bảng mv_fb_conversation_detail", "raw": null, "status": "NO_SQL", "saved": false, "source": "sqlcoder"}
+{"question": "Hiển thị 20 dòng đầu tiên của bảng mv_fb_conversation_detail", "raw": null, "status": "NO_SQL", "saved": false, "source": "sqlcoder"}

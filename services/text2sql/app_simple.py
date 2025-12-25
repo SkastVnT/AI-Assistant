@@ -496,7 +496,7 @@ def load_knowledge_base():
 @app.route("/")
 def index():
     """Home page"""
-    return render_template("index_new.html")
+    return render_template("index_modern.html")
 
 @app.route("/upload", methods=["POST"])
 def upload_schemas():

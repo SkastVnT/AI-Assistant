@@ -35,6 +35,8 @@ echo.
 echo Starting Text2SQL Service...
 echo Access at: http://localhost:5002
 echo.
-python app_simple.py
+echo UI: Modern Dark Theme with Grok AI
+echo.
+python app.py
 
 pause
