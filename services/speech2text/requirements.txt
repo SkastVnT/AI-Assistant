@@ -14,9 +14,9 @@
 setuptools<81.0.0  # Avoid pkg_resources deprecation warning
 
 # PyTorch (install first to avoid conflicts)
-torch==2.6.0
-torchaudio==2.0.2
-torchvision==0.15.2  # Required by pyannote.audio
+torch==2.1.2
+torchaudio==2.1.2
+torchvision==0.16.2  # Required by pyannote.audio
 numpy==1.24.4
 
 # ============= CORE AI MODELS =============

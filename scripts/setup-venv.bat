@@ -68,7 +68,7 @@ if not errorlevel 1 (
     REM Try to detect CUDA version
     nvcc --version >nul 2>&1
     if not errorlevel 1 (
-        for /f "tokens=5" %%v in ('nvcc --version ^| findstr "release"') do set CUDA_VERSION=%%v
+        for /f "tokens=5 delims=, " %%v in ('nvcc --version ^| findstr "release"') do set CUDA_VERSION=%%v
         echo [OK] CUDA !CUDA_VERSION! detected
     ) else (
         echo [WARNING] CUDA toolkit not found, but GPU is present
@@ -105,22 +105,25 @@ if errorlevel 1 (
     echo [MISSING] torch
     set NEED_INSTALL=1
     set NEED_PYTORCH=1
-) else (
-    REM Check if PyTorch has CUDA support when GPU is present
-    if !HAS_NVIDIA_GPU! EQU 1 (
-        python -c "import torch; exit(0 if torch.cuda.is_available() else 1)" >nul 2>&1
-        if errorlevel 1 (
-            echo [WARNING] PyTorch installed but CUDA not available
-            echo [INFO] Will reinstall PyTorch with CUDA support
-            set NEED_PYTORCH=1
-            set NEED_INSTALL=1
-        ) else (
-            echo [OK] PyTorch with CUDA support found
-        )
-    ) else (
-        echo [OK] PyTorch (CPU) found
-    )
+    goto :skip_torch_check
 )
+
+REM Check if PyTorch has CUDA support when GPU is present
+if "!HAS_NVIDIA_GPU!"=="1" (
+    python -c "import torch; exit(0 if torch.cuda.is_available() else 1)" >nul 2>&1
+    if errorlevel 1 (
+        echo [WARNING] PyTorch installed but CUDA not available
+        echo [INFO] Will reinstall PyTorch with CUDA support
+        set NEED_PYTORCH=1
+        set NEED_INSTALL=1
+    ) else (
+        echo [OK] PyTorch with CUDA support is available
+    )
+) else (
+    echo [OK] PyTorch CPU is available
+)
+
+:skip_torch_check
 
 python -c "from google import genai" >nul 2>&1
 if errorlevel 1 (
@@ -143,7 +146,7 @@ if errorlevel 1 (
 REM ============================================================================
 REM Install missing packages if needed
 REM ============================================================================
-if %NEED_INSTALL%==1 (
+if "!NEED_INSTALL!"=="1" (
     echo.
     echo [WARNING] Some critical packages are missing
     echo.
@@ -152,26 +155,26 @@ if %NEED_INSTALL%==1 (
     echo.
     
     REM Install PyTorch first if needed (CRITICAL for other ML packages)
-    if !NEED_PYTORCH! EQU 1 (
+    if "!NEED_PYTORCH!"=="1" (
         echo ============================================================================
         echo   Installing PyTorch (Most Important Step)
         echo ============================================================================
         echo.
         
-        if !HAS_NVIDIA_GPU! EQU 1 (
+        if "!HAS_NVIDIA_GPU!"=="1" (
             echo [Step 1/2] Uninstalling old PyTorch versions...
             pip uninstall -y torch torchvision torchaudio >nul 2>&1
             
-            echo [Step 2/2] Installing PyTorch 2.6.0 with CUDA 11.8 support...
+            echo [Step 2/2] Installing PyTorch 2.1.2 with CUDA 11.8 support...
             echo [INFO] This may take 5-15 minutes depending on internet speed...
             echo.
-            python -m pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 !PYTORCH_INDEX_URL! --disable-pip-version-check
+            python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 !PYTORCH_INDEX_URL! --disable-pip-version-check
             
             if errorlevel 1 (
                 echo.
                 echo [ERROR] Failed to install PyTorch with CUDA
                 echo [INFO] Trying CPU-only version as fallback...
-                python -m pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 --disable-pip-version-check
+                python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --disable-pip-version-check
                 
                 if errorlevel 1 (
                     echo [ERROR] Failed to install PyTorch!
@@ -179,27 +182,27 @@ if %NEED_INSTALL%==1 (
                     pause
                     exit /b 1
                 ) else (
-                    echo [WARNING] Installed CPU-only PyTorch (no GPU acceleration)
+                    echo [WARNING] CPU-only PyTorch has been installed - no GPU acceleration
                 )
             ) else (
                 echo.
-                echo [SUCCESS] PyTorch with CUDA 11.8 installed successfully!
+                echo [SUCCESS] PyTorch with CUDA 11.8 has been installed!
                 echo [INFO] GPU acceleration enabled for:
-                echo   - Stable Diffusion (10-20x faster)
-                echo   - Image Upscale (5-10x faster)
-                echo   - LoRA Training (required)
-                echo   - Speech2Text (3-5x faster)
+                echo   - Stable Diffusion ^(10-20x faster^)
+                echo   - Image Upscale ^(5-10x faster^)
+                echo   - LoRA Training ^(required^)
+                echo   - Speech2Text ^(3-5x faster^)
             )
         ) else (
             echo [INFO] Installing CPU-only PyTorch...
-            python -m pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 --disable-pip-version-check
+            python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --disable-pip-version-check
             
             if errorlevel 1 (
                 echo [ERROR] Failed to install PyTorch!
                 pause
                 exit /b 1
             ) else (
-                echo [OK] PyTorch (CPU-only) installed
+                echo [OK] CPU-only PyTorch has been installed
             )
         )
         echo.
@@ -234,6 +237,12 @@ if %NEED_INSTALL%==1 (
     
     echo   [7/7] Gradio UI and utilities...
     python -m pip install gradio Pillow requests aiofiles pyyaml jsonschema tqdm --disable-pip-version-check
+    
+    echo   [8/9] Audio processing libraries...
+    python -m pip install soundfile librosa pydub --disable-pip-version-check
+    
+    echo   [9/9] Speech2Text dependencies...
+    python -m pip install faster-whisper pyannote.audio --disable-pip-version-check
     
     echo.
     echo [OK] Critical packages installation completed

@@ -29,6 +29,20 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Activate virtual environment
+call .venv\Scripts\activate.bat
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Failed to activate virtual environment
+    pause
+    exit /b 1
+)
+
+REM Verify we're using the correct Python
+echo [INFO] Using Python from virtual environment:
+python -c "import sys; print(sys.executable)"
+echo.
+
 cd services\speech2text
 
 echo.
