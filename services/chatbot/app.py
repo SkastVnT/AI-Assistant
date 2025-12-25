@@ -1731,7 +1731,7 @@ def sd_health():
         traceback.print_exc()
         response = jsonify({
             'status': 'error',
-            'error': str(e)
+            'message': 'Đã xảy ra lỗi khi kiểm tra trạng thái Stable Diffusion.'
         })
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         return response, 500
@@ -3821,9 +3821,8 @@ def get_gallery_images():
                 try:
                     with open(json_file, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
-                except Exception as meta_err:
-                    logger.warning(f"[Gallery] Failed to load metadata for {png_file.name}: {meta_err}")
-                    metadata = {}
+                except Exception:
+                    pass
             
             # Get file info
             stat = png_file.stat()
@@ -3847,12 +3846,12 @@ def get_gallery_images():
         })
         
     except Exception as e:
-        logger.error(f"[Gallery] Error: {e}")
-        import traceback
-        traceback.print_exc()
+        # Log full exception details and stack trace on the server,
+        # but return only a generic error message to the client.
+        logger.exception("[Gallery] Error while listing images")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to load gallery images'
         }), 500
 
 

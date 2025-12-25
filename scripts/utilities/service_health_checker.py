@@ -31,7 +31,6 @@ try:
     load_dotenv()
 except ImportError:
     print("[WARNING] python-dotenv not installed. Environment variables may not be loaded.")
-    pass  # Continue without dotenv
 
 class ServiceHealthChecker:
     """AI-powered health checker for service dependencies"""
