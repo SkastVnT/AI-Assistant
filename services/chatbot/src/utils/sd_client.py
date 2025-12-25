@@ -368,13 +368,14 @@ class StableDiffusionClient:
 
 # Singleton instance
 _sd_client = None
-_sd_client_url = None
 
 def get_sd_client(api_url: str = "http://127.0.0.1:7861") -> StableDiffusionClient:
     """Get hoặc tạo SD client instance"""
-    global _sd_client, _sd_client_url
+    global _sd_client
     # Nếu URL thay đổi, tạo client mới
-    if _sd_client is None or _sd_client_url != api_url:
+    if (
+        _sd_client is None
+        or getattr(_sd_client, "api_url", "").rstrip("/") != api_url.rstrip("/")
+    ):
         _sd_client = StableDiffusionClient(api_url)
-        _sd_client_url = api_url
     return _sd_client
