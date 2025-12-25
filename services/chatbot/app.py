@@ -3846,12 +3846,12 @@ def get_gallery_images():
         })
         
     except Exception as e:
-        logger.error(f"[Gallery] Error: {e}")
-        import traceback
-        traceback.print_exc()
+        # Log full exception details and stack trace on the server,
+        # but return only a generic error message to the client.
+        logger.exception("[Gallery] Error while listing images")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to load gallery images'
         }), 500
 
 
