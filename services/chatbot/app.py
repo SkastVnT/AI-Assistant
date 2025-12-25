@@ -3821,7 +3821,7 @@ def get_gallery_images():
                 try:
                     with open(json_file, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
-                except:
+                except Exception:
                     pass
             
             # Get file info
