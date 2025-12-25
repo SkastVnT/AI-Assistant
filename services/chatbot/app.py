@@ -3821,8 +3821,8 @@ def get_gallery_images():
                 try:
                     with open(json_file, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[Gallery] Failed to load metadata from {json_file}: {e}")
             
             # Get file info
             stat = png_file.stat()
