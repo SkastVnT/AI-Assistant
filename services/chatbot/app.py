@@ -6,7 +6,7 @@ Sử dụng Gemini, DeepSeek, OpenAI, Qwen, BloomVN và Local Models
 import os
 import sys
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, session, send_file
+from flask import Flask, render_template, request, jsonify, session, send_file, send_from_directory
 import openai
 from google import genai
 from datetime import datetime
@@ -413,7 +413,7 @@ class ChatbotAgent:
     
     def __init__(self, conversation_id=None):
         self.conversation_history = []
-        self.current_model = 'gemini'  # Default model
+        self.current_model = 'grok'  # Default model
         self.conversation_id = conversation_id
         
         # Load history from MongoDB if available
@@ -1699,30 +1699,42 @@ def sd_health():
     try:
         from src.utils.sd_client import get_sd_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         is_running = sd_client.check_health()
         
         if is_running:
             current_model = sd_client.get_current_model()
-            return jsonify({
+            response = jsonify({
                 'status': 'online',
                 'api_url': sd_api_url,
                 'current_model': current_model
             })
+            # Prevent caching
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         else:
-            return jsonify({
+            response = jsonify({
                 'status': 'offline',
                 'api_url': sd_api_url,
                 'message': 'Stable Diffusion WebUI chưa chạy hoặc chưa enable API'
-            }), 503
+            })
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            return response, 503
             
     except Exception as e:
-        return jsonify({
+        logger.error(f"[SD Health Check] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({
             'status': 'error',
             'error': str(e)
-        }), 500
+        })
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return response, 500
 
 
 @app.route('/api/sd-models', methods=['GET'])
@@ -1970,6 +1982,7 @@ def generate_image():
                 
             except Exception as db_error:
                 logger.error(f"❌ Error saving to MongoDB: {db_error}")
+                # Continue execution - MongoDB save is optional
         
         # Return response in format expected by frontend
         if save_to_storage and saved_filenames:
@@ -1984,7 +1997,7 @@ def generate_image():
                 'info': result.get('info', ''),
                 'parameters': result.get('parameters', {}),
                 'cloud_service': 'imgbb' if CLOUD_UPLOAD_ENABLED and cloud_urls else None,
-                'saved_to_db': MONGODB_ENABLED  # Indicate if saved to MongoDB
+                'saved_to_db': MONGODB_ENABLED and 'db_error' not in locals()  # Indicate if saved to MongoDB
             })
         else:
             # Return base64 images directly
@@ -2089,130 +2102,238 @@ def sd_vaes():
 
 
 @app.route('/api/generate-prompt-grok', methods=['POST'])
+@app.route('/api/generate-prompt', methods=['POST'])  # Universal endpoint
 def generate_prompt_grok():
     """
-    Tạo prompt tối ưu từ extracted tags sử dụng GROK FREE API
+    Tạo prompt tối ưu từ extracted tags - Support tất cả model (GROK, Gemini, GPT, DeepSeek, Qwen, BloomVN)
     
     Body params:
         - context (str): Context về tags đã trích xuất
         - tags (list): List các tags đã extract
+        - model (str): Model để dùng (grok, gemini, openai, deepseek, qwen, bloomvn) - default: grok
     """
     try:
         data = request.json
         context = data.get('context', '')
         tags = data.get('tags', [])
+        selected_model = data.get('model', 'grok').lower()
         
         if not tags:
             return jsonify({'error': 'Tags không được để trống'}), 400
         
-        # Use GROK to generate optimized prompt
-        try:
-            from openai import OpenAI
-            
-            # Get GROK API key from env
-            api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
-            if not api_key:
-                return jsonify({'error': 'GROK API key not configured. Please add GROK_API_KEY to .env'}), 500
-            
-            # Initialize xAI Grok client (OpenAI-compatible)
-            client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.x.ai/v1"
-            )
-            
-            # Call GROK with context
-            logger.info(f"[GROK Prompt] Generating prompt from {len(tags)} tags using Grok-3")
-            
-            response = client.chat.completions.create(
-                model="grok-3",  # Grok-3 model from xAI
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
+        # System prompt cho tất cả models
+        system_prompt = """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
 
 Your task:
-1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features
+1. Generate a POSITIVE prompt: Natural, flowing description combining extracted features with quality boosters
 2. Generate a NEGATIVE prompt: Things to avoid (low quality, artifacts, NSFW content, etc.)
 3. ALWAYS filter out NSFW/inappropriate content from positive prompt
 4. Return JSON format: {"prompt": "...", "negative_prompt": "..."}
 
-Rules:
-- Positive prompt: Focus on visual quality, composition, style
-- Negative prompt: Include SFW filters (nsfw, nude, sexual, explicit, adult content) + quality issues
-- Both prompts should be comma-separated tags
-- Keep anime/illustration style consistent
-- DO NOT explain, just output JSON"""
-                    },
-                    {
-                        "role": "user",
-                        "content": context
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=400,
-                top_p=1,
-                stream=False,
-                response_format={"type": "json_object"}
-            )
+Rules for POSITIVE prompt:
+- Start with quality tags: masterpiece, best quality, highly detailed
+- Add style: anime style, illustration, digital art
+- Include visual features from tags
+- Add atmosphere/mood if applicable
+- Use comma-separated format
+- Keep it concise (max 150 words)
+
+Rules for NEGATIVE prompt:
+- ALWAYS include: nsfw, nude, sexual, explicit, adult content
+- Add quality issues: bad quality, blurry, worst quality, low resolution
+- Add anatomy issues: bad anatomy, bad hands, bad proportions
+- Add artifacts: watermark, signature, text, jpeg artifacts
+
+Output ONLY valid JSON, no explanations."""
+
+        try:
+            # Route to appropriate model
+            if selected_model == 'grok':
+                result = _generate_with_grok(context, system_prompt, tags)
+            elif selected_model == 'gemini':
+                result = _generate_with_gemini(context, system_prompt, tags)
+            elif selected_model == 'openai':
+                result = _generate_with_openai(context, system_prompt, tags)
+            elif selected_model == 'deepseek':
+                result = _generate_with_deepseek(context, system_prompt, tags)
+            elif selected_model in ['qwen', 'bloomvn']:
+                # Use fallback for local models (they may not have API)
+                result = _generate_fallback(tags)
+            else:
+                # Default to GROK
+                result = _generate_with_grok(context, system_prompt, tags)
             
-            # Extract generated prompts
-            result_text = response.choices[0].message.content.strip()
+            return jsonify(result)
             
-            logger.info(f"[GROK Prompt] Raw response: {result_text[:200]}...")
-            
-            try:
-                result_json = json.loads(result_text)
-                generated_prompt = result_json.get('prompt', '').strip()
-                generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
-                
-                # Ensure negative prompt always has NSFW filters
-                if not generated_negative:
-                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution'
-                elif 'nsfw' not in generated_negative.lower():
-                    generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
-                    
-            except json.JSONDecodeError as e:
-                # Fallback if JSON parsing fails
-                logger.warning(f"[GROK Prompt] Failed to parse JSON: {str(e)}")
-                logger.warning(f"[GROK Prompt] Raw text: {result_text}")
-                generated_prompt = result_text
-                generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
-            
-            logger.info(f"[GROK Prompt] Generated prompt: {generated_prompt[:100]}...")
-            logger.info(f"[GROK Prompt] Generated negative: {generated_negative[:100]}...")
-            
-            return jsonify({
-                'success': True,
-                'prompt': generated_prompt,
-                'negative_prompt': generated_negative,
-                'tags_used': len(tags)
-            })
-            
-        except Exception as grok_error:
-            logger.error(f"[GROK Prompt] GROK API Error: {str(grok_error)}")
+        except Exception as model_error:
+            logger.error(f"[Prompt Gen] Model error: {str(model_error)}")
             
             # Fallback: Generate prompt from tags directly
-            logger.info("[GROK Prompt] Using fallback method")
+            logger.info("[Prompt Gen] Using fallback method")
+            result = _generate_fallback(tags)
+            result['fallback'] = True
+            result['fallback_reason'] = str(model_error)
             
-            # Simple fallback: Join tags with commas and add quality tags
-            prompt_parts = tags[:30]  # Limit to 30 tags
-            quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful']
-            
-            fallback_prompt = ', '.join(prompt_parts + quality_tags)
-            fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution'
-            
-            return jsonify({
-                'success': True,
-                'prompt': fallback_prompt,
-                'negative_prompt': fallback_negative,
-                'tags_used': len(tags),
-                'fallback': True,
-                'fallback_reason': str(grok_error)
-            })
+            return jsonify(result)
             
     except Exception as e:
-        logger.error(f"[GROK Prompt] Error: {str(e)}")
+        logger.error(f"[Prompt Gen] Error: {str(e)}")
         return jsonify({'error': 'Failed to generate prompt'}), 500
+
+
+def _generate_with_grok(context, system_prompt, tags):
+    """Generate prompt using GROK"""
+    from openai import OpenAI
+    
+    api_key = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
+    if not api_key:
+        raise ValueError('GROK API key not configured')
+    
+    client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+    
+    logger.info(f"[GROK] Generating prompt from {len(tags)} tags")
+    
+    response = client.chat.completions.create(
+        model="grok-3",  # Updated to grok-3 (grok-beta deprecated)
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": context}
+        ],
+        temperature=0.7,
+        max_tokens=500,
+        response_format={"type": "json_object"}
+    )
+    
+    result_text = response.choices[0].message.content.strip()
+    result_json = json.loads(result_text)
+    
+    return _process_prompt_result(result_json, tags, 'grok')
+
+
+def _generate_with_gemini(context, system_prompt, tags):
+    """Generate prompt using Gemini"""
+    from google import genai
+    from google.genai import types
+    
+    api_key = GEMINI_API_KEY
+    if not api_key:
+        raise ValueError('Gemini API key not configured')
+    
+    logger.info(f"[Gemini] Generating prompt from {len(tags)} tags")
+    
+    client = genai.Client(api_key=api_key)
+    
+    response = client.models.generate_content(
+        model='gemini-2.0-flash-exp',
+        contents=f"{system_prompt}\n\n{context}",
+        config=types.GenerateContentConfig(
+            temperature=0.7,
+            max_output_tokens=500,
+            response_mime_type="application/json"
+        )
+    )
+    
+    result_text = response.text.strip()
+    result_json = json.loads(result_text)
+    
+    return _process_prompt_result(result_json, tags, 'gemini')
+
+
+def _generate_with_openai(context, system_prompt, tags):
+    """Generate prompt using OpenAI GPT-4o-mini"""
+    import openai
+    
+    api_key = OPENAI_API_KEY
+    if not api_key:
+        raise ValueError('OpenAI API key not configured')
+    
+    logger.info(f"[OpenAI] Generating prompt from {len(tags)} tags")
+    
+    openai.api_key = api_key
+    
+    response = openai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": context}
+        ],
+        temperature=0.7,
+        max_tokens=500,
+        response_format={"type": "json_object"}
+    )
+    
+    result_text = response.choices[0].message.content.strip()
+    result_json = json.loads(result_text)
+    
+    return _process_prompt_result(result_json, tags, 'openai')
+
+
+def _generate_with_deepseek(context, system_prompt, tags):
+    """Generate prompt using DeepSeek"""
+    from openai import OpenAI
+    
+    api_key = DEEPSEEK_API_KEY
+    if not api_key:
+        raise ValueError('DeepSeek API key not configured')
+    
+    logger.info(f"[DeepSeek] Generating prompt from {len(tags)} tags")
+    
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+    
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": context}
+        ],
+        temperature=0.7,
+        max_tokens=500,
+        response_format={"type": "json_object"}
+    )
+    
+    result_text = response.choices[0].message.content.strip()
+    result_json = json.loads(result_text)
+    
+    return _process_prompt_result(result_json, tags, 'deepseek')
+
+
+def _process_prompt_result(result_json, tags, model_name):
+    """Process and validate prompt generation result"""
+    generated_prompt = result_json.get('prompt', '').strip()
+    generated_negative = result_json.get('negative_prompt', result_json.get('negative', '')).strip()
+    
+    # Ensure negative prompt always has NSFW filters
+    if not generated_negative:
+        generated_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, worst quality, low resolution, bad anatomy'
+    elif 'nsfw' not in generated_negative.lower():
+        generated_negative = 'nsfw, nude, sexual, explicit, adult content, ' + generated_negative
+    
+    logger.info(f"[{model_name.upper()}] Prompt: {generated_prompt[:100]}...")
+    logger.info(f"[{model_name.upper()}] Negative: {generated_negative[:100]}...")
+    
+    return {
+        'success': True,
+        'prompt': generated_prompt,
+        'negative_prompt': generated_negative,
+        'tags_used': len(tags),
+        'model': model_name
+    }
+
+
+def _generate_fallback(tags):
+    """Fallback method - simple tag joining"""
+    prompt_parts = tags[:25]  # Limit to 25 tags
+    quality_tags = ['masterpiece', 'best quality', 'highly detailed', 'beautiful', 'professional']
+    
+    fallback_prompt = ', '.join(quality_tags + prompt_parts)
+    fallback_negative = 'nsfw, nude, sexual, explicit, adult content, bad quality, blurry, distorted, worst quality, low resolution, bad anatomy, bad hands'
+    
+    return {
+        'success': True,
+        'prompt': fallback_prompt,
+        'negative_prompt': fallback_negative,
+        'tags_used': len(tags)
+    }
 
 
 @app.route('/api/img2img', methods=['POST'])
@@ -2405,6 +2526,7 @@ def img2img():
                 
             except Exception as db_error:
                 logger.error(f"❌ Error saving to MongoDB: {db_error}")
+                # Continue execution - MongoDB save is optional
         
         # Return response in format expected by frontend
         if save_to_storage and saved_filenames:
@@ -2540,42 +2662,59 @@ def save_generated_image():
         conversation_id = session.get('conversation_id')
         user_id = session.get('user_id', 'anonymous')
         
-        # Create conversation if needed
-        if not conversation_id:
-            conversation = get_or_create_conversation(
-                user_id=user_id,
-                model=metadata.get('model', 'stable-diffusion')
-            )
-            conversation_id = str(conversation['_id'])
-            session['conversation_id'] = conversation_id
+        # Try to save to MongoDB (optional - graceful degradation)
+        mongodb_saved = False
+        try:
+            if not MONGODB_ENABLED:
+                logger.warning("[Save Image] MongoDB not enabled, skipping DB save")
+            else:
+                # Create conversation if needed
+                if not conversation_id:
+                    conversation = get_or_create_conversation(
+                        user_id=user_id,
+                        model=metadata.get('model', 'stable-diffusion')
+                    )
+                    if conversation:
+                        conversation_id = str(conversation['_id'])
+                        session['conversation_id'] = conversation_id
+                    else:
+                        logger.warning("[Save Image] Could not create conversation")
+                
+                if conversation_id:
+                    # Save message with image
+                    images_data = [{
+                        'url': f"/static/Storage/Image_Gen/{filename}",
+                        'cloud_url': cloud_url,
+                        'delete_url': delete_url,
+                        'caption': metadata.get('prompt', 'AI Generated Image'),
+                        'generated': True,
+                        'service': 'imgbb' if cloud_url else 'local',
+                        'mime_type': 'image/png'
+                    }]
+                    
+                    save_message_to_db(
+                        conversation_id=conversation_id,
+                        role='assistant',
+                        content=f"🎨 Generated image with prompt: {metadata.get('prompt', 'N/A')}",
+                        images=images_data,
+                        metadata=metadata
+                    )
+                    
+                    logger.info(f"[Save Image] ✅ Saved to chat history: {conversation_id}")
+                    mongodb_saved = True
+                    
+        except Exception as db_error:
+            logger.error(f"[Save Image] ⚠️ MongoDB save failed: {db_error}")
+            # Continue - this is optional
         
-        # Save message with image
-        images_data = [{
-            'url': f"/static/Storage/Image_Gen/{filename}",
-            'cloud_url': cloud_url,
-            'delete_url': delete_url,
-            'caption': metadata.get('prompt', 'AI Generated Image'),
-            'generated': True,
-            'service': 'imgbb' if cloud_url else 'local',
-            'mime_type': 'image/png'
-        }]
-        
-        save_message_to_db(
-            conversation_id=conversation_id,
-            role='assistant',
-            content=f"🎨 Generated image with prompt: {metadata.get('prompt', 'N/A')}",
-            images=images_data,
-            metadata=metadata
-        )
-        
-        logger.info(f"[Save Image] ✅ Saved to chat history: {conversation_id}")
-        
+        # Always return success (local save completed)
         return jsonify({
             'success': True,
             'filename': filename,
             'filepath': f"/static/Storage/Image_Gen/{filename}",
             'cloud_url': cloud_url,
-            'delete_url': delete_url
+            'delete_url': delete_url,
+            'saved_to_db': mongodb_saved
         })
         
     except Exception as e:
@@ -3650,6 +3789,81 @@ def mcp_status():
             'success': False,
             'error': 'Failed to get MCP status'
         }), 500
+
+
+@app.route('/api/gallery/images', methods=['GET'])
+def get_gallery_images():
+    """
+    Get list of generated images from Storage/Image_Gen
+    Returns list of images with metadata
+    """
+    try:
+        storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
+        
+        if not storage_dir.exists():
+            return jsonify({
+                'success': True,
+                'images': [],
+                'total': 0
+            })
+        
+        images = []
+        
+        # Get all PNG files
+        png_files = sorted(storage_dir.glob('*.png'), key=lambda x: x.stat().st_mtime, reverse=True)
+        
+        for png_file in png_files:
+            # Try to load metadata from JSON file
+            json_file = png_file.with_suffix('.json')
+            metadata = {}
+            
+            if json_file.exists():
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                except:
+                    pass
+            
+            # Get file info
+            stat = png_file.stat()
+            
+            images.append({
+                'filename': png_file.name,
+                'path': f'/storage/images/{png_file.name}',
+                'size': stat.st_size,
+                'created': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                'prompt': metadata.get('prompt', 'N/A'),
+                'model': metadata.get('model', 'N/A'),
+                'metadata': metadata
+            })
+        
+        logger.info(f"[Gallery] Found {len(images)} images")
+        
+        return jsonify({
+            'success': True,
+            'images': images,
+            'total': len(images)
+        })
+        
+    except Exception as e:
+        logger.error(f"[Gallery] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/storage/images/<path:filename>')
+def serve_generated_image(filename):
+    """Serve generated images from Storage/Image_Gen"""
+    try:
+        storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
+        return send_from_directory(storage_dir, filename)
+    except Exception as e:
+        logger.error(f"[Serve Image] Error: {e}")
+        return jsonify({'error': 'Image not found'}), 404
 
 
 if __name__ == '__main__':

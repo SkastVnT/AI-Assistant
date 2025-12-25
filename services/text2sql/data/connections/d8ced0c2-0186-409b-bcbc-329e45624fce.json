@@ -1,0 +1,13 @@
+{
+  "id": "d8ced0c2-0186-409b-bcbc-329e45624fce",
+  "name": "mongodb_atlas",
+  "db_type": "mongodb",
+  "connection_type": "atlas",
+  "host": "localhost",
+  "port": "27017",
+  "username": "",
+  "password": "",
+  "database": "sample_mflix",
+  "uri": "mongodb://atlas-sql-68ca249fd961fa647afa3790-evzg4m.a.query.mongodb.net/myVirtualDatabase?ssl=true&authSource=admin",
+  "created_at": "2025-12-25T17:17:51.448635"
+}

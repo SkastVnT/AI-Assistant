@@ -1157,6 +1157,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose to window for global access
     window.chatBotApp = app;
     
+    // === IMAGE PREVIEW MODAL: Click overlay to close ===
+    const imagePreviewModal = document.getElementById('imagePreviewModal');
+    if (imagePreviewModal) {
+        imagePreviewModal.addEventListener('click', (e) => {
+            // Close if clicking the modal overlay itself (not the image or controls)
+            if (e.target === imagePreviewModal) {
+                app.messageRenderer.closeImagePreview();
+            }
+        });
+    }
+    
+    // === GALLERY MODAL: Click overlay to close ===
+    const galleryModal = document.getElementById('galleryModal');
+    if (galleryModal) {
+        galleryModal.addEventListener('click', (e) => {
+            // Close if clicking the modal overlay itself
+            if (e.target === galleryModal) {
+                closeGallery();
+            }
+        });
+    }
+    
     // Expose cleanup function
     window.manualCleanup = () => {
         const result = app.chatManager.manualCleanup(5);
@@ -1246,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             await app.imageGen.generateText2Img();
-            app.uiUtils.showAlert('✅ Đã tạo ảnh thành công!');
+            // Ảnh sẽ tự động hiện trong chat, không cần alert
         } catch (error) {
             console.error('[Generate Image] Error:', error);
             app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
@@ -1266,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             await app.imageGen.generateImg2Img();
-            app.uiUtils.showAlert('✅ Đã tạo ảnh thành công!');
+            // Ảnh sẽ tự động hiện trong chat, không cần alert
         } catch (error) {
             console.error('[Generate Img2Img] Error:', error);
             app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
@@ -1381,6 +1403,166 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadChatAsPDF = () => app.exportHandler.downloadChatAsPDF(app.currentSession, app.chatManager.sessions);
     window.downloadChatAsJSON = () => app.exportHandler.downloadChatAsJSON(app.currentSession, app.chatManager.sessions);
     window.downloadChatAsText = () => app.exportHandler.downloadChatAsText(app.currentSession, app.chatManager.sessions);
+    
+    // === GALLERY FUNCTIONS ===
+    window.openGallery = async () => {
+        const modal = document.getElementById('galleryModal');
+        const grid = document.getElementById('galleryGrid');
+        const stats = document.getElementById('galleryStats');
+        
+        if (!modal) return;
+        
+        modal.classList.add('active');
+        grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">⏳ Đang tải ảnh...</div>';
+        
+        try {
+            const response = await fetch('/api/gallery/images');
+            const data = await response.json();
+            
+            if (data.success && data.images.length > 0) {
+                stats.textContent = `📊 Tổng số: ${data.total} ảnh`;
+                
+                grid.innerHTML = data.images.map(img => {
+                    const metadataStr = JSON.stringify(img.metadata).replace(/"/g, '&quot;');
+                    return `
+                        <div class="gallery-item" data-path="${img.path}" data-metadata="${metadataStr}">
+                            <img src="${img.path}" alt="${img.filename}" loading="lazy">
+                            <div class="gallery-item-info">
+                                <div style="font-weight: 600;">📅 ${img.created}</div>
+                                <div class="gallery-item-prompt" title="${img.prompt}">
+                                    💬 ${img.prompt.substring(0, 50)}${img.prompt.length > 50 ? '...' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click event listeners to gallery items
+                document.querySelectorAll('.gallery-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const path = item.getAttribute('data-path');
+                        const metadataStr = item.getAttribute('data-metadata');
+                        try {
+                            const metadata = JSON.parse(metadataStr);
+                            viewGalleryImage(path, metadata);
+                        } catch (e) {
+                            console.error('[Gallery] Failed to parse metadata:', e);
+                            viewGalleryImage(path, {});
+                        }
+                    });
+                });
+            } else {
+                grid.innerHTML = '<div class="gallery-empty">🖼️ Chưa có ảnh nào được tạo</div>';
+                stats.textContent = '📊 Tổng số: 0 ảnh';
+            }
+        } catch (error) {
+            console.error('[Gallery] Error:', error);
+            grid.innerHTML = '<div class="gallery-empty">❌ Lỗi khi tải ảnh</div>';
+        }
+    };
+    
+    window.closeGallery = () => {
+        const modal = document.getElementById('galleryModal');
+        if (modal) modal.classList.remove('active');
+    };
+    
+    window.refreshGallery = async () => {
+        console.log('[Gallery] Refreshing...');
+        const grid = document.getElementById('galleryGrid');
+        const stats = document.getElementById('galleryStats');
+        
+        if (!grid) return;
+        
+        // Show loading
+        grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">🔄 Đang làm mới...</div>';
+        stats.textContent = '🔄 Đang tải lại...';
+        
+        try {
+            const response = await fetch('/api/gallery/images');
+            const data = await response.json();
+            
+            if (data.success && data.images.length > 0) {
+                stats.textContent = `📊 Tổng số: ${data.total} ảnh (${new Date().toLocaleTimeString()})`;
+                
+                grid.innerHTML = data.images.map(img => {
+                    const metadataStr = JSON.stringify(img.metadata).replace(/"/g, '&quot;');
+                    return `
+                        <div class="gallery-item" data-path="${img.path}" data-metadata="${metadataStr}">
+                            <img src="${img.path}" alt="${img.filename}" loading="lazy">
+                            <div class="gallery-item-info">
+                                <div style="font-weight: 600;">📅 ${img.created}</div>
+                                <div class="gallery-item-prompt" title="${img.prompt}">
+                                    💬 ${img.prompt.substring(0, 50)}${img.prompt.length > 50 ? '...' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click event listeners to gallery items
+                document.querySelectorAll('.gallery-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const path = item.getAttribute('data-path');
+                        const metadataStr = item.getAttribute('data-metadata');
+                        try {
+                            const metadata = JSON.parse(metadataStr);
+                            viewGalleryImage(path, metadata);
+                        } catch (e) {
+                            console.error('[Gallery] Failed to parse metadata:', e);
+                            viewGalleryImage(path, {});
+                        }
+                    });
+                });
+                
+                console.log(`[Gallery] Refreshed - ${data.total} images`);
+            } else {
+                grid.innerHTML = '<div class="gallery-empty">🖼️ Chưa có ảnh nào được tạo</div>';
+                stats.textContent = '📊 Tổng số: 0 ảnh';
+            }
+        } catch (error) {
+            console.error('[Gallery] Refresh error:', error);
+            grid.innerHTML = '<div class="gallery-empty">❌ Lỗi khi làm mới</div>';
+            stats.textContent = '❌ Lỗi';
+        }
+    };
+    
+    window.viewGalleryImage = (imagePath, metadata) => {
+        console.log('[Gallery] Opening image:', imagePath);
+        console.log('[Gallery] Metadata:', metadata);
+        
+        // Open image preview
+        const modal = document.getElementById('imagePreviewModal');
+        const img = document.getElementById('imagePreviewContent');
+        const info = document.getElementById('imagePreviewInfo');
+        
+        if (modal && img) {
+            img.src = imagePath;
+            modal.classList.add('active'); // Use classList instead of style.display
+            
+            if (info && metadata) {
+                info.innerHTML = `
+                    <div style="margin-top: 10px; font-size: 14px;">
+                        <div style="margin-bottom: 8px;"><strong>💬 Prompt:</strong> ${metadata.prompt || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>🚫 Negative:</strong> ${metadata.negative_prompt || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>🎨 Model:</strong> ${metadata.model || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>📏 Size:</strong> ${metadata.width || 'N/A'}×${metadata.height || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>🎲 Steps:</strong> ${metadata.steps || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>⚙️ CFG Scale:</strong> ${metadata.cfg_scale || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>⚙️ Sampler:</strong> ${metadata.sampler || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>🔧 VAE:</strong> ${metadata.vae || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>🎨 LoRA:</strong> ${metadata.lora_models || 'None'}</div>
+                        ${metadata.denoising_strength && metadata.denoising_strength !== 'N/A' ? `<div><strong>🔧 Denoising:</strong> ${metadata.denoising_strength}</div>` : ''}
+                    </div>
+                `;
+            }
+        }
+    };
+    
+    // Gallery button event
+    const galleryBtn = document.getElementById('galleryBtn');
+    if (galleryBtn) {
+        galleryBtn.addEventListener('click', openGallery);
+    }
     
     // Expose app for debugging
     window.chatApp = app;

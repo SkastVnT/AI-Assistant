@@ -35,6 +35,75 @@ class ImgBBUploader:
                 "Then add to .env: IMGBB_API_KEY=your_key_here"
             )
     
+    def upload(self, image_data: str, title: Optional[str] = None, 
+               expiration: int = 0) -> Optional[Dict[str, str]]:
+        """
+        Upload base64 image to ImgBB (for API use)
+        
+        Args:
+            image_data: Base64 encoded image string
+            title: Optional image title
+            expiration: Auto-delete after seconds (0 = never, max 15552000 = 180 days)
+            
+        Returns:
+            Dict with URLs or None if failed
+        """
+        try:
+            logger.info(f"📤 Uploading base64 image to ImgBB...")
+            
+            # Prepare payload
+            payload = {
+                'key': self.api_key,
+                'image': image_data,
+                'name': title or 'AI_Generated',
+            }
+            
+            if expiration > 0:
+                payload['expiration'] = min(expiration, 15552000)
+            
+            response = requests.post(
+                self.API_URL,
+                data=payload,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result.get('success'):
+                    data = result['data']
+                    
+                    logger.info(f"✅ Upload successful!")
+                    logger.info(f"🔗 URL: {data['url']}")
+                    
+                    return {
+                        'url': data['url'],
+                        'display_url': data['display_url'],
+                        'delete_url': data['delete_url'],
+                        'thumb': {'url': data['thumb']['url']},
+                        'medium': data['medium']['url'],
+                        'size': data['size'],
+                        'expiration': data.get('expiration'),
+                        'filename': data['image']['filename'],
+                        'service': 'imgbb'
+                    }
+                else:
+                    error = result.get('error', {}).get('message', 'Unknown error')
+                    logger.error(f"❌ Upload failed: {error}")
+                    return None
+            else:
+                logger.error(f"❌ HTTP {response.status_code}: {response.text[:200]}")
+                return None
+                
+        except requests.exceptions.Timeout:
+            logger.error("❌ Upload timeout (>60s)")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Upload error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
     def upload_image(self, image_path: str, title: Optional[str] = None, 
                     expiration: int = 0) -> Optional[Dict[str, str]]:
         """

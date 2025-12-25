@@ -393,24 +393,23 @@ export class ImageGeneration {
     }
 
     /**
-     * Display generated image
+     * Display generated image - Send directly to chat
      */
     displayGeneratedImage(base64Image) {
-        const imgElement = document.getElementById('generatedImage');
-        const container = document.getElementById('generatedImageContainer');
+        console.log('[Display Image] Received base64 image, length:', base64Image?.length || 0);
         
-        if (imgElement && container) {
-            imgElement.src = 'data:image/png;base64,' + base64Image;
-            container.style.display = 'flex'; // Use flex for overlay
-            
-            // Auto-save image to storage
-            this.autoSaveImage(base64Image);
-            
-            // Auto-send to chat immediately (no button click needed)
-            setTimeout(() => {
-                this.sendImageToChat();
-            }, 500); // Small delay to ensure image is displayed first
-        }
+        // Lưu ảnh vào storage và metadata (không có prefix)
+        this.currentGeneratedImage = { image: base64Image };
+        
+        // Auto-save image to storage
+        this.autoSaveImage(base64Image);
+        
+        // Gửi ảnh thẳng vào chat (không dùng overlay)
+        console.log('[Display Image] Scheduling sendImageToChat in 300ms...');
+        setTimeout(() => {
+            console.log('[Display Image] Calling sendImageToChat now!');
+            this.sendImageToChat();
+        }, 300);
     }
     
     /**
@@ -829,10 +828,14 @@ Prompt:`;
      */
     randomPrompt() {
         const prompts = [
-            "1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality",
-            "cyberpunk city, neon lights, rain, futuristic, detailed, 8k, photorealistic",
-            "fantasy landscape, mountains, magic, ethereal, glowing, epic, cinematic lighting",
-            "portrait, anime style, cute, colorful, detailed eyes, soft lighting, high quality"
+            "masterpiece, best quality, highly detailed, 1girl, beautiful detailed face, long flowing hair, cherry blossoms, golden hour lighting, soft focus, depth of field, professional photography, 8k uhd",
+            "anime style, masterpiece, 1girl, cute face, sparkling eyes, colorful outfit, dynamic pose, vibrant colors, soft lighting, detailed background, high quality illustration",
+            "cyberpunk cityscape, neon lights, rain reflections, futuristic architecture, night scene, cinematic lighting, highly detailed, photorealistic, 8k, ultra sharp",
+            "fantasy landscape, majestic mountains, magical atmosphere, ethereal glow, epic scenery, volumetric lighting, cinematic composition, masterpiece, best quality",
+            "portrait photography, beautiful woman, professional lighting, soft bokeh, shallow depth of field, detailed skin texture, natural makeup, 8k uhd, photorealistic",
+            "anime aesthetic, 1girl, school uniform, cherry blossom petals, spring atmosphere, warm colors, detailed eyes, soft smile, high quality digital art",
+            "sunset beach scene, golden hour, ocean waves, dramatic sky, professional landscape photography, vivid colors, high dynamic range, 8k resolution",
+            "1girl, elegant dress, ballroom setting, ornate architecture, chandelier lighting, romantic atmosphere, detailed fabric texture, cinematic composition, masterpiece"
         ];
         const promptEl = document.getElementById('imagePrompt');
         if (promptEl) {
@@ -842,9 +845,10 @@ Prompt:`;
     
     randomNegativePrompt() {
         const negativePrompts = [
-            "bad quality, blurry, distorted, ugly, worst quality, low resolution",
-            "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers",
-            "watermark, signature, username, low quality, worst quality"
+            "nsfw, nude, sexual content, low quality, worst quality, bad anatomy, bad hands, bad proportions, blurry, ugly, deformed, mutated, distorted",
+            "nsfw, explicit, low resolution, poorly drawn, bad quality, watermark, signature, text, username, jpeg artifacts, bad anatomy",
+            "nsfw, lowres, bad quality, worst quality, bad hands, missing fingers, extra fingers, bad anatomy, mutated, poorly drawn face, out of focus",
+            "nsfw, nude, adult content, low quality, blurry, distorted, ugly, worst quality, bad proportions, extra limbs, disfigured, grainy"
         ];
         const negPromptEl = document.getElementById('negativePrompt');
         if (negPromptEl) {
@@ -854,9 +858,11 @@ Prompt:`;
     
     randomImg2ImgPrompt() {
         const prompts = [
-            "improve quality, enhance details, masterpiece",
-            "anime style, vibrant colors, high quality",
-            "photorealistic, 8k, detailed, professional"
+            "masterpiece, best quality, highly detailed, enhanced, improved quality, professional, 8k uhd, sharp focus",
+            "anime style, vibrant colors, high quality illustration, detailed, soft lighting, beautiful composition",
+            "photorealistic, 8k resolution, detailed textures, professional photography, cinematic lighting, ultra sharp",
+            "improve details, enhance quality, fix imperfections, upscale, masterpiece, best quality",
+            "artistic style, beautiful colors, high quality digital art, detailed rendering, professional illustration"
         ];
         const promptEl = document.getElementById('img2imgPrompt');
         if (promptEl) {
@@ -866,9 +872,10 @@ Prompt:`;
     
     randomImg2ImgNegativePrompt() {
         const negativePrompts = [
-            "bad quality, blurry, worst quality",
-            "low resolution, artifacts, distorted",
-            "nsfw, watermark, signature"
+            "nsfw, nude, low quality, bad quality, blurry, worst quality, bad anatomy, distorted",
+            "nsfw, explicit, low resolution, artifacts, jpeg artifacts, distorted, ugly, deformed",
+            "nsfw, adult content, watermark, signature, text, bad proportions, poorly drawn, bad quality",
+            "nsfw, nude, blurry, grainy, noisy, worst quality, low quality, bad anatomy, out of focus"
         ];
         const negPromptEl = document.getElementById('img2imgNegativePrompt');
         if (negPromptEl) {

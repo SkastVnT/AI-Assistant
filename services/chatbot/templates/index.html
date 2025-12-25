@@ -34,6 +34,11 @@
             <div class="chat-list" id="chatList">
                 <!-- Chat items will be dynamically added here -->
             </div>
+            <div class="sidebar-footer">
+                <button class="gallery-btn" id="galleryBtn" title="Xem ảnh đã tạo">
+                    🖼️ Gallery ảnh
+                </button>
+            </div>
         </div>
         
         <!-- Main Chat Container -->
@@ -61,8 +66,8 @@
                 <label>
                     <span data-lang-key="controls.model">Model:</span>
                     <select id="modelSelect">
-                        <option value="gemini" data-lang-key="model.gemini">Gemini (Google) - FREE</option>
                         <option value="grok" data-lang-key="model.grok">GROK (xAI) - FREE</option>
+                        <option value="gemini" data-lang-key="model.gemini">Gemini (Google) - FREE</option>
                         <option value="openai" data-lang-key="model.openai">GPT-4o-mini (OpenAI)</option>
                         <option value="deepseek" data-lang-key="model.deepseek">DeepSeek (Rẻ nhất)</option>
                         <option value="qwen" data-lang-key="model.qwen">Qwen1.5b (Alibaba Cloud)</option>
@@ -532,6 +537,11 @@
             </div>
             <!-- End Img2Img Tab -->
             
+            <!-- Nút đóng ở cuối modal -->
+            <button class="modal-footer-close" onclick="closeImageModal()">
+                ✓ Đóng
+            </button>
+            
             <!-- Generated Image Overlay Modal -->
             <div id="generatedImageContainer" class="generated-image-overlay" style="display: none;" onclick="closeGeneratedImageOverlay(event)">
                 <div class="generated-image-modal" onclick="event.stopPropagation()">
@@ -579,6 +589,27 @@
                 <button onclick="closeHistoryModal()" style="background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;" data-lang-key="history.close">Đóng</button>
             </div>
             <div id="historyContent"></div>
+        </div>
+    </div>
+    
+    <!-- Gallery Modal -->
+    <div id="galleryModal" class="gallery-modal">
+        <div class="gallery-modal-content">
+            <div class="modal-header">
+                <h2>🖼️ Gallery Ảnh Đã Tạo</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="gallery-refresh-btn" onclick="refreshGallery()" title="Tải lại">
+                        🔄 Refresh
+                    </button>
+                    <button class="close-modal" onclick="closeGallery()">&times;</button>
+                </div>
+            </div>
+            <div class="gallery-stats" id="galleryStats" style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                Đang tải...
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Gallery items will be loaded here -->
+            </div>
         </div>
     </div>
     

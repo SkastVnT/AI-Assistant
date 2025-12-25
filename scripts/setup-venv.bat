@@ -241,8 +241,8 @@ if "!NEED_INSTALL!"=="1" (
     echo   [8/9] Audio processing libraries...
     python -m pip install soundfile librosa pydub --disable-pip-version-check
     
-    echo   [9/9] Speech2Text dependencies...
-    python -m pip install faster-whisper pyannote.audio --disable-pip-version-check
+    echo   [9/9] Speech2Text dependencies compatible with NumPy 1.x...
+    python -m pip install faster-whisper pyannote.audio==3.1.1 pyannote.core==5.0.0 pyannote.database==5.1.0 pyannote.metrics==3.2.1 pyannote.pipeline==3.0.1 --disable-pip-version-check
     
     echo.
     echo [OK] Critical packages installation completed
