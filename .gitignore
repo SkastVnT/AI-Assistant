@@ -35,6 +35,7 @@ lora/
 **/lora/Scripts/
 **/lora/Lib/
 **/lora/Include/
+**/**env
 
 # Service-specific venv folders (non-standard names)
 **/speech/

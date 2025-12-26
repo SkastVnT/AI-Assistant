@@ -71,15 +71,15 @@ if not exist ".venv\Scripts\activate.bat" (
         echo [INFO] Installing PyTorch 2.1.2 with CUDA 11.8 support...
         echo [INFO] This enables GPU acceleration for all AI services
         echo.
-        pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+        pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu118
         
         if errorlevel 1 (
             echo [WARNING] CUDA installation failed, trying CPU version...
-            pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
+            pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1
         )
     ) else (
         echo [INFO] Installing CPU-only PyTorch...
-        pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
+        pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1
     )
     echo.
     

@@ -141,12 +141,12 @@ python -m pip install --upgrade pip
 
 **For GPU (CUDA 11.8):**
 ```bash
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu118
 ```
 
 **For CPU only:**
 ```bash
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
+pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1
 ```
 
 ### Step 5: Install Dependencies
@@ -230,7 +230,7 @@ python -m virtualenv .venv
 **Solution**:
 ```bash
 # Install CPU-only version instead
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
+pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1
 ```
 
 ### Problem: "Some packages failed to install"

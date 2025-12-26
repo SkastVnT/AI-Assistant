@@ -165,16 +165,16 @@ if "!NEED_INSTALL!"=="1" (
             echo [Step 1/2] Uninstalling old PyTorch versions...
             pip uninstall -y torch torchvision torchaudio >nul 2>&1
             
-            echo [Step 2/2] Installing PyTorch 2.1.2 with CUDA 11.8 support...
+            echo [Step 2/2] Installing PyTorch 2.9.1 with CUDA 11.8 support...
             echo [INFO] This may take 5-15 minutes depending on internet speed...
             echo.
-            python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 !PYTORCH_INDEX_URL! --disable-pip-version-check
+            python -m pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 !PYTORCH_INDEX_URL! --disable-pip-version-check
             
             if errorlevel 1 (
                 echo.
                 echo [ERROR] Failed to install PyTorch with CUDA
                 echo [INFO] Trying CPU-only version as fallback...
-                python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --disable-pip-version-check
+                python -m pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --disable-pip-version-check
                 
                 if errorlevel 1 (
                     echo [ERROR] Failed to install PyTorch!
@@ -195,7 +195,7 @@ if "!NEED_INSTALL!"=="1" (
             )
         ) else (
             echo [INFO] Installing CPU-only PyTorch...
-            python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --disable-pip-version-check
+            python -m pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --disable-pip-version-check
             
             if errorlevel 1 (
                 echo [ERROR] Failed to install PyTorch!
