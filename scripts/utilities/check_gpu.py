@@ -151,7 +151,7 @@ def main():
                 print("⚠ WARNING: GPU detected but PyTorch has no CUDA support!")
                 print("  To enable GPU acceleration, reinstall PyTorch:")
                 print("  pip uninstall torch torchvision torchaudio -y")
-                print("  pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu118")
+                print("  pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu118")
     else:
         print("✗ PyTorch not installed")
         print("  Run setup-venv.bat or setup-all.bat to install")

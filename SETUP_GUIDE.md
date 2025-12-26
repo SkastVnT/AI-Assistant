@@ -139,14 +139,16 @@ python -m pip install --upgrade pip
 
 ### Step 4: Install PyTorch
 
+> **Note:** PyTorch 2.4.1 is the last version supporting CUDA 11.8. If you have CUDA 12.1+, you can use PyTorch 2.9.1 by changing `cu118` to `cu121` in the URL below.
+
 **For GPU (CUDA 11.8):**
 ```bash
-pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu118
 ```
 
 **For CPU only:**
 ```bash
-pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 ```
 
 ### Step 5: Install Dependencies
@@ -230,7 +232,7 @@ python -m virtualenv .venv
 **Solution**:
 ```bash
 # Install CPU-only version instead
-pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 ```
 
 ### Problem: "Some packages failed to install"

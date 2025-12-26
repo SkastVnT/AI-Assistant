@@ -59,7 +59,7 @@ scripts\check-gpu.bat
 pip uninstall torch torchvision torchaudio -y
 
 # Install CUDA version
-pip install torch==2.6.0 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ### Problem: nvidia-smi not found
@@ -108,7 +108,7 @@ https://developer.nvidia.com/cuda-11-8-0-download-archive
 
 2. **Install PyTorch with GPU:**
    ```bash
-pip install torch==2.9.1 torchvision==0.20.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu118
 
 3. **Verify GPU support:**
    ```bash
