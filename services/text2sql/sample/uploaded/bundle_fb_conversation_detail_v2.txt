@@ -1,0 +1,45 @@
+-- FILE: chotdonai_cs.fb_conversation_detail_v2.json
+create table chotdonai_cs.fb_conversation_detail_v2
+(
+    _id                       String,
+    conversation_id           Nullable(String),
+    shop_id                   Nullable(String),
+    addresses                 Nullable(String),
+    channel_info              Nullable(String),
+    conversation_type         Nullable(String),
+    created_at                DateTime64(3, 'UTC'),
+    deleted_at                Nullable(DateTime64(3, 'UTC')),
+    elasticsearch_text_search Nullable(String),
+    fb_page_id                Nullable(String),
+    fb_user_id                Nullable(String),
+    has_address               Nullable(UInt8),
+    has_phone                 Nullable(UInt8),
+    is_enable_ai_bot          Nullable(UInt8),
+    is_read                   Nullable(UInt8),
+    is_user_message           Nullable(UInt8),
+    key                       Nullable(String),
+    labels                    Nullable(String),
+    last_message              Nullable(String),
+    last_message_from         Nullable(String),
+    members                   Nullable(String),
+    phone_numbers             Nullable(String),
+    pinned_message_ids        Nullable(String),
+    read_at                   Nullable(DateTime64(3, 'UTC')),
+    read_by                   Nullable(String),
+    sender                    Nullable(String),
+    source                    Nullable(String),
+    source_id                 Nullable(String),
+    staff_id                  Nullable(String),
+    staff_type                Nullable(String),
+    state                     Nullable(String),
+    tag_ids                   Nullable(String),
+    text_search               Nullable(String),
+    total_unread              Nullable(Int32),
+    updated_at                DateTime64(3, 'UTC'),
+    updated_time              Nullable(DateTime64(3, 'UTC')),
+    user_info                 Nullable(String),
+    last_message_type         Nullable(String)
+)
+    engine = ReplacingMergeTree ORDER BY _id
+        SETTINGS index_granularity = 8192;
+

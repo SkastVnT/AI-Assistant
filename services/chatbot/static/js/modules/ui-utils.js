@@ -293,7 +293,7 @@ export class UIUtils {
      */
     getFormValues() {
         return {
-            model: this.elements.modelSelect?.value || 'gemini',
+            model: this.elements.modelSelect?.value || 'grok',
             context: this.elements.contextSelect?.value || 'casual',
             deepThinking: this.elements.deepThinkingCheck?.checked || false,
             message: this.elements.messageInput?.value || ''

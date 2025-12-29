@@ -33,16 +33,40 @@ class StableDiffusionClient:
             steps: Số steps
             
         Returns:
-            Timeout in seconds (None = no timeout)
+            Timeout in seconds
         """
-        # No timeout - wait indefinitely until image is generated
-        # User can manually cancel if needed
-        return None
+        # Base time per step (seconds)
+        time_per_step = 0.5  # Average 0.5s per step
+        
+        # Calculate based on pixels and steps
+        pixels = width * height
+        base_time = (pixels / (512 * 512)) * steps * time_per_step
+        
+        # Add overhead and safety margin
+        timeout = max(60, int(base_time * 2) + 30)  # At least 60s, with 2x safety margin + 30s overhead
+        
+        return timeout
         
     def check_health(self) -> bool:
         """Kiểm tra xem Stable Diffusion API có đang chạy không"""
         try:
-            response = requests.get(f"{self.api_url}/sdapi/v1/sd-models", timeout=5)
+            # First check if there's a stuck job
+            try:
+                progress_response = requests.get(f"{self.api_url}/sdapi/v1/progress", timeout=5)
+                if progress_response.status_code == 200:
+                    progress_data = progress_response.json()
+                    eta = progress_data.get('eta_relative', 0)
+                    
+                    # If ETA > 5 minutes (300s), interrupt the job
+                    if eta > 300:
+                        print(f"[WARNING] Detected stuck job with ETA {eta:.0f}s. Interrupting...")
+                        requests.post(f"{self.api_url}/sdapi/v1/interrupt", timeout=5)
+                        import time
+                        time.sleep(2)  # Wait for interrupt to complete
+            except:
+                pass  # Ignore progress check errors
+            
+            response = requests.get(f"{self.api_url}/sdapi/v1/sd-models", timeout=10)
             return response.status_code == 200
         except:
             return False
@@ -184,9 +208,13 @@ class StableDiffusionClient:
                 "sd_vae": vae
             }
         
-        # No timeout - wait until completion or manual cancellation
-        timeout = None
-        print(f"[INFO] Generating {width}x{height} image with {steps} steps (no timeout - will wait until complete)")
+        # Calculate dynamic timeout based on image size and steps
+        timeout = self._calculate_timeout(width, height, steps)
+        print(f"[INFO] Generating {width}x{height} image with {steps} steps (timeout: {timeout}s)")
+        
+        # Check if SD WebUI is running
+        if not self.check_health():
+            return {"error": "Stable Diffusion WebUI is not running. Please start it first."}
         
         try:
             response = requests.post(
@@ -198,8 +226,7 @@ class StableDiffusionClient:
             print(f"[SUCCESS] Image generated successfully!")
             return response.json()
         except requests.exceptions.Timeout:
-            # Should never happen with timeout=None
-            return {"error": f"Timeout - This shouldn't happen. Please report this bug."}
+            return {"error": f"Timeout after {timeout}s. Try reducing image size or steps, or check if SD WebUI is responding."}
         except requests.exceptions.RequestException as e:
             return {"error": f"Network error: {str(e)}"}
         except Exception as e:

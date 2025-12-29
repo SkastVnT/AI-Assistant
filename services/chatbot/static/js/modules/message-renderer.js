@@ -941,7 +941,8 @@ export class MessageRenderer {
      * Make images clickable for preview
      */
     makeImagesClickable(onImageClick) {
-        const images = document.querySelectorAll('.message-content img');
+        // Query for images in message content and generated preview images
+        const images = document.querySelectorAll('.message-content img, .message-text img, .generated-preview, img[alt="Generated Image"]');
         console.log(`[Image Preview] Found ${images.length} images`);
         
         images.forEach(img => {
@@ -950,12 +951,12 @@ export class MessageRenderer {
                 img.style.cursor = 'zoom-in';
                 img.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    console.log('[Image Preview] Image clicked:', this.src);
+                    console.log('[Image Preview] Image clicked:', this.src?.substring(0, 100));
                     if (onImageClick) {
                         onImageClick(this);
                     }
                 });
-                console.log('[Image Preview] Made clickable:', img.src);
+                console.log('[Image Preview] Made clickable:', img.alt || img.src?.substring(0, 50));
             }
         });
     }

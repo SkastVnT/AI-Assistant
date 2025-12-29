@@ -128,6 +128,12 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
             body: JSON.stringify(imageParams)
         });
         
+        if (!imageResponse.ok) {
+            const errorText = await imageResponse.text();
+            console.error('HTTP Error:', imageResponse.status, errorText);
+            throw new Error(`Server error (${imageResponse.status}): ${errorText.substring(0, 200)}`);
+        }
+        
         const imageData = await imageResponse.json();
         console.log('Image response:', imageData);
         
@@ -168,7 +174,8 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
         
     } catch (error) {
         console.error('Image generation error:', error);
-        addMessage(`❌ **Lỗi:** ${error.message}`, false, model, context, formatTimestamp(new Date()));
+        const errorMessage = error.message || error.toString();
+        addMessage(`❌ **Lỗi khi tạo ảnh:**\n\n\`\`\`\n${errorMessage}\n\`\`\`\n\n💡 **Giải pháp:**\n- Kiểm tra Stable Diffusion WebUI có đang chạy không (port 7861)\n- Xem console log (F12) để biết chi tiết\n- Thử giảm steps hoặc kích thước ảnh`, false, model, context, formatTimestamp(new Date()));
     } finally {
         isGeneratingImage = false;
     }
@@ -294,6 +301,12 @@ async function generateImage() {
                 save_to_storage: true
             })
         });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('HTTP Error:', response.status, errorText);
+            throw new Error(`Server error (${response.status}): ${errorText.substring(0, 200)}`);
+        }
         
         const data = await response.json();
         

@@ -96,26 +96,36 @@ class MongoDBClient:
     @property
     def conversations(self):
         """Get conversations collection"""
+        if self.db is None:
+            return None
         return self.db[COLLECTIONS['conversations']]
     
     @property
     def messages(self):
         """Get messages collection"""
+        if self.db is None:
+            return None
         return self.db[COLLECTIONS['messages']]
     
     @property
     def memory(self):
         """Get memory collection"""
+        if self.db is None:
+            return None
         return self.db[COLLECTIONS['memory']]
     
     @property
     def uploaded_files(self):
         """Get uploaded files collection"""
+        if self.db is None:
+            return None
         return self.db[COLLECTIONS['uploaded_files']]
     
     @property
     def users(self):
         """Get users collection"""
+        if self.db is None:
+            return None
         return self.db[COLLECTIONS['users']]
     
     @property

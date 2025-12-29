@@ -1,4 +1,4 @@
--- FILE: ghn_cs_ticket_v3.txt
+-- FILE: chotdonai_cs.ghn_cs_ticket_v3.json
 create table ghn_cs_ticket_v3
 (
     _id             String,
@@ -31,3 +31,5 @@ create table ghn_cs_ticket_v3
     engine = MergeTree PARTITION BY toYYYYMM(created_at)
         ORDER BY (created_at, _id)
         SETTINGS index_granularity = 8192;
+
+

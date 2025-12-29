@@ -273,14 +273,11 @@ export class APIService {
      * Delete memory
      */
     async deleteMemory(memoryId) {
-        const response = await fetch('/api/memory/delete', {
-            method: 'POST',
+        const response = await fetch(`/api/memory/delete/${memoryId}`, {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                memory_id: memoryId
-            })
+            }
         });
 
         if (!response.ok) {

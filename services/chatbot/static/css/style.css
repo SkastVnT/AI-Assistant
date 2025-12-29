@@ -2796,10 +2796,50 @@ body.dark-mode #tagsList {
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
+    user-select: none;
 }
 
 .tag-item:hover {
     background: #764ba2;
+    transform: scale(1.05);
+}
+
+/* Selected tag - bright and prominent */
+.tag-item.tag-selected {
+    background: #667eea;
+    color: white;
+    opacity: 1;
+    border: 2px solid #764ba2;
+    font-weight: 500;
+}
+
+.tag-item.tag-selected:hover {
+    background: #764ba2;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+/* Unselected tag - dimmed */
+.tag-item.tag-unselected {
+    background: #e0e0e0;
+    color: #666;
+    opacity: 0.6;
+    border: 1px solid #ccc;
+}
+
+body.dark-mode .tag-item.tag-unselected {
+    background: #333;
+    color: #999;
+    border: 1px solid #555;
+}
+
+.tag-item.tag-unselected:hover {
+    background: #ccc;
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+body.dark-mode .tag-item.tag-unselected:hover {
+    background: #444;
 }
 
 .tag-item.filtered {

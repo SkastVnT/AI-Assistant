@@ -1,0 +1,13 @@
+{
+  "files": [
+    "cdn.meta_cart.json"
+  ],
+  "tables": [
+    "meta_cart"
+  ],
+  "id_map": {
+    "meta_cart": "01"
+  },
+  "bundle_file": "bundle_meta_cart.txt",
+  "memories_file": null
+}

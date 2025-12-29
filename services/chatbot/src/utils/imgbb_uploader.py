@@ -172,7 +172,7 @@ class ImgBBUploader:
                         'display_url': data['display_url'],
                         'delete_url': data['delete_url'],
                         'thumbnail': data['thumb']['url'],
-                        'medium': data['medium']['url'],
+                        'medium': data.get('medium', {}).get('url', data['url']),
                         'size': data['size'],
                         'expiration': data.get('expiration'),
                         'filename': data['image']['filename'],

@@ -42,7 +42,7 @@ echo.
 
 REM Check if webui.bat exists
 if exist "webui.bat" (
-    set "PYTHON=K:\AI-Assistant\services\stable-diffusion\venv\Scripts\python.exe"
+    set "PYTHON=%CD%\venv\Scripts\python.exe"
     call webui.bat --port 7861 --api --skip-python-version-check --skip-torch-cuda-test --no-half
 ) else (
     echo ERROR: webui.bat not found!

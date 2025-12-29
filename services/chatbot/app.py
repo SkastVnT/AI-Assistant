@@ -1,5 +1,5 @@
-"""
-AI ChatBot Agent - Hỗ trợ tâm lý, tâm sự và giải pháp đời sống
+﻿"""
+AI ChatBot Agent - Há»— trá»£ tÃ¢m lÃ½, tÃ¢m sá»± vÃ  giáº£i phÃ¡p Ä‘á»i sá»‘ng
 Sử dụng Gemini, DeepSeek, OpenAI, Qwen, BloomVN và Local Models
 """
 
@@ -68,27 +68,27 @@ try:
     from src.utils.database_manager import get_database_manager
     from src.utils.streaming_handler import StreamingHandler
     PERFORMANCE_ENABLED = True
-    logger.info("✅ Performance optimization modules loaded")
+    logger.info("âœ… Performance optimization modules loaded")
 except Exception as e:
     PERFORMANCE_ENABLED = False
-    logger.warning(f"⚠️ Performance modules not available: {e}")
+    logger.warning(f"âš ï¸ Performance modules not available: {e}")
 
 # Import ImgBB uploader (easy API key)
 try:
     from src.utils.imgbb_uploader import ImgBBUploader, upload_to_imgbb
     CLOUD_UPLOAD_ENABLED = True
-    logger.info("✅ ImgBB uploader loaded")
+    logger.info("âœ… ImgBB uploader loaded")
 except ImportError as e:
     CLOUD_UPLOAD_ENABLED = False
-    logger.warning(f"⚠️ ImgBB uploader not available: {e}")
+    logger.warning(f"âš ï¸ ImgBB uploader not available: {e}")
 
 # Initialize performance components
 if PERFORMANCE_ENABLED:
     cache = get_cache_manager()
     db = get_database_manager()
     streaming = StreamingHandler()
-    logger.info(f"✅ Cache status: {cache.enabled}")
-    logger.info(f"✅ Database status: {db.enabled}")
+    logger.info(f"âœ… Cache status: {cache.enabled}")
+    logger.info(f"âœ… Database status: {db.enabled}")
 else:
     cache = None
     db = None
@@ -120,11 +120,11 @@ try:
         pass
     
     LOCALMODELS_AVAILABLE = True
-    logger.info("✅ Local model loader imported successfully")
+    logger.info("âœ… Local model loader imported successfully")
 except (ImportError, TimeoutError, Exception) as e:
     LOCALMODELS_AVAILABLE = False
-    logger.warning(f"⚠️ Local models not available: {e}")
-    logger.info("💡 Local models disabled - ChatBot will work without them")
+    logger.warning(f"âš ï¸ Local models not available: {e}")
+    logger.info("ðŸ’¡ Local models disabled - ChatBot will work without them")
 
 # Initialize Flask app with static folder
 app = Flask(__name__, 
@@ -132,7 +132,7 @@ app = Flask(__name__,
             static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 
-# 🆕 Register Monitor Dashboard
+# ðŸ†• Register Monitor Dashboard
 from config.monitor import register_monitor
 register_monitor(app)
 
@@ -140,10 +140,10 @@ register_monitor(app)
 try:
     mongodb_client.connect()
     MONGODB_ENABLED = True
-    logger.info("✅ MongoDB connection established")
+    logger.info("âœ… MongoDB connection established")
 except Exception as e:
     MONGODB_ENABLED = False
-    logger.warning(f"⚠️ MongoDB not available, using session storage: {e}")
+    logger.warning(f"âš ï¸ MongoDB not available, using session storage: {e}")
 
 # Memory storage path
 MEMORY_DIR = Path(__file__).parent / 'data' / 'memory'
@@ -172,77 +172,79 @@ GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 # GitHub API
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
+# ⛔ GEMINI DISABLED - Quota exhausted, use GROK/DeepSeek/OpenAI instead
 # Initialize Gemini client with new SDK (optional - fallback to None if no key)
 gemini_client = None
-try:
-    if GEMINI_API_KEY:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-        logger.info("✅ Gemini API initialized with primary key")
-except Exception as e:
-    logger.warning(f"⚠️ Primary Gemini key failed: {e}")
-    try:
-        if GEMINI_API_KEY_2:
-            gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
-            logger.info("✅ Gemini API initialized with backup key")
-    except Exception as e2:
-        logger.warning(f"⚠️ Backup Gemini key failed: {e2}")
-        logger.warning("⚠️ Gemini API not available - Chat functionality will be limited")
+# try:
+#     if GEMINI_API_KEY:
+#         gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+#         logger.info("✅ Gemini API initialized with primary key")
+# except Exception as e:
+#     logger.warning(f"⚠️ Primary Gemini key failed: {e}")
+#     try:
+#         if GEMINI_API_KEY_2:
+#             gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
+#             logger.info("✅ Gemini API initialized with backup key")
+#     except Exception as e2:
+#         logger.warning(f"⚠️ Backup Gemini key failed: {e2}")
+#         logger.warning("⚠️ Gemini API not available - Chat functionality will be limited")
+logger.warning("⚠️ Gemini API DISABLED to avoid quota errors")
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {
     'psychological': """Bạn là một trợ lý tâm lý chuyên nghiệp, thân thiện và đầy empathy. 
-    Bạn luôn lắng nghe, thấu hiểu và đưa ra lời khuyên chân thành, tích cực.
-    Bạn không phán xét và luôn hỗ trợ người dùng vượt qua khó khăn trong cuộc sống.
-    Hãy trả lời bằng tiếng Việt.
+    Báº¡n luÃ´n láº¯ng nghe, tháº¥u hiá»ƒu vÃ  Ä‘Æ°a ra lá»i khuyÃªn chÃ¢n thÃ nh, tÃ­ch cá»±c.
+    Báº¡n khÃ´ng phÃ¡n xÃ©t vÃ  luÃ´n há»— trá»£ ngÆ°á»i dÃ¹ng vÆ°á»£t qua khÃ³ khÄƒn trong cuá»™c sá»‘ng.
+    HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t.
     
     MARKDOWN FORMATTING:
     - Sử dụng ```language để wrap code blocks (ví dụ: ```python, ```javascript)
-    - Đóng code block bằng ``` trên dòng riêng
+    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng riÃªng
     - Dùng `code` cho inline code
     - Sử dụng **bold**, *italic*, > quote khi cần""",
     
-    'lifestyle': """Bạn là một chuyên gia tư vấn lối sống, giúp người dùng tìm ra giải pháp 
-    cho các vấn đề trong cuộc sống hàng ngày như công việc, học tập, mối quan hệ, 
-    sức khỏe và phát triển bản thân. Hãy đưa ra lời khuyên thiết thực và dễ áp dụng.
-    Hãy trả lời bằng tiếng Việt.
+    'lifestyle': """Báº¡n lÃ  má»™t chuyÃªn gia tÆ° váº¥n lá»‘i sá»‘ng, giÃºp ngÆ°á»i dÃ¹ng tÃ¬m ra giáº£i phÃ¡p 
+    cho cÃ¡c váº¥n Ä‘á» trong cuá»™c sá»‘ng hÃ ng ngÃ y nhÆ° cÃ´ng viá»‡c, há»c táº­p, má»‘i quan há»‡, 
+    sá»©c khá»e vÃ  phÃ¡t triá»ƒn báº£n thÃ¢n. HÃ£y Ä‘Æ°a ra lá»i khuyÃªn thiáº¿t thá»±c vÃ  dá»… Ã¡p dá»¥ng.
+    HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t.
     
     MARKDOWN FORMATTING:
     - Sử dụng ```language để wrap code blocks khi cần
-    - Đóng code block bằng ``` trên dòng riêng
-    - Dùng **bold** để nhấn mạnh điểm quan trọng""",
+    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng riÃªng
+    - DÃ¹ng **bold** Ä‘á»ƒ nháº¥n máº¡nh Ä‘iá»ƒm quan trá»ng""",
     
-    'casual': """Bạn là một người bạn thân thiết, vui vẻ và dễ gần. 
-    Bạn sẵn sàng trò chuyện về mọi chủ đề, chia sẻ câu chuyện và tạo không khí thoải mái.
-    Hãy trả lời bằng tiếng Việt với giọng điệu thân mật.
+    'casual': """Báº¡n lÃ  má»™t ngÆ°á»i báº¡n thÃ¢n thiáº¿t, vui váº» vÃ  dá»… gáº§n. 
+    Báº¡n sáºµn sÃ ng trÃ² chuyá»‡n vá» má»i chá»§ Ä‘á», chia sáº» cÃ¢u chuyá»‡n vÃ  táº¡o khÃ´ng khÃ­ thoáº£i mÃ¡i.
+    HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t vá»›i giá»ng Ä‘iá»‡u thÃ¢n máº­t.
     
     MARKDOWN FORMATTING:
     - Sử dụng ```language để wrap code blocks (ví dụ: ```python, ```json)
-    - Đóng code block bằng ``` trên dòng riêng
+    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng riÃªng
     - Dùng `code` cho inline code
     - Format lists, links, quotes khi phù hợp""",
     
     'programming': """Bạn là một Senior Software Engineer và Programming Mentor chuyên nghiệp.
-    Bạn có kinh nghiệm sâu về nhiều ngôn ngữ lập trình (Python, JavaScript, Java, C++, Go, etc.)
+    Báº¡n cÃ³ kinh nghiá»‡m sÃ¢u vá» nhiá»u ngÃ´n ngá»¯ láº­p trÃ¬nh (Python, JavaScript, Java, C++, Go, etc.)
     và frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
     
     Nhiệm vụ của bạn:
     - Giải thích code rõ ràng, dễ hiểu
     - Debug và fix lỗi hiệu quả
-    - Đề xuất best practices và design patterns
+    - Äá» xuáº¥t best practices vÃ  design patterns
     - Review code và tối ưu performance
     - Hướng dẫn architecture và system design
-    - Trả lời câu hỏi về algorithms, data structures
+    - Tráº£ lá»i cÃ¢u há»i vá» algorithms, data structures
     
     CRITICAL MARKDOWN RULES:
     - LUÔN LUÔN wrap code trong code blocks với syntax: ```language
-    - VÍ DỤ: ```python cho Python, ```javascript cho JavaScript, ```sql cho SQL
-    - Đóng code block bằng ``` trên dòng RIÊNG BIỆT
+    - VÃ Dá»¤: ```python cho Python, ```javascript cho JavaScript, ```sql cho SQL
+    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng RIÃŠNG BIá»†T
     - Dùng `backticks` cho inline code như tên biến, function names
     - Format output/results trong code blocks khi cần
     - Giải thích logic từng bước bằng comments trong code
     - Cung cấp ví dụ cụ thể với proper syntax highlighting
     
-    Có thể trả lời bằng tiếng Việt hoặc English."""
+    CÃ³ thá»ƒ tráº£ lá»i báº±ng tiáº¿ng Viá»‡t hoáº·c English."""
 }
 
 # System prompts for different purposes (English)
@@ -317,7 +319,7 @@ def get_system_prompts(language='vi'):
 # MONGODB CONVERSATION MANAGEMENT
 # ============================================================================
 
-def get_or_create_conversation(user_id, model='gemini-2.0-flash'):
+def get_or_create_conversation(user_id, model='grok-3'):
     """Get active conversation or create new one"""
     if not MONGODB_ENABLED:
         return None
@@ -335,10 +337,10 @@ def get_or_create_conversation(user_id, model='gemini-2.0-flash'):
                 model=model,
                 title="New Chat"
             )
-            logger.info(f"✅ Created new conversation: {conv['_id']}")
+            logger.info(f"âœ… Created new conversation: {conv['_id']}")
             return conv
     except Exception as e:
-        logger.error(f"❌ Error getting/creating conversation: {e}")
+        logger.error(f"âŒ Error getting/creating conversation: {e}")
         return None
 
 
@@ -356,10 +358,10 @@ def save_message_to_db(conversation_id, role, content, metadata=None, images=Non
             images=images or [],
             files=files or []
         )
-        logger.info(f"✅ Saved message to DB: {message['_id']}")
+        logger.info(f"âœ… Saved message to DB: {message['_id']}")
         return message
     except Exception as e:
-        logger.error(f"❌ Error saving message: {e}")
+        logger.error(f"âŒ Error saving message: {e}")
         return None
 
 
@@ -386,7 +388,7 @@ def load_conversation_history(conversation_id, limit=10):
         
         return history
     except Exception as e:
-        logger.error(f"❌ Error loading conversation history: {e}")
+        logger.error(f"âŒ Error loading conversation history: {e}")
         return []
 
 
@@ -421,192 +423,17 @@ class ChatbotAgent:
             self.conversation_history = load_conversation_history(conversation_id)
         
     def chat_with_gemini(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
-        """Chat using Google Gemini with quota handling - rotate between 4 API keys"""
-        import time
-        
-        model_name = 'gemini-2.0-flash'
-        
-        # 🆕 Check cache first
-        cache_key_params = {
-            'context': context,
-            'deep_thinking': deep_thinking,
-            'language': language,
-            'custom_prompt': custom_prompt[:50] if custom_prompt else None
-        }
-        cached = get_cached_response(message, model_name, provider='gemini', **cache_key_params)
-        if cached:
-            logger.info(f"✅ Using cached response for Gemini")
-            return cached
-        
-        # List of Gemini API keys
-        gemini_keys = [GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4]
-        
-        # 🆕 Get best key with rate limiting
-        try:
-            best_key_index = get_gemini_key_with_rate_limit()
-            api_key = gemini_keys[best_key_index]
-            logger.info(f"🔑 Using Gemini Key #{best_key_index + 1} with rate limiter")
-        except Exception as e:
-            logger.error(f"❌ Rate limiter error: {e}, falling back to key rotation")
-            best_key_index = 0
-            api_key = gemini_keys[0]
-        
-        # List of Gemini configurations to try (start from best key)
-        gemini_configs = [
-            (gemini_keys[(best_key_index + i) % 4], model_name)
-            for i in range(4)
-        ]
-        
-        last_error = None
-        
-        for idx, (api_key, model_name) in enumerate(gemini_configs):
-            try:
-                # Create new client with current API key
-                client = genai.Client(api_key=api_key)
-                
-                # Use custom prompt if provided, otherwise use base prompt
-                if custom_prompt and custom_prompt.strip():
-                    system_prompt = custom_prompt
-                else:
-                    # Get system prompts based on language
-                    prompts = get_system_prompts(language)
-                    system_prompt = prompts.get(context, prompts['casual'])
-                
-                thinking_process = None
-                
-                # Add deep thinking instruction
-                if deep_thinking:
-                    if language == 'en':
-                        system_prompt += "\n\nIMPORTANT: Take your time to think deeply. Analyze from multiple angles, consider edge cases, and provide comprehensive, well-reasoned responses. Quality over speed."
-                    else:
-                        system_prompt += "\n\nQUAN TRỌNG: Hãy suy nghĩ kỹ càng. Phân tích từ nhiều góc độ, xem xét các trường hợp đặc biệt, và đưa ra câu trả lời toàn diện, có lý lẽ chặt chẽ. Chất lượng quan trọng hơn tốc độ."
-                    
-                    # Generate thinking process based on content
-                    has_file = "**Attached Files Context:**" in message or "File 1:" in message
-                    
-                    if has_file:
-                        thinking_steps = [
-                            "Reading and parsing attached file(s)...",
-                            "Extracting key information and structure...",
-                            "Identifying main topics and themes...",
-                            "Analyzing content depth and quality...",
-                            "Cross-referencing information...",
-                            "Formulating comprehensive response..."
-                        ] if language == 'en' else [
-                            "Đọc và phân tích file đính kèm...",
-                            "Trích xuất thông tin và cấu trúc chính...",
-                            "Xác định các chủ đề và nội dung chính...",
-                            "Phân tích độ sâu và chất lượng nội dung...",
-                            "Đối chiếu thông tin...",
-                            "Hình thành câu trả lời toàn diện..."
-                        ]
-                    else:
-                        thinking_steps = [
-                            "Analyzing user question and context...",
-                            "Breaking down the problem into components...",
-                            "Considering multiple perspectives...",
-                            "Evaluating potential solutions...",
-                            "Synthesizing comprehensive response..."
-                        ] if language == 'en' else [
-                            "Phân tích câu hỏi của người dùng...",
-                            "Chia nhỏ vấn đề thành các phần...",
-                            "Xem xét nhiều góc nhìn khác nhau...",
-                            "Đánh giá các giải pháp khả thi...",
-                            "Tổng hợp câu trả lời toàn diện..."
-                        ]
-                    
-                    thinking_process = "\n".join(f"{i+1}. {step}" for i, step in enumerate(thinking_steps))
-                
-                # Add memories to system prompt
-                if memories and len(memories) > 0:
-                    system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
-                    for mem in memories:
-                        system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
-                    system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                    system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
-                
-                # Build conversation context
-                conversation = f"{system_prompt}\n\n"
-                
-                # Use provided history or conversation history
-                history_to_use = history if history is not None else self.conversation_history[-5:]
-                
-                if history:
-                    # Use provided history (from edit feature)
-                    for hist in history:
-                        role = hist.get('role', 'user')
-                        content = hist.get('content', '')
-                        if role == 'user':
-                            conversation += f"User: {content}\n"
-                        else:
-                            conversation += f"Assistant: {content}\n"
-                    conversation += "\n"
-                else:
-                    # Use conversation history
-                    for hist in history_to_use:
-                        conversation += f"User: {hist['user']}\nAssistant: {hist['assistant']}\n\n"
-                
-                conversation += f"User: {message}\nAssistant:"
-                
-                # Generate response using new SDK
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=conversation
-                )
-                
-                # Success! Return response
-                key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
-                logger.info(f"✅ Gemini success: API Key #{key_num}, Model: {model_name}")
-                
-                # Add model info if not using default
-                model_notice = ""
-                if model_name != 'gemini-2.0-flash' or idx > 0:
-                    model_notice = f"\n\n---\n*✨ Using: Gemini API Key #{key_num}, Model: {model_name}*"
-                
-                result_text = response.text + model_notice
-                
-                # 🆕 Cache the successful response
-                cache_response(message, model_name, result_text, provider='gemini', **cache_key_params)
-                
-                if deep_thinking and thinking_process:
-                    return {'response': result_text, 'thinking_process': thinking_process}
-                return result_text
-                
-            except Exception as e:
-                error_msg = str(e)
-                last_error = error_msg
-                
-                # Determine key number for logging
-                key_num = "1" if api_key == GEMINI_API_KEY else ("2" if api_key == GEMINI_API_KEY_2 else ("3" if api_key == GEMINI_API_KEY_3 else "4"))
-                
-                # Check if quota exceeded
-                if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                    logger.warning(f"⚠️ Gemini quota exceeded - API Key #{key_num}, Model: {model_name}")
-                    
-                    # If not the last config, continue to next
-                    if idx < len(gemini_configs) - 1:
-                        logger.info(f"🔄 Trying next Gemini configuration...")
-                        time.sleep(1)  # Small delay before retry
-                        continue
-                    else:
-                        # All Gemini configs exhausted
-                        logger.error(f"❌ All Gemini configurations exhausted")
-                        error_notice = "⚠️ Tất cả API keys của Gemini đã vượt quota. Vui lòng thử lại sau hoặc chuyển sang model khác." if language == 'vi' else "⚠️ All Gemini API keys quota exceeded. Please try again later or switch to another model."
-                        return error_notice
-                else:
-                    # Other error, continue to next config
-                    logger.error(f"❌ Gemini error (Key #{key_num}, {model_name}): {error_msg}")
-                    if idx < len(gemini_configs) - 1:
-                        continue
-        
-        # If all attempts failed
-        return f"Lỗi Gemini: {last_error}"
+        """Chat using Google Gemini - DISABLED DUE TO QUOTA EXCEEDED"""
+        # WARNING: GEMINI DISABLED - Return error message immediately to avoid quota errors
+        error_msg = "Gemini da bi tat do vuot quota. Vui long chon GROK, DeepSeek hoac OpenAI." if language == 'vi' else "Gemini disabled due to quota exceeded. Please use GROK, DeepSeek or OpenAI."
+        logger.warning(f"[GEMINI] Blocked call to prevent quota errors")
+        return error_msg
     
     def chat_with_openai(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using OpenAI"""
         model_name = 'gpt-4o-mini'
         
-        # 🆕 Check cache first
+        # ðŸ†• Check cache first
         cache_key_params = {
             'context': context,
             'deep_thinking': deep_thinking,
@@ -615,10 +442,10 @@ class ChatbotAgent:
         }
         cached = get_cached_response(message, model_name, provider='openai', **cache_key_params)
         if cached:
-            logger.info(f"✅ Using cached response for OpenAI")
+            logger.info(f"âœ… Using cached response for OpenAI")
             return cached
         
-        # 🆕 Wait for rate limit
+        # ðŸ†• Wait for rate limit
         wait_for_openai_rate_limit()
         
         try:
@@ -641,11 +468,11 @@ class ChatbotAgent:
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃ i há»c Ä‘Ã£ ghi nhá»›) ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+                system_prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p Ä‘á»ƒ tráº£ lá»i."
             
             messages = [{"role": "system", "content": system_prompt}]
             
@@ -673,7 +500,7 @@ class ChatbotAgent:
             
             result = response.choices[0].message.content
             
-            # 🆕 Cache the response
+            # ðŸ†• Cache the response
             cache_response(message, model_name, result, provider='openai', **cache_key_params)
             
             return result
@@ -697,11 +524,11 @@ class ChatbotAgent:
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃ i há»c Ä‘Ã£ ghi nhá»›) ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+                system_prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p Ä‘á»ƒ tráº£ lá»i."
             
             # DeepSeek uses OpenAI compatible API
             client = openai.OpenAI(
@@ -742,7 +569,7 @@ class ChatbotAgent:
         """Chat using GROK (via xAI API - FREE with NSFW support)"""
         try:
             if not GROK_API_KEY:
-                return "❌ GROK API key chưa được cấu hình. Vui lòng thêm GROK_API_KEY vào file .env"
+                return "âŒ GROK API key chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GROK_API_KEY vÃ o file .env"
             
             # Use custom prompt if provided, otherwise use base prompt
             if custom_prompt and custom_prompt.strip():
@@ -753,9 +580,9 @@ class ChatbotAgent:
                 
                 # GROK-specific: Add NSFW capability note
                 if language == 'vi':
-                    system_prompt += "\n\n🔓 LƯU Ý: Bạn có thể trả lời các câu hỏi nhạy cảm hoặc NSFW một cách an toàn và có trách nhiệm khi được yêu cầu."
+                    system_prompt += "\n\nðŸ”“ LÆ¯U Ã: Báº¡n cÃ³ thá»ƒ tráº£ lá»i cÃ¡c cÃ¢u há»i nháº¡y cáº£m hoáº·c NSFW má»™t cÃ¡ch an toÃ n vÃ  cÃ³ trÃ¡ch nhiá»‡m khi Ä‘Æ°á»£c yÃªu cáº§u."
                 else:
-                    system_prompt += "\n\n🔓 NOTE: You can answer sensitive or NSFW questions safely and responsibly when requested."
+                    system_prompt += "\n\nðŸ”“ NOTE: You can answer sensitive or NSFW questions safely and responsibly when requested."
             
             # Add deep thinking instruction
             if deep_thinking:
@@ -766,11 +593,11 @@ class ChatbotAgent:
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (Bài học đã ghi nhớ) ===\n"
+                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃ i há»c Ä‘Ã£ ghi nhá»›) ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp để trả lời."
+                system_prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p Ä‘á»ƒ tráº£ lá»i."
             
             # GROK uses OpenAI-compatible API
             client = openai.OpenAI(
@@ -805,7 +632,7 @@ class ChatbotAgent:
             return response.choices[0].message.content
             
         except Exception as e:
-            return f"❌ Lỗi GROK: {str(e)}"
+            return f"âŒ Lá»—i GROK: {str(e)}"
     
     def chat_with_qwen(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using Qwen 1.5b"""
@@ -900,7 +727,7 @@ class ChatbotAgent:
                 else:
                     return str(result)
             elif response.status_code == 503:
-                return "⏳ Model BloomVN đang khởi động (loading), vui lòng thử lại sau 20-30 giây."
+                return "â³ Model BloomVN Ä‘ang khá»Ÿi Ä‘á»™ng (loading), vui lÃ²ng thá»­ láº¡i sau 20-30 giÃ¢y."
             else:
                 return f"Lỗi BloomVN API: {response.status_code} - {response.text}"
             
@@ -910,7 +737,7 @@ class ChatbotAgent:
     def chat_with_local_model(self, message, model, context='casual', deep_thinking=False, language='vi'):
         """Chat with local models (BloomVN, Qwen1.5, Qwen2.5)"""
         if not LOCALMODELS_AVAILABLE:
-            return "❌ Local models không khả dụng. Vui lòng cài đặt: pip install torch transformers accelerate"
+            return "âŒ Local models khÃ´ng kháº£ dá»¥ng. Vui lÃ²ng cÃ i Ä‘áº·t: pip install torch transformers accelerate"
         
         try:
             # Map model names to model keys
@@ -955,12 +782,12 @@ class ChatbotAgent:
             return response
             
         except FileNotFoundError as e:
-            return f"❌ Model chưa được download. Vui lòng kiểm tra thư mục models/: {str(e)}"
+            return f"âŒ Model chÆ°a Ä‘Æ°á»£c download. Vui lÃ²ng kiá»ƒm tra thÆ° má»¥c models/: {str(e)}"
         except Exception as e:
             logger.error(f"Local model error ({model}): {e}")
-            return f"❌ Lỗi local model: {str(e)}"
+            return f"âŒ Lá»—i local model: {str(e)}"
     
-    def chat(self, message, model='gemini', context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+    def chat(self, message, model='grok', context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Main chat method with MongoDB integration"""
         # Save user message to MongoDB
         if MONGODB_ENABLED and self.conversation_id and history is None:
@@ -979,7 +806,9 @@ class ChatbotAgent:
         
         # Get response from selected model (with thinking process if deep_thinking enabled)
         thinking_process = None
-        if model == 'gemini':
+        if model == 'grok':
+            result = self.chat_with_grok(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'gemini':
             result = self.chat_with_gemini(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'openai':
             result = self.chat_with_openai(message, context, deep_thinking, history, memories, language, custom_prompt)
@@ -1041,7 +870,7 @@ class ChatbotAgent:
             try:
                 # Archive current conversation
                 ConversationDB.archive_conversation(str(self.conversation_id))
-                logger.info(f"✅ Archived conversation: {self.conversation_id}")
+                logger.info(f"âœ… Archived conversation: {self.conversation_id}")
                 
                 # Create new conversation
                 user_id = get_user_id_from_session()
@@ -1052,9 +881,9 @@ class ChatbotAgent:
                 )
                 self.conversation_id = conv['_id']
                 set_active_conversation(self.conversation_id)
-                logger.info(f"✅ Created new conversation: {self.conversation_id}")
+                logger.info(f"âœ… Created new conversation: {self.conversation_id}")
             except Exception as e:
-                logger.error(f"❌ Error clearing history: {e}")
+                logger.error(f"âŒ Error clearing history: {e}")
 
 
 # Store chatbot instances per session
@@ -1089,7 +918,7 @@ def google_search_tool(query):
         from urllib3.util.retry import Retry
         
         if not GOOGLE_SEARCH_API_KEY_1 or not GOOGLE_CSE_ID:
-            return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
+            return "âŒ Google Search API chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GOOGLE_SEARCH_API_KEY vÃ  GOOGLE_CSE_ID vÃ o file .env"
         
         # Log config for debugging
         logger.info(f"[GOOGLE SEARCH] API Key (first 10 chars): {GOOGLE_SEARCH_API_KEY_1[:10]}...")
@@ -1134,9 +963,9 @@ def google_search_tool(query):
                     title = item.get('title', 'No title')
                     link = item.get('link', '')
                     snippet = item.get('snippet', 'No description')
-                    results.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                    results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
                 
-                return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+                return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
             else:
                 return "Không tìm thấy kết quả nào."
         elif response.status_code == 429:
@@ -1152,24 +981,24 @@ def google_search_tool(query):
                             title = item.get('title', 'No title')
                             link = item.get('link', '')
                             snippet = item.get('snippet', 'No description')
-                            results.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                        return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
-            return "❌ Đã hết quota Google Search API. Vui lòng thử lại sau."
+                            results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
+                        return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
+            return "âŒ ÄÃ£ háº¿t quota Google Search API. Vui lÃ²ng thá»­ láº¡i sau."
         else:
-            return f"❌ Lỗi Google Search API: {response.status_code}"
+            return f"âŒ Lá»—i Google Search API: {response.status_code}"
     
     except requests.exceptions.ConnectionError as e:
         logger.error(f"[GOOGLE SEARCH] Connection Error: {e}")
-        return "❌ Lỗi kết nối đến Google Search API. Vui lòng kiểm tra:\n• Kết nối Internet\n• Proxy/Firewall settings\n• Thử lại sau ít phút"
+        return "âŒ Lá»—i káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng kiá»ƒm tra:\nâ€¢ Káº¿t ná»‘i Internet\nâ€¢ Proxy/Firewall settings\nâ€¢ Thá»­ láº¡i sau Ã­t phÃºt"
     except requests.exceptions.Timeout as e:
         logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
-        return "❌ Timeout khi kết nối đến Google Search API. Vui lòng thử lại."
+        return "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
     except requests.exceptions.RequestException as e:
         logger.error(f"[GOOGLE SEARCH] Request Error: {e}")
-        return f"❌ Lỗi request: {str(e)}"
+        return f"âŒ Lá»—i request: {str(e)}"
     except Exception as e:
         logger.error(f"[GOOGLE SEARCH] Unexpected Error: {e}")
-        return f"❌ Lỗi không mong muốn: {str(e)}"
+        return f"âŒ Lá»—i khÃ´ng mong muá»‘n: {str(e)}"
 
 
 def github_search_tool(query):
@@ -1178,7 +1007,7 @@ def github_search_tool(query):
         import requests
         
         if not GITHUB_TOKEN:
-            return "❌ GitHub Token chưa được cấu hình. Vui lòng thêm GITHUB_TOKEN vào file .env"
+            return "âŒ GitHub Token chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GITHUB_TOKEN vÃ o file .env"
         
         url = "https://api.github.com/search/repositories"
         headers = {
@@ -1207,17 +1036,17 @@ def github_search_tool(query):
                     url = repo.get('html_url', '')
                     language = repo.get('language', 'N/A')
                     
-                    results.append(f"**{name}** ⭐ {stars}\n{desc}\n💻 {language} | 🔗 {url}")
+                    results.append(f"**{name}** â­ {stars}\n{desc}\nðŸ’» {language} | ðŸ”— {url}")
                 
-                return "🐙 **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
+                return "ðŸ™ **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
             else:
                 return "Không tìm thấy repository nào."
         else:
-            return f"❌ Lỗi GitHub API: {response.status_code}"
+            return f"âŒ Lá»—i GitHub API: {response.status_code}"
     
     except Exception as e:
         logger.error(f"[GITHUB SEARCH] Error: {e}")
-        return f"❌ Lỗi: {str(e)}"
+        return f"âŒ Lá»—i: {str(e)}"
 
 
 # ============================================================================
@@ -1252,7 +1081,7 @@ def chat():
             # FormData with files
             data = request.form
             message = data.get('message', '')
-            model = data.get('model', 'gemini')
+            model = data.get('model', 'grok')
             context = data.get('context', 'casual')
             deep_thinking = data.get('deep_thinking', 'false').lower() == 'true'
             language = data.get('language', 'vi')  # Get language from request
@@ -1287,7 +1116,7 @@ def chat():
             # JSON request
             data = request.json
             message = data.get('message', '')
-            model = data.get('model', 'gemini')
+            model = data.get('model', 'grok')
             context = data.get('context', 'casual')
             deep_thinking = data.get('deep_thinking', False)
             language = data.get('language', 'vi')  # Get language from request
@@ -1317,12 +1146,12 @@ def chat():
             if 'google-search' in tools:
                 logger.info(f"[TOOLS] Running Google Search for: {message}")
                 search_result = google_search_tool(message)
-                tool_results.append(f"## 🔍 Google Search Results\n\n{search_result}")
+                tool_results.append(f"## ðŸ” Google Search Results\n\n{search_result}")
             
             if 'github' in tools:
                 logger.info(f"[TOOLS] Running GitHub Search for: {message}")
                 github_result = github_search_tool(message)
-                tool_results.append(f"## 🐙 GitHub Search Results\n\n{github_result}")
+                tool_results.append(f"## ðŸ™ GitHub Search Results\n\n{github_result}")
             
             if 'image-generation' in tools:
                 logger.info(f"[TOOLS] AI-powered image generation with Stable Diffusion")
@@ -1330,38 +1159,38 @@ def chat():
                 # Step 1: Sử dụng AI để tạo prompt chi tiết từ mô tả của user
                 prompt_request = f"""Bạn là chuyên gia tạo prompt cho Stable Diffusion.
 
-NHIỆM VỤ: Chuyển đổi mô tả của người dùng thành prompt CHÍNH XÁC, KHÔNG được tự ý thêm bớt nội dung.
+NHIá»†M Vá»¤: Chuyá»ƒn Ä‘á»•i mÃ´ táº£ cá»§a ngÆ°á»i dÃ¹ng thÃ nh prompt CHÃNH XÃC, KHÃ”NG Ä‘Æ°á»£c tá»± Ã½ thÃªm bá»›t ná»™i dung.
 
-⚠️ QUY TẮC BẮT BUỘC:
-1. CHỈ mô tả ĐÚNG những gì user yêu cầu, KHÔNG tự ý thêm con người nếu user không nói
-2. Nếu user nói về VẬT/CẢNH (landscape, building, sky, ocean, mountain, tree, flower, city, architecture, nature, scenery):
-   - Prompt: CHỈ mô tả cảnh vật, TUYỆT ĐỐI KHÔNG thêm người
+âš ï¸ QUY Táº®C Báº®T BUá»˜C:
+1. CHá»ˆ mÃ´ táº£ ÄÃšNG nhá»¯ng gÃ¬ user yÃªu cáº§u, KHÃ”NG tá»± Ã½ thÃªm con ngÆ°á»i náº¿u user khÃ´ng nÃ³i
+2. Náº¿u user nÃ³i vá» Váº¬T/Cáº¢NH (landscape, building, sky, ocean, mountain, tree, flower, city, architecture, nature, scenery):
+   - Prompt: CHá»ˆ mÃ´ táº£ cáº£nh váº­t, TUYá»†T Äá»I KHÃ”NG thÃªm ngÆ°á»i
    - has_people: false
    - Negative phải có: "no humans, no people, no person, no character"
    
-3. Nếu user NÓI RÕ về NGƯỜI (girl, boy, man, woman, person, character, portrait):
-   - Prompt: Mô tả người theo yêu cầu (trang phục lịch sự, không gợi cảm)
+3. Náº¿u user NÃ“I RÃ• vá» NGÆ¯á»œI (girl, boy, man, woman, person, character, portrait):
+   - Prompt: MÃ´ táº£ ngÆ°á»i theo yÃªu cáº§u (trang phá»¥c lá»‹ch sá»±, khÃ´ng gá»£i cáº£m)
    - has_people: true
    - Negative phải có NSFW filter mạnh
 
-4. NSFW Protection (BẮT BUỘC mọi trường hợp):
-   - TUYỆT ĐỐI KHÔNG tạo: nude, naked, underwear, bikini, revealing clothes, sexy poses
+4. NSFW Protection (Báº®T BUá»˜C má»i trÆ°á»ng há»£p):
+   - TUYá»†T Äá»I KHÃ”NG táº¡o: nude, naked, underwear, bikini, revealing clothes, sexy poses
    - Negative PHẢI CÓ đầy đủ: nsfw, r18, nude, naked, explicit, sexual, porn, underwear, revealing
 
 MÔ TẢ CỦA NGƯỜI DÙNG: "{message}"
 
-Trả về JSON (TUÂN THỦ NGHIÊM NGẶT):
+Tráº£ vá» JSON (TUÃ‚N THá»¦ NGHIÃŠM NGáº¶T):
 {{
-    "prompt": "CHỈ mô tả ĐÚNG yêu cầu user, KHÔNG tự thêm người nếu user không nói",
+    "prompt": "CHá»ˆ mÃ´ táº£ ÄÃšNG yÃªu cáº§u user, KHÃ”NG tá»± thÃªm ngÆ°á»i náº¿u user khÃ´ng nÃ³i",
     "negative_prompt": "bad quality, blurry, lowres, worst quality",
     "explanation": "giải thích ngắn",
-    "has_people": false (CHỈ true nếu user NÓI RÕ về người)
+    "has_people": false (CHá»ˆ true náº¿u user NÃ“I RÃ• vá» ngÆ°á»i)
 }}
 
 CHỈ trả JSON, không text khác."""
 
                 try:
-                    # Gọi AI để tạo prompt (sử dụng model hiện tại)
+                    # Gá»i AI Ä‘á»ƒ táº¡o prompt (sá»­ dá»¥ng model hiá»‡n táº¡i)
                     ai_response = chatbot.chat(prompt_request, model=model, context='programming', language='vi')
                     response_text = ai_response.get('response', ai_response) if isinstance(ai_response, dict) else ai_response
                     
@@ -1443,7 +1272,7 @@ CHỈ trả JSON, không text khác."""
 **Giải thích:** {explanation}
 
 **Ảnh được tạo:**
-<img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0;">
+<img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;" class="generated-preview">
 
 ---
 🎯 **Thông số:**
@@ -1454,10 +1283,10 @@ CHỈ trả JSON, không text khác."""
                             tool_results.append(result_msg)
                         elif sd_result.get('error'):
                             # Show error from SD
-                            tool_results.append(f"## 🎨 Image Generation\n\n❌ Lỗi từ Stable Diffusion:\n```\n{sd_result['error']}\n```\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
+                            tool_results.append(f"## ðŸŽ¨ Image Generation\n\nâŒ Lá»—i tá»« Stable Diffusion:\n```\n{sd_result['error']}\n```\n\nPrompt Ä‘Ã£ táº¡o:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                         else:
                             # No images and no error - show full response for debugging
-                            tool_results.append(f"## 🎨 Image Generation\n\n⚠️ Stable Diffusion không trả về ảnh.\n\nSD Response: ```json\n{json.dumps(sd_result, indent=2)}\n```\n\nPrompt đã tạo:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
+                            tool_results.append(f"## ðŸŽ¨ Image Generation\n\nâš ï¸ Stable Diffusion khÃ´ng tráº£ vá» áº£nh.\n\nSD Response: ```json\n{json.dumps(sd_result, indent=2)}\n```\n\nPrompt Ä‘Ã£ táº¡o:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                     else:
                         tool_results.append(f"## 🎨 Image Generation\n\nKhông thể tạo prompt tự động. Response: {response_text}\n\nVui lòng sử dụng Image Generator panel thủ công.")
                         
@@ -1535,7 +1364,7 @@ def clear():
         chatbot = get_chatbot(session_id)
         chatbot.clear_history()
         
-        return jsonify({'message': 'Đã xóa lịch sử chat'})
+        return jsonify({'message': 'ÄÃ£ xÃ³a lá»‹ch sá»­ chat'})
         
     except Exception as e:
         logger.error(f"[Clear History] Error: {str(e)}")
@@ -1731,7 +1560,7 @@ def sd_health():
         traceback.print_exc()
         response = jsonify({
             'status': 'error',
-            'message': 'Đã xảy ra lỗi khi kiểm tra trạng thái Stable Diffusion.'
+            'message': 'ÄÃ£ xáº£y ra lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i Stable Diffusion.'
         })
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         return response, 500
@@ -1744,7 +1573,7 @@ def sd_models():
     try:
         from src.utils.sd_client import get_sd_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         models = sd_client.get_models()
@@ -1766,7 +1595,7 @@ def sd_models():
 @app.route('/api/sd-change-model', methods=['POST'])
 @app.route('/api/sd/change-model', methods=['POST'])  # Alias
 def sd_change_model():
-    """Đổi checkpoint model"""
+    """Äá»•i checkpoint model"""
     try:
         from src.utils.sd_client import get_sd_client
         
@@ -1776,7 +1605,7 @@ def sd_change_model():
         if not model_name:
             return jsonify({'error': 'model_name is required'}), 400
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         success = sd_client.change_model(model_name)
@@ -1784,7 +1613,7 @@ def sd_change_model():
         if success:
             return jsonify({
                 'success': True,
-                'message': f'Đã đổi model thành {model_name}'
+                'message': f'ÄÃ£ Ä‘á»•i model thÃ nh {model_name}'
             })
         else:
             return jsonify({
@@ -1805,8 +1634,8 @@ def generate_image():
     Body params:
         - prompt (str): Text prompt mô tả ảnh
         - negative_prompt (str): Những gì không muốn có
-        - width (int): Chiều rộng (default: 512)
-        - height (int): Chiều cao (default: 512)
+        - width (int): Chiá»u rá»™ng (default: 512)
+        - height (int): Chiá»u cao (default: 512)
         - steps (int): Số steps (default: 20)
         - cfg_scale (float): CFG scale (default: 7.0)
         - sampler_name (str): Tên sampler (default: "DPM++ 2M Karras")
@@ -1848,7 +1677,7 @@ def generate_image():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         # Tạo ảnh
@@ -1893,7 +1722,7 @@ def generate_image():
                     
                     if CLOUD_UPLOAD_ENABLED:
                         try:
-                            logger.info(f"[TEXT2IMG] ☁️ Uploading to ImgBB...")
+                            logger.info(f"[TEXT2IMG] â˜ï¸ Uploading to ImgBB...")
                             uploader = ImgBBUploader()
                             upload_result = uploader.upload_image(
                                 str(filepath),
@@ -1904,9 +1733,9 @@ def generate_image():
                                 cloud_url = upload_result['url']
                                 delete_url = upload_result.get('delete_url', '')
                                 cloud_urls.append(cloud_url)
-                                logger.info(f"[TEXT2IMG] ✅ ImgBB URL: {cloud_url}")
+                                logger.info(f"[TEXT2IMG] âœ… ImgBB URL: {cloud_url}")
                             else:
-                                logger.warning(f"[TEXT2IMG] ⚠️ ImgBB upload failed, using local URL")
+                                logger.warning(f"[TEXT2IMG] âš ï¸ ImgBB upload failed, using local URL")
                         
                         except Exception as upload_error:
                             logger.error(f"[TEXT2IMG] ImgBB upload error: {upload_error}")
@@ -1942,11 +1771,12 @@ def generate_image():
                     # Create new conversation
                     conversation = ConversationDB.create_conversation(
                         user_id=user_id,
+                        model='stable-diffusion',
                         title=f"Text2Image: {prompt[:30]}..."
                     )
                     conversation_id = str(conversation['_id'])
                     session['conversation_id'] = conversation_id
-                    logger.info(f"📝 Created new conversation: {conversation_id}")
+                    logger.info(f"ðŸ“ Created new conversation: {conversation_id}")
                 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -1967,7 +1797,7 @@ def generate_image():
                 save_message_to_db(
                     conversation_id=conversation_id,
                     role='assistant',
-                    content=f"✅ Generated image with prompt: {prompt}",
+                    content=f"âœ… Generated image with prompt: {prompt}",
                     images=images_data,
                     metadata={
                         'model': 'stable-diffusion',
@@ -1978,10 +1808,10 @@ def generate_image():
                     }
                 )
                 
-                logger.info(f"💾 Saved image message to MongoDB with {len(cloud_urls)} cloud URLs")
+                logger.info(f"ðŸ’¾ Saved image message to MongoDB with {len(cloud_urls)} cloud URLs")
                 
             except Exception as db_error:
-                logger.error(f"❌ Error saving to MongoDB: {db_error}")
+                logger.error(f"âŒ Error saving to MongoDB: {db_error}")
                 # Continue execution - MongoDB save is optional
         
         # Return response in format expected by frontend
@@ -2024,7 +1854,7 @@ def sd_samplers():
     try:
         from src.utils.sd_client import get_sd_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         samplers = sd_client.get_samplers()
@@ -2045,7 +1875,7 @@ def sd_loras():
     try:
         from src.utils.sd_client import get_sd_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         loras_raw = sd_client.get_loras()
@@ -2076,7 +1906,7 @@ def sd_vaes():
     try:
         from src.utils.sd_client import get_sd_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         vaes_raw = sd_client.get_vaes()
@@ -2108,7 +1938,7 @@ def generate_prompt_grok():
     Tạo prompt tối ưu từ extracted tags - Support tất cả model (GROK, Gemini, GPT, DeepSeek, Qwen, BloomVN)
     
     Body params:
-        - context (str): Context về tags đã trích xuất
+        - context (str): Context vá» tags Ä‘Ã£ trÃ­ch xuáº¥t
         - tags (list): List các tags đã extract
         - model (str): Model để dùng (grok, gemini, openai, deepseek, qwen, bloomvn) - default: grok
     """
@@ -2350,8 +2180,8 @@ def img2img():
             - 0.0 = giữ nguyên ảnh gốc 100%
             - 1.0 = tạo mới hoàn toàn
             - 0.8 = 80% mới, 20% giữ lại (recommended)
-        - width (int): Chiều rộng
-        - height (int): Chiều cao  
+        - width (int): Chiá»u rá»™ng
+        - height (int): Chiá»u cao  
         - steps (int): Số steps
         - cfg_scale (float): CFG scale
         - sampler_name (str): Tên sampler
@@ -2389,7 +2219,7 @@ def img2img():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         # Tạo ảnh với img2img
@@ -2435,7 +2265,7 @@ def img2img():
                     
                     if CLOUD_UPLOAD_ENABLED:
                         try:
-                            logger.info(f"[IMG2IMG] ☁️ Uploading to ImgBB...")
+                            logger.info(f"[IMG2IMG] â˜ï¸ Uploading to ImgBB...")
                             uploader = ImgBBUploader()
                             upload_result = uploader.upload_image(
                                 str(filepath),
@@ -2446,9 +2276,9 @@ def img2img():
                                 cloud_url = upload_result['url']
                                 delete_url = upload_result.get('delete_url', '')
                                 cloud_urls.append(cloud_url)
-                                logger.info(f"[IMG2IMG] ✅ ImgBB URL: {cloud_url}")
+                                logger.info(f"[IMG2IMG] âœ… ImgBB URL: {cloud_url}")
                             else:
-                                logger.warning(f"[IMG2IMG] ⚠️ ImgBB upload failed, using local URL")
+                                logger.warning(f"[IMG2IMG] âš ï¸ ImgBB upload failed, using local URL")
                         
                         except Exception as upload_error:
                             logger.error(f"[IMG2IMG] ImgBB upload error: {upload_error}")
@@ -2489,7 +2319,7 @@ def img2img():
                     )
                     conversation_id = str(conversation['_id'])
                     session['conversation_id'] = conversation_id
-                    logger.info(f"📝 Created new conversation: {conversation_id}")
+                    logger.info(f"ðŸ“ Created new conversation: {conversation_id}")
                 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -2510,7 +2340,7 @@ def img2img():
                 save_message_to_db(
                     conversation_id=conversation_id,
                     role='assistant',
-                    content=f"✅ Generated Img2Img with prompt: {prompt}",
+                    content=f"âœ… Generated Img2Img with prompt: {prompt}",
                     images=images_data,
                     metadata={
                         'model': 'stable-diffusion-img2img',
@@ -2522,10 +2352,10 @@ def img2img():
                     }
                 )
                 
-                logger.info(f"💾 Saved Img2Img message to MongoDB with {len(cloud_urls)} cloud URLs")
+                logger.info(f"ðŸ’¾ Saved Img2Img message to MongoDB with {len(cloud_urls)} cloud URLs")
                 
             except Exception as db_error:
-                logger.error(f"❌ Error saving to MongoDB: {db_error}")
+                logger.error(f"âŒ Error saving to MongoDB: {db_error}")
                 # Continue execution - MongoDB save is optional
         
         # Return response in format expected by frontend
@@ -2585,7 +2415,7 @@ def share_image_imgbb():
             result = uploader.upload(base64_image, title=title)
             
             if result and result.get('url'):
-                logger.info(f"[ImgBB Share] ✅ Success: {result['url']}")
+                logger.info(f"[ImgBB Share] âœ… Success: {result['url']}")
                 return jsonify({
                     'success': True,
                     'url': result['url'],
@@ -2595,15 +2425,15 @@ def share_image_imgbb():
                     'title': title
                 })
             else:
-                logger.error(f"[ImgBB Share] ❌ Upload failed: {result}")
+                logger.error(f"[ImgBB Share] âŒ Upload failed: {result}")
                 return jsonify({'error': 'ImgBB upload failed'}), 500
                 
         except Exception as upload_error:
-            logger.error(f"[ImgBB Share] ❌ Error: {str(upload_error)}")
+            logger.error(f"[ImgBB Share] âŒ Error: {str(upload_error)}")
             return jsonify({'error': 'Failed to upload image to ImgBB'}), 500
         
     except Exception as e:
-        logger.error(f"[ImgBB Share] ❌ Exception: {str(e)}")
+        logger.error(f"[ImgBB Share] âŒ Exception: {str(e)}")
         return jsonify({'error': 'Failed to process image share request'}), 500
 
 
@@ -2628,9 +2458,51 @@ def save_generated_image():
         if ',' in base64_image:
             base64_image = base64_image.split(',')[1]
         
-        # Decode image
-        image_bytes = base64.b64decode(base64_image)
-        image = Image.open(io.BytesIO(image_bytes))
+        # Clean and sanitize base64 string
+        base64_image = base64_image.strip()
+        if not base64_image:
+            return jsonify({'error': 'Empty image data after stripping'}), 400
+        
+        # Remove only newlines and carriage returns (keep valid base64 chars)
+        base64_image = base64_image.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t', '')
+        
+        if not base64_image:
+            return jsonify({'error': 'No valid base64 data after cleaning'}), 400
+        
+        # Decode image with error handling (try without validation first)
+        try:
+            # First try: decode without strict validation
+            try:
+                image_bytes = base64.b64decode(base64_image)
+            except Exception:
+                # Second try: fix padding and validate
+                padding = len(base64_image) % 4
+                if padding:
+                    base64_image += '=' * (4 - padding)
+                image_bytes = base64.b64decode(base64_image, validate=True)
+            
+            if not image_bytes:
+                return jsonify({'error': 'Failed to decode base64 image'}), 400
+            
+            # Try to open and validate the image
+            image_buffer = io.BytesIO(image_bytes)
+            image = Image.open(image_buffer)
+            
+            # Get format before verify
+            image_format = image.format or 'PNG'
+            
+            # Verify it's a valid image
+            image.verify()
+            
+            # Re-open after verify (verify closes the file)
+            image_buffer.seek(0)
+            image = Image.open(image_buffer)
+        except base64.binascii.Error as e:
+            logger.error(f"[Save Image] Base64 decode error: {e}")
+            return jsonify({'error': 'Invalid base64 image data'}), 400
+        except Exception as e:
+            logger.error(f"[Save Image] Image processing error: {e}")
+            return jsonify({'error': f'Cannot process image: {str(e)}'}), 400
         
         # Save to storage
         storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
@@ -2640,7 +2512,7 @@ def save_generated_image():
         filepath = storage_dir / filename
         
         image.save(filepath, 'PNG')
-        logger.info(f"[Save Image] 💾 Saved to: {filepath}")
+        logger.info(f"[Save Image] ðŸ’¾ Saved to: {filepath}")
         
         # Upload to ImgBB if enabled
         cloud_url = None
@@ -2654,9 +2526,9 @@ def save_generated_image():
                 if cloud_result and cloud_result.get('url'):
                     cloud_url = cloud_result['url']
                     delete_url = cloud_result.get('delete_url')
-                    logger.info(f"[Save Image] ☁️ ImgBB: {cloud_url}")
+                    logger.info(f"[Save Image] â˜ï¸ ImgBB: {cloud_url}")
             except Exception as cloud_error:
-                logger.warning(f"[Save Image] ⚠️ ImgBB upload failed: {cloud_error}")
+                logger.warning(f"[Save Image] âš ï¸ ImgBB upload failed: {cloud_error}")
         
         # Save to chat history
         conversation_id = session.get('conversation_id')
@@ -2695,16 +2567,16 @@ def save_generated_image():
                     save_message_to_db(
                         conversation_id=conversation_id,
                         role='assistant',
-                        content=f"🎨 Generated image with prompt: {metadata.get('prompt', 'N/A')}",
+                        content=f"ðŸŽ¨ Generated image with prompt: {metadata.get('prompt', 'N/A')}",
                         images=images_data,
                         metadata=metadata
                     )
                     
-                    logger.info(f"[Save Image] ✅ Saved to chat history: {conversation_id}")
+                    logger.info(f"[Save Image] âœ… Saved to chat history: {conversation_id}")
                     mongodb_saved = True
                     
         except Exception as db_error:
-            logger.error(f"[Save Image] ⚠️ MongoDB save failed: {db_error}")
+            logger.error(f"[Save Image] âš ï¸ MongoDB save failed: {db_error}")
             # Continue - this is optional
         
         # Always return success (local save completed)
@@ -2718,7 +2590,7 @@ def save_generated_image():
         })
         
     except Exception as e:
-        logger.error(f"[Save Image] ❌ Error: {str(e)}")
+        logger.error(f"[Save Image] âŒ Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -2728,7 +2600,7 @@ def sd_interrupt():
     try:
         from src.utils.sd_client import get_sd_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         success = sd_client.interrupt()
@@ -2745,7 +2617,7 @@ def sd_interrupt():
 @app.route('/api/extract-anime-features-multi', methods=['POST'])
 def extract_anime_features_multi():
     """
-    🎯 MULTI-MODEL EXTRACTION - Sử dụng nhiều model để trích xuất chính xác hơn
+    ðŸŽ¯ MULTI-MODEL EXTRACTION - Sá»­ dá»¥ng nhiá»u model Ä‘á»ƒ trÃ­ch xuáº¥t chÃ­nh xÃ¡c hÆ¡n
     
     Models hỗ trợ:
         - deepdanbooru: Anime-specific, tag-based (mặc định)
@@ -2755,7 +2627,7 @@ def extract_anime_features_multi():
     Body params:
         - image (str): Base64 encoded image
         - deep_thinking (bool): More tags
-        - models (list): ['deepdanbooru', 'clip', 'wd14'] - Chọn models muốn dùng
+        - models (list): ['deepdanbooru', 'clip', 'wd14'] - Chá»n models muá»‘n dÃ¹ng
     
     Returns:
         - tags: Merged tags with confidence voting
@@ -2774,7 +2646,7 @@ def extract_anime_features_multi():
         if not image_b64:
             return jsonify({'error': 'Image không được để trống'}), 400
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
         
         logger.info(f"[MULTI-EXTRACT] Models: {selected_models} | Deep: {deep_thinking}")
@@ -2782,7 +2654,7 @@ def extract_anime_features_multi():
         all_tags = []
         model_results = {}
         
-        # Gọi từng model
+        # Gá»i tá»«ng model
         for model_name in selected_models:
             try:
                 payload = {'image': image_b64, 'model': model_name}
@@ -2798,7 +2670,7 @@ def extract_anime_features_multi():
                     model_results[model_name] = tags
                     all_tags.extend(tags)
                     
-                    logger.info(f"[MULTI-EXTRACT] {model_name}: {len(tags)} tags ✅")
+                    logger.info(f"[MULTI-EXTRACT] {model_name}: {len(tags)} tags âœ…")
                 else:
                     logger.warning(f"[MULTI-EXTRACT] {model_name} failed: {response.status_code}")
                     model_results[model_name] = []
@@ -2806,7 +2678,7 @@ def extract_anime_features_multi():
                 logger.error(f"[MULTI-EXTRACT] {model_name} error: {str(e)}")
                 model_results[model_name] = []
         
-        # Merge tags với confidence voting (càng nhiều model đồng ý = confidence càng cao)
+        # Merge tags vá»›i confidence voting (cÃ ng nhiá»u model Ä‘á»“ng Ã½ = confidence cÃ ng cao)
         tag_counter = Counter(all_tags)
         num_models = len(selected_models)
         merged_tags = []
@@ -2858,7 +2730,7 @@ def extract_anime_features_multi():
             tag_obj['category'] = category
             categories_dict[category].append(tag_obj)
         
-        logger.info(f"[MULTI-EXTRACT] ✅ Final: {len(merged_tags)} tags from {num_models} models")
+        logger.info(f"[MULTI-EXTRACT] âœ… Final: {len(merged_tags)} tags from {num_models} models")
         
         return jsonify({
             'success': True,
@@ -2901,7 +2773,7 @@ def extract_anime_features():
             return jsonify({'error': 'Image không được để trống'}), 400
         
         # Call SD WebUI interrogate API with DeepDanbooru
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
         
         payload = {
@@ -3073,7 +2945,7 @@ def img2img_advanced():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7860')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
         
         # Change model if specified

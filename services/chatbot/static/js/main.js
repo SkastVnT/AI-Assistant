@@ -406,10 +406,10 @@ class ChatBotApp {
                 (img) => this.openImagePreview(img)
             );
             
-            // Make images clickable
-            setTimeout(() => {
-                this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            }, 200);
+            // Make images clickable (with retry)
+            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
+            setTimeout(makeClickable, 200);
+            setTimeout(makeClickable, 600);
         } else {
             this.uiUtils.clearChat();
         }
@@ -585,10 +585,10 @@ class ChatBotApp {
             // Save session with updated timestamp (new message)
             this.saveCurrentSession(true);
             
-            // Make images clickable
-            setTimeout(() => {
-                this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            }, 100);
+            // Make images clickable (with retry for dynamically loaded images)
+            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
+            setTimeout(makeClickable, 100);
+            setTimeout(makeClickable, 500);  // Retry after 500ms for slower rendering
             
         } catch (error) {
             // Remove thinking container if error
@@ -709,10 +709,10 @@ class ChatBotApp {
             // Save session
             this.saveCurrentSession(true);
             
-            // Make images clickable
-            setTimeout(() => {
-                this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
-            }, 100);
+            // Make images clickable (with retry)
+            const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
+            setTimeout(makeClickable, 100);
+            setTimeout(makeClickable, 500);
             
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -1207,6 +1207,11 @@ document.addEventListener('DOMContentLoaded', () => {
             character: '👤', style: '🎨', quality: '⭐', other: '🏷️'
         };
         
+        // Initialize selectedTags if not exists (all selected by default)
+        if (!window.selectedImageTags) {
+            window.selectedImageTags = new Set(tags.map(t => t.name));
+        }
+        
         // Build HTML by category
         let html = '';
         Object.keys(categories).forEach(catName => {
@@ -1222,13 +1227,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${icon} <strong>${catTitle}</strong> (${catTags.length})
                         <span class="category-toggle">▼</span>
                     </div>
-                    <div class="category-tags">
-                        ${catTags.map(tag => `
-                            <span class="tag-item" onclick="toggleTag('${tag.name}')" 
-                                  title="Confidence: ${(tag.confidence * 100).toFixed(1)}%">
+                    <div class="category-tags" id="cat-${catName}">
+                        ${catTags.map(tag => {
+                            const isSelected = window.selectedImageTags.has(tag.name);
+                            return `
+                            <span class="tag-item ${isSelected ? 'tag-selected' : 'tag-unselected'}" 
+                                  onclick="toggleImageTag('${tag.name.replace(/'/g, "\\'")}', this)" 
+                                  title="${isSelected ? 'Click để bỏ chọn' : 'Click để chọn'} (Confidence: ${(tag.confidence * 100).toFixed(1)}%)">
                                 ${tag.name} <small>(${(tag.confidence * 100).toFixed(0)}%)</small>
                             </span>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>
             `;
@@ -1398,6 +1406,35 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);
     window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
     window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
+    
+    // Toggle image tag selection
+    window.toggleImageTag = (tagName, element) => {
+        if (!window.selectedImageTags) {
+            window.selectedImageTags = new Set();
+        }
+        
+        if (window.selectedImageTags.has(tagName)) {
+            // Deselect
+            window.selectedImageTags.delete(tagName);
+            element.classList.remove('tag-selected');
+            element.classList.add('tag-unselected');
+            element.title = `Click để chọn (${element.querySelector('small').textContent})`;
+        } else {
+            // Select
+            window.selectedImageTags.add(tagName);
+            element.classList.remove('tag-unselected');
+            element.classList.add('tag-selected');
+            element.title = `Click để bỏ chọn (${element.querySelector('small').textContent})`;
+        }
+        
+        console.log('[Tag Toggle]', tagName, window.selectedImageTags.has(tagName) ? 'SELECTED' : 'UNSELECTED');
+        console.log('[Tag Toggle] Total selected:', window.selectedImageTags.size);
+    };
+    
+    // Get selected tags for prompt generation
+    window.getSelectedImageTags = () => {
+        return Array.from(window.selectedImageTags || []);
+    };
     
     // Expose export functions
     window.downloadChatAsPDF = () => app.exportHandler.downloadChatAsPDF(app.currentSession, app.chatManager.sessions);

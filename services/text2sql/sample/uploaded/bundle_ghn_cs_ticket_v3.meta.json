@@ -1,0 +1,13 @@
+{
+  "files": [
+    "chotdonai_cs.ghn_cs_ticket_v3.json"
+  ],
+  "tables": [
+    "ghn_cs_ticket_v3"
+  ],
+  "id_map": {
+    "ghn_cs_ticket_v3": "01"
+  },
+  "bundle_file": "bundle_ghn_cs_ticket_v3.txt",
+  "memories_file": null
+}

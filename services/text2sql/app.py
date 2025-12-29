@@ -852,10 +852,23 @@ def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> t
             print(f"[DEBUG] Grok-3 success! SQL: {sql[:100]}...")
             return extract_sql(sql), "grok"
         except Exception as e:
-            # Fallback to Gemini if Grok fails
-            print(f"[ERROR] Grok error: {e}, falling back to Gemini")
-            sql = generate_sql_with_gemini(schema_text, question)
-            return extract_sql(sql), "gemini"
+            # Fallback to DeepSeek or OpenAI instead of Gemini
+            print(f"[ERROR] Grok error: {e}")
+            if DEEPSEEK_API_KEY:
+                try:
+                    print(f"[DEBUG] Falling back to DeepSeek...")
+                    sql = generate_sql_with_deepseek(schema_text, question)
+                    return extract_sql(sql), "deepseek"
+                except Exception as e2:
+                    print(f"[ERROR] DeepSeek also failed: {e2}")
+            if OPENAI_API_KEY:
+                try:
+                    print(f"[DEBUG] Falling back to OpenAI...")
+                    sql = generate_sql_with_openai(schema_text, question)
+                    return extract_sql(sql), "openai"
+                except Exception as e3:
+                    print(f"[ERROR] OpenAI also failed: {e3}")
+            raise Exception("All models failed. Please check API keys.")
     
     # OpenAI GPT-4
     if model == "openai":
@@ -865,9 +878,11 @@ def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> t
             print(f"[DEBUG] OpenAI success! SQL: {sql[:100]}...")
             return extract_sql(sql), "openai"
         except Exception as e:
-            print(f"[ERROR] OpenAI error: {e}, falling back to Gemini")
-            sql = generate_sql_with_gemini(schema_text, question)
-            return extract_sql(sql), "gemini"
+            print(f"[ERROR] OpenAI error: {e}, falling back to DeepSeek")
+            if DEEPSEEK_API_KEY:
+                sql = generate_sql_with_deepseek(schema_text, question)
+                return extract_sql(sql), "deepseek"
+            raise Exception("OpenAI and DeepSeek not available")
     
     # DeepSeek
     if model == "deepseek":
@@ -875,9 +890,11 @@ def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> t
             sql = generate_sql_with_deepseek(schema_text, question)
             return extract_sql(sql), "deepseek"
         except Exception as e:
-            print(f"DeepSeek error: {e}, falling back to Gemini")
-            sql = generate_sql_with_gemini(schema_text, question)
-            return extract_sql(sql), "gemini"
+            print(f"DeepSeek error: {e}, falling back to Grok")
+            if GROK_API_KEY:
+                sql = generate_sql_with_grok(schema_text, question)
+                return extract_sql(sql), "grok"
+            raise Exception("DeepSeek and Grok not available")
     
     if model == "gemini" or HYBRID_STRATEGY == "gemini_only":
         return generate_sql_with_gemini(schema_text, question), "gemini"

@@ -326,7 +326,7 @@ export class ChatManager {
                 },
                 body: JSON.stringify({
                     message: `${languageInstruction} "${firstMessage.substring(0, 100)}"`,
-                    model: 'gemini',
+                    model: 'grok',
                     context: 'casual',
                     tools: [],
                     deep_thinking: false,

@@ -53,7 +53,7 @@ class TranslationService {
                 },
                 body: JSON.stringify({
                     message: prompt,
-                    model: 'gemini',
+                    model: 'grok',
                     context: 'casual',
                     language: targetLang,
                     deep_thinking: false

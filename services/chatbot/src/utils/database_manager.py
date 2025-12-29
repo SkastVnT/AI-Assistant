@@ -15,6 +15,23 @@ import time
 logger = logging.getLogger(__name__)
 
 
+def _timing_decorator(func):
+    """Decorator to measure query execution time"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        duration = (time.time() - start) * 1000  # Convert to ms
+        
+        if duration > 100:  # Log slow queries (>100ms)
+            logger.warning(f"⚠️ Slow query: {func.__name__} took {duration:.2f}ms")
+        else:
+            logger.debug(f"⚡ Query: {func.__name__} took {duration:.2f}ms")
+        
+        return result
+    return wrapper
+
+
 class DatabaseManager:
     """
     MongoDB database manager with optimized queries and connection pooling
@@ -105,22 +122,6 @@ class DatabaseManager:
             logger.info("✅ Database indexes created")
         except Exception as e:
             logger.error(f"Error creating indexes: {e}")
-    
-    def _timing_decorator(self, func):
-        """Decorator to measure query execution time"""
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            start = time.time()
-            result = func(*args, **kwargs)
-            duration = (time.time() - start) * 1000  # Convert to ms
-            
-            if duration > 100:  # Log slow queries (>100ms)
-                logger.warning(f"⚠️ Slow query: {func.__name__} took {duration:.2f}ms")
-            else:
-                logger.debug(f"⚡ Query: {func.__name__} took {duration:.2f}ms")
-            
-            return result
-        return wrapper
     
     # ============================================================================
     # CONVERSATION OPERATIONS

@@ -50,6 +50,9 @@ class ConversationDB:
         """Create a new conversation"""
         db = get_db()
         
+        if db is None or db.conversations is None:
+            raise Exception("MongoDB not connected")
+        
         conversation = {
             "user_id": user_id,
             "model": model,
@@ -71,6 +74,10 @@ class ConversationDB:
     def get_conversation(conversation_id: str) -> Optional[Dict]:
         """Get conversation by ID"""
         db = get_db()
+        
+        if db is None or db.conversations is None:
+            return None
+        
         return db.conversations.find_one({"_id": ObjectId(conversation_id)})
     
     @staticmethod

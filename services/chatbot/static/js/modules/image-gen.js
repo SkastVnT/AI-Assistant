@@ -338,9 +338,11 @@ export class ImageGeneration {
             }
             
             const data = await this.apiService.generateImage(params);
-            if (data.image) {
+            if (data.image || data.base64_images) {
                 this.currentGeneratedImage = data;
-                this.displayGeneratedImage(data.image);
+                // Use base64_images if available (when save_to_storage=true), otherwise use image
+                const imageToDisplay = (data.base64_images && data.base64_images[0]) || data.image;
+                this.displayGeneratedImage(imageToDisplay);
                 return data;
             } else {
                 throw new Error(data.error || 'Failed to generate image');
@@ -379,9 +381,11 @@ export class ImageGeneration {
             }
             
             const data = await this.apiService.generateImg2Img(params);
-            if (data.image) {
+            if (data.image || data.base64_images) {
                 this.currentGeneratedImage = data;
-                this.displayGeneratedImage(data.image);
+                // Use base64_images if available (when save_to_storage=true), otherwise use image
+                const imageToDisplay = (data.base64_images && data.base64_images[0]) || data.image;
+                this.displayGeneratedImage(imageToDisplay);
                 return data;
             } else {
                 throw new Error(data.error || 'Failed to generate image');
@@ -417,6 +421,15 @@ export class ImageGeneration {
      */
     async autoSaveImage(base64Image) {
         try {
+            // Skip if not valid base64 data (e.g., if it's a filename or URL)
+            if (!base64Image || 
+                base64Image.startsWith('http') || 
+                base64Image.startsWith('/') ||
+                base64Image.length < 100) {
+                console.log('[Auto-Save] Skipping - image already saved by server or not base64');
+                return;
+            }
+            
             // Collect metadata
             const metadata = {
                 prompt: document.getElementById('img2imgPrompt')?.value || document.getElementById('imagePrompt')?.value || 'N/A',
@@ -619,19 +632,22 @@ export class ImageGeneration {
         }
         
         try {
-            // Get active tags (exclude filtered ones)
-            const activeTags = this.getActiveTags();
+            // Get selected tags from global state (user-selected tags)
+            const selectedTags = window.getSelectedImageTags ? window.getSelectedImageTags() : this.extractedTags.map(t => t.name);
             
-            if (activeTags.length === 0) {
-                throw new Error('All tags are filtered. Please keep some tags active.');
+            if (selectedTags.length === 0) {
+                throw new Error('No tags selected. Please select at least one tag.');
             }
             
-            // Prepare context for Grok
+            // Filter extracted tags to only include selected ones
+            const activeTags = this.extractedTags.filter(tag => selectedTags.includes(tag.name));
+            
+            // Prepare context for Grok - group by category
             const tagsByCategory = {};
             for (const [category, tags] of Object.entries(this.extractedCategories)) {
-                if (!this.filteredCategories.has(category)) {
-                    tagsByCategory[category] = tags
-                        .filter(tag => !this.filteredTags.has(tag.name))
+                const selectedInCategory = tags.filter(tag => selectedTags.includes(tag.name));
+                if (selectedInCategory.length > 0) {
+                    tagsByCategory[category] = selectedInCategory
                         .map(tag => `${tag.name} (${(tag.confidence * 100).toFixed(1)}%)`);
                 }
             }
@@ -651,6 +667,8 @@ Requirements:
 
 Prompt:`;
             
+            console.log('[Grok Prompt] Using', selectedTags.length, 'selected tags out of', this.extractedTags.length, 'total tags');
+            
             // Call API
             const response = await fetch('/api/generate-prompt-grok', {
                 method: 'POST',
@@ -659,7 +677,7 @@ Prompt:`;
                 },
                 body: JSON.stringify({
                     context: context,
-                    tags: activeTags
+                    tags: selectedTags
                 })
             });
             
@@ -673,7 +691,7 @@ Prompt:`;
             console.log('[Grok Prompt] Response data:', data);
             
             if (data.success && data.prompt) {
-                console.log(`[Grok Prompt] Generated prompt (${data.tags_used} tags):`, data.prompt);
+                console.log(`[Grok Prompt] Generated prompt (${selectedTags.length} tags):`, data.prompt);
                 console.log(`[Grok Prompt] Generated negative prompt:`, data.negative_prompt);
                 return {
                     prompt: data.prompt,
