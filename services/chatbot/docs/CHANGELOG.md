@@ -191,4 +191,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **Maintained by:** @SkastVnT
-**Repository:** [AI-Assistant/ChatBot](https://github.com/SkastVnT/AI-Assistant/tree/master/ChatBot)
+**Repository:** [AI-Assistant/ChatBot](https://github.com/SkastVnT/AI-Assistant)

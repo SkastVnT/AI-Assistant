@@ -12,11 +12,8 @@ build/
 *.egg
 MANIFEST
 .python-version
-**/__init__.py  # Ignore all __init__.py files
-LICENSE
-SECURITY
-**/*.pyc
-
+*.pyc
+*.pyo
 
 # ============================================
 # VIRTUAL ENVIRONMENT
@@ -30,18 +27,14 @@ venv.bak/
 venv_*/
 **/venv/
 **/venv_*/
-**/venv_*_*/
 lora/
 **/lora/Scripts/
 **/lora/Lib/
 **/lora/Include/
-**/**env
 
-# Service-specific venv folders (non-standard names)
+# Service-specific venv folders
 **/speech/
 **/s2t/
-**/Text2SQL/
-**/Speech2Text/
 !services/speech2text/
 !services/text2sql/
 
@@ -53,8 +46,6 @@ lora/
 !.env.example
 *.key
 *.pem
-LICENSE
-SECURITY
 
 # All .env files in any directory
 **/.env
@@ -78,6 +69,8 @@ SECURITY
 **/config/.env
 !**/config/.env.example
 !**/config/__init__.py
+!**/config/model_config.py
+!**/config/logging_config.py
 
 # Google OAuth & API Credentials
 **/google_oauth_credentials.json
@@ -95,8 +88,6 @@ SECURITY
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
 *.iml
 
 # ============================================
@@ -125,15 +116,12 @@ desktop.ini
 # ============================================
 # BUILD & DEPLOYMENT
 # ============================================
-*.pyc
-*.pyo
-*.class
 node_modules/
+*.class
 
 # ============================================
 # LARGE FILES & MODELS
 # ============================================
-# Model files (large binary files)
 **/*.bin
 **/*.safetensors
 **/*.ckpt
@@ -148,127 +136,103 @@ node_modules/
 !**/config.json
 
 # ============================================
-# SERVICE-SPECIFIC IGNORES
+# CHATBOT SERVICE
 # ============================================
-
-# Document Intelligence Service
-services/document-intelligence/DIS/
-services/document-intelligence/output/*.json
-services/document-intelligence/output/*.txt
-
-# ChatBot
 services/chatbot/Storage/Image_Gen/*.png
 services/chatbot/Storage/Image_Gen/*.jpg
 services/chatbot/Storage/Image_Gen/*.jpeg
 services/chatbot/Storage/Image_Gen/*.json
 services/chatbot/data/memory/*/
-services/chatbot/models/BloomVN-8B-chat/
-services/chatbot/models/Qwen2.5-14B-Instruct/
-services/chatbot/models/Qwen1.5-1.8B-Chat/
+services/chatbot/models/
 
-# Old structure (root level)
-ChatBot/Storage/**/*.json
-ChatBot/Storage/**/*.png
-ChatBot/Storage/**/*.jpg
-ChatBot/data/memory/**/
-ChatBot/models/BloomVN-8B-chat/
-ChatBot/models/Qwen2.5-14B-Instruct/
-ChatBot/models/Qwen1.5-1.8B-Chat/
+# ============================================
+# DOCUMENT INTELLIGENCE SERVICE
+# ============================================
+services/document-intelligence/DIS/
+services/document-intelligence/output/*.json
+services/document-intelligence/output/*.txt
 
-# Speech2Text
+# ============================================
+# SPEECH2TEXT SERVICE
+# ============================================
 services/speech2text/data/audio/**/*.wav
 services/speech2text/data/audio/**/*.mp3
 services/speech2text/results/**/*.txt
 services/speech2text/logs/*.log
 services/speech2text/data/cache/
-services/speech2text/speech/
-services/speech2text/s2t/
-services/speech2text/app/s2t/
-services/speech2text/models/PhoWhisper-large/
+services/speech2text/models/
 
-# Old structure (root level)
-Speech2Text Services/data/audio/**/*.wav
-Speech2Text Services/data/audio/**/*.mp3
-Speech2Text Services/data/results/**/*.txt
-Speech2Text Services/data/results/**/*.wav
-Speech2Text Services/data/models/
-
-# Text2SQL
+# ============================================
+# TEXT2SQL SERVICE
+# ============================================
 services/text2sql/sample/uploaded/*.jsonl
-services/text2sql/speech/
-services/text2sql/Text2SQL/
 
-# Old structure (root level)
-Text2SQL Services/data/connections/**/*.json
-Text2SQL Services/sample/**/*
-Text2SQL Services/uploads/**/*
-
-# Stable Diffusion
-services/stable-diffusion/models/Stable-diffusion/*.safetensors
-services/stable-diffusion/models/Stable-diffusion/*.ckpt
-services/stable-diffusion/models/Lora/*.safetensors
-services/stable-diffusion/models/VAE/*.safetensors
-services/stable-diffusion/models/VAE/*.pt
-services/stable-diffusion/models/ESRGAN/**/*.pth
-services/stable-diffusion/models/GFPGAN/**/*.pth
-services/stable-diffusion/models/Codeformer/**/*.pth
-services/stable-diffusion/models/OrangeMixs/Models/**/*
-services/stable-diffusion/outputs/**/*.png
-services/stable-diffusion/outputs/**/*.jpg
+# ============================================
+# STABLE DIFFUSION SERVICE
+# ============================================
+services/stable-diffusion/models/
+services/stable-diffusion/outputs/
 services/stable-diffusion/log/
 services/stable-diffusion/tmp/
 services/stable-diffusion/cache.json
-
-# Old structure (root level) - as embedded git repo
 stable-diffusion-webui/
 
-# LoRA Training
+# ============================================
+# LORA TRAINING SERVICE
+# ============================================
 services/lora-training/lora/
 services/lora-training/data/train/**/*.png
 services/lora-training/data/train/**/*.jpg
-services/lora-training/output/**/*
-services/lora-training/models/**/*.safetensors
-services/lora-training/models/**/*.ckpt
+services/lora-training/output/
+services/lora-training/models/
 
-# Image Upscale
-services/image-upscale/data/input/**/*.png
-services/image-upscale/data/input/**/*.jpg
-services/image-upscale/data/output/**/*.png
-services/image-upscale/data/output/**/*.jpg
+# ============================================
+# IMAGE UPSCALE SERVICE
+# ============================================
+services/image-upscale/data/input/
+services/image-upscale/data/output/
 services/image-upscale/examples/test_*.png
 
-# Hub Gateway
+# ============================================
+# HUB GATEWAY SERVICE
+# ============================================
 services/hub-gateway/logs/*.log
 services/hub-gateway/cache/
 
 # ============================================
 # RESOURCES FOLDER
 # ============================================
-resources/data/output/**/*.png
-resources/data/output/**/*.jpg
-resources/logs/**/*.log
-resources/models/**/*.bin
-resources/models/**/*.safetensors
-resources/models/**/*.ckpt
-resources/models/**/*.pth
+resources/data/output/
+resources/logs/
+resources/models/
 resources/database/backups/
 resources/templates/temp/
 
 # ============================================
 # COMMON PATTERNS (All Services)
 # ============================================
-**/uploads/**/*
-**/downloads/**/*
+**/uploads/
+**/downloads/
 **/output/**/*.png
 **/output/**/*.jpg
 **/output/**/*.jpeg
 **/logs/**/*.log
-**/cache/**/*
-**/tmp/**/*
-**/temp/**/*
+**/cache/
+**/tmp/
+**/temp/
 **/test_output/
 **/Storage/**/*.png
 **/Storage/**/*.jpg
 
-# Keep folder structure
+# ============================================
+# LOCAL DATA
+# ============================================
+local_data/
+data/connections/
+data/knowledge_base/
+
+# ============================================
+# KEEP FOLDER STRUCTURE
+# ============================================
 !**/.gitkeep
+!**/README.md
