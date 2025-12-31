@@ -3,17 +3,20 @@ Shared Utilities Package
 Common utilities for all AI-Assistant services
 """
 
-from .cache import CacheManager, cache_response
-from .rate_limiter import RateLimiter, rate_limit
-from .connection_pool import ConnectionPool
-from .performance import PerformanceMonitor, timing_decorator
+from .cache import Cache
+from .rate_limiter import RateLimiter
+from .connection_pool import ConnectionPool, PooledConnection
+from .performance import PerformanceMonitor, TimingStats, Timer, timing_decorator, timed, get_monitor
 
 __all__ = [
-    'CacheManager',
-    'cache_response', 
+    'Cache',
     'RateLimiter',
-    'rate_limit',
     'ConnectionPool',
+    'PooledConnection',
     'PerformanceMonitor',
-    'timing_decorator'
+    'TimingStats',
+    'Timer',
+    'timing_decorator',
+    'timed',
+    'get_monitor'
 ]
