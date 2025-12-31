@@ -349,13 +349,38 @@ function setupDownloadButtons(data) {
     
     if (downloadTimeline) {
         downloadTimeline.href = `/download/${data.session_id}/timeline`;
+        downloadTimeline.onclick = function(e) {
+            if (!data.session_id) {
+                e.preventDefault();
+                alert('No session available for download');
+            }
+        };
     }
     if (downloadEnhanced) {
         downloadEnhanced.href = `/download/${data.session_id}/enhanced`;
+        downloadEnhanced.onclick = function(e) {
+            if (!data.session_id) {
+                e.preventDefault();
+                alert('No session available for download');
+            }
+        };
     }
-    if (downloadSegments && data.files.segments) {
-        downloadSegments.href = `/download/${data.session_id}/segments`;
+    if (downloadSegments) {
+        if (data.files && data.files.segments) {
+            downloadSegments.href = `/download/${data.session_id}/segments`;
+            downloadSegments.style.display = 'inline-flex';
+        } else {
+            downloadSegments.style.display = 'none';
+        }
+        downloadSegments.onclick = function(e) {
+            if (!data.session_id || !data.files || !data.files.segments) {
+                e.preventDefault();
+                alert('No segments file available for download');
+            }
+        };
     }
+    
+    console.log('[DOWNLOAD] Buttons configured for session:', data.session_id);
 }
 
 // Show error message

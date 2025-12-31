@@ -192,11 +192,17 @@ def process_audio_with_diarization(audio_path, session_id):
         step_start = time.time()
         emit_progress('diarization', 20, 'Loading diarization model...')
         
+        # Debug: Check token availability
+        hf_token = os.getenv('HF_TOKEN') or os.getenv('HF_API_TOKEN') or os.getenv('HUGGINGFACE_TOKEN')
+        print(f"[DEBUG] HF_TOKEN available: {'YES' if hf_token else 'NO'}")
+        if hf_token:
+            print(f"[DEBUG] Token preview: {hf_token[:20]}...")
+        
         try:
             diarizer = SpeakerDiarizationClient(
                 min_speakers=2,
                 max_speakers=5,
-                hf_token=os.getenv('HF_TOKEN') or os.getenv('HF_API_TOKEN')
+                hf_token=hf_token
             )
             diarizer.load()
             
