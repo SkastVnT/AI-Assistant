@@ -50,7 +50,7 @@ def _load_root_config_module(module_name, file_name):
 
 # Load rate limiter
 _rate_limiter_module = _load_root_config_module('root_rate_limiter', 'rate_limiter.py')
-get_gemini_key_with_rate_limit = _rate_limiter_module.get_gemini_key_with_rate_limit
+# NOTE: Gemini đã bị xóa - chỉ sử dụng GROK
 wait_for_openai_rate_limit = _rate_limiter_module.wait_for_openai_rate_limit
 get_rate_limit_stats = _rate_limiter_module.get_rate_limit_stats
 

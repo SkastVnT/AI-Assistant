@@ -26,6 +26,15 @@ class MCPController {
         this.sidebar = document.getElementById('mcpSidebar');
         this.toggleBtn = document.getElementById('mcpToggleBtn');
         this.isOpen = false; // Start collapsed
+        
+        // Log để debug
+        console.log('MCP UI Elements:', {
+            checkbox: this.checkbox,
+            selectBtn: this.selectBtn,
+            statusSpan: this.statusSpan,
+            sidebar: this.sidebar,
+            toggleBtn: this.toggleBtn
+        });
     }
 
     setupEventListeners() {

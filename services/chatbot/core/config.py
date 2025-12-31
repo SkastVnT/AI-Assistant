@@ -16,10 +16,7 @@ load_dotenv()
 # API Keys
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY_1')
-GEMINI_API_KEY_2 = os.getenv('GEMINI_API_KEY_2')
-GEMINI_API_KEY_3 = os.getenv('GEMINI_API_KEY_3')
-GEMINI_API_KEY_4 = os.getenv('GEMINI_API_KEY_4')
+# NOTE: Gemini đã bị xóa - không còn sử dụng
 QWEN_API_KEY = os.getenv('QWEN_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 GROK_API_KEY = os.getenv('GROK_API_KEY')
