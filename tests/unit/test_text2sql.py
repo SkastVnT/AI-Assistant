@@ -146,20 +146,20 @@ class TestQuestionGeneration:
 class TestGeminiIntegration:
     """Test Gemini AI integration for SQL generation"""
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_gemini_sql_generation(self, mock_model):
+    @patch('google.genai.Client')
+    def test_gemini_sql_generation(self, mock_client):
         """Test SQL generation using Gemini"""
         # Setup mock response
         mock_response = MagicMock()
         mock_response.text = "SELECT * FROM users WHERE age > 25 LIMIT 100;"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_client.return_value.models.generate_content.return_value = mock_response
         
-        # Test
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
+        # Test with new google.genai SDK
+        from google import genai
+        client = genai.Client(api_key='test-key')
         
         prompt = "Generate SQL to get users older than 25"
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
         
         assert "SELECT" in response.text
         assert "users" in response.text
@@ -178,12 +178,12 @@ class TestGeminiIntegration:
         """
         
         # Mock should return something
-        response = mock_gemini_model.generate_content(prompt)
+        response = mock_gemini_model.models.generate_content(model='gemini-2.0-flash', contents=prompt)
         assert response.text is not None
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_gemini_deep_thinking_mode(self, mock_model):
-        """Test Gemini with deep thinking mode"""
+    @patch('google.genai.Client')
+    def test_gemini_deep_thinking_mode(self, mock_client):
+        """Test Gemini with deep thinking mode (new google.genai SDK)"""
         # Setup mock
         mock_response = MagicMock()
         mock_response.text = """
@@ -197,12 +197,12 @@ class TestGeminiIntegration:
         GROUP BY u.id, u.name
         LIMIT 100;
         """
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_client.return_value.models.generate_content.return_value = mock_response
         
-        # Test
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content("Generate query with thinking")
+        # Test with new SDK
+        from google import genai
+        client = genai.Client(api_key='test-key')
+        response = client.models.generate_content(model='gemini-2.0-flash', contents="Generate query with thinking")
         
         assert "Step" in response.text
         assert "SELECT" in response.text

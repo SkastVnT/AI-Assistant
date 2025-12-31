@@ -453,31 +453,31 @@ class TestRedisIntegration:
 class TestGeminiAssistant:
     """Test Gemini AI assistant for prompts"""
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_prompt_enhancement(self, mock_model):
-        """Test enhancing prompts with Gemini"""
+    @patch('google.genai.Client')
+    def test_prompt_enhancement(self, mock_client):
+        """Test enhancing prompts with Gemini (new google.genai SDK)"""
         mock_response = MagicMock()
         mock_response.text = "masterpiece, best quality, 1girl, beautiful face, detailed eyes, long flowing hair"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_client.return_value.models.generate_content.return_value = mock_response
         
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
+        from google import genai
+        client = genai.Client(api_key='test-key')
         
         simple_prompt = "a girl"
-        enhanced = model.generate_content(f"Enhance this prompt: {simple_prompt}")
+        enhanced = client.models.generate_content(model='gemini-2.0-flash', contents=f"Enhance this prompt: {simple_prompt}")
         
         assert len(enhanced.text) > len(simple_prompt)
         assert 'masterpiece' in enhanced.text
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_nsfw_content_detection(self, mock_model):
+    @patch('google.genai.Client')
+    def test_nsfw_content_detection(self, mock_client):
         """Test NSFW content detection"""
         mock_response = MagicMock()
         mock_response.text = "SAFE"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_client.return_value.models.generate_content.return_value = mock_response
         
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
+        from google import genai
+        client = genai.Client(api_key='test-key')
         
-        result = model.generate_content("Check if this content is safe")
+        result = client.models.generate_content(model='gemini-2.0-flash', contents="Check if this content is safe")
         assert result.text == "SAFE"

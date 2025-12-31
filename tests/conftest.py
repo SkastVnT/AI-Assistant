@@ -161,14 +161,14 @@ def text2sql_client(text2sql_app):
 
 @pytest.fixture
 def mock_gemini_model():
-    """Mock Google Gemini API"""
-    mock_model = MagicMock()
+    """Mock Google Gemini API (new google.genai SDK)"""
+    mock_client = MagicMock()
     mock_response = MagicMock()
     mock_response.text = "This is a mocked Gemini response"
-    mock_model.generate_content.return_value = mock_response
+    mock_client.models.generate_content.return_value = mock_response
     
-    with patch('google.generativeai.GenerativeModel', return_value=mock_model):
-        yield mock_model
+    with patch('google.genai.Client', return_value=mock_client):
+        yield mock_client
 
 
 @pytest.fixture

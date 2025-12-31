@@ -9,15 +9,15 @@ from unittest.mock import Mock, patch, MagicMock
 class TestChatAPIIntegration:
     """Integration tests for chat API"""
     
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_chat_gemini_integration(self, mock_gemini, client):
         """Test chat with Gemini model (mocked)"""
         # Mock Gemini response
-        mock_model = MagicMock()
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Hello! How can I help you?"
-        mock_model.generate_content.return_value = mock_response
-        mock_gemini.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_gemini.return_value = mock_client
         
         response = client.post('/chat',
                               json={
@@ -166,15 +166,15 @@ class TestMemoryIntegration:
 class TestConversationFlow:
     """Integration tests for full conversation flows"""
     
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_multi_turn_conversation(self, mock_gemini, client):
         """Test multi-turn conversation"""
         # Mock Gemini
-        mock_model = MagicMock()
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Response"
-        mock_model.generate_content.return_value = mock_response
-        mock_gemini.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_gemini.return_value = mock_client
         
         session_id = 'test_session_' + str(int(time.time()))
         
