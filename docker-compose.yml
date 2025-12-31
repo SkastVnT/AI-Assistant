@@ -90,6 +90,7 @@ services:
       - ./services/chatbot/.env
     environment:
       - FLASK_ENV=production
+      - ENVIRONMENT=production
       - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-ai_assistant_2025}@mongodb:27017/ai_assistant?authSource=admin
       - REDIS_URL=redis://:${REDIS_PASSWORD:-ai_redis_2025}@redis:6379
     volumes:
@@ -104,6 +105,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   text2sql:
     build:

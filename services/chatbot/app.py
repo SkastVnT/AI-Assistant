@@ -5,6 +5,60 @@ Sử dụng Gemini, DeepSeek, OpenAI, Qwen, BloomVN và Local Models
 
 import os
 import sys
+from pathlib import Path
+
+# Add chatbot directory to path for local src imports - MUST BE BEFORE OTHER IMPORTS
+CHATBOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = CHATBOT_DIR.parent.parent
+
+# Add chatbot dir first for local src imports  
+sys.path.insert(0, str(CHATBOT_DIR))
+os.chdir(CHATBOT_DIR)  # Ensure working directory is correct
+
+# Import root config modules using importlib to avoid conflict with local config/
+import importlib.util as _importlib_util
+
+def _load_root_config_module(module_name, file_name):
+    """Load a module from root config directory"""
+    root_path = str(ROOT_DIR)
+    chatbot_path = str(CHATBOT_DIR)
+    
+    # Save original sys.path state
+    original_path_0 = sys.path[0] if sys.path else None
+    
+    # Temporarily put root path at position 0 for the module's internal imports
+    if root_path in sys.path:
+        sys.path.remove(root_path)
+    sys.path.insert(0, root_path)
+    
+    try:
+        module_path = ROOT_DIR / 'config' / file_name
+        spec = _importlib_util.spec_from_file_location(module_name, module_path)
+        module = _importlib_util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        # Restore chatbot path at position 0
+        if root_path in sys.path:
+            sys.path.remove(root_path)
+        if chatbot_path in sys.path:
+            sys.path.remove(chatbot_path)
+        sys.path.insert(0, chatbot_path)
+        # Keep root path in path but not at position 0
+        if root_path not in sys.path:
+            sys.path.insert(1, root_path)
+
+_rate_limiter_module = _load_root_config_module('root_rate_limiter', 'rate_limiter.py')
+get_gemini_key_with_rate_limit = _rate_limiter_module.get_gemini_key_with_rate_limit
+wait_for_openai_rate_limit = _rate_limiter_module.wait_for_openai_rate_limit
+get_rate_limit_stats = _rate_limiter_module.get_rate_limit_stats
+
+_response_cache_module = _load_root_config_module('root_response_cache', 'response_cache.py')
+get_cached_response = _response_cache_module.get_cached_response
+cache_response = _response_cache_module.cache_response
+get_all_cache_stats = _response_cache_module.get_all_cache_stats
+
+# Now import other modules
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, send_file, send_from_directory
 import openai
@@ -17,13 +71,8 @@ from PIL import Image
 import requests
 import logging
 import json
-from pathlib import Path
 import shutil
-
-# Import rate limiter and cache from root config
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config.rate_limiter import get_gemini_key_with_rate_limit, wait_for_openai_rate_limit, get_rate_limit_stats
-from config.response_cache import get_cached_response, cache_response, get_all_cache_stats
+# Note: rate_limiter and response_cache are loaded above using importlib
 
 # MongoDB imports - import directly from files to avoid package conflict
 from bson import ObjectId
@@ -132,8 +181,9 @@ app = Flask(__name__,
             static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 
-# ðŸ†• Register Monitor Dashboard
-from config.monitor import register_monitor
+# Register Monitor Dashboard from root config
+_monitor_module = _load_root_config_module('root_monitor', 'monitor.py')
+register_monitor = _monitor_module.register_monitor
 register_monitor(app)
 
 # Initialize MongoDB connection
@@ -1130,7 +1180,7 @@ def chat():
             return jsonify({'error': 'Tin nhắn trống'}), 400
         
         # ===== MCP INTEGRATION: Inject code context =====
-        if mcp_client.enabled:
+        if MCP_AVAILABLE and mcp_client and mcp_client.enabled:
             logger.info(f"[MCP] Injecting code context (selected files: {len(mcp_selected_files)})")
             message = inject_code_context(message, mcp_client, mcp_selected_files)
         # ================================================
@@ -1526,15 +1576,26 @@ def create_new_conversation():
 def sd_health():
     """Kiểm tra xem Stable Diffusion API có đang chạy không"""
     try:
+        print("\n[SD Health Check] Starting health check...", flush=True)
+        logger.info("[SD Health Check] Starting health check...")
         from src.utils.sd_client import get_sd_client
         
         sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
+        print(f"[SD Health Check] URL: {sd_api_url}", flush=True)
+        logger.info(f"[SD Health Check] URL: {sd_api_url}")
+        
         sd_client = get_sd_client(sd_api_url)
+        print("[SD Health Check] SD client created", flush=True)
+        logger.info("[SD Health Check] SD client created")
         
         is_running = sd_client.check_health()
+        print(f"[SD Health Check] is_running: {is_running}", flush=True)
+        logger.info(f"[SD Health Check] is_running: {is_running}")
         
         if is_running:
             current_model = sd_client.get_current_model()
+            print(f"[SD Health Check] Current model: {current_model}", flush=True)
+            logger.info(f"[SD Health Check] Current model: {current_model}")
             response = jsonify({
                 'status': 'online',
                 'api_url': sd_api_url,
@@ -1555,12 +1616,15 @@ def sd_health():
             return response, 503
             
     except Exception as e:
+        print(f"\n[SD Health Check] ERROR: {e}", flush=True)
         logger.error(f"[SD Health Check] Error: {e}")
         import traceback
+        print(f"[SD Health Check] Traceback:\n{traceback.format_exc()}", flush=True)
+        logger.error(f"[SD Health Check] Traceback: {traceback.format_exc()}")
         traceback.print_exc()
         response = jsonify({
             'status': 'error',
-            'message': 'ÄÃ£ xáº£y ra lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i Stable Diffusion.'
+            'message': 'Error checking Stable Diffusion status'
         })
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         return response, 500
@@ -3479,14 +3543,40 @@ def delete_image(filename):
 # MCP INTEGRATION ROUTES
 # ============================================================================
 
-from src.utils.mcp_integration import get_mcp_client, inject_code_context
+# Try to import MCP integration (optional module)
+MCP_AVAILABLE = False
+mcp_client = None
 
-# Global MCP client
-mcp_client = get_mcp_client()
+try:
+    from src.utils.mcp_integration import get_mcp_client, inject_code_context
+    mcp_client = get_mcp_client()
+    MCP_AVAILABLE = True
+    logger.info("✅ MCP integration loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ MCP integration not available: {e}")
+    logger.info("💡 MCP features disabled - ChatBot will work without them")
+    
+    # Create a dummy inject_code_context function
+    def inject_code_context(message, context_data):
+        return message
+
+
+def _check_mcp_available():
+    """Check if MCP is available and return error response if not"""
+    if not MCP_AVAILABLE or mcp_client is None:
+        return jsonify({
+            'success': False,
+            'error': 'MCP integration is not available. Module not installed.'
+        }), 503
+    return None
+
 
 @app.route('/api/mcp/enable', methods=['POST'])
 def mcp_enable():
     """Enable MCP integration"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         success = mcp_client.enable()
         return jsonify({
@@ -3504,6 +3594,9 @@ def mcp_enable():
 @app.route('/api/mcp/disable', methods=['POST'])
 def mcp_disable():
     """Disable MCP integration"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         mcp_client.disable()
         return jsonify({
@@ -3521,6 +3614,9 @@ def mcp_disable():
 @app.route('/api/mcp/add-folder', methods=['POST'])
 def mcp_add_folder():
     """Add folder to MCP access list"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         data = request.get_json()
         folder_path = data.get('folder_path')
@@ -3548,6 +3644,9 @@ def mcp_add_folder():
 @app.route('/api/mcp/remove-folder', methods=['POST'])
 def mcp_remove_folder():
     """Remove folder from MCP access list"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         data = request.get_json()
         folder_path = data.get('folder_path')
@@ -3575,6 +3674,9 @@ def mcp_remove_folder():
 @app.route('/api/mcp/list-files', methods=['GET'])
 def mcp_list_files():
     """List files in selected folders"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         folder_path = request.args.get('folder')
         files = mcp_client.list_files_in_folder(folder_path)
@@ -3595,6 +3697,9 @@ def mcp_list_files():
 @app.route('/api/mcp/search-files', methods=['GET'])
 def mcp_search_files():
     """Search files in selected folders"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         query = request.args.get('query', '')
         file_type = request.args.get('type', 'all')
@@ -3617,6 +3722,9 @@ def mcp_search_files():
 @app.route('/api/mcp/read-file', methods=['GET'])
 def mcp_read_file():
     """Read file content"""
+    check = _check_mcp_available()
+    if check:
+        return check
     try:
         file_path = request.args.get('path')
         max_lines = int(request.args.get('max_lines', 500))
@@ -3651,6 +3759,15 @@ def mcp_read_file():
 def mcp_status():
     """Get MCP client status"""
     try:
+        if not MCP_AVAILABLE or mcp_client is None:
+            return jsonify({
+                'success': True,
+                'status': {
+                    'available': False,
+                    'enabled': False,
+                    'message': 'MCP integration module not installed'
+                }
+            })
         return jsonify({
             'success': True,
             'status': mcp_client.get_status()

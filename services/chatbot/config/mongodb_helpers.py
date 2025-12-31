@@ -12,10 +12,16 @@ Usage:
     msg = MessageDB.add_message(conv["_id"], "user", "Hello AI!")
 """
 
+import logging
+import sys
+import importlib.util
+from pathlib import Path
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import DESCENDING, ASCENDING
+
+logger = logging.getLogger(__name__)
 
 # Import get_db - will be injected from parent
 # This allows importlib to load this module without package context
@@ -23,13 +29,28 @@ try:
     from .mongodb_config import get_db
 except ImportError:
     # Fallback for importlib loading
-    import importlib.util
-    from pathlib import Path
     mongodb_config_path = Path(__file__).parent / 'mongodb_config.py'
     spec = importlib.util.spec_from_file_location("_mongodb_config", mongodb_config_path)
     _mongodb_config = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(_mongodb_config)
     get_db = _mongodb_config.get_db
+
+# Try to import caching layer
+try:
+    _chatbot_dir = str(Path(__file__).parent.parent)
+    if _chatbot_dir not in sys.path:
+        sys.path.insert(0, _chatbot_dir)
+    from database.cache.chatbot_cache import ChatbotCache
+    CACHE_AVAILABLE = True
+    logger.info("Cache layer loaded successfully")
+except ImportError as e:
+    CACHE_AVAILABLE = False
+    ChatbotCache = None
+    logger.warning(f"Cache layer not available: {e}")
+except Exception as e:
+    CACHE_AVAILABLE = False
+    ChatbotCache = None
+    logger.warning(f"Cache layer error: {e}")
 
 
 # ============================================================================
@@ -68,17 +89,34 @@ class ConversationDB:
         
         result = db.conversations.insert_one(conversation)
         conversation["_id"] = result.inserted_id
+        
+        # Invalidate user conversation list cache
+        if CACHE_AVAILABLE:
+            ChatbotCache.invalidate_user_conversations(user_id)
+        
         return conversation
     
     @staticmethod
     def get_conversation(conversation_id: str) -> Optional[Dict]:
         """Get conversation by ID"""
+        # Try cache first
+        if CACHE_AVAILABLE:
+            cached = ChatbotCache.get_conversation(str(conversation_id))
+            if cached:
+                return cached
+        
         db = get_db()
         
         if db is None or db.conversations is None:
             return None
         
-        return db.conversations.find_one({"_id": ObjectId(conversation_id)})
+        result = db.conversations.find_one({"_id": ObjectId(conversation_id)})
+        
+        # Cache the result
+        if result and CACHE_AVAILABLE:
+            ChatbotCache.set_conversation(str(conversation_id), result)
+        
+        return result
     
     @staticmethod
     def get_user_conversations(
@@ -87,6 +125,12 @@ class ConversationDB:
         limit: int = 20
     ) -> List[Dict]:
         """Get all conversations for a user"""
+        # Try cache first (only for default parameters)
+        if CACHE_AVAILABLE and not include_archived and limit <= 50:
+            cached = ChatbotCache.get_user_conversations(user_id)
+            if cached:
+                return cached[:limit]
+        
         db = get_db()
         
         query = {"user_id": user_id}
@@ -97,7 +141,13 @@ class ConversationDB:
             "updated_at", DESCENDING
         ).limit(limit)
         
-        return list(conversations)
+        result = list(conversations)
+        
+        # Cache the result
+        if CACHE_AVAILABLE and not include_archived:
+            ChatbotCache.set_user_conversations(user_id, result)
+        
+        return result
     
     @staticmethod
     def update_conversation(
@@ -112,6 +162,10 @@ class ConversationDB:
             {"_id": ObjectId(conversation_id)},
             {"$set": update_data}
         )
+        
+        # Invalidate cache
+        if CACHE_AVAILABLE:
+            ChatbotCache.invalidate_conversation(str(conversation_id))
         
         return result.modified_count > 0
     
@@ -149,11 +203,22 @@ class ConversationDB:
         """Delete conversation and all its messages"""
         db = get_db()
         
+        # Get conversation first to get user_id for cache invalidation
+        conv = db.conversations.find_one({"_id": ObjectId(conversation_id)})
+        user_id = conv.get("user_id") if conv else None
+        
         # Delete all messages first
         db.messages.delete_many({"conversation_id": ObjectId(conversation_id)})
         
         # Delete conversation
         result = db.conversations.delete_one({"_id": ObjectId(conversation_id)})
+        
+        # Invalidate cache
+        if CACHE_AVAILABLE:
+            ChatbotCache.invalidate_conversation(str(conversation_id))
+            ChatbotCache.invalidate_messages(str(conversation_id))
+            if user_id:
+                ChatbotCache.invalidate_user_conversations(user_id)
         
         return result.deleted_count > 0
     
@@ -236,6 +301,10 @@ class MessageDB:
         tokens = metadata.get("tokens", 0) if metadata else 0
         ConversationDB.increment_message_count(conversation_id, tokens)
         
+        # Invalidate message cache for this conversation
+        if CACHE_AVAILABLE:
+            ChatbotCache.invalidate_messages(str(conversation_id))
+        
         return message
     
     @staticmethod
@@ -250,6 +319,12 @@ class MessageDB:
         limit: Optional[int] = None
     ) -> List[Dict]:
         """Get all messages in a conversation"""
+        # Try cache first (only for reasonable limits)
+        if CACHE_AVAILABLE and (limit is None or limit >= 50):
+            cached = ChatbotCache.get_messages(str(conversation_id))
+            if cached:
+                return cached[:limit] if limit else cached
+        
         db = get_db()
         
         query = db.messages.find(
@@ -259,7 +334,13 @@ class MessageDB:
         if limit:
             query = query.limit(limit)
         
-        return list(query)
+        result = list(query)
+        
+        # Cache the result
+        if CACHE_AVAILABLE and (limit is None or limit >= 50):
+            ChatbotCache.set_messages(str(conversation_id), result)
+        
+        return result
     
     @staticmethod
     def update_message(
