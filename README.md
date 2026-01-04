@@ -49,7 +49,7 @@ docker-compose up -d
 
 | Service | Description | Port | Status |
 |---------|-------------|------|--------|
-| 🤖 **ChatBot** | Multi-model AI Chat (Gemini, GPT-4, DeepSeek) + MongoDB | `5001` | ✅ Production |
+| 🤖 **ChatBot** | Multi-model AI Chat (GROK, GPT-4, DeepSeek) + MongoDB | `5001` | ✅ Production |
 | 📊 **Text2SQL** | Natural Language → SQL Query | `5002` | ✅ Production |
 | 📄 **Document Intelligence** | OCR + AI Document Analysis | `5003` | ✅ Production |
 | 🎙️ **Speech2Text** | Vietnamese Transcription + Speaker Diarization | `7860` | ✅ Production |
@@ -69,7 +69,7 @@ docker-compose up -d
 - ✅ **Redis**: Caching với TTL và compression
 - ✅ **Health Checks**: `/health`, `/health/live`, `/health/ready`, `/health/detailed`
 - ✅ **Metrics**: Prometheus-compatible metrics
-- ✅ **Multi-Model**: Gemini 2.0, GPT-4, DeepSeek, GROK
+- ✅ **Multi-Model**: GROK, GPT-4, DeepSeek, Qwen
 - ✅ **Streaming**: Real-time token-by-token output
 - ✅ **Code Execution**: Secure Python/JS sandbox
 
@@ -178,7 +178,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 
 # AI APIs
-GEMINI_API_KEY=your_key
+GROK_API_KEY=your_key
 OPENAI_API_KEY=your_key
 ```
 

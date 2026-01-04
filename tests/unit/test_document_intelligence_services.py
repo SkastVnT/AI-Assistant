@@ -95,47 +95,47 @@ class TestOCRProcessor:
             assert option in preprocessing_options
 
 
-class TestGeminiAnalyzer:
-    """Tests for Gemini-based document analysis."""
+class TestGrokAnalyzer:
+    """Tests for GROK-based document analysis."""
     
-    @patch('google.genai.Client')
+    @patch('openai.OpenAI')
     def test_analyze_document(self, mock_client_class):
-        """Test document analysis with Gemini."""
+        """Test document analysis with GROK."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = "Document contains: Invoice for services"
-        mock_client.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="Document contains: Invoice for services"))]
+        mock_client.chat.completions.create.return_value = mock_response
         mock_client_class.return_value = mock_client
         
         # Simulate analyzer behavior
         document_text = "Invoice #12345 - Amount: $500"
         
         # Analyzer should process document and return structured output
-        result = mock_response.text
+        result = mock_response.choices[0].message.content
         assert "Invoice" in result
     
-    @patch('google.genai.Client')
+    @patch('openai.OpenAI')
     def test_extract_entities(self, mock_client_class):
         """Test entity extraction from documents."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = '{"entities": ["date: 2024-01-01", "amount: $500"]}'
-        mock_client.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"entities": ["date: 2024-01-01", "amount: $500"]}'))]
+        mock_client.chat.completions.create.return_value = mock_response
         mock_client_class.return_value = mock_client
         
-        result = mock_response.text
+        result = mock_response.choices[0].message.content
         assert "entities" in result
     
-    @patch('google.genai.Client')
+    @patch('openai.OpenAI')
     def test_summarize_document(self, mock_client_class):
         """Test document summarization."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = "This document is an invoice for consulting services."
-        mock_client.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="This document is an invoice for consulting services."))]
+        mock_client.chat.completions.create.return_value = mock_response
         mock_client_class.return_value = mock_client
         
-        result = mock_response.text
+        result = mock_response.choices[0].message.content
         assert len(result) > 10
 
 

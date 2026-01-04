@@ -9,7 +9,7 @@ Script setup đã được nâng cấp với trí tuệ nhân tạo để:
 - ✅ **Phát hiện thư viện thiếu** - AI xác định chính xác package nào cần cài
 - ✅ **Chẩn đoán lỗi thông minh** - Phân biệt lỗi do thiếu thư viện vs lỗi code
 - ✅ **Tự động sửa lỗi** - Auto-install missing packages và fix version conflicts
-- ✅ **Fallback thông minh** - Gemini 2.0 Flash → Grok nếu hết quota
+- ✅ **Fallback thông minh** - Sử dụng GROK-3 (FREE) làm model mặc định
 
 ## 📋 Yêu Cầu Hệ Thống
 
@@ -21,15 +21,14 @@ Script setup đã được nâng cấp với trí tuệ nhân tạo để:
 Tạo file `.env` ở thư mục root:
 
 ```env
-# Gemini API (Ưu tiên)
-GOOGLE_API_KEY=your_gemini_api_key
-# hoặc
-GEMINI_API_KEY=your_gemini_api_key
+# GROK API (FREE - Mặc định)
+GROK_API_KEY=xai-your_grok_api_key
 
-# Grok API (Fallback nếu Gemini hết quota)
-XAI_API_KEY=your_grok_api_key
-# hoặc
-GROK_API_KEY=your_grok_api_key
+# OpenAI API (Tùy chọn)
+OPENAI_API_KEY=sk-your_openai_api_key
+
+# DeepSeek API (Tùy chọn)
+DEEPSEEK_API_KEY=sk-your_deepseek_api_key
 ```
 
 **Lưu ý**: Nếu không có API key, script vẫn chạy với basic dependency check.
@@ -145,7 +144,7 @@ Output:
 ### LoRA Training (Port 7862)
 - Python: 3.11.x recommended
 - Venv: `lora`
-- New: Gemini 2.0 Flash integration
+- New: GROK-3 integration
 
 ### Text2SQL (Port 5002)
 - Python: 3.11.x recommended
@@ -179,10 +178,10 @@ Output:
 **Giải pháp**:
 ```bash
 # Cài packages
-pip install google-generativeai openai python-dotenv
+pip install openai python-dotenv
 
 # Thêm API key vào .env
-echo GOOGLE_API_KEY=your_key >> .env
+echo GROK_API_KEY=xai-your_key >> .env
 ```
 
 ### Service Vẫn Lỗi Sau Auto-Fix
@@ -222,8 +221,7 @@ pip install torch==2.0.1 --force-reinstall
 
 ### v2.4 (2025-12-17)
 - ✅ Added AI-powered health checker
-- ✅ Gemini 2.0 Flash integration
-- ✅ Grok fallback support
+- ✅ GROK-3 integration as default model
 - ✅ Auto-fix for missing dependencies
 - ✅ Smart error diagnosis
 - ✅ Updated Python recommendation to 3.11.x

@@ -27,7 +27,7 @@ def setup_test_environment():
     os.environ["FLASK_ENV"] = "testing"
     
     # Mock API keys to avoid leaking real credentials
-    os.environ["GEMINI_API_KEY"] = "test-gemini-key-12345"
+    os.environ["GROK_API_KEY"] = "test-grok-key-12345"
     os.environ["OPENAI_API_KEY"] = "test-openai-key-12345"
     os.environ["GROQ_API_KEY"] = "test-groq-key-12345"
     os.environ["DEEPSEEK_API_KEY"] = "test-deepseek-key-12345"
@@ -160,14 +160,14 @@ def text2sql_client(text2sql_app):
 # ============================================================================
 
 @pytest.fixture
-def mock_gemini_model():
-    """Mock Google Gemini API (new google.genai SDK)"""
+def mock_grok_model():
+    """Mock GROK API"""
     mock_client = MagicMock()
     mock_response = MagicMock()
-    mock_response.text = "This is a mocked Gemini response"
-    mock_client.models.generate_content.return_value = mock_response
+    mock_response.choices = [MagicMock(message=MagicMock(content="This is a mocked GROK response"))]
+    mock_client.chat.completions.create.return_value = mock_response
     
-    with patch('google.genai.Client', return_value=mock_client):
+    with patch('openai.OpenAI', return_value=mock_client):
         yield mock_client
 
 

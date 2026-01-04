@@ -415,13 +415,12 @@ function prettySource(src) {
   if (!src) return "Không rõ";
   const s = src.toLowerCase();
   if (s === "sqlcoder") return "SQLCoder-7B-2";
-  if (s === "gemini") return "Gemini";
-  if (s === "sqlcoder+gemini") return "SQLCoder-7B-2 → Gemini (refine)";
+  if (s === "grok") return "Grok-3";
+  if (s === "openai") return "GPT-4o-mini";
+  if (s === "deepseek") return "DeepSeek";
   if (s === "refined") return "Refine";
   if (s === "dataset") return "Dataset";
-  if (s === "refined_gemini") return "Gemini (Refine)";
   if (s === "refined_sqlcoder") return "SQLCoder-7B-2 (Refine)";
-  if (s === "refined_sqlcoder+gemini") return "SQLCoder-7B-2 → Gemini (Refine)";
   return src;
 }
 

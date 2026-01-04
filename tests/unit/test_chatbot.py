@@ -62,10 +62,13 @@ class TestChatBotConversation:
 class TestAIModelIntegration:
     """Test AI model integration with mocks"""
     
-    def test_gemini_model_mock(self, mock_gemini_model):
-        """Test Gemini model mock works (new google.genai SDK)"""
-        response = mock_gemini_model.models.generate_content(model='gemini-2.0-flash', contents="Test prompt")
-        assert response.text == "This is a mocked Gemini response"
+    def test_grok_model_mock(self, mock_grok_model):
+        """Test GROK model mock works"""
+        response = mock_grok_model.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Test prompt"}]
+        )
+        assert response.choices[0].message.content == "This is a mocked GROK response"
     
     def test_openai_client_mock(self, mock_openai_client):
         """Test OpenAI client mock works"""
@@ -75,20 +78,23 @@ class TestAIModelIntegration:
         )
         assert response.choices[0].message.content is not None
     
-    @patch('google.genai.Client')
-    def test_gemini_generate_content(self, mock_client):
-        """Test Gemini content generation (new google.genai SDK)"""
+    @patch('openai.OpenAI')
+    def test_grok_generate_content(self, mock_client):
+        """Test GROK content generation"""
         # Setup mock
         mock_response = MagicMock()
-        mock_response.text = "AI generated response"
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="AI generated response"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        # Import and test with new SDK
-        from google import genai
-        client = genai.Client(api_key='test-key')
-        response = client.models.generate_content(model='gemini-2.0-flash', contents="Test prompt")
+        # Test with GROK API (OpenAI compatible)
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
+        response = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Test prompt"}]
+        )
         
-        assert response.text == "AI generated response"
+        assert response.choices[0].message.content == "AI generated response"
     
     @patch('openai.OpenAI')
     def test_openai_chat_completion(self, mock_client):

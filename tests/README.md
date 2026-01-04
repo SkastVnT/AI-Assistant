@@ -19,11 +19,11 @@ This test suite provides comprehensive coverage for:
 
 ### Core Services
 - ✅ **Hub Gateway** - Main coordinator service
-- ✅ **ChatBot Service** - AI chatbot with multi-model support (Gemini, OpenAI)
+- ✅ **ChatBot Service** - AI chatbot with multi-model support (GROK, OpenAI)
 - ✅ **Text2SQL Service** - Natural language to SQL conversion
 
 ### Additional Services
-- ✅ **Document Intelligence** - OCR and document analysis (PaddleOCR + Gemini)
+- ✅ **Document Intelligence** - OCR and document analysis (PaddleOCR + GROK)
 - ✅ **Speech2Text** - Audio transcription and speaker diarization
 - ✅ **LoRA Training Tool** - Fine-tuning diffusion models with LoRA
 - ✅ **Image Upscale Tool** - AI-powered upscaling (Real-ESRGAN, SwinIR, ScuNET)
@@ -37,7 +37,7 @@ This test suite provides comprehensive coverage for:
 **Total Test Cases: 330+**
 
 **Key Features:**
-- 🎭 **Mock Testing**: All external APIs (Gemini, OpenAI, MongoDB, Whisper, etc.) are mocked
+- 🎭 **Mock Testing**: All external APIs (GROK, OpenAI, MongoDB, Whisper, etc.) are mocked
 - 📊 **Coverage Reports**: HTML and terminal coverage reporting (85%+ target)
 - 🚀 **Fast Execution**: Unit tests run in seconds
 - 🔄 **CI/CD Ready**: Configured for continuous integration
@@ -67,7 +67,7 @@ tests/
 │   └── sample_data.py       # Sample conversations, schemas, etc.
 │
 └── mocks/                   # Mock objects for external services
-    └── __init__.py          # Gemini, OpenAI, MongoDB, Whisper mocks
+    └── __init__.py          # GROK, OpenAI, MongoDB, Whisper mocks
 ```
 
 ## 🛠️ Installation
@@ -241,7 +241,7 @@ All external services are **mocked** - no real API calls are made during testing
 
 ### What's Mocked?
 
-✅ **Google Gemini API** - AI model responses  
+✅ **GROK API** - AI model responses  
 ✅ **OpenAI API** - GPT model responses  
 ✅ **MongoDB** - Database operations  
 ✅ **Stable Diffusion** - Image generation  
@@ -253,10 +253,13 @@ All external services are **mocked** - no real API calls are made during testing
 ```python
 import pytest
 
-def test_with_gemini_mock(mock_gemini_model):
-    """Example using Gemini mock"""
-    response = mock_gemini_model.generate_content("Test prompt")
-    assert response.text == "This is a mocked Gemini response"
+def test_with_grok_mock(mock_grok_model):
+    """Example using GROK mock"""
+    response = mock_grok_model.chat.completions.create(
+        model='grok-3',
+        messages=[{"role": "user", "content": "Test prompt"}]
+    )
+    assert response.choices[0].message.content == "This is a mocked GROK response"
 
 def test_with_mongodb_mock(mock_mongodb):
     """Example using MongoDB mock"""
@@ -279,7 +282,7 @@ def test_with_http_mock(mock_post):
 ### Available Mock Fixtures
 
 From `conftest.py`:
-- `mock_gemini_model` - Google Gemini AI
+- `mock_grok_model` - GROK AI
 - `mock_openai_client` - OpenAI GPT
 - `mock_mongodb` - MongoDB client
 - `mock_requests` - HTTP requests (get/post)
@@ -287,7 +290,7 @@ From `conftest.py`:
 - `mock_database` - Database manager
 
 From `tests/mocks/__init__.py`:
-- `MockGeminiModel`
+- `MockGrokModel`
 - `MockOpenAIClient`
 - `MockMongoDBClient`
 - `MockStableDiffusionAPI`
@@ -356,7 +359,7 @@ def test_service_workflow(hub_client):
 ### 2. Use Fixtures
 
 ```python
-def test_with_fixtures(hub_client, sample_data, mock_gemini):
+def test_with_fixtures(hub_client, sample_data, mock_grok):
     # Fixtures are automatically injected
     response = hub_client.post('/api/chat', json=sample_data)
     assert response.status_code == 200
@@ -429,7 +432,7 @@ Once tests pass with mocks, configure real APIs:
 
 ```bash
 # Create .env file with real credentials
-GEMINI_API_KEY=your_real_gemini_key
+GROK_API_KEY=your_real_grok_key
 OPENAI_API_KEY=your_real_openai_key
 MONGODB_URI=your_real_mongodb_connection
 ```

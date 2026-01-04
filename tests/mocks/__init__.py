@@ -7,10 +7,10 @@ from unittest.mock import Mock, MagicMock
 from datetime import datetime
 
 
-class MockGeminiModel:
-    """Mock Google Gemini AI Model"""
+class MockGrokModel:
+    """Mock GROK AI Model"""
     
-    def __init__(self, response_text="Mocked Gemini response"):
+    def __init__(self, response_text="Mocked GROK response"):
         self.response_text = response_text
         self.call_count = 0
     

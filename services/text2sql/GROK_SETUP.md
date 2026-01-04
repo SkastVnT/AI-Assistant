@@ -27,7 +27,7 @@ python app_simple.py
 You should see:
 ```
 🤖 Default Model: GROK-3 (xAI - FREE)
-🔄 Available Models: grok, gemini, openai, deepseek
+🔄 Available Models: grok, openai, deepseek
 ```
 
 ## 🚀 Usage
@@ -48,24 +48,22 @@ Specify the model explicitly:
 ```json
 {
   "message": "Show all users",
-  "model": "gemini",
+  "model": "openai",
   "db_type": "clickhouse"
 }
 ```
 
 Available models:
 - `grok` (default) - FREE, no quota limits
-- `gemini` - FREE but has quota limits
 - `openai` - Requires OpenAI API key
 - `deepseek` - Requires DeepSeek API key
 
 ## ✨ Why GROK?
 
 1. **FREE Tier** - No cost for usage
-2. **No Quota Limits** - Unlike Gemini which frequently hits quota
+2. **No Quota Limits** - Reliable for production use
 3. **Better SQL Generation** - More accurate SQL queries
 4. **Fast Response** - Quick generation times
-5. **NSFW Support** - Can handle sensitive queries if needed
 
 ## 🔍 Health Check
 
@@ -82,7 +80,6 @@ Response:
   "service": "Text2SQL",
   "api_configured": {
     "grok": true,
-    "gemini": true,
     "openai": false,
     "deepseek": true
   },
@@ -94,7 +91,7 @@ Response:
 ## 📝 Notes
 
 - If GROK API key is not configured, the service will fall back to other available models
-- You can still use Gemini, OpenAI, or DeepSeek by specifying the model parameter
+- You can still use OpenAI or DeepSeek by specifying the model parameter
 - GROK API is provided by xAI (Elon Musk's AI company)
 - The FREE tier is generous and suitable for most use cases
 
@@ -105,6 +102,3 @@ Make sure you've added `GROK_API_KEY` to your `.env` file.
 
 ### Service not starting
 Check if the `.env` file is in the root directory, not in `services/text2sql/`.
-
-### Still using Gemini
-Verify that you're not explicitly specifying `"model": "gemini"` in your requests.

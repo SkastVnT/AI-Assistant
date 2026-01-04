@@ -450,34 +450,41 @@ class TestRedisIntegration:
 
 
 @pytest.mark.unit
-class TestGeminiAssistant:
-    """Test Gemini AI assistant for prompts"""
+class TestGrokAssistant:
+    """Test GROK AI assistant for prompts"""
     
-    @patch('google.genai.Client')
+    @patch('openai.OpenAI')
     def test_prompt_enhancement(self, mock_client):
-        """Test enhancing prompts with Gemini (new google.genai SDK)"""
+        """Test enhancing prompts with GROK"""
         mock_response = MagicMock()
-        mock_response.text = "masterpiece, best quality, 1girl, beautiful face, detailed eyes, long flowing hair"
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="masterpiece, best quality, 1girl, beautiful face, detailed eyes, long flowing hair"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        from google import genai
-        client = genai.Client(api_key='test-key')
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
         
         simple_prompt = "a girl"
-        enhanced = client.models.generate_content(model='gemini-2.0-flash', contents=f"Enhance this prompt: {simple_prompt}")
+        enhanced = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": f"Enhance this prompt: {simple_prompt}"}]
+        )
         
-        assert len(enhanced.text) > len(simple_prompt)
-        assert 'masterpiece' in enhanced.text
+        content = enhanced.choices[0].message.content
+        assert len(content) > len(simple_prompt)
+        assert 'masterpiece' in content
     
-    @patch('google.genai.Client')
+    @patch('openai.OpenAI')
     def test_nsfw_content_detection(self, mock_client):
         """Test NSFW content detection"""
         mock_response = MagicMock()
-        mock_response.text = "SAFE"
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="SAFE"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        from google import genai
-        client = genai.Client(api_key='test-key')
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
         
-        result = client.models.generate_content(model='gemini-2.0-flash', contents="Check if this content is safe")
-        assert result.text == "SAFE"
+        result = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Check if this content is safe"}]
+        )
+        assert result.choices[0].message.content == "SAFE"

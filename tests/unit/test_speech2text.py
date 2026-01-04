@@ -71,16 +71,16 @@ class TestTranscriptionModels:
     def test_model_selection(self):
         """Test selecting transcription model"""
         models = {
-            'smart': 'PhoWhisper + Gemini (Best accuracy)',
+            'smart': 'PhoWhisper + GROK (Best accuracy)',
             'fast': 'PhoWhisper only (Fast)',
-            'gemini': 'Gemini API (Cloud)',
+            'grok': 'GROK API (Cloud)',
             'whisper': 'OpenAI Whisper (Multilingual)'
         }
         
         # Select model
         selected = 'smart'
         assert selected in models
-        assert 'Gemini' in models[selected]
+        assert 'GROK' in models[selected]
     
     @pytest.mark.skip(reason="Requires HuggingFace authentication for whisper model")
     @patch('transformers.pipeline')
@@ -101,20 +101,23 @@ class TestTranscriptionModels:
         assert 'text' in result
         assert isinstance(result['text'], str)
     
-    @patch('google.genai.Client')
-    def test_gemini_transcription(self, mock_client):
-        """Test Gemini AI transcription (new google.genai SDK)"""
+    @patch('openai.OpenAI')
+    def test_grok_transcription(self, mock_client):
+        """Test GROK AI transcription"""
         # Setup mock
         mock_response = MagicMock()
-        mock_response.text = "Transcript: Xin chào, đây là bản ghi âm test"
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="Transcript: Xin chào, đây là bản ghi âm test"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        # Test with new SDK
-        from google import genai
-        client = genai.Client(api_key='test-key')
-        response = client.models.generate_content(model='gemini-2.0-flash', contents="Transcribe this audio")
+        # Test with GROK API (OpenAI compatible)
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
+        response = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Transcribe this audio"}]
+        )
         
-        assert 'Transcript' in response.text
+        assert 'Transcript' in response.choices[0].message.content
 
 
 @pytest.mark.unit

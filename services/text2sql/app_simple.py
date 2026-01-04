@@ -15,13 +15,13 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-# NOTE: Gemini đã bị xóa - không import google.genai
+# NOTE: Gemini has been removed - do not import google.genai
 import openai
 
 # Load environment variables
 load_dotenv()
 
-# NOTE: Gemini đã bị xóa - sử dụng GROK thay thế
+# NOTE: Gemini has been removed - use GROK instead
 
 # Configure OpenAI, DeepSeek, and GROK
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -72,79 +72,9 @@ def extract_sql(text):
     return text.strip()
 
 def generate_sql_gemini(schema_text, question, db_type="clickhouse", deep_thinking=False):
-    """Generate SQL using Gemini with API key retry (4 keys)"""
-    import time
-    
-    # List of Gemini API keys to try
-    gemini_keys = [
-        GEMINI_API_KEY_1,
-        GEMINI_API_KEY_2,
-        GEMINI_API_KEY_3,
-        GEMINI_API_KEY_4
-    ]
-    # Filter out None/empty keys
-    gemini_keys = [k for k in gemini_keys if k]
-    
-    thinking_instruction = ""
-    if deep_thinking:
-        thinking_instruction = """
-Think step by step:
-1. Identify the tables and columns involved
-2. Determine the relationships and joins needed
-3. Consider filters, aggregations, and sorting
-4. Optimize the query for performance
-"""
-    
-    prompt = f"""{thinking_instruction}
-You are an expert SQL developer specializing in {db_type.upper()}.
-
-Database Schema:
-{schema_text}
-
-User Question: {question}
-
-Generate a precise SQL query that answers the question.
-Requirements:
-- Use {db_type.upper()} syntax
-- Include LIMIT 100 for SELECT queries unless specified
-- Return ONLY the SQL query, no explanations
-
-SQL Query:"""
-    
-    last_error = None
-    for idx, api_key in enumerate(gemini_keys):
-        try:
-            # Create client with current API key
-            client = genai.Client(api_key=api_key)
-            response = client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=prompt
-            )
-            sql = extract_sql(response.text)
-            
-            # Success!
-            if idx > 0:
-                print(f"âœ… Gemini success with API Key #{idx+1}")
-            return sql, "success"
-            
-        except Exception as e:
-            error_msg = str(e)
-            last_error = error_msg
-            
-            # Check if quota exceeded
-            if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                print(f"âš ï¸ Gemini quota exceeded - API Key #{idx+1}")
-                
-                # If not the last key, try next
-                if idx < len(gemini_keys) - 1:
-                    print(f"ðŸ”„ Trying next Gemini API key...")
-                    time.sleep(1)
-                    continue
-            # Other errors - return immediately
-            return None, error_msg
-    
-    # All keys exhausted
-    return None, f"All Gemini API keys exhausted. Last error: {last_error}"
+    """Gemini is disabled - redirect to GROK"""
+    print("⚠️ Gemini disabled, redirecting to GROK...")
+    return generate_sql_grok(schema_text, question, db_type, deep_thinking)
 
 def generate_sql_openai(schema_text, question, db_type="clickhouse", deep_thinking=False):
     """Generate SQL using OpenAI"""
@@ -318,38 +248,27 @@ Return ONLY the JSON, no other text."""
     
     try:
         if model == "gemini":
-            # Try all 4 Gemini API keys
-            gemini_keys = [GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4]
-            gemini_keys = [k for k in gemini_keys if k]
-            
-            last_error = None
-            for idx, api_key in enumerate(gemini_keys):
-                try:
-                    client = genai.Client(api_key=api_key)
-                    response = client.models.generate_content(
-                        model='gemini-2.0-flash',
-                        contents=prompt
-                    )
-                    text = response.text.strip()
-                    
-                    if idx > 0:
-                        print(f"âœ… Gemini questions generation success with API Key #{idx+1}")
-                    break  # Success!
-                    
-                except Exception as e:
-                    error_msg = str(e)
-                    last_error = error_msg
-                    
-                    if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                        print(f"âš ï¸ Gemini quota exceeded - API Key #{idx+1}")
-                        if idx < len(gemini_keys) - 1:
-                            print(f"ðŸ”„ Trying next Gemini API key...")
-                            time.sleep(1)
-                            continue
-                    raise e
-            
-            if last_error and not text:
-                raise Exception(f"All Gemini API keys exhausted: {last_error}")
+            # Gemini disabled - redirect to GROK
+            print(" Gemini disabled, using GROK...")
+            model = "grok"
+        
+        if model == "grok":
+            if not GROK_API_KEY:
+                raise Exception("GROK API key not configured")
+            client = openai.OpenAI(
+                api_key=GROK_API_KEY,
+                base_url="https://api.x.ai/v1"
+            )
+            response = client.chat.completions.create(
+                model="grok-3",
+                messages=[
+                    {"role": "system", "content": f"You are an expert {db_type.upper()} SQL developer."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5,
+                max_tokens=2000
+            )
+            text = response.choices[0].message.content.strip()
         elif model == "openai":
             if not OPENAI_API_KEY:
                 raise Exception("OpenAI API key not configured")
@@ -557,7 +476,7 @@ def chat():
     
     # Check if user wants to generate questions
     if detect_question_generation_intent(message):
-        if model in ["grok", "gemini", "openai", "deepseek"]:
+        if model in ["grok", "openai", "deepseek"]:
             questions, result = generate_questions_from_schema(schema_text, db_type, model)
             
             if result == "success" and questions:
@@ -626,7 +545,7 @@ def chat():
     else:
         return jsonify({
             "status": "error",
-            "message": f"Model {model} not supported. Supported models: grok, gemini, openai, deepseek"
+            "message": f"Model {model} not supported. Supported models: grok, openai, deepseek"
         }), 400
     
     if result == "success" and sql:
@@ -677,7 +596,6 @@ def health_check():
         "service": "Text2SQL",
         "api_configured": {
             "grok": bool(GROK_API_KEY),
-            "gemini": bool(GEMINI_API_KEY),
             "openai": bool(OPENAI_API_KEY),
             "deepseek": bool(DEEPSEEK_API_KEY)
         },
@@ -1055,8 +973,9 @@ if __name__ == "__main__":
     print(f"{'='*60}")
     print(f"ðŸ“ URL: http://localhost:{port}")
     print(f" Default Model: GROK-3 (xAI - FREE)")
-    print(f" Available Models: grok, gemini, openai, deepseek")
+    print(f" Available Models: grok, openai, deepseek")
     print(f"ðŸ—„ï¸  Databases: ClickHouse, MongoDB, SQL Server, PostgreSQL, MySQL")
     print(f"{'='*60}\n")
     
     app.run(host="0.0.0.0", port=port, debug=True)
+

@@ -320,14 +320,14 @@ class TestTokenCounter:
         
         cost_gpt35 = estimate_cost(tokens, "gpt-3.5-turbo")
         cost_gpt4 = estimate_cost(tokens, "gpt-4")
-        cost_gemini = estimate_cost(tokens, "gemini-pro")
+        cost_grok = estimate_cost(tokens, "grok-3")
         
         # GPT-4 should be more expensive than GPT-3.5
         assert cost_gpt4 > cost_gpt35
         
         # All should be positive
         assert cost_gpt35 > 0
-        assert cost_gemini > 0
+        assert cost_grok >= 0  # GROK is free
 
 
 @pytest.mark.unit

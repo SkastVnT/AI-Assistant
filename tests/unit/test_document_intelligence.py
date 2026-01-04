@@ -186,28 +186,32 @@ class TestOCRProcessor:
 class TestDocumentAnalyzer:
     """Test AI-powered document analysis"""
     
-    @patch('google.genai.Client')
-    def test_gemini_document_analysis(self, mock_client):
-        """Test document analysis with Gemini (new google.genai SDK)"""
+    @patch('openai.OpenAI')
+    def test_grok_document_analysis(self, mock_client):
+        """Test document analysis with GROK"""
         # Setup mock
         mock_response = MagicMock()
-        mock_response.text = """
+        mock_response.choices = [MagicMock(message=MagicMock(content="""
         Document Type: Invoice
         Language: English
         Key Information:
         - Invoice Number: INV-001
         - Date: 2025-12-10
         - Total: $1,234.56
-        """
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        """))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        # Test with new SDK
-        from google import genai
-        client = genai.Client(api_key='test-key')
-        response = client.models.generate_content(model='gemini-2.0-flash', contents="Analyze this document")
+        # Test with GROK API (OpenAI compatible)
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
+        response = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Analyze this document"}]
+        )
         
-        assert 'Invoice' in response.text
-        assert 'INV-001' in response.text
+        content = response.choices[0].message.content
+        assert 'Invoice' in content
+        assert 'INV-001' in content
     
     def test_document_classification(self):
         """Test document type classification"""

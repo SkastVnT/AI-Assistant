@@ -289,9 +289,9 @@ FLASK_VARS = [
 # API Keys
 API_KEY_VARS = [
     EnvVar(
-        name="GOOGLE_API_KEY",
+        name="GROK_API_KEY",
         required=False,
-        description="Google API key for Gemini",
+        description="GROK API key from X.AI",
         sensitive=True
     ),
     EnvVar(

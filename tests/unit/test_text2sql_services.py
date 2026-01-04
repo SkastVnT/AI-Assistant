@@ -40,7 +40,7 @@ class TestText2SQLAppFactory:
     def test_create_app_default(self):
         """Test default app creation."""
         with patch.dict('os.environ', {
-            'GEMINI_API_KEY': 'test-key',
+            'GROK_API_KEY': 'test-key',
             'CLICKHOUSE_HOST': 'localhost'
         }, clear=False):
             from services.text2sql.app import create_app
@@ -54,7 +54,7 @@ class TestText2SQLAppFactory:
     def test_create_app_registers_blueprints(self):
         """Test that app registers all blueprints."""
         with patch.dict('os.environ', {
-            'GEMINI_API_KEY': 'test-key',
+            'GROK_API_KEY': 'test-key',
         }, clear=False):
             from services.text2sql.app import create_app
             

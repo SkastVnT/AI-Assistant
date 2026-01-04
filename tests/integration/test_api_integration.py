@@ -19,18 +19,21 @@ class TestDocumentIntelligenceAPI:
         # This test needs to be updated for new service structure
         pass
     
-    @patch('google.genai.Client')
+    @patch('openai.OpenAI')
     def test_document_analysis_integration(self, mock_client):
-        """Test Gemini document analysis"""
+        """Test GROK document analysis"""
         mock_response = MagicMock()
-        mock_response.text = "Summary: This is an invoice document"
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="Summary: This is an invoice document"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        from google import genai
-        client = genai.Client(api_key='test-key')
-        result = client.models.generate_content(model='gemini-2.0-flash', contents="Analyze this document")
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
+        result = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Analyze this document"}]
+        )
         
-        assert 'invoice' in result.text.lower()
+        assert 'invoice' in result.choices[0].message.content.lower()
 
 
 @pytest.mark.integration
@@ -319,23 +322,26 @@ class TestDatabaseIntegration:
 class TestExternalAPIIntegration:
     """Test integration with external APIs"""
     
-    @patch('google.genai.Client')
-    def test_gemini_api_integration(self, mock_client):
-        """Test Gemini API integration workflow"""
+    @patch('openai.OpenAI')
+    def test_grok_api_integration(self, mock_client):
+        """Test GROK API integration workflow"""
         # Setup mock
         mock_response = MagicMock()
-        mock_response.text = "This is a test response from Gemini"
-        mock_client.return_value.models.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="This is a test response from GROK"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        # Test with new google.genai SDK
-        from google import genai
-        client = genai.Client(api_key='test-key')
+        # Test with GROK API (OpenAI compatible)
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
         
         # Multiple calls
         responses = []
         for i in range(3):
-            response = client.models.generate_content(model='gemini-2.0-flash', contents=f"Test prompt {i}")
-            responses.append(response.text)
+            response = client.chat.completions.create(
+                model='grok-3',
+                messages=[{"role": "user", "content": f"Test prompt {i}"}]
+            )
+            responses.append(response.choices[0].message.content)
         
         assert len(responses) == 3
         for resp in responses:

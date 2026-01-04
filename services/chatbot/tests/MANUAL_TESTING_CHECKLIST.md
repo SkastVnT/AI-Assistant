@@ -74,7 +74,7 @@
 ### 4. Model Selection
 
 #### 4.1 Change AI Model
-- [ ] Switch from Grok to Gemini
+- [ ] Switch from Grok to DeepSeek
 - [ ] Verify conversation uses new model
 - [ ] Switch to Grok-3
 - [ ] Verify response style changes
