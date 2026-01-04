@@ -15,20 +15,13 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-from google import genai
+# NOTE: Gemini đã bị xóa - không import google.genai
 import openai
 
 # Load environment variables
 load_dotenv()
 
-# Configure Gemini - load all 4 API keys
-GEMINI_API_KEY_1 = os.getenv("GEMINI_API_KEY_1")
-GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
-GEMINI_API_KEY_3 = os.getenv("GEMINI_API_KEY_3")
-GEMINI_API_KEY_4 = os.getenv("GEMINI_API_KEY_4")
-# Try first available key for initial config
-GEMINI_API_KEY = GEMINI_API_KEY_1 or GEMINI_API_KEY_2 or os.getenv("GEMINI_API_KEY")
-# Client will be created per-request with rotation
+# NOTE: Gemini đã bị xóa - sử dụng GROK thay thế
 
 # Configure OpenAI, DeepSeek, and GROK
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

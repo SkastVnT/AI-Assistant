@@ -28,7 +28,7 @@ const translations = {
         'controls.clear': '🗑️ Xóa lịch sử',
         
         // Model options
-        'model.gemini': 'Gemini (Google) - FREE',
+        'model.grok': 'GROK (xAI) - FREE ⭐',
         'model.openai': 'GPT-4o-mini (OpenAI)',
         'model.deepseek': 'DeepSeek (Rẻ nhất)',
         'model.qwen': 'Qwen1.5b (Alibaba Cloud)',
@@ -146,7 +146,7 @@ const translations = {
         'controls.clear': '🗑️ Clear History',
         
         // Model options
-        'model.gemini': 'Gemini (Google) - FREE',
+        'model.grok': 'GROK (xAI) - FREE ⭐',
         'model.openai': 'GPT-4o-mini (OpenAI)',
         'model.deepseek': 'DeepSeek (Cheapest)',
         'model.qwen': 'Qwen1.5b (Alibaba Cloud)',

@@ -42,7 +42,12 @@ class ChatbotAgent:
         if MONGODB_ENABLED and conversation_id:
             self.conversation_history = load_conversation_history(conversation_id)
     
-    # NOTE: Gemini đã bị xóa - sử dụng GROK thay thế
+    def chat_with_gemini(self, message, context='casual', deep_thinking=False, 
+                         history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat using Google Gemini - DISABLED"""
+        error_msg = "Gemini disabled due to quota. Use GROK, DeepSeek or OpenAI."
+        logging.warning("[GEMINI] Blocked call")
+        return error_msg
     
     def chat_with_openai(self, message, context='casual', deep_thinking=False,
                          history=None, memories=None, language='vi', custom_prompt=None):
@@ -306,7 +311,8 @@ class ChatbotAgent:
         if model == 'grok':
             result = self.chat_with_grok(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'gemini':
-            # Gemini đã bị xóa - redirect sang GROK
+            # Gemini disabled - redirect to GROK
+            logging.warning("[GEMINI] Disabled, redirecting to GROK")
             result = self.chat_with_grok(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'openai':
             result = self.chat_with_openai(message, context, deep_thinking, history, memories, language, custom_prompt)
