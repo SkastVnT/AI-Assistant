@@ -55,6 +55,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def sanitize_for_log(value: str) -> str:
+    """
+    Sanitize user-controlled strings before logging to prevent log injection.
+    Removes carriage returns and newlines to avoid forged log entries.
+    """
+    if value is None:
+        return ""
+    # Remove CR and LF characters that could break log lines
+    return str(value).replace("\r", "").replace("\n", "")
+
 # Enable werkzeug logging for request details
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.INFO)
@@ -2649,7 +2660,7 @@ def extract_anime_features_multi():
         sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
         
-        logger.info(f"[MULTI-EXTRACT] Models: {selected_models} | Deep: {deep_thinking}")
+        logger.info(f"[MULTI-EXTRACT] Models: {[sanitize_for_log(m) for m in selected_models]} | Deep: {deep_thinking}")
         
         all_tags = []
         model_results = {}
@@ -2659,7 +2670,7 @@ def extract_anime_features_multi():
             try:
                 payload = {'image': image_b64, 'model': model_name}
                 
-                logger.info(f"[MULTI-EXTRACT] Calling {model_name}...")
+                logger.info(f"[MULTI-EXTRACT] Calling {sanitize_for_log(model_name)}...")
                 response = requests.post(interrogate_url, json=payload, timeout=120)
                 
                 if response.status_code == 200:
@@ -2670,12 +2681,12 @@ def extract_anime_features_multi():
                     model_results[model_name] = tags
                     all_tags.extend(tags)
                     
-                    logger.info(f"[MULTI-EXTRACT] {model_name}: {len(tags)} tags âœ…")
+                    logger.info(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)}: {len(tags)} tags âœ…")
                 else:
-                    logger.warning(f"[MULTI-EXTRACT] {model_name} failed: {response.status_code}")
+                    logger.warning(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)} failed: {response.status_code}")
                     model_results[model_name] = []
             except Exception as e:
-                logger.error(f"[MULTI-EXTRACT] {model_name} error: {str(e)}")
+                logger.error(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)} error: {str(e)}")
                 model_results[model_name] = []
         
         # Merge tags vá»›i confidence voting (cÃ ng nhiá»u model Ä‘á»“ng Ã½ = confidence cÃ ng cao)
