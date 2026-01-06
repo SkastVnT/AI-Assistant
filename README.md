@@ -197,7 +197,7 @@ GET /health/detailed     # Full status with dependencies
 GET /metrics             # Prometheus format
 ```
 
-## Collaborators
+## Author & Collaborators
 </div>
 
 <table>
