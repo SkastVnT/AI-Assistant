@@ -47,7 +47,7 @@ def estimate_cost(tokens: int, model: str = "gpt-3.5-turbo") -> float:
     pricing = {
         "gpt-3.5-turbo": 0.0015,  # $0.0015 per 1K tokens
         "gpt-4": 0.03,            # $0.03 per 1K tokens
-        "gemini-pro": 0.00025,    # $0.00025 per 1K tokens
+        "grok-3": 0.00025,        # $0.00025 per 1K tokens
         "deepseek": 0.0002,       # $0.0002 per 1K tokens
     }
     

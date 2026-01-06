@@ -67,7 +67,7 @@ graph TB
     end
     
     subgraph "Layer 4: External Services Integration"
-        K[GeminiModel<br/>Google Gemini API]
+        K[GROKModel<br/>GROK API]
         L[OpenAIModel<br/>GPT-4/GPT-4o API]
         M[DeepSeekModel<br/>DeepSeek API]
         N[LocalModelLoader<br/>Qwen/BloomVN Local]
@@ -373,7 +373,7 @@ classDiagram
         +count_tokens(text) int
     }
     
-    class GeminiModel {
+    class GROKModel {
         -api_key: str
         -model: GenerativeModel
         -generation_config: dict
@@ -439,12 +439,12 @@ classDiagram
         -_optimize_model(model) Model
     }
     
-    AIModel <|.. GeminiModel : implements
+    AIModel <|.. GROKModel : implements
     AIModel <|.. OpenAIModel : implements
     AIModel <|.. DeepSeekModel : implements
     AIModel <|.. QwenModel : implements
     
-    AIModelManager "1" o-- "*" GeminiModel : manages
+    AIModelManager "1" o-- "*" GROKModel : manages
     AIModelManager "1" o-- "*" OpenAIModel : manages
     AIModelManager "1" o-- "*" DeepSeekModel : manages
     AIModelManager "1" o-- "*" QwenModel : manages
@@ -454,7 +454,7 @@ classDiagram
 ```
 
 **Supported Models:**
-- Gemini: `gemini-2.0-flash-thinking-exp`, `gemini-1.5-pro`
+- GROK: `grok-3`
 - OpenAI: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`
 - DeepSeek: `deepseek-chat`, `deepseek-coder`
 - Qwen: `qwen-turbo`, `qwen-plus`
@@ -935,8 +935,8 @@ class MemoryDB:
 class AIModelManager:
     def __init__(self):
         self.models = {
-            'gemini-2.0-flash': GeminiModel(api_key=GEMINI_API_KEY),
-            'gemini-1.5-pro': GeminiModel(api_key=GEMINI_API_KEY, model='gemini-1.5-pro'),
+            'grok-3': GROKModel(api_key=GROK_API_KEY),
+            'grok-3-pro': GROKModel(api_key=GROK_API_KEY, model='grok-3'),,
             'gpt-4o': OpenAIModel(api_key=OPENAI_API_KEY, model='gpt-4o'),
             'gpt-4o-mini': OpenAIModel(api_key=OPENAI_API_KEY, model='gpt-4o-mini'),
             'deepseek-chat': DeepSeekModel(api_key=DEEPSEEK_API_KEY),
@@ -945,7 +945,7 @@ class AIModelManager:
             'qwen-local': LocalModelLoader().load_model('Qwen2.5-14B-Instruct'),
             'bloom-vn': LocalModelLoader().load_model('BloomVN-8B-chat')
         }
-        self.current_model = 'gemini-2.0-flash'
+        self.current_model = 'grok-3'
     
     def chat(
         self,
@@ -971,12 +971,12 @@ class AIModelManager:
 
 ---
 
-#### GeminiModel
-**Vai trò:** Google Gemini API wrapper
+#### GROKModel
+**Vai trò:** GROK API wrapper
 
 ```python
-class GeminiModel:
-    def __init__(self, api_key: str, model: str = 'gemini-2.0-flash-exp'):
+class GROKModel:
+    def __init__(self, api_key: str, model: str = 'grok-3'):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(model)
         self.generation_config = {
@@ -1011,7 +1011,7 @@ class GeminiModel:
     
     def analyze_file(self, file_path: str) -> str:
         """Analyze uploaded file"""
-        # Upload file to Gemini
+        # Upload file to GROK
         uploaded_file = genai.upload_file(file_path)
         
         # Generate analysis
@@ -1114,7 +1114,7 @@ FlaskApp HAS AIModelManager (1:1)
 FlaskApp HAS CacheManager (1:1)
 MongoDBClient HAS ConversationDB (1:1)
 MongoDBClient HAS MessageDB (1:1)
-AIModelManager HAS GeminiModel (1:N)
+AIModelManager HAS GROKModel (1:N)
 Message HAS Image (1:N)
 Message HAS File (1:N)
 ```
@@ -1137,7 +1137,7 @@ FlaskApp USES GoogleSearchAPI (tool)
 |:--------|:--------------|:---------|
 | **Singleton** | MongoDBClient | Đảm bảo chỉ 1 DB connection |
 | **Factory** | AIModelManager | Create AI model instances |
-| **Strategy** | AI Models (Gemini/GPT/DeepSeek) | Interchangeable algorithms |
+| **Strategy** | AI Models (GROK/GPT/DeepSeek) | Interchangeable algorithms |
 | **Repository** | ConversationDB, MessageDB, MemoryDB | Data access abstraction |
 | **Facade** | FlaskApp | Simplified interface to complex subsystems |
 | **Decorator** | Flask @route decorators | Add functionality to routes |
@@ -1157,7 +1157,7 @@ def chat():
     conv_db = ConversationDB(mongodb_client.db)
     conversation_id = conv_db.create_conversation(
         user_id=session['user_id'],
-        model='gemini-2.0-flash',
+        model='grok-3',
         title='AI Chat'
     )
     
@@ -1173,7 +1173,7 @@ def chat():
     model_manager = AIModelManager()
     response = model_manager.chat(
         messages=[{'role': 'user', 'content': request.json['message']}],
-        model='gemini-2.0-flash'
+        model='grok-3'
     )
     
     # 5. Save AI response

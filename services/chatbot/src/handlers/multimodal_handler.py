@@ -164,9 +164,9 @@ Trả về JSON format:
 }}
 """
         
-        # Call Gemini Vision
+        # Call GROK Vision
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=[enhanced_prompt, image]
         )
         
@@ -185,7 +185,7 @@ Trả về JSON format:
                 'mood': ''
             }
         
-        result['model_used'] = 'gemini-2.0-flash'
+        result['model_used'] = 'grok-3'
         result['raw_response'] = response.text
         
         return result

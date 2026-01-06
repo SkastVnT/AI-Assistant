@@ -134,7 +134,7 @@ check_health() {
         print_colored "❌ Health monitor not accessible" $RED
         print_colored "Checking individual services..." $YELLOW
         
-        services=("api:8000" "t5-service:8001" "phowhisper-service:8002" "whisper-service:8003" "gemini-proxy:8004")
+        services=("api:8000" "t5-service:8001" "phowhisper-service:8002" "whisper-service:8003" "grok-proxy:8004")
         
         for service in "${services[@]}"; do
             name=$(echo $service | cut -d: -f1)

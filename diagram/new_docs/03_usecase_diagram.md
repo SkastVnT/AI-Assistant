@@ -8,7 +8,7 @@
 ## 📋 Mô tả
 
 Use Case Diagram thể hiện:
-- **Actors:** User (Anonymous/Registered), Admin, External APIs (Gemini, OpenAI, DeepSeek, PostImages)
+- **Actors:** User (Anonymous/Registered), Admin, External APIs (GROK, OpenAI, DeepSeek, PostImages)
 - **System:** ChatBot Service với MongoDB Atlas
 - **Use Cases:** 15+ chức năng chính
 
@@ -21,7 +21,7 @@ graph TB
     subgraph Actors
         User[👤 User]
         Admin[👨‍💼 Admin]
-        GeminiAPI[🤖 Gemini API]
+        GROKAPI[🤖 GROK API]
         OpenAIAPI[🧠 OpenAI API]
         DeepSeekAPI[🔍 DeepSeek API]
         PostImagesAPI[📸 PostImages API]
@@ -109,10 +109,10 @@ graph TB
     UC13 --> UC14
     
     %% API dependencies
-    UC1 --> GeminiAPI
+    UC1 --> GROKAPI
     UC1 --> OpenAIAPI
     UC1 --> DeepSeekAPI
-    UC7 --> GeminiAPI
+    UC7 --> GROKAPI
     UC13 --> SDAPI
     UC14 --> PostImagesAPI
     UC17 --> GoogleAPI
@@ -149,7 +149,7 @@ graph TB
 
 | ID | Use Case | Actor | Mô tả | MongoDB Collection |
 |:---|:---------|:------|:------|:-------------------|
-| **UC1** | Chat with AI Models | User | Trò chuyện với 8+ AI models (Gemini, GPT-4, DeepSeek, Qwen, etc.) | `messages` |
+| **UC1** | Chat with AI Models | User | Trò chuyện với 8+ AI models (GROK, GPT-4, DeepSeek, Qwen, etc.) | `messages` |
 | **UC2** | Switch Models | User | Chuyển đổi giữa các models trong conversation | `conversations` |
 | **UC3** | Configure Settings | User | Cấu hình temperature, max_tokens, system_prompt | `user_settings` |
 | **UC4** | Stop Generation | User | Dừng AI generation giữa chừng và giữ output | `messages` |
@@ -167,7 +167,7 @@ User → UC1 (Chat) → UC2 (Switch model nếu cần) → UC4 (Stop nếu muố
 | ID | Use Case | Actor | Mô tả | MongoDB Collection |
 |:---|:---------|:------|:------|:-------------------|
 | **UC6** | Upload Files | User | Upload PDF/Image/Code (max 50MB) | `uploaded_files` |
-| **UC7** | Analyze Files | System + Gemini API | AI tự động phân tích file content | `uploaded_files` |
+| **UC7** | Analyze Files | System + GROK API | AI tự động phân tích file content | `uploaded_files` |
 | **UC8** | View Analysis | User | Xem kết quả phân tích chi tiết | `uploaded_files` |
 
 **Supported file types:**
@@ -295,7 +295,7 @@ UC20: Archive (is_archived=True) OR UC21: Delete (cascade)
 // Create
 db.conversations.insertOne({
   user_id: "session_123",
-  model: "gemini-2.0-flash",
+  model: "grok-3",
   title: "New Chat",
   total_messages: 0,
   is_archived: false
@@ -393,7 +393,7 @@ graph LR
 ```
 1. User → UC19 (Create Conversation)
 2. User → UC1 (Chat with AI)
-3. AI (Gemini/GPT-4/DeepSeek) → Response
+3. AI (GROK/GPT-4/DeepSeek) → Response
 4. Save to MongoDB (conversations + messages)
 5. Display to User
 ```
@@ -402,8 +402,8 @@ graph LR
 ```
 1. User → UC6 (Upload file .pdf)
 2. System → Save to Storage + uploaded_files collection
-3. System → UC7 (Auto-analyze with Gemini)
-4. Gemini API → Analysis result
+3. System → UC7 (Auto-analyze with GROK)
+4. GROK API → Analysis result
 5. System → Update uploaded_files.analysis_result
 6. User → UC8 (View analysis trong chat)
 ```

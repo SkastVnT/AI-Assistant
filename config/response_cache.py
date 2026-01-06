@@ -272,19 +272,19 @@ if __name__ == '__main__':
     # Test cache
     print("🧪 Testing Response Cache...\n")
     
-    # Test Gemini cache
+    # Test GROK cache
     prompt = "What is AI?"
-    model = "gemini-2.0-flash"
+    model = "grok-3"
     
     # First call - MISS
-    result = get_cached_response(prompt, model, provider='gemini')
+    result = get_cached_response(prompt, model, provider='grok')
     print(f"First call: {result}")  # None
     
     # Cache response
-    cache_response(prompt, model, "AI is artificial intelligence", provider='gemini')
+    cache_response(prompt, model, "AI is artificial intelligence", provider='grok')
     
     # Second call - HIT
-    result = get_cached_response(prompt, model, provider='gemini')
+    result = get_cached_response(prompt, model, provider='grok')
     print(f"Second call: {result}")  # "AI is artificial intelligence"
     
     # Stats

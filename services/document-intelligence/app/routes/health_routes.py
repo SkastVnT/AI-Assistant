@@ -43,7 +43,7 @@ def get_stats():
         'version': '2.0.0',
         'config': {
             'ai_enabled': current_app.config.get('ENABLE_AI_ENHANCEMENT', True),
-            'ai_model': current_app.config.get('AI_MODEL', 'gemini-2.0-flash'),
+            'ai_model': current_app.config.get('AI_MODEL', 'grok-3'),
             'ocr_language': current_app.config.get('OCR_LANGUAGE', 'vi'),
             'use_gpu': current_app.config.get('OCR_USE_GPU', False)
         },

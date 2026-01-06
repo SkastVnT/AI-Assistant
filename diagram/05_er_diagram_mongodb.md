@@ -123,7 +123,7 @@ erDiagram
 ### User Settings Schema (Embedded):
 ```javascript
 {
-  default_model: "gemini-2.0-flash-thinking-exp",
+  default_model: "grok-3",
   temperature: 0.7,
   max_tokens: 2048,
   theme: "dark",
@@ -161,7 +161,7 @@ erDiagram
     CONVERSATIONS {
         ObjectId _id PK "UUID format"
         string user_id FK "Session ID or user ID"
-        string model "gemini-2.0-flash, gpt-4, etc"
+        string model "grok-3, gpt-4, etc"
         string title "Auto-generated from first message"
         string system_prompt "Default or custom"
         number total_messages "Count cache"
@@ -643,7 +643,7 @@ graph TB
 {
   _id: ObjectId("..."),
   user_id: "anonymous_session_abc123",
-  model: "gemini-2.0-flash-thinking-exp",
+  model: "grok-3",
   title: "Image Generation Session",
   metadata: {
     temperature: 0.7,
@@ -886,7 +886,7 @@ db.conversations.aggregate([
 {
   _id: ObjectId("690f9bcaa0c9f1cdd8168204"),
   user_id: "anonymous_session_abc123",
-  model: "gemini-2.0-flash-thinking-exp",
+  model: "grok-3",
   title: "Image Generation Session",
   total_messages: 5,
   total_images: 3,

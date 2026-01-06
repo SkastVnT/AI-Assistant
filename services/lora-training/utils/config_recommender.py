@@ -256,9 +256,9 @@ class GeminiConfigRecommender:
 Provide your recommendation:"""
 
         try:
-            # Call Gemini API
+            # Call GROK API
             response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='grok-3',
                 contents=prompt
             )
             response_text = response.text

@@ -387,7 +387,7 @@ Tr[?] v[?] **DUY NH[?]T** transcript d[?] g[?]p, kh[?]ng gi[?]i th[?]ch, kh[?]ng
 
 try:
     response = client.models.generate_content(
-        model='gemini-2.0-flash',
+        model='grok-3',
         contents=fusion_prompt
     )
     fused_text = response.text.strip()

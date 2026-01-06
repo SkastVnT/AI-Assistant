@@ -50,7 +50,7 @@ Document này thể hiện:
   "user_id": "anonymous_session_abc123",
   
   // Model configuration
-  "model": "gemini-2.0-flash-thinking-exp",
+  "model": "grok-3",
   "system_prompt": "You are a helpful AI assistant...",
   
   // Conversation metadata
@@ -138,7 +138,7 @@ db.conversations.createIndex({"user_id": 1, "updated_at": -1})  // Compound
   
   // Generation metadata (embedded document)
   "metadata": {
-    "model": "gemini-2.0-flash-thinking-exp",
+    "model": "grok-3",
     "tokens": 450,
     "temperature": 0.7,
     "finish_reason": "stop",  // 'stop', 'length', 'interrupted'
@@ -209,7 +209,7 @@ db.messages.createIndex({"parent_message_id": 1})  // For versioning
   
   // AI metadata (embedded)
   "metadata": {
-    "model_used": "gemini-2.0-flash",
+    "model_used": "grok-3",
     "tokens": 380,
     "confidence_score": 0.95  // AI's confidence in answer
   },
@@ -274,7 +274,7 @@ db.chatbot_memory.createIndex({
   "metadata": {
     "upload_time_ms": 450,
     "analysis_time_ms": 3200,
-    "model_used": "gemini-2.0-flash",
+    "model_used": "grok-3",
     "extracted_text": "Q4 2024 Financial Report\n\nRevenue: $5,200,000...",  // Full OCR text
     "page_count": 5,
     "dimensions": null,  // For images: {width: 1920, height: 1080}
@@ -328,7 +328,7 @@ db.uploaded_files.createIndex({"file_type": 1})
   
   // User preferences (embedded)
   "preferences": {
-    "default_model": "gemini-2.0-flash",
+    "default_model": "grok-3",
     "theme": "dark",  // 'dark', 'light'
     "language": "vi",  // 'vi', 'en'
     "auto_save": true,
@@ -371,7 +371,7 @@ db.users.createIndex({"created_at": -1})
   
   // ChatBot settings (embedded)
   "chatbot_settings": {
-    "default_model": "gemini-2.0-flash-thinking-exp",
+    "default_model": "grok-3",
     "temperature": 0.7,
     "max_tokens": 2048,
     "system_prompt": "You are a helpful AI assistant...",

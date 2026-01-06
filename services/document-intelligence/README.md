@@ -179,10 +179,10 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'bmp', 'tiff'}
 ### AI Settings
 Edit `.env`:
 ```bash
-# Gemini AI Configuration (FREE)
-GEMINI_API_KEY=your_api_key_here
+# GROK AI Configuration (FREE)
+GROK_API_KEY=your_api_key_here
 ENABLE_AI_ENHANCEMENT=True
-AI_MODEL=gemini-2.0-flash-exp
+AI_MODEL=grok-3
 
 # AI Feature Flags
 ENABLE_CLASSIFICATION=True
@@ -192,8 +192,8 @@ ENABLE_QA=True
 ENABLE_TRANSLATION=True
 ```
 
-**Get FREE Gemini API Key:**
-1. Visit https://ai.google.dev
+**Get FREE GROK API Key:**
+1. Visit https://console.x.ai
 2. Click "Get API Key"
 3. Create new key (FREE tier available)
 4. Copy to `.env` file

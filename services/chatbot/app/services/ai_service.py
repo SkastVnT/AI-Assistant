@@ -90,12 +90,12 @@ class AIService:
                 'available': bool(self.deepseek_key),
                 'base_url': 'https://api.deepseek.com/v1'
             },
-            'gemini': {
-                'name': 'Google Gemini',
-                'provider': 'google',
-                'model_id': 'gemini-2.0-flash-exp',
-                'available': bool(self.gemini_key),
-                'base_url': None
+            'grok': {
+                'name': 'xAI GROK',
+                'provider': 'xai',
+                'model_id': 'grok-3',
+                'available': bool(self.grok_key),
+                'base_url': 'https://api.x.ai/v1'
             }
         }
     

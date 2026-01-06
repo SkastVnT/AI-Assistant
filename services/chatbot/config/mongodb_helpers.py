@@ -6,7 +6,7 @@ Usage:
     from config.mongodb_helpers import ConversationDB, MessageDB, MemoryDB, FileDB
     
     # Create conversation
-    conv = ConversationDB.create_conversation("user_123", "gemini-2.0-flash")
+    conv = ConversationDB.create_conversation("user_123", "grok-3")
     
     # Add message
     msg = MessageDB.add_message(conv["_id"], "user", "Hello AI!")
@@ -649,7 +649,7 @@ class UserSettingsDB:
         settings = {
             "user_id": user_id,
             "chatbot_settings": {
-                "default_model": "gemini-2.0-flash-thinking-exp",
+                "default_model": "grok-3",
                 "temperature": 0.7,
                 "max_tokens": 2048,
                 "system_prompt": "You are a helpful AI assistant.",

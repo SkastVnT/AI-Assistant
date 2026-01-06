@@ -399,10 +399,10 @@ Edit `services/chatbot/app.py`:
 app.run(host='0.0.0.0', port=5000)  # Change 5000 to your port
 ```
 
-### Use Different Gemini Model
+### Use Different GROK Model
 Edit `services/chatbot/.env`:
 ```env
-GEMINI_MODEL=gemini-2.0-flash-exp  # or gemini-1.5-pro
+GROK_MODEL=grok-3
 ```
 
 ### Enable Debug Mode

@@ -129,9 +129,9 @@ class ServiceHealthChecker:
             return None
         
         try:
-            if self.ai_type == "gemini":
+            if self.ai_type == "grok":
                 response = self.ai_client.models.generate_content(
-                    model='gemini-2.0-flash-exp',
+                    model='grok-3',
                     contents=prompt
                 )
                 return response.text

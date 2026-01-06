@@ -38,9 +38,9 @@ class BaseConfig:
     OCR_SHOW_LOG = os.getenv('OCR_SHOW_LOG', 'false').lower() == 'true'
     
     # AI Configuration
-    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+    GROK_API_KEY = os.getenv('GROK_API_KEY')
     ENABLE_AI_ENHANCEMENT = os.getenv('ENABLE_AI_ENHANCEMENT', 'true').lower() == 'true'
-    AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash')
+    AI_MODEL = os.getenv('AI_MODEL', 'grok-3')
     
     # AI Features
     AI_FEATURES = {

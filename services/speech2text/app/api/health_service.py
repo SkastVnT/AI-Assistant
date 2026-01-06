@@ -120,7 +120,7 @@ async def full_health_check():
         ("t5-service", "http://t5-service:8001/health"),
         ("phowhisper-service", "http://phowhisper-service:8002/health"),
         ("whisper-service", "http://whisper-service:8003/health"),
-        ("gemini-proxy", "http://gemini-proxy:8004/health")
+        ("grok-proxy", "http://grok-proxy:8004/health")
     ]
     
     service_health = []
@@ -191,7 +191,7 @@ async def get_service_status():
         ("t5-service", "http://t5-service:8001/health"),
         ("phowhisper-service", "http://phowhisper-service:8002/health"), 
         ("whisper-service", "http://whisper-service:8003/health"),
-        ("gemini-proxy", "http://gemini-proxy:8004/health")
+        ("grok-proxy", "http://grok-proxy:8004/health")
     ]
     
     results = {}

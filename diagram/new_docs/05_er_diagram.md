@@ -60,7 +60,7 @@ erDiagram
     CONVERSATIONS {
         ObjectId _id PK
         string user_id FK "Reference to USERS or session ID"
-        string model "gemini-2.0-flash, gpt-4o, etc."
+        string model "grok-3, gpt-4o, etc."
         string title "Auto-generated from first message"
         string system_prompt "Custom prompt (optional)"
         int total_messages "Message count"
@@ -202,7 +202,7 @@ erDiagram
 {
   "_id": ObjectId("673e5f8a9b1d2c3f4a5b6c7e"),
   "user_id": "john_doe",  // ← Reference
-  "model": "gemini-2.0-flash",
+  "model": "grok-3",
   "title": "Python Tutorial"
 }
 ```
@@ -384,7 +384,7 @@ db.conversations.aggregate([
 {
   "_id": ObjectId("..."),
   "title": "Python Tutorial",
-  "model": "gemini-2.0-flash",
+  "model": "grok-3",
   "total_messages": 10,
   "messages": [
     {"role": "user", "content": "...", "created_at": "..."},
@@ -448,7 +448,7 @@ db.conversations.aggregate([
 ```javascript
 [
   {
-    "_id": "gemini-2.0-flash",
+    "_id": "grok-3",
     "total_conversations": 25,
     "total_messages": 300,
     "total_tokens": 45000

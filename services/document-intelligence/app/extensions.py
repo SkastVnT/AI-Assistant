@@ -77,10 +77,10 @@ def get_document_analyzer():
         try:
             from src.ai import GeminiClient, DocumentAnalyzer
             
-            logger.info("🤖 Initializing Gemini AI...")
+            logger.info("🤖 Initializing GROK AI...")
             
-            api_key = current_app.config.get('GEMINI_API_KEY')
-            model = current_app.config.get('AI_MODEL', 'gemini-2.0-flash')
+            api_key = current_app.config.get('GROK_API_KEY')
+            model = current_app.config.get('AI_MODEL', 'grok-3')
             
             _gemini_client = GeminiClient(api_key, model)
             _document_analyzer = DocumentAnalyzer(_gemini_client)

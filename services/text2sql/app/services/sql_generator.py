@@ -106,7 +106,7 @@ Write a valid SQL query (ClickHouse style).
 Do not explain, just output the SQL.
 """
         resp = self._gemini_client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=prompt
         )
         return resp.text.strip()
@@ -245,7 +245,7 @@ Constraints:
 - Return ONLY the final SQL, no explanation.
 """
         resp = self._gemini_client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=prompt
         )
         return resp.text.strip()

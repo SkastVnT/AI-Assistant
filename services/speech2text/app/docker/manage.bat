@@ -138,7 +138,7 @@ if errorlevel 1 (
     call :check_service "t5-service" "8001"
     call :check_service "phowhisper-service" "8002"
     call :check_service "whisper-service" "8003"
-    call :check_service "gemini-proxy" "8004"
+    call :check_service "grok-proxy" "8004"
 ) else (
     call :print_colored "[OK] Health monitor is running" "%GREEN%"
     curl -s http://localhost/monitoring/health

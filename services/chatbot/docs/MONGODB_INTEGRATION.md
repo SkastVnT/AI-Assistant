@@ -67,7 +67,7 @@ MONGODB_DATABASE=chatbot_db
 {
   "_id": ObjectId("..."),
   "user_id": "anonymous_abc123",
-  "model": "gemini-2.0-flash",
+  "model": "grok-3",
   "title": "Python Programming Help",
   "total_messages": 10,
   "total_tokens": 2500,
@@ -87,7 +87,7 @@ MONGODB_DATABASE=chatbot_db
   "images": [],
   "files": [],
   "metadata": {
-    "model": "gemini-2.0-flash",
+    "model": "grok-3",
     "context": "programming",
     "deep_thinking": false
   },
@@ -114,7 +114,7 @@ GET /api/conversations
     {
       "_id": "673e5f8a9b1d2c3f4a5b6c7d",
       "title": "Python Help",
-      "model": "gemini-2.0-flash",
+      "model": "grok-3",
       "total_messages": 5,
       "created_at": "2025-11-09T10:30:00Z"
     }
@@ -158,7 +158,7 @@ POST /api/conversations/new
 Content-Type: application/json
 
 {
-  "model": "gemini-2.0-flash",
+  "model": "grok-3",
   "title": "New Chat"
 }
 ```
