@@ -10,9 +10,43 @@ from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Add project root to Python path (ensure it's first)
+# IMPORTANT: This must happen before any imports that might pull from services/chatbot/src
+project_root = Path(__file__).parent.parent.resolve()
+project_root_str = str(project_root)
+
+# Remove chatbot src path if present (it conflicts with main src)
+chatbot_src = project_root / 'services' / 'chatbot'
+chatbot_src_str = str(chatbot_src)
+if chatbot_src_str in sys.path:
+    sys.path.remove(chatbot_src_str)
+
+# Remove any existing project root entry and add at front
+if project_root_str in sys.path:
+    sys.path.remove(project_root_str)
+sys.path.insert(0, project_root_str)
+
+# Clear any wrong 'src' module from cache
+# This can happen if services/chatbot was added to path before project root
+if 'src' in sys.modules:
+    src_module = sys.modules['src']
+    if hasattr(src_module, '__file__') and src_module.__file__:
+        src_path = Path(src_module.__file__).parent.resolve()
+        if 'services' in str(src_path) or 'chatbot' in str(src_path):
+            # Wrong src module, clear it and all submodules
+            to_remove = [key for key in sys.modules if key == 'src' or key.startswith('src.')]
+            for key in to_remove:
+                del sys.modules[key]
+
+
+@pytest.fixture(autouse=True)
+def ensure_project_root_in_path():
+    """Ensure project root is always first in sys.path before each test"""
+    if project_root_str not in sys.path or sys.path.index(project_root_str) != 0:
+        if project_root_str in sys.path:
+            sys.path.remove(project_root_str)
+        sys.path.insert(0, project_root_str)
+    yield
 
 
 # ============================================================================

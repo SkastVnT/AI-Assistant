@@ -19,8 +19,12 @@ def register_blueprints(app):
     from routes.memory import memory_bp
     from routes.images import images_bp
     from routes.mcp import mcp_bp
+    from routes.stream import stream_bp
+    from routes.async_routes import async_bp
     
     app.register_blueprint(main_bp)
+    app.register_blueprint(stream_bp)  # SSE streaming endpoint
+    app.register_blueprint(async_bp)   # Async chat endpoints
     app.register_blueprint(conversations_bp, url_prefix='/api')
     app.register_blueprint(sd_bp)
     app.register_blueprint(memory_bp, url_prefix='/api/memory')

@@ -2,8 +2,30 @@
 Tests for Database Optimization Module
 """
 
+import sys
+from pathlib import Path
+import importlib
 import pytest
 from unittest.mock import Mock, MagicMock, patch
+
+# Ensure project root is in path BEFORE any service paths
+# This is needed because services/chatbot has its own src/ folder
+project_root = Path(__file__).parent.parent.parent.resolve()
+project_root_str = str(project_root)
+
+# Force project root to be first
+while project_root_str in sys.path:
+    sys.path.remove(project_root_str)
+sys.path.insert(0, project_root_str)
+
+# Clean up any wrong src module that might be cached
+for key in list(sys.modules.keys()):
+    if key == 'src' or key.startswith('src.'):
+        del sys.modules[key]
+
+# Now import fresh
+import src.database
+importlib.reload(src.database)
 
 
 class TestMongoDBIndexes:
