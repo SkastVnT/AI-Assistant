@@ -198,7 +198,7 @@ GET /metrics             # Prometheus format
 ```
 
 ---
-## Collaborators
+## Author & Collaborators
 </div>
 
 <table>
