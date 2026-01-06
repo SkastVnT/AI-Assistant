@@ -198,6 +198,54 @@ GET /metrics             # Prometheus format
 ```
 
 ---
+## Collaborators
+</div>
+
+<table>
+<tr>
+<td align="center" width="50%">
+
+<img src="https://github.com/SkastVnT.png" width="120" height="120" style="border-radius: 50%; border: 3px solid #6366F1;" />
+
+### **SkastVnT**
+
+[![GitHub](https://img.shields.io/badge/GitHub-SkastVnT-181717?style=for-the-badge&logo=github)](https://github.com/SkastVnT)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:nguyvip007@gmail.com)
+
+**Solo Developer • AI Enthusiast • Full-Stack Engineer**
+
+*Developed with late nights, lots of coffee ☕, and a passion for AI* 
+
+</td>
+<td align="center" width="50%">
+
+<img src="https://github.com/sug1omyo.png" width="120" height="120" style="border-radius: 50%; border: 3px solid #10B981;" />
+
+### **sug1omyo**
+
+[![GitHub](https://img.shields.io/badge/GitHub-sug1omyo-181717?style=for-the-badge&logo=github)](https://github.com/sug1omyo)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:ngtuanhei2004@gmail.com)
+
+**Fresher Software Engineer**
+
+***Collaborator & Contributor***
+
+*Atsui~*
+*Atsukute hikarabisou*
+*Ugoitenai no ni atsui yo~*
+
+
+</td>
+</tr>
+</table>
+
+<div align="center">
+
+---
+
+<div align="center">
+
+
 
 ## 🤝 Contributing
 
