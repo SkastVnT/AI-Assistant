@@ -14,6 +14,10 @@ MANIFEST
 .python-version
 *.pyc
 *.pyo
+**.*/private/
+./private/
+**.*/knowledge_base/
+./knowledge_base/
 
 # ============================================
 # VIRTUAL ENVIRONMENT

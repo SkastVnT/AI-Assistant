@@ -1,0 +1,69 @@
+# ==============================================================================
+# Edit Image Service - Docker Compose Configuration
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  edit-image:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edit-image-service
+    
+    # GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    # Port mapping
+    ports:
+      - "8100:8100"
+    
+    # Volume mounts
+    volumes:
+      # Configuration
+      - ./config:/app/config:ro
+      
+      # Model cache (persistent)
+      - edit-image-models:/app/models
+      
+      # Outputs (persistent)
+      - ./outputs:/app/outputs
+      
+      # Logs
+      - ./logs:/app/logs
+    
+    # Environment variables
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - HF_HOME=/app/models/huggingface
+      - TRANSFORMERS_CACHE=/app/models/transformers
+      
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/v1/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Named volumes for persistent data
+volumes:
+  edit-image-models:
+    driver: local
