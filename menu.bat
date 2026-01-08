@@ -32,6 +32,7 @@ echo   6. Stable Diffusion       (Port 7861)
 echo   7. LoRA Training          (Port 7862)
 echo   8. Image Upscale          (Port 7863)
 echo   9. MCP Server             (Model Context Protocol)
+echo   E. Edit Image             (Port 8100) - Grok-like Editor
 echo.
 echo   [BATCH]
 echo   A. Start ALL Services     S. Stop ALL Services
@@ -58,6 +59,7 @@ if /i "%choice%"=="6" start "Stable Diffusion" cmd /k "scripts\start-stable-diff
 if /i "%choice%"=="7" start "LoRA Training" cmd /k "scripts\start-lora-training.bat" & goto MENU
 if /i "%choice%"=="8" start "Image Upscale" cmd /k "scripts\start-image-upscale.bat" & goto MENU
 if /i "%choice%"=="9" start "MCP Server" cmd /k "scripts\start-mcp.bat" & goto MENU
+if /i "%choice%"=="E" start "Edit Image" cmd /k "scripts\start-edit-image.bat" & goto MENU
 
 if /i "%choice%"=="A" start "Start All" cmd /k "scripts\start-all.bat" & goto MENU
 if /i "%choice%"=="S" start "Stop All" cmd /k "scripts\stop-all.bat" & goto MENU

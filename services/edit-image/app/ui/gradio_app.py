@@ -964,7 +964,6 @@ def create_tagger_tab(settings: Settings) -> gr.Tab:
                 generated_prompt = gr.Textbox(
                     label="Generated Prompt",
                     lines=5,
-                    show_copy_button=True,
                 )
                 
                 rating_output = gr.Textbox(label="Detected Rating")
@@ -972,7 +971,7 @@ def create_tagger_tab(settings: Settings) -> gr.Tab:
                 tags_output = gr.Dataframe(
                     headers=["Tag", "Confidence"],
                     label="Detected Tags",
-                    max_rows=20,
+                    row_count=20,
                 )
         
         def analyze_image(input_img, model, threshold, max_tags):
@@ -1417,9 +1416,9 @@ def create_inpaint_anything_tab(settings: Settings) -> gr.Tab:
         with gr.Row():
             with gr.Column(scale=1):
                 inpaint_input = gr.Image(
-                    label="Input Image",
+                    label="Input Image (click to select point)",
                     type="pil",
-                    tool="select",  # Enable point selection
+                    interactive=True,
                 )
                 
                 gr.Markdown("### Click Coordinates")

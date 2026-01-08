@@ -21,6 +21,7 @@ from app import __version__
 from app.core.config import get_settings, load_settings
 from app.core.pipeline import get_pipeline_manager
 from app.api.routes import router as api_router
+from app.api.grok_routes import router as grok_router
 from app.ui.gradio_app import create_gradio_app
 
 
@@ -127,6 +128,7 @@ def create_app() -> FastAPI:
     
     # Include API routes
     app.include_router(api_router)
+    app.include_router(grok_router)
     
     # Mount Gradio app
     gradio_app = create_gradio_app()
