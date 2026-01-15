@@ -7,8 +7,9 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock, mock_open
 import json
 from pathlib import Path
-import numpy as np
-from PIL import Image
+
+np = pytest.importorskip("numpy", reason="numpy not installed")
+Image = pytest.importorskip("PIL.Image", reason="Pillow not installed")
 
 
 @pytest.mark.unit

@@ -7,7 +7,8 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import json
 from pathlib import Path
-import numpy as np
+
+np = pytest.importorskip("numpy", reason="numpy not installed")
 
 
 @pytest.mark.unit

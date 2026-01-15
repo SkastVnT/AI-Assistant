@@ -8,8 +8,9 @@ from unittest.mock import Mock, patch, MagicMock
 import json
 import yaml
 from pathlib import Path
-import torch
-import numpy as np
+
+torch = pytest.importorskip("torch", reason="torch not installed")
+np = pytest.importorskip("numpy", reason="numpy not installed")
 
 
 @pytest.mark.unit

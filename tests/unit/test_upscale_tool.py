@@ -5,9 +5,10 @@ Tests upscaling models, image processing, and utilities
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-import numpy as np
-from PIL import Image
 from pathlib import Path
+
+np = pytest.importorskip("numpy", reason="numpy not installed")
+Image = pytest.importorskip("PIL.Image", reason="Pillow not installed")
 
 
 @pytest.mark.unit
