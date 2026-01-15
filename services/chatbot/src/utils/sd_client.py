@@ -50,6 +50,8 @@ class StableDiffusionClient:
     def check_health(self) -> bool:
         """Kiểm tra xem Stable Diffusion API có đang chạy không"""
         try:
+            print(f"[SD Client] Checking health at {self.api_url}", flush=True)
+            
             # First check if there's a stuck job
             try:
                 progress_response = requests.get(f"{self.api_url}/sdapi/v1/progress", timeout=5)
@@ -63,12 +65,17 @@ class StableDiffusionClient:
                         requests.post(f"{self.api_url}/sdapi/v1/interrupt", timeout=5)
                         import time
                         time.sleep(2)  # Wait for interrupt to complete
-            except:
-                pass  # Ignore progress check errors
+            except Exception as e:
+                print(f"[SD Client] Progress check error (ignored): {e}", flush=True)
             
+            print(f"[SD Client] Checking /sdapi/v1/sd-models endpoint", flush=True)
             response = requests.get(f"{self.api_url}/sdapi/v1/sd-models", timeout=10)
+            print(f"[SD Client] Response status: {response.status_code}", flush=True)
             return response.status_code == 200
-        except:
+        except Exception as e:
+            print(f"[SD Client] Health check failed: {e}", flush=True)
+            import traceback
+            print(f"[SD Client] Traceback: {traceback.format_exc()}", flush=True)
             return False
     
     def get_models(self) -> List[Dict]:

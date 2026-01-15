@@ -150,10 +150,10 @@ async def process_transcription(
                 timeout=1800  # 30 minutes
             )
             result = response.json()
-        elif model == "gemini":
-            # Call Gemini proxy service
+        elif model == "grok":
+            # Call GROK proxy service
             response = requests.post(
-                "http://gemini-proxy:8004/transcribe",
+                "http://grok-proxy:8004/transcribe",
                 json={"audio_path": audio_path, "language": language},
                 timeout=1800  # 30 minutes
             )
@@ -231,7 +231,7 @@ async def health_check():
         ("t5", "http://t5-service:8001/health"),
         ("phowhisper", "http://phowhisper-service:8002/health"),
         ("whisper", "http://whisper-service:8003/health"),
-        ("gemini", "http://gemini-proxy:8004/health")
+        ("grok", "http://grok-proxy:8004/health")
     ]
     
     for service_name, url in model_services:

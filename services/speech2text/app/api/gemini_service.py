@@ -59,9 +59,9 @@ async def health_check():
     
     return {
         "status": "healthy",
-        "service": "gemini-proxy",
+        "service": "grok-proxy",
         "timestamp": time.time(),
-        "gemini": gemini_status,
+        "grok": gemini_status,
         "redis": redis_status
     }
 
@@ -109,9 +109,9 @@ Y[?]U C[?]U:
 
 TRANSCRIPT CU[?]I:"""
 
-        # Call Gemini API
+        # Call GROK API
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=prompt
         )
         fused_text = response.text.strip()

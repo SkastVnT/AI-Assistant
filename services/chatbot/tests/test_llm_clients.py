@@ -12,32 +12,32 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 class TestGeminiClient:
     """Tests for Gemini AI client"""
     
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_gemini_initialization(self, mock_gemini):
         """Test Gemini client initialization"""
         from app import app
         assert app is not None
     
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_gemini_generate_response(self, mock_gemini):
         """Test Gemini response generation"""
-        # Mock the model and response
-        mock_model = MagicMock()
+        # Mock the client and response
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Test response from Gemini"
-        mock_model.generate_content.return_value = mock_response
-        mock_gemini.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_gemini.return_value = mock_client
         
         # Test would go here when we extract LLM logic to separate module
         assert True
     
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_gemini_error_handling(self, mock_gemini):
         """Test Gemini error handling"""
         # Mock an error
-        mock_model = MagicMock()
-        mock_model.generate_content.side_effect = Exception("API Error")
-        mock_gemini.return_value = mock_model
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = Exception("API Error")
+        mock_gemini.return_value = mock_client
         
         # Should handle error gracefully
         assert True

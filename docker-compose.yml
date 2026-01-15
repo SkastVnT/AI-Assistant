@@ -1,0 +1,310 @@
+# =============================================================================
+# AI-Assistant - Docker Compose Production Setup
+# Version: 3.0.0
+# Description: Complete multi-service AI platform with database persistence
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # ===========================================================================
+  # DATABASE SERVICES
+  # ===========================================================================
+  
+  mongodb:
+    image: mongo:7.0
+    container_name: ai-assistant-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
+      MONGO_INITDB_DATABASE: ai_assistant
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./docker/mongo-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-assistant-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================================================
+  # CORE SERVICES
+  # ===========================================================================
+
+  hub-gateway:
+    build:
+      context: ./services/hub-gateway
+      dockerfile: Dockerfile
+    container_name: ai-hub-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+    volumes:
+      - ./logs/hub-gateway:/app/logs
+      - ./data/hub-gateway:/app/data
+    networks:
+      - ai-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  chatbot:
+    build:
+      context: ./services/chatbot
+      dockerfile: Dockerfile
+    container_name: ai-chatbot
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./services/chatbot/.env
+    environment:
+      - FLASK_ENV=production
+      - ENVIRONMENT=production
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+    volumes:
+      - ./services/chatbot/Storage:/app/Storage
+      - ./services/chatbot/data:/app/data
+      - ./services/chatbot/local_data:/app/local_data
+      - ./logs/chatbot:/app/logs
+    networks:
+      - ai-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  text2sql:
+    build:
+      context: ./services/text2sql
+      dockerfile: Dockerfile
+    container_name: ai-text2sql
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./services/text2sql/.env
+    environment:
+      - FLASK_ENV=production
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
+    volumes:
+      - ./services/text2sql/data:/app/data
+      - ./services/text2sql/uploads:/app/uploads
+      - ./logs/text2sql:/app/logs
+    networks:
+      - ai-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  document-intelligence:
+    build:
+      context: ./services/document-intelligence
+      dockerfile: Dockerfile
+    container_name: ai-document-intelligence
+    restart: unless-stopped
+    ports:
+      - "5003:5003"
+    env_file:
+      - ./services/document-intelligence/.env
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./services/document-intelligence/output:/app/output
+      - ./logs/document-intelligence:/app/logs
+    networks:
+      - ai-network
+
+  # ===========================================================================
+  # GPU SERVICES (Optional - require NVIDIA GPU)
+  # ===========================================================================
+
+  speech2text:
+    build:
+      context: ./services/speech2text
+      dockerfile: Dockerfile
+    container_name: ai-speech2text
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./services/speech2text/.env
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./services/speech2text/data:/app/data
+      - ./services/speech2text/results:/app/results
+      - ./logs/speech2text:/app/logs
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu
+
+  stable-diffusion:
+    build:
+      context: ./services/stable-diffusion
+      dockerfile: Dockerfile
+    container_name: ai-stable-diffusion
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    env_file:
+      - ./services/stable-diffusion/.env
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./services/stable-diffusion/models:/app/models
+      - ./services/stable-diffusion/outputs:/app/outputs
+      - ./logs/stable-diffusion:/app/logs
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu
+
+  image-upscale:
+    build:
+      context: ./services/image-upscale
+      dockerfile: Dockerfile
+    container_name: ai-image-upscale
+    restart: unless-stopped
+    ports:
+      - "7863:7863"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./services/image-upscale/outputs:/app/outputs
+      - ./logs/image-upscale:/app/logs
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu
+
+  lora-training:
+    build:
+      context: ./services/lora-training
+      dockerfile: Dockerfile
+    container_name: ai-lora-training
+    restart: unless-stopped
+    ports:
+      - "7862:7862"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./services/lora-training/models:/app/models
+      - ./services/lora-training/datasets:/app/datasets
+      - ./logs/lora-training:/app/logs
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu
+
+  # ===========================================================================
+  # MONITORING & MANAGEMENT
+  # ===========================================================================
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: ai-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGOEXPRESS_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGOEXPRESS_PASSWORD:-admin123}
+    networks:
+      - ai-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    profiles:
+      - management
+
+# ===========================================================================
+# NETWORKS
+# ===========================================================================
+
+networks:
+  ai-network:
+    driver: bridge
+    name: ai-assistant-network
+
+# ===========================================================================
+# VOLUMES
+# ===========================================================================
+
+volumes:
+  mongodb_data:
+    name: ai-assistant-mongodb-data
+  mongodb_config:
+    name: ai-assistant-mongodb-config
+  redis_data:
+    name: ai-assistant-redis-data

@@ -27,7 +27,7 @@ ChatBot service uses **MongoDB Atlas** (cloud-hosted) for storing conversations,
 {
   _id: ObjectId,
   user_id: string,
-  model: string,  // 'gemini-2.0-flash', 'gpt-4', etc.
+  model: string,  // 'grok-3', 'gpt-4', etc.
   title: string,
   system_prompt: string,
   total_messages: int,
@@ -261,7 +261,7 @@ from config.mongodb_helpers import ConversationDB, MessageDB
 # Create conversation
 conv = ConversationDB.create_conversation(
     user_id="user_123",
-    model="gemini-2.0-flash",
+    model="grok-3",
     title="New Chat"
 )
 

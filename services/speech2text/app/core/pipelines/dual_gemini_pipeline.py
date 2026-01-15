@@ -245,9 +245,9 @@ try:
 
 **CHI TRA VE BAN TRANSCRIPT CUOI CUNG, KHONG GIAI THICH.**"""
 
-    print("[AI] Sending to Gemini AI...")
+    print("[AI] Sending to GROK AI...")
     response = client.models.generate_content(
-        model='gemini-2.0-flash',
+        model='grok-3',
         contents=prompt
     )
     fused_text = response.text.strip()

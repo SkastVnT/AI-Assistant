@@ -10,9 +10,43 @@ from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Add project root to Python path (ensure it's first)
+# IMPORTANT: This must happen before any imports that might pull from services/chatbot/src
+project_root = Path(__file__).parent.parent.resolve()
+project_root_str = str(project_root)
+
+# Remove chatbot src path if present (it conflicts with main src)
+chatbot_src = project_root / 'services' / 'chatbot'
+chatbot_src_str = str(chatbot_src)
+if chatbot_src_str in sys.path:
+    sys.path.remove(chatbot_src_str)
+
+# Remove any existing project root entry and add at front
+if project_root_str in sys.path:
+    sys.path.remove(project_root_str)
+sys.path.insert(0, project_root_str)
+
+# Clear any wrong 'src' module from cache
+# This can happen if services/chatbot was added to path before project root
+if 'src' in sys.modules:
+    src_module = sys.modules['src']
+    if hasattr(src_module, '__file__') and src_module.__file__:
+        src_path = Path(src_module.__file__).parent.resolve()
+        if 'services' in str(src_path) or 'chatbot' in str(src_path):
+            # Wrong src module, clear it and all submodules
+            to_remove = [key for key in sys.modules if key == 'src' or key.startswith('src.')]
+            for key in to_remove:
+                del sys.modules[key]
+
+
+@pytest.fixture(autouse=True)
+def ensure_project_root_in_path():
+    """Ensure project root is always first in sys.path before each test"""
+    if project_root_str not in sys.path or sys.path.index(project_root_str) != 0:
+        if project_root_str in sys.path:
+            sys.path.remove(project_root_str)
+        sys.path.insert(0, project_root_str)
+    yield
 
 
 # ============================================================================
@@ -27,7 +61,7 @@ def setup_test_environment():
     os.environ["FLASK_ENV"] = "testing"
     
     # Mock API keys to avoid leaking real credentials
-    os.environ["GEMINI_API_KEY"] = "test-gemini-key-12345"
+    os.environ["GROK_API_KEY"] = "test-grok-key-12345"
     os.environ["OPENAI_API_KEY"] = "test-openai-key-12345"
     os.environ["GROQ_API_KEY"] = "test-groq-key-12345"
     os.environ["DEEPSEEK_API_KEY"] = "test-deepseek-key-12345"
@@ -160,15 +194,15 @@ def text2sql_client(text2sql_app):
 # ============================================================================
 
 @pytest.fixture
-def mock_gemini_model():
-    """Mock Google Gemini API"""
-    mock_model = MagicMock()
+def mock_grok_model():
+    """Mock GROK API"""
+    mock_client = MagicMock()
     mock_response = MagicMock()
-    mock_response.text = "This is a mocked Gemini response"
-    mock_model.generate_content.return_value = mock_response
+    mock_response.choices = [MagicMock(message=MagicMock(content="This is a mocked GROK response"))]
+    mock_client.chat.completions.create.return_value = mock_response
     
-    with patch('google.generativeai.GenerativeModel', return_value=mock_model):
-        yield mock_model
+    with patch('openai.OpenAI', return_value=mock_client):
+        yield mock_client
 
 
 @pytest.fixture

@@ -48,7 +48,7 @@ def test_conversation_operations():
         print("\n📝 Creating test conversation...")
         conv = ConversationDB.create_conversation(
             user_id="test_user_001",
-            model="gemini-2.0-flash-thinking-exp",
+            model="grok-3",
             title="Test Conversation"
         )
         print(f"✅ Created conversation: {conv['_id']}")
@@ -101,7 +101,7 @@ def test_message_operations(conversation_id: str):
             role="assistant",
             content="Hello! This is a test response.",
             metadata={
-                "model": "gemini-2.0-flash",
+                "model": "grok-3",
                 "tokens": 25,
                 "generation_time_ms": 500
             }

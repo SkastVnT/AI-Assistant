@@ -8,13 +8,13 @@ gpt41.py — Flask backend cho Text-to-SQL + Memory
 - Flow chat:
     1) Tìm câu hỏi trong dataset (base + memory). Có -> trả SQL ngay.
     2) Không có -> trả lời hỏi xác nhận (needs_confirmation=true).
-    3) Nếu user trả "có/đồng ý" -> mới gọi Gemini generate SQL -> trả về kèm needs_check=true.
+    3) Nếu user trả "có/đồng ý" -> mới gọi GROK generate SQL -> trả về kèm needs_check=true.
     4) Frontend có thể gọi /check để approve -> lưu vào knowledge_base/memory_sample.txt
 
 - Có /evaluate: đọc data/eval.jsonl để tính Exact Match Accuracy (so sánh chuỗi).
 
 YÊU CẦU:
-- ENV: GEMINI_API_KEY
+- ENV: GROK_API_KEY (Gemini đã bị xóa)
 - Thư mục: uploads/, data/, knowledge_base/
 """
 
@@ -23,7 +23,7 @@ import os
 import random
 import re
 
-from google import genai
+# NOTE: Gemini đã bị xóa - không import google.genai
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
@@ -40,10 +40,10 @@ except Exception:
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 load_dotenv(env_path)
 REQUIRE_KNOWN_TABLE = os.getenv("SQLCODER_REQUIRE_KNOWN_TABLE", "1") == "1"
-gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# NOTE: Gemini đã bị xóa - sử dụng GROK thay thế
 SQLCODER_BACKEND = os.getenv("SQLCODER_BACKEND", "hf").lower()
 SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "defog/sqlcoder-7b-2")
-REFINE_STRATEGY = os.getenv("REFINE_STRATEGY", "gemini").lower()
+REFINE_STRATEGY = os.getenv("REFINE_STRATEGY", "grok").lower()
 
 # ====== GROK API Configuration ======
 GROK_API_KEY = os.getenv("GROK_API_KEY")
@@ -61,7 +61,6 @@ DEEPSEEK_API_BASE = "https://api.deepseek.com"
 print(f"[CONFIG] GROK_API_KEY: {'✓ Loaded' if GROK_API_KEY else '✗ Missing'}")
 print(f"[CONFIG] OPENAI_API_KEY: {'✓ Loaded' if OPENAI_API_KEY else '✗ Missing'}")
 print(f"[CONFIG] DEEPSEEK_API_KEY: {'✓ Loaded' if DEEPSEEK_API_KEY else '✗ Missing'}")
-print(f"[CONFIG] GEMINI_API_KEY: {'✓ Loaded' if os.getenv('GEMINI_API_KEY') else '✗ Missing'}")
 print(f"[CONFIG] DEFAULT_MODEL: {DEFAULT_MODEL}")
 
 # Import OpenAI SDK
@@ -208,7 +207,7 @@ def save_to_memory(question: str, sql: str) -> None:
         )
 
 
-# ====== Gemini Text-to-SQL ======
+# ====== Dataset lookup ======
 def find_in_dataset(question: str) -> str | None:
     q = (question or "").strip().lower()
     for item in load_dataset(ACTIVE_TABLES):
@@ -219,24 +218,10 @@ def find_in_dataset(question: str) -> str | None:
     return None
 
 
-# ====== Generate SQL with Gemini ======
+# NOTE: Gemini đã bị xóa - sử dụng GROK thay thế
 def generate_sql_with_gemini(schema_text: str, question: str) -> str:
-    prompt = f"""
-You are an SQL expert.
-Here is/are database schema(s):
-
-{schema_text}
-
-User question: {question}
-
-Write a valid SQL query (ClickHouse style).
-Do not explain, just output the SQL.
-"""
-    resp = gemini_client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=prompt
-    )
-    return resp.text.strip()
+    """Deprecated: Redirect to GROK"""
+    return generate_sql_with_grok(schema_text, question)
 
 
 # ====== Generate SQL with GROK (Default) ======
@@ -398,40 +383,12 @@ Constraints:
     return response.choices[0].message.content.strip()
 
 
+# NOTE: Gemini đã bị xóa - hàm này redirect sang GROK
 def generate_refined_sql(
     schema_text: str, question: str, prev_sql: str, feedback: str, extra_context: str
 ) -> str:
-    fb = (feedback or "").strip()
-    extra = (extra_context or "").strip()
-    prompt = f"""
-You are an advanced SQL engineer specialized in ClickHouse.
-
-Database schema(s):
-{schema_text}
-
-User question:
-{question}
-
-Previous SQL (needs fix):
-{prev_sql}
-
-Short critique of what's wrong:
-{fb if fb else "The previous SQL did not fully answer the question."}
-
-Additional user notes / constraints to apply:
-{extra if extra else "(no additional notes)"}
-
-Revise the SQL so that it correctly answers the question.
-Constraints:
-- Use ClickHouse SQL dialect.
-- Keep it as a single final query if possible.
-- Return ONLY the final SQL, no explanation.
-"""
-    resp = gemini_client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=prompt
-    )
-    return resp.text.strip()
+    """Deprecated: Redirect to GROK refine"""
+    return generate_refined_sql_with_grok(schema_text, question, prev_sql, feedback, extra_context)
 
 
 def infer_table_from_sql(sql: str) -> str | None:
@@ -762,7 +719,7 @@ def hybrid_refine_sql(
 ) -> tuple[str, str]:
     """
     Trả về (sql, source):
-      source in {"refined_grok","refined_gemini","refined_sqlcoder","refined_sqlcoder+gemini"}
+      source in {"refined_grok","refined_sqlcoder","refined_sqlcoder+grok"}
     """
     model = model or DEFAULT_MODEL
     
@@ -772,10 +729,10 @@ def hybrid_refine_sql(
             sql = generate_refined_sql_with_grok(schema_text, question, prev_sql, feedback, extra)
             return extract_sql(sql), "refined_grok"
         except Exception as e:
-            # Fallback to Gemini
-            print(f"Grok refine error: {e}, falling back to Gemini")
-            sql = extract_sql(generate_refined_sql(schema_text, question, prev_sql, feedback, extra))
-            return sql, "refined_gemini"
+            # Fallback to SQLCoder
+            print(f"Grok refine error: {e}, falling back to SQLCoder")
+            sql = generate_refined_sql_with_sqlcoder(schema_text, question, prev_sql, feedback, extra) or ""
+            return sql, "refined_sqlcoder"
     
     if model == "sqlcoder" or REFINE_STRATEGY == "sqlcoder":
         sql1 = (
@@ -786,34 +743,15 @@ def hybrid_refine_sql(
         )
         return sql1, "refined_sqlcoder"
 
-    if model == "gemini" or REFINE_STRATEGY == "gemini":
-        sql2 = extract_sql(
-            generate_refined_sql(schema_text, question, prev_sql, feedback, extra)
-        )
-        return sql2, "refined_gemini"
-
-    # cascade
-    sql1 = (
-        generate_refined_sql_with_sqlcoder(
-            schema_text, question, prev_sql, feedback, extra
-        )
-        or ""
-    )
-    if (
-        sql1
-        and looks_valid_sql(sql1)
-        and sql1.strip().lower() != prev_sql.strip().lower()
-    ):
-        return sql1, "refined_sqlcoder"
-    # fallback Gemini
+    # Default to GROK
     sql2 = extract_sql(
-        generate_refined_sql(schema_text, question, prev_sql, feedback, extra)
+        generate_refined_sql_with_grok(schema_text, question, prev_sql, feedback, extra)
     )
-    return sql2, "refined_sqlcoder+gemini"
+    return sql2, "refined_grok"
 
 
 # =====================================================#
-# ------- Router: SQLCoder → (fallback) Gemini -------
+# ------- Router: SQLCoder → (fallback) GROK -------
 
 # ====== Hybrid Strategy ======
 HYBRID_STRATEGY = os.getenv("HYBRID_STRATEGY", "cascade").lower()
@@ -839,8 +777,8 @@ def looks_valid_sql(sql: str) -> bool:
 # ====== Hybrid Generate SQL ======
 def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> tuple[str, str]:
     """
-    Trả (sql, source): source in {"grok","openai","deepseek","sqlcoder","gemini","sqlcoder+gemini","cascade"}
-    model: "grok" (default), "openai", "deepseek", "gemini", "sqlcoder", "cascade"
+    Trả (sql, source): source in {"grok","openai","deepseek","sqlcoder","sqlcoder+grok","cascade"}
+    model: "grok" (default), "openai", "deepseek", "sqlcoder", "cascade"
     """
     model = model or DEFAULT_MODEL
     
@@ -896,8 +834,9 @@ def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> t
                 return extract_sql(sql), "grok"
             raise Exception("DeepSeek and Grok not available")
     
+    # Redirect gemini to grok (Gemini đã bị xóa)
     if model == "gemini" or HYBRID_STRATEGY == "gemini_only":
-        return generate_sql_with_gemini(schema_text, question), "gemini"
+        return generate_sql_with_grok(schema_text, question), "grok"
 
     if model == "sqlcoder" or HYBRID_STRATEGY == "sqlcoder_only":
         sql1 = generate_sql_with_sqlcoder(schema_text, question)
@@ -908,9 +847,9 @@ def hybrid_generate_sql(schema_text: str, question: str, model: str = None) -> t
     if sql1 and looks_valid_sql(sql1):
         return sql1, "sqlcoder"
 
-    # nếu sql1 None/rỗng -> gọi Gemini
-    sql2 = generate_sql_with_gemini(schema_text, question)
-    return sql2, ("sqlcoder+gemini" if sql1 else "gemini")
+    # nếu sql1 None/rỗng -> gọi GROK
+    sql2 = generate_sql_with_grok(schema_text, question)
+    return sql2, ("sqlcoder+grok" if sql1 else "grok")
 
 
 # ===== Pretrain helpers =====
@@ -1039,9 +978,9 @@ def pretrain_after_upload(
         tried += 1
         raw = None
         src = None
-        if strategy == "gemini":
-            raw = generate_sql_with_gemini(schema_text, question)
-            src = "gemini"
+        if strategy == "grok":
+            raw = generate_sql_with_grok(schema_text, question)
+            src = "grok"
         elif strategy == "cascade":
             raw, _ = hybrid_generate_sql(schema_text, question)
             src = "cascade"
@@ -1106,10 +1045,10 @@ def pretrain_after_upload(
                     "SQLCoder-7B-2"
                     if src == "sqlcoder"
                     else (
-                        "Gemini"
-                        if src == "gemini"
+                        "GROK"
+                        if src == "grok"
                         else (
-                            "SQLCoder-7B-2 → Gemini (cascade)"
+                            "SQLCoder-7B-2 → GROK (cascade)"
                             if src == "cascade"
                             else src
                         )
@@ -1240,9 +1179,9 @@ def pretrain_after_upload(
     for question, _tbl in pairs:
         tried += 1
         # chọn model sinh SQL
-        if strategy == "gemini":
-            raw = generate_sql_with_gemini(schema_text, question)
-            src = "gemini"
+        if strategy == "grok":
+            raw = generate_sql_with_grok(schema_text, question)
+            src = "grok"
         elif strategy == "cascade":
             raw, _ = hybrid_generate_sql(schema_text, question)
             src = "cascade"
@@ -1734,7 +1673,7 @@ def evaluate():
             if not q or not g:
                 continue
             try:
-                sql_pred = generate_sql_with_gemini(schema_text, q).strip()
+                sql_pred = generate_sql_with_grok(schema_text, q).strip()
             except Exception as e:
                 sql_pred = f"ERROR: {e}"
             golds.append(g)

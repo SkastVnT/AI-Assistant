@@ -34,9 +34,9 @@ OCR_CONFIG = {
 }
 
 # AI Enhancement Configuration
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-ENABLE_AI_ENHANCEMENT = (os.getenv('ENABLE_AI_ENHANCEMENT', 'True') == 'True') and bool(GEMINI_API_KEY)
-AI_MODEL = os.getenv('AI_MODEL', 'gemini-2.0-flash')
+GROK_API_KEY = os.getenv('GROK_API_KEY', '')
+ENABLE_AI_ENHANCEMENT = (os.getenv('ENABLE_AI_ENHANCEMENT', 'True') == 'True') and bool(GROK_API_KEY)
+AI_MODEL = os.getenv('AI_MODEL', 'grok-3')
 
 # AI Features
 AI_FEATURES = {
@@ -68,6 +68,6 @@ __all__ = [
     'HOST', 'PORT', 'DEBUG',
     'MAX_FILE_SIZE', 'UPLOAD_FOLDER', 'OUTPUT_FOLDER',
     'OCR_CONFIG', 'PROCESSING_OPTIONS',
-    'GEMINI_API_KEY', 'ENABLE_AI_ENHANCEMENT', 'AI_MODEL', 'AI_FEATURES',
+    'GROK_API_KEY', 'ENABLE_AI_ENHANCEMENT', 'AI_MODEL', 'AI_FEATURES',
     'allowed_file'
 ]

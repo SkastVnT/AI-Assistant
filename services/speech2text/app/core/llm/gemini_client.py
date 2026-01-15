@@ -1,5 +1,5 @@
 """
-Gemini Client - Google Gemini 2.0 Flash (Free) for STT Transcript Cleaning
+GROK Client - xAI GROK-3 (Free) for STT Transcript Cleaning
 Cloud-based LLM for cleaning and enhancing speech-to-text transcripts
 """
 
@@ -22,21 +22,21 @@ except ImportError:
 
 class GeminiClient:
     """
-    Client for Google Gemini 2.0 Flash (Free) model
+    Client for xAI GROK-3 (Free) model
     Used for cleaning and enhancing STT transcripts
     """
     
     def __init__(
         self,
-        model_name: str = "gemini-2.0-flash",
+        model_name: str = "grok-3",
         api_key: Optional[str] = None,
     ):
         """
-        Initialize Gemini client
+        Initialize GROK client
         
         Args:
-            model_name: Gemini model name (default: gemini-2.0-flash - free tier)
-            api_key: Google API key (reads from GEMINI_API_KEY env if None)
+            model_name: GROK model name (default: grok-3 - free tier)
+            api_key: xAI API key (reads from GROK_API_KEY env if None)
         """
         if not GEMINI_AVAILABLE:
             raise ImportError("google-generativeai package not installed")

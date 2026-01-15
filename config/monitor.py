@@ -316,4 +316,7 @@ def register_monitor(app):
         register_monitor(app)
     """
     app.register_blueprint(monitor_bp)
-    print("✅ Monitor Dashboard registered at /monitor")
+    try:
+        print("✅ Monitor Dashboard registered at /monitor")
+    except UnicodeEncodeError:
+        print("[OK] Monitor Dashboard registered at /monitor")

@@ -153,7 +153,7 @@ Example: masterpiece, best quality, 1girl, blue hair, anime style, outdoors, sun
         
         # Generate caption
         response = self.client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=[prompt, image],
             safety_settings=self.safety_settings
         )
@@ -257,7 +257,7 @@ Output JSON format:
         
         # Generate analysis
         response = self.client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=[prompt] + image_objects,
             safety_settings=self.safety_settings
         )
@@ -328,7 +328,7 @@ Output JSON:
 }}"""
         
         response = self.client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=prompt,
             safety_settings=self.safety_settings
         )
@@ -390,7 +390,7 @@ Output: specific, comma-separated tags"""
         prompt = prompts.get(focus, prompts["quality"]).format(tags=tags)
         
         response = self.client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=prompt,
             safety_settings=self.safety_settings
         )
@@ -424,7 +424,7 @@ Answer: "OK" or "OUTLIER: reason"
 Be concise."""
                 
                 response = self.client.models.generate_content(
-                    model='gemini-2.0-flash',
+                    model='grok-3',
                     contents=[prompt, image],
                     safety_settings=self.safety_settings
                 )

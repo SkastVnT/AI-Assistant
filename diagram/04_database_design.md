@@ -317,7 +317,7 @@ erDiagram
     conversations {
         uuid id PK "UUID v4"
         int user_id FK "→ users.id"
-        string model "gemini-2.0/gpt-4"
+        string model "grok-3/gpt-4"
         string title "Conversation title"
         int total_messages "Message count"
         int total_tokens "Token usage"
@@ -732,7 +732,7 @@ CREATE INDEX idx_api_keys_hash ON user_api_keys(key_hash);
 CREATE TABLE conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    model VARCHAR(50) NOT NULL, -- 'gemini-2.0', 'gpt-4', etc.
+    model VARCHAR(50) NOT NULL, -- 'grok-3', 'gpt-4', etc.
     title VARCHAR(255),
     system_prompt TEXT,
     total_messages INTEGER DEFAULT 0,

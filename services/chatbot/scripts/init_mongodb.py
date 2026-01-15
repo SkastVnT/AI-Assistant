@@ -240,7 +240,7 @@ def insert_sample_data(db):
     # Sample conversation
     conversation = {
         "user_id": "demo_user_001",
-        "model": "gemini-2.0-flash-thinking-exp",
+        "model": "grok-3",
         "title": "Welcome to ChatBot v2.0",
         "system_prompt": "You are a helpful AI assistant.",
         "total_messages": 2,
@@ -274,11 +274,11 @@ def insert_sample_data(db):
         {
             "conversation_id": conv_id,
             "role": "assistant",
-            "content": "Hello! I'm ChatBot v2.0. I can help you with:\n\n1. 💬 Natural conversations\n2. 📁 File analysis (PDFs, images, code)\n3. 🎨 Image generation (via Stable Diffusion)\n4. 🧠 Memory and learning\n5. 🔧 Multiple AI models (Gemini, GPT, Qwen)\n\nHow can I assist you today?",
+            "content": "Hello! I'm ChatBot v2.0. I can help you with:\n\n1. 💬 Natural conversations\n2. 📁 File analysis (PDFs, images, code)\n3. 🎨 Image generation (via Stable Diffusion)\n4. 🧠 Memory and learning\n5. 🔧 Multiple AI models (GROK, GPT, Qwen)\n\nHow can I assist you today?",
             "images": [],
             "files": [],
             "metadata": {
-                "model": "gemini-2.0-flash-thinking-exp",
+                "model": "grok-3",
                 "tokens": 120,
                 "temperature": 0.7,
                 "finish_reason": "stop",
@@ -306,7 +306,7 @@ def insert_sample_data(db):
         "tags": ["introduction", "features", "chatbot"],
         "is_public": True,
         "metadata": {
-            "model_used": "gemini-2.0-flash-thinking-exp",
+            "model_used": "grok-3",
             "tokens": 80,
             "confidence_score": 0.98
         },
@@ -319,7 +319,7 @@ def insert_sample_data(db):
     settings = {
         "user_id": "demo_user_001",
         "chatbot_settings": {
-            "default_model": "gemini-2.0-flash-thinking-exp",
+            "default_model": "grok-3",
             "temperature": 0.7,
             "max_tokens": 2048,
             "system_prompt": "You are a helpful AI assistant.",

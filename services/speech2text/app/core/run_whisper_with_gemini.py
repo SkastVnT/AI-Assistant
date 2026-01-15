@@ -298,7 +298,7 @@ Transcript c[?] th[?] ch[?]a:
 
     try:
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='grok-3',
             contents=prompt
         )
         cleaned_text = response.text.strip()

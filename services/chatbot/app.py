@@ -1,24 +1,29 @@
-﻿"""
-AI ChatBot Agent - Há»— trá»£ tÃ¢m lÃ½, tÃ¢m sá»± vÃ  giáº£i phÃ¡p Ä‘á»i sá»‘ng
-Sử dụng Gemini, DeepSeek, OpenAI, Qwen, BloomVN và Local Models
 """
+ChatBot Flask Application - Modular Version
+============================================
 
+Main entry point for the ChatBot service.
+All routes are organized in separate blueprints under the routes/ folder.
+
+Structure:
+- core/config.py        - Configuration (API keys, paths)
+- core/extensions.py    - Extensions (MongoDB, cache, logger)
+- core/chatbot.py       - ChatbotAgent class
+- core/db_helpers.py    - Database helper functions
+- core/tools.py         - Tool functions (search)
+- routes/main.py        - Main routes (/, /chat, /clear, /history)
+- routes/conversations.py - Conversation CRUD
+- routes/stable_diffusion.py - Stable Diffusion routes
+- routes/memory.py      - AI Memory routes
+- routes/images.py      - Image storage routes
+- routes/mcp.py         - MCP integration routes
+"""
 import os
 import sys
-from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, session, send_file, send_from_directory
-import openai
-from google import genai
-from datetime import datetime
-import uuid
-import base64
-import io
-from PIL import Image
-import requests
 import logging
-import json
 from pathlib import Path
 import shutil
+from flask import Flask, send_from_directory
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -70,81 +75,23 @@ def sanitize_for_log(value: str) -> str:
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.INFO)
 
-# Load environment variables
-load_dotenv()
+# Add paths for imports
+CHATBOT_DIR = Path(__file__).parent.resolve()
+ROOT_DIR = CHATBOT_DIR.parent.parent
+sys.path.insert(0, str(CHATBOT_DIR))
+sys.path.insert(0, str(ROOT_DIR))
 
-# Import performance optimization utilities
-try:
-    from src.utils.cache_manager import get_cache_manager
-    from src.utils.database_manager import get_database_manager
-    from src.utils.streaming_handler import StreamingHandler
-    PERFORMANCE_ENABLED = True
-    logger.info("âœ… Performance optimization modules loaded")
-except Exception as e:
-    PERFORMANCE_ENABLED = False
-    logger.warning(f"âš ï¸ Performance modules not available: {e}")
+# Create Flask app
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
-# Import ImgBB uploader (easy API key)
-try:
-    from src.utils.imgbb_uploader import ImgBBUploader, upload_to_imgbb
-    CLOUD_UPLOAD_ENABLED = True
-    logger.info("âœ… ImgBB uploader loaded")
-except ImportError as e:
-    CLOUD_UPLOAD_ENABLED = False
-    logger.warning(f"âš ï¸ ImgBB uploader not available: {e}")
+# Configure static folder for Storage
+app.static_folder = str(CHATBOT_DIR / 'static')
 
-# Initialize performance components
-if PERFORMANCE_ENABLED:
-    cache = get_cache_manager()
-    db = get_database_manager()
-    streaming = StreamingHandler()
-    logger.info(f"âœ… Cache status: {cache.enabled}")
-    logger.info(f"âœ… Database status: {db.enabled}")
-else:
-    cache = None
-    db = None
-    streaming = None
+# Import and register extensions
+from core.extensions import logger, register_monitor
 
-# Import local model loader
-try:
-    # Attempt to import with timeout protection
-    import signal
-    
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Local model loader import timeout")
-    
-    # Set 10 second timeout for import (only on Unix-like systems)
-    try:
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(10)
-    except (AttributeError, ValueError):
-        # Windows doesn't support SIGALRM, skip timeout
-        pass
-    
-    from src.utils.local_model_loader import model_loader
-    
-    # Cancel alarm if import succeeded
-    try:
-        signal.alarm(0)
-    except (AttributeError, ValueError):
-        # Ignore alarm errors on Windows where signal.alarm is not supported
-        pass
-    
-    LOCALMODELS_AVAILABLE = True
-    logger.info("âœ… Local model loader imported successfully")
-except (ImportError, TimeoutError, Exception) as e:
-    LOCALMODELS_AVAILABLE = False
-    logger.warning(f"âš ï¸ Local models not available: {e}")
-    logger.info("ðŸ’¡ Local models disabled - ChatBot will work without them")
-
-# Initialize Flask app with static folder
-app = Flask(__name__, 
-            static_folder='static',
-            static_url_path='/static')
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
-
-# ðŸ†• Register Monitor Dashboard
-from config.monitor import register_monitor
+# Register monitor for health checks
 register_monitor(app)
 
 # Initialize MongoDB connection
@@ -3658,103 +3605,31 @@ def mcp_read_file():
         }), 500
 
 
-@app.route('/api/mcp/status', methods=['GET'])
-def mcp_status():
-    """Get MCP client status"""
-    try:
-        return jsonify({
-            'success': True,
-            'status': mcp_client.get_status()
-        })
-    except Exception as e:
-        logger.error(f"MCP status error: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Failed to get MCP status'
-        }), 500
+# Additional route for serving stored images
+@app.route('/static/Storage/Image_Gen/<filename>')
+def serve_storage_image(filename):
+    """Serve images from Storage/Image_Gen folder"""
+    storage_dir = CHATBOT_DIR / 'Storage' / 'Image_Gen'
+    return send_from_directory(storage_dir, filename)
 
 
-@app.route('/api/gallery/images', methods=['GET'])
-def get_gallery_images():
-    """
-    Get list of generated images from Storage/Image_Gen
-    Returns list of images with metadata
-    """
-    try:
-        storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
-        
-        if not storage_dir.exists():
-            return jsonify({
-                'success': True,
-                'images': [],
-                'total': 0
-            })
-        
-        images = []
-        
-        # Get all PNG files
-        png_files = sorted(storage_dir.glob('*.png'), key=lambda x: x.stat().st_mtime, reverse=True)
-        
-        for png_file in png_files:
-            # Try to load metadata from JSON file
-            json_file = png_file.with_suffix('.json')
-            metadata = {}
-            
-            if json_file.exists():
-                try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        metadata = json.load(f)
-                except Exception as e:
-                    logger.warning(f"[Gallery] Failed to load metadata from {json_file}: {e}")
-            
-            # Get file info
-            stat = png_file.stat()
-            
-            images.append({
-                'filename': png_file.name,
-                'path': f'/storage/images/{png_file.name}',
-                'size': stat.st_size,
-                'created': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
-                'prompt': metadata.get('prompt', 'N/A'),
-                'model': metadata.get('model', 'N/A'),
-                'metadata': metadata
-            })
-        
-        logger.info(f"[Gallery] Found {len(images)} images")
-        
-        return jsonify({
-            'success': True,
-            'images': images,
-            'total': len(images)
-        })
-        
-    except Exception as e:
-        # Log full exception details and stack trace on the server,
-        # but return only a generic error message to the client.
-        logger.exception("[Gallery] Error while listing images")
-        return jsonify({
-            'success': False,
-            'error': 'Failed to load gallery images'
-        }), 500
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return {'error': 'Not found'}, 404
 
 
-@app.route('/storage/images/<path:filename>')
-def serve_generated_image(filename):
-    """Serve generated images from Storage/Image_Gen"""
-    try:
-        storage_dir = Path(__file__).parent / 'Storage' / 'Image_Gen'
-        return send_from_directory(storage_dir, filename)
-    except Exception as e:
-        logger.error(f"[Serve Image] Error: {e}")
-        return jsonify({'error': 'Image not found'}), 404
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal error: {error}")
+    return {'error': 'Internal server error'}, 500
 
 
+# Main entry point
 if __name__ == '__main__':
-    import os
-    # Use environment variable to control debug mode
-    # Set DEBUG=1 for development, otherwise production mode
     debug_mode = os.getenv('DEBUG', '0') == '1'
-    host = os.getenv('HOST', '127.0.0.1')  # Default to localhost for security
-    port = int(os.getenv('CHATBOT_PORT', '5000'))  # Changed from PORT to CHATBOT_PORT
+    host = os.getenv('HOST', '127.0.0.1')
+    port = int(os.getenv('CHATBOT_PORT', '5000'))
     
+    logger.info(f"🚀 Starting ChatBot on {host}:{port} (debug={debug_mode})")
     app.run(debug=debug_mode, host=host, port=port)

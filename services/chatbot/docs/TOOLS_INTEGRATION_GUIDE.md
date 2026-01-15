@@ -284,7 +284,7 @@ tools = [
 ]
 
 # Use with model
-model = genai.GenerativeModel('gemini-2.0-flash', tools=tools)
+model = genai.GenerativeModel('grok-3', tools=tools)
 response = model.generate_content("Find me Python web frameworks on GitHub")
 
 # Check if model wants to call a function

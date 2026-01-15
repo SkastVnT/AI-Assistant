@@ -6,10 +6,11 @@ Tests training configuration, dataset handling, and model operations
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 import json
-import yaml
 from pathlib import Path
-import torch
-import numpy as np
+
+yaml = pytest.importorskip("yaml", reason="yaml not installed")
+torch = pytest.importorskip("torch", reason="torch not installed")
+np = pytest.importorskip("numpy", reason="numpy not installed")
 
 
 @pytest.mark.unit
@@ -450,34 +451,41 @@ class TestRedisIntegration:
 
 
 @pytest.mark.unit
-class TestGeminiAssistant:
-    """Test Gemini AI assistant for prompts"""
+class TestGrokAssistant:
+    """Test GROK AI assistant for prompts"""
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_prompt_enhancement(self, mock_model):
-        """Test enhancing prompts with Gemini"""
+    @patch('openai.OpenAI')
+    def test_prompt_enhancement(self, mock_client):
+        """Test enhancing prompts with GROK"""
         mock_response = MagicMock()
-        mock_response.text = "masterpiece, best quality, 1girl, beautiful face, detailed eyes, long flowing hair"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="masterpiece, best quality, 1girl, beautiful face, detailed eyes, long flowing hair"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
         
         simple_prompt = "a girl"
-        enhanced = model.generate_content(f"Enhance this prompt: {simple_prompt}")
+        enhanced = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": f"Enhance this prompt: {simple_prompt}"}]
+        )
         
-        assert len(enhanced.text) > len(simple_prompt)
-        assert 'masterpiece' in enhanced.text
+        content = enhanced.choices[0].message.content
+        assert len(content) > len(simple_prompt)
+        assert 'masterpiece' in content
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_nsfw_content_detection(self, mock_model):
+    @patch('openai.OpenAI')
+    def test_nsfw_content_detection(self, mock_client):
         """Test NSFW content detection"""
         mock_response = MagicMock()
-        mock_response.text = "SAFE"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="SAFE"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
         
-        result = model.generate_content("Check if this content is safe")
-        assert result.text == "SAFE"
+        result = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Check if this content is safe"}]
+        )
+        assert result.choices[0].message.content == "SAFE"

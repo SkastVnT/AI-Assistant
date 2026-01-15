@@ -30,7 +30,7 @@ AI Assistant provides RESTful APIs for all services. This document details avail
 ```json
 {
   "message": "Hello, how are you?",
-  "model": "gemini",  // Options: "gemini", "gpt4", "deepseek", "qwen"
+  "model": "grok",  // Options: "grok", "openai", "deepseek", "qwen"
   "context": "casual",  // Options: "casual", "psychological", "lifestyle", "programming"
   "session_id": "optional-session-id",
   "files": [
@@ -47,7 +47,7 @@ AI Assistant provides RESTful APIs for all services. This document details avail
 ```json
 {
   "response": "Hello! I'm doing well, thank you for asking...",
-  "model": "gemini",
+  "model": "grok",
   "session_id": "abc123",
   "timestamp": "2025-11-04T10:30:00Z",
   "tokens_used": 150
@@ -66,7 +66,7 @@ curl -X POST http://localhost:5001/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Explain Python decorators",
-    "model": "gemini",
+    "model": "grok",
     "context": "programming"
   }'
 ```
@@ -77,7 +77,7 @@ import requests
 
 response = requests.post('http://localhost:5001/chat', json={
     'message': 'Explain Python decorators',
-    'model': 'gemini',
+    'model': 'grok',
     'context': 'programming'
 })
 

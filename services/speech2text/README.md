@@ -754,7 +754,7 @@ Rất tốt! Chúng ta bắt đầu với phần tổng quan nhé.
   "models": {
     "whisper": "large-v3",
     "phowhisper": "large",
-    "gemini": "gemini-2.0-flash-exp",
+    "grok": "grok-3",
     "diarization": "pyannote.audio-3.1"
   },
   "accuracy_estimate": 0.97

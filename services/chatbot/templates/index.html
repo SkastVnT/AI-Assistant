@@ -4,6 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI ChatBot Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2',
+                        accent: '#f093fb',
+                        dark: {
+                            bg: '#1a1a2e',
+                            surface: '#16213e',
+                            card: '#0f3460',
+                            text: '#e4e4e7',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'slide-in-right': 'slideInRight 0.3s ease-out',
+                        'pulse-soft': 'pulseSoft 2s infinite',
+                        'bounce-soft': 'bounceSoft 1s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { transform: 'translateX(20px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        },
+                        pulseSoft: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' },
+                        },
+                        bounceSoft: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Marked.js for Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Highlight.js for code syntax -->
@@ -14,28 +65,102 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Tailwind Enhancements -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass {
+                @apply bg-white/10 backdrop-blur-lg border border-white/20;
+            }
+            .glass-dark {
+                @apply bg-black/20 backdrop-blur-lg border border-white/10;
+            }
+            .gradient-primary {
+                @apply bg-gradient-to-r from-primary to-secondary;
+            }
+            .gradient-accent {
+                @apply bg-gradient-to-r from-primary via-accent to-secondary;
+            }
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+            }
+            .shadow-glow {
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+            }
+            .shadow-glow-sm {
+                box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 6px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-track {
+                @apply bg-gray-100 dark:bg-gray-800 rounded;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                @apply bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500;
+            }
+            .btn-primary {
+                @apply px-4 py-2 rounded-lg gradient-primary text-white font-medium 
+                       transition-all duration-200 hover:shadow-glow hover:scale-105 
+                       active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+            }
+            .btn-secondary {
+                @apply px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 
+                       text-gray-700 dark:text-gray-200 font-medium
+                       transition-all duration-200 hover:bg-gray-300 dark:hover:bg-gray-600
+                       active:scale-95;
+            }
+            .card {
+                @apply bg-white dark:bg-dark-surface rounded-xl shadow-lg 
+                       border border-gray-100 dark:border-gray-700 
+                       transition-all duration-200;
+            }
+            .card-hover {
+                @apply hover:shadow-xl hover:scale-[1.02] hover:border-primary/30;
+            }
+            .input-field {
+                @apply w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600
+                       bg-white dark:bg-dark-surface text-gray-800 dark:text-gray-200
+                       focus:ring-2 focus:ring-primary/50 focus:border-primary
+                       transition-all duration-200 outline-none;
+            }
+            .modal-overlay {
+                @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50 
+                       items-center justify-center;
+                display: none; /* Hidden by default, shown via JS */
+            }
+            .modal-overlay.active {
+                display: flex;
+                animation: fadeIn 0.3s ease-out;
+            }
+            .modal-content {
+                @apply bg-white dark:bg-dark-surface rounded-2xl shadow-2xl 
+                       max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto
+                       animate-slide-up;
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
     <!-- Sidebar Toggle (Mobile) -->
-    <div class="sidebar-toggle" id="sidebarToggle">
+    <div class="sidebar-toggle fixed top-4 left-4 z-50 md:hidden bg-primary text-white p-2 rounded-lg shadow-lg hover:shadow-glow transition-all duration-200" id="sidebarToggle">
         ☰
     </div>
     
     <div class="main-wrapper">
         <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar scrollbar-thin" id="sidebar">
             <div class="sidebar-header">
-                <h3 data-lang-key="sidebar.title">💬 Lịch sử Chat</h3>
-                <button class="new-chat-btn" id="newChatBtn" data-lang-key="sidebar.newChat">+ Mới</button>
+                <h3 class="text-lg font-semibold" data-lang-key="sidebar.title">💬 Lịch sử Chat</h3>
+                <button class="new-chat-btn btn-primary text-sm" id="newChatBtn" data-lang-key="sidebar.newChat">+ Mới</button>
             </div>
-            <div style="padding: 10px; font-size: 11px; color: #888; border-bottom: 1px solid #333;">
+            <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                 <span id="storageInfo" data-lang-key="sidebar.calculating">Đang tính...</span>
             </div>
-            <div class="chat-list" id="chatList">
+            <div class="chat-list scrollbar-thin" id="chatList">
                 <!-- Chat items will be dynamically added here -->
             </div>
-            <div class="sidebar-footer">
-                <button class="gallery-btn" id="galleryBtn" title="Xem ảnh đã tạo">
+            <div class="sidebar-footer p-3">
+                <button class="gallery-btn w-full btn-secondary flex items-center justify-center gap-2" id="galleryBtn" title="Xem ảnh đã tạo">
                     🖼️ Gallery ảnh
                 </button>
             </div>
@@ -50,7 +175,7 @@
                     <p data-lang-key="app.subtitle">Hỗ trợ tâm lý, tâm sự và giải pháp đời sống, hỗ trợ lập trình chung</p>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <a href="https://github.com/SkastVnT/AI-Assistant/tree/master/ChatBot" target="_blank" rel="noopener noreferrer" class="github-badge">
+                    <a href="https://github.com/SkastVnT/AI-Assistant" target="_blank" rel="noopener noreferrer" class="github-badge">
                         <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
                             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
                         </svg>
@@ -61,13 +186,12 @@
             </div>
         </div>
         
-        <div class="controls">
-            <div class="control-group"> 
-                <label>
-                    <span data-lang-key="controls.model">Model:</span>
-                    <select id="modelSelect">
-                        <option value="grok" data-lang-key="model.grok">GROK (xAI) - FREE</option>
-                        <option value="gemini" data-lang-key="model.gemini">Gemini (Google) - FREE</option>
+        <div class="controls glass-dark backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/50">
+            <div class="control-group flex flex-wrap items-center gap-3 p-3"> 
+                <label class="flex items-center gap-2 text-sm">
+                    <span data-lang-key="controls.model" class="text-gray-600 dark:text-gray-300 font-medium">Model:</span>
+                    <select id="modelSelect" class="input-field bg-white/90 dark:bg-dark-surface/90 rounded-lg px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
+                        <option value="grok" data-lang-key="model.grok" selected>GROK (xAI) - FREE ⭐</option>
                         <option value="openai" data-lang-key="model.openai">GPT-4o-mini (OpenAI)</option>
                         <option value="deepseek" data-lang-key="model.deepseek">DeepSeek (Rẻ nhất)</option>
                         <option value="qwen" data-lang-key="model.qwen">Qwen1.5b (Alibaba Cloud)</option>
@@ -80,9 +204,9 @@
                     </select>
                 </label>
                 
-                <label>
-                    <span data-lang-key="controls.mode">Chế độ:</span>
-                    <select id="contextSelect">
+                <label class="flex items-center gap-2 text-sm">
+                    <span data-lang-key="controls.mode" class="text-gray-600 dark:text-gray-300 font-medium">Chế độ:</span>
+                    <select id="contextSelect" class="input-field bg-white/90 dark:bg-dark-surface/90 rounded-lg px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
                         <option value="casual" data-lang-key="controls.mode.casual">Trò chuyện vui vẻ</option>
                         <option value="psychological" data-lang-key="controls.mode.psychological">Tâm lý - Tâm sự</option>
                         <option value="lifestyle" data-lang-key="controls.mode.lifestyle">Giải pháp đời sống</option>
@@ -90,22 +214,22 @@
                     </select>
                 </label>
                 
-                <div class="checkbox-container" id="deepThinkingContainer">
-                    <input type="checkbox" id="deepThinkingCheck">
-                    <label for="deepThinkingCheck" data-lang-key="controls.deepThinking">🧠 Suy luận sâu</label>
+                <div class="checkbox-container flex items-center gap-2 bg-white/50 dark:bg-dark-surface/50 px-3 py-2 rounded-lg" id="deepThinkingContainer">
+                    <input type="checkbox" id="deepThinkingCheck" class="w-4 h-4 text-primary rounded focus:ring-primary/50">
+                    <label for="deepThinkingCheck" data-lang-key="controls.deepThinking" class="text-sm cursor-pointer">🧠 Suy luận sâu</label>
                 </div>
                 
-                <button class="download-btn" id="downloadBtn" title="Tải xuống lịch sử chat" data-lang-key="controls.download" data-lang-key-title="tooltip.download">
+                <button class="download-btn btn-secondary hover:shadow-glow-sm" id="downloadBtn" title="Tải xuống lịch sử chat" data-lang-key="controls.download" data-lang-key-title="tooltip.download">
                     📥 Tải chat
                 </button>
-                <button class="image-gen-btn" id="imageGenBtn" title="Tạo ảnh bằng AI" data-lang-key="controls.imageGen" data-lang-key-title="tooltip.imageGen">
+                <button class="image-gen-btn btn-primary hover:shadow-glow" id="imageGenBtn" title="Tạo ảnh bằng AI" data-lang-key="controls.imageGen" data-lang-key-title="tooltip.imageGen">
                     🎨 Tạo ảnh
                 </button>
-                <button class="memory-btn" id="memoryBtn" title="Quản lý bộ nhớ AI" data-lang-key="controls.memory" data-lang-key-title="tooltip.memory">
+                <button class="memory-btn btn-secondary hover:shadow-glow-sm" id="memoryBtn" title="Quản lý bộ nhớ AI" data-lang-key="controls.memory" data-lang-key-title="tooltip.memory">
                     🧠 AI học tập
                 </button>
-                <button class="dark-mode-toggle" id="darkModeBtn" title="Toggle Dark Mode" data-lang-key-title="tooltip.darkMode">🌙</button>
-                <button id="clearBtn" data-lang-key="controls.clear">🗑️ Xóa lịch sử</button>
+                <button class="dark-mode-toggle btn-secondary" id="darkModeBtn" title="Toggle Dark Mode" data-lang-key-title="tooltip.darkMode">🌙</button>
+                <button id="clearBtn" data-lang-key="controls.clear" class="btn-secondary hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200">🗑️ Xóa lịch sử</button>
             </div>
         </div>
         
@@ -117,7 +241,7 @@
                     <div class="message assistant">
                         <div class="message-content">
                             <div data-lang-key="chat.welcome">Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>
-                            <div class="message-info">Gemini • <span data-lang-key="controls.mode.casual">Trò chuyện vui vẻ</span></div>
+                            <div class="message-info">GROK • <span data-lang-key="controls.mode.casual">Trò chuyện vui vẻ</span></div>
                         </div>
                     </div>
                 </div>
@@ -184,33 +308,33 @@
             </div>
         </div>
         
-        <div class="loading" id="loading">
+        <div class="loading animate-fade-in" id="loading">
             <div class="spinner"></div>
-            <span id="loadingText" data-lang-key="loading.thinking">Đang suy nghĩ...</span>
-            <button class="stop-generation-btn" id="stopGenerationBtn" data-lang-key="loading.stop">⏹️ Dừng lại</button>
+            <span id="loadingText" data-lang-key="loading.thinking" class="text-gray-600 dark:text-gray-300">Đang suy nghĩ...</span>
+            <button class="stop-generation-btn btn-secondary hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" id="stopGenerationBtn" data-lang-key="loading.stop">⏹️ Dừng lại</button>
         </div>
         
-        <div class="input-container">
-            <div class="input-tools">
-                <button class="tool-btn" id="customPromptBtn" title="Tùy chỉnh System Prompt" data-lang-key="tools.customPrompt" data-lang-key-title="tooltip.customPrompt">
+        <div class="input-container glass-dark backdrop-blur-md border-t border-gray-200/20 dark:border-gray-700/50">
+            <div class="input-tools flex flex-wrap gap-2 mb-3">
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200" id="customPromptBtn" title="Tùy chỉnh System Prompt" data-lang-key="tools.customPrompt" data-lang-key-title="tooltip.customPrompt">
                     🛠️ Custom Prompt
                 </button>
-                <button class="tool-btn" id="googleSearchBtn" title="Tìm kiếm Google" data-lang-key="tools.googleSearch" data-lang-key-title="tooltip.googleSearch">
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200" id="googleSearchBtn" title="Tìm kiếm Google" data-lang-key="tools.googleSearch" data-lang-key-title="tooltip.googleSearch">
                     🔍 Google Search
                 </button>
-                <button class="tool-btn" id="githubBtn" title="Kết nối GitHub" data-lang-key-title="tooltip.github">
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200" id="githubBtn" title="Kết nối GitHub" data-lang-key-title="tooltip.github">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
                     </svg>
                     <span data-lang-key="tools.github">GitHub</span>
                 </button>
-                <button class="tool-btn" id="imageGenToolBtn" title="Tạo ảnh từ text prompt (Text2Img)" data-lang-key="tools.text2img" data-lang-key-title="tooltip.text2img">
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200" id="imageGenToolBtn" title="Tạo ảnh từ text prompt (Text2Img)" data-lang-key="tools.text2img" data-lang-key-title="tooltip.text2img">
                     🎨 Text2Img
                 </button>
-                <button class="tool-btn" id="img2imgToolBtn" title="Tạo ảnh từ upload (Img2Img)" data-lang-key="tools.img2img" data-lang-key-title="tooltip.img2img">
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200" id="img2imgToolBtn" title="Tạo ảnh từ upload (Img2Img)" data-lang-key="tools.img2img" data-lang-key-title="tooltip.img2img">
                     🖼️ Img2Img
                 </button>
-                <button class="tool-btn" id="uploadFilesBtn" title="Upload tài liệu (txt, pdf, doc, code files)" data-lang-key="tools.uploadFiles" data-lang-key-title="tooltip.uploadFiles">
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200" id="uploadFilesBtn" title="Upload tài liệu (txt, pdf, doc, code files)" data-lang-key="tools.uploadFiles" data-lang-key-title="tooltip.uploadFiles">
                     📎 Upload Files
                 </button>
                 <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,image/*" multiple style="display: none;">
@@ -218,14 +342,15 @@
             <div class="file-list" id="fileList">
                 <!-- Uploaded files will appear here -->
             </div>
-            <div class="input-group">
+            <div class="input-group flex gap-3 items-end">
                 <textarea 
                     id="messageInput" 
                     placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng, Ctrl+V để paste)"
                     data-lang-key="input.placeholder"
                     rows="1"
+                    class="flex-1 input-field resize-none rounded-xl px-4 py-3 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 scrollbar-thin"
                 ></textarea>
-                <button id="sendBtn" data-lang-key="input.send">Gửi</button>
+                <button id="sendBtn" data-lang-key="input.send" class="btn-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-glow transition-all duration-200 transform hover:scale-105 active:scale-95">Gửi</button>
             </div>
         </div>
         </div> <!-- Close container -->
@@ -233,30 +358,30 @@
     
     <!-- Image Generation Modal -->
     <div id="imageGenModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 data-lang-key="imageGen.title">🎨 Tạo ảnh bằng AI</h2>
-                <button class="close-modal" onclick="closeImageModal()">&times;</button>
+        <div class="modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div class="modal-header flex justify-between items-center p-5 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 data-lang-key="imageGen.title" class="text-xl font-bold text-gradient">🎨 Tạo ảnh bằng AI</h2>
+                <button class="close-modal btn-secondary w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" onclick="closeImageModal()">&times;</button>
             </div>
             
-            <div id="sdStatus" class="sd-status offline" data-lang-key="imageGen.status.checking">
+            <div id="sdStatus" class="sd-status offline mx-5 mt-4 px-4 py-2 rounded-lg text-sm font-medium" data-lang-key="imageGen.status.checking">
                 Đang kiểm tra Stable Diffusion...
             </div>
 
             <!-- Tab Navigation -->
-            <div class="image-gen-tabs">
-                <button class="tab-btn active" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">
+            <div class="image-gen-tabs flex gap-2 p-4">
+                <button class="tab-btn active btn-primary px-4 py-2 rounded-lg font-medium transition-all duration-200" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">
                     ✍️ Tạo ảnh từ prompt
                 </button>
-                <button class="tab-btn" onclick="switchImageGenTab('img2img')" data-lang-key="imageGen.tab.img2img">
+                <button class="tab-btn btn-secondary px-4 py-2 rounded-lg font-medium transition-all duration-200" onclick="switchImageGenTab('img2img')" data-lang-key="imageGen.tab.img2img">
                     🖼️ Tạo ảnh theo hình ảnh
                 </button>
             </div>
 
             <!-- Shared Model Selection -->
-            <div class="form-group">
-                <label data-lang-key="imageGen.model">Model Checkpoint:</label>
-                <select id="modelCheckpoint">
+            <div class="form-group px-5 py-3">
+                <label data-lang-key="imageGen.model" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Model Checkpoint:</label>
+                <select id="modelCheckpoint" class="input-field w-full rounded-lg px-4 py-2 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
                     <option value="" data-lang-key="imageGen.model.loading">Đang tải...</option>
                 </select>
             </div>
@@ -365,7 +490,7 @@
                 </select>
             </div>
             
-            <button class="generate-btn" id="generateImageBtn" onclick="generateImage()">
+            <button class="generate-btn btn-primary w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-glow transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" id="generateImageBtn" onclick="generateImage()">
                 🎨 Tạo ảnh
             </button>
 
@@ -530,7 +655,7 @@
                     </select>
                 </div>
 
-                <button class="generate-btn" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>
+                <button class="generate-btn btn-primary w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-glow transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>
                     🎨 Tạo ảnh từ hình ảnh
                 </button>
 
@@ -538,7 +663,7 @@
             <!-- End Img2Img Tab -->
             
             <!-- Nút đóng ở cuối modal -->
-            <button class="modal-footer-close" onclick="closeImageModal()">
+            <button class="modal-footer-close btn-secondary w-full py-3 rounded-xl font-semibold mt-4 hover:bg-gray-600 hover:text-white transition-all duration-200" onclick="closeImageModal()">
                 ✓ Đóng
             </button>
             
@@ -582,32 +707,32 @@
     </div>
     
     <!-- Message History Modal -->
-    <div id="historyModal" class="history-modal">
-        <div class="history-modal-content">
-            <div class="modal-header">
-                <h2 data-lang-key="history.title">📜 Lịch sử chỉnh sửa</h2>
-                <button onclick="closeHistoryModal()" style="background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;" data-lang-key="history.close">Đóng</button>
+    <div id="historyModal" class="history-modal" style="display: none;">
+        <div class="history-modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-3xl w-full p-5">
+            <div class="modal-header flex justify-between items-center mb-4 pb-4 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 data-lang-key="history.title" class="text-xl font-bold text-gradient">📜 Lịch sử chỉnh sửa</h2>
+                <button onclick="closeHistoryModal()" class="btn-secondary px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" data-lang-key="history.close">Đóng</button>
             </div>
-            <div id="historyContent"></div>
+            <div id="historyContent" class="overflow-y-auto max-h-[60vh] scrollbar-thin"></div>
         </div>
     </div>
     
     <!-- Gallery Modal -->
-    <div id="galleryModal" class="gallery-modal">
-        <div class="gallery-modal-content">
-            <div class="modal-header">
-                <h2>🖼️ Gallery Ảnh Đã Tạo</h2>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="gallery-refresh-btn" onclick="refreshGallery()" title="Tải lại">
+    <div id="galleryModal" class="gallery-modal" style="display: none;">
+        <div class="gallery-modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+            <div class="modal-header flex justify-between items-center p-5 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 class="text-xl font-bold text-gradient">🖼️ Gallery Ảnh Đã Tạo</h2>
+                <div class="flex gap-3 items-center">
+                    <button class="gallery-refresh-btn btn-secondary px-4 py-2 rounded-lg hover:shadow-glow-sm transition-all duration-200" onclick="refreshGallery()" title="Tải lại">
                         🔄 Refresh
                     </button>
-                    <button class="close-modal" onclick="closeGallery()">&times;</button>
+                    <button class="close-modal btn-secondary w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" onclick="closeGallery()">&times;</button>
                 </div>
             </div>
-            <div class="gallery-stats" id="galleryStats" style="margin-bottom: 15px; color: #666; font-size: 14px;">
+            <div class="gallery-stats p-4 text-gray-600 dark:text-gray-400 text-sm border-b border-gray-200/20 dark:border-gray-700/30" id="galleryStats">
                 Đang tải...
             </div>
-            <div class="gallery-grid" id="galleryGrid">
+            <div class="gallery-grid p-4 overflow-y-auto max-h-[calc(90vh-150px)] scrollbar-thin" id="galleryGrid">
                 <!-- Gallery items will be loaded here -->
             </div>
         </div>
@@ -615,14 +740,14 @@
     
     <!-- Custom Prompt Modal -->
     <div id="customPromptModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 700px; margin: 50px auto;">
-            <div class="modal-header">
-                <h2>🛠️ <span data-lang-key="customPrompt.title">Custom System Prompt</span></h2>
-                <button class="close-modal" onclick="closeCustomPromptModal()">&times;</button>
+        <div class="modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+            <div class="modal-header flex justify-between items-center mb-5 pb-4 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 class="text-xl font-bold text-gradient">🛠️ <span data-lang-key="customPrompt.title">Custom System Prompt</span></h2>
+                <button class="close-modal btn-secondary w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" onclick="closeCustomPromptModal()">&times;</button>
             </div>
             
-            <div class="form-group">
-                <label data-lang-key="customPrompt.description">
+            <div class="form-group mb-4">
+                <label data-lang-key="customPrompt.description" class="block text-sm text-gray-600 dark:text-gray-300 mb-3">
                     Nhập system prompt tùy chỉnh của bạn. Nếu để trống, ChatBot sẽ sử dụng base prompt mặc định.
                 </label>
                 <textarea 
@@ -630,32 +755,30 @@
                     rows="10" 
                     placeholder="Ví dụ: Bạn là một chuyên gia về lập trình Python với 10 năm kinh nghiệm..."
                     data-lang-key="customPrompt.placeholder"
-                    style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; font-size: 14px;"
+                    class="w-full input-field rounded-xl px-4 py-3 font-mono text-sm border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 scrollbar-thin"
                 ></textarea>
             </div>
             
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+            <div class="flex gap-3 justify-end mb-4">
                 <button 
                     onclick="clearCustomPrompt()" 
-                    class="secondary-btn"
+                    class="btn-secondary px-5 py-2.5 rounded-lg font-medium hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200"
                     data-lang-key="customPrompt.clear"
-                    style="padding: 10px 20px; background: #888; color: white; border: none; border-radius: 8px; cursor: pointer;"
                 >
                     🗑️ Xóa
                 </button>
                 <button 
                     onclick="saveCustomPrompt()" 
-                    class="primary-btn"
+                    class="btn-primary px-5 py-2.5 rounded-lg font-medium shadow-lg hover:shadow-glow transition-all duration-200"
                     data-lang-key="customPrompt.save"
-                    style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer;"
                 >
                     💾 Lưu
                 </button>
             </div>
             
-            <div style="margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 8px; font-size: 12px;">
-                <strong data-lang-key="customPrompt.note">📝 Lưu ý:</strong>
-                <ul style="margin: 5px 0; padding-left: 20px;">
+            <div class="p-4 bg-gray-100/50 dark:bg-dark-surface/50 rounded-xl text-xs text-gray-600 dark:text-gray-400">
+                <strong data-lang-key="customPrompt.note" class="block mb-2 text-gray-800 dark:text-gray-200">📝 Lưu ý:</strong>
+                <ul class="list-disc pl-5 space-y-1">
                     <li data-lang-key="customPrompt.note1">Custom prompt sẽ ghi đè lên prompt mặc định của chế độ hiện tại</li>
                     <li data-lang-key="customPrompt.note2">Để trống và nhấn "Lưu" để quay lại sử dụng base prompt</li>
                     <li data-lang-key="customPrompt.note3">Custom prompt được lưu trong session hiện tại</li>

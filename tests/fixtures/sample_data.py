@@ -200,9 +200,9 @@ SAMPLE_SQL_QA = [
 # Sample API Responses
 # ============================================================================
 
-SAMPLE_GEMINI_RESPONSE = {
-    "text": "This is a sample response from Gemini AI. It demonstrates natural language understanding and generation capabilities.",
-    "model": "gemini-pro",
+SAMPLE_GROK_RESPONSE = {
+    "text": "This is a sample response from GROK AI. It demonstrates natural language understanding and generation capabilities.",
+    "model": "grok-3",
     "timestamp": "2025-12-10T10:00:00"
 }
 
@@ -329,7 +329,7 @@ __all__ = [
     'SAMPLE_SCHEMA_ECOMMERCE',
     'SAMPLE_SCHEMA_BLOG',
     'SAMPLE_SQL_QA',
-    'SAMPLE_GEMINI_RESPONSE',
+    'SAMPLE_GROK_RESPONSE',
     'SAMPLE_OPENAI_RESPONSE',
     'SAMPLE_SD_RESPONSE',
     'SAMPLE_IMAGE_BASE64',

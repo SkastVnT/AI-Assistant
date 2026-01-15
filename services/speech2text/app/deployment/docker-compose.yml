@@ -112,17 +112,17 @@ services:
       - s2t-network
 
   # =============================================================================
-  # GEMINI PROXY SERVICE - Cloud AI Integration
+  # GROK PROXY SERVICE - Cloud AI Integration
   # =============================================================================
-  gemini-proxy:
+  grok-proxy:
     build:
       context: .
-      dockerfile: docker/Dockerfile.gemini
-    container_name: s2t-gemini
+      dockerfile: docker/Dockerfile.grok
+    container_name: s2t-grok
     ports:
       - "8004:8004"
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROK_API_KEY=${GROK_API_KEY}
       - REDIS_URL=redis://redis:6379
     depends_on:
       - redis

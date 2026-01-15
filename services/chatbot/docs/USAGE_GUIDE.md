@@ -69,7 +69,7 @@ Mở trình duyệt: http://127.0.0.1:5000
 - Giới hạn: ~5-10MB (~1000 cuộc trò chuyện)
 
 ### Title Generation
-- Gemini API **MIỄN PHÍ** (gemini-2.0-flash)
+- GROK API **MIỄN PHÍ** (grok-3)
 - Tự động tạo sau tin nhắn đầu tiên
 - Nếu lỗi → dùng 30 ký tự đầu của tin nhắn
 
@@ -86,7 +86,7 @@ Mở trình duyệt: http://127.0.0.1:5000
 - Clear browser cache
 
 ### Title không tự động tạo?
-- Check Gemini API key trong `.env`
+- Check GROK API key trong `.env`
 - Check console (F12) xem có lỗi không
 - Fallback sẽ dùng 30 ký tự đầu
 

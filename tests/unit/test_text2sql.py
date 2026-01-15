@@ -143,30 +143,33 @@ class TestQuestionGeneration:
 
 @pytest.mark.unit
 @pytest.mark.text2sql
-class TestGeminiIntegration:
-    """Test Gemini AI integration for SQL generation"""
+class TestGrokIntegration:
+    """Test GROK AI integration for SQL generation"""
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_gemini_sql_generation(self, mock_model):
-        """Test SQL generation using Gemini"""
+    @patch('openai.OpenAI')
+    def test_grok_sql_generation(self, mock_client):
+        """Test SQL generation using GROK"""
         # Setup mock response
         mock_response = MagicMock()
-        mock_response.text = "SELECT * FROM users WHERE age > 25 LIMIT 100;"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_response.choices = [MagicMock(message=MagicMock(content="SELECT * FROM users WHERE age > 25 LIMIT 100;"))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        # Test
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
+        # Test with GROK API (OpenAI compatible)
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
         
         prompt = "Generate SQL to get users older than 25"
-        response = model.generate_content(prompt)
+        response = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": prompt}]
+        )
         
-        assert "SELECT" in response.text
-        assert "users" in response.text
-        assert "LIMIT" in response.text
+        assert "SELECT" in response.choices[0].message.content
+        assert "users" in response.choices[0].message.content
+        assert "LIMIT" in response.choices[0].message.content
     
-    def test_gemini_with_schema_context(self, mock_gemini_model, sample_schema):
-        """Test Gemini with schema context"""
+    def test_grok_with_schema_context(self, mock_grok_model, sample_schema):
+        """Test GROK with schema context"""
         # Create prompt with schema
         prompt = f"""
         Database Schema:
@@ -178,15 +181,18 @@ class TestGeminiIntegration:
         """
         
         # Mock should return something
-        response = mock_gemini_model.generate_content(prompt)
-        assert response.text is not None
+        response = mock_grok_model.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": prompt}]
+        )
+        assert response.choices[0].message.content is not None
     
-    @patch('google.generativeai.GenerativeModel')
-    def test_gemini_deep_thinking_mode(self, mock_model):
-        """Test Gemini with deep thinking mode"""
+    @patch('openai.OpenAI')
+    def test_grok_deep_thinking_mode(self, mock_client):
+        """Test GROK with deep thinking mode"""
         # Setup mock
         mock_response = MagicMock()
-        mock_response.text = """
+        mock_response.choices = [MagicMock(message=MagicMock(content="""
         Step 1: Identify tables needed: users, orders
         Step 2: Join condition: users.id = orders.user_id
         Step 3: Aggregation: COUNT(orders.id)
@@ -196,16 +202,20 @@ class TestGeminiIntegration:
         LEFT JOIN orders o ON u.id = o.user_id
         GROUP BY u.id, u.name
         LIMIT 100;
-        """
-        mock_model.return_value.generate_content.return_value = mock_response
+        """))]
+        mock_client.return_value.chat.completions.create.return_value = mock_response
         
-        # Test
-        import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content("Generate query with thinking")
+        # Test with GROK API
+        import openai
+        client = openai.OpenAI(api_key='test-key', base_url='https://api.x.ai/v1')
+        response = client.chat.completions.create(
+            model='grok-3',
+            messages=[{"role": "user", "content": "Generate query with thinking"}]
+        )
         
-        assert "Step" in response.text
-        assert "SELECT" in response.text
+        content = response.choices[0].message.content
+        assert "Step" in content
+        assert "SELECT" in content
 
 
 @pytest.mark.unit

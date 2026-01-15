@@ -4,7 +4,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-black?style=flat-square&logo=flask)
-![Gemini](https://img.shields.io/badge/Gemini-2.0%20Flash-orange?style=flat-square)
+![GROK](https://img.shields.io/badge/GROK-3-orange?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 **Transform natural language questions into precise SQL queries using AI**
@@ -36,7 +36,7 @@
 
 ### 🤖 AI Models Supported
 
-- ✅ **Gemini 2.0 Flash** (Google) - Primary, FREE
+- ✅ **GROK-3** (xAI) - Primary, FREE
 - ✅ **GPT-4o-mini** (OpenAI) - Fast & affordable
 - ✅ **DeepSeek** - Most cost-effective
 
@@ -47,7 +47,7 @@
 ### Prerequisites
 
 - Python 3.10+
-- Gemini API Key (required) - Get free at [Google AI Studio](https://makersuite.google.com/app/apikey)
+- GROK API Key (required) - Get free at [xAI Console](https://console.x.ai/)
 
 ### Installation
 

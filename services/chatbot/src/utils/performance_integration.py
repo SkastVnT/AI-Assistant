@@ -123,9 +123,9 @@ def chat_stream():
         conversation += f"User: {message}\nAssistant:"
         
         # Create streaming generator based on model
-        if model == 'gemini':
-            gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-            generator = streaming.stream_gemini_response(gemini_model, conversation)
+        if model == 'grok':
+            grok_model = genai.GenerativeModel('grok-3')
+            generator = streaming.stream_gemini_response(grok_model, conversation)
         
         elif model == 'openai':
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
