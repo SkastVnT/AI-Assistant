@@ -102,11 +102,13 @@ class MemoryController:
             
             memory = self.memory_service.update(memory_id, updates)
             
-            logger.info(f"✅ Updated memory: {str(memory_id).replace('\n', ' ').replace('\r', '')}")
+            safe_id = str(memory_id).replace('\n', ' ').replace('\r', '')
+            logger.info(f"✅ Updated memory: {safe_id}")
             return memory
             
         except Exception as e:
-            logger.error(f"❌ Error updating memory: {str(e).replace('\n', ' ').replace('\r', '')}")
+            safe_error = str(e).replace('\n', ' ').replace('\r', '')
+            logger.error(f"❌ Error updating memory: {safe_error}")
             raise
     
     def delete_memory(self, memory_id: str) -> Dict[str, Any]:
@@ -114,11 +116,13 @@ class MemoryController:
         try:
             self.memory_service.delete(memory_id)
             
-            logger.info(f"✅ Deleted memory: {str(memory_id).replace('\n', ' ').replace('\r', '')}")
+            safe_id = str(memory_id).replace('\n', ' ').replace('\r', '')
+            logger.info(f"✅ Deleted memory: {safe_id}")
             return {'deleted': True, 'memory_id': memory_id}
             
         except Exception as e:
-            logger.error(f"❌ Error deleting memory: {str(e).replace('\n', ' ').replace('\r', '')}")
+            safe_error = str(e).replace('\n', ' ').replace('\r', '')
+            logger.error(f"❌ Error deleting memory: {safe_error}")
             raise
     
     def search_memories(

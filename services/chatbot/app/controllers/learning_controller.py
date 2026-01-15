@@ -84,10 +84,13 @@ class LearningController:
         """Reject learning data"""
         try:
             result = self.learning_service.reject(data_id, reason)
-            logger.info(f"✅ Rejected learning data: {str(data_id).replace('\n', ' ').replace('\r', '')} - {str(reason).replace('\n', ' ').replace('\r', '')}")
+            safe_id = str(data_id).replace('\n', ' ').replace('\r', '')
+            safe_reason = str(reason).replace('\n', ' ').replace('\r', '')
+            logger.info(f"✅ Rejected learning data: {safe_id} - {safe_reason}")
             return result
         except Exception as e:
-            logger.error(f"❌ Error rejecting learning data: {str(e).replace('\n', ' ').replace('\r', '')}")
+            safe_error = str(e).replace('\n', ' ').replace('\r', '')
+            logger.error(f"❌ Error rejecting learning data: {safe_error}")
             raise
     
     def extract_from_conversation(

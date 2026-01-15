@@ -88,7 +88,8 @@ class SettingsController:
                 prompt=prompt
             )
             
-            logger.info(f"✅ Created custom prompt: {name.replace('\n', ' ').replace('\r', '') if isinstance(name, str) else name}")
+            safe_name = name.replace('\n', ' ').replace('\r', '') if isinstance(name, str) else name
+            logger.info(f"✅ Created custom prompt: {safe_name}")
             return result
             
         except Exception as e:
