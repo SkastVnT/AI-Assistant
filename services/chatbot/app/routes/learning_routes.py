@@ -4,11 +4,13 @@ Learning Routes
 API endpoints for AI self-learning capabilities.
 """
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from ..controllers.learning_controller import LearningController
+import logging
 
 learning_bp = Blueprint('learning', __name__)
 controller = LearningController()
+logger = logging.getLogger(__name__)
 
 
 @learning_bp.route('/data', methods=['GET'])
@@ -41,7 +43,8 @@ def list_learning_data():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error listing learning data: {str(e)}")
+        return jsonify({'error': 'Failed to list learning data'}), 500
 
 
 @learning_bp.route('/data', methods=['POST'])
@@ -76,7 +79,8 @@ def submit_learning_data():
         return jsonify(result), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error submitting learning data: {str(e)}")
+        return jsonify({'error': 'Failed to submit learning data'}), 500
 
 
 @learning_bp.route('/data/<data_id>/approve', methods=['POST'])
@@ -86,7 +90,8 @@ def approve_learning_data(data_id: str):
         result = controller.approve_learning_data(data_id)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error approving learning data: {str(e)}")
+        return jsonify({'error': 'Failed to approve learning data'}), 500
 
 
 @learning_bp.route('/data/<data_id>/reject', methods=['POST'])
@@ -105,7 +110,8 @@ def reject_learning_data(data_id: str):
         )
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error rejecting learning data: {str(e)}")
+        return jsonify({'error': 'Failed to reject learning data'}), 500
 
 
 @learning_bp.route('/extract', methods=['POST'])
@@ -131,7 +137,8 @@ def extract_from_conversation():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error extracting learning data: {str(e)}")
+        return jsonify({'error': 'Failed to extract learning data'}), 500
 
 
 @learning_bp.route('/stats', methods=['GET'])
@@ -141,7 +148,8 @@ def get_learning_stats():
         result = controller.get_stats()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting learning stats: {str(e)}")
+        return jsonify({'error': 'Failed to get learning stats'}), 500
 
 
 @learning_bp.route('/deleted-conversations', methods=['GET'])
@@ -161,4 +169,5 @@ def list_deleted_conversations():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error listing deleted conversations: {str(e)}")
+        return jsonify({'error': 'Failed to list deleted conversations'}), 500

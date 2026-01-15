@@ -6,9 +6,11 @@ API endpoints for AI memory/knowledge base management.
 
 from flask import Blueprint, request, jsonify, session
 from ..controllers.memory_controller import MemoryController
+import logging
 
 memory_bp = Blueprint('memory', __name__)
 controller = MemoryController()
+logger = logging.getLogger(__name__)
 
 
 @memory_bp.route('/', methods=['GET'])
@@ -69,7 +71,8 @@ def create_memory():
         return jsonify(result), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error creating memory: {str(e)}")
+        return jsonify({'error': 'Failed to create memory'}), 500
 
 
 @memory_bp.route('/<memory_id>', methods=['GET'])
@@ -84,7 +87,8 @@ def get_memory(memory_id: str):
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting memory: {str(e)}")
+        return jsonify({'error': 'Failed to get memory'}), 500
 
 
 @memory_bp.route('/<memory_id>', methods=['PUT'])
@@ -105,7 +109,8 @@ def update_memory(memory_id: str):
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error updating memory: {str(e)}")
+        return jsonify({'error': 'Failed to update memory'}), 500
 
 
 @memory_bp.route('/<memory_id>', methods=['DELETE'])
@@ -115,7 +120,8 @@ def delete_memory(memory_id: str):
         result = controller.delete_memory(memory_id)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error deleting memory: {str(e)}")
+        return jsonify({'error': 'Failed to delete memory'}), 500
 
 
 @memory_bp.route('/search', methods=['GET'])
@@ -141,4 +147,5 @@ def search_memories():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error searching memories: {str(e)}")
+        return jsonify({'error': 'Failed to search memories'}), 500

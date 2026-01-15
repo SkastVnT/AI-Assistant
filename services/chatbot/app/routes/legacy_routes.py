@@ -8,10 +8,12 @@ Maps old endpoints to new API structure.
 from flask import Blueprint, request, jsonify, session, render_template
 from ..controllers.chat_controller import ChatController
 from ..controllers.conversation_controller import ConversationController
+import logging
 
 legacy_bp = Blueprint('legacy', __name__)
 chat_controller = ChatController()
 conversation_controller = ConversationController()
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -61,7 +63,8 @@ def legacy_chat():
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error in legacy chat: {str(e)}")
+        return jsonify({'error': 'Failed to process chat message'}), 500
 
 
 @legacy_bp.route('/conversations', methods=['GET'])
@@ -72,7 +75,8 @@ def legacy_list_conversations():
         result = conversation_controller.list_conversations(user_id=user_id)
         return jsonify({'conversations': result.get('conversations', [])}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error listing conversations: {str(e)}")
+        return jsonify({'error': 'Failed to list conversations'}), 500
 
 
 @legacy_bp.route('/new_conversation', methods=['POST'])
@@ -145,7 +149,8 @@ def legacy_save_memory():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error creating memory: {str(e)}")
+        return jsonify({'error': 'Failed to create memory'}), 500
 
 
 # ============================================================================

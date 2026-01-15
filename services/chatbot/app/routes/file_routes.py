@@ -6,9 +6,11 @@ API endpoints for file upload and management.
 
 from flask import Blueprint, request, jsonify, session, send_file
 from ..controllers.file_controller import FileController
+import logging
 
 file_bp = Blueprint('files', __name__)
 controller = FileController()
+logger = logging.getLogger(__name__)
 
 
 @file_bp.route('/', methods=['GET'])
@@ -19,7 +21,8 @@ def list_files():
         result = controller.list_files(user_id=user_id)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error listing files: {str(e)}")
+        return jsonify({'error': 'Failed to list files'}), 500
 
 
 @file_bp.route('/', methods=['POST'])
@@ -42,7 +45,8 @@ def upload_file():
         return jsonify(result), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error uploading file: {str(e)}")
+        return jsonify({'error': 'Failed to upload file'}), 500
 
 
 @file_bp.route('/<file_id>', methods=['GET'])
@@ -57,7 +61,8 @@ def get_file(file_id: str):
         return send_file(file_path)
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting file: {str(e)}")
+        return jsonify({'error': 'Failed to get file'}), 500
 
 
 @file_bp.route('/<file_id>', methods=['DELETE'])
@@ -67,4 +72,5 @@ def delete_file(file_id: str):
         result = controller.delete_file(file_id)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error deleting file: {str(e)}")
+        return jsonify({'error': 'Failed to delete file'}), 500

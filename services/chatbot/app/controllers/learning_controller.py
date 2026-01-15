@@ -5,8 +5,7 @@ Handles AI self-learning operations.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 from ..services.learning_service import LearningService
 
@@ -85,10 +84,10 @@ class LearningController:
         """Reject learning data"""
         try:
             result = self.learning_service.reject(data_id, reason)
-            logger.info(f"✅ Rejected learning data: {data_id} - {reason}")
+            logger.info(f"✅ Rejected learning data: {str(data_id).replace('\n', ' ').replace('\r', '')} - {str(reason).replace('\n', ' ').replace('\r', '')}")
             return result
         except Exception as e:
-            logger.error(f"❌ Error rejecting learning data: {e}")
+            logger.error(f"❌ Error rejecting learning data: {str(e).replace('\n', ' ').replace('\r', '')}")
             raise
     
     def extract_from_conversation(

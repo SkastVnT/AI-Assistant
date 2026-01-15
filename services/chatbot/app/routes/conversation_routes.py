@@ -6,9 +6,11 @@ API endpoints for managing conversations.
 
 from flask import Blueprint, request, jsonify, session
 from ..controllers.conversation_controller import ConversationController
+import logging
 
 conversation_bp = Blueprint('conversations', __name__)
 controller = ConversationController()
+logger = logging.getLogger(__name__)
 
 
 @conversation_bp.route('/', methods=['GET'])
@@ -72,7 +74,8 @@ def get_conversation(conversation_id: str):
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting conversation: {str(e)}")
+        return jsonify({'error': 'Failed to get conversation'}), 500
 
 
 @conversation_bp.route('/', methods=['POST'])
@@ -100,7 +103,8 @@ def create_conversation():
         return jsonify(result), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error creating conversation: {str(e)}")
+        return jsonify({'error': 'Failed to create conversation'}), 500
 
 
 @conversation_bp.route('/<conversation_id>', methods=['PUT'])
@@ -124,7 +128,8 @@ def update_conversation(conversation_id: str):
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error updating conversation: {str(e)}")
+        return jsonify({'error': 'Failed to update conversation'}), 500
 
 
 @conversation_bp.route('/<conversation_id>', methods=['DELETE'])
@@ -148,7 +153,8 @@ def delete_conversation(conversation_id: str):
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error deleting conversation: {str(e)}")
+        return jsonify({'error': 'Failed to delete conversation'}), 500
 
 
 @conversation_bp.route('/<conversation_id>/archive', methods=['POST'])

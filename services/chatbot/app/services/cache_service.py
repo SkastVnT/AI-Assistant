@@ -18,9 +18,16 @@ class CacheService:
     def __init__(self, app: Flask = None):
         self._cache: dict = {}
         self._enabled = True
+        self._redis_client = None
         
         if app:
             self._enabled = app.config.get('CACHE_ENABLED', True)
+            # Get redis client once during initialization to avoid cyclic import
+            try:
+                from ..extensions import get_redis
+                self._redis_client = get_redis()
+            except (ImportError, Exception):
+                pass
     
     def get(self, key: str) -> Optional[Any]:
         """Get a cached value"""
@@ -28,11 +35,8 @@ class CacheService:
             return None
         
         try:
-            from ..extensions import get_redis
-            redis_client = get_redis()
-            
-            if redis_client:
-                value = redis_client.get(key)
+            if self._redis_client:
+                value = self._redis_client.get(key)
                 return value
             else:
                 return self._cache.get(key)
@@ -47,11 +51,8 @@ class CacheService:
             return False
         
         try:
-            from ..extensions import get_redis
-            redis_client = get_redis()
-            
-            if redis_client:
-                redis_client.setex(key, ttl, value)
+            if self._redis_client:
+                self._redis_client.setex(key, ttl, value)
             else:
                 self._cache[key] = value
             
@@ -65,11 +66,8 @@ class CacheService:
     def delete(self, key: str) -> bool:
         """Delete a cached value"""
         try:
-            from ..extensions import get_redis
-            redis_client = get_redis()
-            
-            if redis_client:
-                redis_client.delete(key)
+            if self._redis_client:
+                self._redis_client.delete(key)
             elif key in self._cache:
                 del self._cache[key]
             
@@ -82,11 +80,8 @@ class CacheService:
     def clear(self) -> bool:
         """Clear all cached values"""
         try:
-            from ..extensions import get_redis
-            redis_client = get_redis()
-            
-            if redis_client:
-                redis_client.flushdb()
+            if self._redis_client:
+                self._redis_client.flushdb()
             else:
                 self._cache.clear()
             

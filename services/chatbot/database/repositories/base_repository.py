@@ -389,7 +389,8 @@ class BaseRepository(ABC, Generic[T]):
         try:
             if len(doc_id) == 24:
                 return ObjectId(doc_id)
-        except:
+        except Exception:
+            # Invalid ObjectId format, continue to return as string
             pass
         
         # Return as string (for UUID-style IDs)

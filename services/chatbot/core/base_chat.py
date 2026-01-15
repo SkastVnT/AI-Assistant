@@ -391,7 +391,8 @@ class QwenChat(BaseModelChat):
                                 content = chunk.get('choices', [{}])[0].get('delta', {}).get('content', '')
                                 if content:
                                     yield content
-                            except:
+                            except Exception:
+                                # Skip invalid JSON chunks during streaming
                                 pass
 
 

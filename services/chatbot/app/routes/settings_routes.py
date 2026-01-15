@@ -19,7 +19,8 @@ def get_settings():
         result = controller.get_settings(user_id)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting settings: {str(e)}")
+        return jsonify({'error': 'Failed to get settings'}), 500
 
 
 @settings_bp.route('/', methods=['PUT'])
@@ -45,7 +46,8 @@ def update_settings():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error updating settings: {str(e)}")
+        return jsonify({'error': 'Failed to update settings'}), 500
 
 
 @settings_bp.route('/custom-prompts', methods=['GET'])
@@ -56,7 +58,8 @@ def list_custom_prompts():
         result = controller.list_custom_prompts(user_id)
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error listing custom prompts: {str(e)}")
+        return jsonify({'error': 'Failed to list custom prompts'}), 500
 
 
 @settings_bp.route('/custom-prompts', methods=['POST'])
@@ -79,4 +82,5 @@ def create_custom_prompt():
         return jsonify(result), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error creating custom prompt: {str(e)}")
+        return jsonify({'error': 'Failed to create custom prompt'}), 500

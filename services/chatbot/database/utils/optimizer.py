@@ -372,7 +372,8 @@ class ConnectionPool:
             try:
                 server_info = cls._client.server_info()
                 stats['server_version'] = server_info.get('version')
-            except:
+            except Exception:
+                # Ignore if server info is unavailable
                 pass
         
         return stats

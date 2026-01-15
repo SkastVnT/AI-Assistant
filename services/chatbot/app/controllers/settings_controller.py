@@ -5,7 +5,7 @@ Handles user settings management.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from ..services.settings_service import SettingsService
 
@@ -88,7 +88,7 @@ class SettingsController:
                 prompt=prompt
             )
             
-            logger.info(f"✅ Created custom prompt: {name}")
+            logger.info(f"✅ Created custom prompt: {name.replace('\n', ' ').replace('\r', '') if isinstance(name, str) else name}")
             return result
             
         except Exception as e:

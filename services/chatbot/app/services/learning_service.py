@@ -251,7 +251,9 @@ class LearningService:
                     
                     cat = entry.get('category', 'unknown')
                     by_category[cat] = by_category.get(cat, 0) + 1
-            except Exception:
+            except Exception as e:
+                # Skip invalid entries
+                logger.debug(f"Skipping invalid learning entry: {e}")
                 pass
         
         archived_count = len(list(self.archive_path.glob('*.json')))

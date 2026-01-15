@@ -5,7 +5,6 @@ Handles file upload and management operations.
 """
 
 import logging
-import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 from werkzeug.datastructures import FileStorage

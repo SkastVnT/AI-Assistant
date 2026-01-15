@@ -6,10 +6,11 @@ API endpoints for chat functionality.
 
 from flask import Blueprint, request, jsonify, session
 from ..controllers.chat_controller import ChatController
-from ..middleware.auth import require_session
+import logging
 
 chat_bp = Blueprint('chat', __name__)
 controller = ChatController()
+logger = logging.getLogger(__name__)
 
 
 @chat_bp.route('/send', methods=['POST'])
@@ -99,4 +100,5 @@ def regenerate_response():
         return jsonify(result), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error regenerating response: {str(e)}")
+        return jsonify({'error': 'Failed to regenerate response'}), 500

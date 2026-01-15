@@ -5,8 +5,7 @@ Handles conversation management operations.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 from ..services.conversation_service import ConversationService
 from ..services.learning_service import LearningService
