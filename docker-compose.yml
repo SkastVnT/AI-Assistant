@@ -40,13 +40,13 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-ai_redis_2025}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
     volumes:
       - redis_data:/data
     networks:
       - ai-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ai_redis_2025}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,8 +65,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-ai_assistant_2025}@mongodb:27017/ai_assistant?authSource=admin
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-ai_redis_2025}@redis:6379
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
     volumes:
       - ./logs/hub-gateway:/app/logs
       - ./data/hub-gateway:/app/data
@@ -91,8 +91,8 @@ services:
     environment:
       - FLASK_ENV=production
       - ENVIRONMENT=production
-      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-ai_assistant_2025}@mongodb:27017/ai_assistant?authSource=admin
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-ai_redis_2025}@redis:6379
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
     volumes:
       - ./services/chatbot/Storage:/app/Storage
       - ./services/chatbot/data:/app/data
