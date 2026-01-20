@@ -39,7 +39,15 @@ export class UIUtils {
             newChatBtn: document.getElementById('newChatBtn'),
             sidebar: document.getElementById('sidebar'),
             sidebarToggle: document.getElementById('sidebarToggle'),
-            storageInfo: document.getElementById('storageInfo')
+            sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
+            storageInfo: document.getElementById('storageInfo'),
+            // MCP elements
+            mcpToggleBtn: document.getElementById('mcpToggleBtn'),
+            mcpSidebar: document.getElementById('mcpSidebar'),
+            mcpEnabledCheck: document.getElementById('mcpEnabledCheck'),
+            mcpTabFolder: document.getElementById('mcpTabFolder'),
+            mcpTabUrl: document.getElementById('mcpTabUrl'),
+            mcpTabUpload: document.getElementById('mcpTabUpload')
         };
 
         return this.elements;
@@ -97,11 +105,37 @@ export class UIUtils {
     }
 
     /**
-     * Toggle sidebar (mobile)
+     * Toggle sidebar (chat history)
      */
     toggleSidebar() {
         if (this.elements.sidebar) {
-            this.elements.sidebar.classList.toggle('show');
+            const isCollapsed = this.elements.sidebar.classList.toggle('collapsed');
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
+            const toggleIcon = document.getElementById('sidebarToggleIcon');
+            
+            if (toggleBtn) {
+                toggleBtn.classList.toggle('sidebar-open', !isCollapsed);
+            }
+            if (toggleIcon) {
+                toggleIcon.textContent = isCollapsed ? '▶' : '◀';
+            }
+            
+            // Save preference
+            localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+        }
+    }
+    
+    /**
+     * Initialize sidebar state from localStorage
+     */
+    initSidebarState() {
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed && this.elements.sidebar) {
+            this.elements.sidebar.classList.add('collapsed');
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
+            const toggleIcon = document.getElementById('sidebarToggleIcon');
+            if (toggleBtn) toggleBtn.classList.remove('sidebar-open');
+            if (toggleIcon) toggleIcon.textContent = '▶';
         }
     }
 
@@ -110,7 +144,9 @@ export class UIUtils {
      */
     closeSidebar() {
         if (this.elements.sidebar) {
-            this.elements.sidebar.classList.remove('show');
+            this.elements.sidebar.classList.add('collapsed');
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
+            if (toggleBtn) toggleBtn.classList.remove('sidebar-open');
         }
     }
 

@@ -63,11 +63,13 @@ class DatabaseManager:
                 maxPoolSize=50,  # Max 50 connections
                 minPoolSize=5,  # Min 5 connections
                 maxIdleTimeMS=60000,  # Close idle connections after 60s
-                serverSelectionTimeoutMS=3000,  # 3s timeout - fail fast
-                connectTimeoutMS=3000,  # 3s connection timeout - fail fast
-                socketTimeoutMS=3000,  # 3s socket timeout
+                serverSelectionTimeoutMS=5000,  # 5s timeout - fail fast
+                connectTimeoutMS=5000,  # 5s connection timeout - fail fast
+                socketTimeoutMS=5000,  # 5s socket timeout
                 retryWrites=True,  # Retry failed writes
                 retryReads=True,  # Retry failed reads
+                tls=True,  # Enable TLS for MongoDB Atlas
+                tlsAllowInvalidCertificates=True,  # Allow self-signed certs in dev
             )
             
             # Test connection with timeout

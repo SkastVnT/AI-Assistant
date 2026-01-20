@@ -20,7 +20,12 @@ try:
     from pymongo import MongoClient
     MONGO_URI = os.getenv('MONGODB_URI', '')
     if MONGO_URI:
-        mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        mongo_client = MongoClient(
+            MONGO_URI, 
+            serverSelectionTimeoutMS=5000,
+            tls=True,
+            tlsAllowInvalidCertificates=True
+        )
         mongo_db = mongo_client.get_default_database() or mongo_client['ai_assistant']
         images_collection = mongo_db['generated_images']
         logger.info("[ImageStorage] MongoDB connected")

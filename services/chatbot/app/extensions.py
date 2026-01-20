@@ -45,7 +45,12 @@ def init_mongodb(app: Flask) -> None:
         from pymongo import MongoClient
         
         uri = app.config.get('MONGODB_URI')
-        _mongodb_client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+        _mongodb_client = MongoClient(
+            uri, 
+            serverSelectionTimeoutMS=5000,
+            tls=True,
+            tlsAllowInvalidCertificates=True
+        )
         
         # Test connection
         _mongodb_client.admin.command('ping')

@@ -53,7 +53,9 @@ class DatabaseSession:
                 connectTimeoutMS=10000,
                 maxPoolSize=50,
                 minPoolSize=5,
-                retryWrites=True
+                retryWrites=True,
+                tls=True,
+                tlsAllowInvalidCertificates=True
             )
             
             # Test connection

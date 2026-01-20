@@ -88,8 +88,20 @@ werkzeug_logger.setLevel(logging.INFO)
 # Add paths for imports
 CHATBOT_DIR = Path(__file__).parent.resolve()
 ROOT_DIR = CHATBOT_DIR.parent.parent
-sys.path.insert(0, str(CHATBOT_DIR))
+# Insert ROOT_DIR first, then CHATBOT_DIR so CHATBOT_DIR has higher priority
 sys.path.insert(0, str(ROOT_DIR))
+sys.path.insert(0, str(CHATBOT_DIR))
+
+# Import OCR integration
+try:
+    from src.ocr_integration import ocr_client, extract_file_content
+    OCR_AVAILABLE = True
+    logger.info("✅ OCR Integration loaded")
+except ImportError as e:
+    OCR_AVAILABLE = False
+    logger.warning(f"⚠️ OCR Integration not available: {e}")
+    def extract_file_content(data, filename):
+        return False, ""
 
 # Create Flask app
 app = Flask(__name__)
@@ -1016,6 +1028,7 @@ def github_search_tool(query):
         return f"❌ Lỗi khi tìm kiếm GitHub: {str(e)}"
 
 
+@app.route('/')
 def index():
     """Home page - Original beautiful UI with full SDXL support"""
     if 'session_id' not in session:
@@ -1083,7 +1096,38 @@ def chat():
             
             # Handle uploaded files
             files = request.files.getlist('files')
-            # TODO: Process files if needed
+            file_contents = []
+            
+            # Process uploaded files with OCR
+            for file in files:
+                if file and file.filename:
+                    try:
+                        file_data = file.read()
+                        filename = file.filename
+                        logger.info(f"[UPLOAD] Processing file: {filename} ({len(file_data)} bytes)")
+                        
+                        success, extracted_text = extract_file_content(file_data, filename)
+                        
+                        if success and extracted_text:
+                            file_contents.append({
+                                "filename": filename,
+                                "content": extracted_text[:10000],  # Limit content
+                                "type": Path(filename).suffix.lower()
+                            })
+                            logger.info(f"[UPLOAD] Extracted {len(extracted_text)} chars from {filename}")
+                        else:
+                            logger.warning(f"[UPLOAD] Could not extract content from {filename}")
+                    except Exception as e:
+                        logger.error(f"[UPLOAD] Error processing {file.filename}: {e}")
+            
+            # Inject file contents into message
+            if file_contents:
+                file_context = "\n\n--- UPLOADED FILES ---\n"
+                for fc in file_contents:
+                    file_context += f"\n📄 **{fc['filename']}**:\n```{fc['type'][1:] if fc['type'] else 'text'}\n{fc['content']}\n```\n"
+                file_context += "--- END FILES ---\n\n"
+                message = file_context + message
+                logger.info(f"[UPLOAD] Injected {len(file_contents)} files into message")
         else:
             # JSON request
             data = request.json
@@ -3682,6 +3726,219 @@ def mcp_read_file():
         return jsonify({
             'success': False,
             'error': 'Failed to read file'
+        }), 500
+
+
+@app.route('/api/mcp/fetch-url', methods=['POST'])
+def mcp_fetch_url():
+    """Fetch and extract content from URL"""
+    try:
+        data = request.get_json()
+        url = data.get('url', '').strip()
+        
+        if not url:
+            return jsonify({
+                'success': False,
+                'error': 'URL is required'
+            }), 400
+        
+        # Add protocol if missing
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        import requests
+        from bs4 import BeautifulSoup
+        import mimetypes
+        
+        # Better headers to avoid 403
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
+        }
+        
+        session = requests.Session()
+        response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+        response.raise_for_status()
+        
+        content_type = response.headers.get('Content-Type', '').lower()
+        extracted_content = ""
+        content_title = url
+        
+        # Check if it's an image
+        if any(img_type in content_type for img_type in ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']):
+            # Use OCR to extract text from image
+            try:
+                from src.ocr_integration import ocr_client
+                import base64
+                image_b64 = base64.b64encode(response.content).decode('utf-8')
+                extracted_content = ocr_client.extract_text_from_image(image_b64)
+                content_title = f"Image: {url.split('/')[-1]}"
+            except Exception as ocr_error:
+                logger.warning(f"OCR failed for image URL: {ocr_error}")
+                extracted_content = f"[Image content from: {url}]"
+        
+        # Check if it's a PDF
+        elif 'application/pdf' in content_type:
+            try:
+                from src.ocr_integration import ocr_client
+                import base64
+                pdf_b64 = base64.b64encode(response.content).decode('utf-8')
+                extracted_content = ocr_client.extract_text_from_pdf(pdf_b64)
+                content_title = f"PDF: {url.split('/')[-1]}"
+            except Exception as pdf_error:
+                logger.warning(f"PDF extraction failed: {pdf_error}")
+                extracted_content = f"[PDF content from: {url}]"
+        
+        # HTML content
+        elif 'text/html' in content_type:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Get title
+            title_tag = soup.find('title')
+            if title_tag:
+                content_title = title_tag.get_text(strip=True)
+            
+            # Remove script, style, nav, footer elements
+            for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript']):
+                element.decompose()
+            
+            # Try to find main content
+            main_content = soup.find('main') or soup.find('article') or soup.find('div', {'class': ['content', 'main', 'post']})
+            if main_content:
+                extracted_content = main_content.get_text(separator='\n', strip=True)
+            else:
+                # Get body content
+                body = soup.find('body')
+                if body:
+                    extracted_content = body.get_text(separator='\n', strip=True)
+                else:
+                    extracted_content = soup.get_text(separator='\n', strip=True)
+            
+            # Clean up content - remove excessive newlines
+            import re
+            extracted_content = re.sub(r'\n{3,}', '\n\n', extracted_content)
+            extracted_content = extracted_content[:10000]  # Limit content length
+        
+        # Plain text or JSON
+        elif 'text/' in content_type or 'application/json' in content_type:
+            extracted_content = response.text[:10000]
+            content_title = f"Text: {url.split('/')[-1]}"
+        
+        else:
+            extracted_content = f"[Binary content from: {url}]"
+        
+        return jsonify({
+            'success': True,
+            'url': url,
+            'title': content_title,
+            'content': extracted_content,
+            'content_type': content_type
+        })
+        
+    except requests.exceptions.Timeout:
+        return jsonify({
+            'success': False,
+            'error': 'Request timeout - URL took too long to respond'
+        }), 408
+    except requests.exceptions.RequestException as e:
+        logger.error(f"URL fetch error: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to fetch URL: {str(e)}'
+        }), 400
+    except Exception as e:
+        logger.error(f"MCP fetch URL error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to process URL content'
+        }), 500
+
+
+@app.route('/api/mcp/upload-file', methods=['POST'])
+def mcp_upload_file():
+    """Upload and extract content from file for MCP context"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file provided'
+            }), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        filename = file.filename
+        content = file.read()
+        
+        # Determine file type and extract content
+        extracted_content = ""
+        mime_type = mimetypes.guess_type(filename)[0] or ''
+        
+        # Image files
+        if mime_type.startswith('image/'):
+            try:
+                from src.ocr_integration import ocr_client
+                import base64
+                image_b64 = base64.b64encode(content).decode('utf-8')
+                extracted_content = ocr_client.extract_text_from_image(image_b64)
+            except Exception as e:
+                logger.warning(f"OCR failed for uploaded image: {e}")
+                extracted_content = f"[Image: {filename}]"
+        
+        # PDF files
+        elif mime_type == 'application/pdf' or filename.lower().endswith('.pdf'):
+            try:
+                from src.ocr_integration import ocr_client
+                import base64
+                pdf_b64 = base64.b64encode(content).decode('utf-8')
+                extracted_content = ocr_client.extract_text_from_pdf(pdf_b64)
+            except Exception as e:
+                logger.warning(f"PDF extraction failed: {e}")
+                extracted_content = f"[PDF: {filename}]"
+        
+        # Text-based files
+        elif mime_type and (mime_type.startswith('text/') or mime_type in ['application/json', 'application/javascript', 'application/xml']):
+            try:
+                extracted_content = content.decode('utf-8')[:10000]
+            except:
+                extracted_content = content.decode('latin-1')[:10000]
+        
+        # Code files without proper MIME type
+        elif any(filename.lower().endswith(ext) for ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.css', '.html', '.md', '.txt', '.json', '.yaml', '.yml', '.xml', '.sh', '.bat', '.sql']):
+            try:
+                extracted_content = content.decode('utf-8')[:10000]
+            except:
+                extracted_content = content.decode('latin-1')[:10000]
+        
+        else:
+            extracted_content = f"[Binary file: {filename}]"
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'content': extracted_content,
+            'mime_type': mime_type
+        })
+        
+    except Exception as e:
+        logger.error(f"MCP upload file error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to process uploaded file'
         }), 500
 
 

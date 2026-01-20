@@ -141,10 +141,10 @@
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
-    <!-- Sidebar Toggle (Mobile) -->
-    <div class="sidebar-toggle fixed top-4 left-4 z-50 md:hidden bg-primary text-white p-2 rounded-lg shadow-lg hover:shadow-glow transition-all duration-200" id="sidebarToggle">
-        ☰
-    </div>
+    <!-- Sidebar Toggle Button (Left - Chat History) -->
+    <button class="sidebar-toggle-btn sidebar-open" id="sidebarToggleBtn" title="Toggle Chat History">
+        <span id="sidebarToggleIcon">◀</span>
+    </button>
     
     <div class="main-wrapper">
         <!-- Sidebar -->
@@ -253,29 +253,78 @@
             </div>
             
             <!-- MCP Toggle Button (Always Visible) -->
-            <button class="mcp-toggle-btn" id="mcpToggleBtn" title="Expand MCP">
-                ▶
+            <button class="mcp-toggle-btn" id="mcpToggleBtn" title="Toggle MCP Panel">
+                <span id="mcpToggleIcon">◀</span>
             </button>
             
             <!-- MCP File Browser Sidebar (Right) -->
             <div class="mcp-sidebar" id="mcpSidebar">
                 <div class="mcp-sidebar-header">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                        <input type="checkbox" id="mcpEnabledCheck">
-                        <label for="mcpEnabledCheck" style="margin: 0; font-weight: 600;">
-                            🔗 <span data-lang-key="mcp.enable">MCP File Browser</span>
-                        </label>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="mcpEnabledCheck" class="w-4 h-4 accent-purple-500">
+                            <label for="mcpEnabledCheck" style="margin: 0; font-weight: 700; font-size: 15px;">
+                                🔗 <span data-lang-key="mcp.enable">MCP Context</span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="mcpStatus" class="mcp-status-badge">
+                                <span data-lang-key="mcp.status.disabled">⚪ Off</span>
+                            </span>
+                            <button id="mcpCloseBtn" class="mcp-close-btn" title="Đóng MCP Panel" style="background: none; border: none; cursor: pointer; font-size: 18px; color: #999; padding: 4px 8px; border-radius: 6px; transition: all 0.2s;">
+                                ✕
+                            </button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <button class="mcp-btn" id="mcpSelectFolderBtn" disabled>
-                            📁 <span data-lang-key="mcp.selectFolder">Select folder</span>
+                    
+                    <!-- Source Selection Tabs -->
+                    <div class="mcp-source-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button class="mcp-tab active" id="mcpTabFolder" data-source="folder" disabled>
+                            📁 Folder
                         </button>
-                        <span id="mcpStatus" class="mcp-status-badge">
-                            <span data-lang-key="mcp.status.disabled">⚪ Off</span>
-                        </span>
+                        <button class="mcp-tab" id="mcpTabUrl" data-source="url" disabled>
+                            🌐 URL
+                        </button>
+                        <button class="mcp-tab" id="mcpTabUpload" data-source="upload" disabled>
+                            📤 Upload
+                        </button>
                     </div>
-                    <div id="mcpFolderList" class="mcp-folder-tags" style="display: none;">
-                        <!-- Selected folders will appear here -->
+                    
+                    <!-- Folder Source -->
+                    <div id="mcpFolderSource" class="mcp-source-panel">
+                        <button class="mcp-btn w-full" id="mcpSelectFolderBtn" disabled>
+                            📁 <span data-lang-key="mcp.selectFolder">Select Folder</span>
+                        </button>
+                        <input type="file" id="mcpFolderInput" webkitdirectory directory multiple style="display: none;">
+                        <div id="mcpFolderList" class="mcp-folder-tags" style="display: none; margin-top: 12px;">
+                            <!-- Selected folders will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- URL Source -->
+                    <div id="mcpUrlSource" class="mcp-source-panel" style="display: none;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="mcpUrlInput" placeholder="https://example.com/..." 
+                                class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                                       bg-white dark:bg-gray-800 text-sm" disabled>
+                            <button class="mcp-btn" id="mcpFetchUrlBtn" disabled>
+                                🔍 Fetch
+                            </button>
+                        </div>
+                        <div id="mcpUrlList" class="mcp-folder-tags" style="margin-top: 12px;">
+                            <!-- Fetched URLs will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Source -->
+                    <div id="mcpUploadSource" class="mcp-source-panel" style="display: none;">
+                        <button class="mcp-btn w-full" id="mcpUploadBtn" disabled>
+                            📤 <span>Upload Files (OCR)</span>
+                        </button>
+                        <input type="file" id="mcpFileUpload" multiple accept="image/*,.pdf,.txt,.md,.py,.js,.json" style="display: none;">
+                        <div id="mcpUploadList" class="mcp-folder-tags" style="margin-top: 12px;">
+                            <!-- Uploaded files will appear here -->
+                        </div>
                     </div>
                 </div>
                 
@@ -285,15 +334,17 @@
                     </div>
                     <div class="mcp-file-list" id="mcpFileList">
                         <div class="mcp-empty-state">
-                            <p>📂 No folder selected</p>
-                            <p style="font-size: 11px; color: #888;">Enable MCP and select folder to view files</p>
+                            <p>📂</p>
+                            <p style="font-size: 13px; font-weight: 600; color: #667eea;">No context loaded</p>
+                            <p style="font-size: 11px; color: #888;">Enable MCP and select a source</p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="mcp-selected-files" id="mcpSelectedFiles" style="display: none;">
-                    <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: #667eea;">
-                        📌 Selected files (<span id="selectedFileCount">0</span>)
+                    <div style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #667eea; display: flex; align-items: center; gap: 8px;">
+                        <span>📌 Selected Context</span>
+                        <span class="mcp-badge" id="selectedFileCount">0</span>
                     </div>
                     <div id="selectedFileList"></div>
                 </div>

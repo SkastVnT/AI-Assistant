@@ -63,6 +63,8 @@ body.dark-mode {
     width: 100%;
     height: 100vh;
     max-width: 100%;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Sidebar */
@@ -78,6 +80,62 @@ body.dark-mode {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     height: 100vh;
+    position: relative;
+}
+
+.sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 0 12px 12px 0;
+    padding: 16px 12px;
+    cursor: pointer;
+    font-size: 16px;
+    color: white;
+    box-shadow: 4px 0 20px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sidebar-toggle-btn:hover {
+    transform: translateY(-50%) translateX(4px);
+    box-shadow: 6px 0 25px rgba(102, 126, 234, 0.5);
+}
+
+.sidebar-toggle-btn.sidebar-open {
+    left: 290px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #667eea;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle-btn.sidebar-open:hover {
+    background: rgba(240, 240, 255, 1);
+}
+
+body.dark-mode .sidebar-toggle-btn {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+body.dark-mode .sidebar-toggle-btn.sidebar-open {
+    background: rgba(45, 45, 45, 0.95);
+    color: #a78bfa;
 }
 
 body.dark-mode .sidebar {
@@ -101,102 +159,105 @@ body.dark-mode .sidebar {
     overflow: hidden;
 }
 
-/* MCP Sidebar (Right Panel) */
+/* MCP Sidebar (Right Panel) - Enhanced Design */
 .mcp-sidebar {
     width: 0;
-    background: rgba(248, 249, 250, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: linear-gradient(180deg, rgba(248, 249, 250, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     border-left: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     opacity: 0;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.08);
 }
 
 .mcp-sidebar.open {
-    width: 380px;
-    border-left: 1px solid rgba(222, 226, 230, 0.5);
+    width: 400px;
+    border-left: 1px solid rgba(102, 126, 234, 0.15);
     opacity: 1;
 }
 
 .mcp-toggle-btn {
     position: fixed;
-    right: 10px;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 1001;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(222, 226, 230, 0.5);
-    border-radius: 8px 0 0 8px;
-    padding: 12px 10px;
+    z-index: 1002;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px 0 0 12px;
+    padding: 16px 10px;
     cursor: pointer;
-    font-size: 18px;
-    color: #667eea;
-    box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+    font-size: 14px;
+    color: white;
+    box-shadow: -4px 0 20px rgba(102, 126, 234, 0.4);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .mcp-toggle-btn:hover {
-    background: rgba(243, 244, 246, 0.95);
-    border-color: #667eea;
-    transform: translateY(-50%) scale(1.05);
-    transform: translateY(-50%) translateX(-2px);
-    box-shadow: -4px 0 12px rgba(0,0,0,0.2);
+    transform: translateY(-50%) translateX(-4px);
+    box-shadow: -6px 0 25px rgba(102, 126, 234, 0.5);
 }
 
 .mcp-toggle-btn.sidebar-open {
-    right: 390px; /* Moves with sidebar */
+    display: none; /* Hide when sidebar is open - sidebar has its own close area */
 }
 
 body.dark-mode .mcp-toggle-btn {
-    background: #2a2a2a;
-    border-color: #444;
-    color: #a78bfa;
-    box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    color: white;
+    box-shadow: -4px 0 20px rgba(118, 75, 162, 0.4);
 }
 
 body.dark-mode .mcp-toggle-btn:hover {
-    background: #3a3a3a;
-    border-color: #764ba2;
-    box-shadow: -4px 0 12px rgba(0,0,0,0.4);
+    box-shadow: -6px 0 25px rgba(118, 75, 162, 0.5);
+}
+
+body.dark-mode .mcp-toggle-btn.sidebar-open {
+    background: rgba(45, 45, 45, 0.95);
+    color: #a78bfa;
 }
 
 body.dark-mode .mcp-sidebar {
-    background: #1e1e1e;
-    border-left-color: #333;
+    background: linear-gradient(180deg, rgba(30, 30, 35, 0.98) 0%, rgba(25, 25, 30, 0.95) 100%);
+    border-left-color: rgba(118, 75, 162, 0.2);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
 }
 
 .mcp-sidebar-header {
-    padding: 15px;
-    border-bottom: 1px solid #dee2e6;
-    background: white;
+    padding: 20px;
+    border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
 }
 
 body.dark-mode .mcp-sidebar-header {
-    background: #2d2d2d;
-    border-bottom-color: #333;
+    background: linear-gradient(135deg, rgba(118, 75, 162, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%);
+    border-bottom-color: rgba(118, 75, 162, 0.2);
 }
 
 .mcp-btn {
-    padding: 6px 12px;
-    background: #667eea;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex: 1;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .mcp-btn:hover {
-    background: #5568d3;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .mcp-btn:disabled {
@@ -215,32 +276,115 @@ body.dark-mode .mcp-btn:hover {
 
 .mcp-status-badge {
     padding: 6px 12px;
-    border-radius: 12px;
-    background: #e9ecef;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #e9ecef 0%, #f3f4f6 100%);
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .mcp-status-badge {
-    background: #3a3a3a;
+    background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
     color: #ccc;
 }
 
 .mcp-status-badge.active {
-    background: #d1fae5;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
     color: #065f46;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
 }
 
 body.dark-mode .mcp-status-badge.active {
-    background: #064e3b;
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
     color: #6ee7b7;
+}
+
+/* MCP Source Tabs */
+.mcp-source-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.mcp-tab {
+    flex: 1;
+    padding: 10px 8px;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+}
+
+.mcp-tab:hover:not(:disabled) {
+    border-color: rgba(102, 126, 234, 0.5);
+    background: rgba(102, 126, 234, 0.05);
+    color: #667eea;
+}
+
+.mcp-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.mcp-tab:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+body.dark-mode .mcp-tab {
+    background: rgba(45, 45, 45, 0.8);
+    border-color: rgba(118, 75, 162, 0.2);
+    color: #aaa;
+}
+
+body.dark-mode .mcp-tab:hover:not(:disabled) {
+    border-color: rgba(118, 75, 162, 0.5);
+    color: #a78bfa;
+}
+
+body.dark-mode .mcp-tab.active {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    color: white;
+}
+
+/* MCP Source Panels */
+.mcp-source-panel {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* MCP Badge */
+.mcp-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
 }
 
 .mcp-folder-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     margin-top: 8px;
 }
 
@@ -468,6 +612,52 @@ body.dark-mode .mcp-folder-tag {
 }
 
 body.dark-mode .mcp-folder-tag .remove-folder:hover {
+    background: #7f1d1d;
+}
+
+/* MCP File List Items */
+.mcp-file-item {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mcp-file-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+body.dark-mode .mcp-file-item {
+    border-bottom-color: rgba(255,255,255,0.05);
+}
+
+body.dark-mode .mcp-file-item:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+/* MCP Remove button in tags */
+.mcp-remove-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+    font-size: 14px;
+    line-height: 1;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.mcp-remove-btn:hover {
+    background: #fee2e2;
+}
+
+body.dark-mode .mcp-remove-btn:hover {
     background: #7f1d1d;
 }
 
@@ -956,14 +1146,22 @@ body.dark-mode .sidebar-toggle {
 
 .container {
     width: 100%;
+    max-width: 1400px;
     background: white;
     border-radius: 0;
     box-shadow: none;
     overflow: hidden;
-    transition: background 0.3s ease, color 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     height: 100vh;
+    flex: 1;
+}
+
+/* When sidebars are collapsed, container expands nicely */
+.sidebar.collapsed ~ .container,
+.main-wrapper:has(.sidebar.collapsed) .container {
+    max-width: 1600px;
 }
 
 body.dark-mode .container {

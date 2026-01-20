@@ -85,6 +85,62 @@ class HubConfig:
                 "Hỗ trợ nhiều loại database",
                 "SQL validation"
             ]
+        ),
+        "document_intelligence": ServiceConfig(
+            name="Document Intelligence",
+            description="OCR & Document Analysis - Trích xuất văn bản từ ảnh/PDF",
+            icon="📄",
+            port=5004,
+            url="http://localhost:5004",
+            color="from-cyan-500 to-blue-600",
+            features=[
+                "PaddleOCR engine",
+                "Hỗ trợ tiếng Việt",
+                "PDF/Image processing",
+                "AI Enhancement"
+            ]
+        ),
+        "image_upscale": ServiceConfig(
+            name="Image Upscale",
+            description="Nâng cấp độ phân giải ảnh với AI",
+            icon="🔍",
+            port=5005,
+            url="http://localhost:5005",
+            color="from-pink-500 to-rose-600",
+            features=[
+                "Real-ESRGAN",
+                "4x upscaling",
+                "Face enhancement",
+                "Batch processing"
+            ]
+        ),
+        "comfyui": ServiceConfig(
+            name="ComfyUI",
+            description="Stable Diffusion workflow editor",
+            icon="🎨",
+            port=8189,
+            url="http://localhost:8189",
+            color="from-purple-500 to-indigo-600",
+            features=[
+                "Node-based workflow",
+                "SDXL support",
+                "Custom nodes",
+                "API integration"
+            ]
+        ),
+        "lora_training": ServiceConfig(
+            name="LoRA Training",
+            description="Huấn luyện LoRA cho Stable Diffusion",
+            icon="🧠",
+            port=5006,
+            url="http://localhost:5006",
+            color="from-amber-500 to-yellow-600",
+            features=[
+                "Kohya SD Scripts",
+                "Custom dataset",
+                "WebUI training",
+                "Model export"
+            ]
         )
     }
     

@@ -61,6 +61,22 @@ class MCPController {
         this.toggleBtn.addEventListener('click', () => {
             this.toggleSidebar();
         });
+        
+        // Close button in sidebar header
+        const closeBtn = document.getElementById('mcpCloseBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.closeSidebar();
+            });
+        }
+    }
+    
+    closeSidebar() {
+        this.isOpen = false;
+        this.sidebar.classList.remove('open');
+        this.toggleBtn.classList.remove('sidebar-open');
+        this.toggleBtn.textContent = '▶';
+        this.toggleBtn.title = 'Mở rộng MCP';
     }
 
     toggleSidebar() {
@@ -71,10 +87,7 @@ class MCPController {
             this.toggleBtn.textContent = '◀';
             this.toggleBtn.title = 'Thu gọn MCP';
         } else {
-            this.sidebar.classList.remove('open');
-            this.toggleBtn.classList.remove('sidebar-open');
-            this.toggleBtn.textContent = '▶';
-            this.toggleBtn.title = 'Mở rộng MCP';
+            this.closeSidebar();
         }
     }
 
@@ -128,12 +141,17 @@ class MCPController {
     }
 
     async selectFolder() {
-        // Create folder selection modal
-        const modal = this.createFolderModal();
-        document.body.appendChild(modal);
+        // Use the new folder input with webkitdirectory
+        const folderInput = document.getElementById('mcpFolderInput');
+        if (folderInput) {
+            folderInput.click();
+        } else {
+            console.error('Folder input not found');
+        }
     }
 
-    createFolderModal() {
+    // Keep this for backwards compatibility but don't use
+    createFolderModal_deprecated() {
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.style.display = 'block';

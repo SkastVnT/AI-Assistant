@@ -342,6 +342,8 @@ class ConnectionPool:
                 'socketTimeoutMS': 30000,
                 'retryWrites': True,
                 'retryReads': True,
+                'tls': True,
+                'tlsAllowInvalidCertificates': True,
             }
             default_options.update(kwargs)
             
