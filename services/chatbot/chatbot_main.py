@@ -886,7 +886,7 @@ def google_search_tool(query):
         from urllib3.util.retry import Retry
         
         if not GOOGLE_SEARCH_API_KEY_1 or not GOOGLE_CSE_ID:
-            return "âŒ Google Search API chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GOOGLE_SEARCH_API_KEY vÃ  GOOGLE_CSE_ID vÃ o file .env"
+            return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
         
         # Log config for debugging
         logger.info(f"[GOOGLE SEARCH] API Key (first 10 chars): {GOOGLE_SEARCH_API_KEY_1[:10]}...")
@@ -931,9 +931,9 @@ def google_search_tool(query):
                     title = item.get('title', 'No title')
                     link = item.get('link', '')
                     snippet = item.get('snippet', 'No description')
-                    results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
+                    results.append(f"**{title}**\n{snippet}\n🔗 {link}")
                 
-                return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
+                return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
             else:
                 return "Không tìm thấy kết quả nào."
         elif response.status_code == 429:
@@ -949,33 +949,33 @@ def google_search_tool(query):
                             title = item.get('title', 'No title')
                             link = item.get('link', '')
                             snippet = item.get('snippet', 'No description')
-                            results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
-                        return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
-            return "âŒ ÄÃ£ háº¿t quota Google Search API. Vui lÃ²ng thá»­ láº¡i sau."
+                            results.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                        return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+            return "❌ Đã hết quota Google Search API. Vui lòng thử lại sau."
         else:
-            return f"âŒ Lá»—i Google Search API: {response.status_code}"
+            return f"❌ Lỗi Google Search API: {response.status_code}"
     
     except requests.exceptions.ConnectionError as e:
         logger.error(f"[GOOGLE SEARCH] Connection Error: {e}")
-        return "âŒ Lá»—i káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng kiá»ƒm tra:\nâ€¢ Káº¿t ná»‘i Internet\nâ€¢ Proxy/Firewall settings\nâ€¢ Thá»­ láº¡i sau Ã­t phÃºt"
+        return "❌ Lỗi kết nối đến Google Search API. Vui lòng kiểm tra:\n• Kết nối Internet\n• Proxy/Firewall settings\n• Thử lại sau ít phút"
     except requests.exceptions.Timeout as e:
         logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
-        return "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
+        return "❌ Timeout khi kết nối đến Google Search API. Vui lòng thử lại."
     except requests.exceptions.RequestException as e:
         logger.error(f"[GOOGLE SEARCH] Request Error: {e}")
-        return f"âŒ Lá»—i request: {str(e)}"
+        return f"❌ Lỗi request: {str(e)}"
     except Exception as e:
         logger.error(f"[GOOGLE SEARCH] Unexpected Error: {e}")
-        return f"âŒ Lá»—i khÃ´ng mong muá»‘n: {str(e)}"
+        return f"❌ Lỗi không mong muốn: {str(e)}"
 
 
 def github_search_tool(query):
-    """GitHub Repository Search"""
+    """GitHub Repository Search Tool"""
     try:
         import requests
         
         if not GITHUB_TOKEN:
-            return "âŒ GitHub Token chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GITHUB_TOKEN vÃ o file .env"
+            return "❌ GitHub Token chưa được cấu hình. Vui lòng thêm GITHUB_TOKEN vào file .env"
         
         url = "https://api.github.com/search/repositories"
         headers = {
@@ -989,40 +989,33 @@ def github_search_tool(query):
             'per_page': 5
         }
         
-        logger.info(f"[GITHUB SEARCH] Query: {query}")
-        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response = requests.get(url, headers=headers, params=params, timeout=30)
         
         if response.status_code == 200:
             data = response.json()
             results = []
             
-            if 'items' in data and len(data['items']) > 0:
-                for repo in data['items']:
+            if data.get('items'):
+                for repo in data['items'][:5]:
                     name = repo.get('full_name', 'Unknown')
-                    desc = repo.get('description', 'No description')
+                    desc = repo.get('description', 'No description')[:100] if repo.get('description') else 'No description'
                     stars = repo.get('stargazers_count', 0)
+                    language = repo.get('language', 'Unknown')
                     url = repo.get('html_url', '')
-                    language = repo.get('language', 'N/A')
                     
-                    results.append(f"**{name}** â­ {stars}\n{desc}\nðŸ’» {language} | ðŸ”— {url}")
+                    results.append(f"**{name}** ⭐ {stars}\n{desc}\n💻 {language} | 🔗 {url}")
                 
-                return "ðŸ™ **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
+                return "🐙 **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
             else:
-                return "Không tìm thấy repository nào."
+                return "Không tìm thấy repository nào phù hợp."
         else:
-            return f"âŒ Lá»—i GitHub API: {response.status_code}"
+            return f"❌ Lỗi GitHub API: {response.status_code}"
     
     except Exception as e:
         logger.error(f"[GITHUB SEARCH] Error: {e}")
-        return f"âŒ Lá»—i: {str(e)}"
+        return f"❌ Lỗi khi tìm kiếm GitHub: {str(e)}"
 
 
-# ============================================================================
-# ROUTES
-# ============================================================================
-
-
-@app.route('/')
 def index():
     """Home page - Original beautiful UI with full SDXL support"""
     if 'session_id' not in session:
@@ -1136,23 +1129,28 @@ def chat():
                 logger.info(f"[TOOLS] AI-powered image generation with Stable Diffusion")
                 
                 # Step 1: Use OpenAI to create detailed Stable Diffusion prompt
-                prompt_request = f"""You are an expert Stable Diffusion prompt engineer. Convert the user's description into a high-quality SD prompt.
+                prompt_request = f"""You are an expert Stable Diffusion prompt engineer for Animagine XL (anime art model).
 
-RULES:
-1. Create detailed, descriptive prompts using comma-separated tags (anime style for Animagine XL model)
-2. ONLY describe what the user requests - do NOT add people/characters if they only asked for scenery/objects
-3. For SCENERY/OBJECTS (landscape, building, nature, sky, etc.): NO humans in prompt, set has_people: false
-4. For PEOPLE/CHARACTERS (girl, boy, person, etc.): describe with appropriate clothing, set has_people: true
-5. Always add quality boosters: masterpiece, best quality, highly detailed, 8k
-6. NSFW content is STRICTLY FORBIDDEN
+TASK: Convert the user's description into a high-quality anime-style SD prompt.
+
+CRITICAL RULES:
+1. OUTPUT MUST BE IN ENGLISH - even if user input is in another language
+2. Use comma-separated tags format: "tag1, tag2, tag3, quality boosters"
+3. For scenery/nature (sky, landscape, etc.): describe scene details, NO people
+4. Always include quality boosters at the end: masterpiece, best quality, highly detailed, 8k, amazing lighting
+
+EXAMPLE OUTPUTS:
+- Input: "bầu trời đầy sao" → "night sky, starry sky, stars, milky way, galaxy, cosmic, deep blue sky, beautiful stars, sparkling, astronomy, space, masterpiece, best quality, highly detailed, 8k"
+- Input: "anime girl" → "1girl, solo, anime style, beautiful face, detailed eyes, masterpiece, best quality, highly detailed"
+- Input: "forest" → "forest, trees, nature, green leaves, sunlight through trees, peaceful, scenic, landscape, masterpiece, best quality, highly detailed, 8k"
 
 USER REQUEST: "{message}"
 
-Return JSON only:
+Return ONLY this JSON format:
 {{
-    "prompt": "detailed SD prompt with quality tags, comma separated",
-    "negative_prompt": "low quality, worst quality, bad anatomy, blurry, watermark, signature",
-    "explanation": "brief explanation of prompt choices",
+    "prompt": "english tags separated by commas, quality boosters at end",
+    "negative_prompt": "low quality, worst quality, bad anatomy, blurry, watermark, signature, text",
+    "explanation": "brief explanation",
     "has_people": false
 }}"""
 
@@ -1160,32 +1158,57 @@ Return JSON only:
                     # Use OpenAI for better prompt generation
                     import openai
                     openai_api_key = os.getenv('OPENAI_API_KEY')
+                    generated_prompt = None
+                    generated_neg = None
+                    explanation = ""
+                    has_people = False
+                    
                     if openai_api_key:
-                        client = openai.OpenAI(api_key=openai_api_key)
-                        completion = client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {"role": "system", "content": "You are a Stable Diffusion prompt expert. Output only valid JSON."},
-                                {"role": "user", "content": prompt_request}
-                            ],
-                            max_tokens=500,
-                            temperature=0.7
-                        )
-                        response_text = completion.choices[0].message.content
+                        try:
+                            client = openai.OpenAI(api_key=openai_api_key)
+                            completion = client.chat.completions.create(
+                                model="gpt-4o-mini",
+                                messages=[
+                                    {"role": "system", "content": "You are a Stable Diffusion prompt expert. Always output English tags. Output only valid JSON."},
+                                    {"role": "user", "content": prompt_request}
+                                ],
+                                max_tokens=500,
+                                temperature=0.7
+                            )
+                            response_text = completion.choices[0].message.content
+                            logger.info(f"[TOOLS] OpenAI response: {response_text[:200]}...")
+                        except Exception as openai_err:
+                            logger.error(f"[TOOLS] OpenAI API error: {openai_err}")
+                            response_text = None
                     else:
-                        # Fallback to current chatbot
-                        ai_response = chatbot.chat(prompt_request, model=model, context='programming', language='en')
-                        response_text = ai_response.get('response', ai_response) if isinstance(ai_response, dict) else ai_response
-                    import re
-                    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                    if json_match:
-                        prompt_data = json.loads(json_match.group())
-                        generated_prompt = prompt_data.get('prompt', '')
-                        generated_neg = prompt_data.get('negative_prompt', '')
-                        explanation = prompt_data.get('explanation', '')
-                        has_people = prompt_data.get('has_people', False)  # Default to False - safer
-                        
-                        # STRONG NSFW filters - ALWAYS append
+                        response_text = None
+                        logger.warning("[TOOLS] No OpenAI API key, using fallback")
+                    
+                    # If OpenAI failed, use simple translation fallback
+                    if not response_text:
+                        # Simple fallback - create basic prompt from message
+                        logger.info("[TOOLS] Using fallback prompt generation")
+                        generated_prompt = f"{message}, anime style, masterpiece, best quality, highly detailed, 8k, beautiful, amazing lighting"
+                        generated_neg = "low quality, worst quality, bad anatomy, blurry, watermark, signature, text"
+                        explanation = "Fallback prompt - OpenAI unavailable"
+                        has_people = any(word in message.lower() for word in ['girl', 'boy', 'person', 'character', 'portrait', 'cô gái', 'chàng trai', 'người'])
+                    else:
+                        # Parse JSON response from OpenAI
+                        import re
+                        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                        if json_match:
+                            prompt_data = json.loads(json_match.group())
+                            generated_prompt = prompt_data.get('prompt', '')
+                            generated_neg = prompt_data.get('negative_prompt', '')
+                            explanation = prompt_data.get('explanation', '')
+                            has_people = prompt_data.get('has_people', False)
+                        else:
+                            # Could not parse JSON, use response as prompt
+                            generated_prompt = f"{message}, anime style, masterpiece, best quality, highly detailed, 8k"
+                            generated_neg = "low quality, worst quality, bad anatomy, blurry"
+                            explanation = "Could not parse AI response"
+                    
+                    if generated_prompt:
                         nsfw_filters = "nsfw, r18, nude, naked, explicit, sexual, porn, hentai, erotic, underwear, panties, bra, lingerie, bikini, swimsuit, revealing clothes, cleavage, suggestive, lewd, ecchi, seductive, provocative, inappropriate content, adult content, xxx"
                         if "nsfw" not in generated_neg.lower():
                             generated_neg = f"{generated_neg}, {nsfw_filters}" if generated_neg else nsfw_filters

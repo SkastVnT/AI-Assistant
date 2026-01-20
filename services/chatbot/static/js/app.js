@@ -93,7 +93,7 @@ function loadChatHistory() {
         currentChatId = chatIds[0];
         chatIds.forEach(chatId => {
             const chat = chats[chatId];
-            addChatItem(chatId, chat.title || 'Cuộc trò chuyện', chat.preview || 'Chưa có tin nhắn', chat.timestamp);
+            addChatItem(chatId, chat.title || 'Cuộc trò chuyện', chat.preview || 'No messages', chat.timestamp);
         });
         
         // Load current chat messages
@@ -231,7 +231,7 @@ function saveChatHistory() {
     
     const preview = messages.length > 0 ?
         messages[messages.length - 1].content.substring(0, 50).replace(/<[^>]*>/g, '') + '...' :
-        'Chưa có tin nhắn';
+        'No messages';
     
     chats[currentChatId] = {
         messages,

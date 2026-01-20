@@ -1144,8 +1144,8 @@ class ChatBotApp {
      * Open image preview
      */
     openImagePreview(imgElement) {
-        // This functionality can be added later
-        console.log('[Image Preview] Open:', imgElement.src);
+        console.log('[Image Preview] Opening preview...');
+        this.messageRenderer.openImagePreview(imgElement);
     }
 }
 
