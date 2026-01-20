@@ -39,12 +39,18 @@ sd_bp = Blueprint('sd', __name__)
 @sd_bp.route('/api/sd-health', methods=['GET'])
 @sd_bp.route('/sd-api/status', methods=['GET'])
 def sd_health():
-    """Check Stable Diffusion API status"""
+    """Check Stable Diffusion API status (ComfyUI)"""
     try:
-        from src.utils.sd_client import get_sd_client
+        # Try ComfyUI first
+        try:
+            from src.utils.comfyui_client import get_comfyui_client
+            sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+            sd_client = get_comfyui_client(sd_api_url)
+        except ImportError:
+            from src.utils.sd_client import get_sd_client
+            sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+            sd_client = get_sd_client(sd_api_url)
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
         is_running = sd_client.check_health()
         
         if is_running:
@@ -52,13 +58,14 @@ def sd_health():
             response = jsonify({
                 'status': 'online',
                 'api_url': sd_api_url,
-                'current_model': current_model
+                'current_model': current_model,
+                'backend': 'comfyui'
             })
         else:
             response = jsonify({
                 'status': 'offline',
                 'api_url': sd_api_url,
-                'message': 'Stable Diffusion WebUI chưa chạy'
+                'message': 'ComfyUI is not running'
             })
             response.status_code = 503
         
@@ -75,18 +82,26 @@ def sd_health():
 def sd_models():
     """Get checkpoint models list"""
     try:
-        from src.utils.sd_client import get_sd_client
-        
-        sd_client = get_sd_client()
-        models = sd_client.get_models()
-        current = sd_client.get_current_model()
-        
-        model_titles = [model.get('title', model.get('model_name', 'Unknown')) for model in models]
-        
-        return jsonify({
-            'models': model_titles,
-            'current_model': current['model']
-        })
+        # Try ComfyUI first
+        try:
+            from src.utils.comfyui_client import get_comfyui_client
+            sd_client = get_comfyui_client()
+            models = sd_client.get_models()
+            current = sd_client.get_current_model()
+            return jsonify({
+                'models': models,
+                'current_model': current
+            })
+        except ImportError:
+            from src.utils.sd_client import get_sd_client
+            sd_client = get_sd_client()
+            models = sd_client.get_models()
+            current = sd_client.get_current_model()
+            model_titles = [model.get('title', model.get('model_name', 'Unknown')) for model in models]
+            return jsonify({
+                'models': model_titles,
+                'current_model': current['model']
+            })
         
     except Exception as e:
         logger.error(f"[SD Models] Error: {e}")

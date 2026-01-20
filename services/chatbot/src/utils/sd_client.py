@@ -48,44 +48,54 @@ class StableDiffusionClient:
         return timeout
         
     def check_health(self) -> bool:
-        """Kiểm tra xem Stable Diffusion API có đang chạy không"""
+        """Kiểm tra xem Stable Diffusion API có đang chạy không (hỗ trợ cả ComfyUI và A1111)"""
         try:
             print(f"[SD Client] Checking health at {self.api_url}", flush=True)
             
-            # First check if there's a stuck job
+            # Try ComfyUI endpoint first
             try:
-                progress_response = requests.get(f"{self.api_url}/sdapi/v1/progress", timeout=5)
-                if progress_response.status_code == 200:
-                    progress_data = progress_response.json()
-                    eta = progress_data.get('eta_relative', 0)
-                    
-                    # If ETA > 5 minutes (300s), interrupt the job
-                    if eta > 300:
-                        print(f"[WARNING] Detected stuck job with ETA {eta:.0f}s. Interrupting...")
-                        requests.post(f"{self.api_url}/sdapi/v1/interrupt", timeout=5)
-                        import time
-                        time.sleep(2)  # Wait for interrupt to complete
-            except Exception as e:
-                print(f"[SD Client] Progress check error (ignored): {e}", flush=True)
+                response = requests.get(f"{self.api_url}/system_stats", timeout=5)
+                if response.status_code == 200:
+                    print(f"[SD Client] ComfyUI detected and running", flush=True)
+                    return True
+            except:
+                pass
             
-            print(f"[SD Client] Checking /sdapi/v1/sd-models endpoint", flush=True)
-            response = requests.get(f"{self.api_url}/sdapi/v1/sd-models", timeout=10)
-            print(f"[SD Client] Response status: {response.status_code}", flush=True)
-            return response.status_code == 200
+            # Fallback to A1111 endpoint
+            try:
+                response = requests.get(f"{self.api_url}/sdapi/v1/sd-models", timeout=10)
+                if response.status_code == 200:
+                    print(f"[SD Client] A1111 WebUI detected and running", flush=True)
+                    return True
+            except:
+                pass
+            
+            print(f"[SD Client] No SD backend detected", flush=True)
+            return False
         except Exception as e:
             print(f"[SD Client] Health check failed: {e}", flush=True)
-            import traceback
-            print(f"[SD Client] Traceback: {traceback.format_exc()}", flush=True)
             return False
     
     def get_models(self) -> List[Dict]:
         """
-        Lấy danh sách tất cả các checkpoint models
+        Lấy danh sách tất cả các checkpoint models (hỗ trợ ComfyUI và A1111)
         
         Returns:
             List of model dicts với keys: title, model_name, hash, sha256, filename, config
         """
         try:
+            # Try ComfyUI first
+            try:
+                response = requests.get(f"{self.api_url}/object_info/CheckpointLoaderSimple", timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    models = data.get('CheckpointLoaderSimple', {}).get('input', {}).get('required', {}).get('ckpt_name', [[]])[0]
+                    if isinstance(models, list):
+                        return [{'title': m, 'model_name': m} for m in models]
+            except:
+                pass
+            
+            # Fallback to A1111
             response = requests.get(f"{self.api_url}/sdapi/v1/sd-models", timeout=10)
             response.raise_for_status()
             return response.json()
@@ -96,6 +106,12 @@ class StableDiffusionClient:
     def get_current_model(self) -> Dict:
         """Lấy thông tin model hiện tại đang được sử dụng"""
         try:
+            # Try ComfyUI first
+            models = self.get_models()
+            if models:
+                return {"model": models[0].get('title', 'animagine-xl-3.1'), "vae": "Automatic"}
+            
+            # Fallback to A1111
             response = requests.get(f"{self.api_url}/sdapi/v1/options", timeout=10)
             response.raise_for_status()
             options = response.json()
@@ -403,9 +419,15 @@ class StableDiffusionClient:
 # Singleton instance
 _sd_client = None
 
-def get_sd_client(api_url: str = "http://127.0.0.1:7861") -> StableDiffusionClient:
+def get_sd_client(api_url: str = None) -> StableDiffusionClient:
     """Get hoặc tạo SD client instance"""
+    import os
     global _sd_client
+    
+    # Use environment variable or default
+    if api_url is None:
+        api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189'))
+    
     # Nếu URL thay đổi, tạo client mới
     if (
         _sd_client is None
