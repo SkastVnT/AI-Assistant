@@ -209,44 +209,56 @@ def sd_vaes():
 @sd_bp.route('/api/generate-image', methods=['POST'])
 @sd_bp.route('/sd-api/text2img', methods=['POST'])
 def generate_image():
-    """Generate image from text prompt"""
+    """Generate image from text prompt using ComfyUI"""
     try:
-        from src.utils.sd_client import get_sd_client
+        # Try ComfyUI first
+        try:
+            from src.utils.comfyui_client import get_comfyui_client
+            sd_client = get_comfyui_client()
+            use_comfyui = True
+        except ImportError:
+            from src.utils.sd_client import get_sd_client
+            sd_client = get_sd_client()
+            use_comfyui = False
         
         data = request.json
         prompt = data.get('prompt', '')
         
         if not prompt:
-            return jsonify({'error': 'Prompt không được để trống'}), 400
+            return jsonify({'error': 'Prompt is required'}), 400
         
         save_to_storage = data.get('save_to_storage', False)
+        
+        # ComfyUI parameters
         params = {
             'prompt': prompt,
-            'negative_prompt': data.get('negative_prompt', ''),
-            'width': int(data.get('width') or 512),
-            'height': int(data.get('height') or 512),
+            'negative_prompt': data.get('negative_prompt', 'bad quality, blurry, distorted'),
+            'width': int(data.get('width') or 1024),
+            'height': int(data.get('height') or 1024),
             'steps': int(data.get('steps') or 20),
             'cfg_scale': float(data.get('cfg_scale') or 7.0),
-            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
             'seed': int(data.get('seed') or -1),
-            'batch_size': int(data.get('batch_size') or 1),
-            'restore_faces': data.get('restore_faces', False),
-            'enable_hr': data.get('enable_hr', False),
-            'hr_scale': float(data.get('hr_scale') or 2.0),
-            'save_images': data.get('save_images', False),
-            'lora_models': data.get('lora_models', []),
-            'vae': data.get('vae', None)
+            'model': data.get('model', None)
         }
         
-        sd_client = get_sd_client()
         logger.info(f"[TEXT2IMG] Generating with prompt: {prompt[:50]}...")
-        result = sd_client.txt2img(**params)
         
-        if 'error' in result:
-            logger.error(f"[TEXT2IMG] SD Error: {result['error']}")
-            return jsonify(result), 500
-        
-        base64_images = result.get('images', [])
+        if use_comfyui:
+            # Use ComfyUI generate_image method
+            image_bytes = sd_client.generate_image(**params)
+            
+            if image_bytes:
+                import base64
+                base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                base64_images = [base64_image]
+            else:
+                return jsonify({'error': 'Failed to generate image'}), 500
+        else:
+            # Fallback to A1111 API
+            result = sd_client.txt2img(**params)
+            if 'error' in result:
+                return jsonify(result), 500
+            base64_images = result.get('images', [])
         
         if not base64_images:
             return jsonify({'error': 'No images generated'}), 500
@@ -259,11 +271,9 @@ def generate_image():
                 base64_images, 'generated', prompt, params
             )
             
-            # Save to MongoDB
             if MONGODB_ENABLED and saved_filenames:
                 _save_image_to_mongodb(saved_filenames, cloud_urls, prompt, params, 'text2img')
         
-        # Return response
         response_data = {
             'success': True,
             'images': saved_filenames if saved_filenames else base64_images,
@@ -271,9 +281,7 @@ def generate_image():
             'base64_images': base64_images,
             'cloud_urls': cloud_urls,
             'cloud_url': cloud_urls[0] if cloud_urls else None,
-            'info': result.get('info', ''),
-            'parameters': result.get('parameters', {}),
-            'cloud_service': 'imgbb' if CLOUD_UPLOAD_ENABLED and cloud_urls else None
+            'backend': 'comfyui' if use_comfyui else 'a1111'
         }
         
         return jsonify(response_data)

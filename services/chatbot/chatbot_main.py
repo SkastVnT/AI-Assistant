@@ -21,6 +21,7 @@ Structure:
 import os
 import sys
 import json
+import base64
 import logging
 import uuid
 import openai
@@ -28,7 +29,11 @@ import requests
 from datetime import datetime
 from pathlib import Path
 import shutil
+from dotenv import load_dotenv
 from flask import Flask, send_from_directory, session, render_template, request, jsonify
+
+# Load environment variables
+load_dotenv()
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -1022,7 +1027,18 @@ def index():
     """Home page - Original beautiful UI with full SDXL support"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
-    return render_template('index.html')
+    
+    # Load Firebase config from environment variables
+    firebase_config = json.dumps({
+        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+        "appId": os.getenv("FIREBASE_APP_ID", ""),
+        "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "")
+    })
+    return render_template('index.html', firebase_config=firebase_config)
 
 
 @app.route('/new')
@@ -1487,12 +1503,12 @@ def create_new_conversation():
 @app.route('/api/sd-health', methods=['GET'])
 @app.route('/sd-api/status', methods=['GET'])  # Alias for frontend compatibility
 def sd_health():
-    """Kiểm tra xem Stable Diffusion API có đang chạy không"""
+    """Check Stable Diffusion API status (ComfyUI)"""
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+        sd_client = get_comfyui_client(sd_api_url)
         
         is_running = sd_client.check_health()
         
@@ -1501,29 +1517,25 @@ def sd_health():
             response = jsonify({
                 'status': 'online',
                 'api_url': sd_api_url,
-                'current_model': current_model
+                'current_model': current_model,
+                'backend': 'comfyui'
             })
-            # Prevent caching
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
             return response
         else:
             response = jsonify({
                 'status': 'offline',
                 'api_url': sd_api_url,
-                'message': 'Stable Diffusion WebUI chưa chạy hoặc chưa enable API'
+                'message': 'ComfyUI is not running'
             })
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             return response, 503
             
     except Exception as e:
         logger.error(f"[SD Health Check] Error: {e}")
-        import traceback
-        traceback.print_exc()
         response = jsonify({
             'status': 'error',
-            'message': 'ÄÃ£ xáº£y ra lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i Stable Diffusion.'
+            'message': str(e)
         })
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         return response, 500
@@ -1532,22 +1544,19 @@ def sd_health():
 @app.route('/api/sd-models', methods=['GET'])
 @app.route('/sd-api/models', methods=['GET'])  # Alias for frontend compatibility
 def sd_models():
-    """Lấy danh sách tất cả checkpoint models"""
+    """Get list of checkpoint models from ComfyUI"""
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+        sd_client = get_comfyui_client(sd_api_url)
         
         models = sd_client.get_models()
         current = sd_client.get_current_model()
         
-        # Format models as simple array of strings (titles)
-        model_titles = [model.get('title', model.get('model_name', 'Unknown')) for model in models]
-        
         return jsonify({
-            'models': model_titles,
-            'current_model': current['model']
+            'models': models,
+            'current_model': current
         })
         
     except Exception as e:
@@ -1592,69 +1601,59 @@ def sd_change_model():
 @app.route('/sd-api/text2img', methods=['POST'])  # Alias for frontend compatibility
 def generate_image():
     """
-    Tạo ảnh từ text prompt bằng Stable Diffusion
+    Generate image from text prompt using ComfyUI
     
     Body params:
-        - prompt (str): Text prompt mô tả ảnh
-        - negative_prompt (str): Những gì không muốn có
-        - width (int): Chiá»u rá»™ng (default: 512)
-        - height (int): Chiá»u cao (default: 512)
-        - steps (int): Số steps (default: 20)
+        - prompt (str): Text prompt describing the image
+        - negative_prompt (str): What NOT to include
+        - width (int): Width (default: 1024)
+        - height (int): Height (default: 1024)
+        - steps (int): Number of steps (default: 20)
         - cfg_scale (float): CFG scale (default: 7.0)
-        - sampler_name (str): Tên sampler (default: "DPM++ 2M Karras")
         - seed (int): Random seed (default: -1)
-        - batch_size (int): Số ảnh tạo (default: 1)
-        - restore_faces (bool): Restore faces (default: False)
-        - enable_hr (bool): Hires fix (default: False)
-        - hr_scale (float): HR scale (default: 2.0)
-        - save_images (bool): Lưu ảnh vào disk (default: False)
+        - model (str): Model checkpoint name (optional)
         - save_to_storage (bool): Save to ChatBot storage (default: False)
     """
     try:
-        from src.utils.sd_client import get_sd_client
+        # Use ComfyUI client
+        from src.utils.comfyui_client import get_comfyui_client
         
         data = request.json
         prompt = data.get('prompt', '')
         
         if not prompt:
-            return jsonify({'error': 'Prompt không được để trống'}), 400
+            return jsonify({'error': 'Prompt is required'}), 400
         
-        # Lấy parameters từ request
+        # Get parameters from request
         save_to_storage = data.get('save_to_storage', False)
         params = {
             'prompt': prompt,
-            'negative_prompt': data.get('negative_prompt', ''),
-            'width': int(data.get('width') or 512),
-            'height': int(data.get('height') or 512),
+            'negative_prompt': data.get('negative_prompt', 'bad quality, blurry, distorted'),
+            'width': int(data.get('width') or 1024),
+            'height': int(data.get('height') or 1024),
             'steps': int(data.get('steps') or 20),
             'cfg_scale': float(data.get('cfg_scale') or 7.0),
-            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
             'seed': int(data.get('seed') or -1),
-            'batch_size': int(data.get('batch_size') or 1),
-            'restore_faces': data.get('restore_faces', False),
-            'enable_hr': data.get('enable_hr', False),
-            'hr_scale': float(data.get('hr_scale') or 2.0),
-            'save_images': data.get('save_images', False),
-            'lora_models': data.get('lora_models', []),
-            'vae': data.get('vae', None)
+            'model': data.get('model', None)
         }
         
-        # Get SD client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        # Get ComfyUI client
+        comfyui_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+        sd_client = get_comfyui_client(comfyui_url)
         
-        # Tạo ảnh
-        logger.info(f"[TEXT2IMG] Calling txt2img with params: {params}")
-        result = sd_client.txt2img(**params)
-        logger.info(f"[TEXT2IMG] txt2img completed")
+        # Generate image using ComfyUI
+        logger.info(f"[TEXT2IMG] Generating with ComfyUI: {params['prompt'][:50]}...")
+        image_bytes = sd_client.generate_image(**params)
+        logger.info(f"[TEXT2IMG] ComfyUI generation completed")
         
-        # Kiểm tra lỗi
-        if 'error' in result:
-            logger.error(f"[TEXT2IMG] SD Error: {result['error']}")
-            return jsonify(result), 500
+        # Check result
+        if not image_bytes:
+            logger.error("[TEXT2IMG] ComfyUI returned no image")
+            return jsonify({'error': 'Failed to generate image'}), 500
         
-        # Get base64 images from result
-        base64_images = result.get('images', [])
+        # Convert to base64
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        base64_images = [base64_image]
         
         if not base64_images:
             return jsonify({'error': 'No images generated'}), 500
@@ -1787,8 +1786,8 @@ def generate_image():
                 'cloud_urls': cloud_urls,  # ImgBB URLs
                 'cloud_url': cloud_urls[0] if cloud_urls else None,  # First cloud URL
                 'base64_images': base64_images,  # Include base64 for direct display
-                'info': result.get('info', ''),
-                'parameters': result.get('parameters', {}),
+                'info': '',
+                'parameters': params,
                 'cloud_service': 'imgbb' if CLOUD_UPLOAD_ENABLED and cloud_urls else None,
                 'saved_to_db': MONGODB_ENABLED and 'db_error' not in locals()  # Indicate if saved to MongoDB
             })
@@ -1798,8 +1797,8 @@ def generate_image():
                 'success': True,
                 'image': base64_images[0] if base64_images else None,
                 'images': base64_images,  # Full array of base64 images
-                'info': result.get('info', ''),
-                'parameters': result.get('parameters', {})
+                'info': '',
+                'parameters': params
             })
         
     except Exception as e:

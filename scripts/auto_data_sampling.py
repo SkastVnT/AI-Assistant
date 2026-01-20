@@ -14,15 +14,18 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
-# MongoDB Configuration
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb+srv://thanhnguyen:avBlS2SMWBS0TXFu@ai-assistant.aspuqwb.mongodb.net/')
+# MongoDB Configuration - loaded from environment variables
+MONGODB_URI = os.getenv('MONGODB_URI', '')
 
-# Firebase Configuration  
+# Firebase Configuration - loaded from environment variables
 FIREBASE_CONFIG = {
-    "apiKey": "AIzaSyAHX8Kpx3ZCZswzg5wyWycRCOqnGWCOaiM",
-    "projectId": "ai-assistant-7dbb8",
+    "apiKey": os.getenv('FIREBASE_API_KEY', ''),
+    "projectId": os.getenv('FIREBASE_PROJECT_ID', ''),
 }
 
 # Sampling interval (24 hours in seconds)

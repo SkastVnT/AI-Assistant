@@ -1,24 +1,31 @@
 """
 Firebase Configuration for AI-Assistant
 Auto data sampling to keep services active
+
+NOTE: API keys are loaded from environment variables (.env file)
+Never commit API keys directly in code!
 """
 import os
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Firebase Web Configuration
+# Firebase Web Configuration - loaded from environment variables
 FIREBASE_CONFIG = {
-    "apiKey": "AIzaSyAHX8Kpx3ZCZswzg5wyWycRCOqnGWCOaiM",
-    "authDomain": "ai-assistant-7dbb8.firebaseapp.com",
-    "projectId": "ai-assistant-7dbb8",
-    "storageBucket": "ai-assistant-7dbb8.firebasestorage.app",
-    "messagingSenderId": "31625059118",
-    "appId": "1:31625059118:web:b6327b08cea18f9be938bf",
-    "measurementId": "G-G6EKFZHZPZ"
+    "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+    "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+    "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+    "appId": os.getenv("FIREBASE_APP_ID", ""),
+    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "")
 }
 
 # Firebase domains

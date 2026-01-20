@@ -6,8 +6,8 @@
 import translations from './translations.js';
 import { translationService } from './translation-service.js';
 
-// Current language (default: Vietnamese)
-let currentLanguage = localStorage.getItem('chatbot_language') || 'vi';
+// Current language (default: English)
+let currentLanguage = localStorage.getItem('chatbot_language') || 'en';
 
 /**
  * Apply language translations to all elements with data-lang-key attribute
