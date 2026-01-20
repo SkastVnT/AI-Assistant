@@ -1507,7 +1507,7 @@ def sd_health():
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
         sd_client = get_comfyui_client(sd_api_url)
         
         is_running = sd_client.check_health()
@@ -1526,7 +1526,7 @@ def sd_health():
             response = jsonify({
                 'status': 'offline',
                 'api_url': sd_api_url,
-                'message': 'ComfyUI is not running'
+                'message': 'ComfyUI is not running. Please start it with: cd /workspace/ComfyUI && python main.py --listen 0.0.0.0 --port 8189'
             })
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             return response, 503
@@ -1548,7 +1548,7 @@ def sd_models():
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
         sd_client = get_comfyui_client(sd_api_url)
         
         models = sd_client.get_models()
@@ -1638,8 +1638,8 @@ def generate_image():
         }
         
         # Get ComfyUI client
-        comfyui_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
-        sd_client = get_comfyui_client(comfyui_url)
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
         
         # Generate image using ComfyUI
         logger.info(f"[TEXT2IMG] Generating with ComfyUI: {params['prompt'][:50]}...")
@@ -1654,9 +1654,6 @@ def generate_image():
         # Convert to base64
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
         base64_images = [base64_image]
-        
-        if not base64_images:
-            return jsonify({'error': 'No images generated'}), 500
         
         # Save to storage if requested
         saved_filenames = []

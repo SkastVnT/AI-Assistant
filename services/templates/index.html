@@ -1,260 +1,422 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant Hub - Gateway Dashboard</title>
+    <meta name="description" content="Professional AI Services Gateway - All Services in One Place">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2',
+                        accent: '#10b981',
+                        dark: {
+                            bg: '#0f172a',
+                            surface: '#1e293b',
+                            border: '#334155'
+                        }
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                        'glow': 'glow 2s ease-in-out infinite alternate'
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' }
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        bounceIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.3)' },
+                            '50%': { opacity: '1', transform: 'scale(1.05)' },
+                            '70%': { transform: 'scale(0.9)' },
+                            '100%': { transform: 'scale(1)' }
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 20px rgba(102, 126, 234, 0.3)' },
+                            '100%': { boxShadow: '0 0 40px rgba(118, 75, 162, 0.5)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* Custom styles */
+        .bg-gradient-animated {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #6366f1, #8b5cf6);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        
+        .glass-dark {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        .header {
-            text-align: center;
-            margin-bottom: 50px;
-            color: white;
+        
+        .card-gradient {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
         }
-
-        .header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        
+        .text-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
+        
+        .shadow-glow {
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
         }
-
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+        
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .service-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
-
-        .service-card::before {
-            content: '';
-            position: absolute;
+        
+        /* Service card color accents */
+        .border-accent-blue { border-top-color: #3b82f6; }
+        .border-accent-green { border-top-color: #10b981; }
+        .border-accent-purple { border-top-color: #8b5cf6; }
+        .border-accent-orange { border-top-color: #f97316; }
+        .border-accent-pink { border-top-color: #ec4899; }
+        .border-accent-cyan { border-top-color: #06b6d4; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #764ba2; }
+        
+        /* Status dot animation */
+        .status-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Particles background */
+        .particles {
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(to right, var(--color-from), var(--color-to));
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
         }
-
-        .service-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        }
-
-        .service-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-
-        .service-title {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .service-description {
-            font-size: 1rem;
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-
-        .service-features {
-            list-style: none;
-            margin-bottom: 20px;
-        }
-
-        .service-features li {
-            padding: 8px 0;
-            color: #555;
-            position: relative;
-            padding-left: 25px;
-        }
-
-        .service-features li::before {
-            content: '✓';
+        .particle {
             position: absolute;
-            left: 0;
-            color: #667eea;
-            font-weight: bold;
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            animation: float 20s infinite;
         }
-
-        .service-status {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .status-available {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-unavailable {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .service-port {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(102, 126, 234, 0.1);
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 50px;
-            color: white;
-            opacity: 0.8;
-        }
-
-        .api-info {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 30px;
-            color: white;
-        }
-
-        .api-info h3 {
-            margin-bottom: 15px;
-        }
-
-        .api-endpoint {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin: 5px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .services-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Color classes for gradient borders */
-        .from-blue-500 { --color-from: #3b82f6; --color-to: #9333ea; }
-        .from-green-500 { --color-from: #10b981; --color-to: #0d9488; }
-        .from-orange-500 { --color-from: #f97316; --color-to: #dc2626; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 AI Assistant Hub</h1>
-            <p>Professional Gateway Dashboard - All Services in One Place</p>
-        </div>
 
-        <div class="services-grid">
-            {% for key, service in services.items() %}
-            <div class="service-card {{ service.color }}" onclick="window.open('{{ service.url }}', '_blank')">
-                <div class="service-port">
+<body class="min-h-screen bg-gradient-animated text-white overflow-x-hidden">
+    <!-- Animated particles background -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Main content -->
+    <div class="relative z-10">
+        <!-- Header -->
+        <header class="py-12 px-4 text-center animate-fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="inline-block animate-float mb-6">
+                    <span class="text-7xl drop-shadow-2xl">🚀</span>
+                </div>
+                <h1 class="text-5xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-white">
+                    AI Assistant Hub
+                </h1>
+                <p class="text-xl md:text-2xl text-purple-200 mb-6">
+                    Professional Gateway Dashboard - All Services in One Place
+                </p>
+                
+                <!-- Status bar -->
+                <div class="flex flex-wrap justify-center gap-4 mt-8">
+                    <div class="glass rounded-full px-6 py-2 flex items-center gap-2">
+                        <span class="w-3 h-3 bg-green-400 rounded-full status-dot"></span>
+                        <span class="text-sm font-medium">Gateway Online</span>
+                    </div>
+                    <div class="glass rounded-full px-6 py-2 flex items-center gap-2">
+                        <span class="text-sm font-medium">{{ services|length }} Services Available</span>
+                    </div>
+                    <button onclick="toggleTheme()" class="glass rounded-full px-4 py-2 hover:bg-white/20 transition-all" title="Toggle Theme">
+                        🌙
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Services Grid -->
+        <main class="max-w-7xl mx-auto px-4 pb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for key, service in services.items() %}
+                <div class="service-card glass-dark rounded-2xl p-6 border-t-4 {{ 'border-accent-blue' if loop.index % 6 == 1 else 'border-accent-green' if loop.index % 6 == 2 else 'border-accent-purple' if loop.index % 6 == 3 else 'border-accent-orange' if loop.index % 6 == 4 else 'border-accent-pink' if loop.index % 6 == 5 else 'border-accent-cyan' }} hover-lift cursor-pointer animate-slide-up group"
+                     style="animation-delay: {{ loop.index * 0.1 }}s"
+                     onclick="openService('{{ service.url }}', '{{ service.name }}')"
+                     data-service="{{ key }}">
+                    
+                    <!-- Card header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-5xl group-hover:scale-110 transition-transform duration-300">{{ service.icon }}</span>
+                        <div class="text-right">
+                            {% if service.is_public %}
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30">
+                                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                🌐 Public
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                Port {{ service.port }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Service info -->
+                    <h2 class="text-2xl font-bold mb-2 group-hover:text-gradient transition-all">{{ service.name }}</h2>
+                    <p class="text-gray-400 mb-4 text-sm leading-relaxed">{{ service.description }}</p>
+                    
+                    <!-- Features -->
+                    <ul class="space-y-2 mb-4">
+                        {% for feature in service.features[:4] %}
+                        <li class="flex items-center gap-2 text-sm text-gray-300">
+                            <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ feature }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <!-- Status & Action -->
+                    <div class="flex justify-between items-center pt-4 border-t border-white/10">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold {% if service.status == 'available' %}bg-green-500/20 text-green-300{% else %}bg-red-500/20 text-red-300{% endif %}">
+                            <span class="w-2 h-2 rounded-full {% if service.status == 'available' %}bg-green-400{% else %}bg-red-400{% endif %}"></span>
+                            {{ service.status|upper }}
+                        </span>
+                        <button class="flex items-center gap-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm font-medium group-hover:bg-primary group-hover:text-white">
+                            Open
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
                     {% if service.is_public %}
-                    <span style="color: #10b981;">🌐 Public</span>
-                    {% else %}
-                    Port {{ service.port }}
+                    <div class="mt-3 pt-3 border-t border-white/5">
+                        <p class="text-xs text-purple-300/70 truncate" title="{{ service.public_url }}">
+                            🔗 {{ service.public_url }}
+                        </p>
+                    </div>
                     {% endif %}
                 </div>
-                <div class="service-icon">{{ service.icon }}</div>
-                <h2 class="service-title">{{ service.name }}</h2>
-                <p class="service-description">{{ service.description }}</p>
-                
-                <ul class="service-features">
-                    {% for feature in service.features %}
-                    <li>{{ feature }}</li>
-                    {% endfor %}
-                </ul>
-                
-                <span class="service-status status-{{ service.status }}">
-                    {{ service.status|upper }}
-                </span>
-                
-                {% if service.is_public %}
-                <div style="margin-top: 10px; font-size: 0.75rem; color: #667eea; word-break: break-all;">
-                    {{ service.public_url }}
-                </div>
-                {% endif %}
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        </main>
 
-        <div class="api-info">
-            <h3>📡 API Endpoints</h3>
-            <div class="api-endpoint">GET /api/services - Get all services information</div>
-            <div class="api-endpoint">GET /api/services/&lt;service_name&gt; - Get specific service details</div>
-            <div class="api-endpoint">GET /api/health - Check gateway health status</div>
-        </div>
+        <!-- API Documentation Section -->
+        <section class="max-w-4xl mx-auto px-4 py-12">
+            <div class="glass-dark rounded-2xl p-8 animate-fade-in">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <span class="text-3xl">📡</span>
+                    API Endpoints
+                </h2>
+                
+                <div class="space-y-3">
+                    <div class="flex flex-wrap items-center gap-3 p-4 bg-black/30 rounded-xl hover:bg-black/40 transition-colors">
+                        <span class="px-3 py-1 rounded-lg bg-green-500/20 text-green-300 text-xs font-bold">GET</span>
+                        <code class="font-mono text-purple-300">/api/services</code>
+                        <span class="text-gray-400 text-sm ml-auto hidden sm:block">Get all services info</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 p-4 bg-black/30 rounded-xl hover:bg-black/40 transition-colors">
+                        <span class="px-3 py-1 rounded-lg bg-green-500/20 text-green-300 text-xs font-bold">GET</span>
+                        <code class="font-mono text-purple-300">/api/services/&lt;name&gt;</code>
+                        <span class="text-gray-400 text-sm ml-auto hidden sm:block">Get specific service</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 p-4 bg-black/30 rounded-xl hover:bg-black/40 transition-colors">
+                        <span class="px-3 py-1 rounded-lg bg-green-500/20 text-green-300 text-xs font-bold">GET</span>
+                        <code class="font-mono text-purple-300">/api/health</code>
+                        <span class="text-gray-400 text-sm ml-auto hidden sm:block">Health check</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 p-4 bg-black/30 rounded-xl hover:bg-black/40 transition-colors">
+                        <span class="px-3 py-1 rounded-lg bg-green-500/20 text-green-300 text-xs font-bold">GET</span>
+                        <code class="font-mono text-purple-300">/api/stats</code>
+                        <span class="text-gray-400 text-sm ml-auto hidden sm:block">Hub statistics</span>
+                    </div>
+                </div>
+                
+                <!-- Quick Test Button -->
+                <div class="mt-6 flex gap-3">
+                    <button onclick="testAPI()" class="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary transition-all font-semibold text-white shadow-glow">
+                        🧪 Test API
+                    </button>
+                    <button onclick="refreshServices()" class="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all font-semibold">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+        </section>
 
-        <div class="footer">
-            <p>&copy; 2025 AI Assistant Hub - Powered by Flask & Python</p>
-            <p>Made by Nguyễn Ngọc Thành <a href="https://github.com/SkastVnT" target="_blank">SkastVnT</a></p>
-            <p>Gateway running on port 3000</p>
+        <!-- Footer -->
+        <footer class="py-8 px-4 text-center border-t border-white/10">
+            <div class="max-w-4xl mx-auto">
+                <p class="text-purple-200 mb-2">
+                    &copy; 2025 AI Assistant Hub - Powered by Flask & Python
+                </p>
+                <p class="text-purple-300/70 flex items-center justify-center gap-2">
+                    Made with ❤️ by 
+                    <a href="https://github.com/SkastVnT" target="_blank" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-all">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        @SkastVnT
+                    </a>
+                </p>
+                <p class="text-purple-300/50 text-sm mt-2">
+                    Gateway running on port 3000 • v2.0.0
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="fixed bottom-4 right-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="glass-dark rounded-xl px-6 py-4 shadow-2xl flex items-center gap-3">
+            <span id="toast-icon">✅</span>
+            <span id="toast-message">Success!</span>
         </div>
     </div>
 
     <script>
-        // Optional: Add dynamic status checking
-        async function checkServiceStatus() {
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = (Math.random() * 10 + 5) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 20 + 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        
+        // Open service in new tab
+        function openService(url, name) {
+            showToast(`Opening ${name}...`, '🚀');
+            window.open(url, '_blank');
+        }
+        
+        // Test API endpoint
+        async function testAPI() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                showToast(`Gateway healthy! ${data.services_count} services`, '✅');
+                console.log('API Response:', data);
+            } catch (error) {
+                showToast('API test failed!', '❌');
+                console.error('API Error:', error);
+            }
+        }
+        
+        // Refresh services
+        async function refreshServices() {
+            showToast('Refreshing services...', '🔄');
             try {
                 const response = await fetch('/api/services');
                 const services = await response.json();
-                console.log('Services loaded:', services);
+                console.log('Services:', services);
+                showToast(`Found ${Object.keys(services).length} services`, '✅');
+                // Could update DOM here if needed
             } catch (error) {
-                console.error('Error loading services:', error);
+                showToast('Refresh failed!', '❌');
             }
         }
-
-        // Check status on page load
-        checkServiceStatus();
+        
+        // Show toast notification
+        function showToast(message, icon = '✅') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastIcon.textContent = icon;
+            toastMessage.textContent = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+        
+        // Theme toggle (placeholder for dark mode)
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            showToast('Theme toggled!', '🎨');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            
+            // Add staggered animation to cards
+            const cards = document.querySelectorAll('.service-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                }, index * 100);
+            });
+        });
     </script>
 </body>
 </html>
