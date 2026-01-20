@@ -20,6 +20,7 @@ Structure:
 """
 import os
 import sys
+import json
 import logging
 import uuid
 import openai
