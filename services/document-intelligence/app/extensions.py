@@ -29,14 +29,17 @@ def init_extensions(app):
     upload_folder.mkdir(parents=True, exist_ok=True)
     output_folder.mkdir(parents=True, exist_ok=True)
     
-    # Initialize history
+    # Initialize history - with error handling
     global _processing_history, _quick_actions
-    from src.utils.advanced_features import ProcessingHistory, QuickActions
-    _processing_history = ProcessingHistory(output_folder / 'history.json')
-    _quick_actions = QuickActions()
-    
-    logger.info("Document Intelligence extensions initialized")
-
+    try:
+        from src.utils.advanced_features import ProcessingHistory, QuickActions
+        _processing_history = ProcessingHistory(output_folder / 'history.json')
+        _quick_actions = QuickActions()
+        logger.info("✅ Document Intelligence extensions initialized")
+    except ImportError as e:
+        logger.warning(f"⚠️ Advanced features unavailable: {e}")
+        _processing_history = None
+        _quick_actions = None
 
 def get_ocr_processor():
     """Get or initialize OCR processor (lazy loading)."""

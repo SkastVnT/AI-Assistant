@@ -1,21 +1,83 @@
-# 🔧 Scripts Directory
+# 🔧 AI-Assistant Scripts
 
-Utility scripts and tools for AI Assistant project.
+Service management scripts for the AI-Assistant platform.
+
+## 🚀 Quick Start (Linux/Mac)
+
+```bash
+# First-time setup
+bash scripts/setup-all.sh
+
+# Start all services
+bash scripts/start-all.sh
+
+# Check service health
+bash scripts/health-check-all.sh
+
+# Expose to public (Cloudflared tunnels)
+bash scripts/expose-public.sh
+
+# Interactive menu
+bash menu.sh
+```
+
+## 🪟 Quick Start (Windows)
+
+```batch
+REM Interactive menu
+menu.bat
+
+REM Or run individual commands:
+scripts\start-all.bat
+scripts\health-check-all.bat
+```
 
 ## 📁 Structure
 
 ```
 scripts/
+├── start-all.sh              # Start all core services
+├── stop-all.sh               # Stop all services
+├── health-check-all.sh       # Check service status
+├── expose-public.sh          # Create public tunnels
+├── setup-all.sh              # First-time setup
+├── start-*.sh                # Individual service starters
+├── deploy-chatbot.sh         # Deploy with backup
+├── rollback-chatbot.sh       # Rollback to previous
 ├── check_system.py           # System requirements checker
-├── utilities/                # Utility scripts
-│   └── upload_docs_to_drive.py  # Google Drive uploader
-├── archive/                  # Old scripts (deprecated)
-└── deprecated/               # Legacy test scripts
+├── fix_dependencies.py       # Dependency conflict resolver
+├── health_check.py           # Python health checker
+└── utilities/                # Utility scripts
 ```
 
-## 📜 Active Scripts
+## 📜 Service Scripts
 
-### check_system.py
+| Script | Port | Description |
+|--------|------|-------------|
+| `start-hub-gateway.sh` | 3000 | API Gateway |
+| `start-chatbot.sh` | 5000 | Multi-model ChatBot |
+| `start-speech2text.sh` | 5001 | Audio transcription |
+| `start-text2sql.sh` | 5002 | NL to SQL |
+| `start-document-intelligence.sh` | 5003 | OCR + AI |
+| `start-stable-diffusion.sh` | 7860 | Image generation |
+| `start-edit-image.sh` | 7861 | Image editing |
+| `start-lora-training.sh` | 7862 | Model fine-tuning |
+| `start-image-upscale.sh` | 7863 | Image enhancement |
+| `start-mcp-server.sh` | 8000 | MCP Server |
+
+## 🌐 Public Exposure (Cloudflared)
+
+```bash
+bash scripts/expose-public.sh
+```
+
+Features:
+- No account required (free tier)
+- Automatic URL generation
+- URLs saved to `logs/` directory
+- Temporary URLs (regenerated on restart)
+
+## 📋 check_system.py
 System requirements and environment checker.
 
 **Usage:**

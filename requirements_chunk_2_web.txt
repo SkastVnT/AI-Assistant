@@ -1,0 +1,15 @@
+# Chunk 2: Web Frameworks
+# Flask, FastAPI, and related packages
+
+flask>=3.0.0
+flask-cors>=4.0.0
+flask-socketio>=5.3.0
+python-socketio>=5.10.0
+werkzeug>=3.0.0
+eventlet>=0.33.0
+fastapi>=0.94.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
+watchdog>=2.0.0
+aiofiles>=23.0.0
+starlette>=0.27.0

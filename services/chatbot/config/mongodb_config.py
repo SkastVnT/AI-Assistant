@@ -46,8 +46,19 @@ class MongoDBClient:
     def connect(self):
         """Establish MongoDB connection"""
         if self._client is None:
+            # Skip if no URI configured
+            if not MONGODB_URI:
+                print("⚠️ MongoDB URI not configured, running without database")
+                return False
             try:
-                self._client = MongoClient(MONGODB_URI, server_api=ServerApi('1'))
+                self._client = MongoClient(
+                    MONGODB_URI, 
+                    server_api=ServerApi('1'),
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000,
+                    tls=True,
+                    tlsAllowInvalidCertificates=True
+                )
                 # Test connection
                 self._client.admin.command('ping')
                 self._db = self._client[DATABASE_NAME]
@@ -55,7 +66,9 @@ class MongoDBClient:
                 self._create_indexes()
                 return True
             except Exception as e:
-                print(f"❌ MongoDB connection failed: {e}")
+                print(f"⚠️ MongoDB connection failed (app will run without DB): {str(e)[:100]}")
+                self._client = None
+                self._db = None
                 return False
         return True
     

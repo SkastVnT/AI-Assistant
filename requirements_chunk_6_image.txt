@@ -1,0 +1,22 @@
+# Chunk 6: Image Processing & Diffusion
+# Stable Diffusion, upscaling, image manipulation
+
+Pillow>=10.3.0
+opencv-python<=4.6.0.66
+scikit-image>=0.19.3
+einops>=0.4.0
+lpips>=0.1.4
+resize-right>=0.0.2
+piexif>=1.1.3
+blendmodes>=2022.0.0
+kornia>=0.7.0
+tomesd>=0.1.3
+lark>=1.1.5
+inflection>=0.5.1
+pytorch_lightning>=2.0.0
+torchdiffeq>=0.2.3
+torchsde>=0.2.5
+clean-fid>=0.1.35
+diffusers>=0.21.0
+open-clip-torch>=2.20.0
+timm>=0.9.0

@@ -21,9 +21,13 @@ Structure:
 import os
 import sys
 import logging
+import uuid
+import openai
+import requests
+from datetime import datetime
 from pathlib import Path
 import shutil
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, session, render_template, request, jsonify
 
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -89,7 +93,7 @@ app.secret_key = os.urandom(24)
 app.static_folder = str(CHATBOT_DIR / 'static')
 
 # Import and register extensions
-from core.extensions import logger, register_monitor
+from core.extensions import logger, register_monitor, LOCALMODELS_AVAILABLE, model_loader
 
 # Register monitor for health checks
 register_monitor(app)
@@ -118,9 +122,9 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY_1')
 GEMINI_API_KEY_2 = os.getenv('GEMINI_API_KEY_2')
 GEMINI_API_KEY_3 = os.getenv('GEMINI_API_KEY_3')
 GEMINI_API_KEY_4 = os.getenv('GEMINI_API_KEY_4')
-QWEN_API_KEY = os.getenv('QWEN_API_KEY')
-HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
-GROK_API_KEY = os.getenv('GROK_API_KEY')
+QWEN_API_KEY = os.getenv('QWEN_API_KEY') or os.getenv('DASHSCOPE_API_KEY')
+HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY') or os.getenv('HUGGINGFACE_TOKEN')
+GROK_API_KEY = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
 
 # Google Search API
 GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1')
@@ -670,7 +674,7 @@ class ChatbotAgent:
             }
             
             response = requests.post(
-                "https://api-inference.huggingface.co/models/BlossomsAI/BloomVN-8B-chat",
+                "https://router.huggingface.co/hf-inference/models/BlossomsAI/BloomVN-8B-chat",
                 headers=headers,
                 json=data,
                 timeout=60  # BloomVN có thể chậm hơn
@@ -3628,7 +3632,7 @@ def internal_error(error):
 # Main entry point
 if __name__ == '__main__':
     debug_mode = os.getenv('DEBUG', '0') == '1'
-    host = os.getenv('HOST', '127.0.0.1')
+    host = os.getenv('HOST', '0.0.0.0')  # Default to 0.0.0.0 for external access
     port = int(os.getenv('CHATBOT_PORT', '5000'))
     
     logger.info(f"🚀 Starting ChatBot on {host}:{port} (debug={debug_mode})")

@@ -36,11 +36,13 @@ echo   E. Edit Image             (Port 8100) - Grok-like Editor
 echo.
 echo   [BATCH]
 echo   A. Start ALL Services     S. Stop ALL Services
+echo   X. Expose to Public       (via Cloudflared tunnels)
 echo.
 echo   [SETUP ^& TOOLS]
 echo   P. Setup All (First Run)  H. Health Check ALL
 echo   T. Run Tests              C. Cleanup Logs/Cache
 echo   G. Check GPU              V. Check Python/Venv
+echo   L. View Logs
 echo.
 echo   [DEPLOY]
 echo   D. Deploy ChatBot         R. Rollback ChatBot
@@ -63,6 +65,7 @@ if /i "%choice%"=="E" start "Edit Image" cmd /k "scripts\start-edit-image.bat" &
 
 if /i "%choice%"=="A" start "Start All" cmd /k "scripts\start-all.bat" & goto MENU
 if /i "%choice%"=="S" start "Stop All" cmd /k "scripts\stop-all.bat" & goto MENU
+if /i "%choice%"=="X" start "Expose Public" cmd /k "scripts\expose-public.bat" & goto MENU
 
 if /i "%choice%"=="P" start "Setup All" cmd /k "scripts\setup-all.bat" & goto MENU
 if /i "%choice%"=="H" start "Health Check" cmd /k "scripts\health-check-all.bat" & goto MENU
@@ -70,6 +73,7 @@ if /i "%choice%"=="T" start "Run Tests" cmd /k "scripts\test-all.bat" & goto MEN
 if /i "%choice%"=="C" start "Cleanup" cmd /k "scripts\cleanup.bat" & goto MENU
 if /i "%choice%"=="G" start "Check GPU" cmd /k "scripts\check-gpu.bat" & goto MENU
 if /i "%choice%"=="V" start "Check Python" cmd /k "scripts\check-python.bat" & goto MENU
+if /i "%choice%"=="L" start "View Logs" cmd /k "cd logs && dir && pause" & goto MENU
 
 if /i "%choice%"=="D" start "Deploy ChatBot" cmd /k "scripts\deploy-chatbot.bat" & goto MENU
 if /i "%choice%"=="R" start "Rollback ChatBot" cmd /k "scripts\rollback-chatbot.bat" & goto MENU

@@ -57,20 +57,25 @@ class DatabaseManager:
         )
         
         try:
-            # Connection pooling configuration
+            # Connection pooling configuration - with short timeouts for faster startup
             self.client = MongoClient(
                 self.connection_string,
                 maxPoolSize=50,  # Max 50 connections
-                minPoolSize=10,  # Min 10 connections
+                minPoolSize=5,  # Min 5 connections
                 maxIdleTimeMS=60000,  # Close idle connections after 60s
-                serverSelectionTimeoutMS=5000,  # 5s timeout
-                connectTimeoutMS=10000,  # 10s connection timeout
+                serverSelectionTimeoutMS=3000,  # 3s timeout - fail fast
+                connectTimeoutMS=3000,  # 3s connection timeout - fail fast
+                socketTimeoutMS=3000,  # 3s socket timeout
                 retryWrites=True,  # Retry failed writes
                 retryReads=True,  # Retry failed reads
             )
             
-            # Test connection
-            self.client.admin.command('ping')
+            # Test connection with timeout
+            try:
+                self.client.admin.command('ping', maxTimeMS=3000)
+            except Exception as ping_error:
+                logger.warning(f"⚠️ MongoDB ping failed: {ping_error}")
+                raise ping_error
             
             # Database and collections
             self.db = self.client['ai_assistant']
@@ -624,10 +629,17 @@ _db_instance = None
 
 
 def get_database_manager() -> DatabaseManager:
-    """Get global database manager instance"""
+    """Get global database manager instance - non-blocking"""
     global _db_instance
     
     if _db_instance is None:
-        _db_instance = DatabaseManager()
+        try:
+            _db_instance = DatabaseManager()
+        except Exception as e:
+            logger.warning(f"⚠️ DatabaseManager init failed: {e}")
+            # Return a disabled instance
+            _db_instance = DatabaseManager.__new__(DatabaseManager)
+            _db_instance.enabled = False
+            _db_instance.client = None
     
     return _db_instance
