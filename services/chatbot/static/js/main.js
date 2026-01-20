@@ -1407,6 +1407,31 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
     window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
     
+    // Image preview zoom state
+    let currentZoom = 1.0;
+    
+    // Zoom preview image
+    window.zoomPreviewImage = (delta) => {
+        const previewImg = document.getElementById('imagePreviewContent');
+        if (previewImg) {
+            currentZoom = Math.max(0.5, Math.min(5.0, currentZoom + delta));
+            previewImg.style.transform = `scale(${currentZoom})`;
+            previewImg.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+            console.log('[Image Preview] Zoom:', currentZoom);
+        }
+    };
+    
+    // Reset preview zoom
+    window.resetPreviewZoom = () => {
+        const previewImg = document.getElementById('imagePreviewContent');
+        if (previewImg) {
+            currentZoom = 1.0;
+            previewImg.style.transform = 'scale(1)';
+            previewImg.style.cursor = 'default';
+            console.log('[Image Preview] Zoom reset');
+        }
+    };
+
     // Toggle image tag selection
     window.toggleImageTag = (tagName, element) => {
         if (!window.selectedImageTags) {

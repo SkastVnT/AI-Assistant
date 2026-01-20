@@ -68,7 +68,7 @@ function createNewChat() {
     messageInput.value = '';
     
     // Update chat list without reordering
-    updateChatListItem(currentChatId, 'Cuộc trò chuyện mới', 'Chưa có tin nhắn');
+    updateChatListItem(currentChatId, 'Cuộc trò chuyện mới', 'No messages');
     setActiveChatItem(currentChatId);
     
     saveChatHistory();

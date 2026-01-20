@@ -67,7 +67,7 @@ const translations = {
         // Chat list
         'chatList.noChats': 'Chưa có cuộc trò chuyện nào',
         'chatList.newChat': 'Cuộc trò chuyện mới',
-        'chatList.untitled': 'Chưa có tin nhắn',
+        'chatList.untitled': 'No messages',
         
         // Storage info
         'storage.used': 'Đã dùng',

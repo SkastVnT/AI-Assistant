@@ -24,7 +24,7 @@ images_bp = Blueprint('images', __name__)
 
 @images_bp.route('/api/save-image', methods=['POST'])
 def save_image():
-    """Save generated image to disk and return URL"""
+    """Save generated image to disk and upload to cloud"""
     try:
         data = request.json
         image_base64 = data.get('image')
@@ -42,10 +42,25 @@ def save_image():
         filename = f"generated_{timestamp}.png"
         filepath = IMAGE_STORAGE_DIR / filename
         
-        # Decode and save image
+        # Decode and save image locally
         image_data = base64.b64decode(image_base64)
         with open(filepath, 'wb') as f:
             f.write(image_data)
+        
+        # Upload to cloud (ImgBB + MongoDB/Firebase)
+        cloud_url = None
+        try:
+            from core.image_storage import store_generated_image
+            storage_result = store_generated_image(
+                image_base64=image_base64,
+                prompt=metadata.get('prompt', ''),
+                negative_prompt=metadata.get('negative_prompt', ''),
+                metadata=metadata
+            )
+            if storage_result.get('success'):
+                cloud_url = storage_result.get('imgbb_url')
+        except Exception as e:
+            logger.warning(f"[SaveImage] Cloud upload failed: {e}")
         
         # Save metadata
         metadata_file = IMAGE_STORAGE_DIR / f"generated_{timestamp}.json"
@@ -53,6 +68,7 @@ def save_image():
             json.dump({
                 'filename': filename,
                 'created_at': datetime.now().isoformat(),
+                'cloud_url': cloud_url,
                 'metadata': metadata
             }, f, ensure_ascii=False, indent=2)
         
@@ -62,6 +78,7 @@ def save_image():
             'success': True,
             'filename': filename,
             'url': image_url,
+            'cloud_url': cloud_url,
             'path': str(filepath)
         })
         
@@ -178,6 +195,7 @@ def delete_image(filename):
 
 
 @images_bp.route('/api/gallery', methods=['GET'])
+@images_bp.route('/api/gallery/images', methods=['GET'])  # Alias for frontend compatibility
 def get_gallery():
     """Get image gallery with pagination"""
     try:
@@ -200,8 +218,10 @@ def get_gallery():
             images.append({
                 'filename': img_file.name,
                 'url': f"/storage/images/{img_file.name}",
+                'path': f"/storage/images/{img_file.name}",  # Alias for frontend
                 'created_at': metadata.get('created_at', ''),
-                'prompt': metadata.get('prompt', ''),
+                'created': metadata.get('created_at', ''),  # Alias for frontend
+                'prompt': metadata.get('prompt', 'No prompt'),
                 'cloud_url': metadata.get('cloud_url'),
                 'metadata': metadata
             })
@@ -216,6 +236,7 @@ def get_gallery():
         paginated = images[start:end]
         
         return jsonify({
+            'success': True,  # Frontend expects this
             'images': paginated,
             'total': total,
             'page': page,
@@ -226,3 +247,58 @@ def get_gallery():
     except Exception as e:
         logger.error(f"[Gallery] Error: {e}")
         return jsonify({'error': 'Failed to get gallery'}), 500
+
+
+@images_bp.route('/api/gallery/cloud', methods=['GET'])
+def get_cloud_gallery():
+    """Get images from cloud storage (MongoDB/Firebase)"""
+    try:
+        limit = int(request.args.get('limit', 50))
+        
+        try:
+            from core.image_storage import get_images_from_cloud
+            images = get_images_from_cloud(limit=limit)
+        except Exception as e:
+            logger.warning(f"[CloudGallery] Error fetching from cloud: {e}")
+            images = []
+        
+        return jsonify({
+            'success': True,
+            'images': images,
+            'total': len(images),
+            'source': 'cloud'
+        })
+        
+    except Exception as e:
+        logger.error(f"[CloudGallery] Error: {e}")
+        return jsonify({'error': 'Failed to get cloud gallery'}), 500
+
+
+@images_bp.route('/api/upload-imgbb', methods=['POST'])
+def upload_to_imgbb():
+    """Upload image to ImgBB"""
+    try:
+        data = request.json
+        image_base64 = data.get('image')
+        name = data.get('name')
+        
+        if not image_base64:
+            return jsonify({'error': 'No image data provided'}), 400
+        
+        from core.image_storage import upload_to_imgbb as imgbb_upload
+        url = imgbb_upload(image_base64, name)
+        
+        if url:
+            return jsonify({
+                'success': True,
+                'url': url
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Upload failed'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"[UploadImgBB] Error: {e}")
+        return jsonify({'error': str(e)}), 500

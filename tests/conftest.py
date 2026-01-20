@@ -140,9 +140,20 @@ def chatbot_app():
         sys.path.insert(0, str(project_root))
     
     try:
-        # Import chatbot app specifically
+        # Import chatbot app - try chatbot_main.py first, then app.py for compatibility
         import importlib.util
-        spec = importlib.util.spec_from_file_location("chatbot_app", chatbot_path / "app.py")
+        
+        # Try chatbot_main.py first (new structure)
+        chatbot_main_path = chatbot_path / "chatbot_main.py"
+        app_path = chatbot_path / "app.py"
+        
+        if chatbot_main_path.exists():
+            spec = importlib.util.spec_from_file_location("chatbot_app", chatbot_main_path)
+        elif app_path.exists():
+            spec = importlib.util.spec_from_file_location("chatbot_app", app_path)
+        else:
+            pytest.skip("ChatBot app not available: neither chatbot_main.py nor app.py found")
+            return None
         if spec and spec.loader:
             chatbot_module = importlib.util.module_from_spec(spec)
             

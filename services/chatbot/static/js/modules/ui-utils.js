@@ -214,7 +214,7 @@ export class UIUtils {
             const isActive = id === currentChatId;
             const preview = session.messages.length > 0 
                 ? (session.messages[1] || session.messages[0]).replace(/<[^>]*>/g, '').substring(0, 50) + '...'
-                : 'Chưa có tin nhắn';
+                : 'No messages';
             
             return `
                 <div class="chat-item ${isActive ? 'active' : ''}" data-chat-id="${id}">

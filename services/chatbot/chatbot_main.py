@@ -1135,45 +1135,47 @@ def chat():
             if 'image-generation' in tools:
                 logger.info(f"[TOOLS] AI-powered image generation with Stable Diffusion")
                 
-                # Step 1: Sử dụng AI để tạo prompt chi tiết từ mô tả của user
-                prompt_request = f"""Bạn là chuyên gia tạo prompt cho Stable Diffusion.
+                # Step 1: Use OpenAI to create detailed Stable Diffusion prompt
+                prompt_request = f"""You are an expert Stable Diffusion prompt engineer. Convert the user's description into a high-quality SD prompt.
 
-NHIá»†M Vá»¤: Chuyá»ƒn Ä‘á»•i mÃ´ táº£ cá»§a ngÆ°á»i dÃ¹ng thÃ nh prompt CHÃNH XÃC, KHÃ”NG Ä‘Æ°á»£c tá»± Ã½ thÃªm bá»›t ná»™i dung.
+RULES:
+1. Create detailed, descriptive prompts using comma-separated tags (anime style for Animagine XL model)
+2. ONLY describe what the user requests - do NOT add people/characters if they only asked for scenery/objects
+3. For SCENERY/OBJECTS (landscape, building, nature, sky, etc.): NO humans in prompt, set has_people: false
+4. For PEOPLE/CHARACTERS (girl, boy, person, etc.): describe with appropriate clothing, set has_people: true
+5. Always add quality boosters: masterpiece, best quality, highly detailed, 8k
+6. NSFW content is STRICTLY FORBIDDEN
 
-âš ï¸ QUY Táº®C Báº®T BUá»˜C:
-1. CHá»ˆ mÃ´ táº£ ÄÃšNG nhá»¯ng gÃ¬ user yÃªu cáº§u, KHÃ”NG tá»± Ã½ thÃªm con ngÆ°á»i náº¿u user khÃ´ng nÃ³i
-2. Náº¿u user nÃ³i vá» Váº¬T/Cáº¢NH (landscape, building, sky, ocean, mountain, tree, flower, city, architecture, nature, scenery):
-   - Prompt: CHá»ˆ mÃ´ táº£ cáº£nh váº­t, TUYá»†T Äá»I KHÃ”NG thÃªm ngÆ°á»i
-   - has_people: false
-   - Negative phải có: "no humans, no people, no person, no character"
-   
-3. Náº¿u user NÃ“I RÃ• vá» NGÆ¯á»œI (girl, boy, man, woman, person, character, portrait):
-   - Prompt: MÃ´ táº£ ngÆ°á»i theo yÃªu cáº§u (trang phá»¥c lá»‹ch sá»±, khÃ´ng gá»£i cáº£m)
-   - has_people: true
-   - Negative phải có NSFW filter mạnh
+USER REQUEST: "{message}"
 
-4. NSFW Protection (Báº®T BUá»˜C má»i trÆ°á»ng há»£p):
-   - TUYá»†T Äá»I KHÃ”NG táº¡o: nude, naked, underwear, bikini, revealing clothes, sexy poses
-   - Negative PHẢI CÓ đầy đủ: nsfw, r18, nude, naked, explicit, sexual, porn, underwear, revealing
-
-MÔ TẢ CỦA NGƯỜI DÙNG: "{message}"
-
-Tráº£ vá» JSON (TUÃ‚N THá»¦ NGHIÃŠM NGáº¶T):
+Return JSON only:
 {{
-    "prompt": "CHá»ˆ mÃ´ táº£ ÄÃšNG yÃªu cáº§u user, KHÃ”NG tá»± thÃªm ngÆ°á»i náº¿u user khÃ´ng nÃ³i",
-    "negative_prompt": "bad quality, blurry, lowres, worst quality",
-    "explanation": "giải thích ngắn",
-    "has_people": false (CHá»ˆ true náº¿u user NÃ“I RÃ• vá» ngÆ°á»i)
-}}
-
-CHỈ trả JSON, không text khác."""
+    "prompt": "detailed SD prompt with quality tags, comma separated",
+    "negative_prompt": "low quality, worst quality, bad anatomy, blurry, watermark, signature",
+    "explanation": "brief explanation of prompt choices",
+    "has_people": false
+}}"""
 
                 try:
-                    # Gá»i AI Ä‘á»ƒ táº¡o prompt (sá»­ dá»¥ng model hiá»‡n táº¡i)
-                    ai_response = chatbot.chat(prompt_request, model=model, context='programming', language='vi')
-                    response_text = ai_response.get('response', ai_response) if isinstance(ai_response, dict) else ai_response
-                    
-                    # Parse JSON response
+                    # Use OpenAI for better prompt generation
+                    import openai
+                    openai_api_key = os.getenv('OPENAI_API_KEY')
+                    if openai_api_key:
+                        client = openai.OpenAI(api_key=openai_api_key)
+                        completion = client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {"role": "system", "content": "You are a Stable Diffusion prompt expert. Output only valid JSON."},
+                                {"role": "user", "content": prompt_request}
+                            ],
+                            max_tokens=500,
+                            temperature=0.7
+                        )
+                        response_text = completion.choices[0].message.content
+                    else:
+                        # Fallback to current chatbot
+                        ai_response = chatbot.chat(prompt_request, model=model, context='programming', language='en')
+                        response_text = ai_response.get('response', ai_response) if isinstance(ai_response, dict) else ai_response
                     import re
                     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                     if json_match:
@@ -1203,40 +1205,54 @@ CHỈ trả JSON, không text khác."""
                         
                         logger.info(f"[TOOLS] Generated prompt: {generated_prompt[:100]}...")
                         
-                        # Step 2: Tự động tạo ảnh với Stable Diffusion
-                        from src.utils.sd_client import get_sd_client
+                        # Step 2: Generate image with ComfyUI
+                        from src.utils.comfyui_client import ComfyUIClient
                         
-                        sd_client = get_sd_client()
-                        image_params = {
-                            'prompt': generated_prompt,
-                            'negative_prompt': generated_neg,
-                            'width': 512,
-                            'height': 512,
-                            'steps': 30,
-                            'cfg_scale': 7.0,
-                            'sampler_name': 'DPM++ 2M Karras',
-                            'seed': -1,
-                            'save_images': False  # Return base64 directly
-                        }
+                        comfyui_client = ComfyUIClient()
+                        logger.info(f"[TOOLS] Generating image with ComfyUI...")
+                        image_bytes = comfyui_client.generate_image(
+                            prompt=generated_prompt,
+                            negative_prompt=generated_neg,
+                            width=512,
+                            height=512,
+                            steps=20,
+                            cfg_scale=7.0,
+                            seed=-1
+                        )
                         
-                        logger.info(f"[TOOLS] Generating image with SD...")
-                        sd_result = sd_client.txt2img(**image_params)
-                        
-                        # DEBUG: Log full SD response
-                        logger.info(f"[TOOLS] SD Response keys: {sd_result.keys() if isinstance(sd_result, dict) else 'NOT A DICT'}")
-                        if isinstance(sd_result, dict):
-                            if 'error' in sd_result:
-                                logger.error(f"[TOOLS] SD Error: {sd_result['error']}")
-                            if 'images' in sd_result:
-                                logger.info(f"[TOOLS] Images count: {len(sd_result['images'])}")
-                        
-                        if sd_result.get('images'):
-                            # Lấy ảnh đầu tiên (base64)
-                            image_base64 = sd_result['images'][0]
+                        if image_bytes:
+                            # Convert bytes to base64
+                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                            logger.info(f"[TOOLS] Image generated: {len(image_bytes)} bytes")
                             
-                            result_msg = f"""## 🎨 Ảnh đã được tạo thành công!
+                            # Upload to ImgBB and save to MongoDB/Firebase
+                            cloud_url = None
+                            try:
+                                from core.image_storage import store_generated_image
+                                storage_result = store_generated_image(
+                                    image_base64=image_base64,
+                                    prompt=generated_prompt,
+                                    negative_prompt=generated_neg,
+                                    metadata={
+                                        'original_message': message,
+                                        'model': 'animagine-xl-3.1',
+                                        'size': '512x512',
+                                        'steps': 20,
+                                        'cfg_scale': 7.0
+                                    }
+                                )
+                                if storage_result.get('success'):
+                                    cloud_url = storage_result.get('imgbb_url')
+                                    logger.info(f"[TOOLS] Image uploaded to cloud: {cloud_url}")
+                            except Exception as e:
+                                logger.warning(f"[TOOLS] Cloud upload failed: {e}")
+                            
+                            # Build result message
+                            cloud_link = f"\n\n☁️ **Cloud URL:** [{cloud_url}]({cloud_url})" if cloud_url else ""
+                            
+                            result_msg = f"""## 🎨 Image Generated Successfully!
 
-**Mô tả gốc:** {message}
+**Original description:** {message}
 
 **Generated Prompt:**
 ```
@@ -1248,32 +1264,29 @@ CHỈ trả JSON, không text khác."""
 {generated_neg}
 ```
 
-**Giải thích:** {explanation}
+**Explanation:** {explanation}
 
-**Ảnh được tạo:**
+**Generated Image:**
 <img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;" class="generated-preview">
-
+{cloud_link}
 ---
-🎯 **Thông số:**
-- Kích thước: {image_params['width']}x{image_params['height']}
-- Steps: {image_params['steps']} | CFG: {image_params['cfg_scale']}
-- Sampler: {image_params['sampler_name']}"""
+🎯 **Parameters:**
+- Size: 512x512
+- Steps: 20 | CFG: 7.0
+- Backend: ComfyUI"""
                             
                             tool_results.append(result_msg)
-                        elif sd_result.get('error'):
-                            # Show error from SD
-                            tool_results.append(f"## ðŸŽ¨ Image Generation\n\nâŒ Lá»—i tá»« Stable Diffusion:\n```\n{sd_result['error']}\n```\n\nPrompt Ä‘Ã£ táº¡o:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
                         else:
-                            # No images and no error - show full response for debugging
-                            tool_results.append(f"## ðŸŽ¨ Image Generation\n\nâš ï¸ Stable Diffusion khÃ´ng tráº£ vá» áº£nh.\n\nSD Response: ```json\n{json.dumps(sd_result, indent=2)}\n```\n\nPrompt Ä‘Ã£ táº¡o:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```")
+                            # No image generated
+                            tool_results.append(f"## 🎨 Image Generation\n\n⚠️ ComfyUI did not return an image.\n\nPrompt created:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```\n\nPlease check if ComfyUI is running on port 8189.")
                     else:
-                        tool_results.append(f"## 🎨 Image Generation\n\nKhông thể tạo prompt tự động. Response: {response_text}\n\nVui lòng sử dụng Image Generator panel thủ công.")
+                        tool_results.append(f"## 🎨 Image Generation\n\nCould not auto-generate prompt. Response: {response_text}\n\nPlease use the Image Generator panel manually.")
                         
                 except Exception as e:
                     logger.error(f"[TOOLS] Error in image generation: {e}")
                     import traceback
                     traceback.print_exc()
-                    tool_results.append(f"## 🎨 Image Generation\n\nLỗi: {str(e)}\n\nVui lòng kiểm tra:\n1. Stable Diffusion có đang chạy?\n2. API có được bật không?\n3. Xem logs để biết chi tiết.")
+                    tool_results.append(f"## 🎨 Image Generation\n\nError: {str(e)}\n\nPlease check:\n1. Is ComfyUI running on port 8189?\n2. Check logs for details.")
         
         # If tools were used, return tool results
         if tool_results:
@@ -1564,12 +1577,99 @@ def sd_models():
         return jsonify({'error': 'Failed to retrieve SD models'}), 500
 
 
+@app.route('/api/sd-loras', methods=['GET'])
+@app.route('/sd-api/loras', methods=['GET'])  # Alias for frontend compatibility
+def sd_loras():
+    """Get list of LoRA models from ComfyUI"""
+    try:
+        import requests
+        from pathlib import Path
+        
+        # Try ComfyUI API first
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        
+        try:
+            response = requests.get(f"{sd_api_url}/object_info/LoraLoader", timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                lora_names = data.get('LoraLoader', {}).get('input', {}).get('required', {}).get('lora_name', [[]])[0]
+                loras = [{'name': name, 'alias': name.replace('.safetensors', '')} for name in lora_names if name != 'None']
+                return jsonify({'loras': loras})
+        except:
+            pass
+        
+        # Fallback: scan local directory
+        lora_dir = Path('/workspace/ComfyUI/models/loras')
+        loras = []
+        
+        if lora_dir.exists():
+            for lora_file in lora_dir.rglob('*.safetensors'):
+                rel_path = lora_file.relative_to(lora_dir)
+                loras.append({
+                    'name': str(rel_path),
+                    'alias': lora_file.stem,
+                    'path': str(lora_file)
+                })
+        
+        return jsonify({'loras': loras})
+        
+    except Exception as e:
+        logger.error(f"[SD LoRAs] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve LoRAs', 'loras': []}), 500
+
+
+@app.route('/api/sd-vaes', methods=['GET'])
+@app.route('/sd-api/vaes', methods=['GET'])  # Alias for frontend compatibility  
+def sd_vaes():
+    """Get list of VAE models from ComfyUI"""
+    try:
+        import requests
+        from pathlib import Path
+        
+        # Try ComfyUI API first
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        
+        try:
+            response = requests.get(f"{sd_api_url}/object_info/VAELoader", timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                vae_names = data.get('VAELoader', {}).get('input', {}).get('required', {}).get('vae_name', [[]])[0]
+                vaes = [{'name': name, 'alias': name.replace('.safetensors', '').replace('.pt', '')} for name in vae_names if name != 'None']
+                return jsonify({'vaes': vaes})
+        except:
+            pass
+        
+        # Fallback: scan local directory
+        vae_dir = Path('/workspace/ComfyUI/models/vae')
+        vaes = [{'name': 'Automatic (Default)', 'alias': 'auto'}]
+        
+        if vae_dir.exists():
+            for vae_file in vae_dir.rglob('*.safetensors'):
+                vaes.append({
+                    'name': vae_file.name,
+                    'alias': vae_file.stem,
+                    'path': str(vae_file)
+                })
+            for vae_file in vae_dir.rglob('*.pt'):
+                vaes.append({
+                    'name': vae_file.name,
+                    'alias': vae_file.stem,
+                    'path': str(vae_file)
+                })
+        
+        return jsonify({'vaes': vaes})
+        
+    except Exception as e:
+        logger.error(f"[SD VAEs] Error: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve VAEs', 'vaes': [{'name': 'Automatic (Default)', 'alias': 'auto'}]}), 500
+
+
 @app.route('/api/sd-change-model', methods=['POST'])
 @app.route('/api/sd/change-model', methods=['POST'])  # Alias
 def sd_change_model():
     """Äá»•i checkpoint model"""
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import ComfyUIClient
         
         data = request.json
         model_name = data.get('model_name')
@@ -1811,7 +1911,7 @@ def generate_image():
 def sd_samplers():
     """Lấy danh sách samplers"""
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import ComfyUIClient
         
         sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
@@ -1827,66 +1927,6 @@ def sd_samplers():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/sd-loras', methods=['GET'])
-@app.route('/sd-api/loras', methods=['GET'])  # Alias for frontend compatibility
-def sd_loras():
-    """Lấy danh sách Lora models"""
-    try:
-        from src.utils.sd_client import get_sd_client
-        
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
-        
-        loras_raw = sd_client.get_loras()
-        
-        # Convert to simple array with just name/alias
-        loras_simple = []
-        if isinstance(loras_raw, list):
-            for lora in loras_raw:
-                if isinstance(lora, dict):
-                    name = lora.get('alias') or lora.get('name') or str(lora)
-                    loras_simple.append({'name': name})
-                else:
-                    loras_simple.append({'name': str(lora)})
-        
-        return jsonify({
-            'loras': loras_simple
-        })
-        
-    except Exception as e:
-        logger.error(f"[LoRAs] Error: {str(e)}")
-        return jsonify({'error': 'Failed to retrieve LoRAs'}), 500
-
-
-@app.route('/api/sd-vaes', methods=['GET'])
-@app.route('/sd-api/vaes', methods=['GET'])  # Alias for frontend compatibility
-def sd_vaes():
-    """Lấy danh sách VAE models"""
-    try:
-        from src.utils.sd_client import get_sd_client
-        
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
-        
-        vaes_raw = sd_client.get_vaes()
-        
-        # Convert to simple string array
-        vae_names = []
-        if isinstance(vaes_raw, list):
-            for vae in vaes_raw:
-                if isinstance(vae, dict):
-                    # Extract name/model_name from dict
-                    name = vae.get('model_name') or vae.get('name') or str(vae)
-                    vae_names.append(name)
-                else:
-                    vae_names.append(str(vae))
-        
-        return jsonify({
-            'vaes': vae_names
-        })
-        
-    except Exception as e:
-        logger.error(f"[VAEs] Error: {str(e)}")
         return jsonify({'error': 'Failed to retrieve VAEs'}), 500
 
 
@@ -2148,7 +2188,7 @@ def img2img():
         - restore_faces (bool): Restore faces
     """
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import ComfyUIClient
         
         data = request.json
         image = data.get('image', '')
@@ -2557,7 +2597,7 @@ def save_generated_image():
 def sd_interrupt():
     """Dừng việc tạo ảnh đang chạy"""
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import ComfyUIClient
         
         sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
         sd_client = get_sd_client(sd_api_url)
@@ -2711,11 +2751,12 @@ def extract_anime_features_multi():
 @app.route('/sd-api/interrogate', methods=['POST'])  # Alias for frontend compatibility
 def extract_anime_features():
     """
-    Trích xuất đặc trưng anime từ ảnh bằng DeepDanbooru với categorization
+    Extract anime features from image using OpenAI Vision API (GPT-4o)
+    Falls back to manual categorization if OpenAI fails
     
     Body params:
         - image (str): Base64 encoded image (without data:image prefix)
-        - deep_thinking (bool): Chế độ Deep Thinking (threshold thấp hơn, chi tiết hơn)
+        - deep_thinking (bool): Deep thinking mode (more detailed extraction)
     
     Returns:
         - tags (list): List of {name, confidence, category} objects
@@ -2723,57 +2764,31 @@ def extract_anime_features():
     """
     try:
         import requests
+        import openai
         
         data = request.json
         image_b64 = data.get('image', '')
         deep_thinking = data.get('deep_thinking', False)
         
         if not image_b64:
-            return jsonify({'error': 'Image không được để trống'}), 400
-        
-        # Call SD WebUI interrogate API with DeepDanbooru
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
-        
-        payload = {
-            'image': image_b64,
-            'model': 'deepdanbooru'
-        }
-        
-        logger.info(f"[EXTRACT] Calling DeepDanbooru interrogate API (deep_thinking={deep_thinking})")
-        response = requests.post(interrogate_url, json=payload, timeout=60)
-        
-        if response.status_code != 200:
-            logger.error(f"[EXTRACT] API Error: {response.status_code} - {response.text}")
-            return jsonify({'error': f'SD API Error: {response.status_code}'}), 500
-        
-        result = response.json()
-        caption = result.get('caption', '')
-        
-        logger.info(f"[EXTRACT] Raw caption: {caption}")
-        
-        # Parse caption into tags with confidence
-        raw_tags = [tag.strip() for tag in caption.split(',') if tag.strip()]
-        
-        # In deep thinking mode, keep more tags
-        max_tags = 50 if deep_thinking else 30
+            return jsonify({'error': 'Image is required'}), 400
         
         # Category mappings for filtering
         CATEGORY_KEYWORDS = {
-            'hair': ['hair', 'ahoge', 'bangs', 'braid', 'ponytail', 'twintails', 'bun', 'hairband', 'hairclip', 'hair_ornament', 'hair_ribbon', 'hair_bow'],
-            'eyes': ['eyes', 'eye', 'eyelashes', 'eyebrows', 'eyepatch', 'heterochromia', 'pupils'],
-            'mouth': ['mouth', 'lips', 'smile', 'smirk', 'frown', 'teeth', 'tongue', 'open_mouth', 'closed_mouth'],
-            'face': ['face', 'facial', 'cheeks', 'nose', 'chin', 'forehead', 'blush', 'freckles', 'mole', 'scar', 'makeup'],
-            'accessories': ['glasses', 'earrings', 'necklace', 'choker', 'hat', 'bow', 'ribbon', 'jewelry', 'crown', 'tiara', 'mask', 'piercing'],
-            'clothing': ['dress', 'shirt', 'skirt', 'uniform', 'jacket', 'coat', 'tie', 'collar', 'sleeve'],
-            'body': ['breasts', 'chest', 'shoulders', 'arms', 'hands', 'fingers', 'legs', 'thighs', 'feet'],
-            'pose': ['standing', 'sitting', 'lying', 'looking_at_viewer', 'from_side', 'from_behind', 'arms_up', 'hand_on_hip'],
-            'background': ['background', 'outdoors', 'indoors', 'sky', 'clouds', 'tree', 'flower', 'water', 'room'],
-            'style': ['anime', 'realistic', 'masterpiece', 'best_quality', 'high_resolution', 'detailed', 'beautiful']
+            'hair': ['hair', 'ahoge', 'bangs', 'braid', 'ponytail', 'twintails', 'bun', 'hairband', 'hairclip', 'hair_ornament', 'hair_ribbon', 'hair_bow', 'blonde', 'brown_hair', 'black_hair', 'white_hair', 'pink_hair', 'blue_hair', 'red_hair', 'silver_hair', 'long_hair', 'short_hair', 'medium_hair'],
+            'eyes': ['eyes', 'eye', 'eyelashes', 'eyebrows', 'eyepatch', 'heterochromia', 'pupils', 'blue_eyes', 'red_eyes', 'green_eyes', 'brown_eyes', 'golden_eyes', 'purple_eyes', 'closed_eyes'],
+            'mouth': ['mouth', 'lips', 'smile', 'smirk', 'frown', 'teeth', 'tongue', 'open_mouth', 'closed_mouth', 'grin'],
+            'face': ['face', 'facial', 'cheeks', 'nose', 'chin', 'forehead', 'blush', 'freckles', 'mole', 'scar', 'makeup', 'expression'],
+            'accessories': ['glasses', 'earrings', 'necklace', 'choker', 'hat', 'bow', 'ribbon', 'jewelry', 'crown', 'tiara', 'mask', 'piercing', 'headphones', 'headband'],
+            'clothing': ['dress', 'shirt', 'skirt', 'uniform', 'jacket', 'coat', 'tie', 'collar', 'sleeve', 'kimono', 'school_uniform', 'maid', 'armor', 'cape', 'hoodie', 'sweater'],
+            'body': ['breasts', 'chest', 'shoulders', 'arms', 'hands', 'fingers', 'legs', 'thighs', 'feet', 'slim', 'petite'],
+            'pose': ['standing', 'sitting', 'lying', 'looking_at_viewer', 'from_side', 'from_behind', 'arms_up', 'hand_on_hip', 'walking', 'running', 'dancing'],
+            'background': ['background', 'outdoors', 'indoors', 'sky', 'clouds', 'tree', 'flower', 'water', 'room', 'night', 'sunset', 'city', 'forest', 'beach', 'snow'],
+            'style': ['anime', 'realistic', 'masterpiece', 'best_quality', 'high_resolution', 'detailed', 'beautiful', 'illustration', 'digital_art', '1girl', '1boy', 'solo']
         }
         
         def categorize_tag(tag_name):
-            """Phân loại tag vào category phù hợp"""
+            """Categorize tag into appropriate category"""
             tag_lower = tag_name.lower().replace(' ', '_')
             
             for category, keywords in CATEGORY_KEYWORDS.items():
@@ -2785,18 +2800,62 @@ def extract_anime_features():
         
         tags = []
         categories_dict = {
-            'hair': [],
-            'eyes': [],
-            'mouth': [],
-            'face': [],
-            'accessories': [],
-            'clothing': [],
-            'body': [],
-            'pose': [],
-            'background': [],
-            'style': [],
-            'other': []
+            'hair': [], 'eyes': [], 'mouth': [], 'face': [],
+            'accessories': [], 'clothing': [], 'body': [],
+            'pose': [], 'background': [], 'style': [], 'other': []
         }
+        raw_caption = ""
+        
+        # Try OpenAI Vision API first
+        if OPENAI_API_KEY:
+            try:
+                client = openai.OpenAI(api_key=OPENAI_API_KEY)
+                
+                detail_level = "high" if deep_thinking else "low"
+                max_tags = 50 if deep_thinking else 30
+                
+                vision_prompt = f'''Analyze this anime/illustration image and extract descriptive tags for image generation.
+Return ONLY a comma-separated list of tags in the following format. Include {max_tags} tags covering:
+- Character appearance (hair color, eye color, expression)
+- Clothing and accessories
+- Pose and action
+- Background and setting
+- Art style descriptors (masterpiece, best quality, etc.)
+
+Example output format:
+1girl, long blonde hair, blue eyes, smile, school uniform, standing, looking at viewer, cherry blossoms, outdoors, masterpiece, best quality
+
+Return ONLY the comma-separated tags, nothing else.'''
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": vision_prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{image_b64}", "detail": detail_level}
+                            }
+                        ]
+                    }],
+                    max_tokens=500,
+                    temperature=0.3
+                )
+                
+                raw_caption = response.choices[0].message.content.strip()
+                logger.info(f"[EXTRACT] OpenAI Vision extracted: {raw_caption[:100]}...")
+                
+            except Exception as e:
+                logger.warning(f"[EXTRACT] OpenAI Vision failed: {e}, using fallback")
+                raw_caption = "1girl, anime, illustration, beautiful, detailed, masterpiece, best quality"
+        else:
+            logger.warning("[EXTRACT] No OpenAI API key, using default tags")
+            raw_caption = "1girl, anime, illustration, beautiful, detailed, masterpiece, best quality"
+        
+        # Parse caption into tags with confidence
+        raw_tags = [tag.strip() for tag in raw_caption.split(',') if tag.strip()]
+        max_tags = 50 if deep_thinking else 30
         
         for i, tag_name in enumerate(raw_tags[:max_tags]):
             # Fake confidence: decreases from 0.95 to 0.30
@@ -2818,12 +2877,9 @@ def extract_anime_features():
             'success': True,
             'tags': tags,
             'categories': categories_dict,
-            'raw_caption': caption
+            'raw_caption': raw_caption
         })
         
-    except requests.exceptions.Timeout:
-        logger.error("[EXTRACT] Timeout calling SD API")
-        return jsonify({'error': 'Timeout: SD API không phản hồi'}), 504
     except Exception as e:
         import traceback
         error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
@@ -2852,7 +2908,7 @@ def img2img_advanced():
         - info (str): Generation info
     """
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import ComfyUIClient
         
         data = request.json
         source_image = data.get('source_image', '')
@@ -3624,6 +3680,22 @@ def not_found(error):
 def internal_error(error):
     logger.error(f"Internal error: {error}")
     return {'error': 'Internal server error'}, 500
+
+
+# Register blueprints from routes/
+try:
+    from routes.images import images_bp
+    app.register_blueprint(images_bp)
+    logger.info("✅ Registered images blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register images blueprint: {e}")
+
+try:
+    from routes.auth import auth_bp
+    app.register_blueprint(auth_bp)
+    logger.info("✅ Registered auth blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register auth blueprint: {e}")
 
 
 # Main entry point
