@@ -1,4 +1,7 @@
 {
+  "chatbot": "https://cached-carl-recognition-virginia.trycloudflare.com",
   "hub-gateway": "https://talent-inc-conditional-scenarios.trycloudflare.com",
-  "chatbot": "https://cached-carl-recognition-virginia.trycloudflare.com"
+  "speech2text": "https://survive-find-events-builds.trycloudflare.com",
+  "text2sql": "https://reactions-laptop-abc-logical.trycloudflare.com",
+  "updated_at": "2026-01-20T03:58:00"
 }

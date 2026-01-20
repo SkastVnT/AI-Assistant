@@ -1,0 +1,105 @@
+# =============================================================================
+# AI-Assistant - Docker Compose Lightweight Setup (No GPU)
+# Description: Core services only - Chatbot, Text2SQL, Speech2Text (CPU)
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # ===========================================================================
+  # CORE SERVICES
+  # ===========================================================================
+
+  hub-gateway:
+    build:
+      context: ./services/hub-gateway
+      dockerfile: Dockerfile
+    container_name: ai-hub-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - FLASK_ENV=production
+      - MONGODB_URI=${MONGODB_URI:-mongodb+srv://thanhnguyen:avBlS2SMWBS0TXFu@ai-assistant.aspuqwb.mongodb.net/}
+    volumes:
+      - ./logs/hub-gateway:/app/logs
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  chatbot:
+    build:
+      context: ./services/chatbot
+      dockerfile: Dockerfile
+    container_name: ai-chatbot
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env
+    environment:
+      - FLASK_ENV=production
+      - ENVIRONMENT=production
+      - MONGODB_URI=${MONGODB_URI:-mongodb+srv://thanhnguyen:avBlS2SMWBS0TXFu@ai-assistant.aspuqwb.mongodb.net/}
+    volumes:
+      - ./services/chatbot/Storage:/app/Storage
+      - ./logs/chatbot:/app/logs
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  text2sql:
+    build:
+      context: ./services/text2sql
+      dockerfile: Dockerfile
+    container_name: ai-text2sql
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./.env
+    environment:
+      - FLASK_ENV=production
+      - MONGODB_URI=${MONGODB_URI:-mongodb+srv://thanhnguyen:avBlS2SMWBS0TXFu@ai-assistant.aspuqwb.mongodb.net/}
+    volumes:
+      - ./services/text2sql/data:/app/data
+      - ./logs/text2sql:/app/logs
+    networks:
+      - ai-network
+
+  speech2text:
+    build:
+      context: ./services/speech2text
+      dockerfile: Dockerfile
+    container_name: ai-speech2text
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./.env
+    environment:
+      - FLASK_ENV=production
+      - CUDA_VISIBLE_DEVICES=""
+    volumes:
+      - ./services/speech2text/app/data:/app/data
+      - ./logs/speech2text:/app/logs
+    networks:
+      - ai-network
+
+networks:
+  ai-network:
+    driver: bridge
+    name: ai-assistant-network
+
+volumes:
+  chatbot_storage:
+  text2sql_data:

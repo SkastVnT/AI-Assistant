@@ -758,7 +758,7 @@ if __name__ == '__main__':
     
     # Get port from environment or use default
     port = int(os.getenv('SPEECH2TEXT_PORT', 5001))
-    host = os.getenv('FLASK_HOST', '127.0.0.1')  # Localhost only for security
+    host = os.getenv('FLASK_HOST', '0.0.0.0')  # Bind to all interfaces for public access
     
     # Run with socketio for WebSocket support
     # Use debug=False to avoid issues with reloader

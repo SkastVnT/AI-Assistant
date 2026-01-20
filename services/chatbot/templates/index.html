@@ -194,11 +194,8 @@
                         <option value="grok" data-lang-key="model.grok" selected>GROK (xAI) - FREE ⭐</option>
                         <option value="openai" data-lang-key="model.openai">GPT-4o-mini (OpenAI)</option>
                         <option value="deepseek" data-lang-key="model.deepseek">DeepSeek (Rẻ nhất)</option>
-                        <option value="qwen" data-lang-key="model.qwen">Qwen1.5b (Alibaba Cloud)</option>
-                        <option value="bloomvn" data-lang-key="model.bloomvn">BloomVN-8B API (Tiếng Việt) - FREE</option>
                         <optgroup label="🖥️ Local Models (FREE - No Internet)" data-lang-key="model.local.group">
                             <option value="qwen1.5-local" data-lang-key="model.local.qwen15">🖥️ Qwen1.5-1.8B Local</option>
-                            <option value="bloomvn-local" data-lang-key="model.local.bloomvn">🖥️ BloomVN-8B Local</option>
                             <option value="qwen2.5-local" data-lang-key="model.local.qwen25">🖥️ Qwen2.5-14B Local ⭐</option>
                         </optgroup>
                     </select>
@@ -920,6 +917,55 @@
                 }
             }
         });
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHX8Kpx3ZCZswzg5wyWycRCOqnGWCOaiM",
+            authDomain: "ai-assistant-7dbb8.firebaseapp.com",
+            projectId: "ai-assistant-7dbb8",
+            storageBucket: "ai-assistant-7dbb8.firebasestorage.app",
+            messagingSenderId: "31625059118",
+            appId: "1:31625059118:web:b6327b08cea18f9be938bf",
+            measurementId: "G-G6EKFZHZPZ"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        
+        window.firebaseDb = db;
+        
+        // Log chat events to Firebase
+        window.logChatToFirebase = async function(message, model, response) {
+            try {
+                await addDoc(collection(db, 'chat_logs'), {
+                    message: message.substring(0, 200),
+                    model: model,
+                    responseLength: response.length,
+                    timestamp: serverTimestamp(),
+                    userAgent: navigator.userAgent.substring(0, 100)
+                });
+            } catch (e) {
+                console.log("Firebase log skipped");
+            }
+        };
+        
+        // Log page view
+        (async () => {
+            try {
+                await addDoc(collection(db, 'page_views'), {
+                    page: '/chatbot',
+                    timestamp: serverTimestamp(),
+                    referrer: document.referrer || 'direct'
+                });
+            } catch (e) {}
+        })();
     </script>
 </body>
 </html>
