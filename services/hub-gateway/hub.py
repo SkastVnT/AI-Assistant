@@ -43,19 +43,23 @@ app.register_error_handler(Exception, handle_generic_exception)
 def index():
     """Home page - Gateway dashboard"""
     logger.info("Serving hub gateway homepage")
-    services = HubConfig.get_all_services()
+    services = HubConfig.get_all_services(update_public_urls=True)
     
     # Convert ServiceConfig objects to dicts for template
+    # Use public URL if available, otherwise local URL
     services_dict = {
         key: {
             'name': service.name,
             'description': service.description,
             'icon': service.icon,
             'port': service.port,
-            'url': service.url,
+            'url': service.get_effective_url(prefer_public=True),
+            'local_url': service.url,
+            'public_url': service.public_url,
             'color': service.color,
             'features': service.features,
-            'status': 'available'
+            'status': 'available',
+            'is_public': service.public_url is not None
         }
         for key, service in services.items()
     }
@@ -69,7 +73,7 @@ def index():
 def get_services():
     """Get all services information"""
     logger.debug("API request: get_services")
-    services = HubConfig.get_all_services()
+    services = HubConfig.get_all_services(update_public_urls=True)
     
     services_dict = {
         key: {
@@ -77,8 +81,11 @@ def get_services():
             'description': service.description,
             'icon': service.icon,
             'port': service.port,
-            'url': service.url,
-            'features': service.features
+            'url': service.get_effective_url(prefer_public=True),
+            'local_url': service.url,
+            'public_url': service.public_url,
+            'features': service.features,
+            'is_public': service.public_url is not None
         }
         for key, service in services.items()
     }
@@ -110,10 +117,11 @@ def get_service(service_name):
     })
 
 
+@app.route('/health')
 @app.route('/api/health')
 @error_handler
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - accessible at both /health and /api/health"""
     logger.debug("Health check requested")
     services = HubConfig.get_all_services()
     

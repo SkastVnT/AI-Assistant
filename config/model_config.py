@@ -4,8 +4,8 @@ Centralized configuration for all AI services
 """
 
 import os
-from dataclasses import dataclass
-from typing import Dict, List
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,9 +18,16 @@ class ServiceConfig:
     description: str
     icon: str
     port: int
-    url: str
+    url: str  # Local URL
     color: str
     features: List[str]
+    public_url: Optional[str] = None  # Public URL if exposed
+    
+    def get_effective_url(self, prefer_public: bool = True) -> str:
+        """Get the URL to use - public if available and preferred."""
+        if prefer_public and self.public_url:
+            return self.public_url
+        return self.url
 
 
 class HubConfig:
@@ -95,6 +102,27 @@ class HubConfig:
         return cls.SERVICES.get(service_name)
     
     @classmethod
-    def get_all_services(cls) -> Dict[str, ServiceConfig]:
-        """Get all service configurations."""
+    def get_all_services(cls, update_public_urls: bool = True) -> Dict[str, ServiceConfig]:
+        """
+        Get all service configurations.
+        
+        Args:
+            update_public_urls: If True, update services with public URLs from files
+        """
+        if update_public_urls:
+            cls._update_public_urls()
         return cls.SERVICES
+    
+    @classmethod
+    def _update_public_urls(cls) -> None:
+        """Update services with public URLs from URL manager."""
+        try:
+            from config.public_urls import url_manager
+            
+            for service_name, service in cls.SERVICES.items():
+                public_url = url_manager.get_public_url(service_name)
+                if public_url:
+                    service.public_url = public_url
+        except ImportError:
+            pass  # URL manager not available
+

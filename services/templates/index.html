@@ -197,7 +197,13 @@
         <div class="services-grid">
             {% for key, service in services.items() %}
             <div class="service-card {{ service.color }}" onclick="window.open('{{ service.url }}', '_blank')">
-                <div class="service-port">Port {{ service.port }}</div>
+                <div class="service-port">
+                    {% if service.is_public %}
+                    <span style="color: #10b981;">🌐 Public</span>
+                    {% else %}
+                    Port {{ service.port }}
+                    {% endif %}
+                </div>
                 <div class="service-icon">{{ service.icon }}</div>
                 <h2 class="service-title">{{ service.name }}</h2>
                 <p class="service-description">{{ service.description }}</p>
@@ -211,6 +217,12 @@
                 <span class="service-status status-{{ service.status }}">
                     {{ service.status|upper }}
                 </span>
+                
+                {% if service.is_public %}
+                <div style="margin-top: 10px; font-size: 0.75rem; color: #667eea; word-break: break-all;">
+                    {{ service.public_url }}
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
