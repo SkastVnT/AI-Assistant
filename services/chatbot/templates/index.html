@@ -411,6 +411,30 @@
                 Checking Stable Diffusion...
             </div>
 
+            <!-- Style Quick Select -->
+            <div class="style-selector px-5 py-3">
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">🎨 Quick Style:</label>
+                <div class="style-buttons grid grid-cols-2 md:grid-cols-4 gap-2" id="styleButtons">
+                    <button class="style-btn active bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('anime_xl')" data-style="anime_xl">
+                        🎨 Anime XL
+                    </button>
+                    <button class="style-btn bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('realistic_xl')" data-style="realistic_xl">
+                        📷 Realistic Fast
+                    </button>
+                    <button class="style-btn bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('realistic_juggernaut')" data-style="realistic_juggernaut">
+                        📷 Realistic Pro
+                    </button>
+                    <button class="style-btn bg-gradient-to-r from-green-500 to-teal-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('anime_counterfeit')" data-style="anime_counterfeit">
+                        🎨 Anime Classic
+                    </button>
+                </div>
+                <p id="styleDescription" class="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">High quality anime art (SDXL)</p>
+            </div>
+
             <!-- Tab Navigation -->
             <div class="image-gen-tabs flex gap-2 p-4">
                 <button class="tab-btn active btn-primary px-4 py-2 rounded-lg font-medium transition-all duration-200" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">
@@ -962,6 +986,142 @@
                     customPromptBtn.title = '🛠️ Custom Prompt ACTIVE (Click to edit)';
                 }
             }
+        });
+    </script>
+    
+    <!-- Style Presets Script -->
+    <script>
+        // Style presets configuration
+        const stylePresets = {
+            anime_xl: {
+                name: "Anime XL",
+                description: "High quality anime art (SDXL)",
+                model: "animagine-xl-3.1.safetensors",
+                negative_prompt: "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, watermark, text, signature",
+                cfg_scale: 7.0,
+                steps: 25,
+                width: 1024,
+                height: 1024
+            },
+            realistic_xl: {
+                name: "Realistic Fast",
+                description: "Photorealistic Lightning (SDXL)",
+                model: "realvisxlV50_v50LightningBakedvae.safetensors",
+                negative_prompt: "cartoon, anime, illustration, drawing, painting, sketch, bad quality, blurry, distorted, deformed, ugly, watermark, signature",
+                cfg_scale: 2.0,
+                steps: 6,
+                width: 1024,
+                height: 1024
+            },
+            realistic_juggernaut: {
+                name: "Realistic Pro",
+                description: "Professional photorealistic (SDXL)",
+                model: "juggernautXL_v9.safetensors",
+                negative_prompt: "cartoon, anime, illustration, drawing, painting, bad quality, worst quality, blurry, distorted, deformed, ugly, extra limbs, missing limbs, watermark, signature, text",
+                cfg_scale: 4.5,
+                steps: 25,
+                width: 1024,
+                height: 1344
+            },
+            anime_counterfeit: {
+                name: "Anime Classic",
+                description: "Classic anime style (SD 1.5)",
+                model: "counterfeit_v30.safetensors",
+                negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, blurry",
+                cfg_scale: 7.0,
+                steps: 28,
+                width: 512,
+                height: 768
+            },
+            anime_dreamshaper: {
+                name: "Anime Fantasy",
+                description: "Fantasy anime style (SDXL)",
+                model: "dreamshaper_xl.safetensors",
+                negative_prompt: "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, poorly drawn face, watermark, signature",
+                cfg_scale: 6.5,
+                steps: 20,
+                width: 1024,
+                height: 1024
+            },
+            realistic_vision: {
+                name: "Realistic Portrait",
+                description: "Portrait realistic (SD 1.5)",
+                model: "realisticVision_v60.safetensors",
+                negative_prompt: "cartoon, anime, illustration, bad anatomy, bad hands, text, cropped, worst quality, low quality, blurry, dehydrated, bad proportions, extra limbs, cloned face, disfigured",
+                cfg_scale: 7.0,
+                steps: 28,
+                width: 512,
+                height: 768
+            }
+        };
+        
+        let currentStyle = 'anime_xl';
+        
+        function selectStyle(styleId) {
+            currentStyle = styleId;
+            const preset = stylePresets[styleId];
+            
+            if (!preset) return;
+            
+            // Update button states
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-gray-800', 'scale-105');
+                if (btn.dataset.style === styleId) {
+                    btn.classList.add('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-gray-800', 'scale-105');
+                }
+            });
+            
+            // Update description
+            const descEl = document.getElementById('styleDescription');
+            if (descEl) {
+                descEl.textContent = preset.description;
+            }
+            
+            // Update form values
+            const negPrompt = document.getElementById('negativePrompt');
+            if (negPrompt) negPrompt.value = preset.negative_prompt;
+            
+            const widthSelect = document.getElementById('imageWidth');
+            if (widthSelect) widthSelect.value = preset.width;
+            
+            const heightSelect = document.getElementById('imageHeight');
+            if (heightSelect) heightSelect.value = preset.height;
+            
+            const stepsInput = document.getElementById('steps');
+            if (stepsInput) stepsInput.value = preset.steps;
+            
+            const cfgInput = document.getElementById('cfgScale');
+            if (cfgInput) cfgInput.value = preset.cfg_scale;
+            
+            // Update model dropdown if exists
+            const modelSelect = document.getElementById('modelCheckpoint');
+            if (modelSelect) {
+                // Try to select the preset model
+                const options = modelSelect.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === preset.model || options[i].text.includes(preset.model.split('.')[0])) {
+                        modelSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            console.log(`Selected style: ${styleId} - ${preset.name}`);
+        }
+        
+        // Store current style for generate function
+        window.getCurrentStyle = function() {
+            return currentStyle;
+        };
+        
+        window.getStylePreset = function(styleId) {
+            return stylePresets[styleId || currentStyle];
+        };
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial style
+            selectStyle('anime_xl');
         });
     </script>
     

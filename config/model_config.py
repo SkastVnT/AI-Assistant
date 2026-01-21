@@ -104,8 +104,8 @@ class HubConfig:
             name="Image Upscale",
             description="Nâng cấp độ phân giải ảnh với AI",
             icon="🔍",
-            port=5005,
-            url="http://localhost:5005",
+            port=7861,
+            url="http://localhost:7861",
             color="from-pink-500 to-rose-600",
             features=[
                 "Real-ESRGAN",

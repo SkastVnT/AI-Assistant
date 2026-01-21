@@ -22,6 +22,27 @@ from core.extensions import (
 )
 from core.db_helpers import get_user_id_from_session
 
+# Import model presets - use direct file import to avoid path conflicts
+try:
+    import importlib.util
+    _preset_path = CHATBOT_DIR / "config" / "model_presets.py"
+    _spec = importlib.util.spec_from_file_location("model_presets", _preset_path)
+    _presets_module = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_presets_module)
+    
+    MODEL_PRESETS = _presets_module.MODEL_PRESETS
+    CATEGORIES = _presets_module.CATEGORIES
+    QUICK_PRESETS = _presets_module.QUICK_PRESETS
+    get_preset = _presets_module.get_preset
+    get_all_presets = _presets_module.get_all_presets
+    get_presets_by_category = _presets_module.get_presets_by_category
+    PRESETS_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Model presets load failed: {e}")
+    PRESETS_AVAILABLE = False
+    MODEL_PRESETS = {}
+    QUICK_PRESETS = []
+
 # Import ImgBBUploader if available
 ImgBBUploader = None
 try:
@@ -133,6 +154,53 @@ def sd_change_model():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ============================================================================
+# MODEL PRESETS
+# ============================================================================
+
+@sd_bp.route('/api/sd-presets', methods=['GET'])
+@sd_bp.route('/api/sd/presets', methods=['GET'])
+def sd_presets():
+    """Get all model presets"""
+    try:
+        if PRESETS_AVAILABLE:
+            return jsonify({
+                'success': True,
+                'presets': MODEL_PRESETS,
+                'quick_presets': QUICK_PRESETS,
+                'categories': get_all_presets()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Presets not available'
+            }), 404
+    except Exception as e:
+        logger.error(f"[Presets] Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@sd_bp.route('/api/sd-presets/<preset_id>', methods=['GET'])
+@sd_bp.route('/api/sd/presets/<preset_id>', methods=['GET'])
+def sd_preset_detail(preset_id):
+    """Get specific preset details"""
+    try:
+        if PRESETS_AVAILABLE:
+            preset = get_preset(preset_id)
+            if preset:
+                return jsonify({
+                    'success': True,
+                    'preset_id': preset_id,
+                    'preset': preset
+                })
+            else:
+                return jsonify({'success': False, 'error': 'Preset not found'}), 404
+        else:
+            return jsonify({'success': False, 'error': 'Presets not available'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @sd_bp.route('/api/sd-samplers', methods=['GET'])
 @sd_bp.route('/sd-api/samplers', methods=['GET'])
 @sd_bp.route('/api/sd/samplers', methods=['GET'])
@@ -229,19 +297,27 @@ def generate_image():
         
         save_to_storage = data.get('save_to_storage', False)
         
-        # ComfyUI parameters
+        # Check if using preset
+        preset_id = data.get('preset', data.get('style', None))
+        preset_config = {}
+        
+        if preset_id and PRESETS_AVAILABLE:
+            preset_config = get_preset(preset_id) or {}
+            logger.info(f"[TEXT2IMG] Using preset: {preset_id}")
+        
+        # ComfyUI parameters - preset values as defaults, request values override
         params = {
             'prompt': prompt,
-            'negative_prompt': data.get('negative_prompt', 'bad quality, blurry, distorted'),
-            'width': int(data.get('width') or 1024),
-            'height': int(data.get('height') or 1024),
-            'steps': int(data.get('steps') or 20),
-            'cfg_scale': float(data.get('cfg_scale') or 7.0),
+            'negative_prompt': data.get('negative_prompt') or preset_config.get('negative_prompt', 'bad quality, blurry, distorted'),
+            'width': int(data.get('width') or preset_config.get('width', 1024)),
+            'height': int(data.get('height') or preset_config.get('height', 1024)),
+            'steps': int(data.get('steps') or preset_config.get('steps', 20)),
+            'cfg_scale': float(data.get('cfg_scale') or preset_config.get('cfg_scale', 7.0)),
             'seed': int(data.get('seed') or -1),
-            'model': data.get('model', None)
+            'model': data.get('model') or preset_config.get('model', None)
         }
         
-        logger.info(f"[TEXT2IMG] Generating with prompt: {prompt[:50]}...")
+        logger.info(f"[TEXT2IMG] Generating with model: {params.get('model')}, prompt: {prompt[:50]}...")
         
         if use_comfyui:
             # Use ComfyUI generate_image method

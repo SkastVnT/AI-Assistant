@@ -144,9 +144,9 @@ QWEN_API_KEY = os.getenv('QWEN_API_KEY') or os.getenv('DASHSCOPE_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY') or os.getenv('HUGGINGFACE_TOKEN')
 GROK_API_KEY = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
 
-# Google Search API
-GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1')
-GOOGLE_SEARCH_API_KEY_2 = os.getenv('GOOGLE_SEARCH_API_KEY_2')
+# Google Search API - với fallback keys
+GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1') or os.getenv('GOOGLE_SEARCH_API_KEY_3') or os.getenv('GOOGLE_SEARCH_API_KEY')
+GOOGLE_SEARCH_API_KEY_2 = os.getenv('GOOGLE_SEARCH_API_KEY_2') or os.getenv('GOOGLE_SEARCH_API_KEY_4')
 GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 
 # GitHub API
@@ -3976,6 +3976,13 @@ try:
     logger.info("✅ Registered auth blueprint")
 except ImportError as e:
     logger.warning(f"⚠️ Could not register auth blueprint: {e}")
+
+try:
+    from routes.stable_diffusion import sd_bp
+    app.register_blueprint(sd_bp)
+    logger.info("✅ Registered stable_diffusion blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register stable_diffusion blueprint: {e}")
 
 
 # Main entry point
