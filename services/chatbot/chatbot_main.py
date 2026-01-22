@@ -30,7 +30,7 @@ from datetime import datetime
 from pathlib import Path
 import shutil
 from dotenv import load_dotenv
-from flask import Flask, send_from_directory, session, render_template, request, jsonify
+from flask import Flask, send_from_directory, send_file, session, render_template, request, jsonify
 
 # Load environment variables
 load_dotenv()
@@ -111,7 +111,14 @@ app.secret_key = os.urandom(24)
 app.static_folder = str(CHATBOT_DIR / 'static')
 
 # Import and register extensions
-from core.extensions import logger, register_monitor, LOCALMODELS_AVAILABLE, model_loader
+from core.extensions import logger, register_monitor, LOCALMODELS_AVAILABLE, model_loader, CLOUD_UPLOAD_ENABLED
+
+# Try to import ImgBBUploader
+ImgBBUploader = None
+try:
+    from src.utils.imgbb_uploader import ImgBBUploader
+except ImportError:
+    logger.warning("ImgBBUploader not available")
 
 # Register monitor for health checks
 register_monitor(app)
@@ -1744,8 +1751,8 @@ def sd_change_model():
         if not model_name:
             return jsonify({'error': 'model_name is required'}), 400
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        from src.utils.comfyui_client import get_comfyui_client; sd_client = get_comfyui_client(sd_api_url)
         
         success = sd_client.change_model(model_name)
         
@@ -1866,8 +1873,16 @@ def generate_image():
                         except Exception as upload_error:
                             logger.error(f"[TEXT2IMG] ImgBB upload error: {upload_error}")
                     
-                    # Save metadata with cloud URL
+                    # Save metadata with cloud URL and session_id for privacy filtering
                     metadata_file = filepath.with_suffix('.json')
+                    
+                    # Get gallery session ID for privacy
+                    gallery_session_id = session.get('gallery_session_id')
+                    if not gallery_session_id:
+                        import uuid as uuid_module
+                        gallery_session_id = str(uuid_module.uuid4())
+                        session['gallery_session_id'] = gallery_session_id
+                    
                     metadata = {
                         'filename': filename,
                         'created_at': datetime.now().isoformat(),
@@ -1876,7 +1891,8 @@ def generate_image():
                         'parameters': params,
                         'cloud_url': cloud_url,
                         'delete_url': delete_url,
-                        'service': 'imgbb' if cloud_url else 'local'
+                        'service': 'imgbb' if cloud_url else 'local',
+                        'session_id': gallery_session_id  # For privacy filtering
                     }
                     
                     with open(metadata_file, 'w', encoding='utf-8') as f:
@@ -1978,10 +1994,10 @@ def generate_image():
 def sd_samplers():
     """Lấy danh sách samplers"""
     try:
-        from src.utils.comfyui_client import ComfyUIClient
+        from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
         
         samplers = sd_client.get_samplers()
         
@@ -2255,7 +2271,7 @@ def img2img():
         - restore_faces (bool): Restore faces
     """
     try:
-        from src.utils.comfyui_client import ComfyUIClient
+        from src.utils.comfyui_client import get_comfyui_client
         
         data = request.json
         image = data.get('image', '')
@@ -2277,7 +2293,7 @@ def img2img():
             'height': int(data.get('height') or 512),
             'steps': int(data.get('steps') or 30),  # img2img needs more steps
             'cfg_scale': float(data.get('cfg_scale') or 7.0),
-            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
+            'sampler_name': data.get('sampler_name') or 'euler',
             'seed': int(data.get('seed') or -1),
             'restore_faces': data.get('restore_faces', False),
             'lora_models': data.get('lora_models', []),
@@ -2285,8 +2301,8 @@ def img2img():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
         
         # Tạo ảnh với img2img
         logger.info(f"[IMG2IMG] Calling img2img with denoising_strength={params['denoising_strength']}")
@@ -2349,8 +2365,16 @@ def img2img():
                         except Exception as upload_error:
                             logger.error(f"[IMG2IMG] ImgBB upload error: {upload_error}")
                     
-                    # Save metadata with cloud URL
+                    # Save metadata with cloud URL and session_id for privacy filtering
                     metadata_file = filepath.with_suffix('.json')
+                    
+                    # Get gallery session ID for privacy
+                    gallery_session_id = session.get('gallery_session_id')
+                    if not gallery_session_id:
+                        import uuid as uuid_module
+                        gallery_session_id = str(uuid_module.uuid4())
+                        session['gallery_session_id'] = gallery_session_id
+                    
                     metadata = {
                         'filename': filename,
                         'created_at': datetime.now().isoformat(),
@@ -2360,7 +2384,8 @@ def img2img():
                         'parameters': params,
                         'cloud_url': cloud_url,
                         'delete_url': delete_url,
-                        'service': 'imgbb' if cloud_url else 'local'
+                        'service': 'imgbb' if cloud_url else 'local',
+                        'session_id': gallery_session_id  # For privacy filtering
                     }
                     
                     with open(metadata_file, 'w', encoding='utf-8') as f:
@@ -2664,10 +2689,10 @@ def save_generated_image():
 def sd_interrupt():
     """Dừng việc tạo ảnh đang chạy"""
     try:
-        from src.utils.comfyui_client import ComfyUIClient
+        from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
         
         success = sd_client.interrupt()
         
@@ -2712,7 +2737,7 @@ def extract_anime_features_multi():
         if not image_b64:
             return jsonify({'error': 'Image không được để trống'}), 400
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
         interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
         
         logger.info(f"[MULTI-EXTRACT] Models: {[sanitize_for_log(m) for m in selected_models]} | Deep: {deep_thinking}")
@@ -3019,7 +3044,7 @@ def img2img_advanced():
             'height': int(data.get('height') or 768),
             'steps': int(data.get('steps') or 30),
             'cfg_scale': float(data.get('cfg_scale') or 7.0),
-            'sampler_name': data.get('sampler_name') or 'DPM++ 2M Karras',
+            'sampler_name': data.get('sampler_name') or 'euler',
             'seed': int(data.get('seed') or -1),
             'restore_faces': data.get('restore_faces', False),
             'lora_models': data.get('lora_models', []),
@@ -3027,8 +3052,9 @@ def img2img_advanced():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
-        sd_client = get_sd_client(sd_api_url)
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        from src.utils.comfyui_client import get_comfyui_client
+        sd_client = get_comfyui_client(sd_api_url)
         
         # Change model if specified
         model_name = data.get('model')
@@ -3415,12 +3441,20 @@ def save_image():
         with open(filepath, 'wb') as f:
             f.write(image_data)
         
-        # Save metadata
+        # Get gallery session ID for privacy filtering
+        gallery_session_id = session.get('gallery_session_id')
+        if not gallery_session_id:
+            import uuid as uuid_module
+            gallery_session_id = str(uuid_module.uuid4())
+            session['gallery_session_id'] = gallery_session_id
+        
+        # Save metadata with session_id for privacy
         metadata_file = IMAGE_STORAGE_DIR / f"generated_{timestamp}.json"
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump({
                 'filename': filename,
                 'created_at': datetime.now().isoformat(),
+                'session_id': gallery_session_id,  # For privacy filtering
                 'metadata': metadata
             }, f, ensure_ascii=False, indent=2)
         
@@ -3491,7 +3525,9 @@ def serve_image(filename):
         return send_file(str(resolved_file_path), mimetype='image/png')
         
     except Exception as e:
-        logger.error("[Get Image] Error occurred")
+        logger.error(f"[Get Image] Error occurred: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'Failed to retrieve image'}), 500
 
 
@@ -3731,7 +3767,7 @@ def mcp_read_file():
 
 @app.route('/api/mcp/fetch-url', methods=['POST'])
 def mcp_fetch_url():
-    """Fetch and extract content from URL"""
+    """Fetch and extract content from URL with advanced anti-bot bypass"""
     try:
         data = request.get_json()
         url = data.get('url', '').strip()
@@ -3749,11 +3785,26 @@ def mcp_fetch_url():
         import requests
         from bs4 import BeautifulSoup
         import mimetypes
+        import random
+        import time
+        from urllib.parse import urlparse
         
-        # Better headers to avoid 403
+        # Multiple User-Agent rotation for anti-bot bypass
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        ]
+        
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+        
+        # Advanced headers to bypass bot detection
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'User-Agent': random.choice(user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
@@ -3763,11 +3814,69 @@ def mcp_fetch_url():
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
             'Sec-Fetch-User': '?1',
-            'Cache-Control': 'max-age=0'
+            'Cache-Control': 'max-age=0',
+            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Referer': f'https://www.google.com/search?q={domain}',
+            'Origin': f'{parsed_url.scheme}://{domain}',
         }
         
         session = requests.Session()
-        response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+        
+        # Try with cookies from initial request
+        response = None
+        last_error = None
+        
+        for attempt in range(3):
+            try:
+                if attempt > 0:
+                    time.sleep(1 + attempt)  # Backoff delay
+                    headers['User-Agent'] = random.choice(user_agents)
+                
+                response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+                
+                # Check for Cloudflare or bot protection pages
+                if response.status_code == 403:
+                    # Try with different referer
+                    headers['Referer'] = url
+                    response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+                
+                if response.status_code == 403:
+                    # Try without some headers that might trigger protection
+                    simple_headers = {
+                        'User-Agent': random.choice(user_agents),
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                    }
+                    response = session.get(url, headers=simple_headers, timeout=30, allow_redirects=True)
+                
+                if response.status_code == 403:
+                    # Try with cloudscraper for Cloudflare bypass
+                    try:
+                        import cloudscraper
+                        scraper = cloudscraper.create_scraper(
+                            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
+                            delay=5
+                        )
+                        response = scraper.get(url, timeout=30)
+                        logger.info(f"[MCP] Cloudscraper used for {domain}")
+                    except Exception as cs_error:
+                        logger.warning(f"[MCP] Cloudscraper failed: {cs_error}")
+                
+                if response.status_code == 200:
+                    break
+                    
+                response.raise_for_status()
+                break
+                
+            except requests.exceptions.RequestException as e:
+                last_error = e
+                if attempt == 2:
+                    raise
+        
+        if response is None:
+            raise last_error or Exception("Failed to fetch URL after retries")
         response.raise_for_status()
         
         content_type = response.headers.get('Content-Type', '').lower()
@@ -3850,6 +3959,28 @@ def mcp_fetch_url():
             'success': False,
             'error': 'Request timeout - URL took too long to respond'
         }), 408
+    except requests.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response else 0
+        error_msg = str(e)
+        
+        # Provide helpful messages for common errors
+        if status_code == 403:
+            error_msg = f"403 Forbidden - Website blocked access. This may be due to bot protection (Cloudflare, etc.). Try a different URL or check if the website requires authentication."
+        elif status_code == 401:
+            error_msg = "401 Unauthorized - Website requires authentication"
+        elif status_code == 404:
+            error_msg = "404 Not Found - The page does not exist"
+        elif status_code == 429:
+            error_msg = "429 Too Many Requests - Rate limited. Please wait and try again."
+        elif status_code == 503:
+            error_msg = "503 Service Unavailable - Website is temporarily down"
+            
+        logger.error(f"URL fetch HTTP error: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to fetch URL: {error_msg}',
+            'status_code': status_code
+        }), 400
     except requests.exceptions.RequestException as e:
         logger.error(f"URL fetch error: {e}")
         return jsonify({
@@ -3963,6 +4094,34 @@ def internal_error(error):
 
 
 # Register blueprints from routes/
+try:
+    from routes.main import main_bp
+    app.register_blueprint(main_bp)
+    logger.info("✅ Registered main blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register main blueprint: {e}")
+
+try:
+    from routes.memory import memory_bp
+    app.register_blueprint(memory_bp, url_prefix='/memory')
+    logger.info("✅ Registered memory blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register memory blueprint: {e}")
+
+try:
+    from routes.mcp import mcp_bp
+    app.register_blueprint(mcp_bp, url_prefix='/api/mcp')
+    logger.info("✅ Registered MCP blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register MCP blueprint: {e}")
+
+try:
+    from routes.conversations import conversations_bp
+    app.register_blueprint(conversations_bp)
+    logger.info("✅ Registered conversations blueprint")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register conversations blueprint: {e}")
+
 try:
     from routes.images import images_bp
     app.register_blueprint(images_bp)

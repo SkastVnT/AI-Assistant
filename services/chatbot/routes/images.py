@@ -1,14 +1,17 @@
 """
-Image storage routes
+Image storage routes with session-based privacy
+Each user session can only see their own images
+But all images are still stored in MongoDB/Firebase for the owner
 """
 import os
 import sys
 import json
 import base64
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, session
 import logging
 
 # Setup path
@@ -22,9 +25,17 @@ from core.extensions import logger
 images_bp = Blueprint('images', __name__)
 
 
+def get_session_id():
+    """Get or create a unique session ID for privacy filtering"""
+    if 'gallery_session_id' not in session:
+        session['gallery_session_id'] = str(uuid.uuid4())
+        session.permanent = True  # Session persists across browser restarts
+    return session['gallery_session_id']
+
+
 @images_bp.route('/api/save-image', methods=['POST'])
 def save_image():
-    """Save generated image to disk and upload to cloud"""
+    """Save generated image to disk and upload to cloud with session tracking"""
     try:
         data = request.json
         image_base64 = data.get('image')
@@ -32,6 +43,9 @@ def save_image():
         
         if not image_base64:
             return jsonify({'error': 'No image data provided'}), 400
+        
+        # Get session ID for privacy filtering
+        session_id = get_session_id()
         
         # Remove data URL prefix if present
         if 'base64,' in image_base64:
@@ -46,6 +60,9 @@ def save_image():
         image_data = base64.b64decode(image_base64)
         with open(filepath, 'wb') as f:
             f.write(image_data)
+        
+        # Add session_id to metadata for cloud storage
+        metadata['session_id'] = session_id
         
         # Upload to cloud (ImgBB + MongoDB/Firebase)
         cloud_url = None
@@ -62,13 +79,14 @@ def save_image():
         except Exception as e:
             logger.warning(f"[SaveImage] Cloud upload failed: {e}")
         
-        # Save metadata
+        # Save metadata with session_id
         metadata_file = IMAGE_STORAGE_DIR / f"generated_{timestamp}.json"
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump({
                 'filename': filename,
                 'created_at': datetime.now().isoformat(),
                 'cloud_url': cloud_url,
+                'session_id': session_id,  # Track session for privacy
                 'metadata': metadata
             }, f, ensure_ascii=False, indent=2)
         
@@ -197,14 +215,17 @@ def delete_image(filename):
 @images_bp.route('/api/gallery', methods=['GET'])
 @images_bp.route('/api/gallery/images', methods=['GET'])  # Alias for frontend compatibility
 def get_gallery():
-    """Get image gallery with pagination"""
+    """Get image gallery with pagination - filtered by session for privacy"""
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
         
+        # Get current session ID for filtering
+        current_session_id = get_session_id()
+        
         images = []
         
-        # Get all images
+        # Get all images and filter by session
         for img_file in IMAGE_STORAGE_DIR.glob('*.png'):
             metadata_file = img_file.with_suffix('.json')
             metadata = {}
@@ -214,6 +235,12 @@ def get_gallery():
                         metadata = json.load(f)
                 except:
                     pass
+            
+            # Privacy filter: only show images from current session
+            # Images without session_id are legacy images, skip them for new sessions
+            image_session_id = metadata.get('session_id')
+            if image_session_id != current_session_id:
+                continue  # Skip images from other sessions
             
             images.append({
                 'filename': img_file.name,
@@ -241,7 +268,8 @@ def get_gallery():
             'total': total,
             'page': page,
             'per_page': per_page,
-            'total_pages': (total + per_page - 1) // per_page
+            'total_pages': (total + per_page - 1) // per_page,
+            'session_id': current_session_id  # For debugging
         })
         
     except Exception as e:
