@@ -11,7 +11,7 @@ export class APIService {
     /**
      * Send chat message to backend
      */
-    async sendMessage(message, model, context, tools = [], deepThinking = false, history = [], files = [], memories = [], abortSignal = null, customPrompt = '') {
+    async sendMessage(message, model, context, tools = [], deepThinking = false, history = [], files = [], memories = [], abortSignal = null, customPrompt = '', agentConfig = null) {
         let response;
         
         // Get current language from localStorage
@@ -34,6 +34,11 @@ export class APIService {
             formData.append('memory_ids', JSON.stringify(memories));
             formData.append('language', language);  // Add language
             formData.append('custom_prompt', customPrompt);  // Add custom prompt
+            
+            // Add agent config if provided
+            if (agentConfig) {
+                formData.append('agent_config', JSON.stringify(agentConfig));
+            }
             
             // Add MCP selected files
             const mcpFiles = window.mcpController ? window.mcpController.getSelectedFilePaths() : [];
@@ -64,7 +69,8 @@ export class APIService {
                 memory_ids: memories,
                 mcp_selected_files: mcpFiles,
                 language: language,  // Add language
-                custom_prompt: customPrompt  // Add custom prompt
+                custom_prompt: customPrompt,  // Add custom prompt
+                agent_config: agentConfig  // Add full agent config
             });
             
             response = await fetch('/chat', fetchOptions);

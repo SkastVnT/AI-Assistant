@@ -17,7 +17,7 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 AUDIO_PATH = os.getenv(
-    "AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3"
+    "AUDIO_PATH", r"./audio/sample.mp3"
 )
 
 # Option to skip audio preprocessing

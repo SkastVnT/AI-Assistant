@@ -28,7 +28,7 @@ load_dotenv("../config/.env")
 
 # Configuration
 HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN")
-AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\audio.mp3")
+AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
 print("=" * 80)
 print("SPEECH-TO-TEXT WITH SPEAKER DIARIZATION - v3.5")

@@ -20,7 +20,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
 load_dotenv(env_path)
 
-AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3")
+AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 HF_TOKEN = os.getenv("HF_API_TOKEN", "")
 
 # Login to Hugging Face if token available

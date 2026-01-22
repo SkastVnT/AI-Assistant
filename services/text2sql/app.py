@@ -40,15 +40,15 @@ except Exception:
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 load_dotenv(env_path)
 REQUIRE_KNOWN_TABLE = os.getenv("SQLCODER_REQUIRE_KNOWN_TABLE", "1") == "1"
-# NOTE: Gemini đã bị xóa - sử dụng GROK thay thế
+# Use DeepSeek as default (cheaper & more reliable than GROK)
 SQLCODER_BACKEND = os.getenv("SQLCODER_BACKEND", "hf").lower()
 SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "defog/sqlcoder-7b-2")
-REFINE_STRATEGY = os.getenv("REFINE_STRATEGY", "grok").lower()
+REFINE_STRATEGY = os.getenv("REFINE_STRATEGY", "deepseek").lower()
 
-# ====== GROK API Configuration ======
+# ====== GROK API Configuration (deprecated, use DeepSeek instead) ======
 GROK_API_KEY = os.getenv("GROK_API_KEY")
 GROK_API_BASE = "https://api.x.ai/v1"
-DEFAULT_MODEL = os.getenv("DEFAULT_SQL_MODEL", "grok")  # Default to Grok
+DEFAULT_MODEL = os.getenv("DEFAULT_SQL_MODEL", "deepseek")  # Default to DeepSeek (cheaper & reliable)
 
 # ====== OpenAI API Configuration ======
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

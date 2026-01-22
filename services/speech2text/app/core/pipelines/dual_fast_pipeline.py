@@ -13,7 +13,7 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 # ============= CONFIGURATION =============
 load_dotenv()
 
-AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3")
+AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
 # Create directories
 def create_directories():

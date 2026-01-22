@@ -85,6 +85,12 @@ export class UIUtils {
             if (this.elements.darkModeBtn) {
                 this.elements.darkModeBtn.textContent = '☀️';
             }
+        } else if (savedTheme === 'eye-care') {
+            document.body.classList.add('eye-care-mode');
+            const eyeCareBtn = document.getElementById('eyeCareBtn');
+            if (eyeCareBtn) {
+                eyeCareBtn.textContent = '💡';
+            }
         }
     }
 
@@ -92,6 +98,11 @@ export class UIUtils {
      * Toggle dark mode
      */
     toggleDarkMode() {
+        // Remove eye-care mode if active
+        document.body.classList.remove('eye-care-mode');
+        const eyeCareBtn = document.getElementById('eyeCareBtn');
+        if (eyeCareBtn) eyeCareBtn.textContent = '👁️';
+        
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
         this.theme = isDark ? 'dark' : 'light';
@@ -102,6 +113,30 @@ export class UIUtils {
         
         localStorage.setItem('theme', this.theme);
         return isDark;
+    }
+    
+    /**
+     * Toggle Eye Care mode - reduces blue light with warm colors
+     */
+    toggleEyeCareMode() {
+        // Remove dark mode if active
+        document.body.classList.remove('dark-mode');
+        if (this.elements.darkModeBtn) {
+            this.elements.darkModeBtn.textContent = '🌙';
+        }
+        
+        document.body.classList.toggle('eye-care-mode');
+        const isEyeCare = document.body.classList.contains('eye-care-mode');
+        
+        const eyeCareBtn = document.getElementById('eyeCareBtn');
+        if (eyeCareBtn) {
+            eyeCareBtn.textContent = isEyeCare ? '💡' : '👁️';
+            eyeCareBtn.title = isEyeCare ? 'Turn off Eye Care Mode' : 'Turn on Eye Care Mode';
+        }
+        
+        this.theme = isEyeCare ? 'eye-care' : 'light';
+        localStorage.setItem('theme', this.theme);
+        return isEyeCare;
     }
 
     /**
@@ -206,13 +241,13 @@ export class UIUtils {
         
         // Determine status icon and message
         let statusIcon = '💚';
-        let statusText = 'Tốt';
+        let statusText = 'Good';
         if (percentage > 80) {
             statusIcon = '🔴';
-            statusText = 'Đầy';
+            statusText = 'Full';
         } else if (percentage > 50) {
             statusIcon = '🟡';
-            statusText = 'Cảnh báo';
+            statusText = 'Warning';
         }
         
         this.elements.storageInfo.innerHTML = `
@@ -226,9 +261,9 @@ export class UIUtils {
                     <div class="storage-progress-bar" style="width: ${percentage}%; background: ${color};"></div>
                 </div>
                 <div class="storage-footer">
-                    <span class="storage-percentage">${percentage}% đã dùng</span>
-                    <button class="storage-cleanup-btn" onclick="window.manualCleanup()" title="Xóa các chat cũ (giữ lại 5 gần nhất)">
-                        🗑️ Dọn dẹp
+                    <span class="storage-percentage">${percentage}% Used</span>
+                    <button class="storage-cleanup-btn" onclick="window.manualCleanup()" title="Clear old chats (keep last 5)">
+                        🗑️ Clear
                     </button>
                 </div>
             </div>

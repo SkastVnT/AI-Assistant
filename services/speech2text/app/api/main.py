@@ -20,12 +20,27 @@ from typing import Optional, List
 import mimetypes
 import requests
 
-# Import our transcription models
+# Import our transcription models - lazy import to avoid running on startup
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.run_dual_smart import main as smart_transcribe
-from core.run_dual_fast import main as fast_transcribe
+# Lazy import functions
+smart_transcribe = None
+fast_transcribe = None
+
+def get_smart_transcribe():
+    global smart_transcribe
+    if smart_transcribe is None:
+        from core.run_dual_smart import main as _smart
+        smart_transcribe = _smart
+    return smart_transcribe
+
+def get_fast_transcribe():
+    global fast_transcribe
+    if fast_transcribe is None:
+        from core.run_dual_fast import main as _fast
+        fast_transcribe = _fast
+    return fast_transcribe
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -57,11 +72,12 @@ try:
 except Exception as e:
     logger.warning(f"Redis connection failed: {e}")
 
-# Directories
-AUDIO_DIR = Path("/app/audio")
-RESULT_DIR = Path("/app/result")
-AUDIO_DIR.mkdir(exist_ok=True)
-RESULT_DIR.mkdir(exist_ok=True)
+# Directories - use relative paths for local development
+BASE_DIR = Path(__file__).parent.resolve()
+AUDIO_DIR = Path(os.getenv('AUDIO_DIR', str(BASE_DIR / "audio")))
+RESULT_DIR = Path(os.getenv('RESULT_DIR', str(BASE_DIR / "result")))
+AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -150,10 +166,10 @@ async def process_transcription(
                 timeout=1800  # 30 minutes
             )
             result = response.json()
-        elif model == "grok":
-            # Call GROK proxy service
+        elif model == "deepseek":
+            # Call AI Fusion service (DeepSeek/OpenAI)
             response = requests.post(
-                "http://grok-proxy:8004/transcribe",
+                "http://ai-fusion:8004/transcribe",
                 json={"audio_path": audio_path, "language": language},
                 timeout=1800  # 30 minutes
             )
@@ -196,7 +212,7 @@ async def root():
         "service": "Vietnamese Speech-to-Text API",
         "version": "2.0.0",
         "status": "running",
-        "models": ["smart", "fast", "t5", "phowhisper", "whisper", "gemini"],
+        "models": ["smart", "fast", "t5", "phowhisper", "whisper", "deepseek"],
         "docs": "/docs",
         "endpoints": {
             "upload": "/upload",
@@ -231,7 +247,7 @@ async def health_check():
         ("t5", "http://t5-service:8001/health"),
         ("phowhisper", "http://phowhisper-service:8002/health"),
         ("whisper", "http://whisper-service:8003/health"),
-        ("grok", "http://grok-proxy:8004/health")
+        ("ai-fusion", "http://ai-fusion:8004/health")
     ]
     
     for service_name, url in model_services:
@@ -293,7 +309,7 @@ async def transcribe_audio(
     """Start transcription job"""
     
     # Validate model
-    available_models = ["smart", "fast", "t5", "phowhisper", "whisper", "gemini"]
+    available_models = ["smart", "fast", "t5", "phowhisper", "whisper", "deepseek"]
     if model not in available_models:
         raise HTTPException(
             status_code=400,
@@ -391,9 +407,9 @@ async def get_available_models():
                 "accuracy": "[?][?][?][?][?]",
                 "speed": "Fast"
             },
-            "gemini": {
-                "name": "Gemini AI Fusion",
-                "description": "Cloud AI fusion, 8-15 min",
+            "deepseek": {
+                "name": "DeepSeek AI Fusion",
+                "description": "Cloud AI fusion using DeepSeek/OpenAI, 5-10 min",
                 "accuracy": "[?][?][?][?][?]",
                 "speed": "Fast"
             }

@@ -15,7 +15,7 @@ from scipy import signal
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\92398d36-1460-4ef2-9e11-1a3d0fed2a3c.mp3")
+AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
 # Create directories
 def create_directories():

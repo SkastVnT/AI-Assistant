@@ -552,6 +552,78 @@ class ChatbotAgent:
         except Exception as e:
             return f"Lỗi DeepSeek: {str(e)}"
     
+    def chat_with_deepseek_reasoner(self, message, context='casual', history=None, memories=None, language='vi', custom_prompt=None, extra_params=None):
+        """Chat using DeepSeek R1 Reasoning Model - SoTA reasoning capabilities"""
+        try:
+            # Use custom prompt if provided, otherwise use base prompt
+            if custom_prompt and custom_prompt.strip():
+                system_prompt = custom_prompt
+            else:
+                prompts = get_system_prompts(language)
+                system_prompt = prompts.get(context, prompts['casual'])
+            
+            # Add reasoning instruction
+            reasoning_instruction = "\n\n🧠 REASONING MODE: Think step-by-step with deep logical reasoning. Break down complex problems into smaller parts. Show your thought process clearly."
+            system_prompt += reasoning_instruction
+            
+            # Add memories to system prompt
+            if memories and len(memories) > 0:
+                system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
+                for mem in memories:
+                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+            
+            # DeepSeek R1 uses OpenAI compatible API
+            client = openai.OpenAI(
+                api_key=DEEPSEEK_API_KEY,
+                base_url="https://api.deepseek.com/v1"
+            )
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Use provided history or conversation history
+            if history:
+                for hist in history:
+                    role = hist.get('role', 'user')
+                    content = hist.get('content', '')
+                    messages.append({"role": role, "content": content})
+            else:
+                for hist in self.conversation_history[-5:]:
+                    messages.append({"role": "user", "content": hist['user']})
+                    messages.append({"role": "assistant", "content": hist['assistant']})
+            
+            messages.append({"role": "user", "content": message})
+            
+            # Get extra params
+            temperature = 0.6  # Lower for reasoning
+            max_tokens = 8000  # Higher for detailed reasoning
+            top_p = 0.95
+            
+            if extra_params:
+                temperature = extra_params.get('temperature', temperature)
+                max_tokens = extra_params.get('max_tokens', max_tokens)
+                top_p = extra_params.get('top_p', top_p)
+            
+            response = client.chat.completions.create(
+                model="deepseek-reasoner",  # DeepSeek R1 reasoning model
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                top_p=top_p
+            )
+            
+            result = response.choices[0].message.content
+            
+            # Check if thinking process is available
+            thinking_content = getattr(response.choices[0].message, 'reasoning_content', None)
+            if thinking_content:
+                result = f"🧠 **Thought Process:**\n{thinking_content}\n\n---\n\n📝 **Answer:**\n{result}"
+            
+            return result
+            
+        except Exception as e:
+            return f"❌ Lỗi DeepSeek Reasoner: {str(e)}"
+    
     def chat_with_grok(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using GROK (via xAI API - FREE with NSFW support)"""
         try:
@@ -774,7 +846,7 @@ class ChatbotAgent:
             logger.error(f"Local model error ({model}): {e}")
             return f"âŒ Lá»—i local model: {str(e)}"
     
-    def chat(self, message, model='grok', context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+    def chat(self, message, model='grok', context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None, extra_params=None):
         """Main chat method with MongoDB integration"""
         # Save user message to MongoDB
         if MONGODB_ENABLED and self.conversation_id and history is None:
@@ -801,8 +873,9 @@ class ChatbotAgent:
             result = self.chat_with_openai(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'deepseek':
             result = self.chat_with_deepseek(message, context, deep_thinking, history, memories, language, custom_prompt)
-        elif model == 'grok':
-            result = self.chat_with_grok(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'deepseek-reasoner':
+            # Advanced thinking with DeepSeek R1
+            result = self.chat_with_deepseek_reasoner(message, context, history, memories, language, custom_prompt, extra_params)
         elif model == 'qwen':
             result = self.chat_with_qwen(message, context, deep_thinking, language)
         elif model == 'bloomvn':
@@ -1035,11 +1108,25 @@ def github_search_tool(query):
         return f"❌ Lỗi khi tìm kiếm GitHub: {str(e)}"
 
 
+def is_mobile_device():
+    """Check if request is from mobile device (iPhone, iPad, Android)"""
+    user_agent = request.headers.get('User-Agent', '').lower()
+    mobile_keywords = ['iphone', 'ipad', 'ipod', 'android', 'mobile', 'webos', 'blackberry', 'opera mini', 'opera mobi']
+    return any(keyword in user_agent for keyword in mobile_keywords)
+
+
 @app.route('/')
 def index():
-    """Home page - Original beautiful UI with full SDXL support"""
+    """Home page - Auto-detect mobile/desktop and serve appropriate UI"""
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
+    
+    # Check for force desktop/mobile mode via query param
+    force_mode = request.args.get('mode', None)
+    
+    # Auto-detect mobile or use forced mode
+    if force_mode == 'mobile' or (force_mode != 'desktop' and is_mobile_device()):
+        return render_template('mobile.html')
     
     # Load Firebase config from environment variables
     firebase_config = json.dumps({
@@ -1062,6 +1149,32 @@ def index_new():
     return render_template('index_tailwind.html')
 
 
+@app.route('/mobile')
+def index_mobile():
+    """Force mobile UI"""
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
+    return render_template('mobile.html')
+
+
+@app.route('/desktop')
+def index_desktop():
+    """Force desktop UI"""
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
+    
+    firebase_config = json.dumps({
+        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+        "appId": os.getenv("FIREBASE_APP_ID", ""),
+        "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "")
+    })
+    return render_template('index.html', firebase_config=firebase_config)
+
+
 @app.route('/chat', methods=['POST'])
 def chat():
     """Chat endpoint - handles both JSON and FormData (with files)"""
@@ -1078,6 +1191,12 @@ def chat():
             deep_thinking = data.get('deep_thinking', 'false').lower() == 'true'
             language = data.get('language', 'vi')  # Get language from request
             custom_prompt = data.get('custom_prompt', '')  # Get custom prompt
+            
+            # Parse agent config
+            try:
+                agent_config = json.loads(data.get('agent_config', 'null'))
+            except:
+                agent_config = None
             
             # Safe JSON parsing with error handling
             try:
@@ -1144,10 +1263,32 @@ def chat():
             deep_thinking = data.get('deep_thinking', False)
             language = data.get('language', 'vi')  # Get language from request
             custom_prompt = data.get('custom_prompt', '')  # Get custom prompt
+            agent_config = data.get('agent_config')  # Get agent config
             tools = data.get('tools', [])
             history = data.get('history', None)
             memory_ids = data.get('memory_ids', [])
             mcp_selected_files = data.get('mcp_selected_files', [])  # MCP selected files
+        
+        # Process agent config
+        if agent_config:
+            logger.info(f"[AGENT CONFIG] Enabled with thinking_budget={agent_config.get('thinkingBudget', 'off')}")
+            # Apply system prompt from agent config if custom_prompt is empty
+            if not custom_prompt and agent_config.get('systemPrompt'):
+                custom_prompt = agent_config.get('systemPrompt')
+            
+            # Apply injection prompt - prepend to message
+            if agent_config.get('injectionPrompt'):
+                message = f"{agent_config.get('injectionPrompt')}\n\n{message}"
+            
+            # Apply context prompt - append to system prompt
+            if agent_config.get('contextPrompt'):
+                custom_prompt = f"{custom_prompt}\n\n--- Context ---\n{agent_config.get('contextPrompt')}"
+            
+            # Check for advanced thinking mode - switch to reasoning model
+            if agent_config.get('thinkingBudget') == 'advanced':
+                logger.info("[AGENT CONFIG] Advanced thinking mode - switching to DeepSeek R1")
+                model = 'deepseek-reasoner'  # Use reasoning model
+                deep_thinking = True
         
         if not message:
             return jsonify({'error': 'Tin nhắn trống'}), 400
@@ -1387,17 +1528,29 @@ Return ONLY this JSON format:
                     except Exception as e:
                         logger.error(f"Error loading memory {mem_id}: {e}")
         
+        # Prepare extra params from agent config
+        extra_params = {}
+        if agent_config:
+            if agent_config.get('temperature') is not None:
+                extra_params['temperature'] = agent_config.get('temperature')
+            if agent_config.get('topP') is not None:
+                extra_params['top_p'] = agent_config.get('topP')
+            if agent_config.get('tokenLimit') is not None:
+                extra_params['max_tokens'] = agent_config.get('tokenLimit')
+            if agent_config.get('thinkingBudget') == 'on':
+                deep_thinking = True
+        
         # If history is provided, temporarily clear conversation history
         # and use the provided history instead
         if history:
             # Save current history
             original_history = chatbot.conversation_history.copy()
             # Use provided history for context
-            result = chatbot.chat(message, model, context, deep_thinking, history, memories, language, custom_prompt)
+            result = chatbot.chat(message, model, context, deep_thinking, history, memories, language, custom_prompt, extra_params)
             # Restore original history (since we don't want to save edit responses to history)
             chatbot.conversation_history = original_history
         else:
-            result = chatbot.chat(message, model, context, deep_thinking, None, memories, language, custom_prompt)
+            result = chatbot.chat(message, model, context, deep_thinking, None, memories, language, custom_prompt, extra_params)
         
         # Extract response and thinking_process
         if isinstance(result, dict):

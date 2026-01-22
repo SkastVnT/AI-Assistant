@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#667eea">
+    <title>AI Assistant</title>
+    
+    <!-- Mobile CSS -->
+    <link rel="stylesheet" href="/static/css/mobile.css">
+    
+    <!-- Highlight.js for code -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    
+    <!-- Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body class="mobile-ui">
+    <!-- Main App Container -->
+    <div class="mobile-app">
+        <!-- Header -->
+        <header class="mobile-header">
+            <div class="mobile-header-left">
+                <button class="mobile-menu-btn" onclick="toggleDrawer()">
+                    ☰
+                </button>
+                <span class="mobile-title">AI Assistant</span>
+            </div>
+            <div class="mobile-header-right">
+                <button class="mobile-model-badge" onclick="openModelSheet()">
+                    <span id="currentModelIcon">🤖</span>
+                    <span id="currentModelName">Grok</span>
+                </button>
+                <button class="mobile-icon-btn" onclick="toggleTheme()">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Area -->
+        <main class="mobile-chat-area" id="chatArea">
+            <!-- Welcome Message -->
+            <div class="mobile-message assistant" id="welcomeMessage">
+                <div class="mobile-message-content">
+                    <h3 style="margin-bottom: 8px;">👋 Xin chào!</h3>
+                    <p>Tôi là AI Assistant, sẵn sàng hỗ trợ bạn. Hãy nhập câu hỏi hoặc yêu cầu của bạn.</p>
+                    <div class="mobile-message-info">
+                        <span>🤖 Grok</span>
+                        <span>•</span>
+                        <span id="welcomeTime"></span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <footer class="mobile-input-area">
+            <!-- Tools Row -->
+            <div class="mobile-tools-row">
+                <div class="mobile-tool-chip" onclick="toggleTool(this, 'webSearch')" id="webSearchChip">
+                    🌐 Web Search
+                </div>
+                <div class="mobile-tool-chip" onclick="toggleTool(this, 'deepThinking')" id="deepThinkingChip">
+                    🧠 Deep Thinking
+                </div>
+                <div class="mobile-tool-chip" onclick="openConfigSheet()" id="configAgentChip">
+                    ⚙️ Config Agent
+                </div>
+                <div class="mobile-tool-chip" onclick="toggleTool(this, 'imageGen')" id="imageGenChip">
+                    🎨 Image Gen
+                </div>
+            </div>
+
+            <!-- Input Container -->
+            <div class="mobile-input-container">
+                <div class="mobile-input-actions">
+                    <button class="mobile-input-btn" onclick="showAttachOptions()">📎</button>
+                </div>
+                <textarea 
+                    class="mobile-textarea" 
+                    id="messageInput" 
+                    placeholder="Nhập tin nhắn..." 
+                    rows="1"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="mobile-send-btn" id="sendBtn" onclick="sendMessage()">
+                    ➤
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Drawer Overlay -->
+    <div class="mobile-drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+
+    <!-- Left Drawer -->
+    <aside class="mobile-drawer" id="drawer">
+        <div class="mobile-drawer-header">
+            <span class="mobile-drawer-title">🤖 AI Assistant</span>
+            <button class="mobile-icon-btn" onclick="toggleDrawer()">✕</button>
+        </div>
+        <div class="mobile-drawer-content">
+            <!-- Conversations Section -->
+            <div class="mobile-drawer-section">
+                <h3>💬 Conversations</h3>
+                <div class="mobile-menu-item active">
+                    <div class="mobile-menu-icon">✨</div>
+                    <div class="mobile-menu-text">
+                        <h4>New Chat</h4>
+                        <p>Start a new conversation</p>
+                    </div>
+                </div>
+                <div id="conversationList">
+                    <!-- Dynamic conversation list -->
+                </div>
+            </div>
+
+            <!-- Display Mode -->
+            <div class="mobile-drawer-section">
+                <h3>🎨 Display Mode</h3>
+                <div class="mobile-menu-item" onclick="setTheme('light')">
+                    <div class="mobile-menu-icon">☀️</div>
+                    <div class="mobile-menu-text">
+                        <h4>Light Mode</h4>
+                    </div>
+                </div>
+                <div class="mobile-menu-item" onclick="setTheme('dark')">
+                    <div class="mobile-menu-icon">🌙</div>
+                    <div class="mobile-menu-text">
+                        <h4>Dark Mode</h4>
+                    </div>
+                </div>
+                <div class="mobile-menu-item" onclick="setTheme('eyecare')">
+                    <div class="mobile-menu-icon">👁️</div>
+                    <div class="mobile-menu-text">
+                        <h4>Eye Care Mode</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mobile-drawer-section">
+                <h3>⚡ Actions</h3>
+                <div class="mobile-menu-item" onclick="clearChat()">
+                    <div class="mobile-menu-icon">🗑️</div>
+                    <div class="mobile-menu-text">
+                        <h4>Clear Chat</h4>
+                        <p>Delete all messages</p>
+                    </div>
+                </div>
+                <div class="mobile-menu-item" onclick="exportChat()">
+                    <div class="mobile-menu-icon">📤</div>
+                    <div class="mobile-menu-text">
+                        <h4>Export Chat</h4>
+                        <p>Download conversation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Model Selection Bottom Sheet -->
+    <div class="mobile-drawer-overlay" id="modelSheetOverlay" onclick="closeModelSheet()"></div>
+    <div class="mobile-bottom-sheet" id="modelSheet">
+        <div class="mobile-bottom-sheet-handle"></div>
+        <div class="mobile-bottom-sheet-header">
+            <span class="mobile-bottom-sheet-title">Select Model</span>
+            <button class="mobile-icon-btn" onclick="closeModelSheet()">✕</button>
+        </div>
+        <div class="mobile-bottom-sheet-content">
+            <div class="mobile-model-option selected" onclick="selectModel('grok')">
+                <div class="mobile-model-icon">🤖</div>
+                <div class="mobile-model-info">
+                    <h4>Grok</h4>
+                    <p>Fast & Versatile AI</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+            <div class="mobile-model-option" onclick="selectModel('claude')">
+                <div class="mobile-model-icon">🎭</div>
+                <div class="mobile-model-info">
+                    <h4>Claude 4</h4>
+                    <p>Advanced Reasoning</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+            <div class="mobile-model-option" onclick="selectModel('gemini')">
+                <div class="mobile-model-icon">💎</div>
+                <div class="mobile-model-info">
+                    <h4>Gemini 2.5</h4>
+                    <p>Google's Latest AI</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+            <div class="mobile-model-option" onclick="selectModel('gpt')">
+                <div class="mobile-model-icon">🧠</div>
+                <div class="mobile-model-info">
+                    <h4>GPT-4.1</h4>
+                    <p>OpenAI's Flagship</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+            <div class="mobile-model-option" onclick="selectModel('deepseek-reasoner')">
+                <div class="mobile-model-icon">🔮</div>
+                <div class="mobile-model-info">
+                    <h4>DeepSeek R1</h4>
+                    <p>Deep Reasoning Model</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+            <div class="mobile-model-option" onclick="selectModel('llama')">
+                <div class="mobile-model-icon">🦙</div>
+                <div class="mobile-model-info">
+                    <h4>LLaMA 4</h4>
+                    <p>Meta's Open Model</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Agent Bottom Sheet -->
+    <div class="mobile-drawer-overlay" id="configSheetOverlay" onclick="closeConfigSheet()"></div>
+    <div class="mobile-bottom-sheet" id="configSheet" style="max-height: 90vh;">
+        <div class="mobile-bottom-sheet-handle"></div>
+        <div class="mobile-bottom-sheet-header">
+            <span class="mobile-bottom-sheet-title">⚙️ Config Agent</span>
+            <button class="mobile-icon-btn" onclick="closeConfigSheet()">✕</button>
+        </div>
+        <div class="mobile-bottom-sheet-content">
+            <!-- Enable Toggle -->
+            <div class="mobile-toggle">
+                <div class="mobile-toggle-label">
+                    <span>⚡</span>
+                    <div class="mobile-toggle-text">
+                        <h4>Enable Config Agent</h4>
+                        <p>Custom AI configuration</p>
+                    </div>
+                </div>
+                <label class="mobile-switch">
+                    <input type="checkbox" id="configEnabled" onchange="toggleConfigAgent()">
+                    <span class="mobile-switch-slider"></span>
+                </label>
+            </div>
+
+            <!-- System Prompt -->
+            <div class="mobile-config-section">
+                <label class="mobile-config-label">
+                    📝 System Prompt
+                </label>
+                <textarea class="mobile-config-textarea" id="systemPrompt" rows="3" placeholder="Define AI behavior..."></textarea>
+            </div>
+
+            <!-- Injection Prompt -->
+            <div class="mobile-config-section">
+                <label class="mobile-config-label">
+                    💉 Injection Prompt
+                </label>
+                <textarea class="mobile-config-textarea" id="injectionPrompt" rows="2" placeholder="Inject before user message..."></textarea>
+            </div>
+
+            <!-- Context Prompt -->
+            <div class="mobile-config-section">
+                <label class="mobile-config-label">
+                    📚 Context Prompt
+                </label>
+                <textarea class="mobile-config-textarea" id="contextPrompt" rows="2" placeholder="Additional context..."></textarea>
+            </div>
+
+            <!-- Temperature -->
+            <div class="mobile-slider-container">
+                <div class="mobile-slider-header">
+                    <span class="mobile-slider-label">🌡️ Temperature</span>
+                    <span class="mobile-slider-value" id="tempValue">1.0</span>
+                </div>
+                <input type="range" class="mobile-slider" id="temperature" min="0" max="2" step="0.1" value="1" oninput="updateTempValue()">
+            </div>
+
+            <!-- Top P -->
+            <div class="mobile-slider-container">
+                <div class="mobile-slider-header">
+                    <span class="mobile-slider-label">🎯 Top P</span>
+                    <span class="mobile-slider-value" id="topPValue">0.95</span>
+                </div>
+                <input type="range" class="mobile-slider" id="topP" min="0.1" max="1" step="0.05" value="0.95" oninput="updateTopPValue()">
+            </div>
+
+            <!-- Thinking Budget -->
+            <div class="mobile-config-section">
+                <label class="mobile-config-label">
+                    🧠 Thinking Budget
+                </label>
+                <div class="mobile-thinking-options">
+                    <div class="mobile-thinking-option selected" onclick="setThinkingBudget('off')">
+                        <span class="icon">⚡</span>
+                        <span class="label">Off</span>
+                        <span class="desc">Fast mode</span>
+                    </div>
+                    <div class="mobile-thinking-option" onclick="setThinkingBudget('on')">
+                        <span class="icon">🧠</span>
+                        <span class="label">On</span>
+                        <span class="desc">Standard</span>
+                    </div>
+                    <div class="mobile-thinking-option" onclick="setThinkingBudget('advanced')">
+                        <span class="icon">🚀</span>
+                        <span class="label">Advanced</span>
+                        <span class="desc">Deep R1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <button onclick="saveConfigAgent()" style="
+                width: 100%;
+                padding: 16px;
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 16px;
+            ">
+                💾 Save Configuration
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        let currentModel = 'grok';
+        let currentTheme = localStorage.getItem('mobile-theme') || 'light';
+        let isLoading = false;
+        let conversationHistory = [];
+        
+        const tools = {
+            webSearch: false,
+            deepThinking: false,
+            imageGen: false
+        };
+
+        let agentConfig = JSON.parse(localStorage.getItem('mobile-agent-config')) || {
+            enabled: false,
+            systemPrompt: '',
+            injectionPrompt: '',
+            contextPrompt: '',
+            temperature: 1.0,
+            topP: 0.95,
+            thinkingBudget: 'off'
+        };
+
+        const modelIcons = {
+            'grok': '🤖',
+            'claude': '🎭',
+            'gemini': '💎',
+            'gpt': '🧠',
+            'deepseek-reasoner': '🔮',
+            'llama': '🦙'
+        };
+
+        const modelNames = {
+            'grok': 'Grok',
+            'claude': 'Claude 4',
+            'gemini': 'Gemini 2.5',
+            'gpt': 'GPT-4.1',
+            'deepseek-reasoner': 'DeepSeek R1',
+            'llama': 'LLaMA 4'
+        };
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set welcome time
+            document.getElementById('welcomeTime').textContent = new Date().toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Apply saved theme
+            applyTheme(currentTheme);
+
+            // Load model
+            const savedModel = localStorage.getItem('mobile-model');
+            if (savedModel) {
+                selectModel(savedModel, false);
+            }
+
+            // Load config
+            loadConfigToUI();
+
+            // Configure marked
+            marked.setOptions({
+                highlight: (code, lang) => {
+                    if (lang && hljs.getLanguage(lang)) {
+                        return hljs.highlight(code, { language: lang }).value;
+                    }
+                    return hljs.highlightAuto(code).value;
+                },
+                breaks: true
+            });
+
+            // Handle enter key
+            document.getElementById('messageInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+
+        // ============================================
+        // DRAWER FUNCTIONS
+        // ============================================
+        function toggleDrawer() {
+            const drawer = document.getElementById('drawer');
+            const overlay = document.getElementById('drawerOverlay');
+            drawer.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        // ============================================
+        // THEME FUNCTIONS
+        // ============================================
+        function toggleTheme() {
+            const themes = ['light', 'dark', 'eyecare'];
+            const currentIndex = themes.indexOf(currentTheme);
+            const nextTheme = themes[(currentIndex + 1) % themes.length];
+            setTheme(nextTheme);
+        }
+
+        function setTheme(theme) {
+            currentTheme = theme;
+            localStorage.setItem('mobile-theme', theme);
+            applyTheme(theme);
+        }
+
+        function applyTheme(theme) {
+            const body = document.body;
+            body.classList.remove('dark-mode', 'eye-care-mode');
+            
+            const themeIcon = document.getElementById('themeIcon');
+            
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                themeIcon.textContent = '☀️';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1e293b');
+            } else if (theme === 'eyecare') {
+                body.classList.add('eye-care-mode');
+                themeIcon.textContent = '👁️';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fdf5e6');
+            } else {
+                themeIcon.textContent = '🌙';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#667eea');
+            }
+        }
+
+        // ============================================
+        // MODEL SELECTION
+        // ============================================
+        function openModelSheet() {
+            document.getElementById('modelSheet').classList.add('show');
+            document.getElementById('modelSheetOverlay').classList.add('show');
+        }
+
+        function closeModelSheet() {
+            document.getElementById('modelSheet').classList.remove('show');
+            document.getElementById('modelSheetOverlay').classList.remove('show');
+        }
+
+        function selectModel(model, save = true) {
+            currentModel = model;
+            
+            // Update header
+            document.getElementById('currentModelIcon').textContent = modelIcons[model] || '🤖';
+            document.getElementById('currentModelName').textContent = modelNames[model] || model;
+            
+            // Update sheet selection
+            document.querySelectorAll('.mobile-model-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.getAttribute('onclick')?.includes(model)) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            if (save) {
+                localStorage.setItem('mobile-model', model);
+            }
+            
+            closeModelSheet();
+        }
+
+        // ============================================
+        // CONFIG AGENT
+        // ============================================
+        function openConfigSheet() {
+            document.getElementById('configSheet').classList.add('show');
+            document.getElementById('configSheetOverlay').classList.add('show');
+        }
+
+        function closeConfigSheet() {
+            document.getElementById('configSheet').classList.remove('show');
+            document.getElementById('configSheetOverlay').classList.remove('show');
+        }
+
+        function loadConfigToUI() {
+            document.getElementById('configEnabled').checked = agentConfig.enabled;
+            document.getElementById('systemPrompt').value = agentConfig.systemPrompt || '';
+            document.getElementById('injectionPrompt').value = agentConfig.injectionPrompt || '';
+            document.getElementById('contextPrompt').value = agentConfig.contextPrompt || '';
+            document.getElementById('temperature').value = agentConfig.temperature || 1.0;
+            document.getElementById('topP').value = agentConfig.topP || 0.95;
+            
+            updateTempValue();
+            updateTopPValue();
+            setThinkingBudget(agentConfig.thinkingBudget || 'off');
+            updateConfigChip();
+        }
+
+        function toggleConfigAgent() {
+            agentConfig.enabled = document.getElementById('configEnabled').checked;
+            updateConfigChip();
+            saveConfigToStorage();
+        }
+
+        function updateConfigChip() {
+            const chip = document.getElementById('configAgentChip');
+            if (agentConfig.enabled) {
+                chip.classList.add('active');
+            } else {
+                chip.classList.remove('active');
+            }
+        }
+
+        function updateTempValue() {
+            const val = document.getElementById('temperature').value;
+            document.getElementById('tempValue').textContent = val;
+        }
+
+        function updateTopPValue() {
+            const val = document.getElementById('topP').value;
+            document.getElementById('topPValue').textContent = val;
+        }
+
+        function setThinkingBudget(budget) {
+            agentConfig.thinkingBudget = budget;
+            
+            document.querySelectorAll('.mobile-thinking-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.getAttribute('onclick')?.includes(budget)) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        function saveConfigAgent() {
+            agentConfig = {
+                enabled: document.getElementById('configEnabled').checked,
+                systemPrompt: document.getElementById('systemPrompt').value,
+                injectionPrompt: document.getElementById('injectionPrompt').value,
+                contextPrompt: document.getElementById('contextPrompt').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                topP: parseFloat(document.getElementById('topP').value),
+                thinkingBudget: agentConfig.thinkingBudget
+            };
+            
+            saveConfigToStorage();
+            updateConfigChip();
+            closeConfigSheet();
+            
+            showToast('Configuration saved!');
+        }
+
+        function saveConfigToStorage() {
+            localStorage.setItem('mobile-agent-config', JSON.stringify(agentConfig));
+        }
+
+        // ============================================
+        // TOOLS TOGGLE
+        // ============================================
+        function toggleTool(element, tool) {
+            tools[tool] = !tools[tool];
+            element.classList.toggle('active');
+        }
+
+        // ============================================
+        // INPUT HANDLING
+        // ============================================
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // ============================================
+        // SEND MESSAGE
+        // ============================================
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || isLoading) return;
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Remove welcome message
+            const welcome = document.getElementById('welcomeMessage');
+            if (welcome) welcome.remove();
+            
+            // Add user message
+            addMessage(message, 'user');
+            
+            // Show loading
+            isLoading = true;
+            const loadingId = showLoading();
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        model: currentModel,
+                        context: 'helpful',
+                        deep_thinking: tools.deepThinking,
+                        history: conversationHistory.slice(-10),
+                        web_search: tools.webSearch,
+                        agent_config: agentConfig.enabled ? agentConfig : null
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading
+                removeLoading(loadingId);
+                
+                if (data.error) {
+                    addMessage('❌ ' + data.error, 'assistant');
+                } else {
+                    // Add assistant message
+                    addMessage(data.response, 'assistant', data.thinking_content);
+                    
+                    // Update history
+                    conversationHistory.push(
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: data.response }
+                    );
+                }
+            } catch (error) {
+                removeLoading(loadingId);
+                addMessage('❌ Connection error. Please try again.', 'assistant');
+            }
+            
+            isLoading = false;
+        }
+
+        // ============================================
+        // MESSAGE RENDERING
+        // ============================================
+        function addMessage(content, role, thinking = null) {
+            const chatArea = document.getElementById('chatArea');
+            const div = document.createElement('div');
+            div.className = `mobile-message ${role}`;
+            
+            const time = new Date().toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            if (role === 'user') {
+                div.innerHTML = `
+                    <div class="mobile-message-content">
+                        ${escapeHtml(content)}
+                    </div>
+                `;
+            } else {
+                // Thinking section
+                let thinkingHtml = '';
+                if (thinking) {
+                    thinkingHtml = `
+                        <div class="mobile-thinking">
+                            <div class="mobile-thinking-icon">🧠</div>
+                            <div class="mobile-thinking-text">
+                                <h4>Thinking Process</h4>
+                                <p>${truncateText(thinking, 100)}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Config agent info
+                let configInfo = '';
+                if (agentConfig.enabled) {
+                    const thinkingLabel = {
+                        'off': '⚡',
+                        'on': '🧠',
+                        'advanced': '🚀'
+                    }[agentConfig.thinkingBudget];
+                    configInfo = `<span>${thinkingLabel} Config Agent (${agentConfig.temperature})</span><span>•</span>`;
+                }
+                
+                div.innerHTML = `
+                    <div class="mobile-message-content">
+                        ${thinkingHtml}
+                        <div class="message-text">${marked.parse(content)}</div>
+                        <div class="mobile-message-info">
+                            ${configInfo}
+                            <span>${modelIcons[currentModel]} ${modelNames[currentModel]}</span>
+                            <span>•</span>
+                            <span>${time}</span>
+                        </div>
+                        <div class="mobile-message-actions">
+                            <button class="mobile-action-btn" onclick="copyMessage(this)">📋</button>
+                            <button class="mobile-action-btn" onclick="regenerateMessage()">🔄</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            
+            // Highlight code blocks
+            div.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        }
+
+        function showLoading() {
+            const chatArea = document.getElementById('chatArea');
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'mobile-message assistant';
+            div.innerHTML = `
+                <div class="mobile-message-content">
+                    <div class="mobile-loading-dots">
+                        <div class="mobile-loading-dot"></div>
+                        <div class="mobile-loading-dot"></div>
+                        <div class="mobile-loading-dot"></div>
+                    </div>
+                </div>
+            `;
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return id;
+        }
+
+        function removeLoading(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+
+        function copyMessage(btn) {
+            const content = btn.closest('.mobile-message-content');
+            const text = content.querySelector('.message-text')?.textContent || content.textContent;
+            navigator.clipboard.writeText(text);
+            showToast('Copied!');
+        }
+
+        function regenerateMessage() {
+            // TODO: Implement regeneration
+            showToast('Regenerating...');
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 24px;
+                font-size: 14px;
+                z-index: 200;
+                animation: fadeInUp 0.3s ease-out;
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'fadeOutDown 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        function clearChat() {
+            if (confirm('Clear all messages?')) {
+                const chatArea = document.getElementById('chatArea');
+                chatArea.innerHTML = '';
+                conversationHistory = [];
+                toggleDrawer();
+                showToast('Chat cleared');
+            }
+        }
+
+        function exportChat() {
+            const text = conversationHistory.map(m => 
+                `${m.role.toUpperCase()}: ${m.content}`
+            ).join('\n\n');
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            toggleDrawer();
+            showToast('Exported!');
+        }
+
+        function showAttachOptions() {
+            showToast('Attach feature coming soon!');
+        }
+
+        // Animation keyframes
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translate(-50%, 20px); }
+                to { opacity: 1; transform: translate(-50%, 0); }
+            }
+            @keyframes fadeOutDown {
+                from { opacity: 1; transform: translate(-50%, 0); }
+                to { opacity: 0; transform: translate(-50%, 20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

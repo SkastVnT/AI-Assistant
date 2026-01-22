@@ -10,6 +10,7 @@ export class MessageRenderer {
             'grok': 'GROK',
             'openai': 'GPT-4o-mini',
             'deepseek': 'DeepSeek',
+            'deepseek-reasoner': '🧠 DeepSeek R1 (Reasoning)',
             'qwen': 'Qwen1.5b',
             'bloomvn': 'BloomVN-8B API',
             'bloomvn-local': 'BloomVN-8B Local',
@@ -52,7 +53,7 @@ export class MessageRenderer {
     /**
      * Create and add message to chat
      */
-    addMessage(chatContainer, content, isUser, model, context, timestamp, thinkingProcess = null, customPromptUsed = false) {
+    addMessage(chatContainer, content, isUser, model, context, timestamp, thinkingProcess = null, customPromptUsed = false, agentConfig = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
         messageDiv.dataset.timestamp = timestamp;
@@ -110,9 +111,29 @@ export class MessageRenderer {
             const infoDiv = document.createElement('div');
             infoDiv.className = 'message-info';
             
-            // Add prompt type indicator
-            const promptType = customPromptUsed ? '🛠️ Custom Prompt' : '📝 Base Prompt';
-            infoDiv.textContent = `${this.modelNames[model] || model} • ${this.contextNames[context] || context} • ${promptType}`;
+            // Determine prompt/config type indicator
+            let configIndicator = '📝 Base Prompt';
+            let configDetails = '';
+            
+            if (agentConfig && agentConfig.enabled) {
+                const thinkingMode = agentConfig.thinkingBudget || 'off';
+                const temp = agentConfig.temperature || 0.7;
+                
+                if (thinkingMode === 'advanced') {
+                    configIndicator = '🚀 Config Agent (Advanced)';
+                    configDetails = ` • T:${temp}`;
+                } else if (thinkingMode === 'on') {
+                    configIndicator = '⚡ Config Agent (Thinking)';
+                    configDetails = ` • T:${temp}`;
+                } else {
+                    configIndicator = '⚡ Config Agent';
+                    configDetails = ` • T:${temp}`;
+                }
+            } else if (customPromptUsed) {
+                configIndicator = '🛠️ Custom Prompt';
+            }
+            
+            infoDiv.textContent = `${this.modelNames[model] || model} • ${this.contextNames[context] || context} • ${configIndicator}${configDetails}`;
             contentDiv.appendChild(infoDiv);
         }
         
@@ -267,10 +288,24 @@ export class MessageRenderer {
         
         const icon = document.createElement('span');
         icon.className = 'thinking-icon';
-        icon.textContent = '💭';
+        icon.textContent = isLoading ? '⏳' : '🧠';
         
         const title = document.createElement('span');
-        title.textContent = isLoading ? 'Thinking...' : 'Thought process';
+        title.className = 'thinking-title';
+        title.textContent = isLoading ? 'Thinking...' : 'Thought Process';
+        
+        const badge = document.createElement('span');
+        badge.className = 'thinking-badge';
+        badge.textContent = isLoading ? 'Analyzing' : 'Complete';
+        badge.style.cssText = `
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: ${isLoading ? 'rgba(102, 126, 234, 0.2)' : 'rgba(16, 185, 129, 0.2)'};
+            color: ${isLoading ? '#667eea' : '#10b981'};
+            font-weight: 600;
+            margin-left: 8px;
+        `;
         
         const toggle = document.createElement('span');
         toggle.className = 'thinking-toggle';
@@ -278,13 +313,22 @@ export class MessageRenderer {
         
         header.appendChild(icon);
         header.appendChild(title);
+        header.appendChild(badge);
         header.appendChild(toggle);
         
         const content = document.createElement('div');
         content.className = 'thinking-content';
         
         if (isLoading) {
-            content.textContent = 'Analyzing the problem and generating response...';
+            content.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; color: #667eea;">
+                    <span style="animation: pulse 1.5s infinite;">🔍</span>
+                    <span>Analyzing the problem and generating response...</span>
+                </div>
+                <div style="margin-top: 8px; font-size: 12px; color: #888;">
+                    The AI is thinking deeply about your request. This may take a moment for complex queries.
+                </div>
+            `;
         } else if (thinkingProcess) {
             // Parse thinking process
             if (typeof thinkingProcess === 'string') {
@@ -312,13 +356,35 @@ export class MessageRenderer {
     updateThinkingContent(container, thinkingProcess) {
         const content = container.querySelector('.thinking-content');
         const header = container.querySelector('.thinking-header');
-        const title = header.querySelector('span:nth-child(2)');
+        const title = header.querySelector('.thinking-title');
+        const icon = header.querySelector('.thinking-icon');
+        const badge = header.querySelector('.thinking-badge');
         
         if (content && title) {
-            title.textContent = 'Thought process';
+            // Update icon and title
+            if (icon) icon.textContent = '🧠';
+            title.textContent = 'Thought Process';
             
+            // Update badge
+            if (badge) {
+                badge.textContent = 'Complete';
+                badge.style.background = 'rgba(16, 185, 129, 0.2)';
+                badge.style.color = '#10b981';
+            }
+            
+            // Update content
             if (typeof thinkingProcess === 'string') {
-                content.textContent = thinkingProcess;
+                // Format thinking process nicely
+                const formatted = thinkingProcess
+                    .split('\n')
+                    .map(line => {
+                        if (line.trim().startsWith('Step') || line.trim().startsWith('Analysis')) {
+                            return `<strong style="color: #667eea;">${line}</strong>`;
+                        }
+                        return line;
+                    })
+                    .join('\n');
+                content.innerHTML = `<pre style="white-space: pre-wrap; margin: 0; font-family: inherit;">${thinkingProcess}</pre>`;
             } else {
                 content.textContent = JSON.stringify(thinkingProcess, null, 2);
             }

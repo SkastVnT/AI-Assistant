@@ -299,6 +299,14 @@ class ChatBotApp {
             this.uiUtils.toggleDarkMode();
         });
         
+        // Eye Care mode toggle
+        const eyeCareBtn = document.getElementById('eyeCareBtn');
+        if (eyeCareBtn) {
+            eyeCareBtn.addEventListener('click', () => {
+                this.uiUtils.toggleEyeCareMode();
+            });
+        }
+        
         // Sidebar toggle (chat history)
         const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
         if (sidebarToggleBtn) {
@@ -525,6 +533,9 @@ class ChatBotApp {
             // Get selected memories
             const selectedMemories = this.memoryManager.getSelectedMemories();
             
+            // Get agent config if enabled
+            const agentConfig = window.getAgentConfig ? window.getAgentConfig() : null;
+            
             // Send to API with abort signal
             const data = await this.apiService.sendMessage(
                 message,
@@ -536,7 +547,8 @@ class ChatBotApp {
                 this.fileHandler.getFiles(), // Empty for now, all handled in message
                 selectedMemories,
                 this.currentAbortController.signal,
-                (window.customPromptEnabled && window.customPromptValue) ? window.customPromptValue : ''  // Only pass if enabled
+                agentConfig ? agentConfig.systemPrompt : '',  // System prompt
+                agentConfig  // Full agent config for advanced parameters
             );
             
             // Add response to chat with version support
@@ -555,6 +567,9 @@ class ChatBotApp {
             // Check if custom prompt is being used
             const customPromptUsed = window.customPromptEnabled === true;
             
+            // Get agent config for display
+            const agentConfigForDisplay = window.getAgentConfig ? window.getAgentConfig() : null;
+            
             const responseMsg = this.messageRenderer.addMessage(
                 elements.chatContainer,
                 responseContent,
@@ -563,7 +578,8 @@ class ChatBotApp {
                 formValues.context,
                 responseTimestamp,
                 data.thinking_process || null,
-                customPromptUsed
+                customPromptUsed,
+                agentConfigForDisplay
             );
             
             // Update the latest version with the new response
@@ -1857,15 +1873,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 grid.innerHTML = data.images.map(img => {
                     const metadataStr = JSON.stringify(img.metadata).replace(/"/g, '&quot;');
+                    const filename = img.filename || img.path.split('/').pop();
                     return `
-                        <div class="gallery-item" data-path="${img.path}" data-metadata="${metadataStr}">
-                            <img src="${img.path}" alt="${img.filename}" loading="lazy">
+                        <div class="gallery-item" data-path="${img.path}" data-filename="${filename}" data-metadata="${metadataStr}">
+                            <img src="${img.path}" alt="${filename}" loading="lazy">
                             <div class="gallery-item-info">
                                 <div style="font-weight: 600;">📅 ${img.created}</div>
                                 <div class="gallery-item-prompt" title="${img.prompt}">
                                     💬 ${img.prompt.substring(0, 50)}${img.prompt.length > 50 ? '...' : ''}
                                 </div>
                             </div>
+                            <button class="gallery-delete-btn" onclick="event.stopPropagation(); deleteGalleryImage('${filename}')" title="Xóa ảnh">
+                                🗑️
+                            </button>
                         </div>
                     `;
                 }).join('');
@@ -1885,13 +1905,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
             } else {
-                const emptyMsg = showAll ? '🖼️ Chưa có ảnh nào' : '🖼️ Chưa có ảnh nào trong session này';
+                const emptyMsg = showAll ? '🖼️ No pictures yet' : '🖼️ No pictures';
                 grid.innerHTML = `<div class="gallery-empty">${emptyMsg}</div>`;
-                stats.textContent = '📊 Tổng số: 0 ảnh';
+                stats.textContent = '📊 Total: 0 Pictures';
             }
         } catch (error) {
             console.error('[Gallery] Error:', error);
-            grid.innerHTML = '<div class="gallery-empty">❌ Lỗi khi tải ảnh</div>';
+            grid.innerHTML = '<div class="gallery-empty">❌ Error while loading images</div>';
         }
     };
     
@@ -1909,6 +1929,28 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[Gallery] Refreshing...');
         // Re-open with current mode
         await openGallery(galleryShowAll);
+    };
+    
+    window.deleteGalleryImage = async (filename) => {
+        if (!confirm(`Bạn có chắc muốn xóa ảnh "${filename}"?`)) return;
+        
+        try {
+            const response = await fetch(`/api/delete-image/${filename}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('[Gallery] Image deleted:', filename);
+                // Refresh gallery
+                await refreshGallery();
+            } else {
+                alert('Lỗi: ' + (data.error || 'Không thể xóa ảnh'));
+            }
+        } catch (error) {
+            console.error('[Gallery] Delete error:', error);
+            alert('Lỗi khi xóa ảnh');
+        }
     };
     
     window.viewGalleryImage = (imagePath, metadata) => {

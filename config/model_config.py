@@ -86,34 +86,6 @@ class HubConfig:
                 "SQL validation"
             ]
         ),
-        "document_intelligence": ServiceConfig(
-            name="Document Intelligence",
-            description="OCR & Document Analysis - Trích xuất văn bản từ ảnh/PDF",
-            icon="📄",
-            port=5004,
-            url="http://localhost:5004",
-            color="from-cyan-500 to-blue-600",
-            features=[
-                "PaddleOCR engine",
-                "Hỗ trợ tiếng Việt",
-                "PDF/Image processing",
-                "AI Enhancement"
-            ]
-        ),
-        "image_upscale": ServiceConfig(
-            name="Image Upscale",
-            description="Nâng cấp độ phân giải ảnh với AI",
-            icon="🔍",
-            port=7861,
-            url="http://localhost:7861",
-            color="from-pink-500 to-rose-600",
-            features=[
-                "Real-ESRGAN",
-                "4x upscaling",
-                "Face enhancement",
-                "Batch processing"
-            ]
-        ),
         "comfyui": ServiceConfig(
             name="ComfyUI",
             description="Stable Diffusion workflow editor",

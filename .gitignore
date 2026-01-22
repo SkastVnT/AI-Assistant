@@ -236,6 +236,17 @@ data/connections/
 data/knowledge_base/
 
 # ============================================
+# RUNTIME FILES (Generated at runtime)
+# ============================================
+current_tunnel.txt
+public_urls.txt
+*.pid
+logs/*.pid
+logs/*_public_url.txt
+logs/tunnel*.pid
+logs/cloudflared*.pid
+
+# ============================================
 # KEEP FOLDER STRUCTURE
 # ============================================
 !**/.gitkeep

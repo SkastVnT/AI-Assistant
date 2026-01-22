@@ -104,15 +104,15 @@ class MCPController {
                 this.enabled = true;
                 this.selectBtn.disabled = false;
                 this.fileSearch.disabled = false;
-                this.updateStatus('active', '🟢 Đang bật');
-                this.showNotification('✅ MCP đã được bật', 'success');
+                this.updateStatus('active', '🟢 Enabled');
+                this.showNotification('✅ MCP Enabled', 'success');
             } else {
                 throw new Error(result.error || 'Failed to enable MCP');
             }
         } catch (error) {
             console.error('MCP enable error:', error);
             this.checkbox.checked = false;
-            this.showNotification('❌ Không thể kết nối MCP Server', 'error');
+            this.showNotification('❌ Cannot connect to MCP Server', 'error');
         }
     }
 

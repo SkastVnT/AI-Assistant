@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).parent.parent
 
 # Server Configuration
 HOST = os.getenv('HOST', '0.0.0.0')
-PORT = int(os.getenv('PORT', 5003))
+PORT = int(os.getenv('PORT', 5004))
 DEBUG = False  # Disable debug mode to prevent reloader issues
 
 # File Upload Configuration

@@ -21,7 +21,7 @@ env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.
 load_dotenv(env_path)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-AUDIO_PATH = os.getenv("AUDIO_PATH", r"C:\Users\Asus\Downloads\d08deb45-d23d-449e-9fdf-7b40b1c1050d.mp3")
+AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
 print(f"[KEY] Gemini API Key: {GEMINI_API_KEY[:20]}...{GEMINI_API_KEY[-4:]}")
 

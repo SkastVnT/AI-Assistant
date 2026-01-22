@@ -34,8 +34,8 @@ def run_gradio():
     custom_theme = getattr(interface, 'custom_theme', None)
     
     interface.launch(
-        server_name="127.0.0.1",
-        server_port=7863,
+        server_name="0.0.0.0",
+        server_port=7861,
         share=False,
         inbrowser=False,
         quiet=False,
@@ -44,43 +44,26 @@ def run_gradio():
     )
 
 
-def launch(host="127.0.0.1", port=5000, debug=True):
-    """Launch Flask app with Gradio in background"""
+def launch(host="0.0.0.0", port=7861, debug=False):
+    """Launch Gradio app directly without Flask wrapper"""
     print(f"""
     ╔════════════════════════════════════════════════════════════╗
-    ║          🎨 AI Image Upscaler - Flask + Gradio            ║
+    ║          🎨 AI Image Upscaler - Gradio                    ║
     ║                                                            ║
-    ║  🌐 Gradio UI: http://127.0.0.1:7861                       ║
-    ║  🔧 Flask Server: http://{host}:{port}                      ║
-    ║  🔄 Hot Reload: Enabled (Ctrl + Shift + R to refresh)     ║
-    ║  📝 Debug Mode: {'ON' if debug else 'OFF'}                                         ║
+    ║  🌐 Gradio UI: http://{host}:{port}                        ║
     ║                                                            ║
     ║  💡 Features:                                              ║
     ║     ✓ 11 AI Models (Real-ESRGAN + Chinese)                ║
     ║     ✓ Auto image info display                             ║
     ║     ✓ Upscale preview calculator                          ║
     ║     ✓ ImgBB sharing                                        ║
-    ║     ✓ Hot reload support                                   ║
     ║                                                            ║
-    ║  🚀 Open: http://127.0.0.1:7861 in your browser           ║
+    ║  🚀 Open: http://{host}:{port} in your browser            ║
     ╚════════════════════════════════════════════════════════════╝
     """)
     
-    # Start Gradio in background thread
-    gradio_thread = threading.Thread(target=run_gradio, daemon=True)
-    gradio_thread.start()
-    
-    # Give Gradio time to start
-    time.sleep(2)
-    
-    # Start Flask (won't actually be used, just for hot reload)
-    app.run(
-        host=host,
-        port=port,
-        debug=debug,
-        use_reloader=False,  # Disable Flask reloader to avoid conflicts
-        threaded=True
-    )
+    # Run Gradio directly
+    run_gradio()
 
 
 if __name__ == '__main__':
