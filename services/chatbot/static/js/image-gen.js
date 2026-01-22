@@ -168,6 +168,11 @@ Return ONLY the negative prompt (comma-separated keywords), nothing else.`;
                 context,
                 formatTimestamp(new Date())
             );
+            
+            // Log to Firebase (async)
+            if (window.logImageToFirebase) {
+                window.logImageToFirebase(generatedPrompt, negativePrompt, imageUrl, imageData.cloud_url || null);
+            }
         } else {
             addMessage(`❌ **Lỗi:** ${imageData.error || 'Không thể tạo ảnh'}`, false, model, context, formatTimestamp(new Date()));
         }

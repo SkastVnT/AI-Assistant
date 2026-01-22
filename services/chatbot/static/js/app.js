@@ -383,6 +383,11 @@ async function sendMessage() {
         // Add response
         addMessage(data.response, false, model, context, formatTimestamp(new Date()));
         
+        // Log to Firebase (async, non-blocking)
+        if (window.logChatToFirebase) {
+            window.logChatToFirebase(message, model, data.response, []);
+        }
+        
         // Clear file input
         document.getElementById('fileInput').value = '';
         

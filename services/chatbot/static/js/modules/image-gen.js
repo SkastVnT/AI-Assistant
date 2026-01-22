@@ -469,6 +469,16 @@ export class ImageGeneration {
                 console.log('[Auto-Save] ✅ Saved:', data.filename);
                 if (data.cloud_url) {
                     console.log('[Auto-Save] ☁️ ImgBB:', data.cloud_url);
+                    
+                    // Log to Firebase (async)
+                    if (window.logImageToFirebase && this.currentGeneratedImage) {
+                        window.logImageToFirebase(
+                            this.currentGeneratedImage.prompt || '',
+                            this.currentGeneratedImage.negativePrompt || '',
+                            this.currentGeneratedImage.image || '',
+                            data.cloud_url
+                        );
+                    }
                 }
             }
             

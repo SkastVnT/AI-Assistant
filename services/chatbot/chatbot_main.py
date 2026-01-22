@@ -105,7 +105,9 @@ except ImportError as e:
 
 # Create Flask app
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+# Use persistent secret key from environment or generate a fixed one
+# This ensures sessions persist across server restarts
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'skylight-ai-assistant-secret-key-2025-persistent')
 
 # Configure static folder for Storage
 app.static_folder = str(CHATBOT_DIR / 'static')
@@ -333,7 +335,11 @@ def get_or_create_conversation(user_id, model='grok-3'):
 
 def save_message_to_db(conversation_id, role, content, metadata=None, images=None, files=None):
     """Save message to MongoDB"""
-    if not MONGODB_ENABLED or not conversation_id:
+    if not MONGODB_ENABLED:
+        logger.warning(f"[MONGODB] Skip save - MongoDB disabled")
+        return None
+    if not conversation_id:
+        logger.warning(f"[MONGODB] Skip save - No conversation_id")
         return None
     
     try:
@@ -354,7 +360,11 @@ def save_message_to_db(conversation_id, role, content, metadata=None, images=Non
 
 def load_conversation_history(conversation_id, limit=10):
     """Load conversation history from MongoDB"""
-    if not MONGODB_ENABLED or not conversation_id:
+    if not MONGODB_ENABLED:
+        logger.warning(f"[MONGODB] Skip save - MongoDB disabled")
+        return None
+    if not conversation_id:
+        logger.warning(f"[MONGODB] Skip save - No conversation_id")
         return []
     
     try:
@@ -1028,11 +1038,13 @@ def google_search_tool(query):
                 return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
             else:
                 return "Không tìm thấy kết quả nào."
-        elif response.status_code == 429:
-            # Quota exceeded, try second key
+        elif response.status_code == 429 or response.status_code == 403:
+            # Quota exceeded or forbidden, try second key
+            logger.warning(f"[GOOGLE SEARCH] Key 1 failed with {response.status_code}, trying key 2...")
             if GOOGLE_SEARCH_API_KEY_2:
                 params['key'] = GOOGLE_SEARCH_API_KEY_2
                 response = session.get(url, params=params, timeout=30)
+                logger.info(f"[GOOGLE SEARCH] Key 2 response: {response.status_code}")
                 if response.status_code == 200:
                     data = response.json()
                     results = []
@@ -1043,7 +1055,11 @@ def google_search_tool(query):
                             snippet = item.get('snippet', 'No description')
                             results.append(f"**{title}**\n{snippet}\n🔗 {link}")
                         return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
-            return "❌ Đã hết quota Google Search API. Vui lòng thử lại sau."
+                    else:
+                        return "Không tìm thấy kết quả nào."
+            # Both keys failed
+            error_detail = "quota exceeded" if response.status_code == 429 else "forbidden (kiểm tra API key & CSE ID)"
+            return f"❌ Lỗi Google Search API: {error_detail}. Vui lòng kiểm tra:\n• API key hợp lệ trong Google Cloud Console\n• Custom Search Engine ID đúng\n• Billing đã được kích hoạt"
         else:
             return f"❌ Lỗi Google Search API: {response.status_code}"
     
@@ -1268,6 +1284,15 @@ def chat():
             history = data.get('history', None)
             memory_ids = data.get('memory_ids', [])
             mcp_selected_files = data.get('mcp_selected_files', [])  # MCP selected files
+        
+        # Handle user_id from request (for mobile/web tracking)
+        if data.get('user_id'):
+            session['user_id'] = data.get('user_id')
+            logger.info(f"[CHAT] User ID from request: {data.get('user_id')}")
+        
+        # Log platform info
+        platform = data.get('platform', 'web')
+        logger.info(f"[CHAT] Platform: {platform}, Model: {model}")
         
         # Process agent config
         if agent_config:

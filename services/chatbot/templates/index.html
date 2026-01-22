@@ -1368,7 +1368,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
         
         // Firebase config is loaded from server-side template
         const firebaseConfig = {{ firebase_config | safe }};
@@ -1379,29 +1379,90 @@
         
         window.firebaseDb = db;
         
-        // Log chat events to Firebase
-        window.logChatToFirebase = async function(message, model, response) {
+        // Generate or retrieve persistent user ID
+        let firebaseUserId = localStorage.getItem('firebase-user-id');
+        if (!firebaseUserId) {
+            firebaseUserId = 'web_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('firebase-user-id', firebaseUserId);
+        }
+        window.firebaseUserId = firebaseUserId;
+        
+        // Log FULL chat message to Firebase (user + assistant)
+        window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
             try {
-                await addDoc(collection(db, 'chat_logs'), {
-                    message: message.substring(0, 200),
+                const chatDoc = {
+                    userId: firebaseUserId,
+                    platform: 'web',
                     model: model,
-                    responseLength: response.length,
+                    userMessage: userMessage,
+                    assistantResponse: assistantResponse,
+                    imageUrls: imageUrls,  // ImgBB links, generated images, etc
                     timestamp: serverTimestamp(),
-                    userAgent: navigator.userAgent.substring(0, 100)
-                });
+                    userAgent: navigator.userAgent.substring(0, 200)
+                };
+                
+                const docRef = await addDoc(collection(db, 'conversations'), chatDoc);
+                console.log('[Firebase] Saved chat:', docRef.id);
+                return docRef.id;
             } catch (e) {
-                console.log("Firebase log skipped");
+                console.log("Firebase log error:", e.message);
+                return null;
             }
         };
         
-        // Log page view
+        // Log image generation to Firebase
+        window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
+            try {
+                const imageDoc = {
+                    userId: firebaseUserId,
+                    platform: 'web',
+                    type: 'image_generation',
+                    prompt: prompt,
+                    negativePrompt: negativePrompt || '',
+                    imageUrl: imageUrl,  // Base64 or local URL
+                    cloudUrl: cloudUrl,  // ImgBB URL if uploaded
+                    timestamp: serverTimestamp()
+                };
+                
+                const docRef = await addDoc(collection(db, 'generated_images'), imageDoc);
+                console.log('[Firebase] Saved image:', docRef.id);
+                return docRef.id;
+            } catch (e) {
+                console.log("Firebase image log error:", e.message);
+                return null;
+            }
+        };
+        
+        // Save/Update user profile
+        window.saveUserProfile = async function(profileData = {}) {
+            try {
+                const userRef = doc(db, 'users', firebaseUserId);
+                await setDoc(userRef, {
+                    ...profileData,
+                    lastActive: serverTimestamp(),
+                    platform: 'web'
+                }, { merge: true });
+                console.log('[Firebase] User profile updated');
+            } catch (e) {
+                console.log("Firebase user save error:", e.message);
+            }
+        };
+        
+        // Log page view with user context
         (async () => {
             try {
+                // Log page view
                 await addDoc(collection(db, 'page_views'), {
+                    userId: firebaseUserId,
                     page: '/chatbot',
+                    platform: 'web',
                     timestamp: serverTimestamp(),
-                    referrer: document.referrer || 'direct'
+                    referrer: document.referrer || 'direct',
+                    userAgent: navigator.userAgent.substring(0, 100)
                 });
+                
+                // Update user's last active
+                await window.saveUserProfile({});
             } catch (e) {}
         })();
     </script>

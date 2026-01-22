@@ -626,6 +626,11 @@ class ChatBotApp {
             // Save session with updated timestamp (new message)
             this.saveCurrentSession(true);
             
+            // Log to Firebase (async, non-blocking)
+            if (window.logChatToFirebase && !data.error) {
+                window.logChatToFirebase(message, formValues.model, data.response, []);
+            }
+            
             // Make images clickable (with retry for dynamically loaded images)
             const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
             setTimeout(makeClickable, 100);

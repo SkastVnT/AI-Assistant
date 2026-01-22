@@ -32,8 +32,8 @@
             </div>
             <div class="mobile-header-right">
                 <button class="mobile-model-badge" onclick="openModelSheet()">
-                    <span id="currentModelIcon">🤖</span>
-                    <span id="currentModelName">Grok</span>
+                    <span id="currentModelIcon">�</span>
+                    <span id="currentModelName">GPT-4.1</span>
                 </button>
                 <button class="mobile-icon-btn" onclick="toggleTheme()">
                     <span id="themeIcon">🌙</span>
@@ -49,7 +49,7 @@
                     <h3 style="margin-bottom: 8px;">👋 Xin chào!</h3>
                     <p>Tôi là AI Assistant, sẵn sàng hỗ trợ bạn. Hãy nhập câu hỏi hoặc yêu cầu của bạn.</p>
                     <div class="mobile-message-info">
-                        <span>🤖 Grok</span>
+                        <span>� GPT-4.1</span>
                         <span>•</span>
                         <span id="welcomeTime"></span>
                     </div>
@@ -61,8 +61,8 @@
         <footer class="mobile-input-area">
             <!-- Tools Row -->
             <div class="mobile-tools-row">
-                <div class="mobile-tool-chip" onclick="toggleTool(this, 'webSearch')" id="webSearchChip">
-                    🌐 Web Search
+                <div class="mobile-tool-chip" onclick="toggleTool(this, 'googleSearch')" id="googleSearchChip">
+                    🔍 Google Search
                 </div>
                 <div class="mobile-tool-chip" onclick="toggleTool(this, 'deepThinking')" id="deepThinkingChip">
                     🧠 Deep Thinking
@@ -71,7 +71,10 @@
                     ⚙️ Config Agent
                 </div>
                 <div class="mobile-tool-chip" onclick="toggleTool(this, 'imageGen')" id="imageGenChip">
-                    🎨 Image Gen
+                    🎨 Text2Img
+                </div>
+                <div class="mobile-tool-chip" onclick="openImg2ImgSheet()" id="img2imgChip">
+                    🖼️ Img2Img
                 </div>
             </div>
 
@@ -104,18 +107,34 @@
             <button class="mobile-icon-btn" onclick="toggleDrawer()">✕</button>
         </div>
         <div class="mobile-drawer-content">
-            <!-- Conversations Section -->
+            <!-- New Chat Button -->
             <div class="mobile-drawer-section">
-                <h3>💬 Conversations</h3>
-                <div class="mobile-menu-item active">
+                <div class="mobile-menu-item active" onclick="startNewChat()">
                     <div class="mobile-menu-icon">✨</div>
                     <div class="mobile-menu-text">
                         <h4>New Chat</h4>
                         <p>Start a new conversation</p>
                     </div>
                 </div>
-                <div id="conversationList">
-                    <!-- Dynamic conversation list -->
+            </div>
+
+            <!-- Chat History Section -->
+            <div class="mobile-drawer-section" style="max-height: 200px; overflow-y: auto;">
+                <h3>💬 Chat History</h3>
+                <div id="chatHistoryList">
+                    <!-- Dynamic chat history -->
+                </div>
+            </div>
+
+            <!-- Image Gallery -->
+            <div class="mobile-drawer-section">
+                <h3>🖼️ Image Gallery</h3>
+                <div class="mobile-menu-item" onclick="openGallerySheet()">
+                    <div class="mobile-menu-icon">🎨</div>
+                    <div class="mobile-menu-text">
+                        <h4>Generated Images</h4>
+                        <p>View your AI images</p>
+                    </div>
                 </div>
             </div>
 
@@ -172,53 +191,68 @@
             <button class="mobile-icon-btn" onclick="closeModelSheet()">✕</button>
         </div>
         <div class="mobile-bottom-sheet-content">
-            <div class="mobile-model-option selected" onclick="selectModel('grok')">
-                <div class="mobile-model-icon">🤖</div>
-                <div class="mobile-model-info">
-                    <h4>Grok</h4>
-                    <p>Fast & Versatile AI</p>
-                </div>
-                <div class="mobile-model-check">✓</div>
-            </div>
-            <div class="mobile-model-option" onclick="selectModel('claude')">
-                <div class="mobile-model-icon">🎭</div>
-                <div class="mobile-model-info">
-                    <h4>Claude 4</h4>
-                    <p>Advanced Reasoning</p>
-                </div>
-                <div class="mobile-model-check">✓</div>
-            </div>
-            <div class="mobile-model-option" onclick="selectModel('gemini')">
-                <div class="mobile-model-icon">💎</div>
-                <div class="mobile-model-info">
-                    <h4>Gemini 2.5</h4>
-                    <p>Google's Latest AI</p>
-                </div>
-                <div class="mobile-model-check">✓</div>
-            </div>
-            <div class="mobile-model-option" onclick="selectModel('gpt')">
+            <!-- Working Models -->
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">✅ Available Models</p>
+            
+            <div class="mobile-model-option selected" onclick="selectModel('openai')">
                 <div class="mobile-model-icon">🧠</div>
                 <div class="mobile-model-info">
-                    <h4>GPT-4.1</h4>
-                    <p>OpenAI's Flagship</p>
+                    <h4>OpenAI GPT-4.1</h4>
+                    <p>OpenAI's Flagship Model (Default)</p>
+                </div>
+                <div class="mobile-model-check">✓</div>
+            </div>
+            <div class="mobile-model-option" onclick="selectModel('deepseek')">
+                <div class="mobile-model-icon">🔮</div>
+                <div class="mobile-model-info">
+                    <h4>DeepSeek Chat</h4>
+                    <p>Fast & Affordable</p>
                 </div>
                 <div class="mobile-model-check">✓</div>
             </div>
             <div class="mobile-model-option" onclick="selectModel('deepseek-reasoner')">
-                <div class="mobile-model-icon">🔮</div>
+                <div class="mobile-model-icon">🚀</div>
                 <div class="mobile-model-info">
                     <h4>DeepSeek R1</h4>
                     <p>Deep Reasoning Model</p>
                 </div>
                 <div class="mobile-model-check">✓</div>
             </div>
-            <div class="mobile-model-option" onclick="selectModel('llama')">
+
+            <!-- Coming Soon Models -->
+            <p style="font-size: 12px; color: #64748b; margin: 16px 0 12px;">🔜 Coming Soon</p>
+            
+            <div class="mobile-model-option" style="opacity: 0.5; pointer-events: none;">
+                <div class="mobile-model-icon">🤖</div>
+                <div class="mobile-model-info">
+                    <h4>Grok</h4>
+                    <p>xAI Model (Coming Soon)</p>
+                </div>
+                <div class="mobile-model-check"></div>
+            </div>
+            <div class="mobile-model-option" style="opacity: 0.5; pointer-events: none;">
+                <div class="mobile-model-icon">🎭</div>
+                <div class="mobile-model-info">
+                    <h4>Claude 4</h4>
+                    <p>Advanced Reasoning (Coming Soon)</p>
+                </div>
+                <div class="mobile-model-check"></div>
+            </div>
+            <div class="mobile-model-option" style="opacity: 0.5; pointer-events: none;">
+                <div class="mobile-model-icon">💎</div>
+                <div class="mobile-model-info">
+                    <h4>Gemini 2.5</h4>
+                    <p>Google AI (Coming Soon)</p>
+                </div>
+                <div class="mobile-model-check"></div>
+            </div>
+            <div class="mobile-model-option" style="opacity: 0.5; pointer-events: none;">
                 <div class="mobile-model-icon">🦙</div>
                 <div class="mobile-model-info">
                     <h4>LLaMA 4</h4>
-                    <p>Meta's Open Model</p>
+                    <p>Meta's Open Model (Coming Soon)</p>
                 </div>
-                <div class="mobile-model-check">✓</div>
+                <div class="mobile-model-check"></div>
             </div>
         </div>
     </div>
@@ -331,18 +365,63 @@
         </div>
     </div>
 
+    <!-- Image Preview Modal for Zoom -->
+    <div id="imagePreviewModal" onclick="closeImagePreview(event)" style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+    ">
+        <img id="previewImage" src="" alt="Preview" style="
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        ">
+        <button onclick="closeImagePreview(event)" style="
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+        ">✕</button>
+    </div>
+
     <!-- JavaScript -->
     <script>
         // ============================================
         // STATE MANAGEMENT
         // ============================================
-        let currentModel = 'grok';
+        let currentModel = 'openai';
         let currentTheme = localStorage.getItem('mobile-theme') || 'light';
         let isLoading = false;
         let conversationHistory = [];
+        let currentChatId = null;
+        let chatSessions = JSON.parse(localStorage.getItem('mobile-chat-sessions')) || [];
+        
+        // User ID for MongoDB tracking - persist across sessions
+        let userId = localStorage.getItem('mobile-user-id');
+        if (!userId) {
+            userId = 'mobile_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('mobile-user-id', userId);
+        }
         
         const tools = {
-            webSearch: false,
+            googleSearch: false,
             deepThinking: false,
             imageGen: false
         };
@@ -357,23 +436,29 @@
             thinkingBudget: 'off'
         };
 
+        // Model mapping - match PC version
         const modelIcons = {
             'grok': '🤖',
+            'openai': '🧠',
+            'deepseek': '🔮',
+            'deepseek-reasoner': '🚀',
             'claude': '🎭',
             'gemini': '💎',
-            'gpt': '🧠',
-            'deepseek-reasoner': '🔮',
             'llama': '🦙'
         };
 
         const modelNames = {
             'grok': 'Grok',
+            'openai': 'GPT-4.1',
+            'deepseek': 'DeepSeek',
+            'deepseek-reasoner': 'DeepSeek R1',
             'claude': 'Claude 4',
             'gemini': 'Gemini 2.5',
-            'gpt': 'GPT-4.1',
-            'deepseek-reasoner': 'DeepSeek R1',
             'llama': 'LLaMA 4'
         };
+
+        // Disabled models list
+        const disabledModels = ['grok', 'claude', 'gemini', 'llama'];
 
         // ============================================
         // INITIALIZATION
@@ -388,14 +473,24 @@
             // Apply saved theme
             applyTheme(currentTheme);
 
-            // Load model
-            const savedModel = localStorage.getItem('mobile-model');
-            if (savedModel) {
-                selectModel(savedModel, false);
+            // Load model - check if saved model is disabled, force to openai
+            let savedModel = localStorage.getItem('mobile-model') || 'openai';
+            if (disabledModels.includes(savedModel)) {
+                savedModel = 'openai';
+                localStorage.setItem('mobile-model', 'openai');
             }
+            selectModel(savedModel, false);
 
             // Load config
             loadConfigToUI();
+            
+            // Load chat history
+            loadChatHistory();
+            
+            // Start new session if none exists
+            if (!currentChatId) {
+                startNewChat(false);
+            }
 
             // Configure marked
             marked.setOptions({
@@ -416,6 +511,112 @@
                 }
             });
         });
+
+        // ============================================
+        // CHAT HISTORY MANAGEMENT
+        // ============================================
+        function startNewChat(closeDrawer = true) {
+            // Save current chat if exists
+            saveCurrentChat();
+            
+            // Create new chat
+            currentChatId = 'chat_' + Date.now();
+            conversationHistory = [];
+            
+            // Clear UI
+            const chatArea = document.getElementById('chatArea');
+            chatArea.innerHTML = `
+                <div class="mobile-message assistant" id="welcomeMessage">
+                    <div class="mobile-message-content">
+                        <h3 style="margin-bottom: 8px;">👋 Xin chào!</h3>
+                        <p>Tôi là AI Assistant, sẵn sàng hỗ trợ bạn.</p>
+                        <div class="mobile-message-info">
+                            <span>${modelIcons[currentModel]} ${modelNames[currentModel]}</span>
+                            <span>•</span>
+                            <span>${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (closeDrawer) {
+                toggleDrawer();
+                showToast('New chat started');
+            }
+            
+            loadChatHistory();
+        }
+        
+        function saveCurrentChat() {
+            if (!currentChatId || conversationHistory.length === 0) return;
+            
+            const existingIndex = chatSessions.findIndex(c => c.id === currentChatId);
+            const chatData = {
+                id: currentChatId,
+                title: conversationHistory[0]?.content.substring(0, 30) + '...' || 'New Chat',
+                history: conversationHistory,
+                timestamp: Date.now(),
+                model: currentModel
+            };
+            
+            if (existingIndex >= 0) {
+                chatSessions[existingIndex] = chatData;
+            } else {
+                chatSessions.unshift(chatData);
+            }
+            
+            // Keep only last 20 chats
+            if (chatSessions.length > 20) {
+                chatSessions = chatSessions.slice(0, 20);
+            }
+            
+            localStorage.setItem('mobile-chat-sessions', JSON.stringify(chatSessions));
+        }
+        
+        function loadChatHistory() {
+            const listEl = document.getElementById('chatHistoryList');
+            if (!listEl) return;
+            
+            chatSessions = JSON.parse(localStorage.getItem('mobile-chat-sessions')) || [];
+            
+            if (chatSessions.length === 0) {
+                listEl.innerHTML = '<p style="color: #64748b; font-size: 12px; padding: 8px;">No chat history</p>';
+                return;
+            }
+            
+            listEl.innerHTML = chatSessions.map(chat => `
+                <div class="mobile-menu-item ${chat.id === currentChatId ? 'active' : ''}" onclick="loadChat('${chat.id}')">
+                    <div class="mobile-menu-icon">💬</div>
+                    <div class="mobile-menu-text">
+                        <h4 style="font-size: 13px;">${escapeHtml(chat.title)}</h4>
+                        <p style="font-size: 11px;">${new Date(chat.timestamp).toLocaleDateString('vi-VN')}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function loadChat(chatId) {
+            const chat = chatSessions.find(c => c.id === chatId);
+            if (!chat) return;
+            
+            // Save current first
+            saveCurrentChat();
+            
+            // Load selected chat
+            currentChatId = chat.id;
+            conversationHistory = chat.history || [];
+            
+            // Render messages
+            const chatArea = document.getElementById('chatArea');
+            chatArea.innerHTML = '';
+            
+            conversationHistory.forEach(msg => {
+                addMessage(msg.content, msg.role, null, false);
+            });
+            
+            toggleDrawer();
+            loadChatHistory();
+        }
 
         // ============================================
         // DRAWER FUNCTIONS
@@ -592,6 +793,527 @@
         }
 
         // ============================================
+        // IMAGE GALLERY
+        // ============================================
+        function openGallerySheet() {
+            // Create gallery sheet if not exists
+            if (!document.getElementById('gallerySheet')) {
+                createGallerySheet();
+            }
+            document.getElementById('gallerySheet').classList.add('show');
+            document.getElementById('gallerySheetOverlay').classList.add('show');
+            loadGalleryImages();
+            toggleDrawer();
+        }
+
+        function closeGallerySheet() {
+            document.getElementById('gallerySheet').classList.remove('show');
+            document.getElementById('gallerySheetOverlay').classList.remove('show');
+        }
+
+        function createGallerySheet() {
+            const overlay = document.createElement('div');
+            overlay.className = 'mobile-drawer-overlay';
+            overlay.id = 'gallerySheetOverlay';
+            overlay.onclick = closeGallerySheet;
+            document.body.appendChild(overlay);
+            
+            const sheet = document.createElement('div');
+            sheet.className = 'mobile-bottom-sheet';
+            sheet.id = 'gallerySheet';
+            sheet.style.maxHeight = '90vh';
+            sheet.innerHTML = `
+                <div class="mobile-bottom-sheet-handle"></div>
+                <div class="mobile-bottom-sheet-header">
+                    <span class="mobile-bottom-sheet-title">🖼️ Image Gallery</span>
+                    <button class="mobile-icon-btn" onclick="closeGallerySheet()">✕</button>
+                </div>
+                <div class="mobile-bottom-sheet-content">
+                    <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                        <div style="grid-column: span 2; text-align: center; color: #64748b; padding: 40px;">
+                            Loading images...
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(sheet);
+        }
+
+        async function loadGalleryImages() {
+            const grid = document.getElementById('galleryGrid');
+            try {
+                const response = await fetch('/api/gallery?all=true');
+                const data = await response.json();
+                
+                if (data.images && data.images.length > 0) {
+                    grid.innerHTML = data.images.map(img => `
+                        <div style="position: relative; border-radius: 12px; overflow: hidden;">
+                            <img src="${img.path}" alt="${img.filename}" style="width: 100%; height: 120px; object-fit: cover;" onclick="window.open('${img.path}', '_blank')">
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: #64748b; padding: 40px;">🖼️ No images yet</div>';
+                }
+            } catch (error) {
+                grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: #ef4444; padding: 40px;">❌ Error loading images</div>';
+            }
+        }
+
+        // ============================================
+        // IMG2IMG
+        // ============================================
+        function openImg2ImgSheet() {
+            // Create img2img sheet if not exists
+            if (!document.getElementById('img2imgSheet')) {
+                createImg2ImgSheet();
+            }
+            document.getElementById('img2imgSheet').classList.add('show');
+            document.getElementById('img2imgSheetOverlay').classList.add('show');
+        }
+
+        function closeImg2ImgSheet() {
+            document.getElementById('img2imgSheet').classList.remove('show');
+            document.getElementById('img2imgSheetOverlay').classList.remove('show');
+        }
+
+        function createImg2ImgSheet() {
+            const overlay = document.createElement('div');
+            overlay.className = 'mobile-drawer-overlay';
+            overlay.id = 'img2imgSheetOverlay';
+            overlay.onclick = closeImg2ImgSheet;
+            document.body.appendChild(overlay);
+            
+            const sheet = document.createElement('div');
+            sheet.className = 'mobile-bottom-sheet';
+            sheet.id = 'img2imgSheet';
+            sheet.style.maxHeight = '90vh';
+            sheet.innerHTML = `
+                <div class="mobile-bottom-sheet-handle"></div>
+                <div class="mobile-bottom-sheet-header">
+                    <span class="mobile-bottom-sheet-title">🖼️ Image to Image</span>
+                    <button class="mobile-icon-btn" onclick="closeImg2ImgSheet()">✕</button>
+                </div>
+                <div class="mobile-bottom-sheet-content" style="overflow-y: auto; max-height: 70vh;">
+                    <div style="border: 2px dashed var(--border-light); border-radius: 12px; padding: 30px; text-align: center; margin-bottom: 16px;">
+                        <input type="file" id="img2imgInput" accept="image/*" style="display: none;" onchange="previewImg2Img(this)">
+                        <div id="img2imgPreview" style="display: none; margin-bottom: 12px;">
+                            <img id="img2imgImage" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                        </div>
+                        <button onclick="document.getElementById('img2imgInput').click()" style="
+                            padding: 12px 24px;
+                            background: var(--primary);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            cursor: pointer;
+                        ">📷 Select Image</button>
+                    </div>
+                    
+                    <!-- Extract Features Section -->
+                    <div id="extractFeaturesSection" style="display: none; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-weight: 600; font-size: 14px;">🔍 Extract Features</label>
+                            <span style="font-size: 12px; color: var(--text-secondary);">DeepDanbooru 🎨</span>
+                        </div>
+                        <button id="extractFeaturesBtn" onclick="extractImg2ImgFeatures()" style="
+                            width: 100%;
+                            padding: 12px;
+                            background: linear-gradient(135deg, #ff9800, #ff5722);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">🔬 Extract Features</button>
+                        
+                        <!-- Extracted Tags Display -->
+                        <div id="extractedTagsDisplay" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-light); border-radius: 8px; max-height: 150px; overflow-y: auto;">
+                            <div id="extractedTagsList" style="font-size: 12px; color: var(--text-secondary);"></div>
+                        </div>
+                        
+                        <!-- Auto-generate Prompt Button -->
+                        <button id="autoGenPromptBtn" onclick="autoGenerateImg2ImgPrompt()" style="
+                            display: none;
+                            width: 100%;
+                            margin-top: 12px;
+                            padding: 12px;
+                            background: linear-gradient(135deg, #2196f3, #673ab7);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">🤖 Auto-generate Prompt (AI)</button>
+                    </div>
+                    
+                    <div class="mobile-config-section">
+                        <label class="mobile-config-label">✏️ Image Prompt</label>
+                        <textarea class="mobile-config-textarea" id="img2imgPrompt" rows="3" placeholder="Enter prompt or use Auto-generate above..."></textarea>
+                    </div>
+                    
+                    <div class="mobile-config-section">
+                        <label class="mobile-config-label">🚫 Negative Prompt</label>
+                        <textarea class="mobile-config-textarea" id="img2imgNegativePrompt" rows="2" placeholder="bad quality, blurry, distorted">nsfw, nude, sexual, explicit, bad quality, blurry, distorted, worst quality, low resolution</textarea>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <label class="mobile-config-label">Denoising</label>
+                            <input type="number" id="img2imgDenoising" value="0.6" min="0.1" max="1" step="0.1" style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label class="mobile-config-label">Steps</label>
+                            <input type="number" id="img2imgSteps" value="30" min="10" max="50" style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: 8px;">
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateImg2ImgAdvanced()" style="
+                        width: 100%;
+                        padding: 16px;
+                        background: linear-gradient(135deg, var(--primary), var(--secondary));
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    ">🎨 Generate Image</button>
+                </div>
+            `;
+            document.body.appendChild(sheet);
+        }
+
+        // Global state for img2img
+        let img2imgExtractedTags = [];
+        let img2imgBase64 = null;
+
+        function previewImg2Img(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('img2imgImage').src = e.target.result;
+                    document.getElementById('img2imgPreview').style.display = 'block';
+                    document.getElementById('extractFeaturesSection').style.display = 'block';
+                    img2imgBase64 = e.target.result;
+                    // Reset tags
+                    img2imgExtractedTags = [];
+                    document.getElementById('extractedTagsDisplay').style.display = 'none';
+                    document.getElementById('autoGenPromptBtn').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function extractImg2ImgFeatures() {
+            if (!img2imgBase64) {
+                showToast('Please select an image first');
+                return;
+            }
+            
+            const btn = document.getElementById('extractFeaturesBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ Đang trích xuất...';
+            
+            try {
+                const response = await fetch('/sd-api/interrogate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: img2imgBase64.split(',')[1],
+                        model: 'deepdanbooru'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.tags && data.tags.length > 0) {
+                    img2imgExtractedTags = data.tags;
+                    
+                    // Display tags
+                    const tagsList = document.getElementById('extractedTagsList');
+                    tagsList.innerHTML = data.tags.slice(0, 20).map(tag => 
+                        `<span style="display: inline-block; padding: 4px 8px; margin: 2px; background: var(--primary); color: white; border-radius: 4px; font-size: 11px;">${tag.name} (${(tag.confidence * 100).toFixed(0)}%)</span>`
+                    ).join('');
+                    
+                    document.getElementById('extractedTagsDisplay').style.display = 'block';
+                    document.getElementById('autoGenPromptBtn').style.display = 'block';
+                    
+                    showToast(`✅ Extracted ${data.tags.length} tags!`);
+                } else {
+                    showToast('❌ No features extracted');
+                }
+            } catch (error) {
+                showToast('❌ Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        async function autoGenerateImg2ImgPrompt() {
+            if (img2imgExtractedTags.length === 0) {
+                showToast('Please extract features first');
+                return;
+            }
+            
+            const btn = document.getElementById('autoGenPromptBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '🤖 Đang tạo prompt...';
+            
+            try {
+                const tags = img2imgExtractedTags.map(t => t.name);
+                
+                const response = await fetch('/api/generate-prompt-grok', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tags: tags,
+                        context: `Generate a natural Stable Diffusion prompt based on these extracted features: ${tags.join(', ')}`
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.prompt) {
+                    document.getElementById('img2imgPrompt').value = data.prompt;
+                    if (data.negative_prompt) {
+                        document.getElementById('img2imgNegativePrompt').value = data.negative_prompt;
+                    }
+                    showToast('✅ Prompt generated!');
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to generate prompt'));
+                }
+            } catch (error) {
+                showToast('❌ Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        async function generateImg2ImgAdvanced() {
+            const prompt = document.getElementById('img2imgPrompt').value.trim();
+            const negativePrompt = document.getElementById('img2imgNegativePrompt').value.trim();
+            const denoising = parseFloat(document.getElementById('img2imgDenoising').value) || 0.6;
+            const steps = parseInt(document.getElementById('img2imgSteps').value) || 30;
+            
+            if (!img2imgBase64) {
+                showToast('Please select an image');
+                return;
+            }
+            if (!prompt) {
+                showToast('Please enter a prompt or use Auto-generate');
+                return;
+            }
+            
+            showToast('🎨 Generating... Please wait');
+            closeImg2ImgSheet();
+            
+            addMessage(`[Img2Img] ${prompt}`, 'user');
+            const loadingId = showLoading();
+            
+            try {
+                // Use img2img-advanced if we have extracted tags, otherwise basic img2img
+                const endpoint = img2imgExtractedTags.length > 0 ? '/api/img2img-advanced' : '/api/img2img';
+                const body = {
+                    image: img2imgBase64.split(',')[1],
+                    prompt: prompt,
+                    negative_prompt: negativePrompt,
+                    denoising_strength: denoising,
+                    steps: steps,
+                    cfg_scale: 7,
+                    width: 768,
+                    height: 768
+                };
+                
+                if (img2imgExtractedTags.length > 0) {
+                    body.extracted_tags = img2imgExtractedTags.map(t => t.name);
+                    body.user_prompt = prompt;
+                    body.feature_weight = 80;
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                removeLoading(loadingId);
+                
+                if (data.error) {
+                    addMessage('❌ ' + data.error, 'assistant');
+                } else if (data.success && data.images && data.images.length > 0) {
+                    const base64 = data.images[0];
+                    const imgSrc = base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
+                    
+                    // Build metadata display like PC
+                    const metadata = `
+<div style="background: rgba(76, 175, 80, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 12px;">
+📝 <strong>Prompt:</strong> ${prompt.substring(0, 100)}...<br>
+🚫 <strong>Negative:</strong> ${negativePrompt.substring(0, 60)}...<br>
+⚙️ <strong>Denoising:</strong> ${denoising} | <strong>Steps:</strong> ${steps}
+${data.cloud_url ? `<br>☁️ <a href="${data.cloud_url}" target="_blank">Cloud URL</a>` : ''}
+</div>`;
+                    
+                    addMessage(`<img src="${imgSrc}" style="max-width: 100%; border-radius: 12px;" alt="Generated Image">${metadata}`, 'assistant');
+                    
+                    // Log to Firebase (async)
+                    if (window.logImageToFirebase) {
+                        window.logImageToFirebase(prompt, negativePrompt, imgSrc, data.cloud_url || null);
+                    }
+                } else if (data.image_url) {
+                    addMessage(`<img src="${data.image_url}" style="max-width: 100%; border-radius: 12px;" alt="Generated Image">`, 'assistant');
+                } else {
+                    addMessage('❌ Failed to generate image', 'assistant');
+                }
+            } catch (error) {
+                removeLoading(loadingId);
+                addMessage('❌ Error: ' + error.message, 'assistant');
+            }
+        }
+
+        // ============================================
+        // TEXT2IMG - Enhanced like PC version
+        // ============================================
+        async function generateText2Img(userDescription) {
+            // Add user message
+            addMessage(`[Text2Img] ${userDescription}`, 'user');
+            
+            isLoading = true;
+            const loadingId = showLoading();
+            
+            try {
+                // Step 1: Generate enhanced prompt with AI (like PC)
+                addMessage('✨ Đang tạo prompt với AI...', 'assistant');
+                
+                const promptInstruction = `You are an expert at creating Stable Diffusion prompts. Based on this request, create a detailed prompt:
+
+User request: "${userDescription}"
+
+Generate an optimized Stable Diffusion prompt following these rules:
+1. Write in English, comma-separated tags
+2. Include quality tags: masterpiece, best quality, highly detailed
+3. Be descriptive about: subject, style, lighting, composition, colors
+4. Keep it concise but detailed (max 100 words)
+5. Focus on visual elements only
+
+Return ONLY the prompt, nothing else.`;
+                
+                const promptResponse = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: promptInstruction,
+                        model: currentModel,
+                        context: 'creative'
+                    })
+                });
+                
+                const promptData = await promptResponse.json();
+                const generatedPrompt = promptData.response ? promptData.response.trim() : userDescription;
+                
+                // Step 2: Generate negative prompt
+                const negativeInstruction = `Based on this positive prompt, generate a negative prompt:
+
+Positive prompt: "${generatedPrompt}"
+
+Create a negative prompt including:
+1. Quality issues (bad quality, blurry, distorted, ugly, worst quality)
+2. Anatomy issues (bad anatomy, bad hands, missing fingers)
+3. Unwanted content (nsfw, nude, explicit, sexual)
+4. Technical issues (lowres, jpeg artifacts, cropped)
+
+Return ONLY the negative prompt (comma-separated), nothing else.`;
+                
+                const negativeResponse = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: negativeInstruction,
+                        model: currentModel,
+                        context: 'precise'
+                    })
+                });
+                
+                const negativeData = await negativeResponse.json();
+                const negativePrompt = negativeData.response ? negativeData.response.trim() : 'low quality, worst quality, bad anatomy, blurry, nsfw, nude';
+                
+                // Show generated prompts
+                addMessage(`📝 **Generated Prompt:**\n\`${generatedPrompt.substring(0, 150)}...\`\n\n🚫 **Negative:**\n\`${negativePrompt.substring(0, 100)}...\``, 'assistant');
+                
+                // Step 3: Generate image
+                addMessage('🎨 Đang tạo ảnh... (10-30 giây)', 'assistant');
+                
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: generatedPrompt,
+                        negative_prompt: negativePrompt,
+                        width: 512,
+                        height: 512,
+                        steps: 20,
+                        cfg_scale: 7.0,
+                        sampler_name: 'DPM++ 2M Karras',
+                        save_to_storage: true
+                    })
+                });
+                
+                const data = await response.json();
+                removeLoading(loadingId);
+                
+                if (data.error) {
+                    addMessage('❌ ' + data.error, 'assistant');
+                } else if (data.success && data.images && data.images.length > 0) {
+                    const base64 = data.images[0];
+                    let imgSrc;
+                    
+                    if (base64.startsWith('generated_')) {
+                        imgSrc = `/storage/images/${base64}`;
+                    } else if (base64.startsWith('data:')) {
+                        imgSrc = base64;
+                    } else {
+                        imgSrc = `data:image/png;base64,${base64}`;
+                    }
+                    
+                    // Build metadata display like PC
+                    const metadata = `
+<div style="background: rgba(76, 175, 80, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 12px;">
+🎯 <strong>Original:</strong> ${userDescription}<br>
+📝 <strong>Prompt:</strong> ${generatedPrompt.substring(0, 80)}...<br>
+🚫 <strong>Negative:</strong> ${negativePrompt.substring(0, 50)}...<br>
+🖼️ <strong>Size:</strong> 512x512 | <strong>Steps:</strong> 20 | <strong>CFG:</strong> 7.0
+${data.cloud_url ? `<br>☁️ <a href="${data.cloud_url}" target="_blank" style="color: #667eea;">Cloud URL</a>` : ''}
+</div>`;
+                    
+                    addMessage(`🎨 **Image Generated Successfully!**\n\n<img src="${imgSrc}" style="max-width: 100%; border-radius: 12px;" alt="Generated Image">${metadata}`, 'assistant');
+                    
+                    // Log to Firebase (async)
+                    if (window.logImageToFirebase) {
+                        window.logImageToFirebase(generatedPrompt, negativePrompt, imgSrc, data.cloud_url || null);
+                    }
+                } else {
+                    addMessage('❌ Failed to generate image', 'assistant');
+                }
+            } catch (error) {
+                removeLoading(loadingId);
+                addMessage('❌ Error: ' + error.message, 'assistant');
+            }
+            
+            isLoading = false;
+            
+            // Auto-disable Text2Img after generating
+            tools.imageGen = false;
+            document.getElementById('imageGenChip').classList.remove('active');
+        }
+
+        // ============================================
         // INPUT HANDLING
         // ============================================
         function autoResize(textarea) {
@@ -616,6 +1338,12 @@
             const welcome = document.getElementById('welcomeMessage');
             if (welcome) welcome.remove();
             
+            // Check if Text2Img is enabled
+            if (tools.imageGen) {
+                await generateText2Img(message);
+                return;
+            }
+            
             // Add user message
             addMessage(message, 'user');
             
@@ -624,18 +1352,27 @@
             const loadingId = showLoading();
             
             try {
+                // Build request like PC version - include user_id for MongoDB
+                const requestBody = {
+                    message: message,
+                    model: currentModel,
+                    context: 'helpful',
+                    deep_thinking: tools.deepThinking,
+                    history: conversationHistory.slice(-10),
+                    agent_config: agentConfig.enabled ? agentConfig : null,
+                    user_id: userId,  // For MongoDB tracking
+                    platform: 'mobile'  // Track platform
+                };
+                
+                // Add Google Search tool if enabled (like PC)
+                if (tools.googleSearch) {
+                    requestBody.tools = ['google_search'];
+                }
+                
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: message,
-                        model: currentModel,
-                        context: 'helpful',
-                        deep_thinking: tools.deepThinking,
-                        history: conversationHistory.slice(-10),
-                        web_search: tools.webSearch,
-                        agent_config: agentConfig.enabled ? agentConfig : null
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
@@ -654,6 +1391,14 @@
                         { role: 'user', content: message },
                         { role: 'assistant', content: data.response }
                     );
+                    
+                    // Auto-save chat to localStorage
+                    saveCurrentChat();
+                    
+                    // Log to Firebase (async, non-blocking)
+                    if (window.logChatToFirebase) {
+                        window.logChatToFirebase(message, currentModel, data.response, []);
+                    }
                 }
             } catch (error) {
                 removeLoading(loadingId);
@@ -666,7 +1411,7 @@
         // ============================================
         // MESSAGE RENDERING
         // ============================================
-        function addMessage(content, role, thinking = null) {
+        function addMessage(content, role, thinking = null, saveToHistory = true) {
             const chatArea = document.getElementById('chatArea');
             const div = document.createElement('div');
             div.className = `mobile-message ${role}`;
@@ -708,10 +1453,14 @@
                     configInfo = `<span>${thinkingLabel} Config Agent (${agentConfig.temperature})</span><span>•</span>`;
                 }
                 
+                // Check if content is HTML (for images)
+                const isHtml = content.startsWith('<');
+                const messageContent = isHtml ? content : marked.parse(content);
+                
                 div.innerHTML = `
                     <div class="mobile-message-content">
                         ${thinkingHtml}
-                        <div class="message-text">${marked.parse(content)}</div>
+                        <div class="message-text">${messageContent}</div>
                         <div class="mobile-message-info">
                             ${configInfo}
                             <span>${modelIcons[currentModel]} ${modelNames[currentModel]}</span>
@@ -811,12 +1560,9 @@
         }
 
         function clearChat() {
-            if (confirm('Clear all messages?')) {
-                const chatArea = document.getElementById('chatArea');
-                chatArea.innerHTML = '';
+            if (confirm('Clear current chat?')) {
                 conversationHistory = [];
-                toggleDrawer();
-                showToast('Chat cleared');
+                startNewChat();
             }
         }
 
@@ -841,6 +1587,41 @@
             showToast('Attach feature coming soon!');
         }
 
+        // ============================================
+        // IMAGE PREVIEW / ZOOM
+        // ============================================
+        function openImagePreview(imgSrc) {
+            const modal = document.getElementById('imagePreviewModal');
+            const previewImg = document.getElementById('previewImage');
+            previewImg.src = imgSrc;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeImagePreview(event) {
+            if (event && event.target.tagName === 'IMG') return; // Don't close if clicking on image
+            const modal = document.getElementById('imagePreviewModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        
+        // Make images in chat clickable for zoom
+        function makeImagesClickable() {
+            document.querySelectorAll('#chatArea img').forEach(img => {
+                if (!img.dataset.clickable) {
+                    img.dataset.clickable = 'true';
+                    img.style.cursor = 'pointer';
+                    img.onclick = function(e) {
+                        e.stopPropagation();
+                        openImagePreview(this.src);
+                    };
+                }
+            });
+        }
+        
+        // Run periodically to catch dynamically added images
+        setInterval(makeImagesClickable, 1000);
+
         // Animation keyframes
         const style = document.createElement('style');
         style.textContent = `
@@ -854,6 +1635,102 @@
             }
         `;
         document.head.appendChild(style);
+    </script>
+    
+    <!-- Firebase Integration for Mobile -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        
+        // Firebase config from server
+        const firebaseConfig = {{ firebase_config | safe }};
+        
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        
+        window.firebaseDb = db;
+        
+        // Use same userId as defined in state management
+        const firebaseUserId = localStorage.getItem('mobile-user-id') || 'mobile_anonymous';
+        window.firebaseUserId = firebaseUserId;
+        
+        // Log FULL chat to Firebase (text messages)
+        window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
+            try {
+                const chatDoc = {
+                    userId: firebaseUserId,
+                    platform: 'mobile',
+                    model: model,
+                    userMessage: userMessage,
+                    assistantResponse: assistantResponse,
+                    imageUrls: imageUrls,
+                    timestamp: serverTimestamp(),
+                    userAgent: navigator.userAgent.substring(0, 200)
+                };
+                
+                const docRef = await addDoc(collection(db, 'conversations'), chatDoc);
+                console.log('[Firebase Mobile] Saved chat:', docRef.id);
+                return docRef.id;
+            } catch (e) {
+                console.log("Firebase log error:", e.message);
+                return null;
+            }
+        };
+        
+        // Log image generation to Firebase
+        window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
+            try {
+                const imageDoc = {
+                    userId: firebaseUserId,
+                    platform: 'mobile',
+                    type: 'image_generation',
+                    prompt: prompt,
+                    negativePrompt: negativePrompt || '',
+                    imageUrl: imageUrl,
+                    cloudUrl: cloudUrl,
+                    timestamp: serverTimestamp()
+                };
+                
+                const docRef = await addDoc(collection(db, 'generated_images'), imageDoc);
+                console.log('[Firebase Mobile] Saved image:', docRef.id);
+                return docRef.id;
+            } catch (e) {
+                console.log("Firebase image log error:", e.message);
+                return null;
+            }
+        };
+        
+        // Save user profile
+        window.saveUserProfile = async function(profileData = {}) {
+            try {
+                const userRef = doc(db, 'users', firebaseUserId);
+                await setDoc(userRef, {
+                    ...profileData,
+                    lastActive: serverTimestamp(),
+                    platform: 'mobile'
+                }, { merge: true });
+            } catch (e) {
+                console.log("Firebase user save error:", e.message);
+            }
+        };
+        
+        // Log page view on load
+        (async () => {
+            try {
+                await addDoc(collection(db, 'page_views'), {
+                    userId: firebaseUserId,
+                    page: '/mobile',
+                    platform: 'mobile',
+                    timestamp: serverTimestamp(),
+                    referrer: document.referrer || 'direct',
+                    userAgent: navigator.userAgent.substring(0, 100)
+                });
+                
+                await window.saveUserProfile({});
+            } catch (e) {}
+        })();
     </script>
 </body>
 </html>
