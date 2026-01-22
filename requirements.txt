@@ -65,14 +65,14 @@ watchdog>=2.0.0
 openai>=1.0.0
 pydantic>=2.0.0,<3.0.0
 google-genai>=1.56.0
-transformers>=4.41,<4.50
+transformers>=4.41,<4.58
 accelerate>=0.27.0
 sentencepiece>=0.2.0
 safetensors>=0.4.0
 huggingface-hub>=0.21.4
 peft>=0.4.0
 datasets>=2.14.0
-protobuf>=3.20.0,<=3.20.2
+protobuf>=3.20.0,<=6.33.4
 omegaconf>=2.3.0
 sentence-transformers>=2.2.2
 diffusers>=0.21.0
@@ -108,7 +108,7 @@ pydub>=0.25.1
 # IMAGE & DOCUMENT PROCESSING
 # ============================================================================
 Pillow>=10.3.0
-opencv-python<=4.6.0.66  # Required by paddleocr 2.7.3 (max version constraint)
+opencv-python<=4.13.0.90  # Required by paddleocr 2.7.3 (max version constraint)
 paddleocr==2.7.3
 paddlepaddle==2.6.2
 PyMuPDF==1.23.8
