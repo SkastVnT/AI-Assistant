@@ -219,6 +219,7 @@ def get_gallery():
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
+        show_all = request.args.get('all', 'false').lower() == 'true'
         
         # Get current session ID for filtering
         current_session_id = get_session_id()
@@ -236,11 +237,17 @@ def get_gallery():
                 except:
                     pass
             
-            # Privacy filter: only show images from current session
-            # Images without session_id are legacy images, skip them for new sessions
+            # Privacy filter logic:
+            # - If show_all=true: show all images (for owner)
+            # - If image has no session_id (legacy): show it (backwards compatibility)
+            # - If image has session_id matching current: show it
+            # - Otherwise: hide it
             image_session_id = metadata.get('session_id')
-            if image_session_id != current_session_id:
-                continue  # Skip images from other sessions
+            
+            if not show_all:
+                # Only filter if not showing all
+                if image_session_id is not None and image_session_id != current_session_id:
+                    continue  # Skip images from other sessions (not legacy, not current)
             
             images.append({
                 'filename': img_file.name,
@@ -269,7 +276,8 @@ def get_gallery():
             'page': page,
             'per_page': per_page,
             'total_pages': (total + per_page - 1) // per_page,
-            'session_id': current_session_id  # For debugging
+            'session_id': current_session_id,  # For debugging
+            'showing_all': show_all
         })
         
     except Exception as e:
