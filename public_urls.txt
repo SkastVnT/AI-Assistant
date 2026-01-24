@@ -1,4 +1,4 @@
 comfyui: https://rim-margaret-voice-avenue.trycloudflare.com
 text2sql: https://foto-avoiding-gibson-detect.trycloudflare.com
 speech2text: https://trial-typically-cultures-rays.trycloudflare.com
-chatbot: https://albany-enjoyed-glen-mental.trycloudflare.com
+chatbot: https://heel-nuts-hood-miles.trycloudflare.com
