@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 # VistralS2T - Vietnamese Speech-to-Text System
 # Version: 3.6.0 - Code Restructuring & Modular Architecture
 # Python: 3.10.6 (managed by pyenv)
@@ -24,9 +24,9 @@ numpy==1.24.4
 faster-whisper==1.0.3
 
 # PhoWhisper (Vietnamese ASR) + Transformers
-transformers==4.40.0
+transformers==4.53.0
 accelerate==0.27.2
-sentencepiece==0.2.0
+sentencepiece==0.2.1
 
 # Google Gemini (Cloud-based LLM for transcript cleaning)
 google-genai>=1.56.0
