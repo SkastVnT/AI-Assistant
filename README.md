@@ -43,6 +43,10 @@ scripts\start-hub-gateway.bat      # Port 3000
 docker-compose up -d
 ```
 
+### Dependencies
+- Full stack: `pip install -r requirements.txt`
+- Chunked files are now grouped under [requirements/README.md](requirements/README.md) for selective installs.
+
 ---
 
 ## 🎯 Services
@@ -98,27 +102,27 @@ scripts\test_mongodb.py            # Test MongoDB connection
 
 ## 📁 Project Structure
 
+### Core (for Running)
 ```
 AI-Assistant/
 ├── services/                      # All Microservices
-│   ├── chatbot/                  # ChatBot (MongoDB + Redis)
-│   │   ├── database/             # Repository Pattern
-│   │   ├── utils/                # Health, Logger, Metrics
-│   │   └── config/               # Configuration
-│   ├── text2sql/                 # Text2SQL Service
-│   ├── document-intelligence/    # Document OCR & Analysis
-│   ├── speech2text/              # Speech Recognition
-│   ├── stable-diffusion/         # Image Generation
-│   ├── lora-training/            # LoRA Training
-│   ├── image-upscale/            # Image Enhancement
-│   ├── hub-gateway/              # API Gateway
-│   └── mcp-server/               # MCP Server
-├── scripts/                       # Management Scripts
-├── docs/                          # Documentation
-├── tests/                         # Test Suite
-├── infrastructure/                # Docker & Deployment
-└── config/                        # Global Configuration
+├── src/                           # Core source code
+├── tests/                         # Unit tests (for CI/CD)
+├── config/                        # Configuration
+├── docker/                        # Docker support
+├── docker-compose.yml
+├── requirements/                  # Dependency chunks
+├── start_*.sh                     # Service startup scripts
+└── menu.sh / menu.bat             # Interactive CLI
 ```
+
+### Non-Essential Files (in private/)
+- **docs/** — Setup guides, API docs, architecture docs
+- **diagram/** — UML, ER diagrams, component diagrams
+- **infrastructure/** — Deployment architecture
+- **scripts/** — One-time setup scripts (create_tunnels, deploy, setup_models)
+- **dev-tools/** — Linting, pre-commit, CI workflows
+- **data/** — Training data, samples, resources
 
 ---
 
