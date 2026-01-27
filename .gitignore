@@ -251,3 +251,12 @@ logs/cloudflared*.pid
 # ============================================
 !**/.gitkeep
 !**/README.md
+
+# ComfyUI - ignore large files
+ComfyUI/models/
+ComfyUI/output/
+ComfyUI/input/
+ComfyUI/temp/
+ComfyUI/custom_nodes/
+ComfyUI/__pycache__/
+ComfyUI/*.log

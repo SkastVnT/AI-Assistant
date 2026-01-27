@@ -24,7 +24,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 DOWNLOADS_BASE="${HOME}/Downloads/Compressed/AI-Assistant/services/stable-diffusion/models"
 
 # Target directories
-COMFYUI_MODELS="/workspace/ComfyUI/models"
+COMFYUI_MODELS="/workspace/AI-Assistant/ComfyUI/models"
 SD_WEBUI_MODELS="/workspace/AI-Assistant/services/stable-diffusion/models"
 
 echo ""

@@ -18,7 +18,7 @@ NC='\033[0m'
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICES_DIR="${PROJECT_ROOT}/services"
 LOGS_DIR="${PROJECT_ROOT}/logs"
-COMFYUI_DIR="/workspace/ComfyUI"
+COMFYUI_DIR="/workspace/AI-Assistant/ComfyUI"
 
 # Create logs directory
 mkdir -p "${LOGS_DIR}"

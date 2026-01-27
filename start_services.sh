@@ -45,7 +45,7 @@ echo ""
 # 1. ComfyUI (port 8189)
 if ! lsof -i:8189 >/dev/null 2>&1; then
     log_info "Starting ComfyUI on port 8189..."
-    cd /workspace/ComfyUI
+    cd /workspace/AI-Assistant/ComfyUI
     nohup python main.py --listen 0.0.0.0 --port 8189 > "$LOGS_DIR/comfyui.log" 2>&1 &
     sleep 2
 else

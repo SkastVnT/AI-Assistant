@@ -1791,7 +1791,7 @@ def sd_health():
             response = jsonify({
                 'status': 'offline',
                 'api_url': sd_api_url,
-                'message': 'ComfyUI is not running. Please start it with: cd /workspace/ComfyUI && python main.py --listen 0.0.0.0 --port 8189'
+                'message': 'ComfyUI is not running. Please start it with: cd /workspace/AI-Assistant/ComfyUI && python main.py --listen 0.0.0.0 --port 8189'
             })
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             return response, 503
@@ -1851,7 +1851,7 @@ def sd_loras():
             pass
         
         # Fallback: scan local directory
-        lora_dir = Path('/workspace/ComfyUI/models/loras')
+        lora_dir = Path('/workspace/AI-Assistant/ComfyUI/models/loras')
         loras = []
         
         if lora_dir.exists():
@@ -1892,7 +1892,7 @@ def sd_vaes():
             pass
         
         # Fallback: scan local directory
-        vae_dir = Path('/workspace/ComfyUI/models/vae')
+        vae_dir = Path('/workspace/AI-Assistant/ComfyUI/models/vae')
         vaes = [{'name': 'Automatic (Default)', 'alias': 'auto'}]
         
         if vae_dir.exists():

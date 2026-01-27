@@ -16,7 +16,7 @@ sleep 2
 
 # Start services
 echo "📦 Starting ComfyUI (port 8189)..."
-cd /workspace/ComfyUI && nohup python3 main.py --listen 0.0.0.0 --port 8189 > /workspace/AI-Assistant/logs/comfyui.log 2>&1 &
+cd /workspace/AI-Assistant/ComfyUI && nohup python3 main.py --listen 0.0.0.0 --port 8189 > /workspace/AI-Assistant/logs/comfyui.log 2>&1 &
 
 echo "💬 Starting Chatbot (port 5000)..."
 cd /workspace/AI-Assistant/services/chatbot && nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 5000 > /workspace/AI-Assistant/logs/chatbot.log 2>&1 &
