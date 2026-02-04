@@ -11,6 +11,7 @@
 ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Security](https://img.shields.io/badge/Security-Audited-green?style=for-the-badge&logo=security&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-10B981?style=for-the-badge)
 
 [![Stars](https://img.shields.io/github/stars/SkastVnT/AI-Assistant?style=for-the-badge&logo=github&color=FFD700)](https://github.com/SkastVnT/AI-Assistant)
@@ -258,6 +259,20 @@ GET /metrics             # Prometheus format
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing`)
 5. Open Pull Request
+
+**Security:** Please review our [Security Policy](SECURITY.md) before contributing.
+
+---
+
+## 🔒 Security
+
+We take security seriously. Please see our [Security Policy](SECURITY.md) for:
+- Reporting vulnerabilities
+- Security best practices
+- Known security issues
+- Security modules and tools
+
+**Latest Security Audit:** February 2, 2026 - 120 findings identified and documented.
 
 ---
 
