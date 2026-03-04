@@ -65,6 +65,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}">
     <!-- Tailwind Enhancements -->
     <style type="text/tailwindcss">
         @layer utilities {
@@ -250,18 +251,35 @@
                 <label class="flex items-center gap-2 text-sm">
                     <span data-lang-key="controls.model" class="text-gray-600 dark:text-gray-300 font-medium">Model:</span>
                     <select id="modelSelect" class="input-field bg-white/90 dark:bg-dark-surface/90 rounded-lg px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
-                        <option value="openai" data-lang-key="model.openai" selected>GPT-4o-mini (OpenAI) ⭐</option>
-                        <option value="deepseek" data-lang-key="model.deepseek">DeepSeek (Cheapest)</option>
+                        <optgroup label="🌟 Premium">
+                            <option value="grok" selected>🤖 Grok-3 (xAI)</option>
+                            <option value="deepseek-reasoner">🧪 DeepSeek R1 (Reasoning)</option>
+                        </optgroup>
+                        <optgroup label="⚡ Standard">
+                            <option value="openai">🧠 GPT-4o-mini (OpenAI)</option>
+                            <option value="deepseek">🔍 DeepSeek Chat</option>
+                        </optgroup>
+                        <optgroup label="🆓 Free">
+                            <option value="gemini">💎 Gemini 2.0 Flash (Google)</option>
+                            <option value="step-flash">⚡ Step-3.5 Flash (FREE)</option>
+                            <option value="bloomvn">🌸 BloomVN-8B (Tiếng Việt)</option>
+                        </optgroup>
+                        <optgroup label="🌏 Other">
+                            <option value="qwen">🌙 Qwen Turbo</option>
+                            <option value="stepfun">🚀 StepFun Direct</option>
+                        </optgroup>
                     </select>
                 </label>
                 
                 <label class="flex items-center gap-2 text-sm">
                     <span data-lang-key="controls.mode" class="text-gray-600 dark:text-gray-300 font-medium">Mode:</span>
                     <select id="contextSelect" class="input-field bg-white/90 dark:bg-dark-surface/90 rounded-lg px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
-                        <option value="casual" data-lang-key="controls.mode.casual">Casual Chat</option>
-                        <option value="psychological" data-lang-key="controls.mode.psychological">Psychology Support</option>
-                        <option value="lifestyle" data-lang-key="controls.mode.lifestyle">Life Solutions</option>
-                        <option value="programming" data-lang-key="controls.mode.programming">💻 Programming Help</option>
+                        <option value="casual" data-lang-key="controls.mode.casual">💬 Casual Chat</option>
+                        <option value="programming" data-lang-key="controls.mode.programming">💻 Programming</option>
+                        <option value="creative">🎨 Creative</option>
+                        <option value="research">🔬 Research</option>
+                        <option value="psychological" data-lang-key="controls.mode.psychological">🧘 Psychology</option>
+                        <option value="lifestyle" data-lang-key="controls.mode.lifestyle">🌟 Lifestyle</option>
                     </select>
                 </label>
                 
@@ -270,6 +288,9 @@
                 </button>
                 <button class="image-gen-btn btn-primary hover:shadow-glow" id="imageGenBtn" title="Generate AI Image" data-lang-key="controls.imageGen" data-lang-key-title="tooltip.imageGen">
                     🎨 Generate
+                </button>
+                <button class="image-gen-btn btn-primary hover:shadow-glow" id="imageGenV2Btn" title="AI Image V2 (Multi-Provider)" style="background: linear-gradient(135deg, #a855f7, #6366f1);">
+                    ✨ AI Image
                 </button>
                 <button class="memory-btn btn-secondary hover:shadow-glow-sm" id="memoryBtn" title="Manage AI Memory" data-lang-key="controls.memory" data-lang-key-title="tooltip.memory">
                     🧠 AI Memory
@@ -874,6 +895,150 @@
     <!-- Image Preview Modal (Discord-style) -->
     <div id="imagePreviewModal" class="image-preview-modal">
         <div class="image-preview-controls">
+
+    <!-- ════════════════════════════════════════════════════════════
+         Image Generation V2 Modal — Multi-Provider System
+         ════════════════════════════════════════════════════════════ -->
+    <div id="imageGenV2Modal" class="modal">
+        <div class="igv2-modal-content">
+            <!-- Header -->
+            <div class="igv2-header">
+                <h2>✨ AI Image Generation V2</h2>
+                <button class="igv2-close-btn" onclick="window.imageGenV2?.closeModal()">&times;</button>
+            </div>
+
+            <!-- Status -->
+            <div id="igv2Status" class="igv2-status igv2-status-info" style="margin: 8px 24px;">
+                Ready — 8 providers available
+            </div>
+
+            <!-- Tabs -->
+            <div class="igv2-tabs">
+                <button class="igv2-tab-btn active" data-tab="generate" onclick="window.imageGenV2?.switchTab('generate')">✨ Generate</button>
+                <button class="igv2-tab-btn" data-tab="edit" onclick="window.imageGenV2?.switchTab('edit')">✏️ Edit</button>
+                <button class="igv2-tab-btn" data-tab="gallery" onclick="window.imageGenV2?.switchTab('gallery'); window.imageGenV2?.loadGallery()">🖼️ Gallery</button>
+                <button class="igv2-tab-btn" data-tab="stats" onclick="window.imageGenV2?.switchTab('stats'); window.imageGenV2?.loadStats()">📊 Stats</button>
+            </div>
+
+            <!-- ── Generate Tab ─────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-generate" style="display: block;">
+                <div class="igv2-form-group">
+                    <label>📝 Prompt (Vietnamese or English)</label>
+                    <textarea id="igv2Prompt" class="igv2-textarea" rows="3" 
+                              placeholder="Mô tả ảnh bạn muốn... VD: con mèo ngồi trên mái nhà lúc hoàng hôn, phong cách anime"></textarea>
+                </div>
+
+                <div class="igv2-form-group">
+                    <label>🎨 Style Preset</label>
+                    <select id="igv2Style" class="igv2-select">
+                        <option value="">None (auto)</option>
+                    </select>
+                    <div id="igv2StyleGrid" class="igv2-style-grid"></div>
+                </div>
+
+                <div class="igv2-form-row">
+                    <div class="igv2-form-group">
+                        <label>⚡ Quality Mode</label>
+                        <select id="igv2Quality" class="igv2-select">
+                            <option value="auto">🤖 Auto (Best available)</option>
+                            <option value="quality">💎 Quality (SOTA models)</option>
+                            <option value="fast">⚡ Fast (Speed priority)</option>
+                            <option value="cheap">💰 Cheap (Lowest cost)</option>
+                            <option value="free">🆓 Free (Local GPU only)</option>
+                        </select>
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>🔧 Provider</label>
+                        <select id="igv2Provider" class="igv2-select">
+                            <option value="">🤖 Auto</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="igv2-form-row-3">
+                    <div class="igv2-form-group">
+                        <label>📐 Width</label>
+                        <select id="igv2Width" class="igv2-select">
+                            <option value="512">512</option>
+                            <option value="768">768</option>
+                            <option value="1024" selected>1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1536">1536</option>
+                        </select>
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>📐 Height</label>
+                        <select id="igv2Height" class="igv2-select">
+                            <option value="512">512</option>
+                            <option value="768">768</option>
+                            <option value="1024" selected>1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1536">1536</option>
+                        </select>
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>🔢 Steps</label>
+                        <input id="igv2Steps" class="igv2-input" type="number" value="28" min="1" max="100">
+                    </div>
+                </div>
+
+                <div class="igv2-form-row">
+                    <div class="igv2-form-group">
+                        <label>🎯 Guidance</label>
+                        <input id="igv2Guidance" class="igv2-input" type="number" value="3.5" min="1" max="20" step="0.5">
+                    </div>
+                    <div class="igv2-form-group igv2-checkbox-group" style="align-self: end; padding-bottom: 10px;">
+                        <input type="checkbox" id="igv2Enhance" checked>
+                        <label for="igv2Enhance">🤖 AI Enhance Prompt</label>
+                    </div>
+                </div>
+
+                <button id="igv2GenerateBtn" class="igv2-generate-btn" onclick="window.imageGenV2?.generate()">
+                    🎨 Tạo ảnh
+                </button>
+
+                <div id="igv2Result"></div>
+            </div>
+
+            <!-- ── Edit Tab ─────────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-edit" style="display: none;">
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px;">
+                    ✏️ Chỉnh sửa ảnh đã tạo — giống ChatGPT/Gemini. Mô tả thay đổi bạn muốn.
+                </p>
+                <div class="igv2-form-group">
+                    <label>✏️ Edit Instruction</label>
+                    <textarea id="igv2EditPrompt" class="igv2-textarea" rows="3" 
+                              placeholder="VD: thêm cầu vồng vào bầu trời, đổi nền thành biển, xóa người đằng sau..."></textarea>
+                </div>
+                <div class="igv2-form-row">
+                    <div class="igv2-form-group">
+                        <label>💪 Edit Strength</label>
+                        <input id="igv2EditStrength" class="igv2-input" type="number" value="0.75" min="0.1" max="1.0" step="0.05">
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>🔧 Provider</label>
+                        <select id="igv2EditProvider" class="igv2-select">
+                            <option value="">🤖 Auto</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="igv2EditBtn" class="igv2-generate-btn" onclick="window.imageGenV2?.editImage()" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+                    ✏️ Chỉnh sửa
+                </button>
+                <div id="igv2EditResult"></div>
+            </div>
+
+            <!-- ── Gallery Tab ──────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-gallery" style="display: none;">
+                <div id="igv2Gallery" class="igv2-gallery-grid"></div>
+            </div>
+
+            <!-- ── Stats Tab ────────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-stats" style="display: none;">
+                <div id="igv2Stats"></div>
+            </div>
+        </div>
+    </div>
             <button class="preview-control-btn" onclick="downloadPreviewImage()" title="Download">
                 📥
             </button>

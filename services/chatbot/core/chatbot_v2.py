@@ -18,6 +18,7 @@ if str(CHATBOT_DIR) not in sys.path:
 from core.config import (
     OPENAI_API_KEY, DEEPSEEK_API_KEY, GROK_API_KEY,
     QWEN_API_KEY, HUGGINGFACE_API_KEY,
+    OPENROUTER_API_KEY, STEPFUN_API_KEY, GEMINI_API_KEYS,
     SYSTEM_PROMPTS, get_system_prompts
 )
 from core.extensions import (
@@ -113,13 +114,58 @@ class ModelRegistry:
                 fallback_model='qwen'
             )
         
+        # Step-3.5-Flash via OpenRouter (FREE - 196B MoE, 11B active)
+        if OPENROUTER_API_KEY:
+            self._configs['step-flash'] = ModelConfig(
+                name='step-flash',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='stepfun/step-3.5-flash:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='deepseek'
+            )
+        
+        # Gemini via Google AI (FREE tier)
+        if GEMINI_API_KEYS:
+            self._configs['gemini'] = ModelConfig(
+                name='gemini',
+                provider=ModelProvider.GEMINI,
+                api_key=GEMINI_API_KEYS[0],
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai/',
+                model_id='gemini-2.0-flash',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='grok'
+            )
+        
+        # StepFun Direct API (for when balance is available)
+        if STEPFUN_API_KEY:
+            self._configs['stepfun'] = ModelConfig(
+                name='stepfun',
+                provider=ModelProvider.STEPFUN,
+                api_key=STEPFUN_API_KEY,
+                base_url='https://api.stepfun.com/v1',
+                model_id='step-2-16k',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='step-flash'
+            )
+        
         # Create handlers
         for name, config in self._configs.items():
             self._handlers[name] = self._create_handler(config)
     
     def _create_handler(self, config: ModelConfig):
         """Create appropriate handler for model"""
-        if config.provider in [ModelProvider.OPENAI, ModelProvider.DEEPSEEK, ModelProvider.GROK]:
+        if config.provider in [
+            ModelProvider.OPENAI, ModelProvider.DEEPSEEK, ModelProvider.GROK,
+            ModelProvider.OPENROUTER, ModelProvider.STEPFUN, ModelProvider.GEMINI
+        ]:
             return OpenAICompatibleChat(config)
         elif config.provider == ModelProvider.QWEN:
             return QwenChat(config)

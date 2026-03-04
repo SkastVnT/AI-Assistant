@@ -16,7 +16,7 @@ CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
 
-from core.config import MEMORY_DIR, OPENAI_API_KEY, DEEPSEEK_API_KEY, GROK_API_KEY, QWEN_API_KEY, HUGGINGFACE_API_KEY, get_system_prompts
+from core.config import MEMORY_DIR, OPENAI_API_KEY, DEEPSEEK_API_KEY, GROK_API_KEY, QWEN_API_KEY, HUGGINGFACE_API_KEY, OPENROUTER_API_KEY, STEPFUN_API_KEY, GEMINI_API_KEYS, get_system_prompts
 from core.extensions import logger
 from core.streaming import StreamEvent
 from core.base_chat import ModelConfig, ModelProvider, ChatContext
@@ -87,6 +87,45 @@ def get_async_agent() -> AsyncChatbotAgent:
                 model_id='BlossomsAI/BloomVN-8B-chat',
                 timeout=60,
                 supports_streaming=False
+            )
+        
+        # Step-3.5-Flash via OpenRouter (FREE)
+        if OPENROUTER_API_KEY:
+            config_map['step-flash'] = ModelConfig(
+                name='step-flash',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='stepfun/step-3.5-flash:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True
+            )
+        
+        # Gemini via Google AI (FREE tier)
+        if GEMINI_API_KEYS:
+            config_map['gemini'] = ModelConfig(
+                name='gemini',
+                provider=ModelProvider.GEMINI,
+                api_key=GEMINI_API_KEYS[0],
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai/',
+                model_id='gemini-2.0-flash',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True
+            )
+        
+        # StepFun Direct
+        if STEPFUN_API_KEY:
+            config_map['stepfun'] = ModelConfig(
+                name='stepfun',
+                provider=ModelProvider.STEPFUN,
+                api_key=STEPFUN_API_KEY,
+                base_url='https://api.stepfun.com/v1',
+                model_id='step-2-16k',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True
             )
         
         _async_agent = AsyncChatbotAgent(config_map)

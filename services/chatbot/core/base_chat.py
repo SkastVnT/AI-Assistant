@@ -22,6 +22,9 @@ class ModelProvider(Enum):
     QWEN = "qwen"
     BLOOMVN = "bloomvn"
     LOCAL = "local"
+    OPENROUTER = "openrouter"
+    STEPFUN = "stepfun"
+    GEMINI = "gemini"
 
 
 @dataclass
@@ -129,6 +132,8 @@ class ContextWindowManager:
         "deepseek-chat": 64000,
         "qwen-turbo": 8000,
         "bloomvn": 4000,
+        "step-3.5-flash": 128000,
+        "gemini-2.0-flash": 1000000,
         "default": 8000
     }
     
@@ -488,9 +493,11 @@ class ModelFallbackManager:
 
 # Default fallback chain
 DEFAULT_FALLBACK_CHAIN = {
-    'grok': ['deepseek', 'openai'],
-    'openai': ['deepseek', 'grok'],
-    'deepseek': ['openai', 'grok'],
-    'qwen': ['deepseek', 'openai'],
-    'bloomvn': ['qwen', 'deepseek'],
+    'grok': ['deepseek', 'step-flash', 'openai'],
+    'openai': ['deepseek', 'grok', 'step-flash'],
+    'deepseek': ['step-flash', 'openai', 'grok'],
+    'qwen': ['deepseek', 'step-flash', 'openai'],
+    'bloomvn': ['qwen', 'deepseek', 'step-flash'],
+    'step-flash': ['deepseek', 'grok', 'openai'],
+    'gemini': ['grok', 'deepseek', 'step-flash'],
 }

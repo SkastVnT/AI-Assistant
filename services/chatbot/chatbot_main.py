@@ -856,6 +856,115 @@ class ChatbotAgent:
             logger.error(f"Local model error ({model}): {e}")
             return f"âŒ Lá»—i local model: {str(e)}"
     
+    def chat_with_step_flash(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with Step-3.5-Flash via OpenRouter (FREE — 196B MoE, 11B active)"""
+        try:
+            openrouter_key = os.getenv('OPENROUTER_API_KEY')
+            if not openrouter_key:
+                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+            
+            client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url='https://openrouter.ai/api/v1'
+            )
+            
+            system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+            
+            temperature = 0.5 if deep_thinking else 0.7
+            max_tokens = 4000 if deep_thinking else 2000
+            
+            logger.info(f"[STEP-FLASH] Sending request via OpenRouter (FREE)")
+            response = client.chat.completions.create(
+                model='stepfun/step-3.5-flash:free',
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                extra_headers={
+                    'HTTP-Referer': 'https://ai-assistant.local',
+                    'X-Title': 'AI Assistant'
+                }
+            )
+            
+            result = response.choices[0].message.content
+            logger.info(f"[STEP-FLASH] Response received: {len(result)} chars")
+            return result
+            
+        except Exception as e:
+            logger.error(f"[STEP-FLASH] Error: {e}")
+            return f"❌ Step-3.5-Flash error: {str(e)}"
+    
+    def chat_with_stepfun(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with StepFun direct API (requires balance)"""
+        try:
+            stepfun_key = os.getenv('STEPFUN_API_KEY')
+            if not stepfun_key:
+                return "❌ STEPFUN_API_KEY chưa được cấu hình."
+            
+            client = openai.OpenAI(
+                api_key=stepfun_key,
+                base_url='https://api.stepfun.com/v1'
+            )
+            
+            system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+            
+            temperature = 0.5 if deep_thinking else 0.7
+            max_tokens = 4000 if deep_thinking else 2000
+            
+            logger.info(f"[STEPFUN] Sending request to Step-2-16K")
+            response = client.chat.completions.create(
+                model='step-2-16k',
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            result = response.choices[0].message.content
+            logger.info(f"[STEPFUN] Response received: {len(result)} chars")
+            return result
+            
+        except Exception as e:
+            logger.error(f"[STEPFUN] Error: {e}")
+            logger.info("[STEPFUN] Falling back to Step-3.5-Flash via OpenRouter...")
+            return self.chat_with_step_flash(message, context, deep_thinking, history, memories, language, custom_prompt)
+    
+    def _build_system_prompt(self, context, deep_thinking, memories, language, custom_prompt):
+        """Build system prompt with context, memories, and deep thinking"""
+        if custom_prompt and custom_prompt.strip():
+            system_prompt = custom_prompt
+        else:
+            prompts = get_system_prompts(language)
+            system_prompt = prompts.get(context, prompts.get('casual', ''))
+        
+        if deep_thinking:
+            system_prompt += "\n\nIMPORTANT: Think step-by-step with detailed reasoning. Analyze thoroughly."
+        
+        if memories:
+            system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
+            for mem in memories:
+                system_prompt += f"\n📚 {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+            system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
+        
+        return system_prompt
+    
+    def _build_messages(self, system_prompt, message, history=None):
+        """Build message list for API call"""
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        hist_to_use = history if history else self.conversation_history[-10:]
+        
+        for hist in hist_to_use:
+            if 'role' in hist and 'content' in hist:
+                messages.append({"role": hist['role'], "content": hist['content']})
+            elif 'user' in hist:
+                messages.append({"role": "user", "content": hist['user']})
+                if 'assistant' in hist:
+                    messages.append({"role": "assistant", "content": hist['assistant']})
+        
+        messages.append({"role": "user", "content": message})
+        return messages
+    
     def chat(self, message, model='grok', context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None, extra_params=None):
         """Main chat method with MongoDB integration"""
         # Save user message to MongoDB
@@ -892,6 +1001,10 @@ class ChatbotAgent:
             result = self.chat_with_bloomvn(message, context, deep_thinking, language)
         elif model in ['bloomvn-local', 'qwen1.5-local', 'qwen2.5-local']:
             result = self.chat_with_local_model(message, model, context, deep_thinking, language)
+        elif model == 'step-flash':
+            result = self.chat_with_step_flash(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'stepfun':
+            result = self.chat_with_stepfun(message, context, deep_thinking, history, memories, language, custom_prompt)
         else:
             result = f"Model '{model}' không được hỗ trợ" if language == 'vi' else f"Model '{model}' is not supported"
         
@@ -4320,6 +4433,34 @@ try:
     logger.info("✅ Registered stable_diffusion blueprint")
 except ImportError as e:
     logger.warning(f"⚠️ Could not register stable_diffusion blueprint: {e}")
+
+try:
+    from routes.image_gen import image_gen_bp
+    app.register_blueprint(image_gen_bp)
+    logger.info("✅ Registered image_gen blueprint (multi-provider)")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register image_gen blueprint: {e}")
+
+try:
+    from routes.models import models_bp
+    app.register_blueprint(models_bp)
+    logger.info("✅ Registered models blueprint (health/status)")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register models blueprint: {e}")
+
+try:
+    from routes.stream import stream_bp
+    app.register_blueprint(stream_bp)
+    logger.info("✅ Registered stream blueprint (SSE)")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register stream blueprint: {e}")
+
+try:
+    from routes.async_routes import async_bp
+    app.register_blueprint(async_bp)
+    logger.info("✅ Registered async blueprint (async chat)")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not register async blueprint: {e}")
 
 
 # Main entry point

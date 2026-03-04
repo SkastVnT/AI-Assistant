@@ -10,6 +10,7 @@ import { MessageRenderer } from './modules/message-renderer.js';
 import { FileHandler } from './modules/file-handler.js';
 import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
+import { ImageGenV2 } from './modules/image-gen-v2.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { initLanguage } from './language-switcher.js';
 
@@ -23,6 +24,7 @@ class ChatBotApp {
         this.fileHandler = new FileHandler();
         this.memoryManager = new MemoryManager(this.apiService);
         this.imageGen = new ImageGeneration(this.apiService);
+        this.imageGenV2 = new ImageGenV2(this.apiService);
         this.exportHandler = new ExportHandler();
         
         // Expose chatManager and chatApp globally
@@ -351,6 +353,16 @@ class ChatBotApp {
         if (elements.imageGenBtn) {
             elements.imageGenBtn.addEventListener('click', () => this.openImageGenModal());
         }
+
+        // Image Generation V2 button (multi-provider)
+        const igv2Btn = document.getElementById('imageGenV2Btn');
+        if (igv2Btn) {
+            igv2Btn.addEventListener('click', () => {
+                this.imageGenV2.openModal();
+            });
+        }
+        // Expose V2 globally for onclick handlers
+        window.imageGenV2 = this.imageGenV2;
         
         // Img2Img tool button
         if (elements.img2imgToolBtn) {
@@ -468,6 +480,54 @@ class ChatBotApp {
         if (!message && sessionFiles.length === 0) {
             return;
         }
+
+        // ── Image Generation V2 Auto-Detect ──────────────────
+        // If message looks like an image request, generate inline via multi-provider
+        if (message && ImageGenV2.isImageRequest(message)) {
+            console.log('[App] Image generation intent detected, routing to V2');
+            const timestamp = this.uiUtils.formatTimestamp(new Date());
+            this.messageRenderer.addMessage(
+                elements.chatContainer, message, true,
+                formValues.model, formValues.context, timestamp
+            );
+            this.uiUtils.clearInput();
+
+            // Show generating indicator
+            this.messageRenderer.addMessage(
+                elements.chatContainer,
+                '🎨 Đang tạo ảnh với AI...',
+                false, formValues.model, formValues.context,
+                this.uiUtils.formatTimestamp(new Date())
+            );
+
+            const conversationId = this.chatManager.getCurrentSession()?.id || '';
+            const result = await this.imageGenV2.generateFromChat(message, conversationId);
+
+            if (result.success) {
+                let imgSrc = '';
+                if (result.images?.length > 0 && result.images[0].url) imgSrc = result.images[0].url;
+                else if (result.images_url?.length > 0) imgSrc = result.images_url[0];
+
+                const meta = `🎨 **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
+                const enhanced = result.prompt_used ? `\n📝 ${result.prompt_used.substring(0, 150)}` : '';
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    `<div class="igv2-chat-image"><img src="${imgSrc}" alt="Generated" style="max-width:100%;border-radius:12px;cursor:pointer;" onclick="window.open('${imgSrc}','_blank')"><div class="igv2-chat-meta">${meta}${enhanced}</div></div>`,
+                    false, formValues.model, formValues.context,
+                    this.uiUtils.formatTimestamp(new Date())
+                );
+            } else {
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    `❌ Không thể tạo ảnh: ${result.error}`,
+                    false, formValues.model, formValues.context,
+                    this.uiUtils.formatTimestamp(new Date())
+                );
+            }
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+            return;  // Don't send to chat API
+        }
+        // ── End Image Gen V2 Auto-Detect ─────────────────────
         
         // Handle Auto mode - decide if deep thinking is needed
         let deepThinking = formValues.deepThinking;
