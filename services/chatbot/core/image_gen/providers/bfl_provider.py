@@ -43,7 +43,7 @@ class BFLProvider(BaseImageProvider):
 
     def __init__(self, api_key: str = "", **kwargs):
         super().__init__(api_key=api_key, **kwargs)
-        self.default_model = kwargs.get("default_model", "flux2-pro")
+        self.default_model = kwargs.get("default_model", "flux1-dev")
         self._http = httpx.Client(
             base_url="https://api.bfl.ml/v1",
             headers={

@@ -42,7 +42,7 @@ class OpenAIImageProvider(BaseImageProvider):
 
     def __init__(self, api_key: str = "", **kwargs):
         super().__init__(api_key=api_key, **kwargs)
-        self.default_model = kwargs.get("default_model", "gpt-image-1")
+        self.default_model = kwargs.get("default_model", "dall-e-3")
         self._http = httpx.Client(
             base_url="https://api.openai.com/v1",
             headers={
@@ -73,24 +73,50 @@ class OpenAIImageProvider(BaseImageProvider):
             return ImageResult(success=False, error=str(e), provider=self.name)
 
     def _generate(self, req: ImageRequest, t0: float) -> ImageResult:
-        size = f"{req.width}x{req.height}"
         model = req.extra.get("model", self.default_model)
 
-        payload = {
-            "model": model,
-            "prompt": req.prompt,
-            "n": req.num_images,
-            "size": size,
-            "response_format": "url",
-        }
-        if req.style_preset:
-            payload["style"] = req.style_preset  # "vivid" or "natural"
+        # dall-e-3 supported sizes
+        DALLE3_SIZES = {"1024x1024", "1792x1024", "1024x1792"}
+        # gpt-image-1 supported sizes
+        GPT_IMAGE_SIZES = {"1024x1024", "1536x1024", "1024x1536", "auto"}
+
+        size = f"{req.width}x{req.height}"
+
+        if model == "gpt-image-1":
+            if size not in GPT_IMAGE_SIZES:
+                size = "1024x1024"
+            payload = {
+                "model": model,
+                "prompt": req.prompt,
+                "n": min(req.num_images, 1),  # gpt-image-1 supports max n=1
+                "size": size,
+            }
+        else:
+            # dall-e-3
+            if size not in DALLE3_SIZES:
+                size = "1024x1024"
+            payload = {
+                "model": model,
+                "prompt": req.prompt,
+                "n": min(req.num_images, 1),  # dall-e-3 supports max n=1
+                "size": size,
+                "response_format": "url",
+            }
+            if req.style_preset:
+                payload["style"] = req.style_preset  # "vivid" or "natural"
 
         resp = self._http.post("/images/generations", json=payload)
         resp.raise_for_status()
         data = resp.json()
 
-        images_url = [img["url"] for img in data.get("data", [])]
+        images_url = []
+        images_b64 = []
+        for item in data.get("data", []):
+            if "url" in item:
+                images_url.append(item["url"])
+            elif "b64_json" in item:
+                images_b64.append(item["b64_json"])
+
         latency = (time.time() - t0) * 1000
 
         cost_table = OPENAI_COST.get(model, {})
@@ -99,6 +125,7 @@ class OpenAIImageProvider(BaseImageProvider):
         return ImageResult(
             success=True,
             images_url=images_url,
+            images_b64=images_b64,
             provider=self.name,
             model=model,
             prompt_used=req.prompt,

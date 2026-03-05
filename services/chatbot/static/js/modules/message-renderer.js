@@ -449,38 +449,38 @@ export class MessageRenderer {
         actionsDiv.className = 'message-actions';
         
         if (!isUser) {
-            // Copy button
-            const copyBtn = this.createActionButton('copy-btn', '📋', 'Copy');
+            // Copy button (Lucide icon)
+            const copyBtn = this.createActionButton('copy-btn', 'clipboard', 'Copy');
             copyBtn.onclick = () => this.copyMessageToClipboard(content, copyBtn);
             actionsDiv.appendChild(copyBtn);
             
             // Like button
-            const likeBtn = this.createActionButton('like-btn', '👍', 'Good response');
+            const likeBtn = this.createActionButton('like-btn', 'thumbs-up', 'Good response');
             likeBtn.onclick = () => this.toggleFeedback(likeBtn, 'like', messageDiv);
             actionsDiv.appendChild(likeBtn);
             
             // Dislike button
-            const dislikeBtn = this.createActionButton('dislike-btn', '👎', 'Bad response');
+            const dislikeBtn = this.createActionButton('dislike-btn', 'thumbs-down', 'Bad response');
             dislikeBtn.onclick = () => this.toggleFeedback(dislikeBtn, 'dislike', messageDiv);
             actionsDiv.appendChild(dislikeBtn);
             
             // Regenerate button
-            const regenBtn = this.createActionButton('regenerate-btn', '🔄', 'Regenerate');
+            const regenBtn = this.createActionButton('regenerate-btn', 'refresh-cw', 'Regenerate');
             regenBtn.onclick = () => this.regenerateResponse(messageDiv);
             actionsDiv.appendChild(regenBtn);
             
             // More options button
-            const moreBtn = this.createActionButton('more-btn', '⋯', 'More');
+            const moreBtn = this.createActionButton('more-btn', 'ellipsis', 'More');
             moreBtn.onclick = () => this.showMoreOptions(messageDiv, moreBtn);
             actionsDiv.appendChild(moreBtn);
         } else {
             // Edit button for user messages
-            const editBtn = this.createActionButton('edit-btn', '✏️', 'Edit');
+            const editBtn = this.createActionButton('edit-btn', 'pencil', 'Edit');
             editBtn.onclick = () => this.showEditForm(messageDiv, content);
             actionsDiv.appendChild(editBtn);
             
             // More options button
-            const moreBtn = this.createActionButton('more-btn', '⋯', 'More');
+            const moreBtn = this.createActionButton('more-btn', 'ellipsis', 'More');
             moreBtn.onclick = () => this.showMoreOptions(messageDiv, moreBtn);
             actionsDiv.appendChild(moreBtn);
         }
@@ -489,13 +489,19 @@ export class MessageRenderer {
     }
 
     /**
-     * Create action button
+     * Create action button — uses Lucide icons for iOS bubble look
      */
-    createActionButton(className, icon, title) {
+    createActionButton(className, iconName, title) {
         const button = document.createElement('button');
         button.className = `message-action-btn ${className}`;
-        button.innerHTML = icon;
+        button.innerHTML = `<i data-lucide="${iconName}" class="lucide"></i>`;
         button.title = title;
+        // Initialize Lucide icon
+        requestAnimationFrame(() => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons({ nodes: [button] });
+            }
+        });
         return button;
     }
     

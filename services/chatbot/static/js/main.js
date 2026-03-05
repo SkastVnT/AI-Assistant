@@ -312,7 +312,13 @@ class ChatBotApp {
         elements.clearBtn.addEventListener('click', () => this.clearChat());
         
         // New chat
-        elements.newChatBtn.addEventListener('click', () => this.newChat());
+        elements.newChatBtn.addEventListener('click', () => {
+            this.newChat();
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                this.uiUtils.closeSidebar();
+            }
+        });
         
         // Stop generation button
         const stopBtn = document.getElementById('stopGenerationBtn');
@@ -421,6 +427,57 @@ class ChatBotApp {
                 await this.openImageGenModal();
                 setTimeout(() => this.imageGen.switchTab('img2img'), 100);
             });
+        }
+        
+        // Deep Research tool button
+        const deepResearchBtn = document.getElementById('deepResearchToolBtn');
+        if (deepResearchBtn) {
+            deepResearchBtn.addEventListener('click', () => {
+                // Activate deep-research tool
+                this.activeTools.add('deep-research');
+                deepResearchBtn.classList.toggle('active', true);
+                this.updateActiveToolsDisplay();
+                // Auto-set thinking mode to multi-thinking
+                const thinkingModeValue = document.getElementById('thinkingModeValue');
+                if (thinkingModeValue) thinkingModeValue.value = 'multi-thinking';
+                const thinkingModeLabel = document.getElementById('thinkingModeLabel');
+                if (thinkingModeLabel) thinkingModeLabel.textContent = 'Multi-Think';
+                if (typeof window.swapLucideIcon === 'function') {
+                    window.swapLucideIcon('thinkingModeIcon', 'layers');
+                }
+                // Also enable web search
+                this.activeTools.add('google-search');
+                const gsBtn = document.getElementById('googleSearchBtn');
+                if (gsBtn) gsBtn.classList.add('active');
+                this.updateActiveToolsDisplay();
+                // Close dropdown
+                const dropdown = document.getElementById('toolsMenuDropdown');
+                if (dropdown) dropdown.classList.remove('show');
+            });
+        }
+        
+        // ── New tools toggle buttons ──
+        const toolToggleButtons = [
+            { id: 'codeInterpreterBtn', tool: 'code-interpreter' },
+            { id: 'pdfAnalyzerBtn', tool: 'pdf-analyzer' },
+            { id: 'translatorBtn', tool: 'translator' },
+            { id: 'webScraperBtn', tool: 'web-scraper' },
+            { id: 'memoryManagerBtn', tool: 'memory-manager' },
+        ];
+        for (const { id, tool } of toolToggleButtons) {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    if (this.activeTools.has(tool)) {
+                        this.activeTools.delete(tool);
+                        btn.classList.remove('active');
+                    } else {
+                        this.activeTools.add(tool);
+                        btn.classList.add('active');
+                    }
+                    this.updateActiveToolsDisplay();
+                });
+            }
         }
         
         // Upload files button

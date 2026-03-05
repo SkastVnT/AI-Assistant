@@ -59,7 +59,7 @@ class FalProvider(BaseImageProvider):
 
     def __init__(self, api_key: str = "", **kwargs):
         super().__init__(api_key=api_key, **kwargs)
-        self.default_model = kwargs.get("default_model", "flux2-dev")
+        self.default_model = kwargs.get("default_model", "flux1-dev")
         self._http = httpx.Client(
             base_url="https://queue.fal.run",
             headers={
@@ -145,7 +145,11 @@ class FalProvider(BaseImageProvider):
 
         # Model-specific params
         if "flux" in model_key:
-            payload["num_inference_steps"] = req.steps
+            # Schnell models need 1-4 steps, dev models use up to 50
+            if "schnell" in model_key:
+                payload["num_inference_steps"] = min(req.steps, 4)
+            else:
+                payload["num_inference_steps"] = req.steps
             payload["guidance_scale"] = req.guidance
 
         return payload

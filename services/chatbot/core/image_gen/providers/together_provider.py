@@ -18,8 +18,7 @@ from .base import (
 logger = logging.getLogger(__name__)
 
 TOGETHER_MODELS = {
-    "flux1-schnell":     "black-forest-labs/FLUX.1-schnell-Free",
-    "flux1-schnell-paid": "black-forest-labs/FLUX.1-schnell",
+    "flux1-schnell":     "black-forest-labs/FLUX.1-schnell",
     "flux1-dev":         "black-forest-labs/FLUX.1-dev",
     "flux1-kontext":     "black-forest-labs/FLUX.1-Kontext",
     "flux1-canny":       "black-forest-labs/FLUX.1-canny",
@@ -28,8 +27,7 @@ TOGETHER_MODELS = {
 }
 
 TOGETHER_COST = {
-    "flux1-schnell":     0.000,  # Free tier
-    "flux1-schnell-paid": 0.001,
+    "flux1-schnell":     0.001,
     "flux1-dev":         0.006,
     "flux1-kontext":     0.006,
     "flux1-canny":       0.006,
@@ -71,12 +69,17 @@ class TogetherProvider(BaseImageProvider):
         t0 = time.time()
 
         try:
+            # Schnell models need 1-4 steps, dev models handle more
+            steps = req.steps
+            if "schnell" in model_key:
+                steps = min(steps, 4)
+
             payload = {
                 "model": model_id,
                 "prompt": req.prompt,
                 "width": req.width,
                 "height": req.height,
-                "steps": req.steps,
+                "steps": steps,
                 "n": req.num_images,
                 "response_format": "b64_json",
             }

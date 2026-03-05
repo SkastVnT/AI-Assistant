@@ -164,6 +164,26 @@ export class UIUtils {
     }
 
     /**
+     * Check if viewport is mobile sized
+     */
+    isMobile() {
+        return window.innerWidth <= 768;
+    }
+
+    /**
+     * Update sidebar overlay visibility (mobile)
+     */
+    _updateSidebarOverlay(sidebarOpen) {
+        const overlay = document.getElementById('sidebarOverlay');
+        if (!overlay) return;
+        if (sidebarOpen) {
+            overlay.classList.remove('hidden');
+        } else {
+            overlay.classList.add('hidden');
+        }
+    }
+
+    /**
      * Toggle sidebar (chat history)
      */
     toggleSidebar() {
@@ -179,8 +199,15 @@ export class UIUtils {
                 toggleIcon.textContent = isCollapsed ? '▶' : '◀';
             }
             
-            // Save preference
-            localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+            // Update overlay on mobile
+            if (this.isMobile()) {
+                this._updateSidebarOverlay(!isCollapsed);
+            }
+            
+            // Save preference (only on desktop)
+            if (!this.isMobile()) {
+                localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+            }
         }
     }
     
@@ -188,6 +215,23 @@ export class UIUtils {
      * Initialize sidebar state from localStorage
      */
     initSidebarState() {
+        // Always collapse on mobile
+        if (this.isMobile()) {
+            if (this.elements.sidebar) {
+                this.elements.sidebar.classList.add('collapsed');
+            }
+            this._updateSidebarOverlay(false);
+
+            // Tap overlay to close sidebar
+            const overlay = document.getElementById('sidebarOverlay');
+            if (overlay) {
+                overlay.addEventListener('click', () => {
+                    this.closeSidebar();
+                });
+            }
+            return;
+        }
+        
         const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
         if (isCollapsed && this.elements.sidebar) {
             this.elements.sidebar.classList.add('collapsed');
@@ -206,6 +250,8 @@ export class UIUtils {
             this.elements.sidebar.classList.add('collapsed');
             const toggleBtn = document.getElementById('sidebarToggleBtn');
             if (toggleBtn) toggleBtn.classList.remove('sidebar-open');
+            // Hide overlay on mobile
+            this._updateSidebarOverlay(false);
         }
     }
 
@@ -371,6 +417,10 @@ export class UIUtils {
             item.addEventListener('click', (e) => {
                 if (!e.target.closest('.sidebar__chat-delete') && !e.target.closest('.sidebar__chat-pin')) {
                     onSwitchChat(chatId);
+                    // Auto-close sidebar on mobile after selecting a chat
+                    if (this.isMobile()) {
+                        this.closeSidebar();
+                    }
                 }
             });
         });

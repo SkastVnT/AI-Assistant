@@ -29,6 +29,9 @@
 <body>
 
 <div class="app">
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay hidden" id="sidebarOverlay"></div>
+
     <!-- ═══ Sidebar ═══ -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar__header">
@@ -180,6 +183,12 @@
             </div>
 
             <div class="topbar__center">
+                <!-- GitHub branding -->
+                <a href="https://github.com/SkastVnT" target="_blank" class="topbar__brand" title="GitHub — SKAST">
+                    <i data-lucide="github" class="lucide brand-icon"></i>
+                    <span class="brand-name">SKAST</span>
+                </a>
+
                 <!-- Thinking mode indicator -->
                 <div id="thinkingModeContainer" style="position: relative;">
                     <button class="topbar__btn" id="thinkingModeBtn" title="Thinking mode" style="width: auto; gap: 4px; padding: 6px 10px; display: flex; font-size: 14px;">
@@ -196,7 +205,7 @@
                                     <div class="model-dropdown__item-desc">Tự quyết định thời gian suy nghĩ</div>
                                 </div>
                             </div>
-                            <div class="thinking-mode-option model-dropdown__item" data-mode="instant" data-icon="zap" data-label="Instant">
+                            <div class="thinking-mode-option model-dropdown__item active" data-mode="instant" data-icon="zap" data-label="Instant">
                                 <span class="model-dropdown__item-icon"><i data-lucide="zap" class="lucide"></i></span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Instant</div>
@@ -215,6 +224,14 @@
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Deep Reasoning</div>
                                     <div class="model-dropdown__item-desc">Coordinated reasoning — Pro</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Pro</span>
+                            </div>
+                            <div class="thinking-mode-option model-dropdown__item" data-mode="multi-thinking" data-icon="layers" data-label="Multi-Think">
+                                <span class="model-dropdown__item-icon"><i data-lucide="layers" class="lucide"></i></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Multi-Thinking</div>
+                                    <div class="model-dropdown__item-desc">Đa mô hình suy luận song song</div>
                                 </div>
                                 <span class="model-dropdown__item-badge pro">Pro</span>
                             </div>
@@ -360,6 +377,48 @@
                                         <div>
                                             <div class="tools-dropdown__item-text">Img2Img (Danbooru)</div>
                                             <div class="tools-dropdown__item-sub">Trích xuất đặc trưng & tạo ảnh</div>
+                                        </div>
+                                    </button>
+                                    <button class="tools-dropdown__item" id="deepResearchToolBtn" title="Deep Research">
+                                        <span class="tools-dropdown__item-icon"><i data-lucide="telescope" class="lucide"></i></span>
+                                        <div>
+                                            <div class="tools-dropdown__item-text">Deep Research</div>
+                                            <div class="tools-dropdown__item-sub">Search + Multi-Thinking phân tích sâu</div>
+                                        </div>
+                                    </button>
+                                    <button class="tools-dropdown__item" id="codeInterpreterBtn" title="Code Interpreter">
+                                        <span class="tools-dropdown__item-icon"><i data-lucide="terminal" class="lucide"></i></span>
+                                        <div>
+                                            <div class="tools-dropdown__item-text">Code Interpreter</div>
+                                            <div class="tools-dropdown__item-sub">Chạy Python/JS trực tiếp</div>
+                                        </div>
+                                    </button>
+                                    <button class="tools-dropdown__item" id="pdfAnalyzerBtn" title="PDF Analyzer">
+                                        <span class="tools-dropdown__item-icon"><i data-lucide="file-text" class="lucide"></i></span>
+                                        <div>
+                                            <div class="tools-dropdown__item-text">PDF Analyzer</div>
+                                            <div class="tools-dropdown__item-sub">Phân tích PDF chi tiết</div>
+                                        </div>
+                                    </button>
+                                    <button class="tools-dropdown__item" id="translatorBtn" title="Real-time Translation">
+                                        <span class="tools-dropdown__item-icon"><i data-lucide="languages" class="lucide"></i></span>
+                                        <div>
+                                            <div class="tools-dropdown__item-text">Translator</div>
+                                            <div class="tools-dropdown__item-sub">Dịch đa ngôn ngữ real-time</div>
+                                        </div>
+                                    </button>
+                                    <button class="tools-dropdown__item" id="webScraperBtn" title="Web Scraper">
+                                        <span class="tools-dropdown__item-icon"><i data-lucide="globe" class="lucide"></i></span>
+                                        <div>
+                                            <div class="tools-dropdown__item-text">Web Scraper</div>
+                                            <div class="tools-dropdown__item-sub">Trích xuất dữ liệu từ URL</div>
+                                        </div>
+                                    </button>
+                                    <button class="tools-dropdown__item" id="memoryManagerBtn" title="Memory Manager">
+                                        <span class="tools-dropdown__item-icon"><i data-lucide="database" class="lucide"></i></span>
+                                        <div>
+                                            <div class="tools-dropdown__item-text">Memory Manager</div>
+                                            <div class="tools-dropdown__item-sub">Ghi nhớ sở thích & ngữ cảnh</div>
                                         </div>
                                     </button>
                                     <div class="tools-dropdown__divider"></div>
