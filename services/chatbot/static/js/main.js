@@ -384,28 +384,7 @@ class ChatBotApp {
         // MCP Tab switching
         this.setupMcpTabs();
         
-        // Tool buttons
-        if (elements.googleSearchBtn) {
-            elements.googleSearchBtn.addEventListener('click', () => {
-                this.toggleTool('google-search', elements.googleSearchBtn);
-            });
-        }
-        
-        if (elements.githubBtn) {
-            elements.githubBtn.addEventListener('click', () => {
-                this.toggleTool('github', elements.githubBtn);
-            });
-        }
-        
-        if (elements.imageGenToolBtn) {
-            // Auto-activate image-generation tool on startup
-            elements.imageGenToolBtn.classList.add('active');
-            elements.imageGenToolBtn.addEventListener('click', () => {
-                this.toggleTool('image-generation', elements.imageGenToolBtn);
-            });
-        }
-        
-        // Image generation button
+        // Image generation button (ComfyUI legacy)
         if (elements.imageGenBtn) {
             elements.imageGenBtn.addEventListener('click', () => this.openImageGenModal());
         }
@@ -419,66 +398,6 @@ class ChatBotApp {
         }
         // Expose V2 globally for onclick handlers
         window.imageGenV2 = this.imageGenV2;
-        
-        // Img2Img tool button — auto-activate on startup
-        if (elements.img2imgToolBtn) {
-            elements.img2imgToolBtn.classList.add('active');
-            elements.img2imgToolBtn.addEventListener('click', async () => {
-                await this.openImageGenModal();
-                setTimeout(() => this.imageGen.switchTab('img2img'), 100);
-            });
-        }
-        
-        // Deep Research tool button
-        const deepResearchBtn = document.getElementById('deepResearchToolBtn');
-        if (deepResearchBtn) {
-            deepResearchBtn.addEventListener('click', () => {
-                // Activate deep-research tool
-                this.activeTools.add('deep-research');
-                deepResearchBtn.classList.toggle('active', true);
-                this.updateActiveToolsDisplay();
-                // Auto-set thinking mode to multi-thinking
-                const thinkingModeValue = document.getElementById('thinkingModeValue');
-                if (thinkingModeValue) thinkingModeValue.value = 'multi-thinking';
-                const thinkingModeLabel = document.getElementById('thinkingModeLabel');
-                if (thinkingModeLabel) thinkingModeLabel.textContent = 'Multi-Think';
-                if (typeof window.swapLucideIcon === 'function') {
-                    window.swapLucideIcon('thinkingModeIcon', 'layers');
-                }
-                // Also enable web search
-                this.activeTools.add('google-search');
-                const gsBtn = document.getElementById('googleSearchBtn');
-                if (gsBtn) gsBtn.classList.add('active');
-                this.updateActiveToolsDisplay();
-                // Close dropdown
-                const dropdown = document.getElementById('toolsMenuDropdown');
-                if (dropdown) dropdown.classList.remove('show');
-            });
-        }
-        
-        // ── New tools toggle buttons ──
-        const toolToggleButtons = [
-            { id: 'codeInterpreterBtn', tool: 'code-interpreter' },
-            { id: 'pdfAnalyzerBtn', tool: 'pdf-analyzer' },
-            { id: 'translatorBtn', tool: 'translator' },
-            { id: 'webScraperBtn', tool: 'web-scraper' },
-            { id: 'memoryManagerBtn', tool: 'memory-manager' },
-        ];
-        for (const { id, tool } of toolToggleButtons) {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    if (this.activeTools.has(tool)) {
-                        this.activeTools.delete(tool);
-                        btn.classList.remove('active');
-                    } else {
-                        this.activeTools.add(tool);
-                        btn.classList.add('active');
-                    }
-                    this.updateActiveToolsDisplay();
-                });
-            }
-        }
         
         // Upload files button
         const uploadFilesBtn = document.getElementById('uploadFilesBtn');
@@ -698,6 +617,29 @@ class ChatBotApp {
             customPromptUsed
         );
         
+        // If image-generation tool is active, show inline loading placeholder
+        let imageLoadingPlaceholder = null;
+        const hasImageTool = activeTools.includes('image-generation');
+        if (hasImageTool) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'message assistant';
+            placeholder.innerHTML = `
+                <div class="message__avatar">🤖</div>
+                <div class="message__body">
+                    <div class="message-content">
+                        <div class="image-gen-loading" id="imageGenLoadingPlaceholder">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">🎨 Đang tạo ảnh...</div>
+                            <div class="loading-progress" style="font-size:11px;color:var(--text-tertiary);">Analyzing prompt → Selecting provider → Generating</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            elements.chatContainer.appendChild(placeholder);
+            imageLoadingPlaceholder = placeholder;
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+        
         // If deep thinking is enabled, add thinking container with loading state
         let thinkingContainer = null;
         if (deepThinking) {
@@ -743,6 +685,44 @@ class ChatBotApp {
             // Add response to chat with version support
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
             const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            
+            // If image loading placeholder exists, replace it with the actual response
+            const isImageResponse = responseContent && (responseContent.includes('Image Generated') || responseContent.includes('generated-preview') || responseContent.includes('Image Generation Failed'));
+            if (imageLoadingPlaceholder && isImageResponse) {
+                // Replace the loading placeholder with the actual image result
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'message assistant';
+                resultDiv.dataset.timestamp = responseTimestamp;
+                resultDiv.dataset.model = data.model || formValues.model || '';
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message__avatar';
+                avatarDiv.textContent = '🤖';
+                resultDiv.appendChild(avatarDiv);
+                const bodyDiv = document.createElement('div');
+                bodyDiv.className = 'message__body';
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                const textDiv = document.createElement('div');
+                textDiv.className = 'message-text image-gen-result';
+                if (typeof marked !== 'undefined') {
+                    textDiv.innerHTML = marked.parse(responseContent);
+                } else {
+                    textDiv.innerHTML = responseContent;
+                }
+                contentDiv.appendChild(textDiv);
+                bodyDiv.appendChild(contentDiv);
+                // Add action buttons 
+                this.messageRenderer.addMessageButtons(contentDiv, responseContent, false, resultDiv);
+                resultDiv.appendChild(bodyDiv);
+                
+                imageLoadingPlaceholder.replaceWith(resultDiv);
+                // Refresh Lucide icons
+                if (window.lucide) lucide.createIcons({ nodes: [resultDiv] });
+                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                // Skip normal addMessage flow for image responses
+            } else {
+                // Remove image loading placeholder if response is not image-related
+                if (imageLoadingPlaceholder) imageLoadingPlaceholder.remove();
             
             // If deep thinking was enabled and we have thinking_process
             if (formValues.deepThinking && data.thinking_process && thinkingContainer) {
@@ -825,11 +805,15 @@ class ChatBotApp {
             setTimeout(makeClickable, 100);
             setTimeout(makeClickable, 500);  // Retry after 500ms for slower rendering
             
+            } // end else (non-image response path)
+            
         } catch (error) {
             // Remove thinking container if error
             if (thinkingContainer) {
                 thinkingContainer.remove();
             }
+            // Remove image loading placeholder on error
+            if (imageLoadingPlaceholder) imageLoadingPlaceholder.remove();
             
             // Check if it was aborted by user
             if (error.name === 'AbortError') {

@@ -337,7 +337,7 @@ export class UIUtils {
                 <div class="storage-footer">
                     <span class="storage-percentage">${percentage}% Used</span>
                     <button class="storage-cleanup-btn" onclick="window.manualCleanup()" title="Clear old chats (keep last 5)">
-                        🗑️ Clear
+                        <i data-lucide="trash-2" style="width:12px;height:12px;"></i> Clear
                     </button>
                 </div>
             </div>
@@ -377,13 +377,14 @@ export class UIUtils {
                     <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
                     <div class="sidebar__chat-preview">${this.escapeHtml(preview)}</div>
                     ${msgCount > 0 ? `<span class="sidebar__chat-context"><i data-lucide="message-square" style="width:10px;height:10px;"></i> ${msgCount}</span>` : ''}
-                    <div style="display:flex;gap:2px;position:absolute;right:4px;top:4px;">
+                    <div class="sidebar__chat-actions">
                         <button class="sidebar__chat-pin" data-chat-id="${id}" title="${isPinned ? 'Unpin' : 'Pin'}" 
-                            style="background:none;border:none;cursor:pointer;padding:2px;font-size:12px;opacity:${isPinned ? '1' : '0'};transition:opacity 0.15s;">
-                            ${isPinned ? '📌' : '📌'}
+                            style="opacity:${isPinned ? '1' : '0'};">
+                            <i data-lucide="pin" style="width:13px;height:13px;"></i>
                         </button>
-                        <button class="sidebar__chat-delete" data-chat-id="${id}" title="Xóa" 
-                            style="background:none;border:none;cursor:pointer;padding:2px;font-size:12px;opacity:0;transition:opacity 0.15s;">🗑️</button>
+                        <button class="sidebar__chat-delete" data-chat-id="${id}" title="Xóa">
+                            <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+                        </button>
                     </div>
                 </div>
             `;

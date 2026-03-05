@@ -318,6 +318,43 @@ body {
   font-size: 12px;
 }
 
+/* Sidebar chat actions (pin + delete) */
+.sidebar__chat-actions {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  right: 4px;
+  top: 4px;
+}
+.sidebar__chat-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar__chat-item:hover .sidebar__chat-actions button {
+  opacity: 1;
+}
+.sidebar__chat-item.pinned .sidebar__chat-pin {
+  opacity: 1 !important;
+  color: var(--accent);
+}
+.sidebar__chat-actions .sidebar__chat-delete:hover {
+  color: var(--error);
+  background: rgba(231,76,60,0.1);
+}
+.sidebar__chat-actions .sidebar__chat-pin:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .sidebar__chat-item:hover .sidebar__chat-delete,
 .sidebar__chat-item:hover .chat-delete {
   opacity: 1;
@@ -1329,6 +1366,7 @@ body.light-mode .message__content pre {
   bottom: calc(100% + 8px);
   left: 0;
   min-width: 280px;
+  max-width: 340px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
@@ -1347,7 +1385,7 @@ body.light-mode .message__content pre {
 }
 
 .tools-dropdown__header {
-  padding: 12px 16px 6px;
+  padding: 10px 14px 6px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1355,11 +1393,76 @@ body.light-mode .message__content pre {
   color: var(--text-tertiary);
 }
 
+/* ── Compact Grid Layout ── */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.tools-grid__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+  position: relative;
+}
+.tools-grid__item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tools-grid__item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.tools-grid__item.active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tools-grid__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+.tools-grid__icon .lucide {
+  width: 18px;
+  height: 18px;
+}
+
+.tools-grid__label {
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .tools-dropdown__item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 8px 14px;
   cursor: pointer;
   transition: background var(--transition);
   color: var(--text-primary);
@@ -1834,6 +1937,21 @@ body.light-mode .message__content pre {
     border-radius: var(--radius-lg);
   }
 
+  /* Thinking mode dropdown: fixed overlay for reliable mobile touch */
+  #thinkingModeDropdown {
+    position: fixed !important;
+    top: 52px !important;
+    left: 8px;
+    right: 8px;
+    min-width: unset !important;
+    max-height: calc(100vh - 120px);
+    z-index: 200;
+    border-radius: var(--radius-lg);
+  }
+  #thinkingModeContainer {
+    position: static;
+  }
+
   /* Thinking mode selector */
   .thinking-mode-selector {
     left: 8px;
@@ -1970,10 +2088,14 @@ body.light-mode .message__content pre {
     left: 8px;
     right: 8px;
     min-width: unset;
+    max-width: unset;
     max-height: 60vh;
     overflow-y: auto;
     border-radius: var(--radius-lg);
     z-index: 150;
+  }
+  .tools-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   /* ── MCP Panel: full‐screen overlay on mobile ── */
@@ -2041,6 +2163,9 @@ body.light-mode .message__content pre {
     -webkit-user-select: text;
     user-select: text;
   }
+  /* Mobile: only show delete, hide pin */
+  .sidebar__chat-actions .sidebar__chat-pin { display: none !important; }
+  .sidebar__chat-actions .sidebar__chat-delete { opacity: 1 !important; }
 }
 
 /* ── Responsive: Small phone ───────────────────────────────── */

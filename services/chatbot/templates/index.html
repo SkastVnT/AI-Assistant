@@ -255,7 +255,7 @@
                         <button class="topbar__more-item" id="eyeCareBtn"><i data-lucide="eye" class="lucide"></i> <span>Eye Care</span></button>
                         <button class="topbar__more-item" id="downloadBtn" data-lang-key="controls.download"><i data-lucide="download" class="lucide"></i> <span>Export Chat</span></button>
                         <button class="topbar__more-item" id="imageGenBtn"><i data-lucide="palette" class="lucide"></i> <span>Image Gen (ComfyUI)</span></button>
-                        <button class="topbar__more-item" id="langBtn"><i data-lucide="languages" class="lucide"></i> <span>Language</span></button>
+
                     </div>
                 </div>
             </div>
@@ -344,91 +344,57 @@
                                 <!-- Tools dropdown -->
                                 <div class="tools-dropdown" id="toolsMenuDropdown">
                                     <div class="tools-dropdown__header">Tools</div>
-                                    <button class="tools-dropdown__item" id="configAgentBtn" title="Config Agent">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="zap" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Config Agent</div>
-                                            <div class="tools-dropdown__item-sub">Cấu hình AI nâng cao</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="googleSearchBtn" title="Google Search">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="search" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Web Search</div>
-                                            <div class="tools-dropdown__item-sub">Google Search</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="githubBtn" title="GitHub">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="github" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">GitHub</div>
-                                            <div class="tools-dropdown__item-sub">Connect repository</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="imageGenToolBtn" title="Image Gen">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="image" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Tạo hình ảnh</div>
-                                            <div class="tools-dropdown__item-sub">Text to Image</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="scan-eye" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Img2Img (Danbooru)</div>
-                                            <div class="tools-dropdown__item-sub">Trích xuất đặc trưng & tạo ảnh</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="deepResearchToolBtn" title="Deep Research">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="telescope" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Deep Research</div>
-                                            <div class="tools-dropdown__item-sub">Search + Multi-Thinking phân tích sâu</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="codeInterpreterBtn" title="Code Interpreter">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="terminal" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Code Interpreter</div>
-                                            <div class="tools-dropdown__item-sub">Chạy Python/JS trực tiếp</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="pdfAnalyzerBtn" title="PDF Analyzer">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="file-text" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">PDF Analyzer</div>
-                                            <div class="tools-dropdown__item-sub">Phân tích PDF chi tiết</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="translatorBtn" title="Real-time Translation">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="languages" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Translator</div>
-                                            <div class="tools-dropdown__item-sub">Dịch đa ngôn ngữ real-time</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="webScraperBtn" title="Web Scraper">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="globe" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Web Scraper</div>
-                                            <div class="tools-dropdown__item-sub">Trích xuất dữ liệu từ URL</div>
-                                        </div>
-                                    </button>
-                                    <button class="tools-dropdown__item" id="memoryManagerBtn" title="Memory Manager">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="database" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Memory Manager</div>
-                                            <div class="tools-dropdown__item-sub">Ghi nhớ sở thích & ngữ cảnh</div>
-                                        </div>
-                                    </button>
+                                    <div class="tools-grid">
+                                        <button class="tools-grid__item" id="imageGenToolBtn" title="Tạo hình ảnh">
+                                            <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Image Gen</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
+                                            <span class="tools-grid__icon"><i data-lucide="scan-eye" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Img2Img</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="googleSearchBtn" title="Google Search">
+                                            <span class="tools-grid__icon"><i data-lucide="search" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Web Search</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research">
+                                            <span class="tools-grid__icon"><i data-lucide="telescope" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Research</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="codeInterpreterBtn" title="Code Interpreter">
+                                            <span class="tools-grid__icon"><i data-lucide="terminal" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Code</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="translatorBtn" title="Translator">
+                                            <span class="tools-grid__icon"><i data-lucide="languages" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Translate</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="webScraperBtn" title="Web Scraper">
+                                            <span class="tools-grid__icon"><i data-lucide="globe" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Scraper</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="pdfAnalyzerBtn" title="PDF Analyzer">
+                                            <span class="tools-grid__icon"><i data-lucide="file-text" class="lucide"></i></span>
+                                            <span class="tools-grid__label">PDF</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="githubBtn" title="GitHub">
+                                            <span class="tools-grid__icon"><i data-lucide="github" class="lucide"></i></span>
+                                            <span class="tools-grid__label">GitHub</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="memoryManagerBtn" title="Memory Manager">
+                                            <span class="tools-grid__icon"><i data-lucide="database" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Memory</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="configAgentBtn" title="Config Agent">
+                                            <span class="tools-grid__icon"><i data-lucide="settings" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Agent</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="uploadFilesBtn" title="Upload files">
+                                            <span class="tools-grid__icon"><i data-lucide="paperclip" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Upload</span>
+                                        </button>
+                                    </div>
                                     <div class="tools-dropdown__divider"></div>
-                                    <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload">
-                                        <span class="tools-dropdown__item-icon"><i data-lucide="paperclip" class="lucide"></i></span>
-                                        <div>
-                                            <div class="tools-dropdown__item-text">Upload files</div>
-                                            <div class="tools-dropdown__item-sub">txt, pdf, code, images</div>
-                                        </div>
-                                    </button>
                                     <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch">
                                         <span class="tools-dropdown__item-icon"><i data-lucide="git-branch" class="lucide"></i></span>
                                         <div>
@@ -1053,19 +1019,35 @@
 
         if (!btn || !dropdown) return;
 
+        // Toggle dropdown on click/tap
         btn.addEventListener('click', (e) => {
+            e.preventDefault();
             e.stopPropagation();
-            dropdown.classList.toggle('hidden');
-            dropdown.classList.toggle('open');
+            const isOpen = !dropdown.classList.contains('hidden');
+            // Close all other dropdowns first
+            document.querySelectorAll('.model-dropdown.open, .tools-dropdown.open, .topbar__more-dropdown:not(.hidden)').forEach(d => {
+                if (d !== dropdown) { d.classList.add('hidden'); d.classList.remove('open'); }
+            });
+            if (isOpen) {
+                dropdown.classList.add('hidden');
+                dropdown.classList.remove('open');
+            } else {
+                dropdown.classList.remove('hidden');
+                dropdown.classList.add('open');
+            }
         });
 
-        document.addEventListener('click', () => {
-            dropdown.classList.add('hidden');
-            dropdown.classList.remove('open');
+        // Close on outside click/tap
+        document.addEventListener('click', (e) => {
+            if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                dropdown.classList.remove('open');
+            }
         });
 
         options.forEach(option => {
             option.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 selectThinkingMode(option.dataset.mode, option.dataset.icon, option.dataset.label);
                 dropdown.classList.add('hidden');
@@ -1120,14 +1102,36 @@
         const configBtn = document.getElementById('configAgentBtn');
         if (configBtn) configBtn.addEventListener('click', () => { closeToolsMenu(); openConfigAgentModal(); });
 
-        const gs = document.getElementById('googleSearchBtn');
-        if (gs) gs.addEventListener('click', () => toggleToolActive('google-search', gs));
-
-        const gh = document.getElementById('githubBtn');
-        if (gh) gh.addEventListener('click', () => toggleToolActive('github', gh));
-
-        const ig = document.getElementById('imageGenToolBtn');
-        if (ig) ig.addEventListener('click', () => toggleToolActive('image-generation', ig));
+        // All toggle-able tools
+        const toolBindings = [
+            { id: 'googleSearchBtn', tool: 'google-search' },
+            { id: 'githubBtn', tool: 'github' },
+            { id: 'imageGenToolBtn', tool: 'image-generation' },
+            { id: 'img2imgToolBtn', tool: 'img2img' },
+            { id: 'deepResearchToolBtn', tool: 'deep-research' },
+            { id: 'codeInterpreterBtn', tool: 'code-interpreter' },
+            { id: 'pdfAnalyzerBtn', tool: 'pdf-analyzer' },
+            { id: 'translatorBtn', tool: 'translator' },
+            { id: 'webScraperBtn', tool: 'web-scraper' },
+            { id: 'memoryManagerBtn', tool: 'memory-manager' },
+        ];
+        toolBindings.forEach(({ id, tool }) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => {
+                toggleToolActive(tool, el);
+                // Deep Research: also enable web search + switch to multi-thinking
+                if (tool === 'deep-research' && activeTools.has('deep-research')) {
+                    const gsBtn = document.getElementById('googleSearchBtn');
+                    if (gsBtn && !activeTools.has('google-search')) {
+                        activeTools.add('google-search');
+                        gsBtn.classList.add('active');
+                    }
+                    if (typeof selectThinkingMode === 'function') {
+                        selectThinkingMode('multi-thinking', 'layers', 'Multi-Think');
+                    }
+                }
+            });
+        });
 
         const up = document.getElementById('uploadFilesBtn');
         const fi = document.getElementById('fileInput');
@@ -1140,10 +1144,10 @@
     function toggleToolActive(name, btn) {
         if (activeTools.has(name)) {
             activeTools.delete(name);
-            btn.style.background = '';
+            btn.classList.remove('active');
         } else {
             activeTools.add(name);
-            btn.style.background = 'var(--accent-soft)';
+            btn.classList.add('active');
         }
         updateActiveToolsDisplay();
     }
@@ -1153,7 +1157,11 @@
         if (!display) return;
         display.innerHTML = '';
         if (activeTools.size === 0) return;
-        const icons = {'google-search': '🔍', 'github': '📦', 'image-generation': '🎨'};
+        const icons = {
+            'google-search': '🔍', 'github': '📦', 'image-generation': '🎨',
+            'img2img': '🖼️', 'deep-research': '🔬', 'code-interpreter': '💻',
+            'pdf-analyzer': '📄', 'translator': '🌐', 'web-scraper': '🌍', 'memory-manager': '🧠'
+        };
         activeTools.forEach(tool => {
             const badge = document.createElement('span');
             badge.className = 'active-tool-badge';
