@@ -6,23 +6,39 @@
 export class MessageRenderer {
     constructor() {
         this.modelNames = {
-            'gemini': 'Gemini',
-            'grok': 'GROK',
+            'gemini': 'Gemini 2.0 Flash',
+            'grok': 'Grok-3',
             'openai': 'GPT-4o-mini',
-            'deepseek': 'DeepSeek',
-            'deepseek-reasoner': '🧠 DeepSeek R1 (Reasoning)',
-            'qwen': 'Qwen1.5b',
-            'bloomvn': 'BloomVN-8B API',
+            'deepseek': 'DeepSeek Chat',
+            'deepseek-reasoner': '🧠 DeepSeek R1',
+            'qwen': 'Qwen Turbo',
+            'bloomvn': 'BloomVN-8B',
+            'step-flash': 'Step-3.5 Flash',
+            'stepfun': 'StepFun Direct',
             'bloomvn-local': 'BloomVN-8B Local',
             'qwen1.5-local': 'Qwen1.5 Local',
             'qwen2.5-local': 'Qwen2.5-14B Local'
         };
         
+        this.modelIcons = {
+            'grok': '🤖',
+            'deepseek-reasoner': '🧪',
+            'openai': '🧠',
+            'deepseek': '🔍',
+            'gemini': '💎',
+            'step-flash': '⚡',
+            'bloomvn': '🌸',
+            'qwen': '🌙',
+            'stepfun': '🚀'
+        };
+        
         this.contextNames = {
-            'casual': 'Trò chuyện vui vẻ',
-            'psychological': 'Tâm lý - Tâm sự',
-            'lifestyle': 'Giải pháp đời sống',
-            'programming': '💻 Hỗ trợ lập trình'
+            'casual': '💬 Casual Chat',
+            'psychological': '🧘 Psychology',
+            'lifestyle': '🌟 Lifestyle',
+            'programming': '💻 Programming',
+            'creative': '🎨 Creative',
+            'research': '🔬 Research'
         };
 
         this.messageHistory = new Map(); // Store message edit history
@@ -54,6 +70,10 @@ export class MessageRenderer {
      * Create and add message to chat
      */
     addMessage(chatContainer, content, isUser, model, context, timestamp, thinkingProcess = null, customPromptUsed = false, agentConfig = null) {
+        // Hide welcome screen when adding messages
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
         messageDiv.dataset.timestamp = timestamp;
@@ -64,6 +84,20 @@ export class MessageRenderer {
         if (isUser) {
             messageDiv.dataset.messageId = `msg_${Date.now()}_${Math.random()}`;
         }
+
+        // Avatar
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message__avatar';
+        if (isUser) {
+            avatarDiv.textContent = '👤';
+        } else {
+            avatarDiv.textContent = this.modelIcons[model] || '🤖';
+        }
+        messageDiv.appendChild(avatarDiv);
+
+        // Body wrapper
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'message__body';
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
@@ -162,7 +196,8 @@ export class MessageRenderer {
         // Add action buttons
         this.addMessageButtons(contentDiv, content, isUser, messageDiv);
         
-        messageDiv.appendChild(contentDiv);
+        bodyDiv.appendChild(contentDiv);
+        messageDiv.appendChild(bodyDiv);
         chatContainer.appendChild(messageDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
         
@@ -176,6 +211,16 @@ export class MessageRenderer {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message file-message user';
         messageDiv.dataset.timestamp = timestamp;
+
+        // Avatar
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message__avatar';
+        avatarDiv.textContent = '👤';
+        messageDiv.appendChild(avatarDiv);
+
+        // Body wrapper
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'message__body';
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
@@ -227,7 +272,8 @@ export class MessageRenderer {
         timestampDiv.textContent = timestamp;
         contentDiv.appendChild(timestampDiv);
         
-        messageDiv.appendChild(contentDiv);
+        bodyDiv.appendChild(contentDiv);
+        messageDiv.appendChild(bodyDiv);
         chatContainer.appendChild(messageDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
         

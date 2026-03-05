@@ -1,0 +1,2126 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ChatBot Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2',
+                        accent: '#f093fb',
+                        dark: {
+                            bg: '#1a1a2e',
+                            surface: '#16213e',
+                            card: '#0f3460',
+                            text: '#e4e4e7',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'slide-in-right': 'slideInRight 0.3s ease-out',
+                        'pulse-soft': 'pulseSoft 2s infinite',
+                        'bounce-soft': 'bounceSoft 1s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { transform: 'translateX(20px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        },
+                        pulseSoft: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' },
+                        },
+                        bounceSoft: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}">
+    <!-- Tailwind Enhancements -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass {
+                @apply bg-white/10 backdrop-blur-lg border border-white/20;
+            }
+            .glass-dark {
+                @apply bg-black/20 backdrop-blur-lg border border-white/10;
+            }
+            .gradient-primary {
+                @apply bg-gradient-to-r from-primary to-secondary;
+            }
+            .gradient-accent {
+                @apply bg-gradient-to-r from-primary via-accent to-secondary;
+            }
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+            }
+            .shadow-glow {
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+            }
+            .shadow-glow-sm {
+                box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 6px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-track {
+                @apply bg-gray-100 dark:bg-gray-800 rounded;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                @apply bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500;
+            }
+            .btn-primary {
+                @apply px-4 py-2 rounded-lg gradient-primary text-white font-medium 
+                       transition-all duration-200 hover:shadow-glow hover:scale-105 
+                       active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+            }
+            .btn-secondary {
+                @apply px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 
+                       text-gray-700 dark:text-gray-200 font-medium
+                       transition-all duration-200 hover:bg-gray-300 dark:hover:bg-gray-600
+                       active:scale-95;
+            }
+            .card {
+                @apply bg-white dark:bg-dark-surface rounded-xl shadow-lg 
+                       border border-gray-100 dark:border-gray-700 
+                       transition-all duration-200;
+            }
+            .card-hover {
+                @apply hover:shadow-xl hover:scale-[1.02] hover:border-primary/30;
+            }
+            .input-field {
+                @apply w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600
+                       bg-white dark:bg-dark-surface text-gray-800 dark:text-gray-200
+                       focus:ring-2 focus:ring-primary/50 focus:border-primary
+                       transition-all duration-200 outline-none;
+            }
+            .modal-overlay {
+                @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50 
+                       items-center justify-center;
+                display: none; /* Hidden by default, shown via JS */
+            }
+            .modal-overlay.active {
+                display: flex;
+                animation: fadeIn 0.3s ease-out;
+            }
+            .modal-content {
+                @apply bg-white dark:bg-dark-surface rounded-2xl shadow-2xl 
+                       max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto
+                       animate-slide-up;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
+    <!-- Sidebar Toggle Button (Left - Chat History) -->
+    <button class="sidebar-toggle-btn sidebar-open" id="sidebarToggleBtn" title="Toggle Chat History">
+        <span id="sidebarToggleIcon">◀</span>
+    </button>
+    
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar scrollbar-thin" id="sidebar">
+            <div class="sidebar-header">
+                <h3 class="text-lg font-semibold" data-lang-key="sidebar.title">💬 Chat History</h3>
+                <button class="new-chat-btn btn-primary text-sm" id="newChatBtn" data-lang-key="sidebar.newChat">+ New</button>
+            </div>
+            <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <span id="storageInfo" data-lang-key="sidebar.calculating">Calculating...</span>
+            </div>
+            <div class="chat-list scrollbar-thin" id="chatList">
+                <!-- Chat items will be dynamically added here -->
+            </div>
+            <div class="sidebar-footer p-3">
+                <button class="gallery-btn w-full btn-secondary flex items-center justify-center gap-2" id="galleryBtn" title="View generated images">
+                    🖼️ Image Gallery
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Chat Container -->
+        <div class="container">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="text-align: center; flex: 1;">
+                    <h1 style="position: relative;" data-lang-key="app.title">🤖 AI ChatBot Assistant</h1>
+                    <p data-lang-key="app.subtitle">AI assistant for chat, psychology support, life solutions and programming help</p>
+                </div>
+                
+                <!-- Thinking Mode Selector - Moved to header -->
+                <div class="thinking-mode-container" id="thinkingModeContainer" style="margin: 0 20px;">
+                    <button type="button" id="thinkingModeBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 dark:bg-dark-surface/90 hover:bg-white dark:hover:bg-dark-surface transition-all duration-200 border border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-md">
+                        <span id="thinkingModeIcon" class="text-xl">⚡</span>
+                        <span id="thinkingModeLabel" class="text-sm font-semibold">Instant</span>
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div id="thinkingModeDropdown" class="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-dark-surface rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] hidden animate-fade-in">
+                        <div class="p-2">
+                            <div class="text-xs px-3 py-2 font-semibold uppercase tracking-wide thinking-mode-header">Thinking Mode</div>
+                            
+                            <!-- Auto Mode -->
+                            <button type="button" class="thinking-mode-option w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" data-mode="auto" data-icon="🤖" data-label="Auto">
+                                <span class="text-2xl">🤖</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-semibold text-base">Auto</div>
+                                    <div class="text-xs mt-1">Tự quyết định thời gian suy nghĩ</div>
+                                </div>
+                            </button>
+                            
+                            <!-- Instant Mode -->
+                            <button type="button" class="thinking-mode-option w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" data-mode="instant" data-icon="⚡" data-label="Instant">
+                                <span class="text-2xl">⚡</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-semibold text-base">Instant</div>
+                                    <div class="text-xs mt-1">Trả lời tức thời, không suy nghĩ sâu</div>
+                                </div>
+                            </button>
+                            
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            
+                            <!-- Thinking Medium -->
+                            <button type="button" class="thinking-mode-option w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" data-mode="thinking" data-icon="🧠" data-label="Suy nghĩ">
+                                <span class="text-2xl">🧠</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-semibold text-base">Suy nghĩ</div>
+                                    <div class="text-xs mt-1">Phân tích kỹ lưỡng, suy luận từng bước</div>
+                                </div>
+                            </button>
+                            
+                            <!-- Thinking Deep -->
+                            <button type="button" class="thinking-mode-option w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" data-mode="deep" data-icon="🚀" data-label="Suy nghĩ sâu">
+                                <span class="text-2xl">🚀</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-semibold text-base">Suy nghĩ sâu</div>
+                                    <div class="text-xs mt-1">Coordinated Reasoning - đa vòng lặp</div>
+                                </div>
+                                <span class="ml-2 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-medium">Pro</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Hidden input for form value -->
+                    <input type="hidden" id="thinkingModeValue" value="instant">
+                </div>
+                
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <a href="https://github.com/SkastVnT/AI-Assistant" target="_blank" rel="noopener noreferrer" class="github-badge">
+                        <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                        <span>@SkastVnT</span>
+                    </a>
+                    <button class="lang-toggle-btn" id="langBtn" title="Switch to English">🇬🇧 EN</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls glass-dark backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/50">
+            <div class="control-group flex flex-wrap items-center gap-3 p-3"> 
+                <label class="flex items-center gap-2 text-sm">
+                    <span data-lang-key="controls.model" class="text-gray-600 dark:text-gray-300 font-medium">Model:</span>
+                    <select id="modelSelect" class="input-field bg-white/90 dark:bg-dark-surface/90 rounded-lg px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
+                        <optgroup label="🌟 Premium">
+                            <option value="grok" selected>🤖 Grok-3 (xAI)</option>
+                            <option value="deepseek-reasoner">🧪 DeepSeek R1 (Reasoning)</option>
+                        </optgroup>
+                        <optgroup label="⚡ Standard">
+                            <option value="openai">🧠 GPT-4o-mini (OpenAI)</option>
+                            <option value="deepseek">🔍 DeepSeek Chat</option>
+                        </optgroup>
+                        <optgroup label="🆓 Free">
+                            <option value="gemini">💎 Gemini 2.0 Flash (Google)</option>
+                            <option value="step-flash">⚡ Step-3.5 Flash (FREE)</option>
+                            <option value="bloomvn">🌸 BloomVN-8B (Tiếng Việt)</option>
+                        </optgroup>
+                        <optgroup label="🌏 Other">
+                            <option value="qwen">🌙 Qwen Turbo</option>
+                            <option value="stepfun">🚀 StepFun Direct</option>
+                        </optgroup>
+                    </select>
+                </label>
+                
+                <label class="flex items-center gap-2 text-sm">
+                    <span data-lang-key="controls.mode" class="text-gray-600 dark:text-gray-300 font-medium">Mode:</span>
+                    <select id="contextSelect" class="input-field bg-white/90 dark:bg-dark-surface/90 rounded-lg px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
+                        <option value="casual" data-lang-key="controls.mode.casual">💬 Casual Chat</option>
+                        <option value="programming" data-lang-key="controls.mode.programming">💻 Programming</option>
+                        <option value="creative">🎨 Creative</option>
+                        <option value="research">🔬 Research</option>
+                        <option value="psychological" data-lang-key="controls.mode.psychological">🧘 Psychology</option>
+                        <option value="lifestyle" data-lang-key="controls.mode.lifestyle">🌟 Lifestyle</option>
+                    </select>
+                </label>
+                
+                <button class="download-btn btn-secondary hover:shadow-glow-sm" id="downloadBtn" title="Download chat history" data-lang-key="controls.download" data-lang-key-title="tooltip.download">
+                    📥 Download
+                </button>
+                <button class="image-gen-btn btn-primary hover:shadow-glow" id="imageGenBtn" title="Generate AI Image" data-lang-key="controls.imageGen" data-lang-key-title="tooltip.imageGen">
+                    🎨 Generate
+                </button>
+                <button class="image-gen-btn btn-primary hover:shadow-glow" id="imageGenV2Btn" title="AI Image V2 (Multi-Provider)" style="background: linear-gradient(135deg, #a855f7, #6366f1);">
+                    ✨ AI Image
+                </button>
+                <button class="memory-btn btn-secondary hover:shadow-glow-sm" id="memoryBtn" title="Manage AI Memory" data-lang-key="controls.memory" data-lang-key-title="tooltip.memory">
+                    🧠 AI Memory
+                </button>
+                <button class="dark-mode-toggle btn-secondary" id="darkModeBtn" title="Toggle Dark Mode" data-lang-key-title="tooltip.darkMode">🌙</button>
+                <button class="eye-care-toggle btn-secondary" id="eyeCareBtn" title="Eye Care Mode - Reduce Blue Light" data-lang-key-title="tooltip.eyeCare">👁️</button>
+                <button id="clearBtn" data-lang-key="controls.clear" class="btn-secondary hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200">🗑️ Clear History</button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area with Chat and MCP File Browser -->
+        <div class="content-wrapper">
+            <!-- Chat Container (Left) -->
+            <div class="chat-section">
+                <div class="chat-container" id="chatContainer">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <div data-lang-key="chat.welcome">Hello! I am your AI assistant. How can I help you today? 😊</div>
+                            <div class="message-info">GROK • <span data-lang-key="controls.mode.casual">Casual Chat</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Memory Panel (hidden by default) -->
+                <div class="memory-panel" id="memoryPanel" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong data-lang-key="memory.title">📚 Saved lessons (click to activate):</strong>
+                        <button class="new-chat-btn" id="saveMemoryBtn" style="padding: 5px 12px; font-size: 12px;" data-lang-key="memory.save">
+                            💾 Save this chat
+                        </button>
+                    </div>
+                    <div id="memoryList">
+                        <!-- Memory items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- MCP Toggle Button (Always Visible) -->
+            <button class="mcp-toggle-btn" id="mcpToggleBtn" title="Toggle MCP Panel">
+                <span id="mcpToggleIcon">◀</span>
+            </button>
+            
+            <!-- MCP File Browser Sidebar (Right) -->
+            <div class="mcp-sidebar" id="mcpSidebar">
+                <div class="mcp-sidebar-header">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="mcpEnabledCheck" class="w-4 h-4 accent-purple-500">
+                            <label for="mcpEnabledCheck" style="margin: 0; font-weight: 700; font-size: 15px;">
+                                🔗 <span data-lang-key="mcp.enable">MCP Context</span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="mcpStatus" class="mcp-status-badge">
+                                <span data-lang-key="mcp.status.disabled">⚪ Off</span>
+                            </span>
+                            <button id="mcpCloseBtn" class="mcp-close-btn" title="Đóng MCP Panel" style="background: none; border: none; cursor: pointer; font-size: 18px; color: #999; padding: 4px 8px; border-radius: 6px; transition: all 0.2s;">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Source Selection Tabs -->
+                    <div class="mcp-source-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button class="mcp-tab active" id="mcpTabFolder" data-source="folder" disabled>
+                            📁 Folder
+                        </button>
+                        <button class="mcp-tab" id="mcpTabUrl" data-source="url" disabled>
+                            🌐 URL
+                        </button>
+                        <button class="mcp-tab" id="mcpTabUpload" data-source="upload" disabled>
+                            📤 Upload
+                        </button>
+                    </div>
+                    
+                    <!-- Folder Source -->
+                    <div id="mcpFolderSource" class="mcp-source-panel">
+                        <button class="mcp-btn w-full" id="mcpSelectFolderBtn" disabled>
+                            📁 <span data-lang-key="mcp.selectFolder">Select Folder</span>
+                        </button>
+                        <input type="file" id="mcpFolderInput" webkitdirectory directory multiple style="display: none;">
+                        <div id="mcpFolderList" class="mcp-folder-tags" style="display: none; margin-top: 12px;">
+                            <!-- Selected folders will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- URL Source -->
+                    <div id="mcpUrlSource" class="mcp-source-panel" style="display: none;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="mcpUrlInput" placeholder="https://example.com/..." 
+                                class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                                       bg-white dark:bg-gray-800 text-sm" disabled>
+                            <button class="mcp-btn" id="mcpFetchUrlBtn" disabled>
+                                🔍 Fetch
+                            </button>
+                        </div>
+                        <div id="mcpUrlList" class="mcp-folder-tags" style="margin-top: 12px;">
+                            <!-- Fetched URLs will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Source -->
+                    <div id="mcpUploadSource" class="mcp-source-panel" style="display: none;">
+                        <button class="mcp-btn w-full" id="mcpUploadBtn" disabled>
+                            📤 <span>Upload Files (OCR)</span>
+                        </button>
+                        <input type="file" id="mcpFileUpload" multiple accept="image/*,.pdf,.txt,.md,.py,.js,.json" style="display: none;">
+                        <div id="mcpUploadList" class="mcp-folder-tags" style="margin-top: 12px;">
+                            <!-- Uploaded files will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mcp-file-browser" id="mcpFileBrowser">
+                    <div class="mcp-search-box">
+                        <input type="text" id="mcpFileSearch" placeholder="🔍 Search files..." disabled>
+                    </div>
+                    <div class="mcp-file-list" id="mcpFileList">
+                        <div class="mcp-empty-state">
+                            <p>📂</p>
+                            <p style="font-size: 13px; font-weight: 600; color: #667eea;">No context loaded</p>
+                            <p style="font-size: 11px; color: #888;">Enable MCP and select a source</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mcp-selected-files" id="mcpSelectedFiles" style="display: none;">
+                    <div style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #667eea; display: flex; align-items: center; gap: 8px;">
+                        <span>📌 Selected Context</span>
+                        <span class="mcp-badge" id="selectedFileCount">0</span>
+                    </div>
+                    <div id="selectedFileList"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading animate-fade-in" id="loading">
+            <div class="spinner"></div>
+            <span id="loadingText" data-lang-key="loading.thinking" class="text-gray-600 dark:text-gray-300">Thinking...</span>
+            <button class="stop-generation-btn btn-secondary hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" id="stopGenerationBtn" data-lang-key="loading.stop">⏹️ Stop</button>
+        </div>
+        
+        <div class="input-container glass-dark backdrop-blur-md border-t border-gray-200/20 dark:border-gray-700/50">
+            <div class="input-tools flex flex-wrap items-center gap-2 mb-3">
+                <!-- Tools Menu (+) Button -->
+                <div class="tools-menu-container relative">
+                    <button type="button" id="toolsMenuBtn" class="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-glow transition-all duration-200 hover:scale-105" title="Thêm công cụ">
+                        <svg class="w-5 h-5 transition-transform duration-200" id="toolsMenuIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                    <!-- Tools Dropdown Menu -->
+                    <div id="toolsMenuDropdown" class="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-dark-surface rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 hidden animate-fade-in">
+                        <div class="p-2">
+                            <div class="text-xs text-gray-500 dark:text-gray-400 px-3 py-2 font-semibold uppercase tracking-wide">Công cụ</div>
+                            
+                            <!-- Config Agent -->
+                            <button type="button" class="tool-menu-item w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" id="configAgentBtn" title="Config Agent - Advanced AI Settings">
+                                <span class="text-lg">⚡</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-medium text-gray-800 dark:text-gray-200 text-sm">Config Agent</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Cấu hình AI nâng cao</div>
+                                </div>
+                            </button>
+                            
+                            <!-- Google Search -->
+                            <button type="button" class="tool-menu-item w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" id="googleSearchBtn" title="Google Search">
+                                <span class="text-lg">🔍</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-medium text-gray-800 dark:text-gray-200 text-sm">Tìm kiếm trên mạng</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Google Search</div>
+                                </div>
+                            </button>
+                            
+                            <!-- GitHub -->
+                            <button type="button" class="tool-menu-item w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" id="githubBtn" title="Connect GitHub">
+                                <span class="text-lg">
+                                    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                </span>
+                                <div class="text-left flex-1">
+                                    <div class="font-medium text-gray-800 dark:text-gray-200 text-sm">GitHub</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Kết nối repository</div>
+                                </div>
+                            </button>
+                            
+                            <!-- Text2Img -->
+                            <button type="button" class="tool-menu-item w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" id="imageGenToolBtn" title="Generate from text">
+                                <span class="text-lg">🎨</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-medium text-gray-800 dark:text-gray-200 text-sm">Tạo hình ảnh</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Text to Image</div>
+                                </div>
+                            </button>
+                            
+                            <!-- Upload Files -->
+                            <button type="button" class="tool-menu-item w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" id="uploadFilesBtn" title="Upload files">
+                                <span class="text-lg">📎</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-medium text-gray-800 dark:text-gray-200 text-sm">Thêm ảnh và tệp</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">txt, pdf, doc, code, images</div>
+                                </div>
+                            </button>
+                            
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            
+                            <!-- Branch Conversation -->
+                            <button type="button" class="tool-menu-item w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" id="branchConversationBtn" title="Tạo nhánh chat mới">
+                                <span class="text-lg">🌿</span>
+                                <div class="text-left flex-1">
+                                    <div class="font-medium text-gray-800 dark:text-gray-200 text-sm">Tạo nhánh trong đoạn chat mới</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Branch từ tin nhắn hiện tại</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Tools Display (shown when tools are selected) -->
+                <div id="activeToolsDisplay" class="flex flex-wrap gap-1 hidden">
+                    <!-- Active tool badges will appear here -->
+                </div>
+                
+                <!-- Img2Img Button - KEPT OUTSIDE as requested -->
+                <button class="tool-btn btn-secondary text-sm px-3 py-1.5 rounded-lg hover:shadow-glow-sm transition-all duration-200 flex items-center gap-1" id="img2imgToolBtn" title="Generate from image (Img2Img)" data-lang-key="tools.img2img" data-lang-key-title="tooltip.img2img">
+                    🖼️ Img2Img
+                </button>
+                
+                <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,image/*" multiple style="display: none;">
+            </div>
+            <div class="file-list" id="fileList">
+                <!-- Uploaded files will appear here -->
+            </div>
+            <div class="input-group flex gap-3 items-end">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="Type your message... (Shift+Enter for new line)"
+                    data-lang-key="input.placeholder"
+                    rows="1"
+                    class="flex-1 input-field resize-none rounded-xl px-4 py-3 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 scrollbar-thin"
+                ></textarea>
+                <button id="sendBtn" data-lang-key="input.send" class="btn-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-glow transition-all duration-200 transform hover:scale-105 active:scale-95">Send</button>
+            </div>
+        </div>
+        </div> <!-- Close container -->
+    </div> <!-- Close main-wrapper -->
+    
+    <!-- Image Generation Modal -->
+    <div id="imageGenModal" class="modal">
+        <div class="modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div class="modal-header flex justify-between items-center p-5 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 data-lang-key="imageGen.title" class="text-xl font-bold text-gradient">🎨 AI Image Generation</h2>
+                <button class="close-modal btn-secondary w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" onclick="closeImageModal()">&times;</button>
+            </div>
+            
+            <div id="sdStatus" class="sd-status offline mx-5 mt-4 px-4 py-2 rounded-lg text-sm font-medium" data-lang-key="imageGen.status.checking">
+                Checking Stable Diffusion...
+            </div>
+
+            <!-- Style Quick Select -->
+            <div class="style-selector px-5 py-3">
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">🎨 Quick Style:</label>
+                <div class="style-buttons grid grid-cols-2 md:grid-cols-4 gap-2" id="styleButtons">
+                    <button class="style-btn active bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('anime_xl')" data-style="anime_xl">
+                        🎨 Anime XL
+                    </button>
+                    <button class="style-btn bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('realistic_xl')" data-style="realistic_xl">
+                        📷 Realistic Fast
+                    </button>
+                    <button class="style-btn bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('realistic_juggernaut')" data-style="realistic_juggernaut">
+                        📷 Realistic Pro
+                    </button>
+                    <button class="style-btn bg-gradient-to-r from-green-500 to-teal-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-md" 
+                            onclick="selectStyle('anime_counterfeit')" data-style="anime_counterfeit">
+                        🎨 Anime Classic
+                    </button>
+                </div>
+                <p id="styleDescription" class="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">High quality anime art (SDXL)</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="image-gen-tabs flex gap-2 p-4">
+                <button class="tab-btn active btn-primary px-4 py-2 rounded-lg font-medium transition-all duration-200" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">
+                    ✍️ Generate from prompt
+                </button>
+                <button class="tab-btn btn-secondary px-4 py-2 rounded-lg font-medium transition-all duration-200" onclick="switchImageGenTab('img2img')" data-lang-key="imageGen.tab.img2img">
+                    🖼️ Generate from image
+                </button>
+            </div>
+
+            <!-- Shared Model Selection -->
+            <div class="form-group px-5 py-3">
+                <label data-lang-key="imageGen.model" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Model Checkpoint:</label>
+                <select id="modelCheckpoint" class="input-field w-full rounded-lg px-4 py-2 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary/50 transition-all duration-200">
+                    <option value="" data-lang-key="imageGen.model.loading">Loading...</option>
+                </select>
+            </div>
+
+            <!-- Text2Img Tab Content -->
+            <div id="text2imgTab" class="tab-content active">
+            
+            <div class="form-group">
+                <label data-lang-key="imageGen.prompt">Prompt (Describe the image you want):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    <button onclick="randomPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" data-lang-key="imageGen.random">🎲 Random</button>
+                </div>
+                <textarea id="imagePrompt" rows="4" placeholder="1girl, beautiful, detailed face, long hair, cherry blossoms, sunset, masterpiece, best quality" data-lang-key="imageGen.prompt.placeholder"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label data-lang-key="imageGen.negativePrompt">Negative Prompt (What you do NOT want):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    <button onclick="randomNegativePrompt()" style="padding: 5px 15px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" data-lang-key="imageGen.random">🎲 Random</button>
+                </div>
+                <textarea id="negativePrompt" rows="3" placeholder="bad quality, blurry, distorted, ugly, worst quality" data-lang-key="imageGen.negativePrompt.placeholder"></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-lang-key="imageGen.width">Width:</label>
+                    <select id="imageWidth">
+                        <option value="512" selected>512 (Safe)</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label data-lang-key="imageGen.height">Height:</label>
+                    <select id="imageHeight">
+                        <option value="512" selected>512 (Safe)</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                        <option value="1280">1280</option>
+                        <option value="1440">1440 (HD)</option>
+                        <option value="1920">1920 (FHD)</option>
+                        <option value="2560">2560 (4K HD)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label><span data-lang-key="imageGen.steps">Steps</span> <span id="stepsLabel" data-lang-key="imageGen.stepsHint">(20-50 recommended)</span>:</label>
+                    <input type="number" id="imageSteps" value="20" min="1" max="150">
+                </div>
+                
+                <div class="form-group">
+                    <label><span data-lang-key="imageGen.cfgScale">CFG Scale</span> <span id="cfgLabel" data-lang-key="imageGen.cfgHint">(7-12 recommended)</span>:</label>
+                    <input type="number" id="cfgScale" value="7" min="1" max="30" step="0.5">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label data-lang-key="imageGen.sampler">Sampler:</label>
+                <select id="samplerSelect">
+                    <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                    <option value="Euler a">Euler a</option>
+                    <option value="Euler">Euler</option>
+                    <option value="DDIM">DDIM</option>
+                    <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="restoreFaces">
+                        <span data-lang-key="imageGen.restoreFaces">Restore Faces (GFPGAN)</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableHR">
+                        <span data-lang-key="imageGen.hiresfix">Hires. Fix (High quality)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Lora Selection Section -->
+            <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                <label style="font-weight: 600;" data-lang-key="imageGen.lora">🎨 Lora Models (Optional):</label>
+                <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <button type="button" id="addLoraBtn" class="secondary-btn" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">
+                        ➕ Add Lora
+                    </button>
+                </div>
+            </div>
+            
+            <!-- VAE Selection -->
+            <div class="form-group">
+                <label>🔧 VAE Model:</label>
+                <select id="vaeSelect">
+                    <option value="">Automatic (Default)</option>
+                </select>
+            </div>
+            
+            <button class="generate-btn btn-primary w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-glow transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" id="generateImageBtn" onclick="generateImage()">
+                🎨 Generate
+            </button>
+
+            </div>
+            <!-- End Text2Img Tab -->
+
+            <!-- Img2Img Tab Content -->
+            <div id="img2imgTab" class="tab-content" style="display: none;">
+                
+                <!-- Upload Image Section -->
+                <div class="form-group">
+                    <label>📤 Upload source image (Required):</label>
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('sourceImage').click()">
+                        <div id="uploadPlaceholder">
+                            <span style="font-size: 48px;">📷</span>
+                            <p>Click to select or drag and drop</p>
+                            <p style="font-size: 12px; color: #999;">Supports: JPG, PNG, WebP</p>
+                        </div>
+                        <img id="sourceImagePreview" style="display: none; max-width: 100%; max-height: 300px; border-radius: 8px;">
+                    </div>
+                    <input type="file" id="sourceImage" accept="image/*" style="display: none;" onchange="handleSourceImageUpload(event)">
+                </div>
+
+                <!-- Extract Features Section -->
+                <div id="featureExtractionSection" style="display: none;">
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <label style="font-weight: 600; font-size: 15px;">🔍 Extract Features</label>
+                            <span style="font-size: 12px; color: #888;">Using DeepDanbooru 🎨</span>
+                        </div>
+                        
+                        <button class="extract-btn" onclick="extractFeatures()" style="width: 100%; padding: 12px; margin-bottom: 15px; background: linear-gradient(135deg, #ff9800, #ff5722); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s;">
+                            🔬 Extract Features
+                        </button>
+                        
+                        <div id="extractedTags" style="display: none;">
+                            <div style="margin-bottom: 10px; padding: 10px; background: rgba(103, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px; font-size: 13px;">
+                                💡 <strong>Tip:</strong> Click tag to remove from prompt
+                            </div>
+                            <div id="tagsList" style="max-height: 400px; overflow-y: auto; border-radius: 8px;">
+                                <!-- Tags will be populated here by category -->
+                            </div>
+                            
+                            <!-- Auto-generate Prompt Button -->
+                            <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px;">
+                                <button 
+                                    id="autoGeneratePromptBtn" 
+                                    onclick="autoGeneratePromptFromTags()" 
+                                    style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: none;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                    🤖 Auto-generate prompt from image (AI)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt Section for Img2Img -->
+                <div class="form-group">
+                    <label>Image prompt:</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                        <button onclick="randomImg2ImgPrompt()" style="padding: 5px 15px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                        <span style="font-size: 11px; color: #888; align-self: center;">💡 Can be empty, click Auto-generate above</span>
+                    </div>
+                    <textarea id="img2imgPrompt" rows="3" placeholder="Enter prompt or use Auto-generate..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Negative Prompt:</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                        <button onclick="randomImg2ImgNegativePrompt()" style="padding: 5px 15px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎲 Random</button>
+                    </div>
+                    <textarea id="img2imgNegativePrompt" rows="2" placeholder="bad quality, blurry, distorted"></textarea>
+                </div>
+
+                <!-- Image Size for Img2Img -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Width:</label>
+                        <select id="img2imgWidth">
+                            <option value="512">512</option>
+                            <option value="768" selected>768</option>
+                            <option value="1024">1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1440">1440 (HD)</option>
+                            <option value="1920">1920 (FHD)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Height:</label>
+                        <select id="img2imgHeight">
+                            <option value="512">512</option>
+                            <option value="768" selected>768</option>
+                            <option value="1024">1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1440">1440 (HD)</option>
+                            <option value="1920">1920 (FHD)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Generation Settings for Img2Img -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Denoising Strength:</label>
+                        <input type="number" id="denoisingStrength" value="0.6" min="0" max="1" step="0.05">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Feature Weight (%):</label>
+                        <input type="number" id="featureWeight" value="80" min="0" max="100" step="5">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Steps:</label>
+                        <input type="number" id="img2imgSteps" value="30" min="1" max="150">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>CFG Scale:</label>
+                        <input type="number" id="img2imgCfgScale" value="7" min="1" max="30" step="0.5">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sampler:</label>
+                        <select id="img2imgSampler">
+                            <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                            <option value="Euler a">Euler a</option>
+                            <option value="Euler">Euler</option>
+                            <option value="DDIM">DDIM</option>
+                            <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Seed:</label>
+                        <input type="number" id="img2imgSeed" value="-1" placeholder="-1 = Random">
+                    </div>
+                </div>
+                
+                <!-- Lora Selection for Img2Img -->
+                <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <label style="font-weight: 600;">🎨 Lora Models (Optional):</label>
+                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                        <button type="button" id="addImg2imgLoraBtn" class="secondary-btn" onclick="addImg2imgLoraSelection()">
+                            ➕ Add Lora
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- VAE Selection for Img2Img -->
+                <div class="form-group">
+                    <label>🔧 VAE Model:</label>
+                    <select id="img2imgVaeSelect">
+                        <option value="">Automatic (Default)</option>
+                    </select>
+                </div>
+
+                <button class="generate-btn btn-primary w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-glow transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>
+                    🎨 Generate from image
+                </button>
+
+            </div>
+            <!-- End Img2Img Tab -->
+            
+            <!-- Close button at bottom -->
+            <button class="modal-footer-close btn-secondary w-full py-3 rounded-xl font-semibold mt-4 hover:bg-gray-600 hover:text-white transition-all duration-200" onclick="closeImageModal()">
+                ✓ Close
+            </button>
+            
+            <!-- Generated Image Overlay Modal -->
+            <div id="generatedImageContainer" class="generated-image-overlay" style="display: none;" onclick="closeGeneratedImageOverlay(event)">
+                <div class="generated-image-modal" onclick="event.stopPropagation()">
+                    <button class="generated-image-close" onclick="closeGeneratedImageOverlay()">&times;</button>
+                    <img id="generatedImage" class="generated-image-preview" alt="Generated Image">
+                    <div class="image-actions">
+                        <button class="share-btn" onclick="shareImageToImgBB()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                            🔗 Share (ImgBB)
+                        </button>
+                        <button class="download-image-btn" onclick="downloadGeneratedImage()">
+                            📥 Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Preview Modal (Discord-style) -->
+    <div id="imagePreviewModal" class="image-preview-modal">
+        <div class="image-preview-controls">
+
+    <!-- ════════════════════════════════════════════════════════════
+         Image Generation V2 Modal — Multi-Provider System
+         ════════════════════════════════════════════════════════════ -->
+    <div id="imageGenV2Modal" class="modal">
+        <div class="igv2-modal-content">
+            <!-- Header -->
+            <div class="igv2-header">
+                <h2>✨ AI Image Generation V2</h2>
+                <button class="igv2-close-btn" onclick="window.imageGenV2?.closeModal()">&times;</button>
+            </div>
+
+            <!-- Status -->
+            <div id="igv2Status" class="igv2-status igv2-status-info" style="margin: 8px 24px;">
+                Ready — 8 providers available
+            </div>
+
+            <!-- Tabs -->
+            <div class="igv2-tabs">
+                <button class="igv2-tab-btn active" data-tab="generate" onclick="window.imageGenV2?.switchTab('generate')">✨ Generate</button>
+                <button class="igv2-tab-btn" data-tab="edit" onclick="window.imageGenV2?.switchTab('edit')">✏️ Edit</button>
+                <button class="igv2-tab-btn" data-tab="gallery" onclick="window.imageGenV2?.switchTab('gallery'); window.imageGenV2?.loadGallery()">🖼️ Gallery</button>
+                <button class="igv2-tab-btn" data-tab="stats" onclick="window.imageGenV2?.switchTab('stats'); window.imageGenV2?.loadStats()">📊 Stats</button>
+            </div>
+
+            <!-- ── Generate Tab ─────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-generate" style="display: block;">
+                <div class="igv2-form-group">
+                    <label>📝 Prompt (Vietnamese or English)</label>
+                    <textarea id="igv2Prompt" class="igv2-textarea" rows="3" 
+                              placeholder="Mô tả ảnh bạn muốn... VD: con mèo ngồi trên mái nhà lúc hoàng hôn, phong cách anime"></textarea>
+                </div>
+
+                <div class="igv2-form-group">
+                    <label>🎨 Style Preset</label>
+                    <select id="igv2Style" class="igv2-select">
+                        <option value="">None (auto)</option>
+                    </select>
+                    <div id="igv2StyleGrid" class="igv2-style-grid"></div>
+                </div>
+
+                <div class="igv2-form-row">
+                    <div class="igv2-form-group">
+                        <label>⚡ Quality Mode</label>
+                        <select id="igv2Quality" class="igv2-select">
+                            <option value="auto">🤖 Auto (Best available)</option>
+                            <option value="quality">💎 Quality (SOTA models)</option>
+                            <option value="fast">⚡ Fast (Speed priority)</option>
+                            <option value="cheap">💰 Cheap (Lowest cost)</option>
+                            <option value="free">🆓 Free (Local GPU only)</option>
+                        </select>
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>🔧 Provider</label>
+                        <select id="igv2Provider" class="igv2-select">
+                            <option value="">🤖 Auto</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="igv2-form-row-3">
+                    <div class="igv2-form-group">
+                        <label>📐 Width</label>
+                        <select id="igv2Width" class="igv2-select">
+                            <option value="512">512</option>
+                            <option value="768">768</option>
+                            <option value="1024" selected>1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1536">1536</option>
+                        </select>
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>📐 Height</label>
+                        <select id="igv2Height" class="igv2-select">
+                            <option value="512">512</option>
+                            <option value="768">768</option>
+                            <option value="1024" selected>1024</option>
+                            <option value="1280">1280</option>
+                            <option value="1536">1536</option>
+                        </select>
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>🔢 Steps</label>
+                        <input id="igv2Steps" class="igv2-input" type="number" value="28" min="1" max="100">
+                    </div>
+                </div>
+
+                <div class="igv2-form-row">
+                    <div class="igv2-form-group">
+                        <label>🎯 Guidance</label>
+                        <input id="igv2Guidance" class="igv2-input" type="number" value="3.5" min="1" max="20" step="0.5">
+                    </div>
+                    <div class="igv2-form-group igv2-checkbox-group" style="align-self: end; padding-bottom: 10px;">
+                        <input type="checkbox" id="igv2Enhance" checked>
+                        <label for="igv2Enhance">🤖 AI Enhance Prompt</label>
+                    </div>
+                </div>
+
+                <button id="igv2GenerateBtn" class="igv2-generate-btn" onclick="window.imageGenV2?.generate()">
+                    🎨 Tạo ảnh
+                </button>
+
+                <div id="igv2Result"></div>
+            </div>
+
+            <!-- ── Edit Tab ─────────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-edit" style="display: none;">
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px;">
+                    ✏️ Chỉnh sửa ảnh đã tạo — giống ChatGPT/Gemini. Mô tả thay đổi bạn muốn.
+                </p>
+                <div class="igv2-form-group">
+                    <label>✏️ Edit Instruction</label>
+                    <textarea id="igv2EditPrompt" class="igv2-textarea" rows="3" 
+                              placeholder="VD: thêm cầu vồng vào bầu trời, đổi nền thành biển, xóa người đằng sau..."></textarea>
+                </div>
+                <div class="igv2-form-row">
+                    <div class="igv2-form-group">
+                        <label>💪 Edit Strength</label>
+                        <input id="igv2EditStrength" class="igv2-input" type="number" value="0.75" min="0.1" max="1.0" step="0.05">
+                    </div>
+                    <div class="igv2-form-group">
+                        <label>🔧 Provider</label>
+                        <select id="igv2EditProvider" class="igv2-select">
+                            <option value="">🤖 Auto</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="igv2EditBtn" class="igv2-generate-btn" onclick="window.imageGenV2?.editImage()" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+                    ✏️ Chỉnh sửa
+                </button>
+                <div id="igv2EditResult"></div>
+            </div>
+
+            <!-- ── Gallery Tab ──────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-gallery" style="display: none;">
+                <div id="igv2Gallery" class="igv2-gallery-grid"></div>
+            </div>
+
+            <!-- ── Stats Tab ────────────────────────────────────── -->
+            <div class="igv2-tab-panel" id="igv2-stats" style="display: none;">
+                <div id="igv2Stats"></div>
+            </div>
+        </div>
+    </div>
+            <button class="preview-control-btn" onclick="downloadPreviewImage()" title="Download">
+                📥
+            </button>
+            <button class="preview-control-btn" onclick="zoomPreviewImage(-0.2)" title="Zoom Out">
+                🔍-
+            </button>
+            <button class="preview-control-btn" onclick="zoomPreviewImage(0.2)" title="Zoom In">
+                🔍+
+            </button>
+            <button class="preview-control-btn" onclick="resetPreviewZoom()" title="Reset Zoom">
+                ⟲
+            </button>
+        </div>
+        <span class="image-preview-close" onclick="closeImagePreview()">&times;</span>
+        <img id="imagePreviewContent" class="image-preview-content" src="" alt="Preview">
+        <div id="imagePreviewInfo" class="image-preview-info"></div>
+    </div>
+    
+    <!-- Message History Modal -->
+    <div id="historyModal" class="history-modal" style="display: none;">
+        <div class="history-modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-3xl w-full p-5">
+            <div class="modal-header flex justify-between items-center mb-4 pb-4 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 data-lang-key="history.title" class="text-xl font-bold text-gradient">📜 Edit History</h2>
+                <button onclick="closeHistoryModal()" class="btn-secondary px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" data-lang-key="history.close">Close</button>
+            </div>
+            <div id="historyContent" class="overflow-y-auto max-h-[60vh] scrollbar-thin"></div>
+        </div>
+    </div>
+    
+    <!-- Gallery Modal -->
+    <div id="galleryModal" class="gallery-modal">
+        <div class="gallery-modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+            <div class="modal-header flex justify-between items-center p-5 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 class="text-xl font-bold text-gradient">🖼️ Generated Images Gallery</h2>
+                <div class="flex gap-3 items-center">
+                    <button class="btn-secondary px-4 py-2 rounded-lg hover:shadow-glow-sm transition-all duration-200" onclick="toggleGalleryMode()" title="Toggle All/Session">
+                        👁️ Show All
+                    </button>
+                    <button class="gallery-refresh-btn btn-secondary px-4 py-2 rounded-lg hover:shadow-glow-sm transition-all duration-200" onclick="refreshGallery()" title="Refresh">
+                        🔄 Refresh
+                    </button>
+                    <button class="close-modal btn-secondary w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" onclick="closeGallery()">&times;</button>
+                </div>
+            </div>
+            <div class="gallery-stats p-4 text-gray-600 dark:text-gray-400 text-sm border-b border-gray-200/20 dark:border-gray-700/30" id="galleryStats">
+                Loading...
+            </div>
+            <div class="gallery-grid p-4 overflow-y-auto max-h-[calc(90vh-150px)] scrollbar-thin" id="galleryGrid">
+                <!-- Gallery items will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Config Agent Modal (Advanced Agent Configuration) -->
+    <div id="configAgentModal" class="modal" style="display: none;">
+        <div class="modal-content animate-slide-up glass-dark backdrop-blur-xl rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div class="modal-header flex justify-between items-center mb-5 pb-4 border-b border-gray-200/20 dark:border-gray-700/50">
+                <h2 class="text-xl font-bold text-gradient">⚡ Config Agent</h2>
+                <button class="close-modal btn-secondary w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200" onclick="closeConfigAgentModal()">&times;</button>
+            </div>
+            
+            <!-- Enable Toggle -->
+            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl mb-5">
+                <div>
+                    <h3 class="font-bold text-white">🔥 Enable Config Agent</h3>
+                    <p class="text-xs text-gray-400 mt-1">Enable to use custom configuration instead of defaults</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="configAgentEnabled" class="sr-only peer" onchange="toggleConfigAgent()">
+                    <div class="w-14 h-7 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-primary peer-checked:to-secondary"></div>
+                </label>
+            </div>
+            
+            <div id="configAgentFields" class="space-y-5 opacity-50 pointer-events-none transition-all duration-300">
+                <!-- System Prompt -->
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-300 mb-2">
+                        🧠 System Prompt
+                        <span class="text-xs text-gray-500 ml-2">(Define AI personality & role)</span>
+                    </label>
+                    <textarea 
+                        id="configSystemPrompt" 
+                        rows="4" 
+                        placeholder="Example: You are an expert Python developer with 10 years of experience..."
+                        class="w-full input-field rounded-xl px-4 py-3 font-mono text-sm border-2 border-gray-600 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 scrollbar-thin"
+                    ></textarea>
+                </div>
+                
+                <!-- Injection Prompt -->
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-300 mb-2">
+                        💉 Injection Prompt
+                        <span class="text-xs text-gray-500 ml-2">(Prepend to every message)</span>
+                    </label>
+                    <textarea 
+                        id="configInjectionPrompt" 
+                        rows="2" 
+                        placeholder="Example: Always respond in English, use emoji..."
+                        class="w-full input-field rounded-xl px-4 py-3 font-mono text-sm border-2 border-gray-600 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200"
+                    ></textarea>
+                </div>
+                
+                <!-- Context Prompt -->
+                <div class="form-group">
+                    <label class="block text-sm font-semibold text-gray-300 mb-2">
+                        📚 Context Prompt
+                        <span class="text-xs text-gray-500 ml-2">(Additional context/knowledge)</span>
+                    </label>
+                    <textarea 
+                        id="configContextPrompt" 
+                        rows="3" 
+                        placeholder="Example: Current project uses Python 3.12, Flask, MongoDB..."
+                        class="w-full input-field rounded-xl px-4 py-3 font-mono text-sm border-2 border-gray-600 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200"
+                    ></textarea>
+                </div>
+                
+                <!-- Parameters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Temperature -->
+                    <div class="form-group p-4 bg-dark-surface/50 rounded-xl">
+                        <label class="block text-sm font-semibold text-gray-300 mb-2">
+                            🌡️ Temperature
+                            <span class="text-xs text-primary ml-2" id="tempValue">0.7</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="configTemperature" 
+                            min="0" max="2" step="0.1" value="0.7"
+                            class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary"
+                            oninput="document.getElementById('tempValue').textContent = this.value"
+                        >
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Precise (0)</span>
+                            <span>Creative (2)</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Top-P -->
+                    <div class="form-group p-4 bg-dark-surface/50 rounded-xl">
+                        <label class="block text-sm font-semibold text-gray-300 mb-2">
+                            🎯 Top-P (Nucleus Sampling)
+                            <span class="text-xs text-primary ml-2" id="topPValue">0.9</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="configTopP" 
+                            min="0.1" max="1" step="0.05" value="0.9"
+                            class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary"
+                            oninput="document.getElementById('topPValue').textContent = this.value"
+                        >
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Focused (0.1)</span>
+                            <span>Diverse (1.0)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Output Token Limit -->
+                <div class="form-group p-4 bg-dark-surface/50 rounded-xl">
+                    <label class="block text-sm font-semibold text-gray-300 mb-2">
+                        📝 Output Token Limit
+                        <span class="text-xs text-primary ml-2" id="tokenLimitValue">4096</span>
+                    </label>
+                    <input 
+                        type="range" 
+                        id="configTokenLimit" 
+                        min="500" max="65535" step="500" value="4096"
+                        class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary"
+                        oninput="document.getElementById('tokenLimitValue').textContent = this.value"
+                    >
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>500 tokens</span>
+                        <span>65,535 tokens</span>
+                    </div>
+                </div>
+                
+                <!-- Thinking Budget -->
+                <div class="form-group p-4 bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-xl border border-purple-500/30">
+                    <label class="block text-sm font-semibold text-gray-300 mb-3">
+                        🧪 Thinking Budget (Deep Reasoning)
+                    </label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <label class="flex items-center p-3 bg-dark-surface/50 rounded-lg cursor-pointer hover:bg-dark-surface transition-all border-2 border-transparent has-[:checked]:border-primary">
+                            <input type="radio" name="thinkingBudget" value="off" class="sr-only" checked>
+                            <div class="text-center w-full">
+                                <div class="text-2xl mb-1">⚡</div>
+                                <div class="text-sm font-medium">Off</div>
+                                <div class="text-xs text-gray-500">Fastest</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 bg-dark-surface/50 rounded-lg cursor-pointer hover:bg-dark-surface transition-all border-2 border-transparent has-[:checked]:border-primary">
+                            <input type="radio" name="thinkingBudget" value="on" class="sr-only">
+                            <div class="text-center w-full">
+                                <div class="text-2xl mb-1">🔮</div>
+                                <div class="text-sm font-medium">On</div>
+                                <div class="text-xs text-gray-500">Standard reasoning</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 bg-dark-surface/50 rounded-lg cursor-pointer hover:bg-dark-surface transition-all border-2 border-transparent has-[:checked]:border-secondary">
+                            <input type="radio" name="thinkingBudget" value="advanced" class="sr-only">
+                            <div class="text-center w-full">
+                                <div class="text-2xl mb-1">🚀</div>
+                                <div class="text-sm font-medium">Advanced</div>
+                                <div class="text-xs text-gray-500">SoTA Reasoning</div>
+                            </div>
+                        </label>
+                    </div>
+                    <p class="text-xs text-purple-300 mt-3">
+                        💡 <strong>Advanced:</strong> Uses FREE SoTA reasoning models (DeepSeek R1, Qwen QwQ) for extremely deep reasoning
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-700/50">
+                <button 
+                    onclick="resetConfigAgent()" 
+                    class="btn-secondary px-5 py-2.5 rounded-lg font-medium hover:bg-yellow-500 hover:text-black hover:border-yellow-500 transition-all duration-200"
+                >
+                    🔄 Reset Defaults
+                </button>
+                <button 
+                    onclick="saveConfigAgent()" 
+                    class="btn-primary px-6 py-2.5 rounded-lg font-medium shadow-lg hover:shadow-glow transition-all duration-200"
+                >
+                    💾 Save Config
+                </button>
+            </div>
+            
+            <!-- Info Note -->
+            <div class="mt-5 p-4 bg-blue-900/20 rounded-xl text-xs text-blue-300 border border-blue-500/20">
+                <strong class="block mb-2">💡 Notes:</strong>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>Configuration is saved in browser and applies to all conversations</li>
+                    <li>Disable "Enable" to return to defaults without losing settings</li>
+                    <li>"Advanced" Thinking Budget will switch to reasoning model for complex analysis</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load JavaScript modules -->
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mcp.js') }}"></script>
+    
+    <!-- Thinking Mode, Tools Menu & Branch Conversation Scripts -->
+    <script>
+        console.log('=== INLINE SCRIPTS LOADED ===');
+        
+        // ============================================================================
+        // THINKING MODE SELECTOR (ChatGPT style)
+        // ============================================================================
+        let currentThinkingMode = localStorage.getItem('thinkingMode') || 'instant';
+        
+        function initThinkingMode() {
+            const btn = document.getElementById('thinkingModeBtn');
+            const dropdown = document.getElementById('thinkingModeDropdown');
+            const options = document.querySelectorAll('.thinking-mode-option');
+            const hiddenInput = document.getElementById('thinkingModeValue');
+            
+            if (!btn || !dropdown) return;
+            
+            // Toggle dropdown
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = dropdown.classList.contains('hidden');
+                dropdown.classList.toggle('hidden');
+                console.log('Thinking Mode Dropdown toggled:', !isHidden ? 'closed' : 'opened');
+                console.log('Dropdown classes:', dropdown.className);
+                console.log('Options count:', options.length);
+            });
+            
+            // Close on outside click
+            document.addEventListener('click', () => {
+                dropdown.classList.add('hidden');
+            });
+            
+            // Option selection
+            options.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const mode = option.dataset.mode;
+                    const icon = option.dataset.icon;
+                    const label = option.dataset.label;
+                    
+                    selectThinkingMode(mode, icon, label);
+                    dropdown.classList.add('hidden');
+                });
+            });
+            
+            // Restore saved mode
+            const savedOption = document.querySelector(`.thinking-mode-option[data-mode="${currentThinkingMode}"]`);
+            if (savedOption) {
+                selectThinkingMode(
+                    currentThinkingMode,
+                    savedOption.dataset.icon,
+                    savedOption.dataset.label
+                );
+            }
+        }
+        
+        function selectThinkingMode(mode, icon, label) {
+            currentThinkingMode = mode;
+            localStorage.setItem('thinkingMode', mode);
+            
+            // Update button display
+            document.getElementById('thinkingModeIcon').textContent = icon;
+            document.getElementById('thinkingModeLabel').textContent = label;
+            document.getElementById('thinkingModeValue').value = mode;
+            
+            // Update active state
+            document.querySelectorAll('.thinking-mode-option').forEach(opt => {
+                opt.classList.remove('bg-primary/10', 'border-l-2', 'border-primary');
+                if (opt.dataset.mode === mode) {
+                    opt.classList.add('bg-primary/10', 'border-l-2', 'border-primary');
+                }
+            });
+            
+            console.log('[Thinking Mode] Selected:', mode);
+        }
+        
+        // Expose for API
+        window.getThinkingMode = function() {
+            return currentThinkingMode;
+        };
+        
+        window.isDeepThinking = function() {
+            return currentThinkingMode === 'thinking' || currentThinkingMode === 'deep';
+        };
+        
+        // ============================================================================
+        // TOOLS MENU (+) 
+        // ============================================================================
+        let activeTools = new Set();
+        
+        function initToolsMenu() {
+            const btn = document.getElementById('toolsMenuBtn');
+            const dropdown = document.getElementById('toolsMenuDropdown');
+            const icon = document.getElementById('toolsMenuIcon');
+            
+            if (!btn || !dropdown) return;
+            
+            // Toggle dropdown
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = !dropdown.classList.contains('hidden');
+                dropdown.classList.toggle('hidden');
+                
+                // Rotate icon
+                if (isOpen) {
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    icon.style.transform = 'rotate(45deg)';
+                }
+            });
+            
+            // Close on outside click
+            document.addEventListener('click', () => {
+                dropdown.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            });
+            
+            // Prevent dropdown from closing when clicking inside
+            dropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+            
+            // Setup tool item clicks
+            setupToolItemClicks();
+        }
+        
+        function setupToolItemClicks() {
+            // Config Agent - opens modal
+            const configAgentBtn = document.getElementById('configAgentBtn');
+            if (configAgentBtn) {
+                configAgentBtn.addEventListener('click', () => {
+                    closeToolsMenu();
+                    openConfigAgentModal();
+                });
+            }
+            
+            // Google Search - toggle tool
+            const googleSearchBtn = document.getElementById('googleSearchBtn');
+            if (googleSearchBtn) {
+                googleSearchBtn.addEventListener('click', () => {
+                    toggleToolActive('google-search', googleSearchBtn);
+                });
+            }
+            
+            // GitHub - toggle tool
+            const githubBtn = document.getElementById('githubBtn');
+            if (githubBtn) {
+                githubBtn.addEventListener('click', () => {
+                    toggleToolActive('github', githubBtn);
+                });
+            }
+            
+            // Text2Img - toggle tool
+            const imageGenToolBtn = document.getElementById('imageGenToolBtn');
+            if (imageGenToolBtn) {
+                imageGenToolBtn.addEventListener('click', () => {
+                    toggleToolActive('image-generation', imageGenToolBtn);
+                });
+            }
+            
+            // Upload Files
+            const uploadFilesBtn = document.getElementById('uploadFilesBtn');
+            const fileInput = document.getElementById('fileInput');
+            if (uploadFilesBtn && fileInput) {
+                uploadFilesBtn.addEventListener('click', () => {
+                    closeToolsMenu();
+                    fileInput.click();
+                });
+            }
+            
+            // Branch Conversation
+            const branchBtn = document.getElementById('branchConversationBtn');
+            if (branchBtn) {
+                branchBtn.addEventListener('click', () => {
+                    closeToolsMenu();
+                    createBranchConversation();
+                });
+            }
+        }
+        
+        function toggleToolActive(toolName, btn) {
+            if (activeTools.has(toolName)) {
+                activeTools.delete(toolName);
+                btn.classList.remove('bg-primary/20', 'border-l-2', 'border-primary');
+            } else {
+                activeTools.add(toolName);
+                btn.classList.add('bg-primary/20', 'border-l-2', 'border-primary');
+            }
+            updateActiveToolsDisplay();
+            console.log('[Tools] Active tools:', Array.from(activeTools));
+        }
+        
+        function updateActiveToolsDisplay() {
+            const display = document.getElementById('activeToolsDisplay');
+            if (!display) return;
+            
+            display.innerHTML = '';
+            
+            if (activeTools.size === 0) {
+                display.classList.add('hidden');
+                return;
+            }
+            
+            display.classList.remove('hidden');
+            
+            const toolIcons = {
+                'google-search': '🔍',
+                'github': '📦',
+                'image-generation': '🎨'
+            };
+            
+            activeTools.forEach(tool => {
+                const badge = document.createElement('span');
+                badge.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-xs font-medium text-primary border border-primary/30';
+                badge.innerHTML = `${toolIcons[tool] || '🔧'} ${tool} <button class="ml-1 hover:text-red-500" onclick="removeTool('${tool}')">&times;</button>`;
+                display.appendChild(badge);
+            });
+        }
+        
+        window.removeTool = function(toolName) {
+            activeTools.delete(toolName);
+            updateActiveToolsDisplay();
+            
+            // Update button state in menu
+            const btnMap = {
+                'google-search': 'googleSearchBtn',
+                'github': 'githubBtn',
+                'image-generation': 'imageGenToolBtn'
+            };
+            const btn = document.getElementById(btnMap[toolName]);
+            if (btn) {
+                btn.classList.remove('bg-primary/20', 'border-l-2', 'border-primary');
+            }
+        };
+        
+        window.getActiveTools = function() {
+            return Array.from(activeTools);
+        };
+        
+        function closeToolsMenu() {
+            const dropdown = document.getElementById('toolsMenuDropdown');
+            const icon = document.getElementById('toolsMenuIcon');
+            if (dropdown) dropdown.classList.add('hidden');
+            if (icon) icon.style.transform = 'rotate(0deg)';
+        }
+        
+        // ============================================================================
+        // BRANCH CONVERSATION
+        // ============================================================================
+        function createBranchConversation() {
+            if (!window.chatManager) {
+                console.error('[Branch] chatManager not found');
+                alert('Không thể tạo nhánh: Chat manager không khả dụng');
+                return;
+            }
+            
+            const currentSession = window.chatManager.getCurrentSession();
+            if (!currentSession) {
+                alert('Không có cuộc hội thoại nào đang mở');
+                return;
+            }
+            
+            // Get messages up to current point
+            const messages = currentSession.messages || [];
+            if (messages.length === 0) {
+                alert('Không có tin nhắn nào để tạo nhánh');
+                return;
+            }
+            
+            // Create new session with copied messages
+            const branchId = 'branch_' + Date.now();
+            const parentTitle = currentSession.title || 'Chat';
+            const branchTitle = `🌿 Nhánh: ${parentTitle.substring(0, 20)}...`;
+            
+            // Create branch session
+            const branchSession = {
+                id: branchId,
+                title: branchTitle,
+                messages: [...messages], // Copy all messages
+                parentId: currentSession.id,
+                branchPoint: messages.length,
+                createdAt: Date.now(),
+                attachedFiles: currentSession.attachedFiles ? [...currentSession.attachedFiles] : []
+            };
+            
+            // Add to sessions
+            window.chatManager.chatSessions[branchId] = branchSession;
+            window.chatManager.saveSessions();
+            
+            // Switch to branch
+            window.chatManager.currentChatId = branchId;
+            
+            // Trigger UI update
+            window.dispatchEvent(new Event('chatListNeedsUpdate'));
+            
+            // Reload chat
+            if (window.chatApp) {
+                window.chatApp.loadCurrentChat();
+            }
+            
+            // Show notification
+            const chatContainer = document.getElementById('chatContainer');
+            if (chatContainer && window.chatApp && window.chatApp.messageRenderer) {
+                const timestamp = new Date().toLocaleTimeString('vi-VN');
+                window.chatApp.messageRenderer.addMessage(
+                    chatContainer,
+                    `🌿 **Đã tạo nhánh mới từ cuộc hội thoại "${parentTitle}"**\n\nBạn có thể tiếp tục chat theo hướng mới từ đây.`,
+                    false, 'System', 'info', timestamp, null, false
+                );
+            }
+            
+            console.log('[Branch] Created branch:', branchId, 'from:', currentSession.id);
+        }
+        
+        // ============================================================================
+        // COORDINATED REASONING (StepFun-inspired)
+        // ============================================================================
+        window.coordinatedReasoning = {
+            maxRounds: 3,
+            currentRound: 0,
+            trajectories: [],
+            
+            // Check if should use coordinated reasoning
+            shouldUseDeepReasoning: function() {
+                const mode = window.getThinkingMode ? window.getThinkingMode() : 'instant';
+                return mode === 'deep';
+            },
+            
+            // Estimate complexity of question
+            estimateComplexity: function(message) {
+                const complexIndicators = [
+                    /giải thích|explain|why|tại sao|như thế nào|how/i,
+                    /so sánh|compare|difference|khác nhau/i,
+                    /phân tích|analyze|analysis/i,
+                    /code|programming|bug|error|lỗi/i,
+                    /math|toán|calculate|tính/i,
+                    /step by step|từng bước/i
+                ];
+                
+                let complexity = 0;
+                complexIndicators.forEach(pattern => {
+                    if (pattern.test(message)) complexity++;
+                });
+                
+                // Length also indicates complexity
+                if (message.length > 200) complexity++;
+                if (message.length > 500) complexity++;
+                
+                return complexity;
+            },
+            
+            // Auto-decide thinking mode
+            autoDecideMode: function(message) {
+                const mode = window.getThinkingMode ? window.getThinkingMode() : 'instant';
+                
+                if (mode !== 'auto') {
+                    return mode === 'thinking' || mode === 'deep';
+                }
+                
+                // Auto mode: decide based on complexity
+                const complexity = this.estimateComplexity(message);
+                console.log('[Auto Mode] Complexity score:', complexity);
+                
+                if (complexity >= 3) {
+                    console.log('[Auto Mode] Using deep thinking');
+                    return true;
+                }
+                
+                return false;
+            }
+        };
+        
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== DOM READY ===');
+            
+            // Initialize Thinking Mode
+            initThinkingMode();
+            
+            // Initialize Tools Menu
+            initToolsMenu();
+            
+            const fileInput = document.getElementById('fileInput');
+            console.log('File input element:', fileInput);
+            
+            if (fileInput) {
+                console.log('Setting up direct onchange...');
+                fileInput.onchange = function(e) {
+                    console.log('=== ONCHANGE FIRED (INLINE) ===');
+                    console.log('Files:', e.target.files);
+                };
+                console.log('Direct onchange setup complete');
+            } else {
+                console.error('File input NOT FOUND!');
+            }
+        });
+        
+        // ============================================================================
+        // CONFIG AGENT - Advanced Agent Configuration
+        // ============================================================================
+        
+        // Default config
+        const defaultAgentConfig = {
+            enabled: false,
+            systemPrompt: '',
+            injectionPrompt: '',
+            contextPrompt: '',
+            temperature: 0.7,
+            topP: 0.9,
+            tokenLimit: 4096,
+            thinkingBudget: 'off'  // off, on, advanced
+        };
+        
+        // Load config from localStorage
+        let agentConfig = JSON.parse(localStorage.getItem('agentConfig')) || {...defaultAgentConfig};
+        
+        // Expose to global immediately
+        window.getAgentConfig = function() {
+            console.log('[Config Agent] getAgentConfig called, enabled:', agentConfig?.enabled);
+            if (!agentConfig || !agentConfig.enabled) {
+                console.log('[Config Agent] Returning null (disabled)');
+                return null;
+            }
+            console.log('[Config Agent] Returning config:', agentConfig);
+            return agentConfig;
+        };
+        window.agentConfig = agentConfig;
+        
+        console.log('[Config Agent] Initialized from localStorage:', agentConfig);
+        
+        function openConfigAgentModal() {
+            const modal = document.getElementById('configAgentModal');
+            
+            // Populate fields from config
+            document.getElementById('configAgentEnabled').checked = agentConfig.enabled;
+            document.getElementById('configSystemPrompt').value = agentConfig.systemPrompt || '';
+            document.getElementById('configInjectionPrompt').value = agentConfig.injectionPrompt || '';
+            document.getElementById('configContextPrompt').value = agentConfig.contextPrompt || '';
+            document.getElementById('configTemperature').value = agentConfig.temperature;
+            document.getElementById('tempValue').textContent = agentConfig.temperature;
+            document.getElementById('configTopP').value = agentConfig.topP;
+            document.getElementById('topPValue').textContent = agentConfig.topP;
+            document.getElementById('configTokenLimit').value = agentConfig.tokenLimit;
+            document.getElementById('tokenLimitValue').textContent = agentConfig.tokenLimit;
+            
+            // Set thinking budget radio
+            const radios = document.querySelectorAll('input[name="thinkingBudget"]');
+            radios.forEach(radio => {
+                radio.checked = radio.value === agentConfig.thinkingBudget;
+            });
+            
+            // Update fields opacity based on enabled state
+            toggleConfigAgent();
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeConfigAgentModal() {
+            const modal = document.getElementById('configAgentModal');
+            modal.style.display = 'none';
+        }
+        
+        function toggleConfigAgent() {
+            const enabled = document.getElementById('configAgentEnabled').checked;
+            const fields = document.getElementById('configAgentFields');
+            const btn = document.getElementById('configAgentBtn');
+            
+            console.log('[Config Agent] Toggle to:', enabled);
+            
+            if (enabled) {
+                fields.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                fields.classList.add('opacity-50', 'pointer-events-none');
+            }
+            
+            // Update agentConfig enabled state immediately
+            if (agentConfig) {
+                agentConfig.enabled = enabled;
+                // Update global reference
+                window.agentConfig = agentConfig;
+                localStorage.setItem('agentConfig', JSON.stringify(agentConfig));
+                console.log('[Config Agent] Saved to localStorage:', agentConfig);
+                
+                // Update button state immediately
+                if (enabled) {
+                    btn.classList.add('active-custom');
+                    btn.innerHTML = '⚡ Config Agent <span class="text-xs text-green-400">●</span>';
+                    btn.title = 'Config Agent ACTIVE (Click to edit)';
+                } else {
+                    btn.classList.remove('active-custom');
+                    btn.innerHTML = '⚡ Config Agent';
+                    btn.title = 'Config Agent - Advanced AI Settings';
+                }
+            }
+        }
+        
+        function saveConfigAgent() {
+            // Gather all values
+            agentConfig = {
+                enabled: document.getElementById('configAgentEnabled').checked,
+                systemPrompt: document.getElementById('configSystemPrompt').value.trim(),
+                injectionPrompt: document.getElementById('configInjectionPrompt').value.trim(),
+                contextPrompt: document.getElementById('configContextPrompt').value.trim(),
+                temperature: parseFloat(document.getElementById('configTemperature').value),
+                topP: parseFloat(document.getElementById('configTopP').value),
+                tokenLimit: parseInt(document.getElementById('configTokenLimit').value),
+                thinkingBudget: document.querySelector('input[name="thinkingBudget"]:checked')?.value || 'off'
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('agentConfig', JSON.stringify(agentConfig));
+            
+            // Update global reference
+            window.agentConfig = agentConfig;
+            
+            console.log('[Config Agent] Saved config:', agentConfig);
+            
+            // Update button state
+            const btn = document.getElementById('configAgentBtn');
+            if (agentConfig.enabled) {
+                btn.classList.add('active-custom');
+                btn.innerHTML = '⚡ Config Agent <span class="text-xs text-green-400">●</span>';
+                btn.title = 'Config Agent ACTIVE (Click to edit)';
+            } else {
+                btn.classList.remove('active-custom');
+                btn.innerHTML = '⚡ Config Agent';
+                btn.title = 'Config Agent - Advanced AI Settings';
+            }
+            
+            // Show notification
+            const chatContainer = document.getElementById('chatContainer');
+            const timestamp = new Date().toLocaleString('vi-VN');
+            if (window.chatApp && window.chatApp.messageRenderer) {
+                const statusText = agentConfig.enabled ? 'đã kích hoạt' : 'đã tắt';
+                const thinkingText = agentConfig.thinkingBudget === 'advanced' ? '🚀 Advanced Reasoning' :
+                                     agentConfig.thinkingBudget === 'on' ? '🔮 Thinking Mode' : '⚡ Fast Mode';
+                window.chatApp.messageRenderer.addMessage(
+                    chatContainer,
+                    `⚡ **Config Agent ${statusText}**\n\n` +
+                    `- 🌡️ Temperature: ${agentConfig.temperature}\n` +
+                    `- 🎯 Top-P: ${agentConfig.topP}\n` +
+                    `- 📝 Token Limit: ${agentConfig.tokenLimit}\n` +
+                    `- 🧪 Thinking: ${thinkingText}`,
+                    false, 'System', 'info', timestamp, null, true
+                );
+            }
+            
+            closeConfigAgentModal();
+        }
+        
+        function resetConfigAgent() {
+            if (!confirm('Reset về cấu hình mặc định?')) return;
+            
+            agentConfig = {...defaultAgentConfig};
+            localStorage.removeItem('agentConfig');
+            
+            // Update UI
+            document.getElementById('configAgentEnabled').checked = false;
+            document.getElementById('configSystemPrompt').value = '';
+            document.getElementById('configInjectionPrompt').value = '';
+            document.getElementById('configContextPrompt').value = '';
+            document.getElementById('configTemperature').value = 0.7;
+            document.getElementById('tempValue').textContent = '0.7';
+            document.getElementById('configTopP').value = 0.9;
+            document.getElementById('topPValue').textContent = '0.9';
+            document.getElementById('configTokenLimit').value = 4096;
+            document.getElementById('tokenLimitValue').textContent = '4096';
+            document.querySelectorAll('input[name="thinkingBudget"]')[0].checked = true;
+            
+            toggleConfigAgent();
+            
+            const btn = document.getElementById('configAgentBtn');
+            btn.classList.remove('active-custom');
+            btn.innerHTML = '⚡ Config Agent';
+            btn.title = 'Config Agent - Advanced AI Settings';
+            
+            // Update window reference
+            window.agentConfig = agentConfig;
+        }
+        
+        // Add event listener for Config Agent button
+        document.addEventListener('DOMContentLoaded', function() {
+            const configAgentBtn = document.getElementById('configAgentBtn');
+            if (configAgentBtn) {
+                configAgentBtn.addEventListener('click', openConfigAgentModal);
+                // Restore state from localStorage
+                if (agentConfig.enabled) {
+                    configAgentBtn.classList.add('active-custom');
+                    configAgentBtn.innerHTML = '⚡ Config Agent <span class="text-xs text-green-400">●</span>';
+                    configAgentBtn.title = 'Config Agent ACTIVE (Click to edit)';
+                }
+            }
+        });
+    </script>
+    
+    <!-- Style Presets Script -->
+    <script>
+        // Style presets configuration
+        const stylePresets = {
+            anime_xl: {
+                name: "Anime XL",
+                description: "High quality anime art (SDXL)",
+                model: "animagine-xl-3.1.safetensors",
+                negative_prompt: "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, watermark, text, signature",
+                cfg_scale: 7.0,
+                steps: 25,
+                width: 1024,
+                height: 1024
+            },
+            realistic_xl: {
+                name: "Realistic Fast",
+                description: "Photorealistic Lightning (SDXL)",
+                model: "realvisxlV50_v50LightningBakedvae.safetensors",
+                negative_prompt: "cartoon, anime, illustration, drawing, painting, sketch, bad quality, blurry, distorted, deformed, ugly, watermark, signature",
+                cfg_scale: 2.0,
+                steps: 6,
+                width: 1024,
+                height: 1024
+            },
+            realistic_juggernaut: {
+                name: "Realistic Pro",
+                description: "Professional photorealistic (SDXL)",
+                model: "juggernautXL_v9.safetensors",
+                negative_prompt: "cartoon, anime, illustration, drawing, painting, bad quality, worst quality, blurry, distorted, deformed, ugly, extra limbs, missing limbs, watermark, signature, text",
+                cfg_scale: 4.5,
+                steps: 25,
+                width: 1024,
+                height: 1344
+            },
+            anime_counterfeit: {
+                name: "Anime Classic",
+                description: "Classic anime style (SD 1.5)",
+                model: "counterfeit_v30.safetensors",
+                negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, blurry",
+                cfg_scale: 7.0,
+                steps: 28,
+                width: 512,
+                height: 768
+            },
+            anime_dreamshaper: {
+                name: "Anime Fantasy",
+                description: "Fantasy anime style (SDXL)",
+                model: "dreamshaper_xl.safetensors",
+                negative_prompt: "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, poorly drawn face, watermark, signature",
+                cfg_scale: 6.5,
+                steps: 20,
+                width: 1024,
+                height: 1024
+            },
+            realistic_vision: {
+                name: "Realistic Portrait",
+                description: "Portrait realistic (SD 1.5)",
+                model: "realisticVision_v60.safetensors",
+                negative_prompt: "cartoon, anime, illustration, bad anatomy, bad hands, text, cropped, worst quality, low quality, blurry, dehydrated, bad proportions, extra limbs, cloned face, disfigured",
+                cfg_scale: 7.0,
+                steps: 28,
+                width: 512,
+                height: 768
+            }
+        };
+        
+        let currentStyle = 'anime_xl';
+        
+        function selectStyle(styleId) {
+            currentStyle = styleId;
+            const preset = stylePresets[styleId];
+            
+            if (!preset) return;
+            
+            // Update button states
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-gray-800', 'scale-105');
+                if (btn.dataset.style === styleId) {
+                    btn.classList.add('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-gray-800', 'scale-105');
+                }
+            });
+            
+            // Update description
+            const descEl = document.getElementById('styleDescription');
+            if (descEl) {
+                descEl.textContent = preset.description;
+            }
+            
+            // Update form values
+            const negPrompt = document.getElementById('negativePrompt');
+            if (negPrompt) negPrompt.value = preset.negative_prompt;
+            
+            const widthSelect = document.getElementById('imageWidth');
+            if (widthSelect) widthSelect.value = preset.width;
+            
+            const heightSelect = document.getElementById('imageHeight');
+            if (heightSelect) heightSelect.value = preset.height;
+            
+            const stepsInput = document.getElementById('steps');
+            if (stepsInput) stepsInput.value = preset.steps;
+            
+            const cfgInput = document.getElementById('cfgScale');
+            if (cfgInput) cfgInput.value = preset.cfg_scale;
+            
+            // Update model dropdown if exists
+            const modelSelect = document.getElementById('modelCheckpoint');
+            if (modelSelect) {
+                // Try to select the preset model
+                const options = modelSelect.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === preset.model || options[i].text.includes(preset.model.split('.')[0])) {
+                        modelSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            console.log(`Selected style: ${styleId} - ${preset.name}`);
+        }
+        
+        // Store current style for generate function
+        window.getCurrentStyle = function() {
+            return currentStyle;
+        };
+        
+        window.getStylePreset = function(styleId) {
+            return stylePresets[styleId || currentStyle];
+        };
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial style
+            selectStyle('anime_xl');
+        });
+    </script>
+    
+    <!-- Firebase SDK -->
+    <!-- NOTE: Firebase web API keys are designed to be public. Security is enforced via:
+         1. Firebase Security Rules (Firestore, Storage)
+         2. App Check (optional)
+         3. Domain restrictions in Firebase Console
+         See: https://firebase.google.com/docs/projects/api-keys -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        
+        // Firebase config is loaded from server-side template
+        const firebaseConfig = {{ firebase_config | safe }};
+        
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        
+        window.firebaseDb = db;
+        
+        // Generate or retrieve persistent user ID
+        let firebaseUserId = localStorage.getItem('firebase-user-id');
+        if (!firebaseUserId) {
+            firebaseUserId = 'web_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('firebase-user-id', firebaseUserId);
+        }
+        window.firebaseUserId = firebaseUserId;
+        
+        // Log FULL chat message to Firebase (user + assistant)
+        window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
+            try {
+                const chatDoc = {
+                    userId: firebaseUserId,
+                    platform: 'web',
+                    model: model,
+                    userMessage: userMessage,
+                    assistantResponse: assistantResponse,
+                    imageUrls: imageUrls,  // ImgBB links, generated images, etc
+                    timestamp: serverTimestamp(),
+                    userAgent: navigator.userAgent.substring(0, 200)
+                };
+                
+                const docRef = await addDoc(collection(db, 'conversations'), chatDoc);
+                console.log('[Firebase] Saved chat:', docRef.id);
+                return docRef.id;
+            } catch (e) {
+                console.log("Firebase log error:", e.message);
+                return null;
+            }
+        };
+        
+        // Log image generation to Firebase
+        window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
+            try {
+                const imageDoc = {
+                    userId: firebaseUserId,
+                    platform: 'web',
+                    type: 'image_generation',
+                    prompt: prompt,
+                    negativePrompt: negativePrompt || '',
+                    imageUrl: imageUrl,  // Base64 or local URL
+                    cloudUrl: cloudUrl,  // ImgBB URL if uploaded
+                    timestamp: serverTimestamp()
+                };
+                
+                const docRef = await addDoc(collection(db, 'generated_images'), imageDoc);
+                console.log('[Firebase] Saved image:', docRef.id);
+                return docRef.id;
+            } catch (e) {
+                console.log("Firebase image log error:", e.message);
+                return null;
+            }
+        };
+        
+        // Save/Update user profile
+        window.saveUserProfile = async function(profileData = {}) {
+            try {
+                const userRef = doc(db, 'users', firebaseUserId);
+                await setDoc(userRef, {
+                    ...profileData,
+                    lastActive: serverTimestamp(),
+                    platform: 'web'
+                }, { merge: true });
+                console.log('[Firebase] User profile updated');
+            } catch (e) {
+                console.log("Firebase user save error:", e.message);
+            }
+        };
+        
+        // Log page view with user context
+        (async () => {
+            try {
+                // Log page view
+                await addDoc(collection(db, 'page_views'), {
+                    userId: firebaseUserId,
+                    page: '/chatbot',
+                    platform: 'web',
+                    timestamp: serverTimestamp(),
+                    referrer: document.referrer || 'direct',
+                    userAgent: navigator.userAgent.substring(0, 100)
+                });
+                
+                // Update user's last active
+                await window.saveUserProfile({});
+            } catch (e) {}
+        })();
+    </script>
+</body>
+</html>

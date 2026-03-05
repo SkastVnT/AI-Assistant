@@ -12,6 +12,7 @@ import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
 import { ImageGenV2 } from './modules/image-gen-v2.js';
 import { ExportHandler } from './modules/export-handler.js';
+import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
 
 class ChatBotApp {
@@ -31,12 +32,15 @@ class ChatBotApp {
         window.chatManager = this.chatManager;
         window.chatApp = this;
         
-        // State
-        this.activeTools = new Set();
+        // State — auto-enable all image tools on startup
+        this.activeTools = new Set(['image-generation', 'img2img']);
         this.conversationActive = false;
         this.currentAbortController = null;
         this.messageHistory = {}; // Store message versions: { messageId: [version1, version2, ...] }
         this.currentMessageId = null;
+        
+        // Split view (initialized after DOM ready)
+        this.splitViewManager = null;
     }
 
     /**
@@ -243,7 +247,9 @@ class ChatBotApp {
             this.chatManager.chatSessions,
             this.chatManager.currentChatId,
             (chatId) => this.handleSwitchChat(chatId),
-            (chatId) => this.handleDeleteChat(chatId)
+            (chatId) => this.handleDeleteChat(chatId),
+            (fromId, toId, position) => this.handleReorderChat(fromId, toId, position),
+            (chatId) => this.handleTogglePin(chatId)
         );
         
         // Check local models
@@ -265,8 +271,26 @@ class ChatBotApp {
             this.chatManager.chatSessions,
             this.chatManager.currentChatId,
             (chatId) => this.handleSwitchChat(chatId),
-            (chatId) => this.handleDeleteChat(chatId)
+            (chatId) => this.handleDeleteChat(chatId),
+            (fromId, toId, position) => this.handleReorderChat(fromId, toId, position),
+            (chatId) => this.handleTogglePin(chatId)
         );
+    }
+
+    /**
+     * Handle drag & drop reorder
+     */
+    handleReorderChat(fromId, toId, position) {
+        this.chatManager.reorderChats(fromId, toId, position);
+        this.renderChatList();
+    }
+
+    /**
+     * Handle pin/unpin chat
+     */
+    handleTogglePin(chatId) {
+        this.chatManager.togglePin(chatId);
+        this.renderChatList();
     }
 
     /**
@@ -301,11 +325,35 @@ class ChatBotApp {
             this.uiUtils.toggleDarkMode();
         });
         
+        // Split View toggle
+        this.splitViewManager = new SplitViewManager(this.chatManager, this.uiUtils);
+        const splitViewBtn = document.getElementById('splitViewBtn');
+        if (splitViewBtn) {
+            splitViewBtn.addEventListener('click', () => {
+                this.splitViewManager.toggle();
+            });
+        }
+        
         // Eye Care mode toggle
         const eyeCareBtn = document.getElementById('eyeCareBtn');
         if (eyeCareBtn) {
             eyeCareBtn.addEventListener('click', () => {
                 this.uiUtils.toggleEyeCareMode();
+            });
+        }
+
+        // ── More menu (topbar overflow) ──
+        const moreMenuBtn = document.getElementById('moreMenuBtn');
+        const moreMenuDropdown = document.getElementById('moreMenuDropdown');
+        if (moreMenuBtn && moreMenuDropdown) {
+            moreMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                moreMenuDropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                if (!moreMenuDropdown.contains(e.target) && e.target !== moreMenuBtn) {
+                    moreMenuDropdown.classList.add('hidden');
+                }
             });
         }
         
@@ -344,6 +392,8 @@ class ChatBotApp {
         }
         
         if (elements.imageGenToolBtn) {
+            // Auto-activate image-generation tool on startup
+            elements.imageGenToolBtn.classList.add('active');
             elements.imageGenToolBtn.addEventListener('click', () => {
                 this.toggleTool('image-generation', elements.imageGenToolBtn);
             });
@@ -364,8 +414,9 @@ class ChatBotApp {
         // Expose V2 globally for onclick handlers
         window.imageGenV2 = this.imageGenV2;
         
-        // Img2Img tool button
+        // Img2Img tool button — auto-activate on startup
         if (elements.img2imgToolBtn) {
+            elements.img2imgToolBtn.classList.add('active');
             elements.img2imgToolBtn.addEventListener('click', async () => {
                 await this.openImageGenModal();
                 setTimeout(() => this.imageGen.switchTab('img2img'), 100);
@@ -414,6 +465,10 @@ class ChatBotApp {
         
         // Load messages
         if (session.messages.length > 0) {
+            // Hide welcome screen
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            if (welcomeScreen) welcomeScreen.style.display = 'none';
+
             elements.chatContainer.innerHTML = session.messages.join('');
             
             // Restore message version history from session
@@ -448,6 +503,12 @@ class ChatBotApp {
             setTimeout(makeClickable, 600);
         } else {
             this.uiUtils.clearChat();
+            // Show welcome screen
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            if (welcomeScreen) {
+                welcomeScreen.style.display = '';
+                elements.chatContainer.appendChild(welcomeScreen);
+            }
         }
         
         // Load attached files for this session
@@ -967,7 +1028,9 @@ class ChatBotApp {
             this.chatManager.chatSessions,
             this.chatManager.currentChatId,
             (chatId) => this.handleSwitchChat(chatId),
-            (chatId) => this.handleDeleteChat(chatId)
+            (chatId) => this.handleDeleteChat(chatId),
+            (fromId, toId, position) => this.handleReorderChat(fromId, toId, position),
+            (chatId) => this.handleTogglePin(chatId)
         );
     }
 
@@ -980,6 +1043,12 @@ class ChatBotApp {
         }
         
         this.uiUtils.clearChat();
+        // Show welcome screen again
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = '';
+            this.uiUtils.elements.chatContainer.appendChild(welcomeScreen);
+        }
         this.chatManager.updateCurrentSession([]);
         
         // Also clear files for this session
@@ -997,6 +1066,12 @@ class ChatBotApp {
         this.saveCurrentSession();
         this.chatManager.newChat();
         this.uiUtils.clearChat();
+        // Show welcome screen
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = '';
+            this.uiUtils.elements.chatContainer.appendChild(welcomeScreen);
+        }
         
         // Clear files when creating new chat
         this.fileHandler.clearSessionFiles();
@@ -1269,7 +1344,7 @@ class ChatBotApp {
      * Setup MCP Tab switching and functionality
      */
     setupMcpTabs() {
-        const tabs = document.querySelectorAll('.mcp-tab');
+        const tabs = document.querySelectorAll('#mcpTabFolder, #mcpTabUrl, #mcpTabUpload');
         const folderSource = document.getElementById('mcpFolderSource');
         const urlSource = document.getElementById('mcpUrlSource');
         const uploadSource = document.getElementById('mcpUploadSource');
@@ -1935,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!modal) return;
         
-        modal.classList.add('active');
+        modal.classList.add('active', 'open');
         grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">⏳ Đang tải ảnh...</div>';
         
         try {
@@ -1998,7 +2073,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.closeGallery = () => {
         const modal = document.getElementById('galleryModal');
-        if (modal) modal.classList.remove('active');
+        if (modal) modal.classList.remove('active', 'open');
     };
     
     window.refreshGallery = async () => {
@@ -2066,7 +2141,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (galleryBtn) {
         galleryBtn.addEventListener('click', openGallery);
     }
-    
+
+    // History modal close
+    window.closeHistoryModal = () => {
+        const modal = document.getElementById('historyModal');
+        if (modal) modal.classList.remove('active', 'open');
+    };
+
     // Expose app for debugging
     window.chatApp = app;
     console.log('[App] ChatBot app exposed to window.chatApp');

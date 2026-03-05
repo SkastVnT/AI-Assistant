@@ -106,6 +106,11 @@ class MCPController {
                 this.fileSearch.disabled = false;
                 this.updateStatus('active', '🟢 Enabled');
                 this.showNotification('✅ MCP Enabled', 'success');
+                // Enable tab buttons
+                ['mcpTabFolder', 'mcpTabUrl', 'mcpTabUpload'].forEach(id => {
+                    const tab = document.getElementById(id);
+                    if (tab) tab.disabled = false;
+                });
             } else {
                 throw new Error(result.error || 'Failed to enable MCP');
             }
@@ -127,6 +132,11 @@ class MCPController {
             this.selectBtn.disabled = true;
             this.fileSearch.disabled = true;
             this.updateStatus('', '⚪ Tắt');
+            // Disable tab buttons
+            ['mcpTabFolder', 'mcpTabUrl', 'mcpTabUpload'].forEach(id => {
+                const tab = document.getElementById(id);
+                if (tab) tab.disabled = true;
+            });
             this.folders = [];
             this.files = [];
             this.selectedFiles = [];

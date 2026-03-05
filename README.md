@@ -38,11 +38,11 @@
 
 **🌟 Nền tảng tích hợp 9+ dịch vụ AI Microservices 🚀**
 
-**Multi-Model Chat • Image Generation • Speech Recognition • Document OCR • Text2SQL**
+**Multi-Model Chat • 7-Provider Image Gen • Split View • External API • Browser Extension • Speech Recognition • Document OCR • Text2SQL**
 
 <br/>
 
-[✨ Features](#-features) &nbsp;•&nbsp; [⚡ Quick Start](#-quick-start) &nbsp;•&nbsp; [🎯 Services](#-services) &nbsp;•&nbsp; [📚 Docs](#-documentation)
+[✨ Features](#-features) &nbsp;•&nbsp; [🆕 What's New](#-whats-new-in-v30) &nbsp;•&nbsp; [⚡ Quick Start](#-quick-start) &nbsp;•&nbsp; [🎯 Services](#-services) &nbsp;•&nbsp; [📚 Docs](#-documentation)
 
 ---
 
@@ -58,16 +58,17 @@
 
 ### 💬 Multi-Model AI Chat
 Hỗ trợ nhiều mô hình AI hàng đầu:
-- **GPT-4** - OpenAI's flagship model
-- **GROK** - xAI's conversational AI
-- **DeepSeek** - Chinese open-source LLM
-- **Qwen** - Alibaba's multilingual model
-- **Google Gemini** - Google's multimodal AI
+- **Grok-3** - xAI's flagship model (default)
+- **GPT-4o-mini** - OpenAI
+- **Gemini 2.0 Flash** - Google (Free, 1M ctx)
+- **DeepSeek R1** - Reasoning model
+- **Qwen Turbo** - Alibaba multilingual
+- **BloomVN-8B** - Vietnamese optimized
 
 ✅ Streaming response real-time  
-✅ Code execution sandbox  
-✅ MongoDB conversation storage  
-✅ Firebase authentication
+✅ Split view — 2 chats side-by-side  
+✅ Drag & drop chat reorder + pin  
+✅ External REST API + Browser Extension
 
 </td>
 <td width="50%">
@@ -101,15 +102,15 @@ Trích xuất và phân tích tài liệu:
 <td width="50%">
 
 ### 🎨 Image Generation
-Tạo ảnh AI với ComfyUI workflows:
-- **Text-to-Image** - Tạo ảnh từ text
-- **Image-to-Image** - Biến đổi ảnh
-- **LoRA Training** - Fine-tune models
+Đa nhà cung cấp AI tạo ảnh:
+- **7 Providers**: fal, BFL, Replicate, StepFun, OpenAI, Together, ComfyUI
+- **Smart Routing**: Auto-select best provider
+- **Fallback chain**: Tự động thử provider tiếp theo
 
-✅ Node-based workflows  
-✅ Custom nodes support  
-✅ Batch generation  
-✅ High-quality output
+✅ FLUX, DALL-E 3, SD models  
+✅ Auto-detect image requests  
+✅ Prompt enhancement via LLM  
+✅ All API keys auto-configured
 
 </td>
 </tr>
@@ -142,6 +143,23 @@ Nâng cấp chất lượng ảnh với AI:
 </td>
 </tr>
 </table>
+
+<br/>
+
+---
+
+## 🆕 What's New in v3.0
+
+| Category | Changes |
+|:---------|:--------|
+| 🎨 **Complete UI Redesign** | ChatGPT/Gemini-quality interface, Lucide SVG icons, 3 themes (Dark/Light/Eye-care) |
+| 🖼️ **Multi-Provider Image Gen V2** | 7 providers with smart routing & auto-fallback (fal, BFL, Replicate, StepFun, OpenAI, Together, ComfyUI) |
+| 🧩 **Split View** | View 2 conversations side-by-side with resizable divider |
+| 🔀 **Drag & Drop Chats** | Reorder conversations by dragging, pin important chats to top |
+| 🌐 **External REST API** | `/api/v1/chat`, `/api/v1/context`, `/api/v1/providers` — headless integration |
+| 🧩 **Chrome Extension** | Mini chat sidebar, page context injection, `Ctrl+Shift+A` shortcut |
+| 🤖 **Auto Image Detection** | LLM auto-detects image requests and routes to Image Gen V2 |
+| 🎯 **Grok-3 Default** | xAI Grok-3 as default model, Deep Thinking mode support |
 
 <br/>
 
@@ -194,7 +212,7 @@ scripts\start-text2sql.bat         # 📊 Text2SQL    → localhost:5002
 
 | Service | Port | Mô tả | Status |
 |:--------|:----:|:------|:------:|
-| 🤖 **ChatBot** | `5001` | Multi-model AI chat + MongoDB + Code sandbox | ✅ Production |
+| 🤖 **ChatBot** | `5000` | Multi-model Chat + 7-Provider Image Gen + Split View + External API | ✅ **v3.0** |
 | 🎯 **Hub Gateway** | `3000` | API Gateway + Rate limiting + Authentication | ✅ Production |
 | 📄 **Document Intelligence** | `5003` | Vietnamese OCR + Table extraction + AI analysis | ✅ Production |
 | 🎙️ **Speech2Text** | `7860` | Whisper + Speaker diarization + Real-time | ✅ Production |
@@ -203,6 +221,7 @@ scripts\start-text2sql.bat         # 📊 Text2SQL    → localhost:5002
 | 🖼️ **Image Upscale** | `CLI` | RealESRGAN 4x + Batch + GIF animation | ✅ Ready |
 | ✨ **LoRA Training** | `CLI` | SD fine-tuning + Dataset preparation | ✅ Ready |
 | 🔌 **MCP Server** | `CLI` | Claude Desktop integration + Custom tools | ✅ Ready |
+| 🌐 **Browser Extension** | `-` | Chrome Extension — chat sidebar + page context | ✅ **New** |
 
 </div>
 
@@ -216,7 +235,11 @@ scripts\start-text2sql.bat         # 📊 Text2SQL    → localhost:5002
 AI-Assistant/
 │
 ├── 📦 services/                    # Microservices
-│   ├── chatbot/                    # Flask + MongoDB + Multi-model AI
+│   ├── chatbot/                    # Flask + Multi-model AI + Image Gen V2
+│   │   ├── core/image_gen/         # 7-provider image generation engine
+│   │   ├── extension/              # Chrome browser extension (Manifest V3)
+│   │   ├── static/js/modules/      # Split view, chat manager, UI utils
+│   │   └── templates/              # Redesigned UI (Lucide icons, 3 themes)
 │   ├── hub-gateway/                # API Gateway + Authentication
 │   ├── speech2text/                # Whisper + Pyannote
 │   ├── document-intelligence/      # PaddleOCR + AI Analysis
@@ -259,11 +282,22 @@ AI-Assistant/
 ### Environment Variables
 
 ```env
-# 🔑 Required - AI APIs (chọn 1 hoặc nhiều)
-GROK_API_KEY=your_grok_key
-OPENAI_API_KEY=your_openai_key
-GOOGLE_API_KEY=your_google_key
-DEEPSEEK_API_KEY=your_deepseek_key
+# 🔑 Required - Chat AI APIs (chọn 1 hoặc nhiều)
+GROK_API_KEY=your_grok_key           # xAI Grok-3 (default)
+OPENAI_API_KEY=your_openai_key       # GPT-4o-mini
+GOOGLE_API_KEY=your_google_key       # Gemini 2.0 Flash
+DEEPSEEK_API_KEY=your_deepseek_key   # DeepSeek R1
+QWEN_API_KEY=your_qwen_key           # Qwen Turbo
+
+# 🎨 Image Generation APIs (tùy chọn — hệ thống tự fallback)
+FAL_KEY=your_fal_key                 # fal.ai (FLUX Pro/Dev - priority 90)
+BFL_API_KEY=your_bfl_key             # Black Forest Labs (FLUX 1.1 - priority 85)
+REPLICATE_API_TOKEN=your_replicate   # Replicate (FLUX Schnell - priority 80)
+STEPFUN_API_KEY=your_stepfun_key     # StepFun (priority 75)
+TOGETHER_API_KEY=your_together_key   # Together AI (FLUX Schnell - priority 60)
+
+# 🌐 External API
+EXTERNAL_API_KEY=ai-assistant-ext-key-2024  # Browser extension auth
 
 # 🗄️ Database
 MONGODB_URI=mongodb://localhost:27017

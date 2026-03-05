@@ -28,8 +28,7 @@ export class ImageGeneration {
         console.log('[Image Modal] Opening modal...');
         const modal = document.getElementById('imageGenModal');
         if (modal) {
-            modal.classList.add('active', 'open');
-            modal.style.display = 'flex';
+            modal.classList.add('active');
             
             // Check SD status and load resources
             await this.checkSDStatus();
@@ -49,8 +48,7 @@ export class ImageGeneration {
     closeModal() {
         const modal = document.getElementById('imageGenModal');
         if (modal) {
-            modal.classList.remove('active', 'open');
-            modal.style.display = 'none';
+            modal.classList.remove('active');
         }
     }
 

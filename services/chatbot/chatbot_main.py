@@ -1456,190 +1456,118 @@ def chat():
                 tool_results.append(f"## ðŸ™ GitHub Search Results\n\n{github_result}")
             
             if 'image-generation' in tools:
-                logger.info(f"[TOOLS] AI-powered image generation with Stable Diffusion")
-                
-                # Step 1: Use OpenAI to create detailed Stable Diffusion prompt
-                prompt_request = f"""You are an expert Stable Diffusion prompt engineer for Animagine XL (anime art model).
+                # ── Auto-detect if user actually wants to generate/edit an image ──
+                _img_keywords_vi = ['vẽ', 'tạo ảnh', 'tạo hình', 'sinh ảnh', 'gen ảnh', 'tạo một', 'vẽ cho',
+                                    'chỉnh ảnh', 'sửa ảnh', 'thêm vào ảnh', 'xóa trong ảnh', 'edit ảnh',
+                                    'tạo logo', 'thiết kế', 'minh họa', 'vẽ tranh', 'ảnh anime',
+                                    'hình ảnh', 'bức ảnh', 'bức tranh', 'ảnh nền', 'avatar', 'icon']
+                _img_keywords_en = ['draw', 'paint', 'generate image', 'create image', 'make image',
+                                    'generate a', 'create a picture', 'gen image', 'image of',
+                                    'edit image', 'modify image', 'img2img', 'inpaint',
+                                    'design', 'illustrate', 'render', 'visualize',
+                                    'photo of', 'picture of', 'artwork', 'wallpaper',
+                                    'logo', 'portrait', 'landscape painting']
+                _msg_lower = message.lower()
+                _wants_image = any(kw in _msg_lower for kw in _img_keywords_vi + _img_keywords_en)
 
-TASK: Convert the user's description into a high-quality anime-style SD prompt.
+                if not _wants_image:
+                    # User has image-gen tool active but this message isn't about images
+                    # — skip image generation, let normal chat handle it
+                    logger.info("[TOOLS] image-generation active but message not image-related, skipping")
+                else:
+                    logger.info(f"[TOOLS] 🎨 Multi-provider image generation (V2) triggered")
+                    try:
+                        from core.image_gen import ImageGenerationRouter, ImageStorage
+                        _ig_router = ImageGenerationRouter()
+                        _ig_storage = ImageStorage()
+                        _ig_providers = _ig_router.get_available_providers()
+                        _active_provs = [p['name'] for p in _ig_providers if p['available']]
+                        logger.info(f"[TOOLS] Available providers: {_active_provs}")
 
-CRITICAL RULES:
-1. OUTPUT MUST BE IN ENGLISH - even if user input is in another language
-2. Use comma-separated tags format: "tag1, tag2, tag3, quality boosters"
-3. For scenery/nature (sky, landscape, etc.): describe scene details, NO people
-4. Always include quality boosters at the end: masterpiece, best quality, highly detailed, 8k, amazing lighting
-
-EXAMPLE OUTPUTS:
-- Input: "bầu trời đầy sao" → "night sky, starry sky, stars, milky way, galaxy, cosmic, deep blue sky, beautiful stars, sparkling, astronomy, space, masterpiece, best quality, highly detailed, 8k"
-- Input: "anime girl" → "1girl, solo, anime style, beautiful face, detailed eyes, masterpiece, best quality, highly detailed"
-- Input: "forest" → "forest, trees, nature, green leaves, sunlight through trees, peaceful, scenic, landscape, masterpiece, best quality, highly detailed, 8k"
-
-USER REQUEST: "{message}"
-
-Return ONLY this JSON format:
-{{
-    "prompt": "english tags separated by commas, quality boosters at end",
-    "negative_prompt": "low quality, worst quality, bad anatomy, blurry, watermark, signature, text",
-    "explanation": "brief explanation",
-    "has_people": false
-}}"""
-
-                try:
-                    # Use OpenAI for better prompt generation
-                    import openai
-                    openai_api_key = os.getenv('OPENAI_API_KEY')
-                    generated_prompt = None
-                    generated_neg = None
-                    explanation = ""
-                    has_people = False
-                    
-                    if openai_api_key:
-                        try:
-                            client = openai.OpenAI(api_key=openai_api_key)
-                            completion = client.chat.completions.create(
-                                model="gpt-4o-mini",
-                                messages=[
-                                    {"role": "system", "content": "You are a Stable Diffusion prompt expert. Always output English tags. Output only valid JSON."},
-                                    {"role": "user", "content": prompt_request}
-                                ],
-                                max_tokens=500,
-                                temperature=0.7
-                            )
-                            response_text = completion.choices[0].message.content
-                            logger.info(f"[TOOLS] OpenAI response: {response_text[:200]}...")
-                        except Exception as openai_err:
-                            logger.error(f"[TOOLS] OpenAI API error: {openai_err}")
-                            response_text = None
-                    else:
-                        response_text = None
-                        logger.warning("[TOOLS] No OpenAI API key, using fallback")
-                    
-                    # If OpenAI failed, use simple translation fallback
-                    if not response_text:
-                        # Simple fallback - create basic prompt from message
-                        logger.info("[TOOLS] Using fallback prompt generation")
-                        generated_prompt = f"{message}, anime style, masterpiece, best quality, highly detailed, 8k, beautiful, amazing lighting"
-                        generated_neg = "low quality, worst quality, bad anatomy, blurry, watermark, signature, text"
-                        explanation = "Fallback prompt - OpenAI unavailable"
-                        has_people = any(word in message.lower() for word in ['girl', 'boy', 'person', 'character', 'portrait', 'cô gái', 'chàng trai', 'người'])
-                    else:
-                        # Parse JSON response from OpenAI
-                        import re
-                        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                        if json_match:
-                            prompt_data = json.loads(json_match.group())
-                            generated_prompt = prompt_data.get('prompt', '')
-                            generated_neg = prompt_data.get('negative_prompt', '')
-                            explanation = prompt_data.get('explanation', '')
-                            has_people = prompt_data.get('has_people', False)
-                        else:
-                            # Could not parse JSON, use response as prompt
-                            generated_prompt = f"{message}, anime style, masterpiece, best quality, highly detailed, 8k"
-                            generated_neg = "low quality, worst quality, bad anatomy, blurry"
-                            explanation = "Could not parse AI response"
-                    
-                    if generated_prompt:
-                        nsfw_filters = "nsfw, r18, nude, naked, explicit, sexual, porn, hentai, erotic, underwear, panties, bra, lingerie, bikini, swimsuit, revealing clothes, cleavage, suggestive, lewd, ecchi, seductive, provocative, inappropriate content, adult content, xxx"
-                        if "nsfw" not in generated_neg.lower():
-                            generated_neg = f"{generated_neg}, {nsfw_filters}" if generated_neg else nsfw_filters
-                        
-                        # Add "humans" filter if NOT about people (negative = things to AVOID)
-                        if not has_people:
-                            avoid_people = "humans, people, person, persons, character, characters, figure, figures, man, men, woman, women, girl, girls, boy, boys, human figure"
-                            if "human" not in generated_neg.lower():
-                                generated_neg = f"{generated_neg}, {avoid_people}"
-                            logger.info(f"[TOOLS] Added 'humans' to negative - avoid people in scenery/object image")
-                        else:
-                            # For people images, add extra clothing safety
-                            clothing_safety = "fully clothed, modest clothing, appropriate attire, safe for work, family friendly"
-                            if clothing_safety not in generated_prompt.lower():
-                                generated_prompt = f"{generated_prompt}, {clothing_safety}"
-                            logger.info(f"[TOOLS] Added clothing safety for people image")
-                        
-                        logger.info(f"[TOOLS] Generated prompt: {generated_prompt[:100]}...")
-                        
-                        # Step 2: Generate image with ComfyUI
-                        from src.utils.comfyui_client import ComfyUIClient
-                        
-                        comfyui_client = ComfyUIClient()
-                        logger.info(f"[TOOLS] Generating image with ComfyUI...")
-                        image_bytes = comfyui_client.generate_image(
-                            prompt=generated_prompt,
-                            negative_prompt=generated_neg,
-                            width=512,
-                            height=512,
-                            steps=20,
-                            cfg_scale=7.0,
-                            seed=-1
+                        # Generate via V2 router (auto-selects best provider)
+                        result = _ig_router.generate(
+                            prompt=message,
+                            quality='auto',
+                            width=1024,
+                            height=1024,
+                            enhance_prompt=True,
                         )
-                        
-                        if image_bytes:
-                            # Convert bytes to base64
-                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                            logger.info(f"[TOOLS] Image generated: {len(image_bytes)} bytes")
-                            
-                            # Upload to ImgBB and save to MongoDB/Firebase
+
+                        if result.success and result.images_b64:
+                            image_base64 = result.images_b64[0]
+                            provider_used = result.metadata.get('provider', 'unknown')
+                            model_used = result.metadata.get('model', '')
+                            enhanced_prompt = result.prompt_used or message
+                            cost = result.cost_usd
+
+                            # Store image
                             cloud_url = None
                             try:
-                                from core.image_storage import store_generated_image
-                                storage_result = store_generated_image(
-                                    image_base64=image_base64,
-                                    prompt=generated_prompt,
-                                    negative_prompt=generated_neg,
-                                    metadata={
-                                        'original_message': message,
-                                        'model': 'animagine-xl-3.1',
-                                        'size': '512x512',
-                                        'steps': 20,
-                                        'cfg_scale': 7.0
-                                    }
+                                store_result = _ig_storage.save(
+                                    image_b64=image_base64,
+                                    prompt=enhanced_prompt,
+                                    provider=provider_used,
+                                    metadata={'original_message': message, 'model': model_used, 'cost': cost}
                                 )
-                                if storage_result.get('success'):
-                                    cloud_url = storage_result.get('imgbb_url')
-                                    logger.info(f"[TOOLS] Image uploaded to cloud: {cloud_url}")
-                            except Exception as e:
-                                logger.warning(f"[TOOLS] Cloud upload failed: {e}")
-                            
-                            # Build result message
+                                cloud_url = store_result.get('url')
+                            except Exception as _store_err:
+                                logger.warning(f"[TOOLS] Image storage failed: {_store_err}")
+
                             cloud_link = f"\n\n☁️ **Cloud URL:** [{cloud_url}]({cloud_url})" if cloud_url else ""
-                            
+
                             result_msg = f"""## 🎨 Image Generated Successfully!
 
 **Original description:** {message}
 
-**Generated Prompt:**
+**Enhanced Prompt:**
 ```
-{generated_prompt}
+{enhanced_prompt}
 ```
-
-**Negative Prompt:**
-```
-{generated_neg}
-```
-
-**Explanation:** {explanation}
 
 **Generated Image:**
 <img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;" class="generated-preview">
 {cloud_link}
 ---
-🎯 **Parameters:**
-- Size: 512x512
-- Steps: 20 | CFG: 7.0
-- Backend: ComfyUI"""
-                            
+🎯 **Info:**
+- Provider: {provider_used} {('(' + model_used + ')') if model_used else ''}
+- Size: 1024×1024
+- Cost: ${cost:.4f}
+- Active providers: {', '.join(_active_provs)}"""
                             tool_results.append(result_msg)
                         else:
-                            # No image generated
-                            tool_results.append(f"## 🎨 Image Generation\n\n⚠️ ComfyUI did not return an image.\n\nPrompt created:\n```\n{generated_prompt}\n```\n\nNegative:\n```\n{generated_neg}\n```\n\nPlease check if ComfyUI is running on port 8189.")
-                    else:
-                        tool_results.append(f"## 🎨 Image Generation\n\nCould not auto-generate prompt. Response: {response_text}\n\nPlease use the Image Generator panel manually.")
-                        
-                except Exception as e:
-                    logger.error(f"[TOOLS] Error in image generation: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    tool_results.append(f"## 🎨 Image Generation\n\nError: {str(e)}\n\nPlease check:\n1. Is ComfyUI running on port 8189?\n2. Check logs for details.")
+                            _error = result.error or 'Unknown error'
+                            logger.warning(f"[TOOLS] V2 generation failed: {_error}")
+                            # Fallback to ComfyUI directly
+                            try:
+                                from src.utils.comfyui_client import ComfyUIClient
+                                comfyui_client = ComfyUIClient()
+                                image_bytes = comfyui_client.generate_image(
+                                    prompt=message,
+                                    negative_prompt="low quality, worst quality, blurry, watermark",
+                                    width=512, height=512, steps=20, cfg_scale=7.0, seed=-1
+                                )
+                                if image_bytes:
+                                    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                                    result_msg = f"""## 🎨 Image Generated (ComfyUI Fallback)
+
+**Prompt:** {message}
+
+**Generated Image:**
+<img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;" class="generated-preview">
+
+---
+🎯 Backend: ComfyUI (local) | V2 error: {_error}"""
+                                    tool_results.append(result_msg)
+                                else:
+                                    tool_results.append(f"## 🎨 Image Generation Failed\n\n❌ V2: {_error}\n❌ ComfyUI: No image returned\n\nAvailable providers: {', '.join(_active_provs) if _active_provs else 'None'}\n\nPlease add API keys (FAL_API_KEY, REPLICATE_API_TOKEN, BFL_API_KEY, TOGETHER_API_KEY, OPENAI_API_KEY, STEPFUN_API_KEY) to .env")
+                            except Exception as _comfy_err:
+                                tool_results.append(f"## 🎨 Image Generation Failed\n\n❌ V2: {_error}\n❌ ComfyUI: {str(_comfy_err)}\n\nPlease check your API keys or start ComfyUI.")
+
+                    except Exception as e:
+                        logger.error(f"[TOOLS] Error in image generation: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        tool_results.append(f"## 🎨 Image Generation\n\nError: {str(e)}\n\nPlease check your image generation API keys in .env")
         
         # If tools were used, return tool results
         if tool_results:
@@ -4461,6 +4389,186 @@ try:
     logger.info("✅ Registered async blueprint (async chat)")
 except ImportError as e:
     logger.warning(f"⚠️ Could not register async blueprint: {e}")
+
+
+# ════════════════════════════════════════════════════════════
+# ═══ External API v1 — Stateless API for extensions/.exe ═══
+# ════════════════════════════════════════════════════════════
+
+EXTERNAL_API_KEY = os.getenv('EXTERNAL_API_KEY', 'ai-assistant-ext-key-2024')
+
+def require_api_key(f):
+    """Decorator to require X-API-Key header for external API"""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key', '')
+        if not api_key or api_key != EXTERNAL_API_KEY:
+            return jsonify({'error': 'Invalid or missing API key', 'code': 'UNAUTHORIZED'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/api/v1/chat', methods=['POST'])
+@require_api_key
+def external_chat():
+    """
+    Stateless chat endpoint for external apps (browser extension, .exe client).
+    
+    Headers:
+        X-API-Key: <your-api-key>
+    
+    Body (JSON):
+        {
+            "message": "Hello",
+            "model": "grok",              // optional
+            "context": "casual",           // optional
+            "history": [],                 // optional conversation history
+            "page_context": "",            // optional — injected page text from extension
+            "tools": ["image-generation"], // optional
+            "language": "vi"               // optional
+        }
+    
+    Returns: { "response": "...", "model": "...", "tokens": 0 }
+    """
+    try:
+        data = request.get_json(force=True)
+        if not data or not data.get('message'):
+            return jsonify({'error': 'Missing "message" field'}), 400
+        
+        message = data['message']
+        model = data.get('model', 'grok')
+        context_type = data.get('context', 'casual')
+        history = data.get('history', [])
+        page_context = data.get('page_context', '')
+        tools = data.get('tools', [])
+        language = data.get('language', 'vi')
+        
+        # If page_context provided, prepend it to the message
+        if page_context:
+            message = f"[Page Context]\n{page_context[:8000]}\n\n[User Question]\n{message}"
+        
+        # Build minimal context for the AI
+        conversation_history = []
+        for h in history[-20:]:  # Last 20 messages max
+            role = h.get('role', 'user')
+            content = h.get('content', '')
+            conversation_history.append({'role': role, 'content': content})
+        
+        conversation_history.append({'role': 'user', 'content': message})
+        
+        # Use the same AI routing logic as the main chat
+        # Import the process function dynamically
+        from core.ai_router import route_to_model
+        
+        response_text = route_to_model(
+            message=message,
+            model=model,
+            context=context_type,
+            history=conversation_history,
+            language=language
+        )
+        
+        return jsonify({
+            'response': response_text,
+            'model': model,
+            'tokens': len(response_text.split()),
+            'status': 'success'
+        })
+        
+    except ImportError:
+        # Fallback: use the chat endpoint logic directly
+        logger.warning("[ExtAPI] ai_router not available, using fallback")
+        return jsonify({
+            'error': 'AI router not available. Use the main /chat endpoint instead.',
+            'fallback_url': '/chat'
+        }), 503
+    except Exception as e:
+        logger.error(f"[ExtAPI] Error: {e}")
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+
+
+@app.route('/api/v1/context', methods=['POST'])
+@require_api_key
+def inject_context():
+    """
+    Inject page context into the AI's memory for the current session.
+    Used by browser extension to send page content before asking questions.
+    
+    Body: { "url": "https://...", "title": "Page Title", "content": "page text...", "selection": "selected text" }
+    """
+    try:
+        data = request.get_json(force=True)
+        
+        # Store in session for use in subsequent chat calls
+        if 'ext_context' not in session:
+            session['ext_context'] = []
+        
+        context_entry = {
+            'url': data.get('url', ''),
+            'title': data.get('title', ''),
+            'content': (data.get('content', '') or data.get('selection', ''))[:10000],
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        session['ext_context'].append(context_entry)
+        # Keep only last 5 contexts
+        session['ext_context'] = session['ext_context'][-5:]
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Context from "{context_entry["title"]}" stored',
+            'contexts_count': len(session['ext_context'])
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/providers', methods=['GET'])
+@require_api_key
+def list_providers():
+    """List available AI models and image generation providers."""
+    try:
+        models = [
+            {'id': 'grok', 'name': 'Grok-3', 'provider': 'xAI', 'tier': 'premium'},
+            {'id': 'deepseek-reasoner', 'name': 'DeepSeek R1', 'provider': 'DeepSeek', 'tier': 'premium'},
+            {'id': 'openai', 'name': 'GPT-4o-mini', 'provider': 'OpenAI', 'tier': 'standard'},
+            {'id': 'deepseek', 'name': 'DeepSeek Chat', 'provider': 'DeepSeek', 'tier': 'standard'},
+            {'id': 'gemini', 'name': 'Gemini 2.0 Flash', 'provider': 'Google', 'tier': 'free'},
+            {'id': 'qwen', 'name': 'Qwen Turbo', 'provider': 'Alibaba', 'tier': 'other'},
+        ]
+        
+        # Try to get image gen providers
+        image_providers = []
+        try:
+            from core.image_gen.router import ImageGenerationRouter
+            router = ImageGenerationRouter()
+            for p in router.providers:
+                image_providers.append({
+                    'name': p.__class__.__name__,
+                    'priority': getattr(p, 'priority', 0),
+                    'available': getattr(p, 'available', True)
+                })
+        except:
+            pass
+        
+        return jsonify({
+            'chat_models': models,
+            'image_providers': image_providers,
+            'status': 'success'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/v1/health', methods=['GET'])
+def external_health():
+    """Public health check for external clients."""
+    return jsonify({
+        'status': 'online',
+        'version': '2.0',
+        'endpoints': ['/api/v1/chat', '/api/v1/context', '/api/v1/providers', '/api/v1/health']
+    })
 
 
 # Main entry point

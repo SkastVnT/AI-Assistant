@@ -65,7 +65,7 @@ export class ImageGenV2 {
     openModal() {
         const modal = document.getElementById('imageGenV2Modal');
         if (modal) {
-            modal.classList.add('active');
+            modal.classList.add('active', 'open');
             modal.style.display = 'flex';
             this.init();
         }

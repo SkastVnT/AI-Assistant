@@ -12,6 +12,8 @@ export class ChatSession {
         this.messages = [];
         this.attachedFiles = []; // Store uploaded files for this chat session
         this.messageVersions = {}; // Store message edit versions: { messageId: [{content, response, timestamp}] }
+        this.pinned = false;  // Pinned chats always appear at top
+        this.order = null;    // Custom order (null = auto-sort by updatedAt)
         this.createdAt = new Date();
         this.updatedAt = new Date();
     }
@@ -306,6 +308,72 @@ export class ChatManager {
         }
         
         return { success: true };
+    }
+
+    /**
+     * Reorder chats — move chat fromId before toId
+     */
+    reorderChats(fromId, toId, position = 'before') {
+        const sortedIds = this.getSortedChatIds();
+        const fromIdx = sortedIds.indexOf(fromId);
+        if (fromIdx === -1) return;
+        
+        // Remove from current position
+        sortedIds.splice(fromIdx, 1);
+        
+        // Find new position
+        let toIdx = sortedIds.indexOf(toId);
+        if (toIdx === -1) toIdx = sortedIds.length;
+        if (position === 'after') toIdx += 1;
+        
+        // Insert at new position
+        sortedIds.splice(toIdx, 0, fromId);
+        
+        // Assign order values
+        sortedIds.forEach((id, i) => {
+            if (this.chatSessions[id]) {
+                this.chatSessions[id].order = i;
+            }
+        });
+        
+        this.saveSessions();
+    }
+
+    /**
+     * Get sorted chat IDs respecting pinned + custom order
+     */
+    getSortedChatIds() {
+        const ids = Object.keys(this.chatSessions);
+        const pinned = ids.filter(id => this.chatSessions[id].pinned);
+        const unpinned = ids.filter(id => !this.chatSessions[id].pinned);
+        
+        const sortFn = (a, b) => {
+            const sA = this.chatSessions[a];
+            const sB = this.chatSessions[b];
+            // If both have custom order, use it
+            if (sA.order !== null && sA.order !== undefined && sB.order !== null && sB.order !== undefined) {
+                return sA.order - sB.order;
+            }
+            // Otherwise sort by updatedAt descending
+            return sB.updatedAt - sA.updatedAt;
+        };
+        
+        pinned.sort(sortFn);
+        unpinned.sort(sortFn);
+        
+        return [...pinned, ...unpinned];
+    }
+
+    /**
+     * Toggle pin status of a chat
+     */
+    togglePin(chatId) {
+        if (this.chatSessions[chatId]) {
+            this.chatSessions[chatId].pinned = !this.chatSessions[chatId].pinned;
+            this.saveSessions();
+            return this.chatSessions[chatId].pinned;
+        }
+        return false;
     }
 
     /**

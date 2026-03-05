@@ -75,40 +75,64 @@ export class UIUtils {
 
     /**
      * Initialize dark mode
+     * New CSS: dark is default (no class), light = body.light-mode, eye-care = body.eye-care-mode
      */
     initDarkMode() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedTheme = localStorage.getItem('theme') || 'dark';
         this.theme = savedTheme;
         
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-mode');
-            if (this.elements.darkModeBtn) {
-                this.elements.darkModeBtn.textContent = '☀️';
+        // Remove all theme classes first
+        document.body.classList.remove('light-mode', 'eye-care-mode', 'dark-mode');
+        
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            if (this.elements.darkModeBtn && window.swapLucideIcon) {
+                window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
             }
         } else if (savedTheme === 'eye-care') {
             document.body.classList.add('eye-care-mode');
             const eyeCareBtn = document.getElementById('eyeCareBtn');
-            if (eyeCareBtn) {
-                eyeCareBtn.textContent = '💡';
+            if (eyeCareBtn && window.swapLucideIcon) {
+                window.swapLucideIcon(eyeCareBtn, 'sun-dim');
+            }
+            if (this.elements.darkModeBtn && window.swapLucideIcon) {
+                window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
+            }
+        } else {
+            // Dark mode (default) — no class needed
+            if (this.elements.darkModeBtn && window.swapLucideIcon) {
+                window.swapLucideIcon(this.elements.darkModeBtn, 'sun');
             }
         }
     }
 
     /**
      * Toggle dark mode
+     * Cycles: dark → light → dark
      */
     toggleDarkMode() {
         // Remove eye-care mode if active
         document.body.classList.remove('eye-care-mode');
         const eyeCareBtn = document.getElementById('eyeCareBtn');
-        if (eyeCareBtn) eyeCareBtn.textContent = '👁️';
+        if (eyeCareBtn && window.swapLucideIcon) window.swapLucideIcon(eyeCareBtn, 'eye');
         
-        document.body.classList.toggle('dark-mode');
-        const isDark = document.body.classList.contains('dark-mode');
-        this.theme = isDark ? 'dark' : 'light';
+        // Toggle: dark (no class) ↔ light (light-mode class)
+        const isCurrentlyLight = document.body.classList.contains('light-mode');
+        document.body.classList.remove('dark-mode'); // Remove legacy class
         
-        if (this.elements.darkModeBtn) {
-            this.elements.darkModeBtn.textContent = isDark ? '☀️' : '🌙';
+        if (isCurrentlyLight) {
+            // Switch to dark
+            document.body.classList.remove('light-mode');
+            this.theme = 'dark';
+        } else {
+            // Switch to light
+            document.body.classList.add('light-mode');
+            this.theme = 'light';
+        }
+        
+        const isDark = this.theme === 'dark';
+        if (this.elements.darkModeBtn && window.swapLucideIcon) {
+            window.swapLucideIcon(this.elements.darkModeBtn, isDark ? 'sun' : 'moon');
         }
         
         localStorage.setItem('theme', this.theme);
@@ -119,22 +143,22 @@ export class UIUtils {
      * Toggle Eye Care mode - reduces blue light with warm colors
      */
     toggleEyeCareMode() {
-        // Remove dark mode if active
-        document.body.classList.remove('dark-mode');
-        if (this.elements.darkModeBtn) {
-            this.elements.darkModeBtn.textContent = '🌙';
+        // Remove other theme classes
+        document.body.classList.remove('dark-mode', 'light-mode');
+        if (this.elements.darkModeBtn && window.swapLucideIcon) {
+            window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
         }
         
         document.body.classList.toggle('eye-care-mode');
         const isEyeCare = document.body.classList.contains('eye-care-mode');
         
         const eyeCareBtn = document.getElementById('eyeCareBtn');
-        if (eyeCareBtn) {
-            eyeCareBtn.textContent = isEyeCare ? '💡' : '👁️';
+        if (eyeCareBtn && window.swapLucideIcon) {
+            window.swapLucideIcon(eyeCareBtn, isEyeCare ? 'sun-dim' : 'eye');
             eyeCareBtn.title = isEyeCare ? 'Turn off Eye Care Mode' : 'Turn on Eye Care Mode';
         }
         
-        this.theme = isEyeCare ? 'eye-care' : 'light';
+        this.theme = isEyeCare ? 'eye-care' : 'dark';
         localStorage.setItem('theme', this.theme);
         return isEyeCare;
     }
@@ -190,6 +214,8 @@ export class UIUtils {
      */
     showLoading() {
         if (this.elements.loading) {
+            this.elements.loading.style.display = 'block';
+            this.elements.loading.classList.remove('hidden');
             this.elements.loading.classList.add('active');
         }
         if (this.elements.sendBtn) {
@@ -202,6 +228,8 @@ export class UIUtils {
      */
     hideLoading() {
         if (this.elements.loading) {
+            this.elements.loading.style.display = 'none';
+            this.elements.loading.classList.add('hidden');
             this.elements.loading.classList.remove('active');
         }
         if (this.elements.sendBtn) {
@@ -215,7 +243,7 @@ export class UIUtils {
     openModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.classList.add('active');
+            modal.classList.add('active', 'open');
             document.body.style.overflow = 'hidden';
         }
     }
@@ -226,7 +254,7 @@ export class UIUtils {
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.classList.remove('active');
+            modal.classList.remove('active', 'open');
             document.body.style.overflow = 'auto';
         }
     }
@@ -271,49 +299,161 @@ export class UIUtils {
     }
 
     /**
-     * Render chat list
+     * Render chat list with drag & drop support
      */
-    renderChatList(chatSessions, currentChatId, onSwitchChat, onDeleteChat) {
+    renderChatList(chatSessions, currentChatId, onSwitchChat, onDeleteChat, onReorder, onTogglePin) {
         if (!this.elements.chatList) return;
         
-        const sortedChats = Object.keys(chatSessions).sort((a, b) => 
-            chatSessions[b].updatedAt - chatSessions[a].updatedAt
-        );
+        // Use ChatManager's sorted order if available, otherwise fallback
+        let sortedChats;
+        if (window.chatManager && window.chatManager.getSortedChatIds) {
+            sortedChats = window.chatManager.getSortedChatIds();
+        } else {
+            sortedChats = Object.keys(chatSessions).sort((a, b) => 
+                chatSessions[b].updatedAt - chatSessions[a].updatedAt
+            );
+        }
         
         this.elements.chatList.innerHTML = sortedChats.map(id => {
             const session = chatSessions[id];
+            if (!session) return '';
             const isActive = id === currentChatId;
+            const isPinned = session.pinned || false;
             const preview = session.messages.length > 0 
                 ? (session.messages[1] || session.messages[0]).replace(/<[^>]*>/g, '').substring(0, 50) + '...'
                 : 'No messages';
+            const msgCount = session.messages.length;
             
             return `
-                <div class="chat-item ${isActive ? 'active' : ''}" data-chat-id="${id}">
-                    <div class="chat-item-title">${this.escapeHtml(session.title)}</div>
-                    <div class="chat-item-preview">${this.escapeHtml(preview)}</div>
-                    <div class="chat-item-footer">
-                        <span class="chat-item-time">${this.formatTimestamp(session.updatedAt)}</span>
-                        <button class="chat-delete-btn" data-chat-id="${id}" title="Xóa">🗑️</button>
+                <div class="sidebar__chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}" 
+                     data-chat-id="${id}" draggable="true">
+                    <span class="drag-handle" title="Drag to reorder">⠿</span>
+                    <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
+                    <div class="sidebar__chat-preview">${this.escapeHtml(preview)}</div>
+                    ${msgCount > 0 ? `<span class="sidebar__chat-context"><i data-lucide="message-square" style="width:10px;height:10px;"></i> ${msgCount}</span>` : ''}
+                    <div style="display:flex;gap:2px;position:absolute;right:4px;top:4px;">
+                        <button class="sidebar__chat-pin" data-chat-id="${id}" title="${isPinned ? 'Unpin' : 'Pin'}" 
+                            style="background:none;border:none;cursor:pointer;padding:2px;font-size:12px;opacity:${isPinned ? '1' : '0'};transition:opacity 0.15s;">
+                            ${isPinned ? '📌' : '📌'}
+                        </button>
+                        <button class="sidebar__chat-delete" data-chat-id="${id}" title="Xóa" 
+                            style="background:none;border:none;cursor:pointer;padding:2px;font-size:12px;opacity:0;transition:opacity 0.15s;">🗑️</button>
                     </div>
                 </div>
             `;
         }).join('');
 
-        // Attach event listeners
-        this.elements.chatList.querySelectorAll('.chat-item').forEach(item => {
+        // Refresh Lucide icons in chat list
+        if (window.lucide) {
+            lucide.createIcons({ nodes: [this.elements.chatList] });
+        }
+
+        // Show pin/delete on hover
+        this.elements.chatList.querySelectorAll('.sidebar__chat-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                const pinBtn = item.querySelector('.sidebar__chat-pin');
+                const delBtn = item.querySelector('.sidebar__chat-delete');
+                if (pinBtn) pinBtn.style.opacity = '1';
+                if (delBtn) delBtn.style.opacity = '1';
+            });
+            item.addEventListener('mouseleave', () => {
+                const pinBtn = item.querySelector('.sidebar__chat-pin');
+                const delBtn = item.querySelector('.sidebar__chat-delete');
+                const isPinned = item.classList.contains('pinned');
+                if (pinBtn) pinBtn.style.opacity = isPinned ? '1' : '0';
+                if (delBtn) delBtn.style.opacity = '0';
+            });
+        });
+
+        // Attach click event listeners
+        this.elements.chatList.querySelectorAll('.sidebar__chat-item').forEach(item => {
             const chatId = item.dataset.chatId;
             item.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('chat-delete-btn')) {
+                if (!e.target.closest('.sidebar__chat-delete') && !e.target.closest('.sidebar__chat-pin')) {
                     onSwitchChat(chatId);
                 }
             });
         });
 
-        this.elements.chatList.querySelectorAll('.chat-delete-btn').forEach(btn => {
+        this.elements.chatList.querySelectorAll('.sidebar__chat-delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const chatId = btn.dataset.chatId;
-                onDeleteChat(chatId);
+                onDeleteChat(btn.dataset.chatId);
+            });
+        });
+
+        // Pin button listeners
+        this.elements.chatList.querySelectorAll('.sidebar__chat-pin').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (onTogglePin) onTogglePin(btn.dataset.chatId);
+            });
+        });
+
+        // ─── Drag & Drop ───
+        this._setupChatDragDrop(onReorder);
+    }
+
+    /**
+     * Setup drag & drop for chat list items
+     */
+    _setupChatDragDrop(onReorder) {
+        let draggedId = null;
+        const chatList = this.elements.chatList;
+        
+        chatList.querySelectorAll('.sidebar__chat-item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedId = item.dataset.chatId;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggedId);
+                // Slight delay to allow CSS transition
+                requestAnimationFrame(() => item.style.opacity = '0.4');
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                item.style.opacity = '';
+                // Clear all drop indicators
+                chatList.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+                    el.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                const rect = item.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                // Clear previous indicators on this item
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+                
+                if (e.clientY < midY) {
+                    item.classList.add('drag-over-top');
+                } else {
+                    item.classList.add('drag-over-bottom');
+                }
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const fromId = e.dataTransfer.getData('text/plain');
+                const toId = item.dataset.chatId;
+                
+                if (fromId && toId && fromId !== toId && onReorder) {
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    const position = e.clientY < midY ? 'before' : 'after';
+                    onReorder(fromId, toId, position);
+                }
+                
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
             });
         });
     }

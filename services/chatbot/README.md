@@ -1,9 +1,60 @@
-# ChatBot Service - AI Assistant v2.8
+# ChatBot Service - AI Assistant v3.0
 
-Advanced multi-model intelligent chatbot with **MCP Integration**, **Custom Prompt System**, **GROK-3 Integration**, **Deep Thinking**, and modern UI features.
+Advanced multi-model intelligent chatbot with **Multi-Provider Image Generation (7 providers)**, **Split View**, **Drag & Drop Chat Management**, **External API + Browser Extension**, **MCP Integration**, **Custom Prompt System**, **GROK-3 Integration**, **Deep Thinking**, and a completely redesigned modern UI.
 
 <details>
-<summary><strong>🌟 Latest Updates (v2.8)</strong></summary>
+<summary><strong>🌟 Latest Updates (v3.0)</strong></summary>
+
+### 🎨 Complete UI Redesign (NEW! ⭐)
+
+- **ChatGPT/Gemini-quality design**: Dark-first professional interface
+- **Lucide Icons**: 30+ SVG icons replacing all emoji icons
+- **3 Themes**: Dark (default), Light, Eye Care mode
+- **Responsive layout**: Collapsible sidebar, clean topbar with "More" menu
+- **Modern CSS design system**: CSS variables, smooth transitions, consistent spacing
+
+### 🖼️ Multi-Provider Image Generation V2 (NEW! ⭐)
+
+- **7 AI Providers** auto-configured from API keys:
+  - **fal.ai** (priority 90) — FLUX models
+  - **Black Forest Labs** (85) — FLUX Pro
+  - **Replicate** (80) — Community models
+  - **StepFun** (75) — Step-1X Flash
+  - **OpenAI** (70) — DALL-E 3
+  - **Together AI** (60) — FLUX Schnell
+  - **ComfyUI** (10) — Local workflows
+- **Smart auto-detection**: Detects image requests in Vietnamese & English
+- **Auto-enabled on startup**: Image tools always active, all API keys used
+- **Fallback chain**: Automatically tries next provider if one fails
+
+### 🔀 Split View (NEW!)
+
+- **Side-by-side conversations**: View two chats simultaneously
+- **Resizable divider**: Drag to adjust pane widths
+- **Chat picker**: Click split button → choose which chat to view alongside
+- **One-click toggle**: Split view button in topbar
+
+### 🔄 Drag & Drop Chat Reorder (NEW!)
+
+- **Drag to reorder**: Grab any chat in sidebar, drag to new position
+- **Pin chats**: Pin important conversations to always show at top
+- **Visual indicators**: Drop zone highlights while dragging
+- **Persistent order**: Custom order saved to localStorage
+
+### 🔌 External API + Browser Extension (NEW!)
+
+**REST API v1** — Stateless endpoints for external apps:
+- `GET /api/v1/health` — Public health check
+- `POST /api/v1/chat` — Chat with AI (API key auth via `X-API-Key` header)
+- `POST /api/v1/context` — Inject page context
+- `GET /api/v1/providers` — List available models & image providers
+
+**Chrome Extension** — Mini chat from any webpage:
+- Right-click → "Ask AI Assistant about this" (selected text)
+- Right-click → "Send page to AI Assistant" (full page)
+- Popup mini-chat with history
+- Configurable server URL & API key
+- Keyboard shortcut: `Ctrl+Shift+A` to capture selection
 
 ### 🔗 MCP Integration (NEW! ⭐)
 
@@ -198,32 +249,52 @@ Access at: <http://localhost:5000>
 
 ```
 ChatBot/
-├── app.py                      # Main Flask application
-├── requirements.txt            # Python dependencies
-├── .env.example               # Environment variables template
-├── README.md                  # This file
+├── chatbot_main.py                # Main Flask application
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Environment variables template
+├── README.md                      # This file
 ├── templates/
-│   └── index.html             # Main UI (modular, 509 lines)
+│   └── index.html                 # Main UI (1370 lines, Lucide icons)
 ├── static/
 │   ├── css/
-│   │   └── style.css          # Custom styles (~2200 lines)
+│   │   └── app.css                # Design system (~1900 lines, 3 themes)
 │   └── js/
-│       ├── main.js            # Main app controller
-│       └── modules/           # ES6 Modules
-│           ├── chat-manager.js      # Session management
-│           ├── api-service.js       # API communications
-│           ├── ui-utils.js          # UI utilities
-│           ├── message-renderer.js  # Message rendering
-│           ├── file-handler.js      # File processing
-│           ├── memory-manager.js    # Memory features
-│           ├── image-gen.js         # Image generation
-│           └── export-handler.js    # PDF export
+│       ├── main.js                # Main app controller (2150+ lines)
+│       ├── language-switcher.js   # i18n support (vi/en)
+│       └── modules/               # ES6 Modules
+│           ├── chat-manager.js    # Session management + drag reorder
+│           ├── api-service.js     # API communications
+│           ├── ui-utils.js        # UI utilities + drag & drop
+│           ├── message-renderer.js# Message rendering + actions
+│           ├── file-handler.js    # File processing (50MB)
+│           ├── memory-manager.js  # Memory features
+│           ├── image-gen.js       # Image generation (ComfyUI)
+│           ├── image-gen-v2.js    # Multi-provider image gen
+│           ├── split-view.js      # Split view manager
+│           └── export-handler.js  # PDF export
+├── core/
+│   ├── image_gen/                 # Multi-provider image generation
+│   │   ├── router.py             # Smart provider routing & fallback
+│   │   └── providers/            # 7 provider adapters
+│   ├── ai_router.py              # AI model routing
+│   └── extensions.py             # Blueprint registration
+├── routes/                        # Flask blueprints
+│   ├── main_routes.py
+│   ├── image_gen.py
+│   ├── memory.py
+│   ├── mcp.py
+│   └── ...
+├── extension/                     # Chrome browser extension
+│   ├── manifest.json              # Manifest V3
+│   ├── popup.html                 # Mini chat UI
+│   ├── popup.js                   # Extension chat logic
+│   ├── background.js              # Context menu + relay
+│   ├── content.js                 # Page capture + shortcuts
+│   └── icons/                     # Extension icons
 ├── src/
 │   └── utils/
 │       ├── local_model_loader.py  # Local model management
 │       └── sd_client.py           # Stable Diffusion API client
-├── models/
-│   └── Qwen1.5-1.8B-Chat/        # Local LLM model
 ├── Storage/
 │   └── Image_Gen/                 # Generated images
 └── data/
@@ -240,23 +311,45 @@ ChatBot/
 ### Environment Variables (.env)
 
 ```env
-# API Keys
+# AI APIs (chọn 1 hoặc nhiều)
+GROK_API_KEY=your_grok_key
 OPENAI_API_KEY=your_openai_key
 GOOGLE_API_KEY=your_google_key
+DEEPSEEK_API_KEY=your_deepseek_key
+DASHSCOPE_API_KEY=your_qwen_key
 
-# Stable Diffusion
+# Image Generation (all optional — uses whichever keys are set)
+FAL_KEY=your_fal_key                  # fal.ai FLUX models (priority 90)
+BFL_API_KEY=your_bfl_key              # Black Forest Labs (priority 85)
+REPLICATE_API_TOKEN=your_replicate    # Replicate (priority 80)
+STEPFUN_API_KEY=your_stepfun_key      # StepFun (priority 75)
+# OPENAI_API_KEY also used for DALL-E 3 (priority 70)
+TOGETHER_API_KEY=your_together_key    # Together AI (priority 60)
+
+# ComfyUI (local, priority 10)
+COMFYUI_URL=http://127.0.0.1:8188
 SD_API_URL=http://127.0.0.1:7860
 
+# External API
+EXTERNAL_API_KEY=your_secret_key      # For browser extension / .exe clients
+
+# Database (optional)
+MONGODB_URI=mongodb://localhost:27017
+
 # Server
-FLASK_PORT=5000
-FLASK_DEBUG=False
+CHATBOT_PORT=5000
+DEBUG=0
 ```
 
 ### Model Selection
 
-- **GPT-4**: Best quality, requires API key
-- **Gemini**: Fast and capable, requires API key
-- **Qwen (Local)**: Free, runs locally, requires GPU
+- **Grok-3** (Default): xAI — 131K context, advanced reasoning
+- **DeepSeek R1**: Reasoning model — 64K
+- **GPT-4o-mini**: OpenAI — 128K context
+- **Gemini 2.0 Flash**: Google — 1M context (Free)
+- **Qwen Turbo**: Alibaba Cloud
+- **StepFun**: OpenRouter — 128K (Free)
+- **BloomVN-8B**: Vietnamese optimized (Free)
 
 </details>
 
@@ -526,13 +619,18 @@ For issues and questions:
 
 ## 🙏 Acknowledgments
 
-- OpenAI for GPT models
+- xAI for GROK-3
+- OpenAI for GPT & DALL-E models
 - Google for Gemini API
+- DeepSeek for reasoning models
+- Black Forest Labs for FLUX
+- fal.ai, Replicate, Together AI, StepFun
 - Stability AI for Stable Diffusion
 - Alibaba Cloud for Qwen models
+- [Lucide Icons](https://lucide.dev) for the icon library
 - Community contributors
 
 ---
 
-**Built with ❤️ by [@SkastVnT](https://github.com/SkastVnT)**
+**Built with ❤️ by [@SkastVnT](https://github.com/SkastVnT) & [@sug1omyo](https://github.com/sug1omyo)**  
 **Star ⭐ this repo if you find it helpful!**
