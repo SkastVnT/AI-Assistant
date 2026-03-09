@@ -521,7 +521,7 @@
     <div class="modal-panel" style="max-width: 720px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="sparkles" class="lucide"></i> AI Image Generation V2</h2>
-            <button class="modal-panel__close" onclick="window.imageGenV2?.closeModal()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <button class="modal-panel__close" onclick="window.imageGenV2?.closeModal()">&times;</button>
         </div>
         <div class="modal-panel__body" style="padding: 0;">
             <div id="igv2Status" style="padding: 8px 24px; font-size: 13px; color: var(--text-tertiary);">
@@ -636,9 +636,7 @@
     <div class="modal-panel" style="max-width: 800px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title" data-lang-key="imageGen.title"><i data-lucide="palette" class="lucide"></i> Image Generation (ComfyUI)</h2>
-            <button class="modal-panel__close" onclick="closeImageModal()" title="Close (Esc)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <button class="modal-panel__close" onclick="closeImageModal()">&times;</button>
         </div>
         <div class="modal-panel__body">
             <div id="sdStatus" style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--bg-tertiary); font-size: 13px; margin-bottom: 16px;">
@@ -730,7 +728,7 @@
                 <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
                     <label class="form-label" data-lang-key="imageGen.lora">🎨 LoRA Models (Optional)</label>
                     <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="addLoraBtn" class="btn btn--ghost add-lora-btn" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">➕ Add Lora</button>
+                        <button type="button" id="addLoraBtn" class="btn btn--sm btn--ghost" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">➕ Add Lora</button>
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
@@ -759,10 +757,6 @@
                         <div id="tagsList" style="max-height: 300px; overflow-y: auto;"></div>
                         <button id="autoGeneratePromptBtn" class="btn btn--primary" onclick="autoGeneratePromptFromTags()" style="display: none; width: 100%; margin-top: 12px;">🤖 Auto-generate prompt</button>
                     </div>
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label class="form-label">Model Checkpoint</label>
-                    <select id="img2imgModelSelect" class="form-select" style="width: 100%;"><option value="">Loading...</option></select>
                 </div>
                 <div style="margin-bottom: 12px;">
                     <label class="form-label">Prompt</label>
@@ -799,7 +793,7 @@
                     </div>
                     <div>
                         <label class="form-label">Sampler</label>
-                        <select id="img2imgSampler" class="form-select" style="width: 100%;"><option value="euler" selected>euler</option></select>
+                        <select id="img2imgSampler" class="form-select" style="width: 100%;"><option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option><option value="Euler a">Euler a</option></select>
                     </div>
                 </div>
                 <div style="margin-bottom: 12px;">
@@ -813,7 +807,7 @@
                 <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
                     <label class="form-label">🎨 LoRA</label>
                     <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        <button type="button" class="btn btn--ghost add-lora-btn" onclick="addImg2imgLoraSelection()">➕ Add Lora</button>
+                        <button type="button" class="btn btn--sm btn--ghost" onclick="addImg2imgLoraSelection()">➕ Add Lora</button>
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
@@ -838,30 +832,17 @@
     </div>
 </div>
 
-<!-- ═══ Image Preview (Lightbox) ═══ -->
-<div class="image-preview-overlay" id="imagePreviewModal" onclick="if(event.target===this)closeImagePreview()">
-    <div class="lightbox">
-        <div class="lightbox__swipe-hint"></div>
-        <div class="lightbox__toolbar">
-            <button class="lightbox__btn" onclick="zoomPreviewImage(-0.3)" title="Zoom out">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            </button>
-            <button class="lightbox__btn" onclick="zoomPreviewImage(0.3)" title="Zoom in">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            </button>
-            <button class="lightbox__btn" onclick="resetPreviewZoom()" title="Reset zoom">⟲</button>
-            <button class="lightbox__btn" onclick="downloadPreviewImage()" title="Download">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </button>
-            <button class="lightbox__btn lightbox__btn--close" onclick="closeImagePreview()" title="Close">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>
-        <div class="lightbox__image-wrap" id="lightboxImageWrap">
-            <img id="imagePreviewContent" src="" alt="Preview">
-        </div>
-        <div class="lightbox__info" id="imagePreviewInfo"></div>
+<!-- ═══ Image Preview (Discord‑style) ═══ -->
+<div class="image-preview-overlay" id="imagePreviewModal">
+    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
+        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()">📥</button>
+        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)">🔍-</button>
+        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)">🔍+</button>
+        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()">⟲</button>
     </div>
+    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" onclick="closeImagePreview()">&times;</span>
+    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%; border-radius: var(--radius-md);">
+    <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
 </div>
 
 <!-- ═══ Edit History Modal ═══ -->
@@ -869,7 +850,7 @@
     <div class="modal-panel" style="max-width: 700px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title" data-lang-key="history.title"><i data-lucide="history" class="lucide"></i> Edit History</h2>
-            <button class="modal-panel__close" onclick="closeHistoryModal()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <button class="modal-panel__close" onclick="closeHistoryModal()">&times;</button>
         </div>
         <div class="modal-panel__body">
             <div id="historyContent" style="max-height: 60vh; overflow-y: auto;"></div>
@@ -885,7 +866,7 @@
             <div style="display: flex; gap: 8px;">
                 <button class="btn btn--sm btn--ghost" onclick="toggleGalleryMode()">👁️ All</button>
                 <button class="btn btn--sm btn--ghost" onclick="refreshGallery()">🔄</button>
-                <button class="modal-panel__close" onclick="closeGallery()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                <button class="modal-panel__close" onclick="closeGallery()">&times;</button>
             </div>
         </div>
         <div id="galleryStats" style="padding: 12px 24px; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-secondary);">Loading...</div>
@@ -898,7 +879,7 @@
     <div class="modal-panel" style="max-width: 640px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="settings-2" class="lucide"></i> Config Agent</h2>
-            <button class="modal-panel__close" onclick="closeConfigAgentModal()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <button class="modal-panel__close" onclick="closeConfigAgentModal()">&times;</button>
         </div>
         <div class="modal-panel__body">
             <!-- Enable toggle -->
@@ -1254,9 +1235,6 @@
 
     function openConfigAgentModal() {
         const m = document.getElementById('configAgentModal');
-        m.classList.remove('closing');
-        m.style.display = 'flex';
-        void m.offsetHeight;
         document.getElementById('configAgentEnabled').checked = agentConfig.enabled;
         document.getElementById('configSystemPrompt').value = agentConfig.systemPrompt || '';
         document.getElementById('configInjectionPrompt').value = agentConfig.injectionPrompt || '';
@@ -1273,13 +1251,7 @@
     }
 
     function closeConfigAgentModal() {
-        const modal = document.getElementById('configAgentModal');
-        if (modal) {
-            modal.classList.remove('open');
-            modal.classList.add('closing');
-            document.body.style.overflow = '';
-            setTimeout(() => { modal.classList.remove('closing'); modal.style.display = 'none'; }, 250);
-        }
+        document.getElementById('configAgentModal').classList.remove('open');
     }
 
     function toggleConfigAgent() {

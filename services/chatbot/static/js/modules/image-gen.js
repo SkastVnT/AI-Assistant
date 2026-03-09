@@ -28,15 +28,8 @@ export class ImageGeneration {
         console.log('[Image Modal] Opening modal...');
         const modal = document.getElementById('imageGenModal');
         if (modal) {
-            modal.classList.remove('closing');
-            modal.style.display = 'flex';
-            // Force reflow so the open transition plays
-            void modal.offsetHeight;
             modal.classList.add('active', 'open');
-            document.body.style.overflow = 'hidden';
-
-            // Setup click-outside and Escape key
-            this._setupModalDismiss(modal);
+            modal.style.display = 'flex';
             
             // Check SD status and load resources
             await this.checkSDStatus();
@@ -57,40 +50,7 @@ export class ImageGeneration {
         const modal = document.getElementById('imageGenModal');
         if (modal) {
             modal.classList.remove('active', 'open');
-            modal.classList.add('closing');
-            document.body.style.overflow = '';
-            this._removeModalDismiss();
-            // Wait for exit animation then hide
-            setTimeout(() => {
-                modal.classList.remove('closing');
-                modal.style.display = 'none';
-            }, 250);
-        }
-    }
-
-    /**
-     * Setup Escape key and click-outside to close modal
-     */
-    _setupModalDismiss(modal) {
-        this._escHandler = (e) => {
-            if (e.key === 'Escape') this.closeModal();
-        };
-        this._clickOutsideHandler = (e) => {
-            if (e.target === modal) this.closeModal();
-        };
-        document.addEventListener('keydown', this._escHandler);
-        modal.addEventListener('click', this._clickOutsideHandler);
-    }
-
-    _removeModalDismiss() {
-        if (this._escHandler) {
-            document.removeEventListener('keydown', this._escHandler);
-            this._escHandler = null;
-        }
-        const modal = document.getElementById('imageGenModal');
-        if (modal && this._clickOutsideHandler) {
-            modal.removeEventListener('click', this._clickOutsideHandler);
-            this._clickOutsideHandler = null;
+            modal.style.display = 'none';
         }
     }
 

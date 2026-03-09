@@ -1,5 +1,6 @@
 /**
- * Split View Manager — side-by-side chat viewer with drag-to-import
+ * Split View Manager
+ * Allows viewing multiple chat conversations side-by-side
  */
 
 export class SplitViewManager {
@@ -7,344 +8,272 @@ export class SplitViewManager {
         this.chatManager = chatManager;
         this.uiUtils = uiUtils;
         this.isActive = false;
-        this.rightChatId = null;
+        this.panes = []; // [{chatId, container, element}]
         this.mainEl = document.querySelector('.main');
         this.chatArea = document.getElementById('chatArea');
-        this._initEdgeDropZones();
+        this.originalChatContainer = document.getElementById('chatContainer');
     }
 
+    /**
+     * Toggle split view on/off
+     */
     toggle() {
-        this.isActive ? this.close() : this.open();
+        if (this.isActive) {
+            this.closeSplit();
+        } else {
+            this.openSplit();
+        }
     }
 
-    open() {
+    /**
+     * Open split view — current chat stays left, picker opens for right pane
+     */
+    openSplit() {
         if (this.isActive) return;
         this.isActive = true;
 
         const btn = document.getElementById('splitViewBtn');
         if (btn) btn.classList.add('active');
 
-        // Build split wrapper that replaces chatArea
-        this.splitEl = document.createElement('div');
-        this.splitEl.className = 'split-wrapper';
+        // Wrap existing chat area into left pane
+        this.mainEl.classList.add('split-view');
 
-        // Remember chatArea's position before moving it
-        this._chatAreaNextSibling = this.chatArea.nextSibling;
+        // Create split container
+        this.splitContainer = document.createElement('div');
+        this.splitContainer.className = 'split-container';
+        this.splitContainer.style.cssText = 'display:flex;flex:1;overflow:hidden;';
 
-        // Left pane = current chat (keep original chatArea inside)
-        this.leftPane = this._buildPane('left');
-        this.leftPane.querySelector('.split-pane__body').appendChild(this.chatArea);
-        this.chatArea.style.display = '';
+        // Left pane (current chat)
+        const leftPane = this._createPane(this.chatManager.currentChatId, false);
+        
+        // Move existing chatArea content into left pane
+        const leftChatArea = leftPane.querySelector('.split-pane__chat');
+        leftChatArea.innerHTML = this.chatArea.innerHTML;
 
         // Divider
-        this.divider = document.createElement('div');
-        this.divider.className = 'split-divider';
-        this.divider.innerHTML = '<span class="split-divider__grip">⋮</span>';
-        this._initResize();
+        const divider = document.createElement('div');
+        divider.className = 'split-divider';
+        this._setupDividerResize(divider);
 
-        // Right pane = picker
-        this.rightPane = this._buildPane('right');
-        this._showPicker();
+        // Right pane (empty — show chat picker)
+        const rightPane = this._createEmptyPane();
 
-        this.splitEl.append(this.leftPane, this.divider, this.rightPane);
-        
-        // Insert split wrapper where chatArea was
-        this.mainEl.insertBefore(this.splitEl, this._chatAreaNextSibling);
-        this.mainEl.classList.add('split-active');
+        this.splitContainer.appendChild(leftPane);
+        this.splitContainer.appendChild(divider);
+        this.splitContainer.appendChild(rightPane);
 
-        // Setup sidebar drag-into-split
-        this._initSidebarDrop();
+        // Hide original chat area content and insert split container
+        this.chatArea.style.display = 'none';
+        this.chatArea.parentNode.insertBefore(this.splitContainer, this.chatArea.nextSibling);
 
-        if (window.lucide) lucide.createIcons({ nodes: [this.splitEl] });
+        this.panes = [
+            { chatId: this.chatManager.currentChatId, element: leftPane },
+        ];
+
+        // Re-init Lucide icons
+        if (window.lucide) lucide.createIcons({ nodes: [this.splitContainer] });
     }
 
-    close() {
+    /**
+     * Close split view — restore single pane
+     */
+    closeSplit() {
         if (!this.isActive) return;
         this.isActive = false;
-        this.rightChatId = null;
 
         const btn = document.getElementById('splitViewBtn');
         if (btn) btn.classList.remove('active');
 
-        // Move chatArea back to its original position
-        this.mainEl.insertBefore(this.chatArea, this.splitEl);
+        this.mainEl.classList.remove('split-view');
+
+        // Remove split container
+        if (this.splitContainer && this.splitContainer.parentNode) {
+            this.splitContainer.parentNode.removeChild(this.splitContainer);
+        }
+
+        // Show original chat area again
         this.chatArea.style.display = '';
 
-        this.splitEl.remove();
-        this.splitEl = null;
-        this._chatAreaNextSibling = null;
-        this.mainEl.classList.remove('split-active');
-    }
-
-    /* ── Pane builders ─────────────────────────────── */
-
-    _buildPane(side) {
-        const pane = document.createElement('div');
-        pane.className = `split-pane split-pane--${side}`;
-        pane.innerHTML = `
-            <div class="split-pane__header">
-                <span class="split-pane__title">${side === 'left' ? this._currentTitle() : 'Chọn cuộc trò chuyện'}</span>
-                ${side === 'right' ? '<button class="split-pane__close" title="Đóng"><i data-lucide="x" style="width:14px;height:14px;"></i></button>' : ''}
-            </div>
-            <div class="split-pane__body"></div>
-        `;
-        if (side === 'right') {
-            pane.querySelector('.split-pane__close').addEventListener('click', () => this.close());
-        }
-        // Allow drop from sidebar
-        pane.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; pane.classList.add('split-pane--drop-target'); });
-        pane.addEventListener('dragleave', () => pane.classList.remove('split-pane--drop-target'));
-        pane.addEventListener('drop', e => {
-            e.preventDefault();
-            pane.classList.remove('split-pane--drop-target');
-            const chatId = e.dataTransfer.getData('text/plain');
-            if (!chatId || !this.chatManager.chatSessions[chatId]) return;
-
-            if (side === 'left') {
-                // Switch the main chat to the dropped chat
-                if (this.chatManager.switchChat) {
-                    this.chatManager.switchChat(chatId);
-                }
-                const title = pane.querySelector('.split-pane__title');
-                const s = this.chatManager.chatSessions[chatId];
-                if (title && s) title.textContent = s.title;
-            } else {
-                this._loadChat(pane, chatId);
-            }
-        });
-        return pane;
-    }
-
-    _currentTitle() {
-        const s = this.chatManager.chatSessions[this.chatManager.currentChatId];
-        return this._esc(s ? s.title : 'Chat');
-    }
-
-    /* ── Chat picker (right pane default) ──────────── */
-
-    _showPicker() {
-        const body = this.rightPane.querySelector('.split-pane__body');
-        const sessions = this.chatManager.chatSessions;
-        const currentId = this.chatManager.currentChatId;
-        const ids = Object.keys(sessions).filter(id => id !== currentId);
-
-        if (ids.length === 0) {
-            body.innerHTML = `<div class="split-empty">
-                <i data-lucide="message-circle" style="width:32px;height:32px;opacity:0.3;"></i>
-                <p>Không có cuộc trò chuyện nào khác</p>
-                <small>Tạo cuộc trò chuyện mới rồi quay lại đây</small>
-            </div>`;
-            return;
-        }
-
-        body.innerHTML = `
-            <div class="split-picker">
-                <div class="split-picker__hint">
-                    <i data-lucide="mouse-pointer-click" style="width:14px;height:14px;"></i>
-                    Chọn hoặc kéo thả chat từ sidebar vào đây
-                </div>
-                <div class="split-picker__list">
-                    ${ids.map(id => {
-                        const s = sessions[id];
-                        const count = s.messages ? s.messages.length : 0;
-                        const preview = count > 0
-                            ? (s.messages[1] || s.messages[0] || '').replace(/<[^>]*>/g, '').substring(0, 60)
-                            : 'Chưa có tin nhắn';
-                        return `<button class="split-picker__item" data-chat-id="${id}">
-                            <div class="split-picker__item-title">${this._esc(s.title)}</div>
-                            <div class="split-picker__item-meta">
-                                <span>${count} tin nhắn</span>
-                                <span class="split-picker__item-preview">${this._esc(preview)}</span>
-                            </div>
-                        </button>`;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-
-        body.querySelectorAll('.split-picker__item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this._loadChat(this.rightPane, btn.dataset.chatId);
-            });
-        });
-    }
-
-    /* ── Load chat into a pane ─────────────────────── */
-
-    _loadChat(pane, chatId) {
-        const session = this.chatManager.chatSessions[chatId];
-        if (!session) return;
-
-        const isRight = pane.classList.contains('split-pane--right');
-        if (isRight) this.rightChatId = chatId;
-
-        // Update header
-        const title = pane.querySelector('.split-pane__title');
-        if (title) title.textContent = session.title;
-
-        // Render messages
-        const body = pane.querySelector('.split-pane__body');
-        body.innerHTML = '';
-
-        const messagesEl = document.createElement('div');
-        messagesEl.className = 'split-pane__messages';
-
-        if (session.messages && session.messages.length > 0) {
-            messagesEl.innerHTML = session.messages.join('');
-        } else {
-            messagesEl.innerHTML = '<div class="split-empty"><p>Chưa có tin nhắn</p></div>';
-        }
-
-        body.appendChild(messagesEl);
-        body.scrollTop = body.scrollHeight;
-
-        if (window.lucide) lucide.createIcons({ nodes: [body] });
-    }
-
-    /* ── Edge drop zones (drag chat to corners to split) ── */
-
-    _initEdgeDropZones() {
-        // Create overlay with left/right drop zones (hidden until drag starts)
-        this._overlay = document.createElement('div');
-        this._overlay.className = 'split-edge-overlay';
-        this._overlay.innerHTML = `
-            <div class="split-edge-zone split-edge-zone--left" data-side="left">
-                <i data-lucide="panel-left" style="width:28px;height:28px;"></i>
-                <span>Mở bên trái</span>
-            </div>
-            <div class="split-edge-zone split-edge-zone--right" data-side="right">
-                <i data-lucide="panel-right" style="width:28px;height:28px;"></i>
-                <span>Mở bên phải</span>
-            </div>
-        `;
-        this.mainEl.appendChild(this._overlay);
-        if (window.lucide) lucide.createIcons({ nodes: [this._overlay] });
-
-        // Watch for drag events on the whole document
-        document.addEventListener('dragstart', (e) => {
-            const item = e.target.closest?.('.sidebar__chat-item');
-            if (!item || this.isActive) return;
-            // Show overlay after a short delay
-            setTimeout(() => {
-                this._overlay.classList.add('visible');
-            }, 200);
-        });
-
-        document.addEventListener('dragend', () => {
-            this._overlay.classList.remove('visible');
-            this._overlay.querySelectorAll('.split-edge-zone').forEach(z => z.classList.remove('active'));
-        });
-
-        // Zone hover & drop
-        this._overlay.querySelectorAll('.split-edge-zone').forEach(zone => {
-            let zoneCounter = 0;
-            zone.addEventListener('dragenter', (e) => {
-                e.preventDefault();
-                zoneCounter++;
-                zone.classList.add('active');
-            });
-            zone.addEventListener('dragleave', () => {
-                zoneCounter--;
-                if (zoneCounter <= 0) {
-                    zoneCounter = 0;
-                    zone.classList.remove('active');
-                }
-            });
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-            zone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                this._overlay.classList.remove('visible');
-                zone.classList.remove('active');
-
-                const chatId = e.dataTransfer.getData('text/plain');
-                if (!chatId || !this.chatManager.chatSessions[chatId]) return;
-
-                const side = zone.dataset.side;
-                this._openWithChat(chatId, side);
-            });
-        });
+        this.panes = [];
+        this.splitContainer = null;
     }
 
     /**
-     * Open split view and load a specific chat into the given side
+     * Create a pane element for a specific chat
      */
-    _openWithChat(chatId, side) {
-        if (this.isActive) return;
+    _createPane(chatId, showClose = true) {
+        const session = this.chatManager.chatSessions[chatId];
+        const title = session ? session.title : 'Chat';
 
-        // Open split first
-        this.open();
+        const pane = document.createElement('div');
+        pane.className = 'split-pane';
+        pane.dataset.chatId = chatId;
 
-        if (side === 'right') {
-            // Load dropped chat into right pane
-            this._loadChat(this.rightPane, chatId);
+        pane.innerHTML = `
+            <div class="split-pane__header">
+                <span class="split-pane__header-title">${this._escapeHtml(title)}</span>
+                ${showClose ? '<button class="split-pane__close" title="Close pane"><i data-lucide="x" style="width:14px;height:14px;"></i></button>' : ''}
+            </div>
+            <div class="split-pane__chat chat-area" style="flex:1;overflow-y:auto;">
+                <div class="chat-area__messages" style="max-width:100%;padding:16px;"></div>
+            </div>
+        `;
+
+        // Load messages into this pane
+        const messagesContainer = pane.querySelector('.chat-area__messages');
+        if (session && session.messages.length > 0) {
+            messagesContainer.innerHTML = session.messages.join('');
         } else {
-            // Switch main chat to the dropped chat, show current chat in right
-            const currentId = this.chatManager.currentChatId;
-            if (this.chatManager.switchChat) {
-                this.chatManager.switchChat(chatId);
-            }
-            const title = this.leftPane.querySelector('.split-pane__title');
-            const s = this.chatManager.chatSessions[chatId];
-            if (title && s) title.textContent = s.title;
-            // Load old current chat into right pane
-            if (currentId && currentId !== chatId) {
-                this._loadChat(this.rightPane, currentId);
+            messagesContainer.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">No messages yet</div>';
+        }
+
+        // Close button handler
+        if (showClose) {
+            const closeBtn = pane.querySelector('.split-pane__close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => this.closeSplit());
             }
         }
+
+        return pane;
     }
 
-    /* ── Sidebar drag-to-split ─────────────────────── */
+    /**
+     * Create empty pane with chat picker
+     */
+    _createEmptyPane() {
+        const pane = document.createElement('div');
+        pane.className = 'split-pane';
+        pane.dataset.chatId = '';
 
-    _initSidebarDrop() {
-        // The sidebar items already have draggable + dragstart from ui-utils.
-        // Drop targets on panes are set up in _buildPane.
+        const sessions = this.chatManager.chatSessions;
+        const currentId = this.chatManager.currentChatId;
+        const chatOptions = Object.keys(sessions)
+            .filter(id => id !== currentId)
+            .map(id => {
+                const s = sessions[id];
+                return `<button class="split-chat-pick" data-chat-id="${id}" style="
+                    display:block;width:100%;text-align:left;padding:10px 14px;
+                    background:var(--bg-secondary);border:1px solid var(--border-secondary);
+                    border-radius:var(--radius-sm);cursor:pointer;margin-bottom:6px;
+                    color:var(--text-primary);font-size:13px;transition:all 0.15s;">
+                    <strong>${this._escapeHtml(s.title)}</strong>
+                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">${s.messages.length} messages</div>
+                </button>`;
+            }).join('');
+
+        pane.innerHTML = `
+            <div class="split-pane__header">
+                <span class="split-pane__header-title">Select a conversation</span>
+                <button class="split-pane__close" title="Close split"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:16px;">
+                ${chatOptions || '<div style="color:var(--text-tertiary);text-align:center;padding:40px;">No other conversations available</div>'}
+            </div>
+        `;
+
+        // Pick handler
+        pane.querySelectorAll('.split-chat-pick').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const chatId = btn.dataset.chatId;
+                this._loadChatIntoPane(pane, chatId);
+            });
+            btn.addEventListener('mouseenter', () => {
+                btn.style.borderColor = 'var(--accent)';
+                btn.style.background = 'var(--accent-soft)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.borderColor = 'var(--border-secondary)';
+                btn.style.background = 'var(--bg-secondary)';
+            });
+        });
+
+        // Close button
+        const closeBtn = pane.querySelector('.split-pane__close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closeSplit());
+        }
+
+        return pane;
     }
 
-    /* ── Divider resize ────────────────────────────── */
+    /**
+     * Load a specific chat into a pane
+     */
+    _loadChatIntoPane(pane, chatId) {
+        const session = this.chatManager.chatSessions[chatId];
+        if (!session) return;
 
-    _initResize() {
-        let active = false;
-        const onMove = (e) => {
-            if (!active) return;
-            const x = e.touches ? e.touches[0].clientX : e.clientX;
-            const rect = this.splitEl.getBoundingClientRect();
-            const pct = ((x - rect.left) / rect.width) * 100;
-            if (pct > 25 && pct < 75) {
-                this.leftPane.style.flex = `0 0 ${pct}%`;
-                this.rightPane.style.flex = `0 0 ${100 - pct - 0.3}%`;
-            }
-        };
-        const onEnd = () => {
-            active = false;
-            this.divider.classList.remove('active');
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('mouseup', onEnd);
-            document.removeEventListener('touchend', onEnd);
-        };
-        const onStart = (e) => {
-            e.preventDefault();
-            active = true;
-            this.divider.classList.add('active');
+        pane.dataset.chatId = chatId;
+        
+        // Update header
+        const headerTitle = pane.querySelector('.split-pane__header-title');
+        if (headerTitle) headerTitle.textContent = session.title;
+
+        // Replace body with chat content
+        const existingBody = pane.querySelector('.split-pane__chat') || pane.children[1];
+        const chatArea = document.createElement('div');
+        chatArea.className = 'split-pane__chat chat-area';
+        chatArea.style.cssText = 'flex:1;overflow-y:auto;';
+        chatArea.innerHTML = `<div class="chat-area__messages" style="max-width:100%;padding:16px;">${session.messages.join('')}</div>`;
+
+        if (existingBody) {
+            pane.replaceChild(chatArea, existingBody);
+        } else {
+            pane.appendChild(chatArea);
+        }
+
+        this.panes.push({ chatId, element: pane });
+        
+        if (window.lucide) lucide.createIcons({ nodes: [pane] });
+    }
+
+    /**
+     * Setup divider resize
+     */
+    _setupDividerResize(divider) {
+        let isResizing = false;
+        let startX = 0;
+
+        divider.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            divider.classList.add('active');
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('touchmove', onMove);
-            document.addEventListener('mouseup', onEnd);
-            document.addEventListener('touchend', onEnd);
-        };
-        this.divider.addEventListener('mousedown', onStart);
-        this.divider.addEventListener('touchstart', onStart, { passive: false });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const container = divider.parentElement;
+            const leftPane = divider.previousElementSibling;
+            const rightPane = divider.nextElementSibling;
+            
+            if (!leftPane || !rightPane || !container) return;
+            
+            const containerRect = container.getBoundingClientRect();
+            const leftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+            
+            if (leftWidth > 20 && leftWidth < 80) {
+                leftPane.style.flex = `0 0 ${leftWidth}%`;
+                rightPane.style.flex = `0 0 ${100 - leftWidth - 1}%`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                divider.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
     }
 
-    _esc(text) {
-        const d = document.createElement('div');
-        d.textContent = text || '';
-        return d.innerHTML;
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
     }
 }
