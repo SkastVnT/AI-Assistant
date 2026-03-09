@@ -186,7 +186,7 @@ def list_images():
 
 @images_bp.route('/api/delete-image/<filename>', methods=['DELETE'])
 def delete_image(filename):
-    """Delete saved image"""
+    """Delete saved image from local disk and MongoDB"""
     try:
         # Validate filename
         if not re.match(r'^[a-zA-Z0-9_\-\.]+$', filename):
@@ -195,12 +195,21 @@ def delete_image(filename):
         filepath = IMAGE_STORAGE_DIR / filename
         metadata_file = filepath.with_suffix('.json')
         
-        if not filepath.exists():
-            return jsonify({'error': 'Image not found'}), 404
-        
-        filepath.unlink()
+        # Delete from local disk
+        if filepath.exists():
+            filepath.unlink()
         if metadata_file.exists():
             metadata_file.unlink()
+        
+        # Delete from MongoDB generated_images collection
+        try:
+            from core.image_storage import images_collection
+            if images_collection is not None:
+                result = images_collection.delete_one({'filename': filename})
+                if result.deleted_count:
+                    logger.info(f"[Delete Image] Removed from MongoDB: {filename}")
+        except Exception as mongo_err:
+            logger.warning(f"[Delete Image] MongoDB delete failed: {mongo_err}")
         
         return jsonify({
             'success': True,
@@ -215,53 +224,105 @@ def delete_image(filename):
 @images_bp.route('/api/gallery', methods=['GET'])
 @images_bp.route('/api/gallery/images', methods=['GET'])  # Alias for frontend compatibility
 def get_gallery():
-    """Get image gallery with pagination - filtered by session for privacy"""
+    """Get image gallery - MongoDB first, local disk fallback"""
     try:
         page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 20))
+        per_page = int(request.args.get('per_page', 50))
         show_all = request.args.get('all', 'false').lower() == 'true'
         
-        # Get current session ID for filtering
         current_session_id = get_session_id()
-        
         images = []
+        source = 'local'
         
-        # Get all images and filter by session
-        for img_file in IMAGE_STORAGE_DIR.glob('*.png'):
-            metadata_file = img_file.with_suffix('.json')
-            metadata = {}
-            if metadata_file.exists():
-                try:
-                    with open(metadata_file, 'r', encoding='utf-8') as f:
-                        metadata = json.load(f)
-                except:
-                    pass
-            
-            # Privacy filter logic:
-            # - If show_all=true: show all images (for owner)
-            # - If image has no session_id (legacy): show it (backwards compatibility)
-            # - If image has session_id matching current: show it
-            # - Otherwise: hide it
-            image_session_id = metadata.get('session_id')
-            
-            if not show_all:
-                # Only filter if not showing all
-                if image_session_id is not None and image_session_id != current_session_id:
-                    continue  # Skip images from other sessions (not legacy, not current)
-            
-            images.append({
-                'filename': img_file.name,
-                'url': f"/storage/images/{img_file.name}",
-                'path': f"/storage/images/{img_file.name}",  # Alias for frontend
-                'created_at': metadata.get('created_at', ''),
-                'created': metadata.get('created_at', ''),  # Alias for frontend
-                'prompt': metadata.get('prompt', 'No prompt'),
-                'cloud_url': metadata.get('cloud_url'),
-                'metadata': metadata
-            })
+        # ── Try MongoDB first (generated_images collection) ──
+        try:
+            from core.image_storage import images_collection
+            if images_collection is not None:
+                query = {}
+                if not show_all:
+                    query = {'$or': [
+                        {'session_id': current_session_id},
+                        {'session_id': {'$exists': False}},
+                        {'session_id': ''},
+                    ]}
+                
+                cursor = images_collection.find(query).sort('created_at', -1).limit(per_page * page)
+                for doc in cursor:
+                    doc_id = str(doc.get('_id', ''))
+                    created = doc.get('created_at', '')
+                    if hasattr(created, 'isoformat'):
+                        created = created.isoformat()
+                    
+                    cloud_url = doc.get('cloud_url') or doc.get('url')
+                    local_path = doc.get('local_path', '')
+                    filename = doc.get('filename', '')
+                    
+                    # Use cloud URL (ImgBB CDN) if available, otherwise local
+                    display_url = cloud_url if cloud_url else local_path
+                    
+                    images.append({
+                        'id': doc_id,
+                        'filename': filename,
+                        'url': display_url,
+                        'path': display_url,
+                        'cloud_url': cloud_url,
+                        'local_path': local_path,
+                        'created_at': created,
+                        'created': created,
+                        'prompt': doc.get('prompt', 'No prompt'),
+                        'metadata': {
+                            'prompt': doc.get('prompt', ''),
+                            'negative_prompt': doc.get('negative_prompt', ''),
+                            'model': doc.get('model', ''),
+                            'sampler': doc.get('sampler', ''),
+                            'steps': doc.get('steps', ''),
+                            'cfg_scale': doc.get('cfg_scale', ''),
+                            'width': doc.get('width', ''),
+                            'height': doc.get('height', ''),
+                            'seed': doc.get('seed', ''),
+                            'vae': doc.get('vae', ''),
+                            'lora_models': doc.get('lora_models', ''),
+                            'denoising_strength': doc.get('denoising_strength', ''),
+                        }
+                    })
+                
+                if images:
+                    source = 'mongodb'
+                    logger.info(f"[Gallery] Loaded {len(images)} images from MongoDB")
+        except Exception as mongo_err:
+            logger.warning(f"[Gallery] MongoDB fetch failed, falling back to local: {mongo_err}")
         
-        # Sort by created_at descending
-        images.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        # ── Fallback: local disk ──
+        if not images:
+            for img_file in IMAGE_STORAGE_DIR.glob('*.png'):
+                metadata_file = img_file.with_suffix('.json')
+                metadata = {}
+                if metadata_file.exists():
+                    try:
+                        with open(metadata_file, 'r', encoding='utf-8') as f:
+                            metadata = json.load(f)
+                    except:
+                        pass
+                
+                image_session_id = metadata.get('session_id')
+                if not show_all:
+                    if image_session_id is not None and image_session_id != current_session_id:
+                        continue
+                
+                images.append({
+                    'filename': img_file.name,
+                    'url': f"/storage/images/{img_file.name}",
+                    'path': f"/storage/images/{img_file.name}",
+                    'cloud_url': metadata.get('cloud_url'),
+                    'local_path': f"/storage/images/{img_file.name}",
+                    'created_at': metadata.get('created_at', ''),
+                    'created': metadata.get('created_at', ''),
+                    'prompt': metadata.get('prompt', 'No prompt'),
+                    'metadata': metadata
+                })
+            
+            images.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+            source = 'local'
         
         # Paginate
         total = len(images)
@@ -270,14 +331,15 @@ def get_gallery():
         paginated = images[start:end]
         
         return jsonify({
-            'success': True,  # Frontend expects this
+            'success': True,
             'images': paginated,
             'total': total,
             'page': page,
             'per_page': per_page,
             'total_pages': (total + per_page - 1) // per_page,
-            'session_id': current_session_id,  # For debugging
-            'showing_all': show_all
+            'session_id': current_session_id,
+            'showing_all': show_all,
+            'source': source
         })
         
     except Exception as e:

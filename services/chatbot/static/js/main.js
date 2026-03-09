@@ -1752,17 +1752,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Expose cleanup function
-    window.manualCleanup = () => {
-        const result = app.chatManager.manualCleanup(5);
-        if (result.success) {
-            app.saveCurrentSession();
-            app.uiUtils.showAlert(result.message);
-        } else {
-            app.uiUtils.showAlert(result.message);
-        }
-    };
-    
     // Helper function to display extracted tags for Img2Img
     function displayExtractedTags(tags, categories) {
         const container = document.getElementById('extractedTags');
@@ -2051,7 +2040,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!modal) return;
         
+        modal.classList.remove('closing');
+        modal.style.display = 'flex';
+        void modal.offsetHeight;
         modal.classList.add('active', 'open');
+        document.body.style.overflow = 'hidden';
         grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">⏳ Đang tải ảnh...</div>';
         
         try {
@@ -2061,14 +2054,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.success && data.images.length > 0) {
                 const modeText = showAll ? ' (Tất cả)' : ' (Session hiện tại)';
-                stats.textContent = `📊 Tổng số: ${data.total} ảnh${modeText}`;
+                const sourceText = data.source === 'mongodb' ? ' ☁️' : ' 💾';
+                stats.textContent = `📊 Tổng số: ${data.total} ảnh${modeText}${sourceText}`;
                 
                 grid.innerHTML = data.images.map(img => {
                     const metadataStr = JSON.stringify(img.metadata).replace(/"/g, '&quot;');
                     const filename = img.filename || img.path.split('/').pop();
+                    // Prefer cloud URL (ImgBB CDN) for display, fallback to local path
+                    const displayUrl = img.cloud_url || img.path || img.url;
+                    const isCloud = !!img.cloud_url;
                     return `
-                        <div class="gallery-item" data-path="${img.path}" data-filename="${filename}" data-metadata="${metadataStr}">
-                            <img src="${img.path}" alt="${filename}" loading="lazy">
+                        <div class="gallery-item" data-path="${displayUrl}" data-filename="${filename}" data-metadata="${metadataStr}">
+                            <img src="${displayUrl}" alt="${filename}" loading="lazy" onerror="this.src='${img.local_path || img.path}'">
+                            ${isCloud ? '<span class="gallery-cloud-badge" title="Stored in cloud">☁️</span>' : ''}
                             <div class="gallery-item-info">
                                 <div style="font-weight: 600;">📅 ${img.created}</div>
                                 <div class="gallery-item-prompt" title="${img.prompt}">
@@ -2114,7 +2112,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.closeGallery = () => {
         const modal = document.getElementById('galleryModal');
-        if (modal) modal.classList.remove('active', 'open');
+        if (modal) {
+            modal.classList.remove('active', 'open');
+            modal.classList.add('closing');
+            document.body.style.overflow = '';
+            setTimeout(() => { modal.classList.remove('closing'); modal.style.display = 'none'; }, 250);
+        }
     };
     
     window.refreshGallery = async () => {
@@ -2186,8 +2189,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // History modal close
     window.closeHistoryModal = () => {
         const modal = document.getElementById('historyModal');
-        if (modal) modal.classList.remove('active', 'open');
+        if (modal) {
+            modal.classList.remove('active', 'open');
+            modal.classList.add('closing');
+            document.body.style.overflow = '';
+            setTimeout(() => { modal.classList.remove('closing'); modal.style.display = 'none'; }, 250);
+        }
     };
+
+    // Global Escape key to close any open modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modals = document.querySelectorAll('.modal-overlay.open');
+            modals.forEach(m => {
+                const closeBtn = m.querySelector('.modal-panel__close');
+                if (closeBtn) closeBtn.click();
+            });
+        }
+    });
+
+    // Click-outside to close for all modal overlays
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal && modal.classList.contains('open')) {
+                const closeBtn = modal.querySelector('.modal-panel__close');
+                if (closeBtn) closeBtn.click();
+            }
+        });
+    });
 
     // Expose app for debugging
     window.chatApp = app;

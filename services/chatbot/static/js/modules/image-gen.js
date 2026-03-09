@@ -28,8 +28,15 @@ export class ImageGeneration {
         console.log('[Image Modal] Opening modal...');
         const modal = document.getElementById('imageGenModal');
         if (modal) {
-            modal.classList.add('active', 'open');
+            modal.classList.remove('closing');
             modal.style.display = 'flex';
+            // Force reflow so the open transition plays
+            void modal.offsetHeight;
+            modal.classList.add('active', 'open');
+            document.body.style.overflow = 'hidden';
+
+            // Setup click-outside and Escape key
+            this._setupModalDismiss(modal);
             
             // Check SD status and load resources
             await this.checkSDStatus();
@@ -44,13 +51,46 @@ export class ImageGeneration {
     }
 
     /**
-     * Close image generation modal
+     * Close image generation modal with animation
      */
     closeModal() {
         const modal = document.getElementById('imageGenModal');
         if (modal) {
             modal.classList.remove('active', 'open');
-            modal.style.display = 'none';
+            modal.classList.add('closing');
+            document.body.style.overflow = '';
+            this._removeModalDismiss();
+            // Wait for exit animation then hide
+            setTimeout(() => {
+                modal.classList.remove('closing');
+                modal.style.display = 'none';
+            }, 250);
+        }
+    }
+
+    /**
+     * Setup Escape key and click-outside to close modal
+     */
+    _setupModalDismiss(modal) {
+        this._escHandler = (e) => {
+            if (e.key === 'Escape') this.closeModal();
+        };
+        this._clickOutsideHandler = (e) => {
+            if (e.target === modal) this.closeModal();
+        };
+        document.addEventListener('keydown', this._escHandler);
+        modal.addEventListener('click', this._clickOutsideHandler);
+    }
+
+    _removeModalDismiss() {
+        if (this._escHandler) {
+            document.removeEventListener('keydown', this._escHandler);
+            this._escHandler = null;
+        }
+        const modal = document.getElementById('imageGenModal');
+        if (modal && this._clickOutsideHandler) {
+            modal.removeEventListener('click', this._clickOutsideHandler);
+            this._clickOutsideHandler = null;
         }
     }
 
@@ -169,10 +209,13 @@ export class ImageGeneration {
     populateModelSelect() {
         const selects = document.querySelectorAll('#modelCheckpoint, #img2imgModelSelect');
         selects.forEach(select => {
-            if (select && this.sdModels.length > 0) {
-                select.innerHTML = this.sdModels.map(model => 
+            if (!select) return;
+            if (this.sdModels.length > 0) {
+                select.innerHTML = this.sdModels.map(model =>
                     `<option value="${model}">${model}</option>`
                 ).join('');
+            } else {
+                select.innerHTML = '<option value="">⚠️ No models found — place .safetensors in ComfyUI/models/checkpoints/</option>';
             }
         });
     }
@@ -181,7 +224,7 @@ export class ImageGeneration {
      * Populate sampler select dropdown
      */
     populateSamplerSelect() {
-        const selects = document.querySelectorAll('#samplerSelect, #img2imgSamplerSelect');
+        const selects = document.querySelectorAll('#samplerSelect, #img2imgSampler');
         selects.forEach(select => {
             if (select && this.samplers.length > 0) {
                 select.innerHTML = this.samplers.map(sampler => 
@@ -192,18 +235,28 @@ export class ImageGeneration {
     }
 
     /**
+     * Normalize a lora or vae item to its name string
+     */
+    _itemName(item) {
+        if (typeof item === 'object' && item !== null) return item.name || item.alias || String(item);
+        return String(item);
+    }
+
+    /**
      * Populate LoRA list
      */
     populateLoraList() {
         const containers = document.querySelectorAll('#loraList, #img2imgLoraList');
         containers.forEach(container => {
             if (container && this.loras.length > 0) {
-                container.innerHTML = this.loras.map(lora => `
+                container.innerHTML = this.loras.map(lora => {
+                    const name = this._itemName(lora);
+                    return `
                     <div class="lora-item">
-                        <input type="checkbox" id="lora-${lora}" value="${lora}">
-                        <label for="lora-${lora}">${lora}</label>
-                    </div>
-                `).join('');
+                        <input type="checkbox" id="lora-${name}" value="${name}">
+                        <label for="lora-${name}">${name}</label>
+                    </div>`;
+                }).join('');
                 
                 // Auto-select recommended LoRAs
                 this.autoSelectRecommendedLoras(container);
@@ -258,8 +311,11 @@ export class ImageGeneration {
         const selects = document.querySelectorAll('#vaeSelect, #img2imgVaeSelect');
         selects.forEach(select => {
             if (select && this.vaes.length > 0) {
-                select.innerHTML = '<option value="">Default</option>' + 
-                    this.vaes.map(vae => `<option value="${vae}">${vae}</option>`).join('');
+                select.innerHTML = '<option value="">Default</option>' +
+                    this.vaes.map(vae => {
+                        const name = this._itemName(vae);
+                        return `<option value="${name}">${name}</option>`;
+                    }).join('');
                 
                 // Auto-select recommended VAE
                 this.autoSelectRecommendedVae(select);
@@ -300,20 +356,32 @@ export class ImageGeneration {
     }
 
     /**
-     * Get selected LoRAs
+     * Get selected LoRAs from dynamic rows (loraSelectionContainer) or checkbox list (loraList)
      */
-    getSelectedLoras(containerId = 'loraList') {
+    getSelectedLoras(containerId = 'loraSelectionContainer') {
         const container = document.getElementById(containerId);
         if (!container) return [];
-        
+
         const selectedLoras = [];
-        container.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-            selectedLoras.push({
-                name: checkbox.value,
-                weight: 1.0 // Default weight
-            });
+
+        // Dynamic rows: each row has a .lora-select and optional .lora-weight
+        container.querySelectorAll('.lora-select').forEach(sel => {
+            if (sel.value) {
+                const weightEl = sel.closest('div')?.querySelector('.lora-weight');
+                selectedLoras.push({
+                    name: sel.value,
+                    weight: weightEl ? parseFloat(weightEl.value) || 1.0 : 1.0
+                });
+            }
         });
-        
+
+        // Fallback: checkbox list (legacy loraList)
+        if (selectedLoras.length === 0) {
+            container.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedLoras.push({ name: checkbox.value, weight: 1.0 });
+            });
+        }
+
         return selectedLoras;
     }
 
@@ -334,7 +402,7 @@ export class ImageGeneration {
                     sampler_name: document.getElementById('sampler')?.value || 'DPM++ 2M Karras',
                     seed: -1,
                     batch_size: 1,
-                    lora_models: this.getSelectedLoras('loraList'),
+                    lora_models: this.getSelectedLoras('loraSelectionContainer'),
                     vae: document.getElementById('vaeSelect')?.value || ''
                 };
             }
@@ -370,14 +438,15 @@ export class ImageGeneration {
                     image: this.sourceImageBase64.split(',')[1], // Remove data:image/... prefix
                     prompt: document.getElementById('img2imgPrompt')?.value || '',
                     negative_prompt: document.getElementById('img2imgNegativePrompt')?.value || '',
+                    model: document.getElementById('img2imgModelSelect')?.value || document.getElementById('modelCheckpoint')?.value || '',
                     steps: parseInt(document.getElementById('img2imgSteps')?.value) || 30,
                     cfg_scale: parseFloat(document.getElementById('img2imgCfgScale')?.value) || 7.0,
                     width: parseInt(document.getElementById('img2imgWidth')?.value) || 512,
                     height: parseInt(document.getElementById('img2imgHeight')?.value) || 512,
                     denoising_strength: parseFloat(document.getElementById('denoisingStrength')?.value) || 0.75,
-                    sampler_name: document.getElementById('img2imgSampler')?.value || 'DPM++ 2M Karras',
+                    sampler_name: document.getElementById('img2imgSampler')?.value || 'euler',
                     seed: parseInt(document.getElementById('img2imgSeed')?.value) || -1,
-                    lora_models: this.getSelectedLoras('img2imgLoraList'),
+                    lora_models: this.getSelectedLoras('img2imgLoraSelectionContainer'),
                     vae: document.getElementById('img2imgVaeSelect')?.value || ''
                 };
             }
@@ -443,7 +512,7 @@ export class ImageGeneration {
                 width: document.getElementById('img2imgWidth')?.value || document.getElementById('imageWidth')?.value || 'N/A',
                 height: document.getElementById('img2imgHeight')?.value || document.getElementById('imageHeight')?.value || 'N/A',
                 denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
-                lora_models: this.getSelectedLoras('loraList').concat(this.getSelectedLoras('img2imgLoraList')).map(l => l.name).join(', ') || 'None',
+                lora_models: this.getSelectedLoras('loraSelectionContainer').concat(this.getSelectedLoras('img2imgLoraSelectionContainer')).map(l => l.name).join(', ') || 'None',
                 vae: document.getElementById('img2imgVaeSelect')?.value || document.getElementById('vaeSelect')?.value || 'Auto',
                 seed: document.getElementById('img2imgSeed')?.value || document.getElementById('imageSeed')?.value || '-1'
             };
@@ -788,7 +857,7 @@ Prompt:`;
                 cfg_scale: document.getElementById('img2imgCfgScale')?.value || document.getElementById('cfgScale')?.value || 'N/A',
                 size: `${document.getElementById('img2imgWidth')?.value || document.getElementById('imageWidth')?.value}x${document.getElementById('img2imgHeight')?.value || document.getElementById('imageHeight')?.value}`,
                 denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
-                lora_models: this.getSelectedLoras('loraList').concat(this.getSelectedLoras('img2imgLoraList')).map(l => l.name).join(', ') || 'None',
+                lora_models: this.getSelectedLoras('loraSelectionContainer').concat(this.getSelectedLoras('img2imgLoraSelectionContainer')).map(l => l.name).join(', ') || 'None',
                 vae: document.getElementById('img2imgVaeSelect')?.value || document.getElementById('vaeSelect')?.value || 'Auto',
                 seed: document.getElementById('img2imgSeed')?.value || document.getElementById('imageSeed')?.value || '-1'
             };
@@ -916,14 +985,53 @@ Prompt:`;
     /**
      * Lora management
      */
-    addLoraSelection() {
-        // Implementation for adding Lora selection
-        console.log('[Image Gen] Add Lora selection');
+    _buildLoraRow(id, containerId) {
+        const loraOptions = this.loras.length > 0
+            ? this.loras.map(lora => {
+                const name = this._itemName(lora);
+                return `<option value="${name}">${name}</option>`;
+              }).join('')
+            : '<option value="">No LoRAs found</option>';
+        const row = document.createElement('div');
+        row.id = `loraSelection_${id}`;
+        row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;';
+        row.innerHTML = `
+            <select class="form-select lora-select" style="flex:1;font-size:12px;">${loraOptions}</select>
+            <input type="number" class="form-input lora-weight" value="1.0" min="0" max="2" step="0.1"
+                   style="width:65px;font-size:12px;" title="Weight">
+            <button type="button" class="btn btn--sm btn--ghost" style="padding:4px 8px;"
+                    onclick="removeLoraSelection(${id})">✕</button>`;
+        return row;
     }
-    
+
+    addLoraSelection() {
+        const container = document.getElementById('loraSelectionContainer');
+        if (!container) return;
+        const addBtn = document.getElementById('addLoraBtn');
+        const row = this._buildLoraRow(Date.now(), 'loraSelectionContainer');
+        addBtn ? container.insertBefore(row, addBtn) : container.appendChild(row);
+    }
+
     addImg2imgLoraSelection() {
-        // Implementation for adding Img2Img Lora selection
-        console.log('[Image Gen] Add Img2Img Lora selection');
+        const container = document.getElementById('img2imgLoraSelectionContainer');
+        if (!container) return;
+        const id = Date.now();
+        const loraOptions = this.loras.length > 0
+            ? this.loras.map(lora => {
+                const name = this._itemName(lora);
+                return `<option value="${name}">${name}</option>`;
+              }).join('')
+            : '<option value="">No LoRAs found</option>';
+        const row = document.createElement('div');
+        row.id = `img2imgLoraSelection_${id}`;
+        row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;';
+        row.innerHTML = `
+            <select class="form-select lora-select" style="flex:1;font-size:12px;">${loraOptions}</select>
+            <input type="number" class="form-input lora-weight" value="1.0" min="0" max="2" step="0.1"
+                   style="width:65px;font-size:12px;" title="Weight">
+            <button type="button" class="btn btn--sm btn--ghost" style="padding:4px 8px;"
+                    onclick="removeImg2imgLoraSelection(${id})">✕</button>`;
+        container.appendChild(row);
     }
     
     removeLoraSelection(id) {

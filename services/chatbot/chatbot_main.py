@@ -2930,7 +2930,7 @@ def img2img():
             'cfg_scale': float(data.get('cfg_scale') or 7.0),
             'sampler_name': data.get('sampler_name') or 'euler',
             'seed': int(data.get('seed') or -1),
-            'restore_faces': data.get('restore_faces', False),
+            'model': data.get('model') or None,
             'lora_models': data.get('lora_models', []),
             'vae': data.get('vae', None)
         }
@@ -2947,7 +2947,7 @@ def img2img():
         # Kiểm tra lỗi
         if 'error' in result:
             logger.error(f"[IMG2IMG] SD Error: {result['error']}")
-            return jsonify({'error': 'Failed to generate image'}), 500
+            return jsonify({'error': result['error']}), 500
         
         # Get base64 images from result
         base64_images = result.get('images', [])
@@ -3255,6 +3255,62 @@ def save_generated_image():
                     logger.info(f"[Save Image] â˜ï¸ ImgBB: {cloud_url}")
             except Exception as cloud_error:
                 logger.warning(f"[Save Image] âš ï¸ ImgBB upload failed: {cloud_error}")
+        
+        # Save metadata JSON alongside the PNG (for local gallery fallback)
+        try:
+            metadata_json = {
+                'filename': filename,
+                'created_at': datetime.now().isoformat(),
+                'cloud_url': cloud_url,
+                'delete_url': delete_url,
+                'session_id': session.get('gallery_session_id', ''),
+                'prompt': metadata.get('prompt', ''),
+                'negative_prompt': metadata.get('negative_prompt', ''),
+                'model': metadata.get('model', ''),
+                'sampler': metadata.get('sampler', ''),
+                'steps': metadata.get('steps', ''),
+                'cfg_scale': metadata.get('cfg_scale', ''),
+                'width': metadata.get('width', ''),
+                'height': metadata.get('height', ''),
+                'seed': metadata.get('seed', ''),
+                'vae': metadata.get('vae', ''),
+                'lora_models': metadata.get('lora_models', ''),
+                'denoising_strength': metadata.get('denoising_strength', ''),
+            }
+            metadata_filepath = filepath.with_suffix('.json')
+            with open(metadata_filepath, 'w', encoding='utf-8') as mf:
+                json.dump(metadata_json, mf, ensure_ascii=False, indent=2)
+        except Exception as meta_err:
+            logger.warning(f"[Save Image] Metadata JSON save failed: {meta_err}")
+        
+        # Save to generated_images collection in MongoDB (for Gallery)
+        try:
+            from core.image_storage import save_to_mongodb
+            gallery_doc = {
+                'filename': filename,
+                'local_path': f"/storage/images/{filename}",
+                'cloud_url': cloud_url,
+                'delete_url': delete_url,
+                'prompt': metadata.get('prompt', ''),
+                'negative_prompt': metadata.get('negative_prompt', ''),
+                'model': metadata.get('model', ''),
+                'sampler': metadata.get('sampler', ''),
+                'steps': metadata.get('steps', ''),
+                'cfg_scale': metadata.get('cfg_scale', ''),
+                'width': metadata.get('width', ''),
+                'height': metadata.get('height', ''),
+                'seed': metadata.get('seed', ''),
+                'vae': metadata.get('vae', ''),
+                'lora_models': metadata.get('lora_models', ''),
+                'denoising_strength': metadata.get('denoising_strength', ''),
+                'session_id': session.get('gallery_session_id', ''),
+                'source': 'comfyui',
+            }
+            mongo_gallery_id = save_to_mongodb(gallery_doc)
+            if mongo_gallery_id:
+                logger.info(f"[Save Image] Gallery MongoDB saved: {mongo_gallery_id}")
+        except Exception as gallery_err:
+            logger.warning(f"[Save Image] Gallery MongoDB save failed: {gallery_err}")
         
         # Save to chat history
         conversation_id = session.get('conversation_id')

@@ -25,7 +25,7 @@ import comfy.rmsnorm
 import json
 
 def run_every_op():
-    if torch.compiler.is_compiling():
+    if hasattr(torch.compiler, 'is_compiling') and torch.compiler.is_compiling():
         return
 
     comfy.model_management.throw_exception_if_processing_interrupted()

@@ -145,8 +145,11 @@ export class ChatManager {
             
             console.log(`[STORAGE] Saving ${Object.keys(this.chatSessions).length} sessions, size: ${sizeInMB}MB (${percentage.toFixed(0)}%)`);
             
-            // Preventive cleanup if usage > 90%
-            if (percentage > 90 && Object.keys(this.chatSessions).length > 5) {
+            // Smart auto-cleanup for public deployment
+            this._autoTrimSessions();
+            
+            // Preventive cleanup if usage > 70%
+            if (percentage > 70 && Object.keys(this.chatSessions).length > 5) {
                 console.warn('[STORAGE] Usage high! Auto-cleanup to prevent quota error...');
                 this.handleQuotaExceeded();
                 return true;
@@ -216,6 +219,7 @@ export class ChatManager {
                 sizeInMB,
                 maxSizeMB,
                 percentage,
+                sessionCount: Object.keys(this.chatSessions).length,
                 color: percentage > 80 ? '#ff4444' : percentage > 50 ? '#ffa500' : '#4CAF50'
             };
         } catch (e) {
@@ -225,41 +229,34 @@ export class ChatManager {
     }
 
     /**
-     * Manual cleanup - keep only recent chats (or clear all and create new)
+     * Smart auto-trim: cap sessions at 30, trim very long conversations to 150 messages
      */
-    manualCleanup(keepCount = 5) {
-        const sessionCount = Object.keys(this.chatSessions).length;
-        
-        // If already less than keepCount, clear all and create new chat
-        if (sessionCount <= keepCount) {
-            const oldCount = sessionCount;
-            this.chatSessions = {};
-            this.newChat(); // Create fresh chat
-            this.saveSessions();
-            return { 
-                success: true, 
-                message: `Đã xóa sạch ${oldCount} chat và tạo mới!`,
-                deletedCount: oldCount
-            };
+    _autoTrimSessions() {
+        const MAX_SESSIONS = 30;
+        const MAX_MESSAGES = 150;
+        const ids = Object.keys(this.chatSessions);
+
+        // 1. Trim long conversations (keep first 2 system msgs + last MAX_MESSAGES)
+        for (const id of ids) {
+            const s = this.chatSessions[id];
+            if (s.messages && s.messages.length > MAX_MESSAGES) {
+                const trimmed = s.messages.length - MAX_MESSAGES;
+                s.messages = s.messages.slice(-MAX_MESSAGES);
+                console.log(`[STORAGE] Trimmed ${trimmed} old messages from "${s.title}"`);
+            }
         }
-        
-        const sortedSessions = Object.entries(this.chatSessions)
-            .sort((a, b) => new Date(b[1].updatedAt) - new Date(a[1].updatedAt))
-            .slice(0, keepCount);
-        
-        const oldCount = sessionCount;
-        this.chatSessions = Object.fromEntries(sortedSessions);
-        
-        // Update current chat if it was deleted
-        if (!this.chatSessions[this.currentChatId]) {
-            this.currentChatId = sortedSessions[0][0];
+
+        // 2. Cap total sessions — remove oldest unpinned sessions beyond limit
+        if (ids.length > MAX_SESSIONS) {
+            const sorted = ids
+                .filter(id => id !== this.currentChatId && !this.chatSessions[id].pinned)
+                .sort((a, b) => (this.chatSessions[a].updatedAt || 0) - (this.chatSessions[b].updatedAt || 0));
+            const toRemove = sorted.slice(0, ids.length - MAX_SESSIONS);
+            for (const id of toRemove) {
+                delete this.chatSessions[id];
+            }
+            if (toRemove.length) console.log(`[STORAGE] Auto-removed ${toRemove.length} old sessions (cap ${MAX_SESSIONS})`);
         }
-        
-        return { 
-            success: true, 
-            message: `Đã xóa ${oldCount - keepCount} chat cũ!`,
-            deletedCount: oldCount - keepCount
-        };
     }
 
     /**

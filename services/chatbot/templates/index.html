@@ -521,7 +521,7 @@
     <div class="modal-panel" style="max-width: 720px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="sparkles" class="lucide"></i> AI Image Generation V2</h2>
-            <button class="modal-panel__close" onclick="window.imageGenV2?.closeModal()">&times;</button>
+            <button class="modal-panel__close" onclick="window.imageGenV2?.closeModal()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div class="modal-panel__body" style="padding: 0;">
             <div id="igv2Status" style="padding: 8px 24px; font-size: 13px; color: var(--text-tertiary);">
@@ -636,7 +636,9 @@
     <div class="modal-panel" style="max-width: 800px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title" data-lang-key="imageGen.title"><i data-lucide="palette" class="lucide"></i> Image Generation (ComfyUI)</h2>
-            <button class="modal-panel__close" onclick="closeImageModal()">&times;</button>
+            <button class="modal-panel__close" onclick="closeImageModal()" title="Close (Esc)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
         </div>
         <div class="modal-panel__body">
             <div id="sdStatus" style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--bg-tertiary); font-size: 13px; margin-bottom: 16px;">
@@ -759,6 +761,10 @@
                     </div>
                 </div>
                 <div style="margin-bottom: 12px;">
+                    <label class="form-label">Model Checkpoint</label>
+                    <select id="img2imgModelSelect" class="form-select" style="width: 100%;"><option value="">Loading...</option></select>
+                </div>
+                <div style="margin-bottom: 12px;">
                     <label class="form-label">Prompt</label>
                     <textarea id="img2imgPrompt" class="form-input" rows="2" style="resize: vertical;"></textarea>
                 </div>
@@ -793,7 +799,7 @@
                     </div>
                     <div>
                         <label class="form-label">Sampler</label>
-                        <select id="img2imgSampler" class="form-select" style="width: 100%;"><option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option><option value="Euler a">Euler a</option></select>
+                        <select id="img2imgSampler" class="form-select" style="width: 100%;"><option value="euler" selected>euler</option></select>
                     </div>
                 </div>
                 <div style="margin-bottom: 12px;">
@@ -850,7 +856,7 @@
     <div class="modal-panel" style="max-width: 700px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title" data-lang-key="history.title"><i data-lucide="history" class="lucide"></i> Edit History</h2>
-            <button class="modal-panel__close" onclick="closeHistoryModal()">&times;</button>
+            <button class="modal-panel__close" onclick="closeHistoryModal()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div class="modal-panel__body">
             <div id="historyContent" style="max-height: 60vh; overflow-y: auto;"></div>
@@ -866,7 +872,7 @@
             <div style="display: flex; gap: 8px;">
                 <button class="btn btn--sm btn--ghost" onclick="toggleGalleryMode()">👁️ All</button>
                 <button class="btn btn--sm btn--ghost" onclick="refreshGallery()">🔄</button>
-                <button class="modal-panel__close" onclick="closeGallery()">&times;</button>
+                <button class="modal-panel__close" onclick="closeGallery()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
         </div>
         <div id="galleryStats" style="padding: 12px 24px; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-secondary);">Loading...</div>
@@ -879,7 +885,7 @@
     <div class="modal-panel" style="max-width: 640px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="settings-2" class="lucide"></i> Config Agent</h2>
-            <button class="modal-panel__close" onclick="closeConfigAgentModal()">&times;</button>
+            <button class="modal-panel__close" onclick="closeConfigAgentModal()" title="Close (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div class="modal-panel__body">
             <!-- Enable toggle -->
@@ -1235,6 +1241,9 @@
 
     function openConfigAgentModal() {
         const m = document.getElementById('configAgentModal');
+        m.classList.remove('closing');
+        m.style.display = 'flex';
+        void m.offsetHeight;
         document.getElementById('configAgentEnabled').checked = agentConfig.enabled;
         document.getElementById('configSystemPrompt').value = agentConfig.systemPrompt || '';
         document.getElementById('configInjectionPrompt').value = agentConfig.injectionPrompt || '';
@@ -1251,7 +1260,13 @@
     }
 
     function closeConfigAgentModal() {
-        document.getElementById('configAgentModal').classList.remove('open');
+        const modal = document.getElementById('configAgentModal');
+        if (modal) {
+            modal.classList.remove('open');
+            modal.classList.add('closing');
+            document.body.style.overflow = '';
+            setTimeout(() => { modal.classList.remove('closing'); modal.style.display = 'none'; }, 250);
+        }
     }
 
     function toggleConfigAgent() {

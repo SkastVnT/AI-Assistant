@@ -65,17 +65,33 @@ export class ImageGenV2 {
     openModal() {
         const modal = document.getElementById('imageGenV2Modal');
         if (modal) {
-            modal.classList.add('active', 'open');
+            modal.classList.remove('closing');
             modal.style.display = 'flex';
+            void modal.offsetHeight;
+            modal.classList.add('active', 'open');
+            document.body.style.overflow = 'hidden';
             this.init();
+
+            // Escape key and click-outside
+            this._escHandler = (e) => { if (e.key === 'Escape') this.closeModal(); };
+            this._clickOutHandler = (e) => { if (e.target === modal) this.closeModal(); };
+            document.addEventListener('keydown', this._escHandler);
+            modal.addEventListener('click', this._clickOutHandler);
         }
     }
 
     closeModal() {
         const modal = document.getElementById('imageGenV2Modal');
         if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
+            modal.classList.remove('active', 'open');
+            modal.classList.add('closing');
+            document.body.style.overflow = '';
+            if (this._escHandler) { document.removeEventListener('keydown', this._escHandler); this._escHandler = null; }
+            if (this._clickOutHandler) { modal.removeEventListener('click', this._clickOutHandler); this._clickOutHandler = null; }
+            setTimeout(() => {
+                modal.classList.remove('closing');
+                modal.style.display = 'none';
+            }, 250);
         }
     }
 
