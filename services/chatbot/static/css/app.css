@@ -2005,6 +2005,33 @@ body.light-mode .message__content pre {
 
 .memory-panel.open { display: block; }
 
+/* ── LoRA Row ──────────────────────────────────────────────── */
+.lora-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.lora-row .lora-select {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+}
+.lora-row .lora-weight {
+  width: 65px;
+  font-size: 13px;
+  text-align: center;
+}
+.lora-row .lora-remove-btn {
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+
+.add-lora-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
 /* ── Gallery ───────────────────────────────────────────────── */
 .gallery-grid {
   display: grid;
@@ -2386,6 +2413,33 @@ body.light-mode .message__content pre {
     width: 40px;
     height: 40px;
     font-size: 22px;
+  }
+
+  /* ── LoRA rows: stacked on mobile for touch ── */
+  .lora-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .lora-row .lora-select {
+    flex: 1 1 100%;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .lora-row .lora-weight {
+    width: 80px;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .lora-row .lora-remove-btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 18px;
+  }
+
+  .add-lora-btn {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 20px;
   }
 
   /* ── Gallery ── */

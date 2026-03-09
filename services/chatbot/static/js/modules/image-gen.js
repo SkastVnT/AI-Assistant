@@ -188,6 +188,13 @@ export class ImageGeneration {
             this.populateLoraList();
         } catch (error) {
             console.error('Failed to load LoRAs:', error);
+            try {
+                await new Promise(r => setTimeout(r, 2000));
+                this.loras = await this.apiService.loadLoras();
+                this.populateLoraList();
+            } catch (retryErr) {
+                console.error('LoRA retry also failed:', retryErr);
+            }
         }
     }
 
@@ -200,6 +207,14 @@ export class ImageGeneration {
             this.populateVaeSelect();
         } catch (error) {
             console.error('Failed to load VAEs:', error);
+            // Retry once after a short delay (tunnel may be slow)
+            try {
+                await new Promise(r => setTimeout(r, 2000));
+                this.vaes = await this.apiService.loadVaes();
+                this.populateVaeSelect();
+            } catch (retryErr) {
+                console.error('VAE retry also failed:', retryErr);
+            }
         }
     }
 
@@ -994,12 +1009,12 @@ Prompt:`;
             : '<option value="">No LoRAs found</option>';
         const row = document.createElement('div');
         row.id = `loraSelection_${id}`;
-        row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;';
+        row.className = 'lora-row';
         row.innerHTML = `
-            <select class="form-select lora-select" style="flex:1;font-size:12px;">${loraOptions}</select>
+            <select class="form-select lora-select">${loraOptions}</select>
             <input type="number" class="form-input lora-weight" value="1.0" min="0" max="2" step="0.1"
-                   style="width:65px;font-size:12px;" title="Weight">
-            <button type="button" class="btn btn--sm btn--ghost" style="padding:4px 8px;"
+                   title="Weight">
+            <button type="button" class="btn btn--sm btn--ghost lora-remove-btn"
                     onclick="removeLoraSelection(${id})">✕</button>`;
         return row;
     }
@@ -1024,12 +1039,12 @@ Prompt:`;
             : '<option value="">No LoRAs found</option>';
         const row = document.createElement('div');
         row.id = `img2imgLoraSelection_${id}`;
-        row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;';
+        row.className = 'lora-row';
         row.innerHTML = `
-            <select class="form-select lora-select" style="flex:1;font-size:12px;">${loraOptions}</select>
+            <select class="form-select lora-select">${loraOptions}</select>
             <input type="number" class="form-input lora-weight" value="1.0" min="0" max="2" step="0.1"
-                   style="width:65px;font-size:12px;" title="Weight">
-            <button type="button" class="btn btn--sm btn--ghost" style="padding:4px 8px;"
+                   title="Weight">
+            <button type="button" class="btn btn--sm btn--ghost lora-remove-btn"
                     onclick="removeImg2imgLoraSelection(${id})">✕</button>`;
         container.appendChild(row);
     }

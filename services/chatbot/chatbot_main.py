@@ -2591,6 +2591,28 @@ def generate_image():
                 logger.error(f"âŒ Error saving to MongoDB: {db_error}")
                 # Continue execution - MongoDB save is optional
         
+        # Save to generated_images collection (Gallery)
+        if MONGODB_ENABLED and save_to_storage and saved_filenames:
+            try:
+                from core.image_storage import save_to_mongodb
+                gallery_session_id = session.get('gallery_session_id', '')
+                for idx, filename in enumerate(saved_filenames):
+                    cloud_url = cloud_urls[idx] if idx < len(cloud_urls) else None
+                    gallery_doc = {
+                        'filename': filename,
+                        'local_path': f"/storage/images/{filename}",
+                        'cloud_url': cloud_url,
+                        'prompt': prompt,
+                        'negative_prompt': params.get('negative_prompt', ''),
+                        'parameters': params,
+                        'session_id': gallery_session_id,
+                        'source': 'text2img',
+                    }
+                    save_to_mongodb(gallery_doc)
+                logger.info(f"[TEXT2IMG] Gallery MongoDB saved {len(saved_filenames)} images")
+            except Exception as gallery_err:
+                logger.warning(f"[TEXT2IMG] Gallery MongoDB save failed: {gallery_err}")
+        
         # Return response in format expected by frontend
         if save_to_storage and saved_filenames:
             # Return filenames + cloud URLs
@@ -3084,6 +3106,29 @@ def img2img():
                 logger.error(f"âŒ Error saving to MongoDB: {db_error}")
                 # Continue execution - MongoDB save is optional
         
+        # Save to generated_images collection (Gallery)
+        if MONGODB_ENABLED and save_to_storage and saved_filenames:
+            try:
+                from core.image_storage import save_to_mongodb
+                gallery_session_id = session.get('gallery_session_id', '')
+                for idx, filename in enumerate(saved_filenames):
+                    cloud_url = cloud_urls[idx] if idx < len(cloud_urls) else None
+                    gallery_doc = {
+                        'filename': filename,
+                        'local_path': f"/storage/images/{filename}",
+                        'cloud_url': cloud_url,
+                        'prompt': prompt,
+                        'negative_prompt': params.get('negative_prompt', ''),
+                        'denoising_strength': params.get('denoising_strength', ''),
+                        'parameters': params,
+                        'session_id': gallery_session_id,
+                        'source': 'img2img',
+                    }
+                    save_to_mongodb(gallery_doc)
+                logger.info(f"[IMG2IMG] Gallery MongoDB saved {len(saved_filenames)} images")
+            except Exception as gallery_err:
+                logger.warning(f"[IMG2IMG] Gallery MongoDB save failed: {gallery_err}")
+        
         # Return response in format expected by frontend
         if save_to_storage and saved_filenames:
             return jsonify({
@@ -3108,7 +3153,7 @@ def img2img():
         import traceback
         error_msg = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
         logger.error(f"[IMG2IMG] {error_msg}")
-        return jsonify({'error': 'Failed to process img2img request'}), 500
+        return jsonify({'error': f'Img2Img failed: {str(e)}'}), 500
 
 
 @app.route('/api/share-image-imgbb', methods=['POST'])
