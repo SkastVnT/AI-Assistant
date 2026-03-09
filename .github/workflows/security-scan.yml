@@ -2,7 +2,7 @@ name: Security Scanning
 
 on:
   push:
-    branches: [ master, dev ]
+    branches: [ master, develop ]
   pull_request:
     branches: [ master ]
   schedule:
@@ -24,41 +24,31 @@ jobs:
         fetch-depth: 0
     
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10.11'
+        python-version: '3.10'
         cache: 'pip'
         
     - name: Install security tools
       run: |
         pip install --upgrade pip
-        pip install bandit safety pip-audit
+        pip install bandit pip-audit
         
     - name: Run Bandit (Python Security Linter)
       run: |
         bandit -r . \
-          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv,**/tests/** \
+          --exclude ./venv*,./.venv*,./ComfyUI,./private,**/tests/**,**/node_modules/** \
           --severity-level medium \
           --confidence-level medium \
           -f json -o bandit-report.json || true
         bandit -r . \
-          --exclude ./venv*,./Text2SQL,./stable-diffusion-webui/venv \
+          --exclude ./venv*,./.venv*,./ComfyUI,./private \
           -f txt || true
-      continue-on-error: true
-        
-    - name: Run Safety (Dependency Vulnerability Scanner)
-      run: |
-        for req in ChatBot/requirements.txt "Text2SQL Services/requirements.txt" "Document Intelligence Service/requirements.txt" "Speech2Text Services/requirements.txt"; do
-          if [ -f "$req" ]; then
-            echo "Checking $req"
-            safety check -r "$req" || true
-          fi
-        done
       continue-on-error: true
         
     - name: Run pip-audit (PyPI Package Auditor)
       run: |
-        for req in ChatBot/requirements.txt "Text2SQL Services/requirements.txt" "Document Intelligence Service/requirements.txt" "Speech2Text Services/requirements.txt"; do
+        for req in services/chatbot/requirements.txt services/text2sql/requirements.txt; do
           if [ -f "$req" ]; then
             echo "=== Auditing $req ==="
             pip-audit -r "$req" --desc || true
@@ -90,13 +80,13 @@ jobs:
             banditIssues = 'N/A';
           }
           
-          const body = `## 🔒 Security Scan Results
+          const body = `## Security Scan Results
           
           **Bandit Issues:** ${banditIssues}
           
           Download full reports from the Actions artifacts.
           
-          ${banditIssues > 0 ? '⚠️ Please review security findings before merging.' : '✅ No security issues detected.'}`;
+          ${banditIssues > 0 ? 'Please review security findings before merging.' : 'No security issues detected.'}`;
           
           github.rest.issues.createComment({
             issue_number: context.issue.number,

@@ -2020,6 +2020,96 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             zoomPreviewImage(e.deltaY < 0 ? 0.2 : -0.2);
         }, { passive: false });
+
+        // === Swipe-down to close lightbox ===
+        let swipeStartY = 0;
+        let swipeDeltaY = 0;
+        let isSwiping = false;
+        const modal = document.getElementById('imagePreviewModal');
+        const lightboxEl = modal ? modal.querySelector('.lightbox') : null;
+
+        wrap.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1 && currentZoom <= 1.05) {
+                swipeStartY = e.touches[0].clientY;
+                isSwiping = true;
+                swipeDeltaY = 0;
+            }
+        }, { passive: true });
+
+        wrap.addEventListener('touchmove', (e) => {
+            if (!isSwiping || e.touches.length !== 1) return;
+            swipeDeltaY = e.touches[0].clientY - swipeStartY;
+            if (swipeDeltaY > 0 && lightboxEl) {
+                const progress = Math.min(swipeDeltaY / 200, 1);
+                lightboxEl.style.transform = `translateY(${swipeDeltaY}px)`;
+                lightboxEl.style.opacity = 1 - progress * 0.5;
+            }
+        }, { passive: true });
+
+        wrap.addEventListener('touchend', () => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            if (swipeDeltaY > 120) {
+                // Swipe far enough → close
+                if (lightboxEl) {
+                    lightboxEl.style.transition = 'transform 0.2s, opacity 0.2s';
+                    lightboxEl.style.transform = 'translateY(100%)';
+                    lightboxEl.style.opacity = '0';
+                }
+                setTimeout(() => {
+                    closeImagePreview();
+                    if (lightboxEl) {
+                        lightboxEl.style.transition = '';
+                        lightboxEl.style.transform = '';
+                        lightboxEl.style.opacity = '';
+                    }
+                }, 200);
+            } else if (lightboxEl) {
+                // Snap back
+                lightboxEl.style.transition = 'transform 0.2s, opacity 0.2s';
+                lightboxEl.style.transform = '';
+                lightboxEl.style.opacity = '';
+                setTimeout(() => { lightboxEl.style.transition = ''; }, 200);
+            }
+            swipeDeltaY = 0;
+        });
+
+        // === Tap background (outside image) to close ===
+        wrap.addEventListener('click', (e) => {
+            if (e.target === wrap && currentZoom <= 1.05) {
+                closeImagePreview();
+            }
+        });
+    })();
+
+    // === Long-press on gallery items (mobile) to show delete ===
+    (() => {
+        let pressTimer = null;
+        let activeItem = null;
+
+        document.addEventListener('touchstart', (e) => {
+            const item = e.target.closest('.gallery-item');
+            if (!item) return;
+            pressTimer = setTimeout(() => {
+                // Dismiss any previously active item
+                if (activeItem && activeItem !== item) {
+                    activeItem.classList.remove('show-actions');
+                }
+                item.classList.toggle('show-actions');
+                activeItem = item.classList.contains('show-actions') ? item : null;
+            }, 500);
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+        document.addEventListener('touchmove', () => { clearTimeout(pressTimer); });
+
+        // Dismiss actions when tapping elsewhere
+        document.addEventListener('click', (e) => {
+            if (activeItem && !e.target.closest('.gallery-item')) {
+                activeItem.classList.remove('show-actions');
+                activeItem = null;
+            }
+        });
     })();
 
     // Toggle image tag selection
@@ -2096,9 +2186,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <img src="${displayUrl}" alt="${filename}" loading="lazy" onerror="this.src='${img.local_path || img.path}'">
                             ${isCloud ? '<span class="gallery-cloud-badge" title="Stored in cloud">☁️</span>' : ''}
                             <div class="gallery-item-info">
-                                <div style="font-weight: 600;">📅 ${img.created}</div>
+                                <div style="font-size:10px;opacity:0.7;">📅 ${img.created}</div>
                                 <div class="gallery-item-prompt" title="${img.prompt}">
-                                    💬 ${img.prompt.substring(0, 50)}${img.prompt.length > 50 ? '...' : ''}
+                                    ${img.prompt.substring(0, 60)}${img.prompt.length > 60 ? '…' : ''}
                                 </div>
                             </div>
                             <button class="gallery-delete-btn" onclick="event.stopPropagation(); deleteGalleryImage('${filename}')" title="Xóa ảnh">
@@ -2210,8 +2300,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '';
 
                 info.innerHTML = `
-                    ${m.prompt ? `<div class="lightbox__prompt">💬 ${m.prompt}</div>` : ''}
-                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.6;font-size:11px;">🚫 ${m.negative_prompt}</div>` : ''}
+                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${m.prompt}</div>` : ''}
+                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${m.negative_prompt}</div>` : ''}
                     <div class="lightbox__meta-grid">
                         ${metaItems.map(i => `
                             <div class="lightbox__meta-item">
