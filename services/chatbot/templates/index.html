@@ -838,17 +838,29 @@
     </div>
 </div>
 
-<!-- ═══ Image Preview (Discord‑style) ═══ -->
-<div class="image-preview-overlay" id="imagePreviewModal">
-    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
-        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()">📥</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)">🔍-</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)">🔍+</button>
-        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()">⟲</button>
+<!-- ═══ Image Preview (Lightbox) ═══ -->
+<div class="image-preview-overlay" id="imagePreviewModal" onclick="if(event.target===this)closeImagePreview()">
+    <div class="lightbox">
+        <div class="lightbox__toolbar">
+            <button class="lightbox__btn" onclick="zoomPreviewImage(-0.3)" title="Zoom out">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <button class="lightbox__btn" onclick="zoomPreviewImage(0.3)" title="Zoom in">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <button class="lightbox__btn" onclick="resetPreviewZoom()" title="Reset zoom">⟲</button>
+            <button class="lightbox__btn" onclick="downloadPreviewImage()" title="Download">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="lightbox__btn lightbox__btn--close" onclick="closeImagePreview()" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="lightbox__image-wrap" id="lightboxImageWrap">
+            <img id="imagePreviewContent" src="" alt="Preview">
+        </div>
+        <div class="lightbox__info" id="imagePreviewInfo"></div>
     </div>
-    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" onclick="closeImagePreview()">&times;</span>
-    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%; border-radius: var(--radius-md);">
-    <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
 </div>
 
 <!-- ═══ Edit History Modal ═══ -->

@@ -1183,22 +1183,24 @@ export class MessageRenderer {
      * Open image preview modal
      */
     openImagePreview(imgElement) {
-        console.log('[Image Preview] Opening preview for:', imgElement.src);
         const modal = document.getElementById('imagePreviewModal');
         const previewImg = document.getElementById('imagePreviewContent');
         const previewInfo = document.getElementById('imagePreviewInfo');
         
         if (modal && previewImg) {
+            if (window.resetPreviewZoom) window.resetPreviewZoom();
             previewImg.src = imgElement.src;
+            previewImg.dataset.downloadUrl = imgElement.src;
             modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
             
             if (previewInfo) {
-                // Show image info
                 const img = new Image();
                 img.onload = () => {
                     previewInfo.innerHTML = `
-                        <p>📐 Dimensions: ${img.width} x ${img.height}</p>
-                        <p>📁 Size: ${(imgElement.src.length / 1024).toFixed(2)} KB</p>
+                        <div class="lightbox__meta-grid">
+                            <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${img.width} × ${img.height}</span></div>
+                        </div>
                     `;
                 };
                 img.src = imgElement.src;
@@ -1206,24 +1208,19 @@ export class MessageRenderer {
         }
     }
     
-    /**
-     * Close image preview modal
-     */
     closeImagePreview() {
         const modal = document.getElementById('imagePreviewModal');
         if (modal) {
             modal.classList.remove('active');
+            document.body.style.overflow = '';
         }
     }
     
-    /**
-     * Download preview image
-     */
     downloadPreviewImage() {
         const previewImg = document.getElementById('imagePreviewContent');
         if (previewImg && previewImg.src) {
             const link = document.createElement('a');
-            link.href = previewImg.src;
+            link.href = previewImg.dataset.downloadUrl || previewImg.src;
             link.download = `image_${Date.now()}.png`;
             document.body.appendChild(link);
             link.click();

@@ -371,6 +371,125 @@ export class ImageGeneration {
     }
 
     /**
+     * Auto-pick best Model, LoRA, VAE for Img2Img based on extracted tags/prompt
+     */
+    autoPickBestOptions() {
+        // ── Best Model ──
+        const modelSelect = document.getElementById('img2imgModelSelect');
+        if (modelSelect && modelSelect.options.length > 1) {
+            // Preference order for anime/illustration
+            const modelPriority = [
+                /abyssorangemix3/i,
+                /anythingv5/i,
+                /anything/i,
+                /orangemix/i,
+                /aom3/i,
+                /illustri/i,
+                /soushiki/i,
+            ];
+            let picked = false;
+            for (const pattern of modelPriority) {
+                for (let i = 0; i < modelSelect.options.length; i++) {
+                    if (pattern.test(modelSelect.options[i].value)) {
+                        modelSelect.selectedIndex = i;
+                        console.log(`[Auto-Pick] Model: ${modelSelect.options[i].value}`);
+                        picked = true;
+                        break;
+                    }
+                }
+                if (picked) break;
+            }
+        }
+
+        // ── Best VAE ──
+        const vaeSelect = document.getElementById('img2imgVaeSelect');
+        if (vaeSelect && vaeSelect.options.length > 1) {
+            const vaePriority = [
+                /kl-f8-anime/i,
+                /orangemix\.vae/i,
+                /anime.*vae/i,
+                /vae.*ft.*mse/i,
+            ];
+            let picked = false;
+            for (const pattern of vaePriority) {
+                for (let i = 0; i < vaeSelect.options.length; i++) {
+                    if (pattern.test(vaeSelect.options[i].value)) {
+                        vaeSelect.selectedIndex = i;
+                        console.log(`[Auto-Pick] VAE: ${vaeSelect.options[i].value}`);
+                        picked = true;
+                        break;
+                    }
+                }
+                if (picked) break;
+            }
+        }
+
+        // ── Best LoRA ──
+        const loraContainer = document.getElementById('img2imgLoraSelectionContainer');
+        if (loraContainer && this.loras.length > 0) {
+            // Quality/detail LoRAs to auto-add
+            const loraTargets = [
+                /^add_detail/i,
+                /^more_details/i,
+                /^add-detail/i,
+            ];
+            // Remove existing lora rows (except the Add button)
+            loraContainer.querySelectorAll('.lora-row').forEach(r => r.remove());
+
+            const matched = [];
+            for (const pattern of loraTargets) {
+                const found = this.loras.find(l => pattern.test(this._itemName(l)));
+                if (found) matched.push(this._itemName(found));
+                if (matched.length >= 2) break;
+            }
+            // If no quality LoRA found, skip — don't force
+            for (const loraName of matched) {
+                // Trigger addImg2imgLoraSelection and set value
+                if (window.addImg2imgLoraSelection) {
+                    window.addImg2imgLoraSelection();
+                    // Get the last added row's select
+                    const rows = loraContainer.querySelectorAll('.lora-row');
+                    const lastRow = rows[rows.length - 1];
+                    if (lastRow) {
+                        const sel = lastRow.querySelector('.lora-select');
+                        if (sel) {
+                            sel.value = loraName;
+                            console.log(`[Auto-Pick] LoRA: ${loraName}`);
+                        }
+                        const weightInput = lastRow.querySelector('.lora-weight');
+                        if (weightInput) weightInput.value = '0.7';
+                    }
+                }
+            }
+        }
+
+        // ── Optimal params ──
+        const stepsInput = document.getElementById('img2imgSteps');
+        if (stepsInput) stepsInput.value = '28';
+        const cfgInput = document.getElementById('img2imgCfgScale');
+        if (cfgInput) cfgInput.value = '7';
+        const denoisingInput = document.getElementById('denoisingStrength');
+        if (denoisingInput) denoisingInput.value = '0.6';
+        const samplerSelect = document.getElementById('img2imgSampler');
+        if (samplerSelect) {
+            // Prefer euler_ancestral or dpmpp_2m
+            const samplerPriority = [/euler_ancestral/i, /dpmpp_2m/i, /euler/i];
+            for (const pattern of samplerPriority) {
+                for (let i = 0; i < samplerSelect.options.length; i++) {
+                    if (pattern.test(samplerSelect.options[i].value)) {
+                        samplerSelect.selectedIndex = i;
+                        console.log(`[Auto-Pick] Sampler: ${samplerSelect.options[i].value}`);
+                        break;
+                    }
+                }
+                if (samplerSelect.value.match(samplerPriority[0])) break;
+            }
+        }
+
+        console.log('[Auto-Pick] Best options applied');
+    }
+
+    /**
      * Get selected LoRAs from dynamic rows (loraSelectionContainer) or checkbox list (loraList)
      */
     getSelectedLoras(containerId = 'loraSelectionContainer') {
