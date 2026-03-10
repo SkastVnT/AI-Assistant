@@ -62,6 +62,7 @@ class ChatBotApp {
         
         // Load chat sessions
         this.chatManager.loadSessions();
+        console.log('[DEBUG] After loadSessions: chatSessions=', Object.keys(this.chatManager.chatSessions), 'currentId=', this.chatManager.currentChatId);
         this.loadCurrentChat();
         
         // Setup UI
@@ -69,7 +70,11 @@ class ChatBotApp {
         this.uiUtils.setupAutoResize(elements.messageInput);
         
         // Setup event listeners
-        this.setupEventListeners();
+        try {
+            this.setupEventListeners();
+        } catch (e) {
+            console.error('[App] setupEventListeners failed:', e);
+        }
         
         console.log('[App] Setting up file upload handler...');
         console.log('[App] fileInput element:', elements.fileInput);
@@ -242,6 +247,7 @@ class ChatBotApp {
         });
         
         // Update UI
+        console.log('[DEBUG] init() renderChatList: chatSessions=', Object.keys(this.chatManager.chatSessions), 'currentId=', this.chatManager.currentChatId);
         this.uiUtils.updateStorageDisplay(this.chatManager.getStorageInfo());
         this.uiUtils.renderChatList(
             this.chatManager.chatSessions,
@@ -259,6 +265,12 @@ class ChatBotApp {
         this.messageRenderer.setEditSaveCallback((messageDiv, newContent, originalContent) => {
             this.handleEditSave(messageDiv, newContent, originalContent);
         });
+        
+        // Delayed re-render to catch any async timing issues
+        setTimeout(() => {
+            console.log('[DEBUG] Delayed re-render: chatSessions=', Object.keys(this.chatManager.chatSessions));
+            this.renderChatList();
+        }, 500);
         
         console.log('[App] Initialization complete!');
     }
@@ -441,10 +453,7 @@ class ChatBotApp {
         
         // Load messages
         if (session.messages.length > 0) {
-            // Hide welcome screen
-            const welcomeScreen = document.getElementById('welcomeScreen');
-            if (welcomeScreen) welcomeScreen.style.display = 'none';
-
+            this.uiUtils.hideWelcomeScreen();
             elements.chatContainer.innerHTML = session.messages.join('');
             
             // Restore message version history from session
@@ -479,12 +488,7 @@ class ChatBotApp {
             setTimeout(makeClickable, 600);
         } else {
             this.uiUtils.clearChat();
-            // Show welcome screen
-            const welcomeScreen = document.getElementById('welcomeScreen');
-            if (welcomeScreen) {
-                welcomeScreen.style.display = '';
-                elements.chatContainer.appendChild(welcomeScreen);
-            }
+            this.uiUtils.showWelcomeScreen();
         }
         
         // Load attached files for this session
@@ -1059,7 +1063,11 @@ class ChatBotApp {
      */
     async saveCurrentSession(updateTimestamp = false) {
         const elements = this.uiUtils.elements;
-        const messages = Array.from(elements.chatContainer.children).map(el => el.outerHTML);
+        // Exclude the welcome screen element from saved messages
+        const messages = Array.from(elements.chatContainer.children)
+            .filter(el => el.id !== 'welcomeScreen')
+            .map(el => el.outerHTML);
+        console.log('[DEBUG] saveCurrentSession: chatId=', this.chatManager.currentChatId, 'messages=', messages.length, 'updateTimestamp=', updateTimestamp);
         
         this.chatManager.updateCurrentSession(messages, updateTimestamp);
         await this.chatManager.saveSessions();
@@ -1085,11 +1093,7 @@ class ChatBotApp {
         
         this.uiUtils.clearChat();
         // Show welcome screen again
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        if (welcomeScreen) {
-            welcomeScreen.style.display = '';
-            this.uiUtils.elements.chatContainer.appendChild(welcomeScreen);
-        }
+        this.uiUtils.showWelcomeScreen();
         this.chatManager.updateCurrentSession([]);
         
         // Also clear files for this session
@@ -1107,12 +1111,7 @@ class ChatBotApp {
         this.saveCurrentSession();
         this.chatManager.newChat();
         this.uiUtils.clearChat();
-        // Show welcome screen
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        if (welcomeScreen) {
-            welcomeScreen.style.display = '';
-            this.uiUtils.elements.chatContainer.appendChild(welcomeScreen);
-        }
+        this.uiUtils.showWelcomeScreen();
         
         // Clear files when creating new chat
         this.fileHandler.clearSessionFiles();

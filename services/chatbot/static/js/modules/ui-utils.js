@@ -13,6 +13,9 @@ export class UIUtils {
      * Initialize DOM elements
      */
     initElements() {
+        // Cache welcome screen permanently — survives innerHTML clears
+        this._welcomeScreen = document.getElementById('welcomeScreen');
+
         this.elements = {
             chatContainer: document.getElementById('chatContainer'),
             messageInput: document.getElementById('messageInput'),
@@ -215,6 +218,14 @@ export class UIUtils {
      * Initialize sidebar state from localStorage
      */
     initSidebarState() {
+        // Ensure sidebar element exists and is visible first
+        if (this.elements.sidebar) {
+            this.elements.sidebar.classList.remove('collapsed');
+            this.elements.sidebar.style.display = '';
+            this.elements.sidebar.style.visibility = '';
+            this.elements.sidebar.style.opacity = '';
+        }
+
         // Always collapse on mobile
         if (this.isMobile()) {
             if (this.elements.sidebar) {
@@ -312,6 +323,8 @@ export class UIUtils {
         if (!this.elements.storageInfo || !storageInfo) return;
         
         const { sizeInMB, maxSizeMB, percentage, color, sessionCount } = storageInfo;
+        const statusIcon = percentage > 80 ? '🔴' : percentage > 50 ? '🟡' : '🟢';
+        const statusText = percentage > 80 ? 'High' : percentage > 50 ? 'Medium' : 'OK';
         
         this.elements.storageInfo.innerHTML = `
             <div class="storage-display">
@@ -342,7 +355,10 @@ export class UIUtils {
      * Render chat list with drag & drop support
      */
     renderChatList(chatSessions, currentChatId, onSwitchChat, onDeleteChat, onReorder, onTogglePin) {
-        if (!this.elements.chatList) return;
+        if (!this.elements.chatList) {
+            console.warn('[DEBUG] renderChatList: chatList element is NULL!');
+            return;
+        }
         
         // Use ChatManager's sorted order if available, otherwise fallback
         let sortedChats;
@@ -353,6 +369,7 @@ export class UIUtils {
                 chatSessions[b].updatedAt - chatSessions[a].updatedAt
             );
         }
+        console.log('[DEBUG] renderChatList: sessions=', Object.keys(chatSessions).length, 'sorted=', sortedChats, 'currentId=', currentChatId);
         
         this.elements.chatList.innerHTML = sortedChats.map(id => {
             const session = chatSessions[id];
@@ -436,7 +453,13 @@ export class UIUtils {
         });
 
         // ─── Drag & Drop ───
-        this._setupChatDragDrop(onReorder);
+        try {
+            this._setupChatDragDrop(onReorder);
+        } catch (e) {
+            console.error('[DEBUG] _setupChatDragDrop failed:', e);
+        }
+        
+        console.log('[DEBUG] renderChatList done, chatList children:', this.elements.chatList.children.length);
     }
 
     /**
@@ -526,8 +549,26 @@ export class UIUtils {
      */
     clearChat() {
         if (this.elements.chatContainer) {
+            // Detach welcome screen first so innerHTML doesn't destroy the node
+            if (this._welcomeScreen && this._welcomeScreen.parentNode === this.elements.chatContainer) {
+                this.elements.chatContainer.removeChild(this._welcomeScreen);
+            }
             this.elements.chatContainer.innerHTML = '';
         }
+    }
+
+    showWelcomeScreen() {
+        const ws = this._welcomeScreen || document.getElementById('welcomeScreen');
+        if (!ws || !this.elements.chatContainer) return;
+        ws.style.display = '';
+        if (ws.parentNode !== this.elements.chatContainer) {
+            this.elements.chatContainer.appendChild(ws);
+        }
+    }
+
+    hideWelcomeScreen() {
+        const ws = this._welcomeScreen || document.getElementById('welcomeScreen');
+        if (ws) ws.style.display = 'none';
     }
 
     /**

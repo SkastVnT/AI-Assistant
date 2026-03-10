@@ -27,6 +27,15 @@
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
+<!-- Sidebar visibility reset: one-time fix for stuck sidebar -->
+<script>
+try {
+    if (window.innerWidth > 768 && !localStorage.getItem('sidebarFixApplied_v1')) {
+        localStorage.removeItem('sidebarCollapsed');
+        localStorage.setItem('sidebarFixApplied_v1', '1');
+    }
+} catch(e) {}
+</script>
 
 <div class="app">
     <!-- Sidebar overlay (mobile) -->
@@ -1531,11 +1540,7 @@
             });
         });
 
-        // Sidebar toggle restore
-        const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (collapsed) {
-            document.getElementById('sidebar')?.classList.add('collapsed');
-        }
+        // Sidebar toggle restore (handled by initSidebarState in ui-utils.js)
 
         // Thinking budget radio visual
         document.querySelectorAll('input[name="thinkingBudget"]').forEach(radio => {

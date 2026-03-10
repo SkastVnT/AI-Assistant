@@ -32,18 +32,32 @@ export class ChatManager {
     loadSessions() {
         const saved = localStorage.getItem('chatSessions');
         if (saved) {
-            const parsed = JSON.parse(saved);
-            this.chatSessions = {};
-            Object.keys(parsed).forEach(id => {
-                const session = parsed[id];
-                this.chatSessions[id] = session;
-                this.chatSessions[id].createdAt = new Date(session.createdAt);
-                this.chatSessions[id].updatedAt = new Date(session.updatedAt);
-            });
+            try {
+                const parsed = JSON.parse(saved);
+                this.chatSessions = {};
+                Object.keys(parsed).forEach(id => {
+                    const session = parsed[id];
+                    this.chatSessions[id] = session;
+                    this.chatSessions[id].createdAt = new Date(session.createdAt);
+                    this.chatSessions[id].updatedAt = new Date(session.updatedAt);
+                    // Migration: clean up corrupted sessions that saved welcomeScreen HTML as a message
+                    if (session.messages && Array.isArray(session.messages)) {
+                        this.chatSessions[id].messages = session.messages.filter(
+                            msg => typeof msg === 'string' && !msg.includes('id="welcomeScreen"')
+                        );
+                    }
+                });
+                console.log('[ChatManager] Loaded', Object.keys(this.chatSessions).length, 'sessions from localStorage');
+            } catch (e) {
+                console.error('[ChatManager] Failed to parse saved sessions, resetting:', e);
+                localStorage.removeItem('chatSessions');
+                this.chatSessions = {};
+            }
         }
         
         // If no sessions exist, create first one
         if (Object.keys(this.chatSessions).length === 0) {
+            console.log('[ChatManager] No sessions found, creating new chat');
             this.newChat();
         } else {
             // Load the most recent chat
@@ -51,6 +65,7 @@ export class ChatManager {
                 this.chatSessions[b].updatedAt - this.chatSessions[a].updatedAt
             );
             this.currentChatId = sortedIds[0];
+            console.log('[ChatManager] Loaded most recent chat:', this.currentChatId);
         }
     }
 
@@ -268,7 +283,7 @@ export class ChatManager {
         this.chatSessions[id] = session;
         this.currentChatId = id;
         this.chatHistory = [];
-        
+        this.saveSessions();
         return id;
     }
 
