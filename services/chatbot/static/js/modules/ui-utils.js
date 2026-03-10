@@ -359,6 +359,10 @@ export class UIUtils {
             console.warn('[DEBUG] renderChatList: chatList element is NULL!');
             return;
         }
+
+        // Store callbacks for context menu
+        this._chatCallbacks = { onSwitchChat, onDeleteChat, onTogglePin };
+        this._chatSessions = chatSessions;
         
         // Use ChatManager's sorted order if available, otherwise fallback
         let sortedChats;
@@ -369,7 +373,6 @@ export class UIUtils {
                 chatSessions[b].updatedAt - chatSessions[a].updatedAt
             );
         }
-        console.log('[DEBUG] renderChatList: sessions=', Object.keys(chatSessions).length, 'sorted=', sortedChats, 'currentId=', currentChatId);
         
         this.elements.chatList.innerHTML = sortedChats.map(id => {
             const session = chatSessions[id];
@@ -385,16 +388,17 @@ export class UIUtils {
                 <div class="sidebar__chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}" 
                      data-chat-id="${id}" draggable="true">
                     <span class="drag-handle" title="Drag to reorder">⠿</span>
-                    <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
-                    <div class="sidebar__chat-preview">${this.escapeHtml(preview)}</div>
+                    <div class="sidebar__chat-info">
+                        <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
+                        <div class="sidebar__chat-preview">${this.escapeHtml(preview)}</div>
+                    </div>
                     ${msgCount > 0 ? `<span class="sidebar__chat-context"><i data-lucide="message-square" style="width:10px;height:10px;"></i> ${msgCount}</span>` : ''}
                     <div class="sidebar__chat-actions">
-                        <button class="sidebar__chat-pin" data-chat-id="${id}" title="${isPinned ? 'Unpin' : 'Pin'}" 
-                            style="opacity:${isPinned ? '1' : '0'};">
-                            <i data-lucide="pin" style="width:13px;height:13px;"></i>
-                        </button>
-                        <button class="sidebar__chat-delete" data-chat-id="${id}" title="Xóa">
-                            <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+                        ${isPinned ? '<span class="sidebar__chat-pin-indicator" title="Pinned"><i data-lucide="pin" style="width:11px;height:11px;"></i></span>' : ''}
+                        <button class="sidebar__chat-menu-btn" data-chat-id="${id}" title="Menu">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                                <circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -406,20 +410,15 @@ export class UIUtils {
             lucide.createIcons({ nodes: [this.elements.chatList] });
         }
 
-        // Show pin/delete on hover
+        // Show menu button on hover
         this.elements.chatList.querySelectorAll('.sidebar__chat-item').forEach(item => {
             item.addEventListener('mouseenter', () => {
-                const pinBtn = item.querySelector('.sidebar__chat-pin');
-                const delBtn = item.querySelector('.sidebar__chat-delete');
-                if (pinBtn) pinBtn.style.opacity = '1';
-                if (delBtn) delBtn.style.opacity = '1';
+                const menuBtn = item.querySelector('.sidebar__chat-menu-btn');
+                if (menuBtn) menuBtn.style.opacity = '1';
             });
             item.addEventListener('mouseleave', () => {
-                const pinBtn = item.querySelector('.sidebar__chat-pin');
-                const delBtn = item.querySelector('.sidebar__chat-delete');
-                const isPinned = item.classList.contains('pinned');
-                if (pinBtn) pinBtn.style.opacity = isPinned ? '1' : '0';
-                if (delBtn) delBtn.style.opacity = '0';
+                const menuBtn = item.querySelector('.sidebar__chat-menu-btn');
+                if (menuBtn) menuBtn.style.opacity = '';
             });
         });
 
@@ -427,28 +426,18 @@ export class UIUtils {
         this.elements.chatList.querySelectorAll('.sidebar__chat-item').forEach(item => {
             const chatId = item.dataset.chatId;
             item.addEventListener('click', (e) => {
-                if (!e.target.closest('.sidebar__chat-delete') && !e.target.closest('.sidebar__chat-pin')) {
+                if (!e.target.closest('.sidebar__chat-menu-btn')) {
                     onSwitchChat(chatId);
-                    // Auto-close sidebar on mobile after selecting a chat
-                    if (this.isMobile()) {
-                        this.closeSidebar();
-                    }
+                    if (this.isMobile()) this.closeSidebar();
                 }
             });
         });
 
-        this.elements.chatList.querySelectorAll('.sidebar__chat-delete').forEach(btn => {
+        // Ellipsis menu button listeners
+        this.elements.chatList.querySelectorAll('.sidebar__chat-menu-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                onDeleteChat(btn.dataset.chatId);
-            });
-        });
-
-        // Pin button listeners
-        this.elements.chatList.querySelectorAll('.sidebar__chat-pin').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (onTogglePin) onTogglePin(btn.dataset.chatId);
+                this._showChatContextMenu(btn.dataset.chatId, btn, chatSessions);
             });
         });
 
@@ -458,8 +447,132 @@ export class UIUtils {
         } catch (e) {
             console.error('[DEBUG] _setupChatDragDrop failed:', e);
         }
-        
-        console.log('[DEBUG] renderChatList done, chatList children:', this.elements.chatList.children.length);
+    }
+
+    /**
+     * Show context menu for a chat item
+     */
+    _showChatContextMenu(chatId, anchorEl, chatSessions) {
+        // Remove any existing menu
+        const old = document.querySelector('.chat-ctx-menu');
+        if (old) old.remove();
+
+        const session = chatSessions[chatId];
+        if (!session) return;
+        const isPinned = session.pinned || false;
+
+        const menu = document.createElement('div');
+        menu.className = 'chat-ctx-menu';
+        menu.innerHTML = `
+            <button class="chat-ctx-item" data-action="pin">
+                <i data-lucide="${isPinned ? 'pin-off' : 'pin'}" style="width:14px;height:14px;"></i>
+                ${isPinned ? 'Bỏ ghim' : 'Ghim'}
+            </button>
+            <button class="chat-ctx-item" data-action="rename">
+                <i data-lucide="pencil" style="width:14px;height:14px;"></i>
+                Đổi tên
+            </button>
+            <button class="chat-ctx-item" data-action="export">
+                <i data-lucide="download" style="width:14px;height:14px;"></i>
+                Xuất chat
+            </button>
+            <div class="chat-ctx-divider"></div>
+            <button class="chat-ctx-item chat-ctx-item--danger" data-action="delete">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                Xóa
+            </button>
+        `;
+        document.body.appendChild(menu);
+
+        // Position near anchor
+        const rect = anchorEl.getBoundingClientRect();
+        let top = rect.bottom + 4;
+        let left = rect.right - menu.offsetWidth;
+        // Keep within viewport
+        if (left < 8) left = 8;
+        if (top + menu.offsetHeight > window.innerHeight - 8) {
+            top = rect.top - menu.offsetHeight - 4;
+        }
+        menu.style.top = top + 'px';
+        menu.style.left = left + 'px';
+
+        if (window.lucide) lucide.createIcons({ nodes: [menu] });
+
+        // Handle actions
+        menu.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            menu.remove();
+
+            if (action === 'pin' && this._chatCallbacks?.onTogglePin) {
+                this._chatCallbacks.onTogglePin(chatId);
+            } else if (action === 'delete' && this._chatCallbacks?.onDeleteChat) {
+                this._chatCallbacks.onDeleteChat(chatId);
+            } else if (action === 'rename') {
+                this._inlineRenameChat(chatId);
+            } else if (action === 'export') {
+                // Switch to this chat first, then export
+                if (this._chatCallbacks?.onSwitchChat) {
+                    this._chatCallbacks.onSwitchChat(chatId);
+                }
+                setTimeout(() => {
+                    if (window.downloadChatAsJSON) window.downloadChatAsJSON();
+                }, 200);
+            }
+        });
+
+        // Close on outside click
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target) && !anchorEl.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu, true);
+            }
+        };
+        // Delay to avoid immediate close from the same click
+        requestAnimationFrame(() => {
+            document.addEventListener('click', closeMenu, true);
+        });
+    }
+
+    /**
+     * Inline rename a chat in the sidebar
+     */
+    _inlineRenameChat(chatId) {
+        const item = this.elements.chatList?.querySelector(`[data-chat-id="${chatId}"]`);
+        if (!item) return;
+        const titleEl = item.querySelector('.sidebar__chat-title');
+        if (!titleEl) return;
+
+        const oldTitle = titleEl.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'sidebar__chat-rename-input';
+        input.value = oldTitle;
+        input.maxLength = 100;
+        titleEl.replaceWith(input);
+        input.focus();
+        input.select();
+
+        const commit = () => {
+            const newTitle = input.value.trim() || oldTitle;
+            // Restore title element
+            const newTitleEl = document.createElement('div');
+            newTitleEl.className = 'sidebar__chat-title';
+            newTitleEl.textContent = newTitle;
+            input.replaceWith(newTitleEl);
+            // Persist
+            if (window.chatManager && window.chatManager.chatSessions[chatId]) {
+                window.chatManager.chatSessions[chatId].title = newTitle;
+                window.chatManager.saveSessions();
+            }
+        };
+
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') { input.value = oldTitle; input.blur(); }
+        });
     }
 
     /**
