@@ -377,9 +377,8 @@ class StableDiffusionClient:
                 "sd_vae": vae
             }
         
-        # No timeout - wait until completion
-        timeout = None
-        print(f"[INFO] Img2Img: {width}x{height}, {steps} steps, denoising={denoising_strength}")
+        timeout = self._calculate_timeout(width, height, steps)
+        print(f"[INFO] Img2Img: {width}x{height}, {steps} steps, denoising={denoising_strength}, timeout={timeout}s")
         
         try:
             response = requests.post(

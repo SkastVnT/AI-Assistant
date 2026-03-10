@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import logging
 import base64
+import time as _time
+from functools import wraps
 from flask import Blueprint, request, jsonify, session, send_file
 from io import BytesIO
 
@@ -29,6 +31,64 @@ from core.image_gen import (
 logger = logging.getLogger(__name__)
 
 image_gen_bp = Blueprint("image_gen", __name__)
+
+# ── Validation & rate limiting ──────────────────────────────────────
+_MAX_PROMPT = 2000
+_MAX_DIM = 2048
+_MIN_DIM = 64
+_MAX_STEPS = 150
+_RATE_WINDOW = 60
+_RATE_MAX = 10
+_req_log: dict = {}
+
+
+def _validate(data: dict) -> str | None:
+    for key in ("prompt",):
+        if len(data.get(key, "")) > _MAX_PROMPT:
+            return f"{key} too long (max {_MAX_PROMPT})"
+    for d in ("width", "height"):
+        v = data.get(d)
+        if v is not None:
+            try:
+                v = int(v)
+            except (ValueError, TypeError):
+                return f"Invalid {d}"
+            if not (_MIN_DIM <= v <= _MAX_DIM):
+                return f"{d} must be {_MIN_DIM}-{_MAX_DIM}"
+    s = data.get("steps")
+    if s is not None:
+        try:
+            s = int(s)
+        except (ValueError, TypeError):
+            return "Invalid steps"
+        if not (1 <= s <= _MAX_STEPS):
+            return f"steps must be 1-{_MAX_STEPS}"
+    return None
+
+
+def _rate_check() -> str | None:
+    sid = session.get("session_id", request.remote_addr or "anon")
+    now = _time.time()
+    log = _req_log.setdefault(sid, [])
+    _req_log[sid] = [t for t in log if t > now - _RATE_WINDOW]
+    if len(_req_log[sid]) >= _RATE_MAX:
+        return f"Rate limited ({_RATE_MAX} req/{_RATE_WINDOW}s)"
+    _req_log[sid].append(now)
+    return None
+
+
+def _guarded(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        data = request.get_json(force=True, silent=True) or {}
+        err = _rate_check()
+        if err:
+            return jsonify({"error": err}), 429
+        err = _validate(data)
+        if err:
+            return jsonify({"error": err}), 400
+        return f(*args, **kwargs)
+    return wrapper
 
 # ── Singletons (initialized once, shared across requests) ──────────
 _router: ImageGenerationRouter | None = None
@@ -60,6 +120,7 @@ def _get_storage() -> ImageStorage:
 # ── Main generation endpoint ────────────────────────────────────────
 
 @image_gen_bp.route("/api/image-gen/generate", methods=["POST"])
+@_guarded
 def generate_image():
     """
     Generate image(s) from a text prompt.
@@ -151,6 +212,10 @@ def generate_image():
     if data.get("style"):
         img_session.active_style = data["style"]
 
+    # Log cost
+    if result.cost_usd > 0:
+        _log_cost('generate', result.provider, result.model, result.cost_usd)
+
     return jsonify({
         "success": True,
         "images": [
@@ -175,6 +240,7 @@ def generate_image():
 # ── Edit existing image ─────────────────────────────────────────────
 
 @image_gen_bp.route("/api/image-gen/edit", methods=["POST"])
+@_guarded
 def edit_image():
     """
     Edit a previously generated image.
@@ -266,6 +332,10 @@ def edit_image():
         result=result, is_edit=True,
     )
 
+    # Log cost
+    if result.cost_usd > 0:
+        _log_cost('edit', result.provider, result.model, result.cost_usd)
+
     return jsonify({
         "success": True,
         "images": [
@@ -347,4 +417,29 @@ def stats():
     return jsonify({
         "generation": router.get_stats(),
         "storage": storage.get_disk_usage(),
+        "costs": _get_cost_summary(),
     })
+
+
+# ── Cost tracking ────────────────────────────────────────────────────
+
+_cost_log_v2: list = []  # [{type, provider, model, cost_usd, timestamp}]
+
+
+def _log_cost(gen_type: str, provider: str, model: str, cost_usd: float):
+    """Append a cost entry."""
+    from datetime import datetime
+    _cost_log_v2.append({
+        "type": gen_type,
+        "provider": provider,
+        "model": model,
+        "cost_usd": round(cost_usd, 6),
+        "timestamp": datetime.now().isoformat(),
+    })
+    if len(_cost_log_v2) > 500:
+        del _cost_log_v2[:len(_cost_log_v2) - 500]
+
+
+def _get_cost_summary() -> dict:
+    total = sum(c["cost_usd"] for c in _cost_log_v2)
+    return {"total_usd": round(total, 4), "count": len(_cost_log_v2), "recent": _cost_log_v2[-10:]}

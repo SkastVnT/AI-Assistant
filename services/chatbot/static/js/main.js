@@ -1939,6 +1939,26 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadGeneratedImage = () => app.imageGen.downloadGeneratedImage();
     window.shareImageToImgBB = () => app.imageGen.shareImageToImgBB();
     window.handleSourceImageUpload = (event) => app.imageGen.handleSourceImageUpload(event);
+
+    // Advanced image gen features
+    window.applyNegativePreset = (v) => app.imageGen.applyNegativePreset(v);
+    window.showPromptHistory = () => app.imageGen.showPromptHistory();
+    window.handleInpaintSourceUpload = (event) => app.imageGen.handleInpaintSourceUpload(event);
+    window.clearInpaintMask = () => app.imageGen.clearInpaintMask();
+    window.generateInpaint = () => app.imageGen.generateInpaint();
+    window.handleControlnetSourceUpload = (event) => app.imageGen.handleControlnetSourceUpload(event);
+    window.generateControlNet = () => app.imageGen.generateControlNet();
+    window.handleUpscaleSourceUpload = (event) => app.imageGen.handleUpscaleSourceUpload(event);
+    window.generateUpscale = () => app.imageGen.generateUpscale();
+    window.generateBatch = () => app.imageGen.generateBatch();
+    window._showBatchImage = (idx) => {
+        const results = app.imageGen._batchResults;
+        if (results && results[idx]) {
+            app.imageGen._showGeneratedImage(results[idx].image, 'batch');
+        }
+    };
+    // Load negative presets on modal open
+    app.imageGen.loadNegativePresets();
     window.closeGeneratedImageOverlay = (event) => {
         const container = document.getElementById('generatedImageContainer');
         if (container) {

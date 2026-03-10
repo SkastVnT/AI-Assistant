@@ -55,36 +55,36 @@ export class ImageGeneration {
     }
 
     /**
-     * Switch between text2img and img2img tabs
+     * Switch between tabs
      */
     switchTab(tabName) {
-        const text2imgTab = document.getElementById('text2imgTab');
-        const img2imgTab = document.getElementById('img2imgTab');
+        const allTabs = ['text2img', 'img2img', 'inpaint', 'controlnet', 'upscale', 'batch'];
         
-        // Hide all tabs
-        if (text2imgTab) {
-            text2imgTab.style.display = 'none';
-            text2imgTab.classList.remove('active');
-        }
-        if (img2imgTab) {
-            img2imgTab.style.display = 'none';
-            img2imgTab.classList.remove('active');
-        }
+        // Hide all tab contents
+        allTabs.forEach(t => {
+            const el = document.getElementById(t + 'Tab');
+            if (el) { el.style.display = 'none'; el.classList.remove('active'); }
+        });
         
         // Remove active from all tab buttons
-        document.querySelectorAll('.image-gen-tabs .tab-btn').forEach(btn => {
-            btn.classList.remove('active');
+        document.querySelectorAll('#imageGenModal .tab-btn').forEach(btn => {
+            btn.classList.remove('btn--primary');
+            btn.classList.add('btn--ghost');
         });
         
         // Show selected tab
-        if (tabName === 'text2img' && text2imgTab) {
-            text2imgTab.style.display = 'block';
-            text2imgTab.classList.add('active');
-            document.querySelectorAll('.image-gen-tabs .tab-btn')[0]?.classList.add('active');
-        } else if (tabName === 'img2img' && img2imgTab) {
-            img2imgTab.style.display = 'block';
-            img2imgTab.classList.add('active');
-            document.querySelectorAll('.image-gen-tabs .tab-btn')[1]?.classList.add('active');
+        const selectedTab = document.getElementById(tabName + 'Tab');
+        if (selectedTab) {
+            selectedTab.style.display = 'block';
+            selectedTab.classList.add('active');
+        }
+        
+        // Highlight correct button
+        const tabBtns = document.querySelectorAll('#imageGenModal .tab-btn');
+        const idx = allTabs.indexOf(tabName);
+        if (idx >= 0 && tabBtns[idx]) {
+            tabBtns[idx].classList.remove('btn--ghost');
+            tabBtns[idx].classList.add('btn--primary');
         }
         
         console.log(`[Tab Switch] Switched to ${tabName}`);
@@ -507,6 +507,8 @@ export class ImageGeneration {
                 // Use base64_images if available (when save_to_storage=true), otherwise use image
                 const imageToDisplay = (data.base64_images && data.base64_images[0]) || data.image;
                 this.displayGeneratedImage(imageToDisplay);
+                // Save prompt to history
+                this.savePromptToHistory(params.prompt, params.negative_prompt);
                 return data;
             } else {
                 throw new Error(data.error || 'Failed to generate image');
@@ -551,6 +553,8 @@ export class ImageGeneration {
                 // Use base64_images if available (when save_to_storage=true), otherwise use image
                 const imageToDisplay = (data.base64_images && data.base64_images[0]) || data.image;
                 this.displayGeneratedImage(imageToDisplay);
+                // Save prompt to history
+                this.savePromptToHistory(params.prompt, params.negative_prompt);
                 return data;
             } else {
                 throw new Error(data.error || 'Failed to generate image');
@@ -1213,5 +1217,372 @@ Prompt:`;
             }
         };
         reader.readAsDataURL(file);
+    }
+
+    // =========================================================================
+    // NEGATIVE PROMPT PRESETS
+    // =========================================================================
+
+    async loadNegativePresets() {
+        try {
+            const resp = await fetch('/api/sd-negative-presets');
+            const data = await resp.json();
+            const select = document.getElementById('negativePresetSelect');
+            if (!select || !data.presets) return;
+            select.innerHTML = '<option value="">📋 Preset...</option>';
+            data.presets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.prompt;
+                opt.textContent = p.label;
+                select.appendChild(opt);
+            });
+        } catch (e) {
+            console.warn('[NegPresets] Load failed:', e);
+        }
+    }
+
+    applyNegativePreset(prompt) {
+        if (!prompt) return;
+        const el = document.getElementById('negativePrompt');
+        if (el) el.value = prompt;
+    }
+
+    // =========================================================================
+    // PROMPT HISTORY
+    // =========================================================================
+
+    async loadPromptHistory() {
+        try {
+            const resp = await fetch('/api/prompt-history');
+            const data = await resp.json();
+            this._promptHistory = data.history || [];
+        } catch (e) { this._promptHistory = []; }
+    }
+
+    async savePromptToHistory(prompt, negativePrompt) {
+        if (!prompt) return;
+        try {
+            await fetch('/api/prompt-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, negative_prompt: negativePrompt || '' }),
+            });
+        } catch (e) { /* silent */ }
+    }
+
+    showPromptHistory() {
+        const dropdown = document.getElementById('promptHistoryDropdown');
+        if (!dropdown) return;
+
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        this.loadPromptHistory().then(() => {
+            const history = this._promptHistory || [];
+            if (!history.length) {
+                dropdown.innerHTML = '<div style="padding:8px;color:var(--text-tertiary);font-size:12px;">No history yet</div>';
+            } else {
+                dropdown.innerHTML = history.slice(-20).reverse().map(h =>
+                    `<div class="prompt-history-item" style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="document.getElementById('imagePrompt').value='${h.prompt.replace(/'/g, "\\'")}';document.getElementById('promptHistoryDropdown').style.display='none';" title="${h.prompt}">${h.prompt.substring(0, 80)}</div>`
+                ).join('');
+            }
+            dropdown.style.display = 'block';
+        });
+    }
+
+    // =========================================================================
+    // INPAINT
+    // =========================================================================
+
+    _inpaintImageB64 = null;
+    _inpaintCanvas = null;
+    _inpaintCtx = null;
+    _inpaintPainting = false;
+
+    handleInpaintSourceUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this._inpaintImageB64 = e.target.result;
+            const preview = document.getElementById('inpaintPreview');
+            if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+
+            // Setup canvas
+            const wrapper = document.getElementById('inpaintCanvasWrapper');
+            if (wrapper) wrapper.style.display = 'block';
+            const canvas = document.getElementById('inpaintCanvas');
+            if (!canvas) return;
+            const img = new Image();
+            img.onload = () => {
+                const maxW = 512;
+                const scale = Math.min(maxW / img.width, maxW / img.height, 1);
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                this._inpaintCanvas = canvas;
+                this._inpaintCtx = ctx;
+                this._inpaintOrigImg = img;
+                this._inpaintScale = scale;
+                this._setupInpaintDrawing(canvas, ctx, img, scale);
+            };
+            img.src = e.target.result;
+
+            document.getElementById('inpaintBtn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    _setupInpaintDrawing(canvas, ctx, bgImg, scale) {
+        // Mask layer
+        this._maskCanvas = document.createElement('canvas');
+        this._maskCanvas.width = canvas.width;
+        this._maskCanvas.height = canvas.height;
+        this._maskCtx = this._maskCanvas.getContext('2d');
+        this._maskCtx.fillStyle = 'black';
+        this._maskCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            if (e.touches) { return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }; }
+            return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+        };
+
+        const brush = () => parseInt(document.getElementById('inpaintBrushSize')?.value || 30);
+
+        const draw = (e) => {
+            if (!this._inpaintPainting) return;
+            e.preventDefault();
+            const p = getPos(e);
+            // Draw on mask
+            this._maskCtx.fillStyle = 'white';
+            this._maskCtx.beginPath();
+            this._maskCtx.arc(p.x, p.y, brush() / 2, 0, Math.PI * 2);
+            this._maskCtx.fill();
+            // Redraw canvas
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 0.45;
+            ctx.drawImage(this._maskCanvas, 0, 0);
+            ctx.globalAlpha = 1.0;
+        };
+
+        canvas.onmousedown = canvas.ontouchstart = (e) => { this._inpaintPainting = true; draw(e); };
+        canvas.onmousemove = canvas.ontouchmove = draw;
+        canvas.onmouseup = canvas.ontouchend = canvas.onmouseleave = () => { this._inpaintPainting = false; };
+    }
+
+    clearInpaintMask() {
+        if (!this._maskCtx || !this._inpaintCtx || !this._inpaintOrigImg) return;
+        this._maskCtx.fillStyle = 'black';
+        this._maskCtx.fillRect(0, 0, this._maskCanvas.width, this._maskCanvas.height);
+        this._inpaintCtx.drawImage(this._inpaintOrigImg, 0, 0, this._inpaintCanvas.width, this._inpaintCanvas.height);
+    }
+
+    async generateInpaint() {
+        if (!this._inpaintImageB64 || !this._maskCanvas) return;
+        const btn = document.getElementById('inpaintBtn');
+        const origText = btn.textContent;
+        btn.disabled = true; btn.textContent = '⏳ Inpainting...';
+
+        try {
+            const maskB64 = this._maskCanvas.toDataURL('image/png');
+            const prompt = document.getElementById('inpaintPrompt')?.value || '';
+            const resp = await fetch('/api/sd-inpaint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: this._inpaintImageB64,
+                    mask: maskB64,
+                    prompt,
+                    negative_prompt: document.getElementById('inpaintNegativePrompt')?.value || '',
+                    denoising_strength: parseFloat(document.getElementById('inpaintDenoising')?.value || 0.75),
+                    steps: parseInt(document.getElementById('inpaintSteps')?.value || 30),
+                    save_to_storage: true,
+                }),
+            });
+            const data = await resp.json();
+            if (data.success && data.image) {
+                this._showGeneratedImage(data.image, 'inpaint');
+            } else {
+                throw new Error(data.error || 'Inpaint failed');
+            }
+        } catch (e) {
+            console.error('[Inpaint]', e);
+            alert('❌ Inpaint error: ' + e.message);
+        } finally { btn.disabled = false; btn.textContent = origText; }
+    }
+
+    // =========================================================================
+    // CONTROLNET
+    // =========================================================================
+
+    _controlnetImageB64 = null;
+
+    handleControlnetSourceUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this._controlnetImageB64 = e.target.result;
+            const preview = document.getElementById('controlnetPreview');
+            if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+            document.getElementById('controlnetBtn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async generateControlNet() {
+        if (!this._controlnetImageB64) return;
+        const btn = document.getElementById('controlnetBtn');
+        const origText = btn.textContent;
+        btn.disabled = true; btn.textContent = '⏳ Generating...';
+
+        try {
+            const resp = await fetch('/api/sd-controlnet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    control_image: this._controlnetImageB64,
+                    controlnet_type: document.getElementById('controlnetType')?.value || 'canny',
+                    controlnet_weight: parseFloat(document.getElementById('controlnetWeight')?.value || 1.0),
+                    prompt: document.getElementById('controlnetPrompt')?.value || '',
+                    negative_prompt: document.getElementById('controlnetNegativePrompt')?.value || '',
+                    width: parseInt(document.getElementById('controlnetWidth')?.value || 512),
+                    height: parseInt(document.getElementById('controlnetHeight')?.value || 512),
+                    steps: parseInt(document.getElementById('controlnetSteps')?.value || 30),
+                    save_to_storage: true,
+                }),
+            });
+            const data = await resp.json();
+            if (data.success && data.images?.length) {
+                this._showGeneratedImage(data.images[0], 'controlnet');
+            } else {
+                throw new Error(data.error || 'ControlNet generation failed');
+            }
+        } catch (e) {
+            console.error('[ControlNet]', e);
+            alert('❌ ControlNet error: ' + e.message);
+        } finally { btn.disabled = false; btn.textContent = origText; }
+    }
+
+    // =========================================================================
+    // UPSCALE
+    // =========================================================================
+
+    _upscaleImageB64 = null;
+
+    handleUpscaleSourceUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this._upscaleImageB64 = e.target.result;
+            const preview = document.getElementById('upscalePreview');
+            if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+            document.getElementById('upscaleBtn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async generateUpscale() {
+        if (!this._upscaleImageB64) return;
+        const btn = document.getElementById('upscaleBtn');
+        const origText = btn.textContent;
+        btn.disabled = true; btn.textContent = '⏳ Upscaling...';
+
+        try {
+            const resp = await fetch('/api/sd-upscale', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: this._upscaleImageB64,
+                    upscaler: document.getElementById('upscalerSelect')?.value || 'R-ESRGAN 4x+',
+                    scale_factor: parseFloat(document.getElementById('upscaleFactor')?.value || 4),
+                    restore_faces: document.getElementById('upscaleRestoreFaces')?.checked || false,
+                    save_to_storage: true,
+                }),
+            });
+            const data = await resp.json();
+            if (data.success && data.image) {
+                this._showGeneratedImage(data.image, 'upscale');
+                const info = `Upscaled: ${data.original_size?.join?.('x') || '?'} → ${data.upscaled_size?.join?.('x') || '?'}`;
+                console.log('[Upscale]', info);
+            } else {
+                throw new Error(data.error || 'Upscale failed');
+            }
+        } catch (e) {
+            console.error('[Upscale]', e);
+            alert('❌ Upscale error: ' + e.message);
+        } finally { btn.disabled = false; btn.textContent = origText; }
+    }
+
+    // =========================================================================
+    // BATCH GENERATION
+    // =========================================================================
+
+    async generateBatch() {
+        const btn = document.getElementById('batchBtn');
+        const origText = btn.textContent;
+        btn.disabled = true; btn.textContent = '⏳ Generating...';
+
+        try {
+            const prompt = document.getElementById('batchPrompt')?.value || '';
+            if (!prompt) { alert('Please enter a prompt'); return; }
+            const resp = await fetch('/api/sd-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt,
+                    negative_prompt: document.getElementById('batchNegativePrompt')?.value || '',
+                    count: parseInt(document.getElementById('batchCount')?.value || 4),
+                    width: parseInt(document.getElementById('batchWidth')?.value || 1024),
+                    height: parseInt(document.getElementById('batchHeight')?.value || 1024),
+                    steps: parseInt(document.getElementById('batchSteps')?.value || 20),
+                    cfg_scale: parseFloat(document.getElementById('batchCfgScale')?.value || 7),
+                    save_to_storage: true,
+                }),
+            });
+            const data = await resp.json();
+            if (data.success && data.results?.length) {
+                const grid = document.getElementById('batchGrid');
+                const container = document.getElementById('batchResults');
+                if (grid && container) {
+                    grid.innerHTML = data.results.map((r, i) =>
+                        `<div style="position:relative;cursor:pointer;" onclick="window._showBatchImage('${i}')">
+                            <img src="data:image/png;base64,${r.image}" style="width:100%;border-radius:var(--radius-sm);" alt="Variation ${i+1}">
+                            <span style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;">seed: ${r.seed}</span>
+                        </div>`
+                    ).join('');
+                    container.style.display = 'block';
+                    this._batchResults = data.results;
+                }
+                // Save prompt to history
+                this.savePromptToHistory(prompt, document.getElementById('batchNegativePrompt')?.value);
+            } else {
+                throw new Error(data.error || 'Batch generation failed');
+            }
+        } catch (e) {
+            console.error('[Batch]', e);
+            alert('❌ Batch error: ' + e.message);
+        } finally { btn.disabled = false; btn.textContent = origText; }
+    }
+
+    // =========================================================================
+    // SHARED HELPERS
+    // =========================================================================
+
+    _showGeneratedImage(b64, type) {
+        const container = document.getElementById('generatedImageContainer');
+        const img = document.getElementById('generatedImage');
+        if (container && img) {
+            img.src = 'data:image/png;base64,' + b64;
+            container.style.display = 'flex';
+            this.currentGeneratedImage = { image: b64, type };
+        }
     }
 }
