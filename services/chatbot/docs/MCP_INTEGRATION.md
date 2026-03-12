@@ -109,6 +109,8 @@ services/chatbot/
 - `GET /api/mcp/list-files` - List files
 - `GET /api/mcp/search-files` - Search files
 - `GET /api/mcp/read-file` - Read file content
+- `POST /api/mcp/ocr-extract` - OCR text extraction cho ảnh/PDF/tài liệu
+- `POST /api/mcp/warm-cache` - Warm memory cache theo domain câu hỏi
 - `GET /api/mcp/status` - Get MCP status
 
 ### Frontend (JavaScript)

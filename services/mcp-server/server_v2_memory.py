@@ -13,10 +13,15 @@ Sử dụng FastMCP SDK (miễn phí, mã nguồn mở).
 
 import os
 import json
+import re
+import ast
 import sqlite3
+import subprocess
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
+from functools import wraps
 import time
 import logging
 
@@ -55,8 +60,106 @@ memory = get_memory_manager(
 SESSION_ID = memory.create_session(project_name="AI-Assistant")
 logger.info(f"🚀 Session created: {SESSION_ID}")
 
+SERVER_START_TIME = time.time()
+STARTED_AT = datetime.utcnow().isoformat()
+
+# Tool access mode: "read-write" (default) or "read-only"
+TOOL_MODE = os.getenv("MCP_TOOL_MODE", "read-write").strip().lower()
+if TOOL_MODE not in {"read-only", "read-write"}:
+    TOOL_MODE = "read-write"
+
+# Memory retention policy
+MEMORY_RETENTION_DAYS = int(os.getenv("MCP_MEMORY_RETENTION_DAYS", "90"))
+ARCHIVED_DELETE_DAYS = int(os.getenv("MCP_ARCHIVED_DELETE_DAYS", "365"))
+WARMUP_CONTEXT_CACHE = os.getenv("MCP_WARMUP_CONTEXT_CACHE", "true").strip().lower() in {"1", "true", "yes", "on"}
+WARMUP_QUERIES_RAW = os.getenv(
+    "MCP_MEMORY_WARMUP_QUERIES",
+    "error,bugfix,refactor,performance,security,chatbot,mcp"
+)
+WARMUP_CACHE_TTL_SECONDS = int(os.getenv("MCP_WARMUP_CACHE_TTL_SECONDS", "900"))
+
+
+def _error_response(
+    code: str,
+    message: str,
+    details: Optional[Dict[str, Any]] = None,
+    retryable: bool = False
+) -> Dict[str, Any]:
+    """Return a standardized error payload (backward-compatible)."""
+    return {
+        "success": False,
+        "error": message,
+        "error_code": code,
+        "error_details": details or {},
+        "retryable": retryable
+    }
+
+
+def _require_write_access(func):
+    """Block mutating tools when MCP_TOOL_MODE=read-only."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if TOOL_MODE == "read-only":
+            return _error_response(
+                "ACCESS_DENIED_READ_ONLY",
+                f"Tool '{func.__name__}' is disabled in read-only mode",
+                {"tool_mode": TOOL_MODE, "tool_name": func.__name__}
+            )
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def _safe_tool(func):
+    """Catch unexpected exceptions and return standardized internal error."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.exception("Unhandled error in tool '%s': %s", func.__name__, str(e))
+            return _error_response(
+                "INTERNAL_TOOL_ERROR",
+                f"Tool '{func.__name__}' failed unexpectedly",
+                {"exception_type": type(e).__name__},
+                retryable=True
+            )
+    return wrapper
+
+
+def _safe_json_list(value: Any) -> List[str]:
+    """Parse JSON list safely and return a normalized list of strings."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v) for v in value][:50]
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return [str(v) for v in parsed][:50]
+        except Exception:
+            return []
+    return []
+
 
 # ==================== DECORATOR: Auto-save to memory ====================
+
+def _safe_resolve_path(path_str: str, base_dir: Path) -> Optional[Path]:
+    """
+    Safely resolve a path relative to base_dir, preventing path traversal.
+    Returns None if path attempts to escape base_dir.
+    """
+    if not path_str or not isinstance(path_str, str):
+        return None
+    try:
+        candidate = (base_dir / path_str).resolve()
+        base_resolved = base_dir.resolve()
+        # Ensure the resolved path is inside base_dir
+        candidate.relative_to(base_resolved)
+        return candidate
+    except (ValueError, OSError):
+        return None
+
 
 def with_memory(importance: int = 5, observation_type: str = "general"):
     """
@@ -67,6 +170,7 @@ def with_memory(importance: int = 5, observation_type: str = "general"):
         observation_type: decision, bugfix, feature, refactor, discovery
     """
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
             success = True
@@ -122,6 +226,43 @@ def with_memory(importance: int = 5, observation_type: str = "general"):
         
         return wrapper
     return decorator
+
+
+def _run_startup_maintenance() -> None:
+    """Apply retention policy at startup without crashing server on failure."""
+    try:
+        cleanup_stats = memory.cleanup_old_data(days=MEMORY_RETENTION_DAYS)
+        hard_delete_stats = memory.hard_delete_archived_data(days=ARCHIVED_DELETE_DAYS)
+        logger.info("Startup maintenance cleanup=%s hard_delete=%s", cleanup_stats, hard_delete_stats)
+    except Exception as e:
+        logger.warning("Startup maintenance skipped due to error: %s", str(e))
+
+
+def _run_startup_cache_warmup() -> None:
+    """Warm query context cache at startup for common topics."""
+    if not WARMUP_CONTEXT_CACHE:
+        logger.info("Startup cache warmup disabled")
+        return
+
+    queries = [q.strip() for q in WARMUP_QUERIES_RAW.split(",") if q.strip()]
+    if not queries:
+        logger.info("Startup cache warmup skipped: no queries configured")
+        return
+
+    try:
+        stats = memory.warm_context_cache(
+            queries=queries,
+            project_name="AI-Assistant",
+            cache_ttl_seconds=max(60, min(WARMUP_CACHE_TTL_SECONDS, 86400)),
+            force_refresh=False
+        )
+        logger.info("Startup cache warmup completed: %s", stats)
+    except Exception as e:
+        logger.warning("Startup cache warmup skipped due to error: %s", str(e))
+
+
+_run_startup_maintenance()
+_run_startup_cache_warmup()
 
 
 # ==================== TOOLS: FILE OPERATIONS ====================
@@ -209,13 +350,20 @@ def read_file_content(
     Returns:
         Dict chứa nội dung file
     """
-    full_path = BASE_DIR / file_path
+    full_path = _safe_resolve_path(file_path, BASE_DIR)
+    
+    if full_path is None:
+        return _error_response(
+            "INVALID_PATH",
+            f"Invalid or restricted path: {file_path}",
+            {"file_path": file_path}
+        )
     
     if not full_path.exists():
-        return {"error": f"File not found: {file_path}"}
+        return _error_response("FILE_NOT_FOUND", f"File not found: {file_path}")
     
     if not full_path.is_file():
-        return {"error": f"Not a file: {file_path}"}
+        return _error_response("NOT_A_FILE", f"Not a file: {file_path}")
     
     try:
         with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -243,7 +391,7 @@ def read_file_content(
         }
         
     except Exception as e:
-        return {"error": str(e)}
+        return _error_response("READ_FAILED", str(e), {"file_path": file_path})
 
 
 @mcp.tool()
@@ -259,13 +407,20 @@ def list_directory(directory_path: str = ".", show_hidden: bool = False) -> Dict
     Returns:
         Dict chứa danh sách files và folders
     """
-    full_path = BASE_DIR / directory_path
+    full_path = _safe_resolve_path(directory_path, BASE_DIR)
+    
+    if full_path is None:
+        return _error_response(
+            "INVALID_PATH",
+            f"Invalid or restricted path: {directory_path}",
+            {"directory_path": directory_path}
+        )
     
     if not full_path.exists():
-        return {"error": f"Directory not found: {directory_path}"}
+        return _error_response("DIRECTORY_NOT_FOUND", f"Directory not found: {directory_path}")
     
     if not full_path.is_dir():
-        return {"error": f"Not a directory: {directory_path}"}
+        return _error_response("NOT_A_DIRECTORY", f"Not a directory: {directory_path}")
     
     files = []
     folders = []
@@ -411,9 +566,547 @@ def calculate(expression: str) -> Dict[str, Any]:
         }
 
 
+# ==================== TOOLS: CONTENT SEARCH & FILE OPS ====================
+
+@mcp.tool()
+@with_memory(importance=7, observation_type="search")
+def grep_in_files(
+    pattern: str,
+    directory: str = ".",
+    file_type: str = "all",
+    max_results: int = 50,
+    case_sensitive: bool = False
+) -> Dict[str, Any]:
+    """
+    Tìm kiếm NỘI DUNG trong files bằng regex/text pattern (như grep).
+    
+    Args:
+        pattern: Text hoặc regex pattern cần tìm
+        directory: Thư mục tìm kiếm (relative to BASE_DIR)
+        file_type: Loại file (all, py, md, json, txt, js, html)
+        max_results: Số kết quả tối đa
+        case_sensitive: Phân biệt hoa/thường
+        
+    Returns:
+        Dict chứa danh sách matches với file và line number
+    """
+    search_dir = _safe_resolve_path(directory, BASE_DIR)
+    if search_dir is None or not search_dir.is_dir():
+        return {"error": f"Invalid directory: {directory}"}
+
+    extensions = {
+        "py": [".py"], "md": [".md"], "json": [".json"],
+        "txt": [".txt"], "js": [".js", ".jsx", ".ts", ".tsx"],
+        "html": [".html", ".htm"], "css": [".css", ".scss"],
+        "all": None
+    }
+    target_exts = extensions.get(file_type, None)
+
+    try:
+        flags = 0 if case_sensitive else re.IGNORECASE
+        compiled = re.compile(pattern, flags)
+    except re.error as e:
+        return {"error": f"Invalid regex pattern: {str(e)}"}
+
+    skip_dirs = {'.venv', 'venv', '__pycache__', 'node_modules', '.git', '.mypy_cache'}
+    results = []
+
+    for file_path in search_dir.rglob("*"):
+        if len(results) >= max_results:
+            break
+        if not file_path.is_file():
+            continue
+        if any(skip in file_path.parts for skip in skip_dirs):
+            continue
+        if target_exts and file_path.suffix not in target_exts:
+            continue
+        if file_path.stat().st_size > 5 * 1024 * 1024:  # Skip files > 5MB
+            continue
+
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for lineno, line in enumerate(f, 1):
+                    if compiled.search(line):
+                        results.append({
+                            "file": str(file_path.relative_to(BASE_DIR)),
+                            "line": lineno,
+                            "content": line.rstrip('\n')
+                        })
+                        if len(results) >= max_results:
+                            break
+        except OSError:
+            continue
+
+    return {
+        "pattern": pattern,
+        "directory": directory,
+        "file_type": file_type,
+        "total_matches": len(results),
+        "truncated": len(results) >= max_results,
+        "results": results
+    }
+
+
+@mcp.tool()
+@_safe_tool
+@with_memory(importance=8, observation_type="write")
+@_require_write_access
+def write_file(
+    file_path: str,
+    content: str,
+    mode: str = "overwrite",
+    create_dirs: bool = True
+) -> Dict[str, Any]:
+    """
+    Ghi nội dung vào file (tạo mới hoặc chỉnh sửa).
+    
+    Args:
+        file_path: Đường dẫn file (relative to BASE_DIR)
+        content: Nội dung cần ghi
+        mode: 'overwrite' (ghi đè) hoặc 'append' (thêm vào cuối)
+        create_dirs: Tự động tạo thư mục cha nếu chưa tồn tại
+        
+    Returns:
+        Dict với kết quả thao tác
+    """
+    resolved = _safe_resolve_path(file_path, BASE_DIR)
+    if resolved is None:
+        return _error_response("INVALID_PATH", f"Invalid or restricted path: {file_path}")
+
+    try:
+        if mode not in {"overwrite", "append"}:
+            return _error_response(
+                "INVALID_WRITE_MODE",
+                "mode must be either 'overwrite' or 'append'",
+                {"mode": mode}
+            )
+
+        if create_dirs:
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+
+        write_mode = 'a' if mode == 'append' else 'w'
+        with open(resolved, write_mode, encoding='utf-8') as f:
+            f.write(content)
+
+        return {
+            "success": True,
+            "file_path": str(resolved.relative_to(BASE_DIR)),
+            "mode": mode,
+            "bytes_written": len(content.encode('utf-8'))
+        }
+    except OSError as e:
+        return _error_response("WRITE_FAILED", f"Write failed: {str(e)}", {"file_path": file_path})
+
+
+# ==================== TOOLS: GIT ====================
+
+@mcp.tool()
+@with_memory(importance=6, observation_type="git")
+def git_status() -> Dict[str, Any]:
+    """
+    Lấy git status của repository (modified, added, deleted, untracked files).
+    
+    Returns:
+        Dict chứa trạng thái git working tree
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'status', '--porcelain'],
+            capture_output=True, text=True,
+            cwd=BASE_DIR, timeout=10
+        )
+        if result.returncode != 0:
+            return {"error": "Not a git repository or git not installed"}
+
+        modified, added, deleted, untracked = [], [], [], []
+        for line in result.stdout.splitlines():
+            if not line:
+                continue
+            status, file_path = line[:2].strip(), line[3:]
+            if status == 'M':
+                modified.append(file_path)
+            elif status == 'A':
+                added.append(file_path)
+            elif status == 'D':
+                deleted.append(file_path)
+            elif status == '??':
+                untracked.append(file_path)
+
+        return {
+            "modified": modified,
+            "added": added,
+            "deleted": deleted,
+            "untracked": untracked,
+            "total_changes": len(modified) + len(added) + len(deleted),
+            "clean": not any([modified, added, deleted, untracked])
+        }
+    except FileNotFoundError:
+        return {"error": "Git is not installed"}
+    except subprocess.TimeoutExpired:
+        return {"error": "Git command timed out"}
+
+
+@mcp.tool()
+@with_memory(importance=5, observation_type="git")
+def git_log(max_commits: int = 10) -> Dict[str, Any]:
+    """
+    Lấy git commit history.
+    
+    Args:
+        max_commits: Số commits tối đa (max 50)
+        
+    Returns:
+        Dict chứa danh sách commits
+    """
+    max_commits = min(max_commits, 50)
+    try:
+        result = subprocess.run(
+            ['git', 'log', f'-{max_commits}', '--pretty=format:%H|%an|%ad|%s', '--date=short'],
+            capture_output=True, text=True,
+            cwd=BASE_DIR, timeout=10
+        )
+        if result.returncode != 0:
+            return {"error": "Git log failed"}
+
+        commits = []
+        for line in result.stdout.splitlines():
+            parts = line.split('|', 3)
+            if len(parts) == 4:
+                commits.append({
+                    "hash": parts[0][:12],
+                    "author": parts[1],
+                    "date": parts[2],
+                    "message": parts[3]
+                })
+
+        return {"total": len(commits), "commits": commits}
+    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+@with_memory(importance=4, observation_type="git")
+def git_diff(file_path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Lấy git diff để xem các thay đổi chưa staged.
+    
+    Args:
+        file_path: Đường dẫn file cụ thể (None = toàn bộ repo)
+        
+    Returns:
+        Dict chứa diff output
+    """
+    cmd = ['git', 'diff']
+    if file_path:
+        # Validate path to prevent command injection
+        safe = _safe_resolve_path(file_path, BASE_DIR)
+        if safe is None:
+            return {"error": "Invalid file path"}
+        cmd.append(str(safe))
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            cwd=BASE_DIR, timeout=15
+        )
+        return {
+            "file": file_path,
+            "diff": result.stdout,
+            "has_changes": bool(result.stdout.strip())
+        }
+    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+        return {"error": str(e)}
+
+
+# ==================== TOOLS: CODE ANALYSIS ====================
+
+@mcp.tool()
+@with_memory(importance=7, observation_type="analysis")
+def analyze_python_file(file_path: str) -> Dict[str, Any]:
+    """
+    Phân tích cấu trúc Python file: functions, classes, imports, độ phức tạp.
+    
+    Args:
+        file_path: Đường dẫn file .py (relative to BASE_DIR)
+        
+    Returns:
+        Dict chứa phân tích chi tiết
+    """
+    full_path = _safe_resolve_path(file_path, BASE_DIR)
+    if full_path is None:
+        return {"error": f"Invalid path: {file_path}"}
+    if not full_path.exists():
+        return {"error": f"File not found: {file_path}"}
+    if full_path.suffix != '.py':
+        return {"error": "Not a Python file"}
+
+    try:
+        source = full_path.read_text(encoding='utf-8')
+        tree = ast.parse(source)
+    except SyntaxError as e:
+        return {"error": f"Syntax error: {str(e)}"}
+    except OSError as e:
+        return {"error": str(e)}
+
+    functions, classes, imports = [], [], []
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            functions.append({
+                "name": node.name,
+                "line": node.lineno,
+                "args": [arg.arg for arg in node.args.args],
+                "is_async": isinstance(node, ast.AsyncFunctionDef),
+                "decorators": [
+                    getattr(d, 'id', getattr(d, 'attr', str(d)))
+                    for d in node.decorator_list
+                ]
+            })
+        elif isinstance(node, ast.ClassDef):
+            methods = [n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            classes.append({
+                "name": node.name,
+                "line": node.lineno,
+                "methods": methods,
+                "bases": [getattr(b, 'id', str(b)) for b in node.bases]
+            })
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.append({"module": alias.name, "alias": alias.asname})
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                imports.append({
+                    "from": node.module or "",
+                    "import": alias.name,
+                    "alias": alias.asname
+                })
+
+    lines = source.splitlines()
+    return {
+        "file": file_path,
+        "functions": functions,
+        "classes": classes,
+        "imports": imports,
+        "stats": {
+            "total_lines": len(lines),
+            "code_lines": sum(1 for l in lines if l.strip() and not l.strip().startswith('#')),
+            "comment_lines": sum(1 for l in lines if l.strip().startswith('#')),
+            "function_count": len(functions),
+            "class_count": len(classes),
+            "import_count": len(imports)
+        }
+    }
+
+
+@mcp.tool()
+@with_memory(importance=5, observation_type="analysis")
+def find_todos(directory: str = ".") -> Dict[str, Any]:
+    """
+    Tìm tất cả TODO, FIXME, HACK, NOTE comments trong code.
+    
+    Args:
+        directory: Thư mục tìm kiếm (relative to BASE_DIR)
+        
+    Returns:
+        Dict chứa danh sách todos phân loại
+    """
+    search_dir = _safe_resolve_path(directory, BASE_DIR)
+    if search_dir is None or not search_dir.is_dir():
+        return {"error": f"Invalid directory: {directory}"}
+
+    pattern = re.compile(r'#\s*(TODO|FIXME|HACK|NOTE|XXX):?\s*(.*)', re.IGNORECASE)
+    skip_dirs = {'.venv', 'venv', '__pycache__', 'node_modules', '.git'}
+    todos = []
+
+    for file_path in search_dir.rglob("*.py"):
+        if any(skip in file_path.parts for skip in skip_dirs):
+            continue
+        try:
+            for i, line in enumerate(file_path.read_text(encoding='utf-8', errors='ignore').splitlines(), 1):
+                match = pattern.search(line)
+                if match:
+                    todos.append({
+                        "file": str(file_path.relative_to(BASE_DIR)),
+                        "line": i,
+                        "type": match.group(1).upper(),
+                        "message": match.group(2).strip()
+                    })
+        except OSError:
+            continue
+
+    by_type: Dict[str, List] = {}
+    for todo in todos:
+        by_type.setdefault(todo['type'], []).append(todo)
+
+    return {
+        "directory": directory,
+        "total": len(todos),
+        "by_type": {k: len(v) for k, v in by_type.items()},
+        "todos": todos
+    }
+
+
+# ==================== TOOLS: HTTP / SERVICE CALLS ====================
+
+@mcp.tool()
+@_safe_tool
+@with_memory(importance=5, observation_type="http")
+@_require_write_access
+def http_request(
+    url: str,
+    method: str = "GET",
+    headers: Optional[Dict[str, str]] = None,
+    body: Optional[str] = None,
+    timeout: int = 10
+) -> Dict[str, Any]:
+    """
+    Thực hiện HTTP request đến services hoặc APIs.
+    Chỉ được phép gọi localhost/internal services.
+    
+    Args:
+        url: URL cần gọi (chỉ http://localhost:... hoặc http://127.0.0.1:...)
+        method: HTTP method (GET, POST, PUT, DELETE)
+        headers: HTTP headers dạng dict
+        body: Request body (string, sẽ được gửi dưới dạng JSON nếu có Content-Type)
+        timeout: Timeout tính bằng giây (max 30)
+        
+    Returns:
+        Dict chứa status code, headers, body
+    """
+    import urllib.request
+    import urllib.error
+    import urllib.parse
+
+    # Security: only allow localhost
+    allowed_hosts = ('localhost', '127.0.0.1', '0.0.0.0')
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.hostname not in allowed_hosts:
+            return _error_response(
+                "HOST_NOT_ALLOWED",
+                f"Only localhost requests are allowed. Got: {parsed.hostname}",
+                {"hostname": parsed.hostname}
+            )
+    except Exception:
+        return _error_response("INVALID_URL", "Invalid URL")
+
+    method = method.upper()
+    if method not in {'GET', 'POST', 'PUT', 'DELETE', 'PATCH'}:
+        return _error_response(
+            "UNSUPPORTED_HTTP_METHOD",
+            f"Unsupported HTTP method: {method}",
+            {"method": method}
+        )
+
+    timeout = min(max(1, timeout), 30)
+    req_headers = headers or {}
+
+    try:
+        data = body.encode('utf-8') if body else None
+        req = urllib.request.Request(url, data=data, headers=req_headers, method=method)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            response_body = resp.read().decode('utf-8', errors='replace')
+            return {
+                "status_code": resp.status,
+                "headers": dict(resp.headers),
+                "body": response_body[:10000],
+                "truncated": len(response_body) > 10000
+            }
+    except urllib.error.HTTPError as e:
+        body_text = e.read().decode('utf-8', errors='replace') if e.fp else ""
+        return _error_response(
+            "HTTP_ERROR_RESPONSE",
+            str(e),
+            {"status_code": e.code, "body": body_text[:2000]},
+            retryable=e.code >= 500
+        )
+    except urllib.error.URLError as e:
+        return _error_response(
+            "HTTP_CONNECTION_FAILED",
+            f"Connection failed: {str(e.reason)}",
+            retryable=True
+        )
+    except Exception as e:
+        return _error_response("HTTP_REQUEST_FAILED", f"Request failed: {str(e)}", retryable=True)
+
+
+@mcp.tool()
+@_safe_tool
+def get_server_health() -> Dict[str, Any]:
+    """
+    Kiểm tra trạng thái của MCP server và memory system.
+    
+    Returns:
+        Dict chứa thông tin health và stats
+    """
+    import platform
+    import sys
+
+    uptime_seconds = round(time.time() - SERVER_START_TIME, 2)
+
+    db_ok = False
+    db_stats = {}
+    db_health = {}
+    try:
+        stats = memory.get_statistics()
+        db_health = memory.get_database_health()
+        db_ok = True
+        db_stats = {
+            "total_sessions": stats.get('total_sessions', 0),
+            "total_observations": stats.get('total_observations', 0),
+            "total_tool_calls": stats.get('total_tools', 0)
+        }
+    except Exception as e:
+        db_stats = {"error": str(e)}
+
+    git_ok = False
+    git_error = None
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--is-inside-work-tree'],
+            capture_output=True,
+            text=True,
+            cwd=BASE_DIR,
+            timeout=5
+        )
+        git_ok = result.returncode == 0
+        if not git_ok:
+            git_error = (result.stderr or result.stdout).strip()[:200]
+    except Exception as e:
+        git_error = str(e)
+
+    file_system = {
+        "base_dir_exists": BASE_DIR.exists(),
+        "resources_dir_exists": RESOURCES_DIR.exists(),
+        "base_dir_writable": os.access(BASE_DIR, os.W_OK),
+    }
+
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "server": "AI-Assistant MCP V2.0",
+        "current_session": SESSION_ID,
+        "tool_mode": TOOL_MODE,
+        "started_at": STARTED_AT,
+        "uptime_seconds": uptime_seconds,
+        "database_ok": db_ok,
+        "database_stats": db_stats,
+        "database_health": db_health,
+        "subsystems": {
+            "database": {"ok": db_ok},
+            "git": {"ok": git_ok, "error": git_error},
+            "filesystem": file_system,
+        },
+        "base_directory": str(BASE_DIR),
+        "python_version": sys.version.split()[0],
+        "platform": platform.system(),
+        "uptime_since": STARTED_AT
+    }
+
+
 # ==================== TOOLS: MEMORY SYSTEM (NEW!) ====================
 
 @mcp.tool()
+@_safe_tool
 def search_memory(
     query: str, 
     limit: int = 10,
@@ -447,8 +1140,8 @@ def search_memory(
                 "importance": obs['importance'],
                 "tool": obs['tool_name'],
                 "timestamp": obs['timestamp'],
-                "files": json.loads(obs['file_references']) if obs['file_references'] else [],
-                "tags": json.loads(obs['concept_tags']) if obs['concept_tags'] else []
+                "files": _safe_json_list(obs.get('file_references')),
+                "tags": _safe_json_list(obs.get('concept_tags'))
             }
             for obs in results
         ]
@@ -456,7 +1149,12 @@ def search_memory(
 
 
 @mcp.tool()
-def get_recent_context(limit: int = 30, min_importance: int = 5) -> Dict[str, Any]:
+@_safe_tool
+def get_recent_context(
+    limit: int = 30,
+    min_importance: int = 5,
+    max_chars: int = 12000
+) -> Dict[str, Any]:
     """
     🆕 Lấy context gần đây để inject vào session mới.
     
@@ -469,7 +1167,8 @@ def get_recent_context(limit: int = 30, min_importance: int = 5) -> Dict[str, An
     """
     context_text = memory.get_context_for_session(
         max_observations=limit,
-        min_importance=min_importance
+        min_importance=min_importance,
+        max_chars=max_chars
     )
     
     observations = memory.get_recent_observations(
@@ -480,11 +1179,124 @@ def get_recent_context(limit: int = 30, min_importance: int = 5) -> Dict[str, An
     return {
         "context": context_text,
         "observation_count": len(observations),
-        "min_importance": min_importance
+        "min_importance": min_importance,
+        "max_chars": max_chars
     }
 
 
 @mcp.tool()
+@_safe_tool
+def get_relevant_memory_context(
+    query: str,
+    limit: int = 20,
+    min_importance: int = 4,
+    max_chars: int = 12000,
+    use_cache: bool = True,
+    cache_ttl_seconds: int = 600
+) -> Dict[str, Any]:
+    """
+    Lấy context memory liên quan trực tiếp đến query để inject vào chatbot.
+
+    Args:
+        query: Câu truy vấn hoặc keyword
+        limit: Số memory entries tối đa
+        min_importance: Độ quan trọng tối thiểu
+        max_chars: Độ dài context tối đa
+
+    Returns:
+        Dict chứa context rút gọn + danh sách observations liên quan
+    """
+    query = (query or "").strip()
+    if not query:
+        return _error_response("EMPTY_QUERY", "query is required", {"query": query})
+
+    return memory.get_relevant_context(
+        query=query,
+        limit=max(1, min(limit, 100)),
+        min_importance=max(0, min(min_importance, 10)),
+        max_chars=max(1000, min(max_chars, 50000)),
+        use_cache=bool(use_cache),
+        cache_ttl_seconds=max(60, min(cache_ttl_seconds, 86400))
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def get_memory_cache_stats() -> Dict[str, Any]:
+    """Lấy thống kê cache context của memory system."""
+    return memory.get_context_cache_stats()
+
+
+@mcp.tool()
+@_safe_tool
+@_require_write_access
+def clear_memory_context_cache(
+    context_type: Optional[str] = None,
+    older_than_hours: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Xóa cache memory_context theo filter.
+
+    Args:
+        context_type: Lọc theo loại cache (vd: relevant_query)
+        older_than_hours: Chỉ xóa cache cũ hơn N giờ
+
+    Returns:
+        Dict chứa số bản ghi đã xóa
+    """
+    if older_than_hours is not None:
+        older_than_hours = max(0, min(int(older_than_hours), 24 * 365))
+    return memory.clear_context_cache(
+        context_type=context_type,
+        older_than_hours=older_than_hours
+    )
+
+
+@mcp.tool()
+@_safe_tool
+@_require_write_access
+def warm_memory_context_cache(
+    queries: List[str],
+    limit: int = 20,
+    min_importance: int = 4,
+    max_chars: int = 12000,
+    cache_ttl_seconds: int = 900,
+    force_refresh: bool = False
+) -> Dict[str, Any]:
+    """
+    Warm cache cho relevant memory context bằng danh sách queries.
+
+    Args:
+        queries: Danh sách query cần warm cache
+        limit: Số observations tối đa cho mỗi query
+        min_importance: Độ quan trọng tối thiểu
+        max_chars: Độ dài context tối đa
+        cache_ttl_seconds: TTL của cache
+        force_refresh: Xóa cache relevant_query cũ trước khi warm
+
+    Returns:
+        Dict chứa thống kê warm cache
+    """
+    if not queries:
+        return _error_response("EMPTY_QUERIES", "queries must not be empty")
+
+    safe_queries = [str(q).strip() for q in queries if str(q).strip()]
+    if not safe_queries:
+        return _error_response("EMPTY_QUERIES", "queries must not be empty")
+
+    return memory.warm_context_cache(
+        queries=safe_queries[:100],
+        project_name="AI-Assistant",
+        limit=max(1, min(limit, 100)),
+        min_importance=max(0, min(min_importance, 10)),
+        max_chars=max(1000, min(max_chars, 50000)),
+        cache_ttl_seconds=max(60, min(cache_ttl_seconds, 86400)),
+        force_refresh=bool(force_refresh)
+    )
+
+
+@mcp.tool()
+@_safe_tool
 def get_memory_by_file(file_path: str, limit: int = 20) -> Dict[str, Any]:
     """
     🆕 Lấy memories liên quan đến file cụ thể.
@@ -514,6 +1326,7 @@ def get_memory_by_file(file_path: str, limit: int = 20) -> Dict[str, Any]:
 
 
 @mcp.tool()
+@_safe_tool
 def get_session_history(limit: int = 10) -> Dict[str, Any]:
     """
     🆕 Lấy lịch sử các sessions gần đây.
@@ -543,6 +1356,8 @@ def get_session_history(limit: int = 10) -> Dict[str, Any]:
 
 
 @mcp.tool()
+@_safe_tool
+@_require_write_access
 def save_important_observation(
     observation: str,
     observation_type: str = "general",
@@ -581,6 +1396,7 @@ def save_important_observation(
 
 
 @mcp.tool()
+@_safe_tool
 def get_memory_statistics() -> Dict[str, Any]:
     """
     🆕 Lấy thống kê về memory system.
@@ -595,7 +1411,50 @@ def get_memory_statistics() -> Dict[str, Any]:
         "total_observations": stats['total_observations'],
         "total_tools_used": stats['total_tools'],
         "total_tokens": stats['total_tokens'],
+        "avg_importance": stats.get('avg_importance', 0),
+        "unique_observation_types": stats.get('unique_observation_types', 0),
+        "cache": memory.get_context_cache_stats(),
         "top_tools": stats['tool_stats'][:5]
+    }
+
+
+@mcp.tool()
+@_safe_tool
+@_require_write_access
+def run_memory_maintenance(
+    retention_days: int = 90,
+    hard_delete_days: int = 365,
+    vacuum: bool = False
+) -> Dict[str, Any]:
+    """
+    Chạy maintenance cho memory database: archive, hard delete, optional vacuum.
+
+    Args:
+        retention_days: Sessions completed cũ hơn N ngày sẽ chuyển archived
+        hard_delete_days: Sessions archived cũ hơn N ngày sẽ bị xóa cứng
+        vacuum: Có chạy VACUUM hay không
+
+    Returns:
+        Dict chứa thống kê maintenance
+    """
+    retention_days = max(1, min(retention_days, 3650))
+    hard_delete_days = max(retention_days, min(hard_delete_days, 3650))
+
+    cleanup_stats = memory.cleanup_old_data(days=retention_days)
+    hard_delete_stats = memory.hard_delete_archived_data(days=hard_delete_days)
+
+    vacuum_done = False
+    if vacuum:
+        memory.vacuum_database()
+        vacuum_done = True
+
+    return {
+        "success": True,
+        "retention_days": retention_days,
+        "hard_delete_days": hard_delete_days,
+        "cleanup": cleanup_stats,
+        "hard_delete": hard_delete_stats,
+        "vacuum_done": vacuum_done
     }
 
 
@@ -731,7 +1590,7 @@ def main():
     print(f"🧠 Memory Database: {memory.db_path}")
     print(f"📋 Session ID: {SESSION_ID}")
     print(f"\n✨ NEW FEATURES:")
-    print(f"   🔧 Tools: All original tools + 6 memory tools")
+    print(f"   🔧 Tools: All original tools + 11 memory tools")
     print(f"   📦 Resources: Config, docs + memory context")
     print(f"   💬 Prompts: Code review, debug, explain + session summary")
     print(f"   🧠 MEMORY: Persistent storage, search history, AI observations")

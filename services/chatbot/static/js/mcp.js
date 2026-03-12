@@ -9,6 +9,7 @@ class MCPController {
         this.folders = [];
         this.files = [];
         this.selectedFiles = [];
+        this.ocrContexts = [];
         this.initializeUI();
         this.setupEventListeners();
     }
@@ -25,6 +26,8 @@ class MCPController {
         this.selectedFileCount = document.getElementById('selectedFileCount');
         this.sidebar = document.getElementById('mcpSidebar');
         this.toggleBtn = document.getElementById('mcpToggleBtn');
+        this.ocrBtn = document.getElementById('mcpOcrBtn');
+        this.warmCacheBtn = document.getElementById('mcpWarmCacheBtn');
         this.isOpen = false; // Start collapsed
         
         // Log để debug
@@ -61,6 +64,22 @@ class MCPController {
         this.toggleBtn.addEventListener('click', () => {
             this.toggleSidebar();
         });
+
+        // OCR selected files via MCP
+        if (this.ocrBtn) {
+            this.ocrBtn.addEventListener('click', () => {
+                this.runOcrForSelectedFiles();
+            });
+        }
+
+        // Manual warm-cache from current message question
+        if (this.warmCacheBtn) {
+            this.warmCacheBtn.addEventListener('click', () => {
+                const msgInput = document.getElementById('messageInput');
+                const question = msgInput && msgInput.value ? msgInput.value.trim() : '';
+                this.warmCacheForQuestion(question);
+            });
+        }
         
         // Close button in sidebar header
         const closeBtn = document.getElementById('mcpCloseBtn');
@@ -140,6 +159,7 @@ class MCPController {
             this.folders = [];
             this.files = [];
             this.selectedFiles = [];
+            this.ocrContexts = [];
             this.folderList.style.display = 'none';
             this.folderList.innerHTML = '';
             this.fileList.innerHTML = '<div class="mcp-empty-state"><p>📂 Chưa chọn folder</p><p style="font-size: 11px; color: #888;">Bật MCP và chọn folder để xem files</p></div>';
@@ -329,6 +349,10 @@ class MCPController {
 
         this.renderFileList();
         this.updateSelectedFiles();
+
+        // Clear OCR context for deselected files
+        const selectedPaths = new Set(this.selectedFiles.map(f => f.path));
+        this.ocrContexts = this.ocrContexts.filter(item => selectedPaths.has(item.path));
     }
 
     updateSelectedFiles() {
@@ -408,6 +432,131 @@ class MCPController {
     }
     getSelectedFilePaths() {
         return this.selectedFiles.map(f => f.path);
+    }
+
+    getOcrContextString() {
+        if (!this.ocrContexts || this.ocrContexts.length === 0) {
+            return '';
+        }
+
+        const parts = [
+            '📷 **OCR CONTEXT FROM MCP SELECTED FILES:**'
+        ];
+
+        this.ocrContexts.slice(0, 5).forEach(item => {
+            parts.push(`\n### OCR: ${item.name}`);
+            parts.push(`Method: ${item.method || 'ocr'}`);
+            parts.push('```text');
+            parts.push(item.text || '');
+            parts.push('```');
+        });
+
+        return parts.join('\n');
+    }
+
+    async warmCacheForQuestion(question) {
+        if (!this.enabled) {
+            this.showNotification('⚠️ Hãy bật MCP trước', 'warning');
+            return;
+        }
+
+        if (!question) {
+            this.showNotification('⚠️ Nhập câu hỏi trước khi warm cache', 'warning');
+            return;
+        }
+
+        try {
+            if (this.warmCacheBtn) this.warmCacheBtn.disabled = true;
+            const response = await fetch('/api/mcp/warm-cache', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question,
+                    force_refresh: false,
+                    cache_ttl_seconds: 900,
+                    limit: 20,
+                    min_importance: 4,
+                    max_chars: 12000
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const domain = result.domain || 'general';
+                this.showNotification(`🔥 Warm cache xong (domain: ${domain})`, 'success');
+            } else {
+                this.showNotification(`⚠️ Warm cache chưa sẵn sàng: ${result.error || 'unknown'}`, 'warning');
+            }
+        } catch (error) {
+            console.error('MCP warm cache error:', error);
+            this.showNotification('⚠️ Không thể warm cache lúc này', 'warning');
+        } finally {
+            if (this.warmCacheBtn) this.warmCacheBtn.disabled = false;
+        }
+    }
+
+    async runOcrForSelectedFiles() {
+        if (!this.enabled) {
+            this.showNotification('⚠️ Hãy bật MCP trước', 'warning');
+            return;
+        }
+
+        if (!this.selectedFiles || this.selectedFiles.length === 0) {
+            this.showNotification('⚠️ Chưa chọn file nào', 'warning');
+            return;
+        }
+
+        const ocrExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff', '.pdf', '.docx', '.doc', '.xlsx', '.xls']);
+        const targets = this.selectedFiles.filter(f => ocrExts.has((f.extension || '').toLowerCase()));
+
+        if (targets.length === 0) {
+            this.showNotification('⚠️ File đã chọn không thuộc loại OCR (ảnh/PDF/docx/xlsx)', 'warning');
+            return;
+        }
+
+        try {
+            if (this.ocrBtn) this.ocrBtn.disabled = true;
+            let successCount = 0;
+            const newContexts = [];
+
+            for (const file of targets.slice(0, 5)) {
+                try {
+                    const response = await fetch('/api/mcp/ocr-extract', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            path: file.path,
+                            max_chars: 6000
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.text) {
+                        newContexts.push({
+                            path: file.path,
+                            name: file.name,
+                            method: result.method || 'ocr',
+                            text: result.text
+                        });
+                        successCount += 1;
+                    }
+                } catch (err) {
+                    console.warn('OCR failed for file:', file.path, err);
+                }
+            }
+
+            // Merge/replace by path
+            const map = new Map(this.ocrContexts.map(c => [c.path, c]));
+            newContexts.forEach(c => map.set(c.path, c));
+            this.ocrContexts = Array.from(map.values()).slice(0, 10);
+
+            if (successCount > 0) {
+                this.showNotification(`✅ OCR xong ${successCount}/${targets.slice(0, 5).length} file. Sẽ đưa vào context khi gửi chat.`, 'success');
+            } else {
+                this.showNotification('⚠️ OCR không trích xuất được nội dung', 'warning');
+            }
+        } finally {
+            if (this.ocrBtn) this.ocrBtn.disabled = false;
+        }
     }
     updateFolderList() {
         if (this.folders.length === 0) {

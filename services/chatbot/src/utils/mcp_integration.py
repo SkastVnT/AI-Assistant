@@ -11,10 +11,21 @@ Tích hợp Model Context Protocol vào ChatBot để:
 import logging
 import re
 import os
+import json
+import importlib.util
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+try:
+    from src.ocr_integration import ocr_client
+    OCR_AVAILABLE = True
+except ImportError:
+    ocr_client = None
+    OCR_AVAILABLE = False
 
 
 def sanitize_for_log(text: str) -> str:
@@ -82,6 +93,19 @@ class MCPClient:
         self.enabled = False
         self.selected_folders: List[str] = []
         self.session_id = None
+        self.ocr_available = OCR_AVAILABLE
+
+    DOMAIN_QUERY_MAP: Dict[str, List[str]] = {
+        "bugfix": ["error", "exception", "traceback", "bugfix", "fix"],
+        "performance": ["performance", "optimize", "latency", "slow", "throughput"],
+        "security": ["security", "auth", "permission", "injection", "xss", "csrf"],
+        "database": ["database", "sql", "mongodb", "query", "schema", "index"],
+        "api": ["api", "endpoint", "route", "request", "response", "http"],
+        "frontend": ["frontend", "ui", "css", "javascript", "react", "html"],
+        "devops": ["docker", "deploy", "ci", "pipeline", "kubernetes", "infra"],
+        "mcp": ["mcp", "memory", "context", "tool", "server"],
+        "general": ["chatbot", "assistant", "feature", "refactor", "project"]
+    }
         
     def enable(self):
         """Bật MCP integration"""
@@ -179,7 +203,7 @@ class MCPClient:
     
     def search_files(self, query: str, file_type: str = "all") -> List[Dict[str, Any]]:
         """
-        Search files trong selected folders
+        Search files trong selected folders (by filename)
         
         Args:
             query: Từ khóa tìm kiếm
@@ -260,10 +284,125 @@ class MCPClient:
         except Exception as e:
             logger.error(f"❌ Error reading file: {sanitize_for_log(str(type(e).__name__))}")
             return {"error": "Failed to read file"}
-    
+
+    def extract_file_with_ocr(self, file_path: str, max_chars: int = 6000) -> Dict[str, Any]:
+        """
+        Extract text from image/document files via OCR integration.
+
+        Args:
+            file_path: Path to file
+            max_chars: Max characters returned
+
+        Returns:
+            OCR extraction result
+        """
+        if not self.enabled:
+            return {"success": False, "error": "MCP is disabled"}
+
+        if not self.ocr_available or ocr_client is None:
+            return {"success": False, "error": "OCR integration is not available"}
+
+        path = validate_and_resolve_path(file_path, must_exist=True)
+        if path is None or not path.is_file():
+            return {"success": False, "error": "Invalid file path"}
+
+        # Ensure path is under allowed folders
+        path_str = str(path)
+        is_allowed = any(
+            path_str.startswith(str(validate_and_resolve_path(folder, must_exist=False) or ""))
+            for folder in self.selected_folders
+        )
+        if not is_allowed:
+            return {"success": False, "error": "File not in allowed folders"}
+
+        try:
+            with open(path, 'rb') as f:
+                file_data = f.read()
+
+            result = ocr_client.process_file(file_data, path.name)
+            text = result.get('text', '') or ''
+            result['text'] = text[:max_chars]
+            result['truncated'] = len(text) > max_chars
+            result['path'] = str(path)
+            return result
+        except Exception as e:
+            return {"success": False, "error": f"OCR extraction failed: {sanitize_for_log(str(e))}"}
+
+    def grep_content(
+        self,
+        pattern: str,
+        file_type: str = "all",
+        max_results: int = 30,
+        case_sensitive: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Tìm kiếm NỘI DUNG trong files theo pattern (như grep).
+        
+        Args:
+            pattern: Text hoặc regex pattern
+            file_type: Loại file (all, py, js, md, ...)
+            max_results: Số kết quả tối đa
+            case_sensitive: Phân biệt hoa/thường
+            
+        Returns:
+            List of {file, line, content} matches
+        """
+        if not self.enabled:
+            return []
+        
+        try:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            compiled = re.compile(pattern, flags)
+        except re.error:
+            logger.warning("Invalid regex pattern in grep_content")
+            return []
+        
+        ext_map = {
+            "py": [".py"], "js": [".js", ".jsx", ".ts", ".tsx"],
+            "md": [".md"], "json": [".json"], "txt": [".txt"],
+            "html": [".html", ".htm"], "css": [".css", ".scss"]
+        }
+        target_exts = ext_map.get(file_type) if file_type != "all" else None
+        skip_dirs = {'.venv', 'venv', '__pycache__', 'node_modules', '.git', 'build', 'dist'}
+        results = []
+
+        for folder in self.selected_folders:
+            folder_path = validate_and_resolve_path(folder, must_exist=True)
+            if folder_path is None:
+                continue
+            for fpath in folder_path.rglob("*"):
+                if len(results) >= max_results:
+                    break
+                if not fpath.is_file():
+                    continue
+                if any(skip in fpath.parts for skip in skip_dirs):
+                    continue
+                if target_exts and fpath.suffix not in target_exts:
+                    continue
+                if fpath.stat().st_size > 2 * 1024 * 1024:
+                    continue
+                try:
+                    for lineno, line in enumerate(
+                        fpath.read_text(encoding='utf-8', errors='ignore').splitlines(), 1
+                    ):
+                        if compiled.search(line):
+                            results.append({
+                                "file": str(fpath),
+                                "relative": str(fpath.relative_to(folder_path)),
+                                "line": lineno,
+                                "content": line.strip()
+                            })
+                            if len(results) >= max_results:
+                                break
+                except OSError:
+                    continue
+
+        return results
+
     def get_code_context(self, user_message: str, selected_files: list = None) -> Optional[str]:
         """
-        Tạo context từ code files để enhance AI response
+        Tạo context từ code files để enhance AI response.
+        Ưu tiên: selected_files > grep content search > filename search.
         
         Args:
             user_message: Câu hỏi của user
@@ -288,6 +427,24 @@ class MCPClient:
                     continue
                 
                 # Use validated path string
+                ext = validated_path.suffix.lower()
+                ocr_exts = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff', '.pdf', '.docx', '.doc', '.xlsx', '.xls'}
+
+                # For binary document/image types, prefer OCR extraction
+                if ext in ocr_exts:
+                    ocr_result = self.extract_file_with_ocr(str(validated_path), max_chars=5000)
+                    if ocr_result.get('success') and ocr_result.get('text'):
+                        logger.info("✅ OCR extraction successful for selected file")
+                        context_parts.append("\n### 📄 OCR Extracted Content\n")
+                        context_parts.append(f"File: {validated_path.name}\n")
+                        context_parts.append(f"Method: {ocr_result.get('method', 'ocr')}\n")
+                        context_parts.append("```text\n")
+                        context_parts.append(ocr_result.get('text', ''))
+                        context_parts.append("\n```\n")
+                    else:
+                        logger.warning("⚠️ OCR extraction unavailable/failed for selected file")
+                    continue
+
                 file_content = self.read_file(str(validated_path), max_lines=200)
                 if file_content and 'content' in file_content:
                     logger.info("✅ File read successfully")
@@ -305,30 +462,36 @@ class MCPClient:
                 else:
                     logger.warning("⚠️ No content available for file")
         else:
-            # Fallback: tìm files tự động theo keywords
+            # Fallback: tìm files tự động theo keywords + content grep
             keywords = [word for word in user_message.lower().split() if len(word) > 3]
             relevant_files = []
-            
-            for keyword in keywords[:5]:  # Limit to 5 keywords
-                files = self.search_files(keyword, file_type="all")
-                relevant_files.extend(files[:3])  # Top 3 per keyword
-            
-            # Remove duplicates
-            seen = set()
-            unique_files = []
-            for f in relevant_files:
-                if f['path'] not in seen:
-                    seen.add(f['path'])
-                    unique_files.append(f)
-            
-            # Read top files
-            for file_info in unique_files[:5]:  # Max 5 files
+            seen_paths: set = set()
+
+            # 1) Tìm theo nội dung file (grep) với từ khóa quan trọng
+            for keyword in keywords[:3]:
+                matches = self.grep_content(keyword, max_results=10)
+                for match in matches:
+                    fpath = match['file']
+                    if fpath not in seen_paths:
+                        seen_paths.add(fpath)
+                        relevant_files.append({'path': fpath, 'relative_path': match['relative'], 'extension': os.path.splitext(fpath)[1]})
+
+            # 2) Fallback: tìm theo tên file nếu chưa đủ
+            if len(relevant_files) < 3:
+                for keyword in keywords[:5]:
+                    files = self.search_files(keyword, file_type="all")
+                    for f in files[:3]:
+                        if f['path'] not in seen_paths:
+                            seen_paths.add(f['path'])
+                            relevant_files.append(f)
+
+            # Read top files (giới hạn 50 dòng mỗi file khi auto-detect)
+            for file_info in relevant_files[:5]:
                 file_content = self.read_file(file_info['path'], max_lines=50)
                 if file_content and 'content' in file_content:
-                    context_parts.append(f"\n### File: {file_info['relative_path']}\n")
-                    context_parts.append("```")
-                    context_parts.append(file_info['extension'][1:] if file_info['extension'] else "")
-                    context_parts.append("\n")
+                    rel = file_info.get('relative_path', file_info['path'])
+                    ext = (file_info.get('extension') or '').lstrip('.')
+                    context_parts.append(f"\n### File: {rel}\n```{ext}\n")
                     context_parts.append(file_content['content'])
                     context_parts.append("\n```\n")
         
@@ -337,6 +500,213 @@ class MCPClient:
             return f"\n\n📁 **CODE CONTEXT FROM LOCAL FILES:**\n{context}"
         
         return None
+
+    def infer_domain_from_question(self, question: str) -> Dict[str, Any]:
+        """
+        Infer technical domain from user's question for targeted memory cache warmup.
+        """
+        q = (question or "").lower()
+        if not q:
+            return {"domain": "general", "score": 0, "matched_keywords": [], "queries": self.DOMAIN_QUERY_MAP["general"]}
+
+        scores: Dict[str, int] = {k: 0 for k in self.DOMAIN_QUERY_MAP.keys()}
+        matched: Dict[str, List[str]] = {k: [] for k in self.DOMAIN_QUERY_MAP.keys()}
+
+        for domain, keywords in self.DOMAIN_QUERY_MAP.items():
+            for kw in keywords:
+                if kw in q:
+                    scores[domain] += 1
+                    matched[domain].append(kw)
+
+        best_domain = max(scores, key=lambda k: scores[k])
+        if scores[best_domain] == 0:
+            best_domain = "general"
+
+        tokens = [tok for tok in re.findall(r"[a-zA-Z0-9_\-]{4,}", q) if len(tok) <= 40]
+        domain_queries = list(dict.fromkeys(self.DOMAIN_QUERY_MAP.get(best_domain, []) + tokens[:5]))
+
+        return {
+            "domain": best_domain,
+            "score": scores.get(best_domain, 0),
+            "matched_keywords": matched.get(best_domain, []),
+            "queries": domain_queries[:12]
+        }
+
+    def _warm_cache_via_http(
+        self,
+        queries: List[str],
+        force_refresh: bool,
+        cache_ttl_seconds: int,
+        limit: int,
+        min_importance: int,
+        max_chars: int
+    ) -> Dict[str, Any]:
+        """Try warming cache through MCP server HTTP endpoint (if available)."""
+        payload = {
+            "queries": queries,
+            "force_refresh": force_refresh,
+            "cache_ttl_seconds": cache_ttl_seconds,
+            "limit": limit,
+            "min_importance": min_importance,
+            "max_chars": max_chars,
+        }
+
+        # Try a few common endpoint conventions.
+        endpoints = [
+            f"{self.mcp_server_url.rstrip('/')}/tools/warm_memory_context_cache",
+            f"{self.mcp_server_url.rstrip('/')}/warm-memory-context-cache",
+            f"{self.mcp_server_url.rstrip('/')}/api/warm-memory-context-cache",
+        ]
+
+        for url in endpoints:
+            try:
+                data = json.dumps(payload).encode("utf-8")
+                req = urllib.request.Request(
+                    url,
+                    data=data,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    body = resp.read().decode("utf-8", errors="replace")
+                    parsed = json.loads(body) if body else {}
+                    return {
+                        "success": True,
+                        "source": "mcp-server-http",
+                        "endpoint": url,
+                        "result": parsed
+                    }
+            except Exception:
+                continue
+
+        return {
+            "success": False,
+            "source": "mcp-server-http",
+            "error": "No compatible MCP HTTP warm-cache endpoint available"
+        }
+
+    def _warm_cache_via_local_db(
+        self,
+        queries: List[str],
+        force_refresh: bool,
+        cache_ttl_seconds: int,
+        limit: int,
+        min_importance: int,
+        max_chars: int
+    ) -> Dict[str, Any]:
+        """Warm cache directly via mcp-server memory DB as a local fallback."""
+        try:
+            current_file = Path(__file__).resolve()
+            repo_root = current_file.parents[4]
+            mm_path = repo_root / "services" / "mcp-server" / "database" / "memory_manager.py"
+            db_path = repo_root / "resources" / "memory" / "mcp_memory.db"
+
+            if not mm_path.exists():
+                return {"success": False, "source": "local-db", "error": "memory_manager.py not found"}
+
+            spec = importlib.util.spec_from_file_location("mcp_memory_manager_dynamic", str(mm_path))
+            if spec is None or spec.loader is None:
+                return {"success": False, "source": "local-db", "error": "Failed to load memory_manager module"}
+
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            MemoryManager = getattr(module, "MemoryManager", None)
+            if MemoryManager is None:
+                return {"success": False, "source": "local-db", "error": "MemoryManager class not found"}
+
+            manager = MemoryManager(db_path=str(db_path))
+            result = manager.warm_context_cache(
+                queries=queries,
+                project_name="AI-Assistant",
+                limit=limit,
+                min_importance=min_importance,
+                max_chars=max_chars,
+                cache_ttl_seconds=cache_ttl_seconds,
+                force_refresh=force_refresh
+            )
+
+            return {
+                "success": True,
+                "source": "local-db",
+                "result": result
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "source": "local-db",
+                "error": sanitize_for_log(str(e))
+            }
+
+    def warm_memory_cache_by_question(
+        self,
+        question: str,
+        domain: Optional[str] = None,
+        extra_queries: Optional[List[str]] = None,
+        force_refresh: bool = False,
+        cache_ttl_seconds: int = 900,
+        limit: int = 20,
+        min_importance: int = 4,
+        max_chars: int = 12000
+    ) -> Dict[str, Any]:
+        """
+        Trigger memory cache warmup based on inferred domain from user question.
+        """
+        inferred = self.infer_domain_from_question(question)
+        selected_domain = (domain or inferred["domain"]).strip().lower()
+        if selected_domain not in self.DOMAIN_QUERY_MAP:
+            selected_domain = inferred["domain"]
+
+        queries = list(self.DOMAIN_QUERY_MAP.get(selected_domain, []))
+        queries.extend(inferred.get("queries", []))
+        if extra_queries:
+            queries.extend([str(q).strip() for q in extra_queries if str(q).strip()])
+
+        # Deduplicate and clamp
+        dedup_queries = []
+        seen = set()
+        for q in queries:
+            key = q.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            dedup_queries.append(q)
+            if len(dedup_queries) >= 20:
+                break
+
+        http_result = self._warm_cache_via_http(
+            queries=dedup_queries,
+            force_refresh=bool(force_refresh),
+            cache_ttl_seconds=max(60, min(int(cache_ttl_seconds), 86400)),
+            limit=max(1, min(int(limit), 100)),
+            min_importance=max(0, min(int(min_importance), 10)),
+            max_chars=max(1000, min(int(max_chars), 50000))
+        )
+        if http_result.get("success"):
+            return {
+                "success": True,
+                "domain": selected_domain,
+                "inferred": inferred,
+                "queries": dedup_queries,
+                "warmup": http_result
+            }
+
+        local_result = self._warm_cache_via_local_db(
+            queries=dedup_queries,
+            force_refresh=bool(force_refresh),
+            cache_ttl_seconds=max(60, min(int(cache_ttl_seconds), 86400)),
+            limit=max(1, min(int(limit), 100)),
+            min_importance=max(0, min(int(min_importance), 10)),
+            max_chars=max(1000, min(int(max_chars), 50000))
+        )
+
+        return {
+            "success": local_result.get("success", False),
+            "domain": selected_domain,
+            "inferred": inferred,
+            "queries": dedup_queries,
+            "warmup": local_result,
+            "fallback_from_http": True
+        }
     
     def get_status(self) -> Dict[str, Any]:
         """Get MCP client status"""

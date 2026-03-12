@@ -110,6 +110,21 @@ def chat():
             try:
                 mcp_client = get_mcp_client()
                 if mcp_client and mcp_client.enabled:
+                    # Pre-warm memory cache by inferred domain to stabilize long/complex responses.
+                    if hasattr(mcp_client, 'warm_memory_cache_by_question'):
+                        try:
+                            mcp_client.warm_memory_cache_by_question(
+                                question=message,
+                                force_refresh=False,
+                                cache_ttl_seconds=900,
+                                limit=20,
+                                min_importance=4,
+                                max_chars=12000,
+                            )
+                            logger.info("[MCP] Memory cache pre-warm completed")
+                        except Exception as warm_error:
+                            logger.warning(f"[MCP] Memory cache pre-warm skipped: {warm_error}")
+
                     logger.info(f"[MCP] Injecting code context")
                     message = inject_code_context(message, mcp_client, mcp_selected_files)
             except Exception as e:

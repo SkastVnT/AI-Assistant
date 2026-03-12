@@ -192,6 +192,110 @@ def mcp_read_file():
         return jsonify({'success': False, 'error': 'Failed to read file'}), 500
 
 
+@mcp_bp.route('/ocr-extract', methods=['POST'])
+def mcp_ocr_extract():
+    """Extract text from image/document file via OCR through MCP client."""
+    check = _check_mcp_available()
+    if check:
+        return check
+    try:
+        data = request.get_json() or {}
+        file_path = (data.get('path') or '').strip()
+        max_chars = int(data.get('max_chars', 6000))
+
+        if not file_path:
+            return jsonify({'success': False, 'error': 'File path is required'}), 400
+
+        result = mcp_client.extract_file_with_ocr(
+            file_path=file_path,
+            max_chars=max(500, min(max_chars, 50000))
+        )
+
+        status = 200 if result.get('success') else 400
+        return jsonify(result), status
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid max_chars'}), 400
+    except Exception as e:
+        logger.error(f"MCP OCR extract error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to extract OCR text'}), 500
+
+
+@mcp_bp.route('/grep', methods=['GET'])
+def mcp_grep():
+    """Search file content by pattern (grep)"""
+    check = _check_mcp_available()
+    if check:
+        return check
+    try:
+        pattern = request.args.get('pattern', '')
+        file_type = request.args.get('type', 'all')
+        max_results = int(request.args.get('max_results', 30))
+        case_sensitive = request.args.get('case_sensitive', 'false').lower() == 'true'
+
+        if not pattern:
+            return jsonify({'success': False, 'error': 'Pattern is required'}), 400
+
+        results = mcp_client.grep_content(
+            pattern=pattern,
+            file_type=file_type,
+            max_results=max_results,
+            case_sensitive=case_sensitive
+        )
+
+        return jsonify({
+            'success': True,
+            'pattern': pattern,
+            'results': results,
+            'count': len(results)
+        })
+    except Exception as e:
+        logger.error(f"MCP grep error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to grep files'}), 500
+
+
+@mcp_bp.route('/warm-cache', methods=['POST'])
+def mcp_warm_cache():
+    """
+    Trigger memory cache warmup based on user question domain before chat.
+    """
+    check = _check_mcp_available()
+    if check:
+        return check
+
+    try:
+        data = request.get_json() or {}
+        question = (data.get('question') or '').strip()
+        domain = data.get('domain')
+        extra_queries = data.get('extra_queries') if isinstance(data.get('extra_queries'), list) else None
+        force_refresh = bool(data.get('force_refresh', False))
+        cache_ttl_seconds = int(data.get('cache_ttl_seconds', 900))
+        limit = int(data.get('limit', 20))
+        min_importance = int(data.get('min_importance', 4))
+        max_chars = int(data.get('max_chars', 12000))
+
+        if not question:
+            return jsonify({'success': False, 'error': 'question is required'}), 400
+
+        result = mcp_client.warm_memory_cache_by_question(
+            question=question,
+            domain=domain,
+            extra_queries=extra_queries,
+            force_refresh=force_refresh,
+            cache_ttl_seconds=cache_ttl_seconds,
+            limit=limit,
+            min_importance=min_importance,
+            max_chars=max_chars,
+        )
+
+        status = 200 if result.get('success') else 503
+        return jsonify(result), status
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid numeric parameters'}), 400
+    except Exception as e:
+        logger.error(f"MCP warm cache error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to warm memory cache'}), 500
+
+
 @mcp_bp.route('/status', methods=['GET'])
 def mcp_status():
     """Get MCP client status"""

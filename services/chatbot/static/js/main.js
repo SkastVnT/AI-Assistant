@@ -593,11 +593,15 @@ class ChatBotApp {
         
         // Include MCP context if enabled
         const mcpContextStr = this.getMcpContextString ? this.getMcpContextString() : '';
+        const mcpOcrContextStr = (window.mcpController && window.mcpController.getOcrContextString)
+            ? window.mcpController.getOcrContextString()
+            : '';
         let mcpIndicator = '';
-        if (mcpContextStr) {
-            message = `[MCP Context được cung cấp - hãy sử dụng thông tin này để trả lời]\n\n${mcpContextStr}\n\n---\n\nUser question: ${message}`;
+        if (mcpContextStr || mcpOcrContextStr) {
+            const fullMcpContext = [mcpContextStr, mcpOcrContextStr].filter(Boolean).join('\n\n---\n\n');
+            message = `[MCP Context được cung cấp - hãy sử dụng thông tin này để trả lời]\n\n${fullMcpContext}\n\n---\n\nUser question: ${message}`;
             mcpIndicator = ' 📎 MCP';
-            console.log('[App] MCP context injected, length:', mcpContextStr.length);
+            console.log('[App] MCP context injected, length:', fullMcpContext.length);
         }
         
         // Generate message ID for versioning
