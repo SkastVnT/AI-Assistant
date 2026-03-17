@@ -249,11 +249,17 @@ class StableDiffusionClient:
             print(f"[SUCCESS] Image generated successfully!")
             return response.json()
         except requests.exceptions.Timeout:
-            return {"error": f"Timeout after {timeout}s. Try reducing image size or steps, or check if SD WebUI is responding."}
+            # Log detailed timeout information server-side, return generic message to client
+            print(f"[ERROR] Timeout after {timeout}s when calling txt2img API")
+            return {"error": "Image generation timed out. Try reducing image size or steps, or check if the image service is responding."}
         except requests.exceptions.RequestException as e:
-            return {"error": f"Network error: {str(e)}"}
+            # Log detailed network error server-side, return generic message to client
+            print(f"[ERROR] Network error when calling txt2img API: {e}")
+            return {"error": "A network error occurred while generating the image. Please try again later."}
         except Exception as e:
-            return {"error": f"Lỗi khi tạo ảnh: {str(e)}"}
+            # Log unexpected errors server-side, return generic message to client
+            print(f"[ERROR] Unexpected error when generating image: {e}")
+            return {"error": "An internal error occurred while generating the image."}
     
     def get_samplers(self) -> List[Dict]:
         """Lấy danh sách tất cả các samplers có sẵn"""

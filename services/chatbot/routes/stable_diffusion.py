@@ -1169,7 +1169,11 @@ def sd_batch():
                     })
             else:
                 res = sd_client.txt2img(**params)
-                imgs = res.get('images', [])
+                # If the client returned an error, log it server-side and skip this seed
+                if isinstance(res, dict) and res.get('error'):
+                    logger.error(f"[BATCH] Image generation error for seed {seed}: {res.get('error')}")
+                    continue
+                imgs = res.get('images', []) if isinstance(res, dict) else []
                 if imgs:
                     results.append({'image': imgs[0], 'seed': seed})
 
