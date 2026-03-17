@@ -1195,7 +1195,10 @@ def sd_batch():
     except Exception as e:
         import traceback
         logger.error(f"[BATCH] Error: {e}\n{traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': 'internal server error',
+            'error_code': 'BATCH_GENERATION_ERROR'
+        }), 500
 
 
 # ============================================================================
