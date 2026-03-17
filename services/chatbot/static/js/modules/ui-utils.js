@@ -323,8 +323,6 @@ export class UIUtils {
         if (!this.elements.storageInfo || !storageInfo) return;
         
         const { sizeInMB, maxSizeMB, percentage, color, sessionCount } = storageInfo;
-        const statusIcon = percentage > 80 ? '🔴' : percentage > 50 ? '🟡' : '🟢';
-        const statusText = percentage > 80 ? 'High' : percentage > 50 ? 'Medium' : 'OK';
         
         this.elements.storageInfo.innerHTML = `
             <div class="storage-display">
