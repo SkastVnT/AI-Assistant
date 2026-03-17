@@ -1,0 +1,12 @@
+# Profile: image-ai-services
+# Scope: stable-diffusion, edit-image, image-upscale, lora-training, ComfyUI-related workflows
+# Purpose: isolate image/ML stack to avoid protobuf/numpy conflicts with core-services profile.
+
+-r requirements_chunk_1_core.txt
+-r requirements_chunk_2_web.txt
+-r requirements_chunk_5_ml_core.txt
+-r requirements_chunk_6_image.txt
+-r requirements_chunk_9_upscale.txt
+
+# Optional GPU acceleration package, install only if compatible with your CUDA/PyTorch stack.
+# xformers==0.0.23.post1

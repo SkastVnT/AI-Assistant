@@ -1,0 +1,16 @@
+# Profile: core-services
+# Scope: hub-gateway, chatbot, speech2text, text2sql, document-intelligence, mcp-server
+# Purpose: keep runtime stable for API/core services, exclude heavy image diffusion stack.
+
+-r requirements_chunk_1_core.txt
+-r requirements_chunk_2_web.txt
+-r requirements_chunk_3_database.txt
+-r requirements_chunk_4_ai_apis.txt
+-r requirements_chunk_7_audio.txt
+-r requirements_chunk_8_document.txt
+
+# Keep MCP runtime in core profile
+mcp[cli]>=1.0.0
+
+# Optional for chatbot UI routes using gradio
+gradio>=3.0.0
