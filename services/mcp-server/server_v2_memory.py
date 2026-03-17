@@ -17,7 +17,6 @@ import re
 import ast
 import sqlite3
 import subprocess
-import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
