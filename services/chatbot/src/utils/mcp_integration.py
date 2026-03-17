@@ -333,7 +333,8 @@ class MCPClient:
         pattern: str,
         file_type: str = "all",
         max_results: int = 30,
-        case_sensitive: bool = False
+        case_sensitive: bool = False,
+        regex: bool = False,
     ) -> List[Dict[str, Any]]:
         """
         Tìm kiếm NỘI DUNG trong files theo pattern (như grep).
@@ -343,6 +344,7 @@ class MCPClient:
             file_type: Loại file (all, py, js, md, ...)
             max_results: Số kết quả tối đa
             case_sensitive: Phân biệt hoa/thường
+            regex: Nếu True, pattern được xử lý như regex; nếu False, tìm kiếm theo chuỗi literal
             
         Returns:
             List of {file, line, content} matches
@@ -352,7 +354,11 @@ class MCPClient:
         
         try:
             flags = 0 if case_sensitive else re.IGNORECASE
-            compiled = re.compile(pattern, flags)
+            if regex:
+                compiled = re.compile(pattern, flags)
+            else:
+                safe_pattern = re.escape(pattern)
+                compiled = re.compile(safe_pattern, flags)
         except re.error:
             logger.warning("Invalid regex pattern in grep_content")
             return []

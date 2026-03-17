@@ -4558,6 +4558,7 @@ def mcp_grep():
         file_type = request.args.get('type', 'all')
         max_results = int(request.args.get('max_results', 30))
         case_sensitive = request.args.get('case_sensitive', 'false').lower() == 'true'
+        regex = request.args.get('regex', 'false').lower() == 'true'
 
         if not pattern:
             return jsonify({
@@ -4569,7 +4570,8 @@ def mcp_grep():
             pattern=pattern,
             file_type=file_type,
             max_results=max_results,
-            case_sensitive=case_sensitive
+            case_sensitive=case_sensitive,
+            regex=regex,
         )
 
         return jsonify({

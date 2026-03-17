@@ -41,6 +41,47 @@ def _check_mcp_available():
     return None
 
 
+@mcp_bp.route('/grep', methods=['GET'])
+def mcp_grep_route():
+    """Search file content by pattern (grep) via MCP blueprint."""
+    check = _check_mcp_available()
+    if check:
+        return check
+    try:
+        pattern = request.args.get('pattern', '')
+        file_type = request.args.get('type', 'all')
+        max_results = int(request.args.get('max_results', 30))
+        case_sensitive = request.args.get('case_sensitive', 'false').lower() == 'true'
+        regex = request.args.get('regex', 'false').lower() == 'true'
+
+        if not pattern:
+            return jsonify({
+                'success': False,
+                'error': 'Pattern is required'
+            }), 400
+
+        results = mcp_client.grep_content(
+            pattern=pattern,
+            file_type=file_type,
+            max_results=max_results,
+            case_sensitive=case_sensitive,
+            regex=regex,
+        )
+
+        return jsonify({
+            'success': True,
+            'pattern': pattern,
+            'results': results,
+            'count': len(results)
+        })
+    except Exception as e:
+        logger.error(f"MCP grep error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to grep files'
+        }), 500
+
+
 @mcp_bp.route('/enable', methods=['POST'])
 def mcp_enable():
     """Enable MCP integration"""
