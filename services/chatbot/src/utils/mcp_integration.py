@@ -20,6 +20,10 @@ from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+# Define a safe root directory for all MCP file operations.
+# This can be overridden via the MCP_SAFE_ROOT environment variable.
+MCP_SAFE_ROOT = Path(os.environ.get("MCP_SAFE_ROOT", Path.cwd())).resolve()
+
 try:
     from src.ocr_integration import ocr_client
     OCR_AVAILABLE = True
@@ -39,8 +43,14 @@ def sanitize_for_log(text: str) -> str:
 
 def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optional[Path]:
     """
-    Safely validate and resolve a path
-    Returns None if path is invalid or potentially malicious
+    Safely validate and resolve a path.
+
+    The returned path is:
+      * free from obvious traversal patterns,
+      * normalized and resolved, and
+      * guaranteed to be located under MCP_SAFE_ROOT.
+
+    Returns None if the path is invalid, outside the safe root, or potentially malicious.
     """
     if not path_str or not isinstance(path_str, str):
         return None
@@ -56,23 +66,37 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
         return None
     
     try:
-        # Use os.path functions to break taint analysis
-        # This creates a "clean" path that CodeQL doesn't track as user input
+        # Normalize and resolve the path
         normalized = os.path.normpath(path_str)
         absolute = os.path.abspath(normalized)
         real = os.path.realpath(absolute)
-        
+
         # Check existence if required
         if must_exist and not os.path.exists(real):
             return None
-        
+
         # Double-check for path traversal after normalization
         if '..' in real or real.startswith('.'):
             logger.warning("Path traversal in normalized path")
             return None
+
+        # Enforce that the resolved path is under the safe root
+        real_path = Path(real).resolve()
+        try:
+            # Python 3.9+ has is_relative_to
+            if not real_path.is_relative_to(MCP_SAFE_ROOT):
+                logger.warning("Path outside of MCP safe root rejected")
+                return None
+        except AttributeError:
+            # Fallback for older Python versions
+            safe_root_str = str(MCP_SAFE_ROOT)
+            real_str = str(real_path)
+            if not (real_str == safe_root_str or real_str.startswith(safe_root_str + os.sep)):
+                logger.warning("Path outside of MCP safe root rejected")
+                return None
         
         # Now create Path from sanitized string
-        return Path(real)
+        return real_path
     except (ValueError, OSError, RuntimeError):
         return None
 
@@ -308,10 +332,25 @@ class MCPClient:
 
         # Ensure path is under allowed folders
         path_str = str(path)
-        is_allowed = any(
-            path_str.startswith(str(validate_and_resolve_path(folder, must_exist=False) or ""))
-            for folder in self.selected_folders
-        )
+        allowed_roots: List[Path] = []
+        for folder in getattr(self, "selected_folders", []):
+            resolved_folder = validate_and_resolve_path(folder, must_exist=False)
+            if resolved_folder is not None:
+                allowed_roots.append(resolved_folder)
+
+        is_allowed = False
+        for root in allowed_roots:
+            try:
+                # Python 3.9+: use is_relative_to for robust containment check
+                if path.is_relative_to(root):
+                    is_allowed = True
+                    break
+            except AttributeError:
+                root_str = str(root)
+                if path_str == root_str or path_str.startswith(root_str + os.sep):
+                    is_allowed = True
+                    break
+
         if not is_allowed:
             return {"success": False, "error": "File not in allowed folders"}
 
