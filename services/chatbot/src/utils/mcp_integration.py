@@ -20,6 +20,15 @@ from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+# Define server-controlled base directories that MCP is allowed to access.
+# All user-specified paths must resolve under at least one of these roots.
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_WORKSPACE = PROJECT_ROOT
+ALLOWED_BASE_DIRS = [
+    PROJECT_ROOT,
+    DEFAULT_WORKSPACE,
+]
+
 # Define a safe root directory for all MCP file operations.
 # This can be overridden via the MCP_SAFE_ROOT environment variable.
 MCP_SAFE_ROOT = Path(os.environ.get("MCP_SAFE_ROOT", Path.cwd())).resolve()
@@ -37,10 +46,22 @@ def sanitize_for_log(text: str) -> str:
     if not text:
         return ""
     # Remove control characters, newlines, and limit length
+def _is_subpath(path: Path, base: Path) -> bool:
+    """
+    Return True if 'path' is located inside directory 'base'.
+    Uses Path.relative_to when available, falling back gracefully.
+    """
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
     sanitized = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', '', str(text))
     return sanitized[:200]  # Limit to 200 chars
-
-
+    Safely validate and resolve a path.
+    Returns None if path is invalid, outside allowed roots, or potentially malicious.
 def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optional[Path]:
     """
     Safely validate and resolve a path.
@@ -56,8 +77,6 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
         return None
     
     # Check for path traversal patterns BEFORE creating Path object
-    if '..' in path_str or path_str.startswith('.'):
-        logger.warning("Path traversal attempt detected")
         return None
     
     # Check for suspicious characters
@@ -71,8 +90,14 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
         absolute = os.path.abspath(normalized)
         real = os.path.realpath(absolute)
 
-        # Check existence if required
-        if must_exist and not os.path.exists(real):
+        candidate = Path(real)
+
+        # Enforce that the resolved path is under at least one allowed base dir
+        if not any(_is_subpath(candidate, base) for base in ALLOWED_BASE_DIRS):
+            logger.warning("Path outside allowed base directories")
+            return None
+
+        return candidate
             return None
 
         # Double-check for path traversal after normalization
@@ -306,12 +331,16 @@ class MCPClient:
                 'truncated': total_lines > max_lines
             }
         except Exception as e:
-            logger.error(f"❌ Error reading file: {sanitize_for_log(str(type(e).__name__))}")
-            return {"error": "Failed to read file"}
+        # Ensure path is under allowed folders configured for this client
+        resolved_allowed_folders: List[Path] = []
+        for folder in getattr(self, "selected_folders", []) or []:
+            if not folder:
+                continue
+            resolved_folder = validate_and_resolve_path(str(folder), must_exist=False)
+            if resolved_folder is not None:
+                resolved_allowed_folders.append(resolved_folder)
 
-    def extract_file_with_ocr(self, file_path: str, max_chars: int = 6000) -> Dict[str, Any]:
-        """
-        Extract text from image/document files via OCR integration.
+        is_allowed = any(_is_subpath(path, base) for base in resolved_allowed_folders) if resolved_allowed_folders else False
 
         Args:
             file_path: Path to file
