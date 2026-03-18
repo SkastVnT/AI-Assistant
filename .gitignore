@@ -35,6 +35,9 @@ lora/
 **/lora/Scripts/
 **/lora/Lib/
 **/lora/Include/
+venv-core/
+venv-speech/
+venv-image/
 
 # Service-specific venv folders
 **/speech/
