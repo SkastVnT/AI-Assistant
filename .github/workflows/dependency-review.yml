@@ -2,7 +2,12 @@ name: Dependency Review
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
+    paths:
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      - 'app/requirements/**'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
