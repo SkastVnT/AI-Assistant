@@ -2,9 +2,9 @@ name: Security Scanning
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master, develop, Ver_1, 'feat/**' ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop, Ver_1 ]
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
@@ -37,18 +37,25 @@ jobs:
     - name: Run Bandit (Python Security Linter)
       run: |
         bandit -r . \
-          --exclude ./venv*,./.venv*,./ComfyUI,./private,**/tests/**,**/node_modules/** \
+          --exclude ./venv*,./.venv*,./ComfyUI,./app/ComfyUI,./private,**/tests/**,**/node_modules/** \
           --severity-level medium \
           --confidence-level medium \
           -f json -o bandit-report.json || true
         bandit -r . \
-          --exclude ./venv*,./.venv*,./ComfyUI,./private \
+          --exclude ./venv*,./.venv*,./ComfyUI,./app/ComfyUI,./private \
           -f txt || true
       continue-on-error: true
         
     - name: Run pip-audit (PyPI Package Auditor)
       run: |
-        for req in services/chatbot/requirements.txt services/text2sql/requirements.txt; do
+        for req in \
+          services/chatbot/requirements.txt \
+          services/text2sql/requirements.txt \
+          services/document-intelligence/requirements.txt \
+          services/speech2text/requirements.txt \
+          services/image-upscale/requirements.txt \
+          services/lora-training/requirements.txt \
+          services/mcp-server/requirements.txt; do
           if [ -f "$req" ]; then
             echo "=== Auditing $req ==="
             pip-audit -r "$req" --desc || true

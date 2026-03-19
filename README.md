@@ -183,23 +183,23 @@ menu.bat          # Windows
 
 ```bash
 # Chạy tất cả services
-docker-compose up -d
+docker-compose -f app/config/docker-compose.yml up -d
 
 # Hoặc chạy lightweight mode (không GPU)
-docker-compose -f docker-compose.light.yml up -d
+docker-compose -f app/config/docker-compose.light.yml up -d
 
 # Kiểm tra health
-curl http://localhost:5001/health/detailed
+curl http://localhost:5000/health
 ```
 
 ### 📦 Chạy từng service
 
 ```bash
-scripts\start-chatbot.bat          # 🤖 ChatBot      → localhost:5001
-scripts\start-hub-gateway.bat      # 🎯 API Gateway  → localhost:3000
-scripts\start-speech2text.bat      # 🎙️ Speech2Text  → localhost:7860
-scripts\start-document-intelligence.bat  # 📄 OCR    → localhost:5003
-scripts\start-text2sql.bat         # 📊 Text2SQL    → localhost:5002
+app\scripts\start-chatbot.bat               # 🤖 ChatBot      → localhost:5000
+app\scripts\start-hub-gateway.bat           # 🎯 API Gateway  → localhost:3000
+app\scripts\start-speech2text.bat           # 🎙️ Speech2Text  → localhost:5001
+app\scripts\start-document-intelligence.bat # 📄 OCR          → localhost:5003
+app\scripts\start-text2sql.bat              # 📊 Text2SQL      → localhost:5002
 ```
 
 <br/>
@@ -215,7 +215,7 @@ scripts\start-text2sql.bat         # 📊 Text2SQL    → localhost:5002
 | 🤖 **ChatBot** | `5000` | Multi-model Chat + 7-Provider Image Gen + Split View + External API | ✅ **v3.0** |
 | 🎯 **Hub Gateway** | `3000` | API Gateway + Rate limiting + Authentication | ✅ Production |
 | 📄 **Document Intelligence** | `5003` | Vietnamese OCR + Table extraction + AI analysis | ✅ Production |
-| 🎙️ **Speech2Text** | `7860` | Whisper + Speaker diarization + Real-time | ✅ Production |
+| 🎙️ **Speech2Text** | `5001` | Whisper + Speaker diarization + Real-time | ✅ Production |
 | 📊 **Text2SQL** | `5002` | Natural Language → SQL + MySQL/PostgreSQL | ✅ Production |
 | 🎨 **ComfyUI** | `8188` | Node-based image workflows + LoRA support | ✅ Ready |
 | 🖼️ **Image Upscale** | `CLI` | RealESRGAN 4x + Batch + GIF animation | ✅ Ready |
@@ -251,13 +251,13 @@ AI-Assistant/
 │
 ├── 🎨 ComfyUI/                     # Image Generation Workflows
 │
-├── 🔧 src/                         # Core shared modules
+├── 🔧 app/src/                     # Core shared modules
 │   ├── cache/                      # Caching utilities
 │   ├── database/                   # Database connectors
 │   ├── health/                     # Health check utilities
 │   └── security/                   # Security modules
 │
-├── ⚙️ config/                      # Global configuration
+├── ⚙️ app/config/                  # Global configuration
 │   ├── firebase_config.py          # Firebase setup
 │   ├── model_config.py             # AI model configurations
 │   └── rate_limiter.py             # Rate limiting config
@@ -267,9 +267,9 @@ AI-Assistant/
 │   ├── integration/                # Integration tests
 │   └── e2e/                        # End-to-end tests
 │
-├── 📜 scripts/                     # 50+ automation scripts
-├── 📋 requirements/                # Chunked dependencies
-├── 🐳 docker/                      # Docker configurations
+├── 📜 app/scripts/                 # 50+ automation scripts
+├── 📋 app/requirements/            # Chunked dependencies
+├── 🐳 app/docker/                  # Docker configurations
 └── 🔐 private/                     # Private submodule
 ```
 
@@ -314,9 +314,13 @@ FIREBASE_PRIVATE_KEY=your_private_key
 # 🔐 Security
 SECRET_KEY=your_secret_key
 JWT_SECRET=your_jwt_secret
+
+# 🌍 Shared environment profile selector
+# app/config/.env_<env> (vd: .env_dev, .env_prod)
+env=dev
 ```
 
-> 💡 **Tip:** Copy `.env.example` → `.env` và điền các API keys của bạn
+> 💡 **Tip:** Copy `app/config/.env.example` → `app/config/.env` và điền các API keys của bạn
 
 <br/>
 
@@ -328,9 +332,9 @@ JWT_SECRET=your_jwt_secret
 
 | 📖 Document | 📝 Mô tả |
 |:-----------:|:---------|
-| [SCRIPTS_GUIDE.md](SCRIPTS_GUIDE.md) | Hướng dẫn sử dụng 50+ automation scripts |
+| [app/scripts/README.md](app/scripts/README.md) | Hướng dẫn sử dụng automation scripts |
 | [SECURITY.md](SECURITY.md) | Security policy và audit report (120 findings) |
-| [requirements/](requirements/) | Chunked dependency management |
+| [app/requirements/README.md](app/requirements/README.md) | Chunked dependency management |
 | [tests/](tests/) | Testing documentation và coverage |
 
 </div>
