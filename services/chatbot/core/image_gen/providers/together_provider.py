@@ -1,5 +1,5 @@
-"""
-Together.ai provider — cheap/free FLUX inference.
+﻿"""
+Together.ai provider â€” cheap/free FLUX inference.
 Free tier: ~60 images/day. Paid: $0.001-0.006/image.
 Good fallback when fal/replicate are down.
 """
@@ -37,7 +37,7 @@ TOGETHER_COST = {
 
 
 class TogetherProvider(BaseImageProvider):
-    """Together.ai — free/cheap FLUX inference, great fallback."""
+    """Together.ai â€” free/cheap FLUX inference, great fallback."""
 
     name = "together"
     tier = ProviderTier.FAST

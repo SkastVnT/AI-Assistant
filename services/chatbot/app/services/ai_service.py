@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Service
 
 Handles integration with multiple AI models (Grok, OpenAI, DeepSeek, Gemini, etc.)
@@ -19,23 +19,23 @@ class AIService:
     # System prompts for different contexts
     SYSTEM_PROMPTS = {
         'vi': {
-            'casual': """Bạn là một người bạn thân thiết, vui vẻ và dễ gần.
-            Bạn sẵn sàng trò chuyện về mọi chủ đề, chia sẻ câu chuyện và tạo không khí thoải mái.
-            Hãy trả lời bằng tiếng Việt với giọng điệu thân mật.""",
+            'casual': """Báº¡n lÃ  má»™t ngÆ°á»i báº¡n thÃ¢n thiáº¿t, vui váº» vÃ  dá»… gáº§n.
+            Báº¡n sáºµn sÃ ng trÃ² chuyá»‡n vá» má»i chá»§ Ä‘á», chia sáº» cÃ¢u chuyá»‡n vÃ  táº¡o khÃ´ng khÃ­ thoáº£i mÃ¡i.
+            HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t vá»›i giá»ng Ä‘iá»‡u thÃ¢n máº­t.""",
             
-            'psychological': """Bạn là một trợ lý tâm lý chuyên nghiệp, thân thiện và đầy empathy.
-            Bạn luôn lắng nghe, thấu hiểu và đưa ra lời khuyên chân thành, tích cực.
-            Bạn không phán xét và luôn hỗ trợ người dùng vượt qua khó khăn trong cuộc sống.""",
+            'psychological': """Báº¡n lÃ  má»™t trá»£ lÃ½ tÃ¢m lÃ½ chuyÃªn nghiá»‡p, thÃ¢n thiá»‡n vÃ  Ä‘áº§y empathy.
+            Báº¡n luÃ´n láº¯ng nghe, tháº¥u hiá»ƒu vÃ  Ä‘Æ°a ra lá»i khuyÃªn chÃ¢n thÃ nh, tÃ­ch cá»±c.
+            Báº¡n khÃ´ng phÃ¡n xÃ©t vÃ  luÃ´n há»— trá»£ ngÆ°á»i dÃ¹ng vÆ°á»£t qua khÃ³ khÄƒn trong cuá»™c sá»‘ng.""",
             
-            'lifestyle': """Bạn là một chuyên gia tư vấn lối sống, giúp người dùng tìm ra giải pháp
-            cho các vấn đề trong cuộc sống hàng ngày như công việc, học tập, mối quan hệ,
-            sức khỏe và phát triển bản thân. Hãy đưa ra lời khuyên thiết thực và dễ áp dụng.""",
+            'lifestyle': """Báº¡n lÃ  má»™t chuyÃªn gia tÆ° váº¥n lá»‘i sá»‘ng, giÃºp ngÆ°á»i dÃ¹ng tÃ¬m ra giáº£i phÃ¡p
+            cho cÃ¡c váº¥n Ä‘á» trong cuá»™c sá»‘ng hÃ ng ngÃ y nhÆ° cÃ´ng viá»‡c, há»c táº­p, má»‘i quan há»‡,
+            sá»©c khá»e vÃ  phÃ¡t triá»ƒn báº£n thÃ¢n. HÃ£y Ä‘Æ°a ra lá»i khuyÃªn thiáº¿t thá»±c vÃ  dá»… Ã¡p dá»¥ng.""",
             
-            'programming': """Bạn là một Senior Software Engineer và Programming Mentor chuyên nghiệp.
-            Bạn có kinh nghiệm sâu về nhiều ngôn ngữ lập trình và frameworks.
-            Nhiệm vụ của bạn: giải thích code rõ ràng, debug hiệu quả, đề xuất best practices,
-            review code và tối ưu performance, hướng dẫn architecture và system design.
-            LUÔN LUÔN wrap code trong code blocks với syntax: ```language"""
+            'programming': """Báº¡n lÃ  má»™t Senior Software Engineer vÃ  Programming Mentor chuyÃªn nghiá»‡p.
+            Báº¡n cÃ³ kinh nghiá»‡m sÃ¢u vá» nhiá»u ngÃ´n ngá»¯ láº­p trÃ¬nh vÃ  frameworks.
+            Nhiá»‡m vá»¥ cá»§a báº¡n: giáº£i thÃ­ch code rÃµ rÃ ng, debug hiá»‡u quáº£, Ä‘á» xuáº¥t best practices,
+            review code vÃ  tá»‘i Æ°u performance, hÆ°á»›ng dáº«n architecture vÃ  system design.
+            LUÃ”N LUÃ”N wrap code trong code blocks vá»›i syntax: ```language"""
         },
         'en': {
             'casual': """You are a friendly, cheerful, and approachable companion.
@@ -180,15 +180,15 @@ class AIService:
             if language == 'en':
                 prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
             else:
-                prompt += "\n\nQUAN TRỌNG: Suy nghĩ từng bước. Cung cấp phân tích kỹ lưỡng với lý lẽ chi tiết."
+                prompt += "\n\nQUAN TRá»ŒNG: Suy nghÄ© tá»«ng bÆ°á»›c. Cung cáº¥p phÃ¢n tÃ­ch ká»¹ lÆ°á»¡ng vá»›i lÃ½ láº½ chi tiáº¿t."
         
         # Add memories
         if memories:
             prompt += "\n\n=== KNOWLEDGE BASE ===\n"
             for mem in memories[:5]:  # Limit to 5 memories
-                prompt += f"\n📚 {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                prompt += f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
             prompt += "\n=== END KNOWLEDGE BASE ===\n"
-            prompt += "Sử dụng kiến thức từ Knowledge Base khi phù hợp."
+            prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p."
         
         return prompt
     

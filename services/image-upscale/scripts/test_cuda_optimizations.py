@@ -1,4 +1,4 @@
-"""
+﻿"""
 Comprehensive test for CUDA GPU optimizations
 Tests all new features and optimizations
 """
@@ -18,10 +18,10 @@ def test_imports():
     
     try:
         import torch
-        print(f"✓ PyTorch: {torch.__version__}")
+        print(f"âœ“ PyTorch: {torch.__version__}")
         
         from upscale_tool import ImageUpscaler
-        print("✓ ImageUpscaler imported")
+        print("âœ“ ImageUpscaler imported")
         
         from upscale_tool.utils import (
             get_optimal_device,
@@ -29,11 +29,11 @@ def test_imports():
             check_gpu_memory,
             benchmark_gpu
         )
-        print("✓ Utility functions imported")
+        print("âœ“ Utility functions imported")
         
         return True
     except ImportError as e:
-        print(f"✗ Import error: {e}")
+        print(f"âœ— Import error: {e}")
         return False
 
 def test_device_detection():
@@ -46,11 +46,11 @@ def test_device_detection():
         
         # Test auto detection
         device = get_optimal_device()
-        print(f"✓ Optimal device: {device}")
+        print(f"âœ“ Optimal device: {device}")
         
         # Test CUDA availability
         cuda_available = torch.cuda.is_available()
-        print(f"✓ CUDA available: {cuda_available}")
+        print(f"âœ“ CUDA available: {cuda_available}")
         
         if cuda_available:
             print(f"  CUDA version: {torch.version.cuda}")
@@ -59,7 +59,7 @@ def test_device_detection():
         
         return True
     except Exception as e:
-        print(f"✗ Device detection failed: {e}")
+        print(f"âœ— Device detection failed: {e}")
         return False
 
 def test_gpu_memory():
@@ -71,24 +71,24 @@ def test_gpu_memory():
         from upscale_tool.utils import check_gpu_memory
         
         if not torch.cuda.is_available():
-            print("⊘ Skipped (no CUDA)")
+            print("âŠ˜ Skipped (no CUDA)")
             return True
         
         mem_info = check_gpu_memory(0)
         
         if mem_info:
-            print(f"✓ GPU memory check successful")
+            print(f"âœ“ GPU memory check successful")
             print(f"  Device: {mem_info.get('device_name', 'Unknown')}")
             print(f"  Total: {mem_info.get('total_str', 'Unknown')}")
             print(f"  Free: {mem_info.get('free_str', 'Unknown')}")
             print(f"  Used: {mem_info.get('used_str', 'Unknown')}")
         else:
-            print("✗ Failed to get GPU memory info")
+            print("âœ— Failed to get GPU memory info")
             return False
         
         return True
     except Exception as e:
-        print(f"✗ GPU memory test failed: {e}")
+        print(f"âœ— GPU memory test failed: {e}")
         return False
 
 def test_optimization_settings():
@@ -100,14 +100,14 @@ def test_optimization_settings():
         
         settings = optimize_for_gpu()
         
-        print(f"✓ Optimization settings generated")
+        print(f"âœ“ Optimization settings generated")
         print(f"  Device: {settings['device']}")
         print(f"  Tile size: {settings['tile_size']}")
         print(f"  Half precision: {settings['half_precision']}")
         
         return True
     except Exception as e:
-        print(f"✗ Optimization settings failed: {e}")
+        print(f"âœ— Optimization settings failed: {e}")
         return False
 
 def test_upscaler_init():
@@ -120,23 +120,23 @@ def test_upscaler_init():
         # Test auto device
         print("  Testing device='auto'...")
         upscaler = ImageUpscaler(device='auto', model='RealESRGAN_x4plus')
-        print(f"  ✓ Auto device: {upscaler.device}")
+        print(f"  âœ“ Auto device: {upscaler.device}")
         
         # Test with optimization
         print("  Testing with optimize_for_gpu()...")
         from upscale_tool.utils import optimize_for_gpu
         settings = optimize_for_gpu()
         upscaler2 = ImageUpscaler(model='RealESRGAN_x4plus', **settings)
-        print(f"  ✓ Optimized init successful")
+        print(f"  âœ“ Optimized init successful")
         
         # Test cleanup
         print("  Testing cleanup()...")
         upscaler.cleanup()
-        print("  ✓ Cleanup successful")
+        print("  âœ“ Cleanup successful")
         
         return True
     except Exception as e:
-        print(f"✗ Upscaler init failed: {e}")
+        print(f"âœ— Upscaler init failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -150,24 +150,24 @@ def test_gpu_stats():
         from upscale_tool import ImageUpscaler
         
         if not torch.cuda.is_available():
-            print("⊘ Skipped (no CUDA)")
+            print("âŠ˜ Skipped (no CUDA)")
             return True
         
         upscaler = ImageUpscaler(device='cuda', model='RealESRGAN_x4plus')
         stats = upscaler.get_gpu_stats()
         
         if stats:
-            print(f"✓ GPU stats retrieved")
+            print(f"âœ“ GPU stats retrieved")
             print(f"  Allocated: {stats.get('allocated', 0):.2f} MB")
             print(f"  Reserved: {stats.get('reserved', 0):.2f} MB")
             print(f"  Max allocated: {stats.get('max_allocated', 0):.2f} MB")
         else:
-            print("  ⊘ No stats (CPU mode)")
+            print("  âŠ˜ No stats (CPU mode)")
         
         upscaler.cleanup()
         return True
     except Exception as e:
-        print(f"✗ GPU stats failed: {e}")
+        print(f"âœ— GPU stats failed: {e}")
         return False
 
 def test_inference():
@@ -196,13 +196,13 @@ def test_inference():
         expected_size = (512, 512)
         
         if output_img.size == expected_size:
-            print(f"✓ Inference successful")
+            print(f"âœ“ Inference successful")
             print(f"  Input: 256x256")
             print(f"  Output: {output_img.size}")
             print(f"  Time: {elapsed:.2f}s")
             print(f"  Device: {upscaler.device}")
         else:
-            print(f"✗ Wrong output size: {output_img.size} (expected {expected_size})")
+            print(f"âœ— Wrong output size: {output_img.size} (expected {expected_size})")
             return False
         
         # Cleanup
@@ -212,7 +212,7 @@ def test_inference():
         
         return True
     except Exception as e:
-        print(f"✗ Inference failed: {e}")
+        print(f"âœ— Inference failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -225,7 +225,7 @@ def test_fp16_vs_fp32():
         import torch
         
         if not torch.cuda.is_available():
-            print("⊘ Skipped (no CUDA)")
+            print("âŠ˜ Skipped (no CUDA)")
             return True
         
         from upscale_tool import ImageUpscaler
@@ -254,11 +254,11 @@ def test_fp16_vs_fp32():
         upscaler_fp16.cleanup()
         
         speedup = fp32_time / fp16_time if fp16_time > 0 else 0
-        print(f"✓ FP16 speedup: {speedup:.2f}x")
+        print(f"âœ“ FP16 speedup: {speedup:.2f}x")
         
         return True
     except Exception as e:
-        print(f"✗ FP16/FP32 test failed: {e}")
+        print(f"âœ— FP16/FP32 test failed: {e}")
         return False
 
 def test_dynamic_tile_size():
@@ -270,7 +270,7 @@ def test_dynamic_tile_size():
         import torch
         
         if not torch.cuda.is_available():
-            print("⊘ Skipped (no CUDA)")
+            print("âŠ˜ Skipped (no CUDA)")
             return True
         
         # Test with auto_tile_size
@@ -280,13 +280,13 @@ def test_dynamic_tile_size():
             auto_tile_size=True
         )
         
-        print(f"✓ Dynamic tile size enabled")
+        print(f"âœ“ Dynamic tile size enabled")
         print(f"  Tile size: {upscaler.upsampler.tile}")
         
         upscaler.cleanup()
         return True
     except Exception as e:
-        print(f"✗ Dynamic tile size test failed: {e}")
+        print(f"âœ— Dynamic tile size test failed: {e}")
         return False
 
 def main():
@@ -314,7 +314,7 @@ def main():
             success = test_func()
             results.append((name, success))
         except Exception as e:
-            print(f"\n✗ Test '{name}' crashed: {e}")
+            print(f"\nâœ— Test '{name}' crashed: {e}")
             results.append((name, False))
     
     # Summary
@@ -324,16 +324,16 @@ def main():
     total = len(results)
     
     for name, success in results:
-        status = "✓ PASS" if success else "✗ FAIL"
+        status = "âœ“ PASS" if success else "âœ— FAIL"
         print(f"{status}: {name}")
     
     print(f"\nTotal: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
     
     if passed == total:
-        print("\n🎉 All tests passed!")
+        print("\nðŸŽ‰ All tests passed!")
         return 0
     else:
-        print(f"\n⚠️  {total - passed} test(s) failed")
+        print(f"\nâš ï¸  {total - passed} test(s) failed")
         return 1
 
 if __name__ == "__main__":

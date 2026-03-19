@@ -1,4 +1,4 @@
-"""
+﻿"""
 Streaming Chat Module - SSE (Server-Sent Events) support for real-time responses
 """
 import json

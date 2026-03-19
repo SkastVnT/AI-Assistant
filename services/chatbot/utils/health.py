@@ -1,4 +1,4 @@
-"""
+﻿"""
 Health Check Module
 
 Provides health check endpoints for monitoring service status.

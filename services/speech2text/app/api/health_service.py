@@ -1,4 +1,4 @@
-"""
+﻿"""
 Health Monitor Service - System Health and Performance Monitoring
 """
 

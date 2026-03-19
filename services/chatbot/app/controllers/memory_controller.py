@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory Controller
 
 Handles memory/knowledge base operations.
@@ -38,7 +38,7 @@ class MemoryController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error listing memories: {e}")
+            logger.error(f"âŒ Error listing memories: {e}")
             raise
     
     def create_memory(
@@ -61,11 +61,11 @@ class MemoryController:
                 importance=importance
             )
             
-            logger.info(f"✅ Created memory: {memory.get('_id')}")
+            logger.info(f"âœ… Created memory: {memory.get('_id')}")
             return memory
             
         except Exception as e:
-            logger.error(f"❌ Error creating memory: {e}")
+            logger.error(f"âŒ Error creating memory: {e}")
             raise
     
     def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:
@@ -73,7 +73,7 @@ class MemoryController:
         try:
             return self.memory_service.get(memory_id)
         except Exception as e:
-            logger.error(f"❌ Error getting memory: {e}")
+            logger.error(f"âŒ Error getting memory: {e}")
             raise
     
     def update_memory(
@@ -103,12 +103,12 @@ class MemoryController:
             memory = self.memory_service.update(memory_id, updates)
             
             safe_id = str(memory_id).replace('\n', ' ').replace('\r', '')
-            logger.info(f"✅ Updated memory: {safe_id}")
+            logger.info(f"âœ… Updated memory: {safe_id}")
             return memory
             
         except Exception as e:
             safe_error = str(e).replace('\n', ' ').replace('\r', '')
-            logger.error(f"❌ Error updating memory: {safe_error}")
+            logger.error(f"âŒ Error updating memory: {safe_error}")
             raise
     
     def delete_memory(self, memory_id: str) -> Dict[str, Any]:
@@ -117,12 +117,12 @@ class MemoryController:
             self.memory_service.delete(memory_id)
             
             safe_id = str(memory_id).replace('\n', ' ').replace('\r', '')
-            logger.info(f"✅ Deleted memory: {safe_id}")
+            logger.info(f"âœ… Deleted memory: {safe_id}")
             return {'deleted': True, 'memory_id': memory_id}
             
         except Exception as e:
             safe_error = str(e).replace('\n', ' ').replace('\r', '')
-            logger.error(f"❌ Error deleting memory: {safe_error}")
+            logger.error(f"âŒ Error deleting memory: {safe_error}")
             raise
     
     def search_memories(
@@ -147,5 +147,5 @@ class MemoryController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error searching memories: {e}")
+            logger.error(f"âŒ Error searching memories: {e}")
             raise

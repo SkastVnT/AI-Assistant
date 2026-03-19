@@ -1,22 +1,22 @@
-"""
+﻿"""
 Example usage of AI-Assistant MCP Server
-Ví dụ sử dụng MCP Server
+VÃ­ dá»¥ sá»­ dá»¥ng MCP Server
 """
 
 import json
 from typing import Dict, Any
 
-# ==================== VÍ DỤ 1: TÌM FILES ====================
+# ==================== VÃ Dá»¤ 1: TÃŒM FILES ====================
 
 def example_search_files():
     """
-    Ví dụ: Claude sẽ gọi tool search_files
+    VÃ­ dá»¥: Claude sáº½ gá»i tool search_files
     
-    User hỏi: "Tìm giúp tôi tất cả file Python liên quan đến chatbot"
+    User há»i: "TÃ¬m giÃºp tÃ´i táº¥t cáº£ file Python liÃªn quan Ä‘áº¿n chatbot"
     
-    Claude gọi: search_files(query="chatbot", file_type="py", max_results=10)
+    Claude gá»i: search_files(query="chatbot", file_type="py", max_results=10)
     """
-    # Response mẫu từ tool
+    # Response máº«u tá»« tool
     response = {
         "query": "chatbot",
         "file_type": "py",
@@ -38,15 +38,15 @@ def example_search_files():
     print(json.dumps(response, indent=2, ensure_ascii=False))
 
 
-# ==================== VÍ DỤ 2: ĐỌC FILE ====================
+# ==================== VÃ Dá»¤ 2: Äá»ŒC FILE ====================
 
 def example_read_file():
     """
-    Ví dụ: Claude đọc nội dung file
+    VÃ­ dá»¥: Claude Ä‘á»c ná»™i dung file
     
-    User hỏi: "Đọc file README.md cho tôi"
+    User há»i: "Äá»c file README.md cho tÃ´i"
     
-    Claude gọi: read_file_content(file_path="README.md", max_lines=100)
+    Claude gá»i: read_file_content(file_path="README.md", max_lines=100)
     """
     response = {
         "file_path": "README.md",
@@ -59,15 +59,15 @@ def example_read_file():
     print(json.dumps(response, indent=2, ensure_ascii=False))
 
 
-# ==================== VÍ DỤ 3: LIỆT KÊ THƯ MỤC ====================
+# ==================== VÃ Dá»¤ 3: LIá»†T KÃŠ THÆ¯ Má»¤C ====================
 
 def example_list_directory():
     """
-    Ví dụ: Liệt kê nội dung thư mục
+    VÃ­ dá»¥: Liá»‡t kÃª ná»™i dung thÆ° má»¥c
     
-    User hỏi: "Có những gì trong folder services?"
+    User há»i: "CÃ³ nhá»¯ng gÃ¬ trong folder services?"
     
-    Claude gọi: list_directory(dir_path="services")
+    Claude gá»i: list_directory(dir_path="services")
     """
     response = {
         "directory": "services",
@@ -84,15 +84,15 @@ def example_list_directory():
     print(json.dumps(response, indent=2, ensure_ascii=False))
 
 
-# ==================== VÍ DỤ 4: PROJECT INFO ====================
+# ==================== VÃ Dá»¤ 4: PROJECT INFO ====================
 
 def example_project_info():
     """
-    Ví dụ: Lấy thông tin project
+    VÃ­ dá»¥: Láº¥y thÃ´ng tin project
     
-    User hỏi: "Cho tôi biết thông tin về project AI-Assistant"
+    User há»i: "Cho tÃ´i biáº¿t thÃ´ng tin vá» project AI-Assistant"
     
-    Claude gọi: get_project_info()
+    Claude gá»i: get_project_info()
     """
     response = {
         "project_name": "AI-Assistant",
@@ -116,15 +116,15 @@ def example_project_info():
     print(json.dumps(response, indent=2, ensure_ascii=False))
 
 
-# ==================== VÍ DỤ 5: SEARCH LOGS ====================
+# ==================== VÃ Dá»¤ 5: SEARCH LOGS ====================
 
 def example_search_logs():
     """
-    Ví dụ: Tìm kiếm logs
+    VÃ­ dá»¥: TÃ¬m kiáº¿m logs
     
-    User hỏi: "Kiểm tra logs của chatbot, có lỗi gì không?"
+    User há»i: "Kiá»ƒm tra logs cá»§a chatbot, cÃ³ lá»—i gÃ¬ khÃ´ng?"
     
-    Claude gọi: search_logs(service="chatbot", level="error", last_n_lines=50)
+    Claude gá»i: search_logs(service="chatbot", level="error", last_n_lines=50)
     """
     response = {
         "service_filter": "chatbot",
@@ -146,15 +146,15 @@ def example_search_logs():
     print(json.dumps(response, indent=2, ensure_ascii=False))
 
 
-# ==================== VÍ DỤ 6: CALCULATE ====================
+# ==================== VÃ Dá»¤ 6: CALCULATE ====================
 
 def example_calculate():
     """
-    Ví dụ: Tính toán
+    VÃ­ dá»¥: TÃ­nh toÃ¡n
     
-    User hỏi: "Tính sqrt(144) giúp tôi"
+    User há»i: "TÃ­nh sqrt(144) giÃºp tÃ´i"
     
-    Claude gọi: calculate(expression="sqrt(144)")
+    Claude gá»i: calculate(expression="sqrt(144)")
     """
     response = {
         "expression": "sqrt(144)",
@@ -169,52 +169,52 @@ def example_calculate():
 
 def conversation_examples():
     """
-    Ví dụ các cuộc hội thoại thực tế với Claude Desktop
+    VÃ­ dá»¥ cÃ¡c cuá»™c há»™i thoáº¡i thá»±c táº¿ vá»›i Claude Desktop
     """
     
     print("\n" + "="*60)
-    print("CONVERSATION EXAMPLES - VÍ DỤ HỘI THOẠI")
+    print("CONVERSATION EXAMPLES - VÃ Dá»¤ Há»˜I THOáº I")
     print("="*60)
     
     examples = [
         {
-            "user": "Tìm tất cả các file Python liên quan đến chatbot",
-            "claude_thinks": "Cần gọi tool search_files với query='chatbot', file_type='py'",
+            "user": "TÃ¬m táº¥t cáº£ cÃ¡c file Python liÃªn quan Ä‘áº¿n chatbot",
+            "claude_thinks": "Cáº§n gá»i tool search_files vá»›i query='chatbot', file_type='py'",
             "claude_calls": "search_files(query='chatbot', file_type='py')",
-            "result": "Tìm thấy 3 files: app.py, chatbot_service.py, utils.py trong services/chatbot/"
+            "result": "TÃ¬m tháº¥y 3 files: app.py, chatbot_service.py, utils.py trong services/chatbot/"
         },
         {
-            "user": "Đọc file services/chatbot/app.py và giải thích cho tôi",
-            "claude_thinks": "Cần gọi tool read_file_content để đọc file",
+            "user": "Äá»c file services/chatbot/app.py vÃ  giáº£i thÃ­ch cho tÃ´i",
+            "claude_thinks": "Cáº§n gá»i tool read_file_content Ä‘á»ƒ Ä‘á»c file",
             "claude_calls": "read_file_content(file_path='services/chatbot/app.py')",
-            "result": "File này chứa FastAPI application cho chatbot service, có các endpoints..."
+            "result": "File nÃ y chá»©a FastAPI application cho chatbot service, cÃ³ cÃ¡c endpoints..."
         },
         {
-            "user": "Project AI-Assistant có những services gì?",
-            "claude_thinks": "Cần lấy thông tin tổng quan về project",
+            "user": "Project AI-Assistant cÃ³ nhá»¯ng services gÃ¬?",
+            "claude_thinks": "Cáº§n láº¥y thÃ´ng tin tá»•ng quan vá» project",
             "claude_calls": "get_project_info()",
-            "result": "Project có 8 services: chatbot, text2sql, document-intelligence..."
+            "result": "Project cÃ³ 8 services: chatbot, text2sql, document-intelligence..."
         },
         {
-            "user": "Kiểm tra logs của chatbot trong 50 dòng cuối, có lỗi không?",
-            "claude_thinks": "Cần tìm logs với filter level=error",
+            "user": "Kiá»ƒm tra logs cá»§a chatbot trong 50 dÃ²ng cuá»‘i, cÃ³ lá»—i khÃ´ng?",
+            "claude_thinks": "Cáº§n tÃ¬m logs vá»›i filter level=error",
             "claude_calls": "search_logs(service='chatbot', level='error', last_n_lines=50)",
-            "result": "Tìm thấy 2 lỗi: Connection timeout và Database error"
+            "result": "TÃ¬m tháº¥y 2 lá»—i: Connection timeout vÃ  Database error"
         },
         {
-            "user": "Tính sqrt(144) + pow(2, 8)",
-            "claude_thinks": "Cần dùng tool calculate",
+            "user": "TÃ­nh sqrt(144) + pow(2, 8)",
+            "claude_thinks": "Cáº§n dÃ¹ng tool calculate",
             "claude_calls": "calculate(expression='sqrt(144) + pow(2, 8)')",
-            "result": "Kết quả: 268.0"
+            "result": "Káº¿t quáº£: 268.0"
         }
     ]
     
     for i, ex in enumerate(examples, 1):
         print(f"\n--- Example {i} ---")
-        print(f"👤 User: {ex['user']}")
-        print(f"🤔 Claude thinks: {ex['claude_thinks']}")
-        print(f"🔧 Claude calls: {ex['claude_calls']}")
-        print(f"✅ Result: {ex['result']}")
+        print(f"ðŸ‘¤ User: {ex['user']}")
+        print(f"ðŸ¤” Claude thinks: {ex['claude_thinks']}")
+        print(f"ðŸ”§ Claude calls: {ex['claude_calls']}")
+        print(f"âœ… Result: {ex['result']}")
 
 
 # ==================== MAIN ====================
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     print("AI-ASSISTANT MCP SERVER - EXAMPLES")
     print("="*60)
     
-    # Chạy tất cả ví dụ
+    # Cháº¡y táº¥t cáº£ vÃ­ dá»¥
     example_search_files()
     example_read_file()
     example_list_directory()
@@ -232,9 +232,9 @@ if __name__ == "__main__":
     example_search_logs()
     example_calculate()
     
-    # Ví dụ hội thoại
+    # VÃ­ dá»¥ há»™i thoáº¡i
     conversation_examples()
     
     print("\n" + "="*60)
-    print("✅ Examples completed!")
+    print("âœ… Examples completed!")
     print("="*60)

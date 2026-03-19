@@ -1,4 +1,4 @@
-"""
+﻿"""
 Streaming Response Handler - Real-time AI Responses
 Implements Server-Sent Events (SSE) for token-by-token streaming
 """

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test GIF upscaling
 """
 from upscale_tool.multi_upscaler import MultiArchUpscaler
@@ -39,7 +39,7 @@ def test_gif_upscale():
         max_frames=10
     )
     
-    print(f"\n✅ Success! Output: {output_gif}")
+    print(f"\nâœ… Success! Output: {output_gif}")
 
 
 if __name__ == '__main__':

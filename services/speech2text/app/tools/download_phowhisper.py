@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """
 Script d[?] t[?]i tr[?][?]c model PhoWhisper-large v[?] local

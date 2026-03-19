@@ -1,4 +1,4 @@
-"""
+﻿"""
 Document Intelligence Service Entry Point
 Run with: python run.py
 """
@@ -20,13 +20,13 @@ def main():
     
     # Print startup banner
     print("=" * 60)
-    print("📄 DOCUMENT INTELLIGENCE SERVICE v2.0")
+    print("ðŸ“„ DOCUMENT INTELLIGENCE SERVICE v2.0")
     print("=" * 60)
-    print(f"📍 URL: http://{config.HOST}:{config.PORT}")
-    print(f"🐛 Debug: {config.DEBUG}")
-    print(f"🤖 AI Enabled: {config.ENABLE_AI_ENHANCEMENT}")
-    print(f"📝 AI Model: {config.AI_MODEL}")
-    print(f"🌐 OCR Language: {config.OCR_LANGUAGE}")
+    print(f"ðŸ“ URL: http://{config.HOST}:{config.PORT}")
+    print(f"ðŸ› Debug: {config.DEBUG}")
+    print(f"ðŸ¤– AI Enabled: {config.ENABLE_AI_ENHANCEMENT}")
+    print(f"ðŸ“ AI Model: {config.AI_MODEL}")
+    print(f"ðŸŒ OCR Language: {config.OCR_LANGUAGE}")
     print("=" * 60)
     
     app.run(

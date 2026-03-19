@@ -1,4 +1,4 @@
-"""
+﻿"""
 Black Forest Labs (BFL) direct API provider.
 Access FLUX.2 models directly from https://api.bfl.ai
 """
@@ -34,7 +34,7 @@ BFL_COST = {
 
 
 class BFLProvider(BaseImageProvider):
-    """Black Forest Labs — official FLUX API."""
+    """Black Forest Labs â€” official FLUX API."""
 
     name = "bfl"
     tier = ProviderTier.ULTRA

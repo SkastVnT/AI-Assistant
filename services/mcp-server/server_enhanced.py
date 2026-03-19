@@ -1,10 +1,10 @@
-"""
+﻿"""
 AI-Assistant MCP Server - Enhanced Version
 ===========================================
-Model Context Protocol server với advanced features.
+Model Context Protocol server vá»›i advanced features.
 
 NEW FEATURES:
-- Error handling và validation
+- Error handling vÃ  validation
 - Logging system
 - Caching mechanism
 - Rate limiting
@@ -27,8 +27,8 @@ import time
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:
-    print("ERROR: FastMCP không được cài đặt.")
-    print("Vui lòng chạy: pip install 'mcp[cli]'")
+    print("ERROR: FastMCP khÃ´ng Ä‘Æ°á»£c cÃ i Ä‘áº·t.")
+    print("Vui lÃ²ng cháº¡y: pip install 'mcp[cli]'")
     exit(1)
 
 # ==================== SETUP LOGGING ====================
@@ -59,14 +59,14 @@ config = Config()
 # ==================== CACHE SYSTEM ====================
 
 class SimpleCache:
-    """Simple in-memory cache với TTL"""
+    """Simple in-memory cache vá»›i TTL"""
     
     def __init__(self):
         self.cache = {}
         self.timestamps = {}
     
     def get(self, key: str) -> Optional[Any]:
-        """Get từ cache nếu còn valid"""
+        """Get tá»« cache náº¿u cÃ²n valid"""
         if key not in self.cache:
             return None
         
@@ -80,13 +80,13 @@ class SimpleCache:
         return self.cache[key]
     
     def set(self, key: str, value: Any):
-        """Set value vào cache"""
+        """Set value vÃ o cache"""
         self.cache[key] = value
         self.timestamps[key] = time.time()
         logger.debug(f"Cache SET: {key}")
     
     def clear(self):
-        """Clear toàn bộ cache"""
+        """Clear toÃ n bá»™ cache"""
         self.cache.clear()
         self.timestamps.clear()
         logger.info("Cache cleared")
@@ -102,7 +102,7 @@ class RateLimiter:
         self.requests = defaultdict(list)
     
     def is_allowed(self, key: str = "default") -> bool:
-        """Check nếu request được phép"""
+        """Check náº¿u request Ä‘Æ°á»£c phÃ©p"""
         now = time.time()
         
         # Remove old requests
@@ -157,7 +157,7 @@ metrics = Metrics()
 # ==================== DECORATORS ====================
 
 def validate_path(func):
-    """Decorator để validate file paths"""
+    """Decorator Ä‘á»ƒ validate file paths"""
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Check cho path parameter
@@ -171,7 +171,7 @@ def validate_path(func):
     return wrapper
 
 def with_cache(cache_key_func):
-    """Decorator để cache kết quả"""
+    """Decorator Ä‘á»ƒ cache káº¿t quáº£"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -194,7 +194,7 @@ def with_cache(cache_key_func):
     return decorator
 
 def with_metrics(tool_name: str):
-    """Decorator để track metrics"""
+    """Decorator Ä‘á»ƒ track metrics"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -208,7 +208,7 @@ def with_metrics(tool_name: str):
     return decorator
 
 def with_rate_limit(func):
-    """Decorator để rate limiting"""
+    """Decorator Ä‘á»ƒ rate limiting"""
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not rate_limiter.is_allowed():
@@ -218,7 +218,7 @@ def with_rate_limit(func):
 
 # ==================== MAIN SERVER ====================
 
-# Khởi tạo MCP server
+# Khá»Ÿi táº¡o MCP server
 mcp = FastMCP("AI-Assistant")
 
 # Base paths
@@ -235,15 +235,15 @@ LOGS_DIR = RESOURCES_DIR / "logs"
 @with_cache(lambda query, file_type="all", max_results=10: f"search:{query}:{file_type}:{max_results}")
 def search_files(query: str, file_type: str = "all", max_results: int = 10) -> Dict[str, Any]:
     """
-    Tìm kiếm files trong workspace theo query (WITH CACHING).
+    TÃ¬m kiáº¿m files trong workspace theo query (WITH CACHING).
     
     Args:
-        query: Từ khóa tìm kiếm
-        file_type: Loại file (all, py, md, json, txt)
-        max_results: Số kết quả tối đa
+        query: Tá»« khÃ³a tÃ¬m kiáº¿m
+        file_type: Loáº¡i file (all, py, md, json, txt)
+        max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
         
     Returns:
-        Dict chứa danh sách files tìm thấy
+        Dict chá»©a danh sÃ¡ch files tÃ¬m tháº¥y
     """
     try:
         logger.info(f"Searching files: query={query}, type={file_type}")
@@ -302,14 +302,14 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
 @validate_path
 def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
     """
-    Đọc nội dung file (WITH VALIDATION).
+    Äá»c ná»™i dung file (WITH VALIDATION).
     
     Args:
-        file_path: Đường dẫn tương đối từ project root
-        max_lines: Số dòng tối đa đọc
+        file_path: ÄÆ°á»ng dáº«n tÆ°Æ¡ng Ä‘á»‘i tá»« project root
+        max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a Ä‘á»c
         
     Returns:
-        Dict chứa nội dung file
+        Dict chá»©a ná»™i dung file
     """
     try:
         logger.info(f"Reading file: {file_path}")
@@ -317,17 +317,17 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
         full_path = BASE_DIR / file_path
         
         if not full_path.exists():
-            return {"error": f"File không tồn tại: {file_path}"}
+            return {"error": f"File khÃ´ng tá»“n táº¡i: {file_path}"}
         
         if not full_path.is_file():
-            return {"error": f"Đường dẫn không phải là file: {file_path}"}
+            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  file: {file_path}"}
         
         # Check file size
         file_size = os.path.getsize(full_path)
         if file_size > config.MAX_FILE_SIZE:
-            return {"error": f"File quá lớn: {file_size} bytes (max: {config.MAX_FILE_SIZE})"}
+            return {"error": f"File quÃ¡ lá»›n: {file_size} bytes (max: {config.MAX_FILE_SIZE})"}
         
-        # Đọc file
+        # Äá»c file
         with open(full_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         
@@ -346,10 +346,10 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
         }
     
     except UnicodeDecodeError:
-        return {"error": "File không phải text file hoặc encoding không hợp lệ"}
+        return {"error": "File khÃ´ng pháº£i text file hoáº·c encoding khÃ´ng há»£p lá»‡"}
     except Exception as e:
         logger.error(f"Error reading file: {str(e)}")
-        return {"error": f"Lỗi đọc file: {str(e)}"}
+        return {"error": f"Lá»—i Ä‘á»c file: {str(e)}"}
 
 
 @mcp.tool()
@@ -358,14 +358,14 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
 @validate_path
 def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[str, Any]:
     """
-    Liệt kê nội dung thư mục (WITH VALIDATION).
+    Liá»‡t kÃª ná»™i dung thÆ° má»¥c (WITH VALIDATION).
     
     Args:
-        dir_path: Đường dẫn thư mục (tương đối từ project root)
-        include_hidden: Có hiển thị file/folder ẩn không
+        dir_path: ÄÆ°á»ng dáº«n thÆ° má»¥c (tÆ°Æ¡ng Ä‘á»‘i tá»« project root)
+        include_hidden: CÃ³ hiá»ƒn thá»‹ file/folder áº©n khÃ´ng
         
     Returns:
-        Dict chứa danh sách files và folders
+        Dict chá»©a danh sÃ¡ch files vÃ  folders
     """
     try:
         logger.info(f"Listing directory: {dir_path}")
@@ -373,10 +373,10 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
         full_path = BASE_DIR / dir_path
         
         if not full_path.exists():
-            return {"error": f"Thư mục không tồn tại: {dir_path}"}
+            return {"error": f"ThÆ° má»¥c khÃ´ng tá»“n táº¡i: {dir_path}"}
         
         if not full_path.is_dir():
-            return {"error": f"Đường dẫn không phải là thư mục: {dir_path}"}
+            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
         
         files = []
         folders = []
@@ -408,17 +408,17 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
     
     except Exception as e:
         logger.error(f"Error listing directory: {str(e)}")
-        return {"error": f"Lỗi liệt kê thư mục: {str(e)}"}
+        return {"error": f"Lá»—i liá»‡t kÃª thÆ° má»¥c: {str(e)}"}
 
 
 @mcp.tool()
 @with_cache(lambda: "project_info")
 def get_project_info() -> Dict[str, Any]:
     """
-    Lấy thông tin tổng quan về project (CACHED).
+    Láº¥y thÃ´ng tin tá»•ng quan vá» project (CACHED).
     
     Returns:
-        Dict chứa thông tin project
+        Dict chá»©a thÃ´ng tin project
     """
     try:
         logger.info("Getting project info")
@@ -445,28 +445,28 @@ def get_project_info() -> Dict[str, Any]:
                 "resources": (BASE_DIR / "resources").exists(),
                 "local_data": (BASE_DIR / "local_data").exists()
             },
-            "description": "Multi-service AI application với chatbot, document intelligence, image processing, và nhiều tính năng khác.",
+            "description": "Multi-service AI application vá»›i chatbot, document intelligence, image processing, vÃ  nhiá»u tÃ­nh nÄƒng khÃ¡c.",
             "cached": False
         }
     
     except Exception as e:
         logger.error(f"Error getting project info: {str(e)}")
-        return {"error": f"Lỗi lấy thông tin project: {str(e)}"}
+        return {"error": f"Lá»—i láº¥y thÃ´ng tin project: {str(e)}"}
 
 
 @mcp.tool()
 @with_metrics("search_logs")
 def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50) -> Dict[str, Any]:
     """
-    Tìm kiếm và đọc logs từ các services (WITH ERROR HANDLING).
+    TÃ¬m kiáº¿m vÃ  Ä‘á»c logs tá»« cÃ¡c services (WITH ERROR HANDLING).
     
     Args:
-        service: Tên service (all, chatbot, text2sql, etc.)
+        service: TÃªn service (all, chatbot, text2sql, etc.)
         level: Log level (all, error, warning, info)
-        last_n_lines: Số dòng cuối cùng đọc từ log
+        last_n_lines: Sá»‘ dÃ²ng cuá»‘i cÃ¹ng Ä‘á»c tá»« log
         
     Returns:
-        Dict chứa log entries
+        Dict chá»©a log entries
     """
     try:
         logger.info(f"Searching logs: service={service}, level={level}")
@@ -474,9 +474,9 @@ def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50
         logs_found = []
         
         if not LOGS_DIR.exists():
-            return {"error": "Thư mục logs không tồn tại"}
+            return {"error": "ThÆ° má»¥c logs khÃ´ng tá»“n táº¡i"}
         
-        # Tìm log files
+        # TÃ¬m log files
         for log_file in LOGS_DIR.glob("*.log"):
             if service != "all" and service.lower() not in log_file.name.lower():
                 continue
@@ -511,27 +511,27 @@ def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50
     
     except Exception as e:
         logger.error(f"Error searching logs: {str(e)}")
-        return {"error": f"Lỗi đọc logs: {str(e)}"}
+        return {"error": f"Lá»—i Ä‘á»c logs: {str(e)}"}
 
 
 @mcp.tool()
 @with_metrics("calculate")
 def calculate(expression: str) -> Dict[str, Any]:
     """
-    Thực hiện phép tính toán học (SAFE EVAL).
+    Thá»±c hiá»‡n phÃ©p tÃ­nh toÃ¡n há»c (SAFE EVAL).
     
     Args:
-        expression: Biểu thức toán học
+        expression: Biá»ƒu thá»©c toÃ¡n há»c
         
     Returns:
-        Dict chứa kết quả tính toán
+        Dict chá»©a káº¿t quáº£ tÃ­nh toÃ¡n
     """
     import math
     
     try:
         logger.info(f"Calculating: {expression}")
         
-        # Safe eval với math functions
+        # Safe eval vá»›i math functions
         allowed_names = {
             k: v for k, v in math.__dict__.items() if not k.startswith("__")
         }
@@ -558,7 +558,7 @@ def calculate(expression: str) -> Dict[str, Any]:
         logger.error(f"Calculation error: {str(e)}")
         return {
             "expression": expression,
-            "error": f"Lỗi tính toán: {str(e)}"
+            "error": f"Lá»—i tÃ­nh toÃ¡n: {str(e)}"
         }
 
 
@@ -568,10 +568,10 @@ def calculate(expression: str) -> Dict[str, Any]:
 @with_metrics("get_health")
 def get_health() -> Dict[str, Any]:
     """
-    Health check endpoint - kiểm tra trạng thái server.
+    Health check endpoint - kiá»ƒm tra tráº¡ng thÃ¡i server.
     
     Returns:
-        Dict chứa health status
+        Dict chá»©a health status
     """
     try:
         return {
@@ -593,7 +593,7 @@ def get_health() -> Dict[str, Any]:
 @mcp.tool()
 def clear_cache() -> Dict[str, Any]:
     """
-    Clear toàn bộ cache.
+    Clear toÃ n bá»™ cache.
     
     Returns:
         Dict confirmation
@@ -603,7 +603,7 @@ def clear_cache() -> Dict[str, Any]:
         logger.info("Cache cleared by user request")
         return {
             "status": "success",
-            "message": "Cache đã được xóa"
+            "message": "Cache Ä‘Ã£ Ä‘Æ°á»£c xÃ³a"
         }
     except Exception as e:
         return {"error": str(e)}
@@ -613,7 +613,7 @@ def clear_cache() -> Dict[str, Any]:
 
 @mcp.resource("config://model")
 def get_model_config() -> str:
-    """Lấy cấu hình model từ config/model_config.py"""
+    """Láº¥y cáº¥u hÃ¬nh model tá»« config/model_config.py"""
     try:
         config_file = BASE_DIR / "config" / "model_config.py"
         if config_file.exists():
@@ -626,7 +626,7 @@ def get_model_config() -> str:
 
 @mcp.resource("config://logging")
 def get_logging_config() -> str:
-    """Lấy cấu hình logging từ config/logging_config.py"""
+    """Láº¥y cáº¥u hÃ¬nh logging tá»« config/logging_config.py"""
     try:
         config_file = BASE_DIR / "config" / "logging_config.py"
         if config_file.exists():
@@ -639,7 +639,7 @@ def get_logging_config() -> str:
 
 @mcp.resource("docs://readme")
 def get_readme() -> str:
-    """Lấy nội dung README.md chính của project"""
+    """Láº¥y ná»™i dung README.md chÃ­nh cá»§a project"""
     try:
         readme_file = BASE_DIR / "README.md"
         if readme_file.exists():
@@ -652,7 +652,7 @@ def get_readme() -> str:
 
 @mcp.resource("docs://structure")
 def get_structure_doc() -> str:
-    """Lấy tài liệu cấu trúc project"""
+    """Láº¥y tÃ i liá»‡u cáº¥u trÃºc project"""
     try:
         structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
         if structure_file.exists():
@@ -667,73 +667,73 @@ def get_structure_doc() -> str:
 
 @mcp.prompt()
 def code_review_prompt(file_path: str) -> str:
-    """Prompt template để review code."""
-    return f"""Hãy review code trong file: {file_path}
+    """Prompt template Ä‘á»ƒ review code."""
+    return f"""HÃ£y review code trong file: {file_path}
 
-Tập trung vào:
-1. Code quality và best practices
-2. Potential bugs hoặc issues
+Táº­p trung vÃ o:
+1. Code quality vÃ  best practices
+2. Potential bugs hoáº·c issues
 3. Performance optimization
 4. Security concerns
 5. Suggestions for improvement
 
-Hãy đưa ra phân tích chi tiết và constructive feedback."""
+HÃ£y Ä‘Æ°a ra phÃ¢n tÃ­ch chi tiáº¿t vÃ  constructive feedback."""
 
 
 @mcp.prompt()
 def debug_prompt(error_message: str, context: str = "") -> str:
-    """Prompt template để debug lỗi."""
-    return f"""Debug lỗi sau:
+    """Prompt template Ä‘á»ƒ debug lá»—i."""
+    return f"""Debug lá»—i sau:
 
 Error Message: {error_message}
 
 Context: {context}
 
-Hãy:
-1. Phân tích nguyên nhân gốc rễ của lỗi
-2. Đưa ra các bước để reproduce
-3. Suggest solution để fix
+HÃ£y:
+1. PhÃ¢n tÃ­ch nguyÃªn nhÃ¢n gá»‘c rá»… cá»§a lá»—i
+2. ÄÆ°a ra cÃ¡c bÆ°á»›c Ä‘á»ƒ reproduce
+3. Suggest solution Ä‘á»ƒ fix
 4. Recommend preventive measures"""
 
 
 @mcp.prompt()
 def explain_code_prompt(code_snippet: str) -> str:
-    """Prompt template để giải thích code."""
-    return f"""Hãy giải thích đoạn code sau:
+    """Prompt template Ä‘á»ƒ giáº£i thÃ­ch code."""
+    return f"""HÃ£y giáº£i thÃ­ch Ä‘oáº¡n code sau:
 
 ```
 {code_snippet}
 ```
 
-Giải thích:
-1. Mục đích của code
-2. Cách hoạt động từng phần
+Giáº£i thÃ­ch:
+1. Má»¥c Ä‘Ã­ch cá»§a code
+2. CÃ¡ch hoáº¡t Ä‘á»™ng tá»«ng pháº§n
 3. Input/Output expected
-4. Các edge cases cần lưu ý"""
+4. CÃ¡c edge cases cáº§n lÆ°u Ã½"""
 
 
 # ==================== MAIN ====================
 
 def main():
-    """Khởi động MCP server"""
+    """Khá»Ÿi Ä‘á»™ng MCP server"""
     print("="*60)
-    print("🚀 AI-Assistant MCP Server - Enhanced Version")
+    print("ðŸš€ AI-Assistant MCP Server - Enhanced Version")
     print("="*60)
-    print(f"📁 Base Directory: {BASE_DIR}")
-    print(f"🔧 Tools available: {len(mcp._tools)}")
-    print(f"📦 Resources available: {len(mcp._resources)}")
-    print(f"💬 Prompts available: {len(mcp._prompts)}")
+    print(f"ðŸ“ Base Directory: {BASE_DIR}")
+    print(f"ðŸ”§ Tools available: {len(mcp._tools)}")
+    print(f"ðŸ“¦ Resources available: {len(mcp._resources)}")
+    print(f"ðŸ’¬ Prompts available: {len(mcp._prompts)}")
     print(f"")
-    print("✨ NEW FEATURES:")
-    print(f"  ✅ Error handling & validation")
-    print(f"  ✅ Logging system (mcp_server.log)")
-    print(f"  ✅ Caching (TTL: {config.CACHE_TTL}s)")
-    print(f"  ✅ Rate limiting ({config.RATE_LIMIT_REQUESTS} req/{config.RATE_LIMIT_WINDOW}s)")
-    print(f"  ✅ Metrics tracking")
-    print(f"  ✅ Health checks")
+    print("âœ¨ NEW FEATURES:")
+    print(f"  âœ… Error handling & validation")
+    print(f"  âœ… Logging system (mcp_server.log)")
+    print(f"  âœ… Caching (TTL: {config.CACHE_TTL}s)")
+    print(f"  âœ… Rate limiting ({config.RATE_LIMIT_REQUESTS} req/{config.RATE_LIMIT_WINDOW}s)")
+    print(f"  âœ… Metrics tracking")
+    print(f"  âœ… Health checks")
     print(f"")
     print("="*60)
-    print("✅ Server is ready!")
+    print("âœ… Server is ready!")
     print("="*60)
     
     logger.info("MCP Server started successfully")
@@ -743,10 +743,10 @@ def main():
         mcp.run()
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
-        print("\n👋 Server stopped")
+        print("\nðŸ‘‹ Server stopped")
     except Exception as e:
         logger.error(f"Server error: {str(e)}")
-        print(f"\n❌ Server error: {str(e)}")
+        print(f"\nâŒ Server error: {str(e)}")
 
 
 if __name__ == "__main__":

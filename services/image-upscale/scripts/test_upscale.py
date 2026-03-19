@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test upscale functionality by creating a small test image
 """
 from PIL import Image, ImageDraw, ImageFont
@@ -15,7 +15,7 @@ draw.text((35, 80), "TEST", fill='black')
 
 # Save as test input
 img.save('test_input.png')
-print("✓ Created test_input.png (100x100)")
+print("âœ“ Created test_input.png (100x100)")
 
 # Now upscale it
 from upscale_tool.upscaler import ImageUpscaler
@@ -25,16 +25,16 @@ upscaler = ImageUpscaler(
     scale=4
 )
 
-print(f"✓ Loaded model: {upscaler.model_name}")
-print(f"✓ Device: {upscaler.device}")
+print(f"âœ“ Loaded model: {upscaler.model_name}")
+print(f"âœ“ Device: {upscaler.device}")
 
 # Upscale
 output_path = upscaler.upscale_image('test_input.png', 'test_output.png')
-print(f"✓ Upscaled to: {output_path}")
+print(f"âœ“ Upscaled to: {output_path}")
 
 # Check result
 result = Image.open(output_path)
-print(f"✓ Result size: {result.size} (expected 400x400)")
+print(f"âœ“ Result size: {result.size} (expected 400x400)")
 
 assert result.size == (400, 400), f"Expected (400, 400), got {result.size}"
-print("\n✅ All tests passed!")
+print("\nâœ… All tests passed!")

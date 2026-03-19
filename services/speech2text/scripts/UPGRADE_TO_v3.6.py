@@ -1,28 +1,28 @@
-"""
+﻿"""
 VistralS2T v3.6.0 - UPGRADE GUIDE
 ==================================================
 
-🎉 Welcome to VistralS2T v3.6.0!
+ðŸŽ‰ Welcome to VistralS2T v3.6.0!
 
 This version brings major code restructuring for better
 organization, maintainability, and scalability.
 
 WHAT'S NEW:
 ==================================================
-✨ Modular Architecture
+âœ¨ Modular Architecture
    - models/ - AI model wrappers
    - pipelines/ - Processing workflows
    - services/ - Business logic (prepared)
    - prompts/ - Prompt engineering
 
-✨ Better Organization
+âœ¨ Better Organization
    - Clear separation of concerns
    - Intuitive directory structure
    - Easy to find components
 
-✨ Improved Imports
-   - app.core.llm → app.core.models
-   - prompt_engineering → prompts
+âœ¨ Improved Imports
+   - app.core.llm â†’ app.core.models
+   - prompt_engineering â†’ prompts
    - Clean dependency hierarchy
 
 QUICK START:
@@ -31,7 +31,7 @@ QUICK START:
 .\app\s2t\Scripts\activate
 
 # 2. Test new imports
-python -c "from app.core.models import WhisperClient; print('✓ OK')"
+python -c "from app.core.models import WhisperClient; print('âœ“ OK')"
 
 # 3. Run Web UI
 .\start_webui.bat
@@ -43,19 +43,19 @@ python with_diarization_pipeline.py
 NEW DIRECTORY STRUCTURE:
 ==================================================
 app/core/
-├── models/              # 🆕 AI models
-│   ├── whisper_model.py
-│   ├── phowhisper_model.py
-│   ├── qwen_model.py
-│   └── diarization_model.py
-├── pipelines/           # 🆕 Workflows
-│   ├── with_diarization_pipeline.py
-│   ├── dual_fast_pipeline.py
-│   └── ... (7 total)
-├── services/            # 🆕 Business logic
-├── prompts/             # 🆕 Renamed
-├── utils/
-└── handlers/
+â”œâ”€â”€ models/              # ðŸ†• AI models
+â”‚   â”œâ”€â”€ whisper_model.py
+â”‚   â”œâ”€â”€ phowhisper_model.py
+â”‚   â”œâ”€â”€ qwen_model.py
+â”‚   â””â”€â”€ diarization_model.py
+â”œâ”€â”€ pipelines/           # ðŸ†• Workflows
+â”‚   â”œâ”€â”€ with_diarization_pipeline.py
+â”‚   â”œâ”€â”€ dual_fast_pipeline.py
+â”‚   â””â”€â”€ ... (7 total)
+â”œâ”€â”€ services/            # ðŸ†• Business logic
+â”œâ”€â”€ prompts/             # ðŸ†• Renamed
+â”œâ”€â”€ utils/
+â””â”€â”€ handlers/
 
 IMPORT CHANGES:
 ==================================================
@@ -70,23 +70,23 @@ from app.core.models import WhisperClient
 
 FILE LOCATIONS:
 ==================================================
-Before              →  After
-───────────────────────────────────────────────
-llm/                →  models/
-prompt_engineering/ →  prompts/
-run_*.py           →  pipelines/*_pipeline.py
+Before              â†’  After
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+llm/                â†’  models/
+prompt_engineering/ â†’  prompts/
+run_*.py           â†’  pipelines/*_pipeline.py
 
 BACKWARD COMPATIBILITY:
 ==================================================
-✅ All old imports still work
-✅ Old files preserved for safety
-✅ No breaking changes
-✅ Gradual migration supported
+âœ… All old imports still work
+âœ… Old files preserved for safety
+âœ… No breaking changes
+âœ… Gradual migration supported
 
 TESTING:
 ==================================================
 # Test imports
-python -c "from app.core.models import *; print('✓')"
+python -c "from app.core.models import *; print('âœ“')"
 
 # Run test suite
 pytest app\tests\
@@ -100,17 +100,17 @@ python with_diarization_pipeline.py
 
 DOCUMENTATION:
 ==================================================
-📚 README.md - Updated with v3.6 info
-📚 RESTRUCTURING_COMPLETE.md - Detailed changes
-📚 CHANGELOG_v3.6.md - Full changelog
-📚 VERSION.md - Version history
+ðŸ“š README.md - Updated with v3.6 info
+ðŸ“š RESTRUCTURING_COMPLETE.md - Detailed changes
+ðŸ“š CHANGELOG_v3.6.md - Full changelog
+ðŸ“š VERSION.md - Version history
 
 MIGRATION FOR CUSTOM CODE:
 ==================================================
 If you have custom scripts using old imports:
 
 1. Update imports:
-   app.core.llm → app.core.models
+   app.core.llm â†’ app.core.models
    
 2. Run tests:
    pytest your_custom_tests/
@@ -119,12 +119,12 @@ If you have custom scripts using old imports:
 
 BENEFITS:
 ==================================================
-✅ Better code organization
-✅ Easier to maintain
-✅ Simpler to test
-✅ More scalable
-✅ Follows best practices
-✅ Improved developer experience
+âœ… Better code organization
+âœ… Easier to maintain
+âœ… Simpler to test
+âœ… More scalable
+âœ… Follows best practices
+âœ… Improved developer experience
 
 TROUBLESHOOTING:
 ==================================================
@@ -140,25 +140,25 @@ Fix: Update test imports to use new paths
 
 NEXT STEPS:
 ==================================================
-1. ✅ Pull latest code (already done if you see this)
-2. ✅ Read RESTRUCTURING_COMPLETE.md for details
-3. ✅ Update your custom code imports (if any)
-4. ✅ Run tests to verify everything works
-5. ✅ Start using new structure!
+1. âœ… Pull latest code (already done if you see this)
+2. âœ… Read RESTRUCTURING_COMPLETE.md for details
+3. âœ… Update your custom code imports (if any)
+4. âœ… Run tests to verify everything works
+5. âœ… Start using new structure!
 
 SUPPORT:
 ==================================================
-📖 Documentation: app/docs/
-🐛 Issues: https://github.com/SkastVnT/Speech2Text/issues
-💬 Discussions: https://github.com/SkastVnT/Speech2Text/discussions
+ðŸ“– Documentation: app/docs/
+ðŸ› Issues: https://github.com/SkastVnT/Speech2Text/issues
+ðŸ’¬ Discussions: https://github.com/SkastVnT/Speech2Text/discussions
 
 ==================================================
 Version: 3.6.0
 Release Date: October 27, 2025
-Status: ✅ Production Ready
+Status: âœ… Production Ready
 ==================================================
 
-Thank you for using VistralS2T! 🎙️🇻🇳
+Thank you for using VistralS2T! ðŸŽ™ï¸ðŸ‡»ðŸ‡³
 """
 
 if __name__ == "__main__":
@@ -167,8 +167,8 @@ if __name__ == "__main__":
     # Quick verification
     try:
         from app.core.models import WhisperClient, PhoWhisperClient, QwenClient
-        print("\n✅ SUCCESS: All imports working correctly!")
-        print("✅ You're ready to use VistralS2T v3.6.0!")
+        print("\nâœ… SUCCESS: All imports working correctly!")
+        print("âœ… You're ready to use VistralS2T v3.6.0!")
     except ImportError as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\nâŒ ERROR: {e}")
         print("Please run: .\\app\\s2t\\Scripts\\activate")

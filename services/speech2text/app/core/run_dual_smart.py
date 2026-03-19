@@ -1,16 +1,26 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import os
 import time
 import datetime
 import librosa
 import numpy as np
 import soundfile as sf
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from scipy import signal
 
 # ============= CONFIGURATION =============
-load_dotenv()
-
+load_shared_env(__file__)
 # No API key required - using Smart Rule-Based Fusion!
 AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
@@ -324,7 +334,7 @@ def smart_vietnamese_fusion(whisper_text, phowhisper_text):
     def clean_text(text):
         # Remove strange characters, normalize punctuation
         import re
-        text = re.sub(r'[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸ.,!?()\-]', '', text)
+        text = re.sub(r'[^\w\sÃ Ã¡áº¡áº£Ã£Ã¢áº§áº¥áº­áº©áº«Äƒáº±áº¯áº·áº³áºµÃ¨Ã©áº¹áº»áº½Ãªá»áº¿á»‡á»ƒá»…Ã¬Ã­á»‹á»‰Ä©Ã²Ã³á»á»ÃµÃ´á»“á»‘á»™á»•á»—Æ¡á»á»›á»£á»Ÿá»¡Ã¹Ãºá»¥á»§Å©Æ°á»«á»©á»±á»­á»¯á»³Ã½á»µá»·á»¹Ä‘ÄÃ€Ãáº áº¢ÃƒÃ‚áº¦áº¤áº¬áº¨áºªÄ‚áº°áº®áº¶áº²áº´ÃˆÃ‰áº¸áººáº¼ÃŠá»€áº¾á»†á»‚á»„ÃŒÃá»Šá»ˆÄ¨Ã’Ã“á»Œá»ŽÃ•Ã”á»’á»á»˜á»”á»–Æ á»œá»šá»¢á»žá» Ã™Ãšá»¤á»¦Å¨Æ¯á»ªá»¨á»°á»¬á»®á»²Ãá»´á»¶á»¸.,!?()\-]', '', text)
         text = re.sub(r'\s+', ' ', text)  # Remove extra spaces
         return text.strip()
     
@@ -519,3 +529,4 @@ except Exception as e:
 print("\n" + "=" * 80)
 print("[SUCCESS] DUAL MODEL SMART PROCESSING COMPLETED! (100% OFFLINE & FAST)")
 print("=" * 80)
+

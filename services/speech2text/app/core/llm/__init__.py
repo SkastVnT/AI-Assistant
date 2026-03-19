@@ -1,4 +1,4 @@
-"""
+﻿"""
 LLM clients for speech-to-text models
 - WhisperClient: OpenAI Whisper large-v3
 - PhoWhisperClient: VinAI PhoWhisper-large  

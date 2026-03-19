@@ -1,4 +1,4 @@
-"""
+﻿"""
 Health Routes
 Health check and debug endpoints
 """

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit Tests for LLM Clients
 """
 import pytest
@@ -118,7 +118,7 @@ class TestPromptEngineering:
             assert isinstance(prompt, str)
             assert len(prompt) > 10
             # Should contain meaningful content
-            assert any(word in prompt.lower() for word in ['you', 'bạn', 'assistant'])
+            assert any(word in prompt.lower() for word in ['you', 'báº¡n', 'assistant'])
 
 class TestModelSelection:
     """Tests for model selection logic"""

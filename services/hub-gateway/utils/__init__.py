@@ -1,1 +1,1 @@
-"""Utility functions for Hub Gateway."""
+﻿"""Utility functions for Hub Gateway."""

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Extensions module - MongoDB, cache, logger, rate limiter setup
 """
 import os
@@ -96,9 +96,9 @@ MONGODB_ENABLED = False
 try:
     mongodb_client.connect()
     MONGODB_ENABLED = True
-    logger.info("✅ MongoDB connection established")
+    logger.info("âœ… MongoDB connection established")
 except Exception as e:
-    logger.warning(f"⚠️ MongoDB not available: {e}")
+    logger.warning(f"âš ï¸ MongoDB not available: {e}")
 
 
 # Performance modules
@@ -115,9 +115,9 @@ try:
     cache = get_cache_manager()
     db = get_database_manager()
     streaming = StreamingHandler()
-    logger.info("✅ Performance optimization modules loaded")
+    logger.info("âœ… Performance optimization modules loaded")
 except Exception as e:
-    logger.warning(f"⚠️ Performance modules not available: {e}")
+    logger.warning(f"âš ï¸ Performance modules not available: {e}")
 
 
 # ImgBB uploader
@@ -125,9 +125,9 @@ CLOUD_UPLOAD_ENABLED = False
 try:
     from src.utils.imgbb_uploader import ImgBBUploader, upload_to_imgbb
     CLOUD_UPLOAD_ENABLED = True
-    logger.info("✅ ImgBB uploader loaded")
+    logger.info("âœ… ImgBB uploader loaded")
 except ImportError as e:
-    logger.warning(f"⚠️ ImgBB uploader not available: {e}")
+    logger.warning(f"âš ï¸ ImgBB uploader not available: {e}")
 
 
 # Local models
@@ -140,8 +140,8 @@ if not os.getenv('USE_API_ONLY'):
         from src.utils.local_model_loader import model_loader as _model_loader
         model_loader = _model_loader
         LOCALMODELS_AVAILABLE = True
-        logger.info("✅ Local model loader imported")
+        logger.info("âœ… Local model loader imported")
     except Exception as e:
-        logger.warning(f"⚠️ Local models not available: {e}")
+        logger.warning(f"âš ï¸ Local models not available: {e}")
 else:
-    logger.info("ℹ️ Local models disabled (USE_API_ONLY=true)")
+    logger.info("â„¹ï¸ Local models disabled (USE_API_ONLY=true)")

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Stable Diffusion routes
 """
 import os
@@ -40,7 +40,7 @@ try:
     get_presets_by_category = _presets_module.get_presets_by_category
     PRESETS_AVAILABLE = True
 except Exception as e:
-    print(f"⚠️ Model presets load failed: {e}")
+    print(f"âš ï¸ Model presets load failed: {e}")
     PRESETS_AVAILABLE = False
     MODEL_PRESETS = {}
     QUICK_PRESETS = []
@@ -250,9 +250,9 @@ def sd_change_model():
         success = sd_client.change_model(model_name)
         
         if success:
-            return jsonify({'success': True, 'message': f'Đã đổi model thành {model_name}'})
+            return jsonify({'success': True, 'message': f'ÄÃ£ Ä‘á»•i model thÃ nh {model_name}'})
         else:
-            return jsonify({'success': False, 'error': 'Không thể đổi model'}), 500
+            return jsonify({'success': False, 'error': 'KhÃ´ng thá»ƒ Ä‘á»•i model'}), 500
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -486,10 +486,10 @@ def img2img():
         prompt = data.get('prompt', '')
         
         if not image:
-            return jsonify({'error': 'Image không được để trống'}), 400
+            return jsonify({'error': 'Image khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
         if not prompt:
-            return jsonify({'error': 'Prompt không được để trống'}), 400
+            return jsonify({'error': 'Prompt khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
         params = {
             'init_images': [image],
@@ -562,7 +562,7 @@ def generate_prompt():
         selected_model = data.get('model', 'grok').lower()
         
         if not tags:
-            return jsonify({'error': 'Tags không được để trống'}), 400
+            return jsonify({'error': 'Tags khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
         system_prompt = """You are an expert at creating high-quality Stable Diffusion prompts.
 
@@ -673,7 +673,7 @@ def _save_images_to_storage(base64_images, prefix, prompt, params):
                         cloud_url = upload_result['url']
                         delete_url = upload_result.get('delete_url', '')
                         cloud_urls.append(cloud_url)
-                        logger.info(f"[SD] ☁️ ImgBB URL: {cloud_url}")
+                        logger.info(f"[SD] â˜ï¸ ImgBB URL: {cloud_url}")
                 except Exception as e:
                     logger.error(f"[SD] ImgBB error: {e}")
             
@@ -729,7 +729,7 @@ def _save_image_to_mongodb(filenames, cloud_urls, prompt, params, model_type):
         save_message_to_db(
             conversation_id=conversation_id,
             role='assistant',
-            content=f"✅ Generated {model_type} with prompt: {prompt}",
+            content=f"âœ… Generated {model_type} with prompt: {prompt}",
             metadata={
                 'model': f'stable-diffusion-{model_type}',
                 'prompt': prompt,
@@ -738,10 +738,10 @@ def _save_image_to_mongodb(filenames, cloud_urls, prompt, params, model_type):
             }
         )
         
-        logger.info(f"💾 Saved {model_type} to MongoDB")
+        logger.info(f"ðŸ’¾ Saved {model_type} to MongoDB")
         
     except Exception as e:
-        logger.error(f"❌ MongoDB save error: {e}")
+        logger.error(f"âŒ MongoDB save error: {e}")
 
 
 def _generate_with_grok(context, system_prompt, tags):
@@ -886,7 +886,7 @@ def sd_inpaint():
     """Inpaint masked area of an image."""
     gen = _get_advanced_generator()
     if gen is None or not gen.is_available:
-        return jsonify({'error': 'Inpainting not available — SD WebUI API offline'}), 503
+        return jsonify({'error': 'Inpainting not available â€” SD WebUI API offline'}), 503
 
     data = request.get_json(force=True, silent=True) or {}
     image_b64 = data.get('image', '')
@@ -951,7 +951,7 @@ def sd_controlnet():
     """Generate image guided by a ControlNet control image."""
     gen = _get_advanced_generator()
     if gen is None or not gen.is_available:
-        return jsonify({'error': 'ControlNet not available — SD WebUI API offline'}), 503
+        return jsonify({'error': 'ControlNet not available â€” SD WebUI API offline'}), 503
 
     data = request.get_json(force=True, silent=True) or {}
     prompt = data.get('prompt', '')
@@ -1014,7 +1014,7 @@ def sd_upscale():
     """Upscale an image using Real-ESRGAN / SD upscalers."""
     gen = _get_advanced_generator()
     if gen is None or not gen.is_available:
-        return jsonify({'error': 'Upscaling not available — SD WebUI API offline'}), 503
+        return jsonify({'error': 'Upscaling not available â€” SD WebUI API offline'}), 503
 
     data = request.get_json(force=True, silent=True) or {}
     image_b64 = data.get('image', '')
@@ -1067,7 +1067,7 @@ def sd_outpaint():
     """Extend image boundaries (outpainting)."""
     gen = _get_advanced_generator()
     if gen is None or not gen.is_available:
-        return jsonify({'error': 'Outpainting not available — SD WebUI API offline'}), 503
+        return jsonify({'error': 'Outpainting not available â€” SD WebUI API offline'}), 503
 
     data = request.get_json(force=True, silent=True) or {}
     image_b64 = data.get('image', '')

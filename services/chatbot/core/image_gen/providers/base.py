@@ -1,4 +1,4 @@
-"""
+﻿"""
 Base provider interface for all image generation backends.
 Any provider must implement this contract.
 """
@@ -75,7 +75,7 @@ class BaseImageProvider(ABC):
 
     @abstractmethod
     def generate(self, req: ImageRequest) -> ImageResult:
-        """Synchronous generation — providers implement this."""
+        """Synchronous generation â€” providers implement this."""
         ...
 
     def health_check(self) -> bool:

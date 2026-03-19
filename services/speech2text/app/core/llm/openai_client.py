@@ -1,4 +1,4 @@
-"""
+﻿"""
 OpenAI Client - GPT-4o-mini for STT Transcript Cleaning
 Cloud-based LLM for cleaning and enhancing speech-to-text transcripts
 Cost: $0.15/$0.60 per 1M tokens (input/output)
@@ -8,11 +8,21 @@ import os
 import time
 from typing import Tuple, Optional
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
-load_dotenv()
-
+load_shared_env(__file__)
 try:
     import openai
     OPENAI_AVAILABLE = True
@@ -174,3 +184,5 @@ class OpenAIClient:
     def __repr__(self):
         status = "loaded" if self._is_loaded else "not loaded"
         return f"OpenAIClient(model={self.model_name}, status={status})"
+
+

@@ -1,15 +1,25 @@
-"""
+﻿"""
 Device utilities for VistralS2T
 Handles CPU/GPU device selection with FORCE_CPU support
 """
 
 import os
 import torch
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', '.env'))
-
+load_shared_env(__file__)
 def get_device(force_cpu_env_var="FORCE_CPU"):
     """
     Get the appropriate device for PyTorch operations
@@ -124,3 +134,4 @@ if __name__ == "__main__":
     print(f"\nRecommended device: {device}")
     print(f"Compute type: {get_compute_type(device)}")
     print(f"Torch dtype: {get_torch_dtype(device)}")
+

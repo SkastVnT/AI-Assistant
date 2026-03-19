@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Conversation Manager
 Features: Semantic search, Branching, Tagging, Full-text search, Related suggestions
 """
@@ -58,7 +58,7 @@ class ConversationManager:
         self.index_file = Path(self.storage_path) / "conversations_index.json"
         self.conversations_index = self._load_index()
         
-        logger.info(f"✅ ConversationManager initialized with {len(self.conversations_index)} conversations")
+        logger.info(f"âœ… ConversationManager initialized with {len(self.conversations_index)} conversations")
     
     def _load_embedding_model(self):
         """Load sentence embedding model"""
@@ -67,10 +67,10 @@ class ConversationManager:
             
             # Use lightweight model for embeddings
             self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-            logger.info("✅ Embedding model loaded: all-MiniLM-L6-v2")
+            logger.info("âœ… Embedding model loaded: all-MiniLM-L6-v2")
             
         except ImportError:
-            logger.warning("⚠️ sentence-transformers not installed. Semantic search disabled.")
+            logger.warning("âš ï¸ sentence-transformers not installed. Semantic search disabled.")
             logger.warning("Install with: pip install sentence-transformers")
             self.enable_embeddings = False
             self.embedding_model = None
@@ -144,7 +144,7 @@ class ConversationManager:
         }
         self._save_index()
         
-        logger.info(f"✅ Created conversation: {conversation_id}")
+        logger.info(f"âœ… Created conversation: {conversation_id}")
         return conversation_id
     
     def get_conversation(self, conversation_id: str) -> Optional[Dict]:
@@ -197,7 +197,7 @@ class ConversationManager:
                 del self.conversations_index[conversation_id]
                 self._save_index()
             
-            logger.info(f"✅ Deleted conversation: {conversation_id}")
+            logger.info(f"âœ… Deleted conversation: {conversation_id}")
             return True
         
         return False
@@ -302,7 +302,7 @@ class ConversationManager:
         self.update_conversation(branch_id, branch)
         self.update_conversation(source_conversation_id, source)
         
-        logger.info(f"✅ Created branch: {branch_id} from {source_conversation_id}")
+        logger.info(f"âœ… Created branch: {branch_id} from {source_conversation_id}")
         return branch_id
     
     # =========================================================================

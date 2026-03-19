@@ -1,4 +1,4 @@
-"""
+﻿"""
 Multi-architecture upscaler supporting RealESRGAN, SwinIR, ScuNET
 """
 import torch

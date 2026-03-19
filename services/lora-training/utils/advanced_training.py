@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Training Utilities for LoRA
 Implements state-of-the-art techniques for improved LoRA training
 """

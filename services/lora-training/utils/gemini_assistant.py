@@ -1,4 +1,4 @@
-"""
+﻿"""
 Gemini 2.0 Flash Integration for LoRA Training
 Provides AI-powered caption generation, quality checking, and training assistance
 """
@@ -203,10 +203,10 @@ Example: masterpiece, best quality, 1girl, blue hair, anime style, outdoors, sun
                 caption_path = output_dir / f"{img_path.stem}{extension}"
                 caption_path.write_text(caption, encoding='utf-8')
                 
-                print(f"  ✓ Saved: {caption_path.name}")
+                print(f"  âœ“ Saved: {caption_path.name}")
                 
             except Exception as e:
-                print(f"  ✗ Error: {e}")
+                print(f"  âœ— Error: {e}")
         
         return results
     
@@ -446,22 +446,22 @@ if __name__ == "__main__":
     assistant = GeminiLoRAAssistant()
     
     # Example 1: Generate captions
-    print("🎨 Generating captions...")
+    print("ðŸŽ¨ Generating captions...")
     captions = assistant.batch_generate_captions(
         image_dir="data/train",
         style="tags",
         focus="all"
     )
-    print(f"✓ Generated {len(captions)} captions")
+    print(f"âœ“ Generated {len(captions)} captions")
     
     # Example 2: Analyze dataset
-    print("\n📊 Analyzing dataset quality...")
+    print("\nðŸ“Š Analyzing dataset quality...")
     analysis = assistant.analyze_dataset_quality("data/train")
     print(f"Overall Score: {analysis.get('overall_score', 'N/A')}/10")
     print(f"Recommendations: {analysis.get('recommendations', [])}")
     
     # Example 3: Get hyperparameter recommendations
-    print("\n⚙️ Getting hyperparameter recommendations...")
+    print("\nâš™ï¸ Getting hyperparameter recommendations...")
     recommendations = assistant.recommend_hyperparameters(
         dataset_info={
             "num_images": len(captions),

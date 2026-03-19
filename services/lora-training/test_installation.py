@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test Installation Script for LoRA Training Tool
 Verifies all required packages are installed correctly
 """
@@ -24,7 +24,7 @@ def test_imports():
     all_success = True
     
     for category, modules in packages.items():
-        print(f"\n📦 {category}:")
+        print(f"\nðŸ“¦ {category}:")
         for module in modules:
             try:
                 if module == 'PIL':
@@ -35,15 +35,15 @@ def test_imports():
                     __import__('yaml')
                 else:
                     __import__(module)
-                print(f"  ✅ {module}")
+                print(f"  âœ… {module}")
             except ImportError as e:
-                print(f"  ❌ {module} - {str(e)}")
+                print(f"  âŒ {module} - {str(e)}")
                 all_success = False
     
     print("\n" + "=" * 60)
     
     if all_success:
-        print("✅ All packages installed successfully!")
+        print("âœ… All packages installed successfully!")
         
         # Print versions of key packages
         import torch
@@ -51,15 +51,15 @@ def test_imports():
         import transformers
         import accelerate
         
-        print("\n📊 Key Package Versions:")
+        print("\nðŸ“Š Key Package Versions:")
         print(f"  PyTorch: {torch.__version__}")
         print(f"  Diffusers: {diffusers.__version__}")
         print(f"  Transformers: {transformers.__version__}")
         print(f"  Accelerate: {accelerate.__version__}")
         
-        print("\n🎮 GPU Information:")
+        print("\nðŸŽ® GPU Information:")
         if torch.cuda.is_available():
-            print(f"  ✅ CUDA Available: Yes")
+            print(f"  âœ… CUDA Available: Yes")
             print(f"  GPU Count: {torch.cuda.device_count()}")
             print(f"  Current GPU: {torch.cuda.get_device_name(0)}")
             print(f"  CUDA Version: {torch.version.cuda}")
@@ -68,10 +68,10 @@ def test_imports():
             total_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
             print(f"  GPU Memory: {total_mem:.2f} GB")
         else:
-            print("  ⚠️  CUDA Available: No (CPU mode only)")
+            print("  âš ï¸  CUDA Available: No (CPU mode only)")
         
         print("\n" + "=" * 60)
-        print("🎉 Installation test completed successfully!")
+        print("ðŸŽ‰ Installation test completed successfully!")
         print("You can now run the training scripts.")
         print("\nQuick Start:")
         print("  1. cd train_LoRA_tool")
@@ -80,7 +80,7 @@ def test_imports():
         
         return 0
     else:
-        print("❌ Some packages failed to install.")
+        print("âŒ Some packages failed to install.")
         print("Please run: pip install -r requirements.txt")
         return 1
 

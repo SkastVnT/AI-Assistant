@@ -1,4 +1,4 @@
-"""
+﻿"""
 Quick script to check all MongoDB indexes
 """
 import sys
@@ -20,11 +20,11 @@ def check_indexes():
     ]
     
     print("=" * 60)
-    print("📊 MONGODB INDEXES CHECK")
+    print("ðŸ“Š MONGODB INDEXES CHECK")
     print("=" * 60)
     
     for coll_name in collections:
-        print(f"\n📦 Collection: {coll_name}")
+        print(f"\nðŸ“¦ Collection: {coll_name}")
         print("-" * 60)
         
         indexes = list(db[coll_name].list_indexes())
@@ -39,7 +39,7 @@ def check_indexes():
             key_str = ', '.join([f"{k}: {v}" for k, v in keys.items()])
             
             # Status
-            status = "✅"
+            status = "âœ…"
             if unique:
                 status += " [UNIQUE]"
             if sparse:
@@ -51,7 +51,7 @@ def check_indexes():
         print(f"\n  Total indexes: {len(indexes)}")
     
     print("\n" + "=" * 60)
-    print("✅ Index check complete!")
+    print("âœ… Index check complete!")
     print("=" * 60)
 
 if __name__ == "__main__":

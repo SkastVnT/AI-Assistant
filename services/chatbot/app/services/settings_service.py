@@ -1,4 +1,4 @@
-"""
+﻿"""
 Settings Service
 
 Handles user settings management.

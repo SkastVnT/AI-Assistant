@@ -1,4 +1,4 @@
-"""
+﻿"""
 Base Chat Module - Unified chat logic with streaming, retry, and fallback support
 """
 import time
@@ -228,7 +228,7 @@ class BaseModelChat(ABC):
         if ctx.memories:
             system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
             for mem in ctx.memories:
-                system_prompt += f"\n📚 {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                system_prompt += f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
             system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
         
         return system_prompt

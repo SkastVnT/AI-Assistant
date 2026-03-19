@@ -1,20 +1,30 @@
-"""
+﻿"""
 VistralS2T - Dual Model Fusion Pipeline (Refactored Version)
 Uses modular clients for Whisper, PhoWhisper, and Qwen
 
 Version: 3.0.0
-Architecture: Whisper large-v3 + PhoWhisper-large → Qwen2.5-1.5B Fusion
+Architecture: Whisper large-v3 + PhoWhisper-large â†’ Qwen2.5-1.5B Fusion
 """
 
 import os
 import time
 import datetime
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
-load_dotenv("app/config/.env")
-
+load_shared_env(__file__)
 # Import clients
 from core.models import WhisperClient, PhoWhisperClient, QwenClient
 from core.utils import preprocess_audio, setup_logger, log_transcription, log_fusion
@@ -31,7 +41,7 @@ def main():
     
     print("\n" + "=" * 80)
     print("VistralS2T - Vietnamese Speech-to-Text System v3.0.0")
-    print("Dual Model Fusion: Whisper + PhoWhisper → Qwen2.5-1.5B")
+    print("Dual Model Fusion: Whisper + PhoWhisper â†’ Qwen2.5-1.5B")
     print("=" * 80)
     
     # ============= STEP 1: LOAD AUDIO & PREPROCESS =============
@@ -203,7 +213,7 @@ def main():
     print(f"PhoWhisper: {phowhisper_time:.2f}s ({len(phowhisper_transcript)} chars)")
     print(f"Qwen Fusion: {fusion_time:.2f}s ({len(fused_text)} chars)")
     print("\n" + "=" * 80)
-    print(f"✅ Final output: {final_output}")
+    print(f"âœ… Final output: {final_output}")
     print("=" * 80 + "\n")
 
 
@@ -215,3 +225,5 @@ if __name__ == "__main__":
     except Exception as e:
         handle_error(e, context="Main pipeline", raise_error=False)
         print("\n[ERROR] Pipeline failed. Check logs for details.")
+
+

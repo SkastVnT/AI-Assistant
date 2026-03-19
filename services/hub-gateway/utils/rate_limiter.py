@@ -1,4 +1,4 @@
-"""
+﻿"""
 Rate Limiter Utility
 Implement rate limiting for API requests
 """

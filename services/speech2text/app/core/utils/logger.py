@@ -1,4 +1,4 @@
-"""
+﻿"""
 Logging Utilities for VistralS2T
 Structured logging with file and console output
 """

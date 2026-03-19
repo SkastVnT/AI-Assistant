@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Speaker Diarization Client - VistralS2T v3.1
 Uses pyannote.audio for speaker segmentation

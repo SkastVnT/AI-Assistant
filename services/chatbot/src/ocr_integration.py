@@ -1,4 +1,4 @@
-"""
+﻿"""
 OCR Integration for Chatbot
 Provides text extraction from images and documents
 """
@@ -31,12 +31,12 @@ class OCRIntegration:
             response = requests.get(f"{self.service_url}/health", timeout=2)
             self.enabled = response.status_code == 200
             if self.enabled:
-                logger.info("✅ OCR Service connected")
+                logger.info("âœ… OCR Service connected")
             else:
-                logger.warning("⚠️ OCR Service unavailable - using fallback")
+                logger.warning("âš ï¸ OCR Service unavailable - using fallback")
         except:
             self.enabled = False
-            logger.warning("⚠️ OCR Service not reachable - using fallback")
+            logger.warning("âš ï¸ OCR Service not reachable - using fallback")
     
     def extract_text_from_image(self, image_data: bytes, filename: str = "image.png") -> Dict[str, Any]:
         """

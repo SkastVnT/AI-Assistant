@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chat Routes
 Chat and SQL generation endpoints
 """
@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 chat_bp = Blueprint('chat', __name__)
 
 # State management
-YES_WORDS = ["có", "đồng ý", "yes", "ok", "oke", "okay"]
-NO_WORDS = ["không", "không cần", "no", "ko", "khong"]
+YES_WORDS = ["cÃ³", "Ä‘á»“ng Ã½", "yes", "ok", "oke", "okay"]
+NO_WORDS = ["khÃ´ng", "khÃ´ng cáº§n", "no", "ko", "khong"]
 pending_question = None
 
 
@@ -52,7 +52,7 @@ def chat():
     if any(w in q_lower for w in NO_WORDS) and pending_question:
         pending_question = None
         return jsonify({
-            'message': 'Đã hủy. Bạn có thể hỏi câu khác.',
+            'message': 'ÄÃ£ há»§y. Báº¡n cÃ³ thá»ƒ há»i cÃ¢u khÃ¡c.',
             'cancelled': True
         })
     

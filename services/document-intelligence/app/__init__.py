@@ -1,4 +1,4 @@
-"""
+﻿"""
 Document Intelligence Application Package
 Modular Flask application for document processing and AI analysis
 """

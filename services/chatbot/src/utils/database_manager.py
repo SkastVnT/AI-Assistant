@@ -1,4 +1,4 @@
-"""
+﻿"""
 MongoDB Database Manager - Performance Optimization
 Handles all database operations with connection pooling and query optimization
 """
@@ -24,9 +24,9 @@ def _timing_decorator(func):
         duration = (time.time() - start) * 1000  # Convert to ms
         
         if duration > 100:  # Log slow queries (>100ms)
-            logger.warning(f"⚠️ Slow query: {func.__name__} took {duration:.2f}ms")
+            logger.warning(f"âš ï¸ Slow query: {func.__name__} took {duration:.2f}ms")
         else:
-            logger.debug(f"⚡ Query: {func.__name__} took {duration:.2f}ms")
+            logger.debug(f"âš¡ Query: {func.__name__} took {duration:.2f}ms")
         
         return result
     return wrapper
@@ -76,7 +76,7 @@ class DatabaseManager:
             try:
                 self.client.admin.command('ping', maxTimeMS=3000)
             except Exception as ping_error:
-                logger.warning(f"⚠️ MongoDB ping failed: {ping_error}")
+                logger.warning(f"âš ï¸ MongoDB ping failed: {ping_error}")
                 raise ping_error
             
             # Database and collections
@@ -91,10 +91,10 @@ class DatabaseManager:
             self._create_indexes()
             
             self.enabled = True
-            logger.info("✅ MongoDB connected successfully")
+            logger.info("âœ… MongoDB connected successfully")
             
         except Exception as e:
-            logger.error(f"❌ MongoDB connection failed: {e}")
+            logger.error(f"âŒ MongoDB connection failed: {e}")
             self.client = None
             self.enabled = False
     
@@ -126,7 +126,7 @@ class DatabaseManager:
             self.analytics.create_index([('date', DESCENDING)])
             self.analytics.create_index([('event_type', ASCENDING)])
             
-            logger.info("✅ Database indexes created")
+            logger.info("âœ… Database indexes created")
         except Exception as e:
             logger.error(f"Error creating indexes: {e}")
     
@@ -165,7 +165,7 @@ class DatabaseManager:
             }
             
             result = self.conversations.insert_one(conversation)
-            logger.info(f"✅ Conversation created: {result.inserted_id}")
+            logger.info(f"âœ… Conversation created: {result.inserted_id}")
             return str(result.inserted_id)
             
         except Exception as e:
@@ -265,7 +265,7 @@ class DatabaseManager:
             # Delete conversation
             result = self.conversations.delete_one({'_id': ObjectId(conversation_id)})
             
-            logger.info(f"🗑️ Conversation deleted: {conversation_id}")
+            logger.info(f"ðŸ—‘ï¸ Conversation deleted: {conversation_id}")
             return result.deleted_count > 0
             
         except Exception as e:
@@ -579,7 +579,7 @@ class DatabaseManager:
                 'last_active': {'$lt': cutoff_date}
             })
             
-            logger.info(f"🧹 Cleanup: {analytics_result.deleted_count} analytics, "
+            logger.info(f"ðŸ§¹ Cleanup: {analytics_result.deleted_count} analytics, "
                        f"{session_result.deleted_count} sessions")
             
             return {
@@ -638,7 +638,7 @@ def get_database_manager() -> DatabaseManager:
         try:
             _db_instance = DatabaseManager()
         except Exception as e:
-            logger.warning(f"⚠️ DatabaseManager init failed: {e}")
+            logger.warning(f"âš ï¸ DatabaseManager init failed: {e}")
             # Return a disabled instance
             _db_instance = DatabaseManager.__new__(DatabaseManager)
             _db_instance.enabled = False

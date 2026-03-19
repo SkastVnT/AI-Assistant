@@ -1,4 +1,4 @@
-"""
+﻿"""
 Health Controller
 Handle health check and monitoring requests
 """

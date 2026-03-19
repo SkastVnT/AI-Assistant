@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Script d[?] patch transformers library - b[?] qua ki[?]m tra PyTorch version
 CH[?] S[?] D[?]NG KHI LOAD MODEL T[?] NGU[?]N TIN C[?]Y (Hugging Face)

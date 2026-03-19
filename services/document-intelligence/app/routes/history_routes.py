@@ -1,4 +1,4 @@
-"""
+﻿"""
 History Routes
 Processing history endpoints
 """

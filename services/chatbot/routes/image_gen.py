@@ -1,17 +1,17 @@
-"""
-Image Generation API routes — Flask Blueprint.
+﻿"""
+Image Generation API routes â€” Flask Blueprint.
 Replaces the old Stable Diffusion routes with a modern multi-provider system.
 
 Endpoints:
-    POST /api/image-gen/generate     → Generate image(s)
-    POST /api/image-gen/edit         → Edit last generated image
-    GET  /api/image-gen/providers    → List available providers
-    GET  /api/image-gen/styles       → List style presets
-    GET  /api/image-gen/health       → Health check all providers
-    GET  /api/image-gen/stats        → Usage statistics
-    GET  /api/image-gen/images/<id>  → Serve stored image
-    GET  /api/image-gen/gallery      → List recent images
-    DELETE /api/image-gen/images/<id> → Delete image
+    POST /api/image-gen/generate     â†’ Generate image(s)
+    POST /api/image-gen/edit         â†’ Edit last generated image
+    GET  /api/image-gen/providers    â†’ List available providers
+    GET  /api/image-gen/styles       â†’ List style presets
+    GET  /api/image-gen/health       â†’ Health check all providers
+    GET  /api/image-gen/stats        â†’ Usage statistics
+    GET  /api/image-gen/images/<id>  â†’ Serve stored image
+    GET  /api/image-gen/gallery      â†’ List recent images
+    DELETE /api/image-gen/images/<id> â†’ Delete image
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 image_gen_bp = Blueprint("image_gen", __name__)
 
-# ── Validation & rate limiting ──────────────────────────────────────
+# â”€â”€ Validation & rate limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _MAX_PROMPT = 2000
 _MAX_DIM = 2048
 _MIN_DIM = 64
@@ -90,7 +90,7 @@ def _guarded(f):
         return f(*args, **kwargs)
     return wrapper
 
-# ── Singletons (initialized once, shared across requests) ──────────
+# â”€â”€ Singletons (initialized once, shared across requests) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _router: ImageGenerationRouter | None = None
 _sessions: SessionManager | None = None
 _storage: ImageStorage | None = None
@@ -117,7 +117,7 @@ def _get_storage() -> ImageStorage:
     return _storage
 
 
-# ── Main generation endpoint ────────────────────────────────────────
+# â”€â”€ Main generation endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/generate", methods=["POST"])
 @_guarded
@@ -126,19 +126,19 @@ def generate_image():
     Generate image(s) from a text prompt.
     
     Body (JSON):
-        prompt: str           — Image description
-        quality: str          — "auto"|"fast"|"quality"|"free"|"cheap" (default: auto)
-        style: str|null       — Style preset name
-        width: int            — Output width (default: 1024)
-        height: int           — Output height (default: 1024)
-        provider: str|null    — Force specific provider
-        model: str|null       — Force specific model
-        enhance: bool         — Use LLM prompt enhancement (default: true)
-        num_images: int       — Number of images (default: 1)
-        seed: int|null        — Reproducibility seed
-        steps: int            — Inference steps (default: 28)
-        guidance: float       — Guidance/CFG scale (default: 3.5)
-        conversation_id: str  — For session tracking
+        prompt: str           â€” Image description
+        quality: str          â€” "auto"|"fast"|"quality"|"free"|"cheap" (default: auto)
+        style: str|null       â€” Style preset name
+        width: int            â€” Output width (default: 1024)
+        height: int           â€” Output height (default: 1024)
+        provider: str|null    â€” Force specific provider
+        model: str|null       â€” Force specific model
+        enhance: bool         â€” Use LLM prompt enhancement (default: true)
+        num_images: int       â€” Number of images (default: 1)
+        seed: int|null        â€” Reproducibility seed
+        steps: int            â€” Inference steps (default: 28)
+        guidance: float       â€” Guidance/CFG scale (default: 3.5)
+        conversation_id: str  â€” For session tracking
     """
     data = request.get_json(force=True, silent=True) or {}
     prompt = data.get("prompt", "").strip()
@@ -237,7 +237,7 @@ def generate_image():
     })
 
 
-# ── Edit existing image ─────────────────────────────────────────────
+# â”€â”€ Edit existing image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/edit", methods=["POST"])
 @_guarded
@@ -246,13 +246,13 @@ def edit_image():
     Edit a previously generated image.
     
     Body (JSON):
-        prompt: str            — Edit instruction (e.g., "add a rainbow")
-        conversation_id: str   — Session to find last image
-        image_b64: str|null    — Explicit base64 image to edit (overrides session)
-        image_id: str|null     — Image ID from storage to edit
-        strength: float        — Denoising strength 0-1 (default: 0.75)
-        provider: str|null     — Force provider
-        model: str|null        — Force model
+        prompt: str            â€” Edit instruction (e.g., "add a rainbow")
+        conversation_id: str   â€” Session to find last image
+        image_b64: str|null    â€” Explicit base64 image to edit (overrides session)
+        image_id: str|null     â€” Image ID from storage to edit
+        strength: float        â€” Denoising strength 0-1 (default: 0.75)
+        provider: str|null     â€” Force provider
+        model: str|null        â€” Force model
     """
     data = request.get_json(force=True, silent=True) or {}
     prompt = data.get("prompt", "").strip()
@@ -352,7 +352,7 @@ def edit_image():
     })
 
 
-# ── Serve stored images ─────────────────────────────────────────────
+# â”€â”€ Serve stored images â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/images/<image_id>", methods=["GET"])
 def serve_image(image_id: str):
@@ -374,7 +374,7 @@ def delete_image(image_id: str):
     return jsonify({"error": "Image not found"}), 404
 
 
-# ── Gallery ──────────────────────────────────────────────────────────
+# â”€â”€ Gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/gallery", methods=["GET"])
 def gallery():
@@ -386,7 +386,7 @@ def gallery():
     return jsonify({"images": images, "total": len(images)})
 
 
-# ── Provider info ────────────────────────────────────────────────────
+# â”€â”€ Provider info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/providers", methods=["GET"])
 def list_providers():
@@ -421,7 +421,7 @@ def stats():
     })
 
 
-# ── Cost tracking ────────────────────────────────────────────────────
+# â”€â”€ Cost tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _cost_log_v2: list = []  # [{type, provider, model, cost_usd, timestamp}]
 

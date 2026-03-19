@@ -1,4 +1,4 @@
-"""
+﻿"""
 Prompt engineering module
 Contains templates and strategies for LLM prompting
 """

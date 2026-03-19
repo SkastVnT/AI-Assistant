@@ -1,4 +1,4 @@
-"""
+﻿"""
 Error Handler for Hub Gateway
 Centralized error handling and custom exceptions
 """

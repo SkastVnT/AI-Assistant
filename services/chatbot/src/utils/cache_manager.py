@@ -1,4 +1,4 @@
-"""
+﻿"""
 Redis Cache Manager - Performance Optimization
 Implements intelligent caching for AI responses, API calls, and static data
 """
@@ -41,7 +41,7 @@ class CacheManager:
         """
         if not REDIS_AVAILABLE:
             self.enabled = False
-            logger.warning("⚠️ Redis package not installed. Caching disabled.")
+            logger.warning("âš ï¸ Redis package not installed. Caching disabled.")
             return
         
         self.redis_url = redis_url or os.getenv('REDIS_URL', 'redis://localhost:6379/0')
@@ -56,9 +56,9 @@ class CacheManager:
             # Test connection
             self.redis_client.ping()
             self.enabled = True
-            logger.info(f"✅ Redis connected: {self.redis_url}")
+            logger.info(f"âœ… Redis connected: {self.redis_url}")
         except Exception as e:
-            logger.warning(f"⚠️ Redis unavailable: {e}. Caching disabled.")
+            logger.warning(f"âš ï¸ Redis unavailable: {e}. Caching disabled.")
             self.redis_client = None
             self.enabled = False
     
@@ -100,10 +100,10 @@ class CacheManager:
         try:
             value = self.redis_client.get(key)
             if value:
-                logger.debug(f"🎯 Cache HIT: {key}")
+                logger.debug(f"ðŸŽ¯ Cache HIT: {key}")
                 return json.loads(value)
             else:
-                logger.debug(f"❌ Cache MISS: {key}")
+                logger.debug(f"âŒ Cache MISS: {key}")
                 return None
         except Exception as e:
             logger.error(f"Cache get error: {e}")
@@ -127,7 +127,7 @@ class CacheManager:
         try:
             value_json = json.dumps(value)
             self.redis_client.setex(key, ttl, value_json)
-            logger.debug(f"💾 Cache SET: {key} (TTL: {ttl}s)")
+            logger.debug(f"ðŸ’¾ Cache SET: {key} (TTL: {ttl}s)")
             return True
         except Exception as e:
             logger.error(f"Cache set error: {e}")
@@ -140,7 +140,7 @@ class CacheManager:
         
         try:
             self.redis_client.delete(key)
-            logger.debug(f"🗑️ Cache DELETE: {key}")
+            logger.debug(f"ðŸ—‘ï¸ Cache DELETE: {key}")
             return True
         except Exception as e:
             logger.error(f"Cache delete error: {e}")
@@ -163,7 +163,7 @@ class CacheManager:
             keys = self.redis_client.keys(pattern)
             if keys:
                 deleted = self.redis_client.delete(*keys)
-                logger.info(f"🗑️ Cache DELETE pattern '{pattern}': {deleted} keys")
+                logger.info(f"ðŸ—‘ï¸ Cache DELETE pattern '{pattern}': {deleted} keys")
                 return deleted
             return 0
         except Exception as e:
@@ -352,7 +352,7 @@ class CacheManager:
         
         try:
             self.redis_client.flushdb()
-            logger.warning("🗑️ All cache cleared!")
+            logger.warning("ðŸ—‘ï¸ All cache cleared!")
             return True
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")

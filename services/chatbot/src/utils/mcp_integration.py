@@ -1,7 +1,7 @@
-"""
+﻿"""
 MCP Integration for ChatBot Service
 ====================================
-Tích hợp Model Context Protocol vào ChatBot để:
+TÃ­ch há»£p Model Context Protocol vÃ o ChatBot Ä‘á»ƒ:
 - Access local files/folders
 - Provide code context to AI
 - Search and read files
@@ -136,7 +136,7 @@ class MCPClient:
         Initialize MCP Client
         
         Args:
-            mcp_server_url: URL của MCP Server
+            mcp_server_url: URL cá»§a MCP Server
         """
         self.mcp_server_url = mcp_server_url
         self.enabled = False
@@ -157,25 +157,25 @@ class MCPClient:
     }
         
     def enable(self):
-        """Bật MCP integration"""
+        """Báº­t MCP integration"""
         # ChatBot MCP works standalone - no server connection needed
         # It directly accesses local files using pathlib
         self.enabled = True
-        logger.info("✅ MCP Client enabled (Standalone mode)")
+        logger.info("âœ… MCP Client enabled (Standalone mode)")
         return True
     
     def disable(self):
-        """Tắt MCP integration"""
+        """Táº¯t MCP integration"""
         self.enabled = False
         self.selected_folders = []
-        logger.info("🔴 MCP Client disabled")
+        logger.info("ðŸ”´ MCP Client disabled")
     
     def add_folder(self, folder_path: str) -> bool:
         """
-        Thêm folder vào danh sách accessible folders
+        ThÃªm folder vÃ o danh sÃ¡ch accessible folders
         
         Args:
-            folder_path: Đường dẫn folder
+            folder_path: ÄÆ°á»ng dáº«n folder
             
         Returns:
             True if success
@@ -194,22 +194,22 @@ class MCPClient:
         if folder_abs not in self.selected_folders:
             self.selected_folders.append(folder_abs)
             # Don't log user-provided paths
-            logger.info("📁 Folder added successfully")
+            logger.info("ðŸ“ Folder added successfully")
         
         return True
     
     def remove_folder(self, folder_path: str):
-        """Remove folder khỏi danh sách"""
+        """Remove folder khá»i danh sÃ¡ch"""
         if folder_path in self.selected_folders:
             self.selected_folders.remove(folder_path)
-            logger.info("🗑️ Folder removed successfully")
+            logger.info("ðŸ—‘ï¸ Folder removed successfully")
     
     def list_files_in_folder(self, folder_path: str = None) -> List[Dict[str, Any]]:
         """
         List files trong folder
         
         Args:
-            folder_path: Đường dẫn folder (None = list all selected folders)
+            folder_path: ÄÆ°á»ng dáº«n folder (None = list all selected folders)
             
         Returns:
             List of file info
@@ -255,8 +255,8 @@ class MCPClient:
         Search files trong selected folders (by filename)
         
         Args:
-            query: Từ khóa tìm kiếm
-            file_type: Loại file (py, js, md, etc.)
+            query: Tá»« khÃ³a tÃ¬m kiáº¿m
+            file_type: Loáº¡i file (py, js, md, etc.)
             
         Returns:
             List of matching files
@@ -280,11 +280,11 @@ class MCPClient:
     
     def read_file(self, file_path: str, max_lines: int = 500) -> Optional[Dict[str, Any]]:
         """
-        Đọc nội dung file
+        Äá»c ná»™i dung file
         
         Args:
-            file_path: Đường dẫn file
-            max_lines: Số dòng tối đa
+            file_path: ÄÆ°á»ng dáº«n file
+            max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a
             
         Returns:
             Dict with file content
@@ -405,14 +405,14 @@ class MCPClient:
         regex: bool = False,
     ) -> List[Dict[str, Any]]:
         """
-        Tìm kiếm NỘI DUNG trong files theo pattern (như grep).
+        TÃ¬m kiáº¿m Ná»˜I DUNG trong files theo pattern (nhÆ° grep).
         
         Args:
-            pattern: Text hoặc regex pattern
-            file_type: Loại file (all, py, js, md, ...)
-            max_results: Số kết quả tối đa
-            case_sensitive: Phân biệt hoa/thường
-            regex: Nếu True, pattern được xử lý như regex; nếu False, tìm kiếm theo chuỗi literal
+            pattern: Text hoáº·c regex pattern
+            file_type: Loáº¡i file (all, py, js, md, ...)
+            max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
+            case_sensitive: PhÃ¢n biá»‡t hoa/thÆ°á»ng
+            regex: Náº¿u True, pattern Ä‘Æ°á»£c xá»­ lÃ½ nhÆ° regex; náº¿u False, tÃ¬m kiáº¿m theo chuá»—i literal
             
         Returns:
             List of {file, line, content} matches
@@ -475,24 +475,24 @@ class MCPClient:
 
     def get_code_context(self, user_message: str, selected_files: list = None) -> Optional[str]:
         """
-        Tạo context từ code files để enhance AI response.
-        Ưu tiên: selected_files > grep content search > filename search.
+        Táº¡o context tá»« code files Ä‘á»ƒ enhance AI response.
+        Æ¯u tiÃªn: selected_files > grep content search > filename search.
         
         Args:
-            user_message: Câu hỏi của user
-            selected_files: List of file paths được chọn từ UI
+            user_message: CÃ¢u há»i cá»§a user
+            selected_files: List of file paths Ä‘Æ°á»£c chá»n tá»« UI
             
         Returns:
-            Context string hoặc None
+            Context string hoáº·c None
         """
         if not self.enabled or not self.selected_folders:
             return None
         
         context_parts = []
         
-        # Ưu tiên files được chọn từ UI
+        # Æ¯u tiÃªn files Ä‘Æ°á»£c chá»n tá»« UI
         if selected_files and len(selected_files) > 0:
-            logger.info(f"📌 Using {len(selected_files)} selected files for context")
+            logger.info(f"ðŸ“Œ Using {len(selected_files)} selected files for context")
             for file_path in selected_files[:5]:  # Max 5 files
                 # Validate path before processing
                 validated_path = validate_and_resolve_path(file_path, must_exist=True)
@@ -508,22 +508,22 @@ class MCPClient:
                 if ext in ocr_exts:
                     ocr_result = self.extract_file_with_ocr(str(validated_path), max_chars=5000)
                     if ocr_result.get('success') and ocr_result.get('text'):
-                        logger.info("✅ OCR extraction successful for selected file")
-                        context_parts.append("\n### 📄 OCR Extracted Content\n")
+                        logger.info("âœ… OCR extraction successful for selected file")
+                        context_parts.append("\n### ðŸ“„ OCR Extracted Content\n")
                         context_parts.append(f"File: {validated_path.name}\n")
                         context_parts.append(f"Method: {ocr_result.get('method', 'ocr')}\n")
                         context_parts.append("```text\n")
                         context_parts.append(ocr_result.get('text', ''))
                         context_parts.append("\n```\n")
                     else:
-                        logger.warning("⚠️ OCR extraction unavailable/failed for selected file")
+                        logger.warning("âš ï¸ OCR extraction unavailable/failed for selected file")
                     continue
 
                 file_content = self.read_file(str(validated_path), max_lines=200)
                 if file_content and 'content' in file_content:
-                    logger.info("✅ File read successfully")
+                    logger.info("âœ… File read successfully")
                     # Don't log file name to avoid injection
-                    context_parts.append("\n### 📄 File\n")
+                    context_parts.append("\n### ðŸ“„ File\n")
                     context_parts.append("```")
                     # Safely get extension from validated path (not user input)
                     safe_ext = validated_path.suffix.lstrip('.') if validated_path.suffix else 'txt'
@@ -532,16 +532,16 @@ class MCPClient:
                     context_parts.append(file_content['content'])
                     context_parts.append("\n```\n")
                 elif file_content and 'error' in file_content:
-                    logger.error("❌ Error reading file from selection")
+                    logger.error("âŒ Error reading file from selection")
                 else:
-                    logger.warning("⚠️ No content available for file")
+                    logger.warning("âš ï¸ No content available for file")
         else:
-            # Fallback: tìm files tự động theo keywords + content grep
+            # Fallback: tÃ¬m files tá»± Ä‘á»™ng theo keywords + content grep
             keywords = [word for word in user_message.lower().split() if len(word) > 3]
             relevant_files = []
             seen_paths: set = set()
 
-            # 1) Tìm theo nội dung file (grep) với từ khóa quan trọng
+            # 1) TÃ¬m theo ná»™i dung file (grep) vá»›i tá»« khÃ³a quan trá»ng
             for keyword in keywords[:3]:
                 matches = self.grep_content(keyword, max_results=10)
                 for match in matches:
@@ -550,7 +550,7 @@ class MCPClient:
                         seen_paths.add(fpath)
                         relevant_files.append({'path': fpath, 'relative_path': match['relative'], 'extension': os.path.splitext(fpath)[1]})
 
-            # 2) Fallback: tìm theo tên file nếu chưa đủ
+            # 2) Fallback: tÃ¬m theo tÃªn file náº¿u chÆ°a Ä‘á»§
             if len(relevant_files) < 3:
                 for keyword in keywords[:5]:
                     files = self.search_files(keyword, file_type="all")
@@ -559,7 +559,7 @@ class MCPClient:
                             seen_paths.add(f['path'])
                             relevant_files.append(f)
 
-            # Read top files (giới hạn 50 dòng mỗi file khi auto-detect)
+            # Read top files (giá»›i háº¡n 50 dÃ²ng má»—i file khi auto-detect)
             for file_info in relevant_files[:5]:
                 file_content = self.read_file(file_info['path'], max_lines=50)
                 if file_content and 'content' in file_content:
@@ -571,7 +571,7 @@ class MCPClient:
         
         if context_parts:
             context = "".join(context_parts)
-            return f"\n\n📁 **CODE CONTEXT FROM LOCAL FILES:**\n{context}"
+            return f"\n\nðŸ“ **CODE CONTEXT FROM LOCAL FILES:**\n{context}"
         
         return None
 
@@ -805,7 +805,7 @@ def get_mcp_client(mcp_server_url: str = "http://localhost:37778") -> MCPClient:
 
 def inject_code_context(user_message: str, mcp_client: MCPClient = None, selected_files: list = None) -> str:
     """
-    Inject code context vào user message
+    Inject code context vÃ o user message
     
     Args:
         user_message: Original message
@@ -827,10 +827,10 @@ def inject_code_context(user_message: str, mcp_client: MCPClient = None, selecte
         # Prepend context to message
         enhanced_message = f"{context}\n\n---\n\n**USER QUESTION:**\n{user_message}"
         file_count = len(selected_files) if selected_files else 0
-        logger.info(f"📝 Injected code context ({len(context)} chars, {file_count} files)")
+        logger.info(f"ðŸ“ Injected code context ({len(context)} chars, {file_count} files)")
         # Don't log context preview to avoid log injection
         return enhanced_message
     else:
-        logger.warning("⚠️ No context generated despite MCP being enabled")
+        logger.warning("âš ï¸ No context generated despite MCP being enabled")
     
     return user_message

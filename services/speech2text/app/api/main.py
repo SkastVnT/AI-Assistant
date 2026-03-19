@@ -1,4 +1,4 @@
-"""
+﻿"""
 FastAPI Main Application - Speech-to-Text Web Service
 Provides REST API endpoints for all transcription models
 """

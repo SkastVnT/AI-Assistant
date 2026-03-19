@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import os
 from datasets import load_dataset
 from transformers import (
@@ -15,12 +15,12 @@ BASE_MODEL = os.environ.get("BASE_MODEL", "defog/sqlcoder-7b-2")
 DATA_DIR = os.environ.get("DATA_DIR", "models/spider_pretrain")
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "models/sqlcoder-spider-lora")
 
-USE_4BIT = True  # đặt False nếu không có bitsandbytes
+USE_4BIT = True  # Ä‘áº·t False náº¿u khÃ´ng cÃ³ bitsandbytes
 
 
 def format_sample(ex):
-    # ghép input + output thành training text cho causal LM
-    # Mục tiêu: model thấy prompt và học sinh chuỗi "### SQL: ...;"
+    # ghÃ©p input + output thÃ nh training text cho causal LM
+    # Má»¥c tiÃªu: model tháº¥y prompt vÃ  há»c sinh chuá»—i "### SQL: ...;"
     return {"text": ex["input"] + "\n" + ex["output"]}
 
 
@@ -92,7 +92,7 @@ def main():
         bf16=True,
         optim="paged_adamw_32bit",
         gradient_checkpointing=True,
-        # ddp_find_unused_parameters nếu bản bạn có, giữ lại; nếu không thì bỏ
+        # ddp_find_unused_parameters náº¿u báº£n báº¡n cÃ³, giá»¯ láº¡i; náº¿u khÃ´ng thÃ¬ bá»
         report_to="none",
     )
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 CLI interface for upscale tool
 """
 import argparse
@@ -138,7 +138,7 @@ Examples:
             output_path=str(output_path),
             scale=args.scale
         )
-        print(f"✅ Done! Output saved to: {output_result}")
+        print(f"âœ… Done! Output saved to: {output_result}")
     
     elif args.command == 'upscale-folder':
         # Default output to data/output/ if not specified
@@ -165,7 +165,7 @@ Examples:
             output_folder=str(output_folder),
             scale=args.scale
         )
-        print(f"\n✅ Done! Upscaled {len(output_paths)} images")
+        print(f"\nâœ… Done! Upscaled {len(output_paths)} images")
         print(f"Output folder: {output_folder}")
 
 

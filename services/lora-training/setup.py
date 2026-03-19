@@ -1,4 +1,4 @@
-"""
+﻿"""
 LoRA Training Tool Setup
 Package setup for installation and distribution.
 """

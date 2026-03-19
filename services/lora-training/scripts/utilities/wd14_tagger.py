@@ -1,4 +1,4 @@
-"""
+﻿"""
 WD14 Tagger - Local NSFW-safe image tagging
 Runs 100% offline, no internet upload, complete privacy
 Specialized for anime/manga artwork including NSFW content
@@ -37,7 +37,7 @@ def load_model(model_name='swinv2'):
     Load WD14 ONNX model and tags CSV.
     Model files are downloaded once and cached locally.
     """
-    print(f"\n📥 Loading WD14 model: {model_name}")
+    print(f"\nðŸ“¥ Loading WD14 model: {model_name}")
     model_repo = MODELS.get(model_name, MODELS['swinv2'])
     
     try:
@@ -58,11 +58,11 @@ def load_model(model_name='swinv2'):
             reader = csv.DictReader(f)
             tags = [row for row in reader]
         
-        print(f"✓ Model loaded: {len(tags)} tags available\n")
+        print(f"âœ“ Model loaded: {len(tags)} tags available\n")
         return model, tags
         
     except Exception as e:
-        print(f"✗ Error loading model: {e}")
+        print(f"âœ— Error loading model: {e}")
         print("\nTroubleshooting:")
         print("1. Check internet connection (needed for first download)")
         print("2. Run: pip install --upgrade huggingface-hub onnxruntime")
@@ -104,7 +104,7 @@ def preprocess_image(image_path, target_size=448):
         return img_array
         
     except Exception as e:
-        print(f"   ✗ Error preprocessing image: {e}")
+        print(f"   âœ— Error preprocessing image: {e}")
         return None
 
 
@@ -148,7 +148,7 @@ def predict_tags(model, tags, image_path, threshold=0.35, add_rating=True):
         return result_tags
         
     except Exception as e:
-        print(f"   ✗ Error during prediction: {e}")
+        print(f"   âœ— Error during prediction: {e}")
         return []
 
 
@@ -208,10 +208,10 @@ def process_directory(input_dir, model, tags, args):
     ]
     
     if not image_files:
-        print(f"✗ No images found in {input_dir}")
+        print(f"âœ— No images found in {input_dir}")
         return
     
-    print(f"📁 Found {len(image_files)} images to process\n")
+    print(f"ðŸ“ Found {len(image_files)} images to process\n")
     
     # Process each image
     success_count = 0
@@ -223,17 +223,17 @@ def process_directory(input_dir, model, tags, args):
         txt_path = img_path.with_suffix('.txt')
         
         if txt_path.exists() and not args.overwrite:
-            print(f"[{i}/{len(image_files)}] ⏭️  Skipping {img_path.name} (caption exists)")
+            print(f"[{i}/{len(image_files)}] â­ï¸  Skipping {img_path.name} (caption exists)")
             skip_count += 1
             continue
         
-        print(f"[{i}/{len(image_files)}] 🔍 Processing {img_path.name}...")
+        print(f"[{i}/{len(image_files)}] ðŸ” Processing {img_path.name}...")
         
         # Predict tags
         tag_results = predict_tags(model, tags, str(img_path), args.threshold)
         
         if not tag_results:
-            print(f"   ✗ No tags found or error occurred")
+            print(f"   âœ— No tags found or error occurred")
             error_count += 1
             continue
         
@@ -258,25 +258,25 @@ def process_directory(input_dir, model, tags, args):
         # Save to .txt file
         try:
             txt_path.write_text(tags_text, encoding='utf-8')
-            print(f"   ✓ Saved {len(tag_results)} tags (confidence ≥ {args.threshold})")
+            print(f"   âœ“ Saved {len(tag_results)} tags (confidence â‰¥ {args.threshold})")
             success_count += 1
             
             # Show top tags
             if args.verbose:
                 top_tags = [f"{t['name']} ({t['score']:.2f})" for t in tag_results[:5]]
-                print(f"   📝 Top tags: {', '.join(top_tags)}")
+                print(f"   ðŸ“ Top tags: {', '.join(top_tags)}")
             
         except Exception as e:
-            print(f"   ✗ Error saving caption: {e}")
+            print(f"   âœ— Error saving caption: {e}")
             error_count += 1
     
     # Summary
     print(f"\n{'='*60}")
-    print(f"📊 Processing Summary:")
-    print(f"   ✓ Success: {success_count}")
-    print(f"   ⏭️  Skipped: {skip_count}")
-    print(f"   ✗ Errors:  {error_count}")
-    print(f"   📁 Total:   {len(image_files)}")
+    print(f"ðŸ“Š Processing Summary:")
+    print(f"   âœ“ Success: {success_count}")
+    print(f"   â­ï¸  Skipped: {skip_count}")
+    print(f"   âœ— Errors:  {error_count}")
+    print(f"   ðŸ“ Total:   {len(image_files)}")
     print(f"{'='*60}\n")
 
 
@@ -339,7 +339,7 @@ Examples:
     
     # Validate input directory
     if not Path(args.input).exists():
-        print(f"✗ Error: Directory not found: {args.input}")
+        print(f"âœ— Error: Directory not found: {args.input}")
         exit(1)
     
     # Load model
@@ -348,8 +348,8 @@ Examples:
     # Process directory
     process_directory(args.input, model, tags, args)
     
-    print("✅ Done! Your dataset is ready for training.")
-    print(f"📁 Captions saved in: {args.input}")
+    print("âœ… Done! Your dataset is ready for training.")
+    print(f"ðŸ“ Captions saved in: {args.input}")
     print("\nNext steps:")
     print("1. Review generated tags (optional)")
     print("2. Configure training: configs/loraplus_config.yaml")

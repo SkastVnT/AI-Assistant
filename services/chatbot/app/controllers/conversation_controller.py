@@ -1,4 +1,4 @@
-"""
+﻿"""
 Conversation Controller
 
 Handles conversation management operations.
@@ -54,7 +54,7 @@ class ConversationController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error listing conversations: {e}")
+            logger.error(f"âŒ Error listing conversations: {e}")
             raise
     
     def get_conversation(
@@ -83,7 +83,7 @@ class ConversationController:
             return conv
             
         except Exception as e:
-            logger.error(f"❌ Error getting conversation: {e}")
+            logger.error(f"âŒ Error getting conversation: {e}")
             raise
     
     def create_conversation(
@@ -100,11 +100,11 @@ class ConversationController:
                 title=title
             )
             
-            logger.info(f"✅ Created conversation: {conv.get('_id')}")
+            logger.info(f"âœ… Created conversation: {conv.get('_id')}")
             return conv
             
         except Exception as e:
-            logger.error(f"❌ Error creating conversation: {e}")
+            logger.error(f"âŒ Error creating conversation: {e}")
             raise
     
     def update_conversation(
@@ -128,11 +128,11 @@ class ConversationController:
             
             conv = self.conversation_service.update(conversation_id, updates)
             
-            logger.info(f"✅ Updated conversation: {conversation_id}")
+            logger.info(f"âœ… Updated conversation: {conversation_id}")
             return conv
             
         except Exception as e:
-            logger.error(f"❌ Error updating conversation: {e}")
+            logger.error(f"âŒ Error updating conversation: {e}")
             raise
     
     def delete_conversation(
@@ -156,12 +156,12 @@ class ConversationController:
             # Archive for learning if enabled
             if save_for_learning and len(conv.get('messages', [])) > 2:
                 self.learning_service.archive_conversation(conv)
-                logger.info(f"📚 Archived conversation for learning: {conversation_id}")
+                logger.info(f"ðŸ“š Archived conversation for learning: {conversation_id}")
             
             # Delete from database
             self.conversation_service.delete(conversation_id)
             
-            logger.info(f"✅ Deleted conversation: {conversation_id}")
+            logger.info(f"âœ… Deleted conversation: {conversation_id}")
             
             return {
                 'deleted': True,
@@ -170,5 +170,5 @@ class ConversationController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error deleting conversation: {e}")
+            logger.error(f"âŒ Error deleting conversation: {e}")
             raise

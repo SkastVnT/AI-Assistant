@@ -1,4 +1,4 @@
-"""
+﻿"""
 ComfyUI API Client
 Connect to ComfyUI for image generation
 """
@@ -518,7 +518,7 @@ class ComfyUIClient:
                         outputs = entry.get('outputs', {})
                         if outputs:
                             return outputs
-                        # Entry exists but no outputs yet and no error — still running
+                        # Entry exists but no outputs yet and no error â€” still running
                         if status.get('completed', False) or status.get('status_str') == 'success':
                             return outputs
             except:

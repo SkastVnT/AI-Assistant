@@ -1,9 +1,9 @@
-"""
-ImageSession — per-conversation image state management.
+﻿"""
+ImageSession â€” per-conversation image state management.
 Tracks generated images, enables conversational editing ("add a rainbow"),
 and maintains style/character consistency across a conversation.
 
-This is what makes it feel like ChatGPT/Gemini — you can iteratively
+This is what makes it feel like ChatGPT/Gemini â€” you can iteratively
 refine images by chatting naturally.
 """
 
@@ -111,7 +111,7 @@ class ImageSession:
         recent = self.history[-3:]  # last 3 images
         parts = ["Previous images in this conversation:"]
         for i, entry in enumerate(recent):
-            parts.append(f"- Image {i+1}: \"{entry.prompt}\" → {entry.result.model}")
+            parts.append(f"- Image {i+1}: \"{entry.prompt}\" â†’ {entry.result.model}")
 
         if self.active_style:
             parts.append(f"Active style: {self.active_style}")
@@ -120,7 +120,7 @@ class ImageSession:
 
     def get_edit_chain(self, index: int = -1) -> list[ImageHistoryEntry]:
         """
-        Get the full edit chain for an image (original → edit1 → edit2 → ...).
+        Get the full edit chain for an image (original â†’ edit1 â†’ edit2 â†’ ...).
         Useful for showing the user the evolution of an image.
         """
         if not self.history:

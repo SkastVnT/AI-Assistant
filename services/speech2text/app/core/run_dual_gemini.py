@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 # CI fix: corrected syntax error (extra quote) on GEMINI_API_KEY line
 # Ref: d0861426e9d20a560020005122410a5ee240802a
 """
@@ -11,15 +11,25 @@ import datetime
 import librosa
 import numpy as np
 import soundfile as sf
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from scipy import signal
 from google import genai
 
 # ============= CONFIGURATION =============
 # Load .env from config folder
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
-load_dotenv(env_path)
-
+load_shared_env(__file__)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
@@ -337,3 +347,5 @@ print(f"  [OK] Chi mat {fusion_time:.1f}s cho AI fusion")
 print("\n" + "=" * 80)
 print("[SUCCESS] DUAL MODEL GEMINI PROCESSING COMPLETED!")
 print("=" * 80)
+
+

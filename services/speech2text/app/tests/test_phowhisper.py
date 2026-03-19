@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for PhoWhisperClient
 Run with: pytest app/tests/test_phowhisper.py -v
 """
@@ -61,7 +61,7 @@ class TestPhoWhisperClient:
         
     def test_save_result(self, phowhisper_client, tmp_path):
         """Test saving transcript"""
-        test_transcript = "Đây là một bản ghi âm tiếng Việt."
+        test_transcript = "ÄÃ¢y lÃ  má»™t báº£n ghi Ã¢m tiáº¿ng Viá»‡t."
         output_path = tmp_path / "test_output.txt"
         
         phowhisper_client.save_result(test_transcript, str(output_path))

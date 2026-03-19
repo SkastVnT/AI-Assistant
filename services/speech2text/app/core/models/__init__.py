@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Models for VistralS2T v3.5
 Model wrappers for Whisper, PhoWhisper, Qwen, and Diarization
 

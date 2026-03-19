@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 DUAL MODEL WITH QWEN2.5-1.5B-INSTRUCT FUSION
 Whisper large-v3 + PhoWhisper-large + Qwen2.5-1.5B Smart Fusion
@@ -10,7 +10,18 @@ import datetime
 import librosa
 import numpy as np
 import soundfile as sf
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from scipy import signal
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -18,8 +29,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 # ============= CONFIGURATION =============
 # Load .env from config folder
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
-load_dotenv(env_path)
-
+load_shared_env(__file__)
 AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 HF_TOKEN = os.getenv("HF_API_TOKEN", "")
 
@@ -289,47 +299,47 @@ try:
     
     # Original user prompt - Smart fusion with speaker role detection
     prompt_text = f"""<|im_start|>system
-Bạn là trợ lý chuyên xử lý transcript tiếng Việt, được thiết kế để làm sạch dữ liệu đầu ra từ mô hình nhận dạng giọng nói (speech-to-text).
-Nhiệm vụ của bạn là giữ nguyên nội dung và ý nghĩa gốc, nhưng chỉnh sửa toàn bộ lỗi chính tả, ngữ pháp, dấu câu và định dạng lại cho dễ đọc.<|im_end|>
+Báº¡n lÃ  trá»£ lÃ½ chuyÃªn xá»­ lÃ½ transcript tiáº¿ng Viá»‡t, Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘á»ƒ lÃ m sáº¡ch dá»¯ liá»‡u Ä‘áº§u ra tá»« mÃ´ hÃ¬nh nháº­n dáº¡ng giá»ng nÃ³i (speech-to-text).
+Nhiá»‡m vá»¥ cá»§a báº¡n lÃ  giá»¯ nguyÃªn ná»™i dung vÃ  Ã½ nghÄ©a gá»‘c, nhÆ°ng chá»‰nh sá»­a toÃ n bá»™ lá»—i chÃ­nh táº£, ngá»¯ phÃ¡p, dáº¥u cÃ¢u vÃ  Ä‘á»‹nh dáº¡ng láº¡i cho dá»… Ä‘á»c.<|im_end|>
 <|im_start|>user
 
-NHIỆM VỤ:
-1. Sửa lỗi chính tả, lỗi gõ, lỗi ngữ pháp.
-2. Thêm đầy đủ dấu câu (chấm, phẩy, hỏi, than...) đúng vị trí và tự nhiên.
-3. Phân vai người nói rõ ràng, gồm các nhóm:
-   - Hệ thống: Giọng máy, thông báo tự động (ví dụ: "Cảm ơn quý khách đã gọi đến...")
-   - Nhân viên: Người đại diện công ty, tổng đài viên, nhân viên hỗ trợ.
-   - Khách hàng: Người gọi đến hoặc người được gọi.
-4. Tách đoạn theo từng người nói, mỗi lượt nói một đoạn riêng.
-5. Giữ nguyên nội dung và ý nghĩa gốc.
-6. Không bỏ hoặc thêm ý.
-7. Đảm bảo đoạn hội thoại dễ đọc, đúng chuẩn tiếng Việt.
-8. Không giải thích, không thêm ghi chú.
+NHIá»†M Vá»¤:
+1. Sá»­a lá»—i chÃ­nh táº£, lá»—i gÃµ, lá»—i ngá»¯ phÃ¡p.
+2. ThÃªm Ä‘áº§y Ä‘á»§ dáº¥u cÃ¢u (cháº¥m, pháº©y, há»i, than...) Ä‘Ãºng vá»‹ trÃ­ vÃ  tá»± nhiÃªn.
+3. PhÃ¢n vai ngÆ°á»i nÃ³i rÃµ rÃ ng, gá»“m cÃ¡c nhÃ³m:
+   - Há»‡ thá»‘ng: Giá»ng mÃ¡y, thÃ´ng bÃ¡o tá»± Ä‘á»™ng (vÃ­ dá»¥: "Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n...")
+   - NhÃ¢n viÃªn: NgÆ°á»i Ä‘áº¡i diá»‡n cÃ´ng ty, tá»•ng Ä‘Ã i viÃªn, nhÃ¢n viÃªn há»— trá»£.
+   - KhÃ¡ch hÃ ng: NgÆ°á»i gá»i Ä‘áº¿n hoáº·c ngÆ°á»i Ä‘Æ°á»£c gá»i.
+4. TÃ¡ch Ä‘oáº¡n theo tá»«ng ngÆ°á»i nÃ³i, má»—i lÆ°á»£t nÃ³i má»™t Ä‘oáº¡n riÃªng.
+5. Giá»¯ nguyÃªn ná»™i dung vÃ  Ã½ nghÄ©a gá»‘c.
+6. KhÃ´ng bá» hoáº·c thÃªm Ã½.
+7. Äáº£m báº£o Ä‘oáº¡n há»™i thoáº¡i dá»… Ä‘á»c, Ä‘Ãºng chuáº©n tiáº¿ng Viá»‡t.
+8. KhÃ´ng giáº£i thÃ­ch, khÃ´ng thÃªm ghi chÃº.
 
-TRANSCRIPT GỐC (từ 2 model speech-to-text, có thể sai chính tả, thiếu dấu hoặc nối liền từ):
+TRANSCRIPT Gá»C (tá»« 2 model speech-to-text, cÃ³ thá»ƒ sai chÃ­nh táº£, thiáº¿u dáº¥u hoáº·c ná»‘i liá»n tá»«):
 {full_raw_text}
 
-YÊU CẦU ĐẦU RA:
-- Gộp thông tin từ cả 2 transcript, lấy phần chính xác nhất.
-- Chỉ trả về transcript đã được sửa lỗi, chia vai và format rõ ràng.
-- Mỗi người nói hiển thị trên một dòng riêng, có dạng như sau:
+YÃŠU Cáº¦U Äáº¦U RA:
+- Gá»™p thÃ´ng tin tá»« cáº£ 2 transcript, láº¥y pháº§n chÃ­nh xÃ¡c nháº¥t.
+- Chá»‰ tráº£ vá» transcript Ä‘Ã£ Ä‘Æ°á»£c sá»­a lá»—i, chia vai vÃ  format rÃµ rÃ ng.
+- Má»—i ngÆ°á»i nÃ³i hiá»ƒn thá»‹ trÃªn má»™t dÃ²ng riÃªng, cÃ³ dáº¡ng nhÆ° sau:
 
-MẪU ĐỊNH DẠNG:
-Hệ thống: Xin cảm ơn quý khách đã gọi đến tổng đài Giao Hàng Nhanh.
-Khách hàng: Alo, cho tôi hỏi về đơn hàng mã GHN12345 ạ.
-Nhân viên: Dạ, em xin chào anh ạ. Anh vui lòng chờ em kiểm tra thông tin đơn hàng nhé.
-Khách hàng: Vâng, cảm ơn em.
+MáºªU Äá»ŠNH Dáº NG:
+Há»‡ thá»‘ng: Xin cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n tá»•ng Ä‘Ã i Giao HÃ ng Nhanh.
+KhÃ¡ch hÃ ng: Alo, cho tÃ´i há»i vá» Ä‘Æ¡n hÃ ng mÃ£ GHN12345 áº¡.
+NhÃ¢n viÃªn: Dáº¡, em xin chÃ o anh áº¡. Anh vui lÃ²ng chá» em kiá»ƒm tra thÃ´ng tin Ä‘Æ¡n hÃ ng nhÃ©.
+KhÃ¡ch hÃ ng: VÃ¢ng, cáº£m Æ¡n em.
 
-LƯU Ý:
-- Suy luận chủ ngữ và ngữ cảnh để phân vai chính xác.
-- Nếu không chắc người nói là ai, hãy suy luận dựa trên ngữ cảnh:
-  - "Xin chào quý khách..." thường là Hệ thống hoặc Nhân viên.
-  - "Alo, tôi muốn hỏi..." thường là Khách hàng.
-  - "Em kiểm tra đơn giúp anh nhé" thường là Nhân viên.
-- Nếu vẫn không rõ, gán là "Người nói không xác định:".
-- Không thêm tiêu đề, không in lại transcript gốc, không thêm giải thích.
-- Đảm bảo văn bản cuối cùng sạch, rõ, tự nhiên, dễ đọc, đúng ngữ pháp tiếng Việt.
-- QUAN TRỌNG: Xuất ĐẦY ĐỦ TOÀN BỘ hội thoại từ đầu đến cuối, không bỏ sót.<|im_end|>
+LÆ¯U Ã:
+- Suy luáº­n chá»§ ngá»¯ vÃ  ngá»¯ cáº£nh Ä‘á»ƒ phÃ¢n vai chÃ­nh xÃ¡c.
+- Náº¿u khÃ´ng cháº¯c ngÆ°á»i nÃ³i lÃ  ai, hÃ£y suy luáº­n dá»±a trÃªn ngá»¯ cáº£nh:
+  - "Xin chÃ o quÃ½ khÃ¡ch..." thÆ°á»ng lÃ  Há»‡ thá»‘ng hoáº·c NhÃ¢n viÃªn.
+  - "Alo, tÃ´i muá»‘n há»i..." thÆ°á»ng lÃ  KhÃ¡ch hÃ ng.
+  - "Em kiá»ƒm tra Ä‘Æ¡n giÃºp anh nhÃ©" thÆ°á»ng lÃ  NhÃ¢n viÃªn.
+- Náº¿u váº«n khÃ´ng rÃµ, gÃ¡n lÃ  "NgÆ°á»i nÃ³i khÃ´ng xÃ¡c Ä‘á»‹nh:".
+- KhÃ´ng thÃªm tiÃªu Ä‘á», khÃ´ng in láº¡i transcript gá»‘c, khÃ´ng thÃªm giáº£i thÃ­ch.
+- Äáº£m báº£o vÄƒn báº£n cuá»‘i cÃ¹ng sáº¡ch, rÃµ, tá»± nhiÃªn, dá»… Ä‘á»c, Ä‘Ãºng ngá»¯ phÃ¡p tiáº¿ng Viá»‡t.
+- QUAN TRá»ŒNG: Xuáº¥t Äáº¦Y Äá»¦ TOÃ€N Bá»˜ há»™i thoáº¡i tá»« Ä‘áº§u Ä‘áº¿n cuá»‘i, khÃ´ng bá» sÃ³t.<|im_end|>
 <|im_start|>assistant"""
     
     print("[AI] Processing with Qwen2.5-1.5B...")
@@ -420,12 +430,12 @@ with open(log_path, 'w', encoding='utf-8') as f:
 print(f"[OK] Processing log saved: {log_path}")
 
 print(f"\n[SUCCESS] ALL FILES SAVED TO SESSION:")
-print(f"   📁 Session folder: {SESSION_DIR}")
-print(f"   📄 Whisper transcript:    whisper_{audio_filename}_{timestamp}.txt")
-print(f"   📄 PhoWhisper transcript: phowhisper_{audio_filename}_{timestamp}.txt")
-print(f"   📄 Final transcript:      final_transcript_{audio_filename}_{timestamp}.txt")
-print(f"   📄 Processing log:        processing_log_{audio_filename}_{timestamp}.txt")
-print(f"   🔊 Processed audio:       {cleaned_path}")
+print(f"   ðŸ“ Session folder: {SESSION_DIR}")
+print(f"   ðŸ“„ Whisper transcript:    whisper_{audio_filename}_{timestamp}.txt")
+print(f"   ðŸ“„ PhoWhisper transcript: phowhisper_{audio_filename}_{timestamp}.txt")
+print(f"   ðŸ“„ Final transcript:      final_transcript_{audio_filename}_{timestamp}.txt")
+print(f"   ðŸ“„ Processing log:        processing_log_{audio_filename}_{timestamp}.txt")
+print(f"   ðŸ”Š Processed audio:       {cleaned_path}")
 
 # ============= STATISTICS =============
 total_time = preprocess_time + whisper_time + phowhisper_time + fusion_time
@@ -442,15 +452,17 @@ print(f"  [TOTAL] TOTAL TIME:                {total_time:7.2f}s")
 print("=" * 80)
 
 print("\n[INFO] BENEFITS OF QWEN2.5-1.5B FUSION:")
-print("  ✅ QWEN2.5-1.5B - Lightweight & Fast model by Alibaba")
-print("  ✅ MULTILINGUAL - Good Vietnamese support")
-print("  ✅ DUAL FUSION - Combines Whisper + PhoWhisper transcripts")
-print("  ✅ 3-ROLE SEPARATION - System, Employee, Customer speakers")
-print("  ✅ FLOAT16 PRECISION - GPU acceleration")
-print("  ✅ SMART CORRECTION - Grammar, punctuation, formatting")
-print(f"  ✅ Processing time: {fusion_time:.1f}s for AI fusion")
+print("  âœ… QWEN2.5-1.5B - Lightweight & Fast model by Alibaba")
+print("  âœ… MULTILINGUAL - Good Vietnamese support")
+print("  âœ… DUAL FUSION - Combines Whisper + PhoWhisper transcripts")
+print("  âœ… 3-ROLE SEPARATION - System, Employee, Customer speakers")
+print("  âœ… FLOAT16 PRECISION - GPU acceleration")
+print("  âœ… SMART CORRECTION - Grammar, punctuation, formatting")
+print(f"  âœ… Processing time: {fusion_time:.1f}s for AI fusion")
 
 print("\n" + "=" * 80)
 print("[SUCCESS] DUAL MODEL PROCESSING COMPLETED!")
 print("=" * 80)
+
+
 

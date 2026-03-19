@@ -1,4 +1,4 @@
-"""
+﻿"""
 Optimized ChatBot Agent with Performance Enhancements
 - Redis caching for responses
 - MongoDB for conversation history
@@ -42,7 +42,7 @@ def chat_with_cache_and_db(
     if cache and cache.enabled and history is None and memories is None:
         cached_response = cache.get_ai_response(model, message, context)
         if cached_response:
-            logger.info(f"🎯 Cache HIT for {model}")
+            logger.info(f"ðŸŽ¯ Cache HIT for {model}")
             return cached_response
     
     # Generate response
@@ -53,7 +53,7 @@ def chat_with_cache_and_db(
     # Cache response (if not using custom history/memories)
     if cache and cache.enabled and history is None and memories is None:
         cache.cache_ai_response(model, message, context, response, ttl=3600)
-        logger.info(f"💾 Cached response for {model}")
+        logger.info(f"ðŸ’¾ Cached response for {model}")
     
     # Log to database
     if db and db.enabled and session_id:

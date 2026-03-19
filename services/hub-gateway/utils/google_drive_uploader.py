@@ -1,4 +1,4 @@
-"""
+﻿"""
 Google Drive Uploader Utility
 Handles uploading files and folders to Google Drive using OAuth 2.0
 """
@@ -73,7 +73,7 @@ class GoogleDriveUploader:
         
         # Build service
         self.service = build('drive', 'v3', credentials=self.creds)
-        print(f"✅ Authenticated with Google Drive")
+        print(f"âœ… Authenticated with Google Drive")
     
     def create_folder(self, folder_name: str, parent_folder_id: Optional[str] = None) -> str:
         """
@@ -100,11 +100,11 @@ class GoogleDriveUploader:
                 fields='id, name'
             ).execute()
             
-            print(f"📁 Created folder: {folder.get('name')} (ID: {folder.get('id')})")
+            print(f"ðŸ“ Created folder: {folder.get('name')} (ID: {folder.get('id')})")
             return folder.get('id')
             
         except HttpError as error:
-            print(f"❌ Error creating folder: {error}")
+            print(f"âŒ Error creating folder: {error}")
             raise
     
     def upload_file(
@@ -152,13 +152,13 @@ class GoogleDriveUploader:
             ).execute()
             
             size_mb = int(file.get('size', 0)) / (1024 * 1024)
-            print(f"✅ Uploaded: {file.get('name')} ({size_mb:.2f} MB)")
+            print(f"âœ… Uploaded: {file.get('name')} ({size_mb:.2f} MB)")
             print(f"   Link: {file.get('webViewLink')}")
             
             return file
             
         except HttpError as error:
-            print(f"❌ Error uploading {file_path.name}: {error}")
+            print(f"âŒ Error uploading {file_path.name}: {error}")
             raise
     
     def upload_folder(
@@ -189,7 +189,7 @@ class GoogleDriveUploader:
         folder_id = self.create_folder(folder_path.name, parent_folder_id)
         
         uploaded_files = []
-        folder_cache = {}  # Cache để tránh tạo lại folder
+        folder_cache = {}  # Cache Ä‘á»ƒ trÃ¡nh táº¡o láº¡i folder
         
         # Upload files
         for item in folder_path.rglob('*'):
@@ -205,7 +205,7 @@ class GoogleDriveUploader:
                     # Create parent folders if needed
                     current_folder_id = folder_id
                     if rel_path.parent != Path('.'):
-                        # Use cache để tránh tạo duplicate folders
+                        # Use cache Ä‘á»ƒ trÃ¡nh táº¡o duplicate folders
                         folder_key = str(rel_path.parent)
                         if folder_key not in folder_cache:
                             folder_cache[folder_key] = self._ensure_folder_path(
@@ -221,7 +221,7 @@ class GoogleDriveUploader:
                     uploaded_files.append(file_info)
                     
                 except Exception as e:
-                    print(f"⚠️  Skipping {item.name}: {e}")
+                    print(f"âš ï¸  Skipping {item.name}: {e}")
         
         return {
             'folder_id': folder_id,
@@ -308,9 +308,9 @@ class GoogleDriveUploader:
             files = results.get('files', [])
             
             if not files:
-                print('📭 No files found.')
+                print('ðŸ“­ No files found.')
             else:
-                print(f'📂 Found {len(files)} files:')
+                print(f'ðŸ“‚ Found {len(files)} files:')
                 for file in files:
                     size_mb = int(file.get('size', 0)) / (1024 * 1024) if file.get('size') else 0
                     print(f"   - {file['name']} ({size_mb:.2f} MB)")
@@ -318,7 +318,7 @@ class GoogleDriveUploader:
             return files
             
         except HttpError as error:
-            print(f"❌ Error listing files: {error}")
+            print(f"âŒ Error listing files: {error}")
             raise
     
     def get_existing_files(self, folder_id: str) -> Dict[str, Dict]:
@@ -344,7 +344,7 @@ class GoogleDriveUploader:
             return {file['name']: file for file in files}
             
         except HttpError as error:
-            print(f"⚠️  Warning: Could not check existing files: {error}")
+            print(f"âš ï¸  Warning: Could not check existing files: {error}")
             return {}
     
     def upload_folder_smart(
@@ -382,7 +382,7 @@ class GoogleDriveUploader:
         existing_folders = self.get_existing_files(parent_folder_id) if parent_folder_id else {}
         
         if folder_name in existing_folders and existing_folders[folder_name]['mimeType'] == 'application/vnd.google-apps.folder':
-            print(f"📁 Folder '{folder_name}' already exists, uploading to it...")
+            print(f"ðŸ“ Folder '{folder_name}' already exists, uploading to it...")
             folder_id = existing_folders[folder_name]['id']
         else:
             # Create new folder
@@ -428,7 +428,7 @@ class GoogleDriveUploader:
                         # Skip if same size (basic check)
                         if file_size == existing_size:
                             skipped_files.append(str(rel_path))
-                            print(f"⏭️  Skipped (exists): {item.name}")
+                            print(f"â­ï¸  Skipped (exists): {item.name}")
                             continue
                     
                     # Upload file
@@ -436,7 +436,7 @@ class GoogleDriveUploader:
                     uploaded_files.append(file_info)
                     
                 except Exception as e:
-                    print(f"⚠️  Skipping {item.name}: {e}")
+                    print(f"âš ï¸  Skipping {item.name}: {e}")
         
         return {
             'folder_id': folder_id,
@@ -471,7 +471,7 @@ class GoogleDriveUploader:
         existing_folders = self.get_existing_files(parent_id)
         if path.name in existing_folders and existing_folders[path.name]['mimeType'] == 'application/vnd.google-apps.folder':
             folder_id = existing_folders[path.name]['id']
-            print(f"📁 Using existing folder: {path.name}")
+            print(f"ðŸ“ Using existing folder: {path.name}")
         else:
             # Create this folder
             folder_id = self.create_folder(path.name, parent_id)
@@ -515,7 +515,7 @@ def quick_upload_database(uploader: GoogleDriveUploader) -> Dict:
 
 if __name__ == "__main__":
     # Example usage
-    print("🚀 Google Drive Uploader Test")
+    print("ðŸš€ Google Drive Uploader Test")
     print("=" * 50)
     
     try:
@@ -531,9 +531,9 @@ if __name__ == "__main__":
         
         # Example: Upload entire folder
         # result = quick_upload_docs(uploader)
-        # print(f"\n✅ Uploaded {result['total_files']} files")
+        # print(f"\nâœ… Uploaded {result['total_files']} files")
         
-        print("\n✅ Test completed successfully!")
+        print("\nâœ… Test completed successfully!")
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nâŒ Error: {e}")

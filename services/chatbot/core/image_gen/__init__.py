@@ -1,12 +1,12 @@
-"""
-Image Generation Engine — Modern multi-provider system.
+﻿"""
+Image Generation Engine â€” Modern multi-provider system.
 
 Architecture:
-    providers/      → Backends: fal.ai, Replicate, BFL, OpenAI, ComfyUI
-    enhancer.py     → LLM-powered prompt rewriting
-    router.py       → Smart provider selection + fallback
-    session.py      → Per-conversation state + edit chains
-    storage.py      → Local + cloud image persistence
+    providers/      â†’ Backends: fal.ai, Replicate, BFL, OpenAI, ComfyUI
+    enhancer.py     â†’ LLM-powered prompt rewriting
+    router.py       â†’ Smart provider selection + fallback
+    session.py      â†’ Per-conversation state + edit chains
+    storage.py      â†’ Local + cloud image persistence
 
 Usage:
     from core.image_gen import ImageGenerationRouter, SessionManager, ImageStorage

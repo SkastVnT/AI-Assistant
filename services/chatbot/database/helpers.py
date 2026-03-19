@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database Helpers
 
 Helper functions to integrate database repositories with existing app.py code.

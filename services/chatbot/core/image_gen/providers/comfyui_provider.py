@@ -1,5 +1,5 @@
-"""
-ComfyUI provider — local/remote ComfyUI instance for FLUX, SDXL, etc.
+﻿"""
+ComfyUI provider â€” local/remote ComfyUI instance for FLUX, SDXL, etc.
 Talks to the ComfyUI API to queue prompts and retrieve generated images.
 Best for: free local generation when GPU is available.
 """
@@ -21,7 +21,7 @@ from .base import (
 logger = logging.getLogger(__name__)
 
 
-# ── Workflow templates ──────────────────────────────────────────────
+# â”€â”€ Workflow templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _flux_txt2img_workflow(prompt: str, width: int, height: int,
                             steps: int, guidance: float, seed: int,
                             checkpoint: str = "flux1-schnell-fp8.safetensors") -> dict:
@@ -122,7 +122,7 @@ def _img2img_workflow(prompt: str, width: int, height: int,
 
 
 class ComfyUIProvider(BaseImageProvider):
-    """ComfyUI local/remote — free GPU generation."""
+    """ComfyUI local/remote â€” free GPU generation."""
 
     name = "comfyui"
     tier = ProviderTier.LOCAL

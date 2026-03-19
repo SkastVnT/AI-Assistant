@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database helpers for MongoDB integration
 """
 import sys

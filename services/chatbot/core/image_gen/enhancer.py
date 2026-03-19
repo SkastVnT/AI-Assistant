@@ -1,5 +1,5 @@
-"""
-PromptEnhancer — uses an LLM to transform user's casual request into 
+﻿"""
+PromptEnhancer â€” uses an LLM to transform user's casual request into 
 an optimized image generation prompt.
 
 This is the key differentiator: ChatGPT/Gemini/Grok all use their LLM 
@@ -17,20 +17,20 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ── System prompt for the enhancer ──────────────────────────────────
+# â”€â”€ System prompt for the enhancer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ENHANCER_SYSTEM = """You are an expert AI image prompt engineer. Your job is to take a user's casual image request and transform it into an optimized prompt for a text-to-image diffusion model (like FLUX, DALL-E, or Stable Diffusion).
 
 RULES:
-1. Keep the user's core intent intact — do NOT change what they want
+1. Keep the user's core intent intact â€” do NOT change what they want
 2. Add technical quality boosters: lighting, composition, detail level, camera angle
 3. Add style descriptors when not specified: photorealistic, cinematic, illustration, etc.
-4. Keep prompt under 200 words — models work best with concise prompts
+4. Keep prompt under 200 words â€” models work best with concise prompts
 5. If the user writes in Vietnamese, translate the visual description to English for the model
-6. Output ONLY the enhanced prompt — no explanations, no markdown, no quotes
-7. For editing requests ("thêm...", "bỏ...", "đổi...") on an existing image, output an img2img-focused prompt
+6. Output ONLY the enhanced prompt â€” no explanations, no markdown, no quotes
+7. For editing requests ("thÃªm...", "bá»...", "Ä‘á»•i...") on an existing image, output an img2img-focused prompt
 
 EXAMPLES:
-User: "vẽ con mèo"
+User: "váº½ con mÃ¨o"
 Enhanced: A fluffy white cat sitting gracefully on a sunlit windowsill, golden hour lighting streaming through lace curtains, photorealistic, shallow depth of field, 4K, warm color palette
 
 User: "cyberpunk city at night"  
@@ -39,7 +39,7 @@ Enhanced: Sprawling cyberpunk metropolis at night, neon signs reflecting on rain
 User: "logo for a coffee shop called Bean & Brew"
 Enhanced: Minimalist logo design for "Bean & Brew" coffee shop, steaming coffee cup icon integrated with stylized coffee bean, warm brown and cream color scheme, clean vector style, professional branding, white background
 
-User: "thêm cầu vồng vào bầu trời"
+User: "thÃªm cáº§u vá»“ng vÃ o báº§u trá»i"
 Enhanced: Add a vibrant double rainbow arching across the sky, natural atmospheric lighting, soft prismatic colors blending into the existing scene"""
 
 
@@ -176,7 +176,7 @@ class PromptEnhancer:
         Detect if the user wants to edit a previous image vs. generate new.
         Returns: {"is_edit": bool, "edit_type": str, "description": str}
         """
-        edit_keywords_vi = ["thêm", "bỏ", "xóa", "đổi", "thay", "sửa", "chỉnh", "làm", "biến"]
+        edit_keywords_vi = ["thÃªm", "bá»", "xÃ³a", "Ä‘á»•i", "thay", "sá»­a", "chá»‰nh", "lÃ m", "biáº¿n"]
         edit_keywords_en = ["add", "remove", "change", "replace", "fix", "adjust", "make", "turn"]
 
         lower = user_message.lower().strip()
@@ -190,7 +190,7 @@ class PromptEnhancer:
                 }
 
         # Check for referencing previous image
-        ref_patterns = ["ảnh trước", "ảnh vừa", "cái ảnh", "last image", "previous image", "that image"]
+        ref_patterns = ["áº£nh trÆ°á»›c", "áº£nh vá»«a", "cÃ¡i áº£nh", "last image", "previous image", "that image"]
         for pat in ref_patterns:
             if pat in lower:
                 return {

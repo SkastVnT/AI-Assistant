@@ -1,4 +1,4 @@
-"""
+﻿"""
 Deprecated Functions Module
 
 Contains old file-based functions marked for removal.

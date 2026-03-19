@@ -1,4 +1,4 @@
-"""
+﻿"""
 GIF upscaler - upscale animated GIFs frame by frame
 """
 import numpy as np

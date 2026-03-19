@@ -1,4 +1,4 @@
-"""
+﻿"""
 Qwen Client - Alibaba Qwen2.5-1.5B-Instruct for Smart Fusion
 Lightweight LLM for combining and enhancing dual transcripts
 """
@@ -8,11 +8,21 @@ import time
 import torch
 from typing import Tuple, Optional
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
-load_dotenv()
-
+load_shared_env(__file__)
 def get_safe_device():
     """Get device with FORCE_CPU support"""
     force_cpu = os.getenv("FORCE_CPU", "false").lower() in ["true", "1", "yes"]
@@ -231,3 +241,5 @@ class QwenClient:
         status = "loaded" if self._is_loaded else "not loaded"
         dtype = str(self.torch_dtype).split(".")[-1]
         return f"QwenClient(model={self.model_name}, dtype={dtype}, status={status})"
+
+

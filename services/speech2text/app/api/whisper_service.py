@@ -1,4 +1,4 @@
-"""
+﻿"""
 Whisper Model Service - Microservice for OpenAI Whisper
 """
 

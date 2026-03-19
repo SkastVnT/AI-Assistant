@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Speech-to-Text System - Main Launcher
 Whisper large-v3 + PhoWhisper-large + Qwen2.5-1.5B Fusion

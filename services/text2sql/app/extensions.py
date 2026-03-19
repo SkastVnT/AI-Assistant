@@ -1,4 +1,4 @@
-"""
+﻿"""
 Text2SQL Extensions
 Initialize and manage external connections
 """
@@ -96,8 +96,8 @@ def get_clickhouse_client():
 
 def _log_config_status(config: dict) -> None:
     """Log API configuration status."""
-    print(f"[CONFIG] GROK_API_KEY: {'✓ Loaded' if config.get('GROK_API_KEY') else '✗ Missing'}")
-    print(f"[CONFIG] OPENAI_API_KEY: {'✓ Loaded' if config.get('OPENAI_API_KEY') else '✗ Missing'}")
-    print(f"[CONFIG] DEEPSEEK_API_KEY: {'✓ Loaded' if config.get('DEEPSEEK_API_KEY') else '✗ Missing'}")
-    print(f"[CONFIG] GEMINI_API_KEY: {'✓ Loaded' if config.get('GEMINI_API_KEY') else '✗ Missing'}")
+    print(f"[CONFIG] GROK_API_KEY: {'âœ“ Loaded' if config.get('GROK_API_KEY') else 'âœ— Missing'}")
+    print(f"[CONFIG] OPENAI_API_KEY: {'âœ“ Loaded' if config.get('OPENAI_API_KEY') else 'âœ— Missing'}")
+    print(f"[CONFIG] DEEPSEEK_API_KEY: {'âœ“ Loaded' if config.get('DEEPSEEK_API_KEY') else 'âœ— Missing'}")
+    print(f"[CONFIG] GEMINI_API_KEY: {'âœ“ Loaded' if config.get('GEMINI_API_KEY') else 'âœ— Missing'}")
     print(f"[CONFIG] DEFAULT_MODEL: {config.get('DEFAULT_SQL_MODEL', 'grok')}")

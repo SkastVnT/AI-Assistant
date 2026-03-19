@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Unicode Fix Script
 Replaces all emoji Unicode characters with ASCII equivalents for Windows compatibility

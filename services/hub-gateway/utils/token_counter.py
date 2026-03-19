@@ -1,4 +1,4 @@
-"""
+﻿"""
 Token Counter Utility
 Count tokens for API usage tracking
 """
@@ -25,7 +25,7 @@ def count_tokens(text: str, model: str = "gpt-3.5-turbo") -> int:
         encoding = tiktoken.encoding_for_model(model)
         return len(encoding.encode(text))
     except ImportError:
-        # Fallback to simple estimation (1 token ≈ 4 characters)
+        # Fallback to simple estimation (1 token â‰ˆ 4 characters)
         return len(text) // 4
     except Exception as e:
         logger.warning(f"Error counting tokens: {e}. Using fallback method.")

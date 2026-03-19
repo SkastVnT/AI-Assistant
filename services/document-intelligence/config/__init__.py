@@ -1,13 +1,23 @@
-"""
+﻿"""
 Configuration for Document Intelligence Service
 """
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables first
-load_dotenv()
-
+load_shared_env(__file__)
 # Base Directory
 BASE_DIR = Path(__file__).parent.parent
 
@@ -71,3 +81,5 @@ __all__ = [
     'GROK_API_KEY', 'ENABLE_AI_ENHANCEMENT', 'AI_MODEL', 'AI_FEATURES',
     'allowed_file'
 ]
+
+

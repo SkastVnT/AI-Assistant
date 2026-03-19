@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test suite for VistralS2T
 Run with: pytest app/tests/
 """

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Flask Web UI for Vietnamese Speech-to-Text
 Simple drag & drop interface for audio transcription

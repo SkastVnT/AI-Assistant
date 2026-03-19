@@ -1,4 +1,4 @@
-"""
+﻿"""
 Conversation Service
 
 Handles conversation and message management.

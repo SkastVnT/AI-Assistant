@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 VistralS2T Web UI - Flask Application
 Features:
@@ -18,7 +18,18 @@ from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Force CPU-only (cuDNN not installed properly on this system)
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
@@ -35,8 +46,7 @@ from core.utils import preprocess_audio
 
 # Load environment with absolute path
 env_path = Path(__file__).parent / "config" / ".env"
-load_dotenv(env_path)
-print(f"[ENV] Loading environment from: {env_path}")
+load_shared_env(__file__)print(f"[ENV] Loading environment from: {env_path}")
 print(f"[ENV] HF_TOKEN loaded: {'YES' if os.getenv('HUGGINGFACE_TOKEN') else 'NO'}")
 
 # Get base directory
@@ -428,7 +438,7 @@ def process_audio_with_diarization(audio_path, session_id):
                     success_msg = f'{current_model.upper()} enhancement complete ({gen_time:.2f}s)'
                     emit_progress('llm_enhancement', 98, success_msg)
                     socketio.emit('llm_progress', {
-                        'message': f'✅ {success_msg}',
+                        'message': f'âœ… {success_msg}',
                         'model': current_model
                     })
                     selected_model = current_model  # Update selected model for results
@@ -443,17 +453,17 @@ def process_audio_with_diarization(audio_path, session_id):
                 
                 # Provide helpful error messages
                 if "timeout" in str(e).lower() or isinstance(e, TimeoutException):
-                    error_msg = f'❌ {current_model.upper()} timeout after 30s'
+                    error_msg = f'âŒ {current_model.upper()} timeout after 30s'
                 elif "quota" in str(e).lower() or "429" in str(e):
-                    error_msg = f'❌ {current_model.upper()} quota exhausted'
+                    error_msg = f'âŒ {current_model.upper()} quota exhausted'
                 elif "api key" in str(e).lower() or "404" in str(e) or "not found" in str(e).lower():
-                    error_msg = f'❌ {current_model.upper()} API key invalid or model not available'
+                    error_msg = f'âŒ {current_model.upper()} API key invalid or model not available'
                 elif "not installed" in str(e).lower():
-                    error_msg = f'❌ {current_model.upper()} dependencies not installed'
+                    error_msg = f'âŒ {current_model.upper()} dependencies not installed'
                 elif "network" in str(e).lower() or "connection" in str(e).lower():
-                    error_msg = f'❌ {current_model.upper()} network error'
+                    error_msg = f'âŒ {current_model.upper()} network error'
                 else:
-                    error_msg = f'❌ {current_model.upper()} error ({error_type}): {str(e)[:80]}'
+                    error_msg = f'âŒ {current_model.upper()} error ({error_type}): {str(e)[:80]}'
                 
                 emit_progress('llm_enhancement', 94, error_msg)
                 print(f"[ERROR] {current_model.upper()} failed ({error_type}): {str(e)}")
@@ -468,7 +478,7 @@ def process_audio_with_diarization(audio_path, session_id):
                 # If not last model in chain, try next one
                 if model_idx < len(fallback_chain) - 1:
                     next_model = fallback_chain[model_idx + 1]
-                    fallback_msg = f'🔄 Trying fallback: {next_model.upper()}'
+                    fallback_msg = f'ðŸ”„ Trying fallback: {next_model.upper()}'
                     emit_progress('llm_enhancement', 94, fallback_msg)
                     socketio.emit('llm_progress', {
                         'message': fallback_msg,
@@ -768,3 +778,5 @@ if __name__ == '__main__':
                  debug=False,  # Changed from True to False to prevent crash
                  use_reloader=False,
                  log_output=True)
+
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Image Upscaler Tool
 Wrapper for Real-ESRGAN and other upscaling models
 """

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Application Configuration
 
 Centralized configuration management with environment-based settings.

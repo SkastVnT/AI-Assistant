@@ -1,7 +1,7 @@
-"""
+﻿"""
 Advanced Tools cho MCP Server
 ==============================
-Các tools nâng cao: Git, Database, Code Analysis, API Integration
+CÃ¡c tools nÃ¢ng cao: Git, Database, Code Analysis, API Integration
 """
 
 import subprocess
@@ -16,10 +16,10 @@ import re
 
 def git_status() -> Dict[str, Any]:
     """
-    Lấy git status của repository.
+    Láº¥y git status cá»§a repository.
     
     Returns:
-        Dict chứa git status info
+        Dict chá»©a git status info
     """
     try:
         result = subprocess.run(
@@ -71,13 +71,13 @@ def git_status() -> Dict[str, Any]:
 
 def git_log(max_commits: int = 10) -> Dict[str, Any]:
     """
-    Lấy git commit history.
+    Láº¥y git commit history.
     
     Args:
-        max_commits: Số commits tối đa
+        max_commits: Sá»‘ commits tá»‘i Ä‘a
         
     Returns:
-        Dict chứa commit history
+        Dict chá»©a commit history
     """
     try:
         result = subprocess.run(
@@ -115,10 +115,10 @@ def git_log(max_commits: int = 10) -> Dict[str, Any]:
 
 def git_branch_info() -> Dict[str, Any]:
     """
-    Lấy thông tin về git branches.
+    Láº¥y thÃ´ng tin vá» git branches.
     
     Returns:
-        Dict chứa branch info
+        Dict chá»©a branch info
     """
     try:
         # Current branch
@@ -158,12 +158,12 @@ def query_sqlite_database(db_path: str, query: str, params: tuple = ()) -> Dict[
     Query SQLite database.
     
     Args:
-        db_path: Đường dẫn đến database file
+        db_path: ÄÆ°á»ng dáº«n Ä‘áº¿n database file
         query: SQL query
         params: Query parameters
         
     Returns:
-        Dict chứa query results
+        Dict chá»©a query results
     """
     try:
         base_dir = Path(__file__).parent.parent.parent
@@ -208,13 +208,13 @@ def query_sqlite_database(db_path: str, query: str, params: tuple = ()) -> Dict[
 
 def list_database_tables(db_path: str) -> Dict[str, Any]:
     """
-    Liệt kê tất cả tables trong SQLite database.
+    Liá»‡t kÃª táº¥t cáº£ tables trong SQLite database.
     
     Args:
-        db_path: Đường dẫn đến database file
+        db_path: ÄÆ°á»ng dáº«n Ä‘áº¿n database file
         
     Returns:
-        Dict chứa danh sách tables
+        Dict chá»©a danh sÃ¡ch tables
     """
     try:
         base_dir = Path(__file__).parent.parent.parent
@@ -260,13 +260,13 @@ def list_database_tables(db_path: str) -> Dict[str, Any]:
 
 def analyze_python_file(file_path: str) -> Dict[str, Any]:
     """
-    Phân tích Python file: functions, classes, imports.
+    PhÃ¢n tÃ­ch Python file: functions, classes, imports.
     
     Args:
-        file_path: Đường dẫn đến Python file
+        file_path: ÄÆ°á»ng dáº«n Ä‘áº¿n Python file
         
     Returns:
-        Dict chứa phân tích code
+        Dict chá»©a phÃ¢n tÃ­ch code
     """
     try:
         base_dir = Path(__file__).parent.parent.parent
@@ -340,14 +340,14 @@ def analyze_python_file(file_path: str) -> Dict[str, Any]:
 
 def find_todos_in_code(directory: str = ".", pattern: str = r"#\s*TODO:?\s*(.+)") -> Dict[str, Any]:
     """
-    Tìm tất cả TODO comments trong code.
+    TÃ¬m táº¥t cáº£ TODO comments trong code.
     
     Args:
-        directory: Thư mục để tìm
+        directory: ThÆ° má»¥c Ä‘á»ƒ tÃ¬m
         pattern: Regex pattern cho TODO
         
     Returns:
-        Dict chứa danh sách TODOs
+        Dict chá»©a danh sÃ¡ch TODOs
     """
     try:
         base_dir = Path(__file__).parent.parent.parent
@@ -384,14 +384,14 @@ def find_todos_in_code(directory: str = ".", pattern: str = r"#\s*TODO:?\s*(.+)"
 
 def fetch_github_repo_info(owner: str, repo: str) -> Dict[str, Any]:
     """
-    Lấy thông tin GitHub repository (không cần API key).
+    Láº¥y thÃ´ng tin GitHub repository (khÃ´ng cáº§n API key).
     
     Args:
         owner: Repository owner
         repo: Repository name
         
     Returns:
-        Dict chứa repo info
+        Dict chá»©a repo info
     """
     try:
         url = f"https://api.github.com/repos/{owner}/{repo}"
@@ -423,14 +423,14 @@ def fetch_github_repo_info(owner: str, repo: str) -> Dict[str, Any]:
 
 def search_stackoverflow(query: str, max_results: int = 5) -> Dict[str, Any]:
     """
-    Tìm kiếm câu hỏi trên StackOverflow.
+    TÃ¬m kiáº¿m cÃ¢u há»i trÃªn StackOverflow.
     
     Args:
         query: Search query
-        max_results: Số kết quả tối đa
+        max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
         
     Returns:
-        Dict chứa search results
+        Dict chá»©a search results
     """
     try:
         url = "https://api.stackexchange.com/2.3/search"
@@ -475,13 +475,13 @@ def search_stackoverflow(query: str, max_results: int = 5) -> Dict[str, Any]:
 
 def count_lines_in_project(extensions: List[str] = [".py"]) -> Dict[str, Any]:
     """
-    Đếm tổng số dòng code trong project.
+    Äáº¿m tá»•ng sá»‘ dÃ²ng code trong project.
     
     Args:
-        extensions: Danh sách extensions để đếm
+        extensions: Danh sÃ¡ch extensions Ä‘á»ƒ Ä‘áº¿m
         
     Returns:
-        Dict chứa thống kê
+        Dict chá»©a thá»‘ng kÃª
     """
     try:
         base_dir = Path(__file__).parent.parent.parent

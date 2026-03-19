@@ -1,8 +1,8 @@
-"""
+﻿"""
 Redis Integration for LoRA Training WebUI
 ==========================================
 
-Sử dụng Redis để:
+Sá»­ dá»¥ng Redis Ä‘á»ƒ:
 1. Task Queue (Celery) - Queue training jobs
 2. Caching - Cache dataset metadata, config recommendations
 3. Session Management - WebSocket sessions
@@ -33,8 +33,8 @@ class RedisManager:
         Initialize Redis connection
         
         Args:
-            host: Redis host (default: localhost hoặc REDIS_HOST env)
-            port: Redis port (default: 6379 hoặc REDIS_PORT env)
+            host: Redis host (default: localhost hoáº·c REDIS_HOST env)
+            port: Redis port (default: 6379 hoáº·c REDIS_PORT env)
             db: Redis database number
             decode_responses: Auto decode bytes to strings
         """
@@ -55,10 +55,10 @@ class RedisManager:
             
             # Test connection
             self.redis.ping()
-            print(f"✅ Redis connected: {self.host}:{self.port}")
+            print(f"âœ… Redis connected: {self.host}:{self.port}")
             
         except redis.ConnectionError as e:
-            print(f"⚠️ Redis connection failed: {e}")
+            print(f"âš ï¸ Redis connection failed: {e}")
             print("Falling back to in-memory mode (no persistence)")
             self.redis = None
     
@@ -165,7 +165,7 @@ class TrainingTaskQueue:
 
 
 class TrainingCache:
-    """Cache cho dataset metadata và AI recommendations"""
+    """Cache cho dataset metadata vÃ  AI recommendations"""
     
     def __init__(self, redis_manager: RedisManager):
         self.redis = redis_manager.redis

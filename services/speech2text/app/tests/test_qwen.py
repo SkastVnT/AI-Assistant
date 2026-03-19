@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for QwenClient
 Run with: pytest app/tests/test_qwen.py -v
 """
@@ -42,9 +42,9 @@ class TestQwenClient:
     def test_generate_simple(self, qwen_client):
         """Test simple text generation"""
         prompt = """<|im_start|>system
-Bạn là trợ lý AI.<|im_end|>
+Báº¡n lÃ  trá»£ lÃ½ AI.<|im_end|>
 <|im_start|>user
-Xin chào, bạn khỏe không?<|im_end|>
+Xin chÃ o, báº¡n khá»e khÃ´ng?<|im_end|>
 <|im_start|>assistant"""
         
         qwen_client.load()
@@ -60,8 +60,8 @@ Xin chào, bạn khỏe không?<|im_end|>
         
     def test_fuse_transcripts(self, qwen_client):
         """Test transcript fusion"""
-        whisper_text = "Xin chào tôi muốn hỏi về đơn hàng"
-        phowhisper_text = "Xin chào, tôi muốn hỏi về đơn hàng của tôi"
+        whisper_text = "Xin chÃ o tÃ´i muá»‘n há»i vá» Ä‘Æ¡n hÃ ng"
+        phowhisper_text = "Xin chÃ o, tÃ´i muá»‘n há»i vá» Ä‘Æ¡n hÃ ng cá»§a tÃ´i"
         
         qwen_client.load()
         fused_text, fusion_time = qwen_client.fuse_transcripts(
@@ -76,7 +76,7 @@ Xin chào, bạn khỏe không?<|im_end|>
         
     def test_save_result(self, qwen_client, tmp_path):
         """Test saving generated text"""
-        test_text = "Khách hàng: Xin chào.\nNhân viên: Dạ, chào anh."
+        test_text = "KhÃ¡ch hÃ ng: Xin chÃ o.\nNhÃ¢n viÃªn: Dáº¡, chÃ o anh."
         output_path = tmp_path / "test_fusion.txt"
         
         qwen_client.save_result(test_text, str(output_path))

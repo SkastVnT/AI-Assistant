@@ -1,5 +1,5 @@
-"""
-ImageRouter — the brain of the image generation system.
+﻿"""
+ImageRouter â€” the brain of the image generation system.
 Selects the optimal provider based on: quality preference, cost budget,
 speed requirements, feature needs (i2i, inpaint), and provider availability.
 """
@@ -98,7 +98,7 @@ class ImageGenerationRouter:
                 priority=70,
             )
 
-        # ComfyUI (local) — always available as fallback
+        # ComfyUI (local) â€” always available as fallback
         comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8189"))
         self._providers["comfyui"] = ProviderConfig(
             provider=ComfyUIProvider(base_url=comfyui_url),
@@ -113,7 +113,7 @@ class ImageGenerationRouter:
                 priority=60,
             )
 
-        # StepFun (Step1X-Edit — best editing model)
+        # StepFun (Step1X-Edit â€” best editing model)
         stepfun_key = os.getenv("STEPFUN_API_KEY", "")
         if stepfun_key:
             self._providers["stepfun"] = ProviderConfig(
@@ -132,7 +132,7 @@ class ImageGenerationRouter:
         except Exception as e:
             logger.warning(f"[ImageRouter] Enhancer init failed: {e}")
 
-    # ── Public API ──────────────────────────────────────────────────
+    # â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def generate(
         self,
@@ -180,7 +180,7 @@ class ImageGenerationRouter:
         if enhance_prompt and self._enhancer:
             try:
                 enhanced_prompt = self._enhancer.enhance(prompt, style_preset=style, context=context)
-                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'")
+                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' â†’ '{enhanced_prompt[:80]}...'")
             except Exception as e:
                 logger.warning(f"[ImageRouter] Enhance failed: {e}")
 
@@ -278,7 +278,7 @@ class ImageGenerationRouter:
                 results[name] = False
         return results
 
-    # ── Private helpers ─────────────────────────────────────────────
+    # â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _resolve_mode(
         self, mode: str, source_b64: Optional[str], mask_b64: Optional[str]

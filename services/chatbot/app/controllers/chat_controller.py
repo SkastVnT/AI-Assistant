@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chat Controller
 
 Handles chat message processing and AI model integration.
@@ -84,7 +84,7 @@ class ChatController:
             cached_response = self.cache_service.get(cache_key)
             
             if cached_response and thinking_mode == 'instant':
-                logger.info(f"✅ Cache hit for message")
+                logger.info(f"âœ… Cache hit for message")
                 return {
                     'response': cached_response,
                     'conversation_id': conversation_id,
@@ -182,7 +182,7 @@ class ChatController:
             self._maybe_extract_learning(message, response_text, model)
             
             elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"✅ Message processed in {elapsed:.2f}s with {model} ({thinking_mode} mode)")
+            logger.info(f"âœ… Message processed in {elapsed:.2f}s with {model} ({thinking_mode} mode)")
             
             result = {
                 'response': response_text,
@@ -200,7 +200,7 @@ class ChatController:
             return result
             
         except Exception as e:
-            logger.error(f"❌ Error processing message: {e}")
+            logger.error(f"âŒ Error processing message: {e}")
             raise
     
     def get_available_models(self) -> List[Dict[str, Any]]:
@@ -243,7 +243,7 @@ class ChatController:
             )
             
         except Exception as e:
-            logger.error(f"❌ Error regenerating response: {e}")
+            logger.error(f"âŒ Error regenerating response: {e}")
             raise
     
     def _generate_title(self, message: str, max_length: int = 50) -> str:
@@ -288,7 +288,7 @@ class ChatController:
         """Extract learning data if response quality is high"""
         try:
             # Simple quality heuristic
-            if len(answer) > 200 and not answer.startswith('Lỗi'):
+            if len(answer) > 200 and not answer.startswith('Lá»—i'):
                 self.learning_service.submit_qa_pair(
                     question=question,
                     answer=answer,

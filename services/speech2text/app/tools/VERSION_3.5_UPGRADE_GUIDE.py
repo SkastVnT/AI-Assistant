@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 VistralS2T v3.5 - Complete Update Summary
 ==================================================
 
 CRITICAL FIXES & IMPROVEMENTS:
-1. ✅ VAD (Voice Activity Detection) - Reduces processing time by 30-50%
-2. ✅ Dual Model Pipeline - Whisper + PhoWhisper for all segments
-3. ✅ Fixed Diarization timing display (was showing 0.00s)
-4. ✅ WebUI progress updates with broadcast
-5. ✅ Updated requirements with silero-vad
-6. ✅ Docker optimization
+1. âœ… VAD (Voice Activity Detection) - Reduces processing time by 30-50%
+2. âœ… Dual Model Pipeline - Whisper + PhoWhisper for all segments
+3. âœ… Fixed Diarization timing display (was showing 0.00s)
+4. âœ… WebUI progress updates with broadcast
+5. âœ… Updated requirements with silero-vad
+6. âœ… Docker optimization
 
 INSTALLATION QUICK START:
 ==================================================
@@ -73,7 +73,7 @@ FILES MODIFIED:
 2. app/core/llm/diarization_client.py (UPDATED)
    - Added use_vad parameter to diarize()
    - Integrated VAD pre-filtering
-   - Fixed token parameter (use_auth_token → token)
+   - Fixed token parameter (use_auth_token â†’ token)
 
 3. app/core/run_with_diarization.py (MAJOR UPDATE)
    - Added PhoWhisper transcription for each segment
@@ -83,7 +83,7 @@ FILES MODIFIED:
 
 4. app/web_ui.py (FIXED)
    - Added broadcast=True to all socketio.emit()
-   - Fixed max_tokens → max_new_tokens for Qwen
+   - Fixed max_tokens â†’ max_new_tokens for Qwen
    - Console logging for progress tracking
    - Initialized segments_file = None at start
 
@@ -120,12 +120,12 @@ v3.5 (After):
 
 KNOWN ISSUES FIXED:
 ==================================================
-1. ✅ Diarization showing 0.00s → Fixed timing logic
-2. ✅ WebUI stuck at "Processing..." → Fixed broadcast
-3. ✅ use_auth_token deprecated → Changed to token
-4. ✅ max_tokens error in Qwen → Changed to max_new_tokens
-5. ✅ enhanced_file NameError → Initialize at start
-6. ✅ segments_file NameError → Initialize at start
+1. âœ… Diarization showing 0.00s â†’ Fixed timing logic
+2. âœ… WebUI stuck at "Processing..." â†’ Fixed broadcast
+3. âœ… use_auth_token deprecated â†’ Changed to token
+4. âœ… max_tokens error in Qwen â†’ Changed to max_new_tokens
+5. âœ… enhanced_file NameError â†’ Initialize at start
+6. âœ… segments_file NameError â†’ Initialize at start
 
 TESTING:
 ==================================================
@@ -158,7 +158,7 @@ SUPPORT:
 
 Version: 3.5.0
 Date: 2025-10-24
-Status: Production Ready ✅
+Status: Production Ready âœ…
 """
 
 print(__doc__)

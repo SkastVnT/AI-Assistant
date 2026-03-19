@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Unicode Fix Test Script
 Test all major Python files to ensure Unicode errors are resolved

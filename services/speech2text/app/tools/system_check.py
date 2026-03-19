@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 System Health Check - Ki[?]m tra s[?]c kh[?]e h[?] th[?]ng
 Ki[?]m tra t[?]t c[?] file quan tr[?]ng v[?] c[?]u h[?]nh

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schema Routes
 Schema upload and management endpoints
 """

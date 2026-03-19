@@ -1,4 +1,4 @@
-"""
+﻿"""
 ImgBB Free Image Hosting
 Free API: https://api.imgbb.com/
 Easy to get API key (no credit card)
@@ -49,7 +49,7 @@ class ImgBBUploader:
             Dict with URLs or None if failed
         """
         try:
-            logger.info(f"📤 Uploading base64 image to ImgBB...")
+            logger.info(f"ðŸ“¤ Uploading base64 image to ImgBB...")
             
             # Prepare payload
             payload = {
@@ -73,8 +73,8 @@ class ImgBBUploader:
                 if result.get('success'):
                     data = result['data']
                     
-                    logger.info(f"✅ Upload successful!")
-                    logger.info(f"🔗 URL: {data['url']}")
+                    logger.info(f"âœ… Upload successful!")
+                    logger.info(f"ðŸ”— URL: {data['url']}")
                     
                     return {
                         'url': data['url'],
@@ -89,17 +89,17 @@ class ImgBBUploader:
                     }
                 else:
                     error = result.get('error', {}).get('message', 'Unknown error')
-                    logger.error(f"❌ Upload failed: {error}")
+                    logger.error(f"âŒ Upload failed: {error}")
                     return None
             else:
-                logger.error(f"❌ HTTP {response.status_code}: {response.text[:200]}")
+                logger.error(f"âŒ HTTP {response.status_code}: {response.text[:200]}")
                 return None
                 
         except requests.exceptions.Timeout:
-            logger.error("❌ Upload timeout (>60s)")
+            logger.error("âŒ Upload timeout (>60s)")
             return None
         except Exception as e:
-            logger.error(f"❌ Upload error: {e}")
+            logger.error(f"âŒ Upload error: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -127,16 +127,16 @@ class ImgBBUploader:
             image_path = Path(image_path)
             
             if not image_path.exists():
-                logger.error(f"❌ Image not found: {image_path}")
+                logger.error(f"âŒ Image not found: {image_path}")
                 return None
             
             # Validate file
             valid_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'}
             if image_path.suffix.lower() not in valid_extensions:
-                logger.error(f"❌ Invalid image format: {image_path.suffix}")
+                logger.error(f"âŒ Invalid image format: {image_path.suffix}")
                 return None
             
-            logger.info(f"📤 Uploading {image_path.name} to ImgBB...")
+            logger.info(f"ðŸ“¤ Uploading {image_path.name} to ImgBB...")
             
             # Read and encode image
             with open(image_path, 'rb') as f:
@@ -164,8 +164,8 @@ class ImgBBUploader:
                 if result.get('success'):
                     data = result['data']
                     
-                    logger.info(f"✅ Upload successful!")
-                    logger.info(f"🔗 URL: {data['url']}")
+                    logger.info(f"âœ… Upload successful!")
+                    logger.info(f"ðŸ”— URL: {data['url']}")
                     
                     return {
                         'url': data['url'],
@@ -180,17 +180,17 @@ class ImgBBUploader:
                     }
                 else:
                     error = result.get('error', {}).get('message', 'Unknown error')
-                    logger.error(f"❌ Upload failed: {error}")
+                    logger.error(f"âŒ Upload failed: {error}")
                     return None
             else:
-                logger.error(f"❌ HTTP {response.status_code}: {response.text[:200]}")
+                logger.error(f"âŒ HTTP {response.status_code}: {response.text[:200]}")
                 return None
                 
         except requests.exceptions.Timeout:
-            logger.error("❌ Upload timeout (>60s)")
+            logger.error("âŒ Upload timeout (>60s)")
             return None
         except Exception as e:
-            logger.error(f"❌ Upload error: {e}")
+            logger.error(f"âŒ Upload error: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -243,9 +243,9 @@ if __name__ == "__main__":
     image_path = sys.argv[1]
     
     print("\n" + "="*60)
-    print("🧪 TESTING IMGBB UPLOAD")
+    print("ðŸ§ª TESTING IMGBB UPLOAD")
     print("="*60)
-    print(f"📁 File: {image_path}\n")
+    print(f"ðŸ“ File: {image_path}\n")
     
     try:
         uploader = ImgBBUploader()
@@ -253,17 +253,17 @@ if __name__ == "__main__":
         
         if result:
             print("\n" + "="*60)
-            print("✅ UPLOAD SUCCESS!")
+            print("âœ… UPLOAD SUCCESS!")
             print("="*60)
-            print(f"🔗 Image URL:   {result['url']}")
-            print(f"📱 Display URL: {result['display_url']}")
-            print(f"🗑️  Delete URL:  {result['delete_url']}")
-            print(f"🖼️  Thumbnail:   {result['thumbnail']}")
-            print(f"📦 Size:        {result['size']:,} bytes")
+            print(f"ðŸ”— Image URL:   {result['url']}")
+            print(f"ðŸ“± Display URL: {result['display_url']}")
+            print(f"ðŸ—‘ï¸  Delete URL:  {result['delete_url']}")
+            print(f"ðŸ–¼ï¸  Thumbnail:   {result['thumbnail']}")
+            print(f"ðŸ“¦ Size:        {result['size']:,} bytes")
             print("="*60 + "\n")
         else:
-            print("\n❌ Upload failed!\n")
+            print("\nâŒ Upload failed!\n")
             sys.exit(1)
     except ValueError as e:
-        print(f"\n❌ {e}\n")
+        print(f"\nâŒ {e}\n")
         sys.exit(1)

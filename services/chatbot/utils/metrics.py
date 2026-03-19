@@ -1,4 +1,4 @@
-"""
+﻿"""
 Metrics Collection Module
 
 Provides metrics collection for monitoring and observability.

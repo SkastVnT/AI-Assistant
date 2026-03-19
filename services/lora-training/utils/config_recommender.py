@@ -1,4 +1,4 @@
-"""
+﻿"""
 Gemini-powered LoRA Training Config Recommender
 ================================================
 
@@ -9,10 +9,10 @@ Gemini-powered LoRA Training Config Recommender
 - 100% safe for NSFW/R18+ content
 
 Workflow:
-1. WD14 Tagger analyzes images locally → generates tags
+1. WD14 Tagger analyzes images locally â†’ generates tags
 2. Extract metadata: image count, avg resolution, tag distribution
 3. Send ONLY metadata to Gemini (no images!)
-4. Gemini analyzes metadata → recommends optimal hyperparameters
+4. Gemini analyzes metadata â†’ recommends optimal hyperparameters
 5. Apply recommendations to your training config
 
 Example metadata sent to Gemini:
@@ -357,21 +357,21 @@ def quick_recommend(dataset_path: str,
         >>> print(f"Reasoning: {config['reasoning']}")
     """
     
-    print("🔍 Analyzing dataset metadata (no images sent to Gemini)...")
+    print("ðŸ” Analyzing dataset metadata (no images sent to Gemini)...")
     analyzer = DatasetMetadataAnalyzer(dataset_path)
     metadata = analyzer.analyze()
     
-    print(f"📊 Dataset stats:")
+    print(f"ðŸ“Š Dataset stats:")
     print(f"   - Images: {metadata['total_images']}")
     print(f"   - Avg resolution: {metadata['avg_resolution']}")
     print(f"   - Unique tags: {metadata['tag_stats']['unique_tags']}")
     print(f"   - Complexity: {metadata['complexity_score']:.1f}/10")
     
-    print("\n🤖 Getting AI recommendations from Gemini...")
+    print("\nðŸ¤– Getting AI recommendations from Gemini...")
     recommender = GeminiConfigRecommender(api_key)
     config = recommender.recommend_config(metadata, training_goal)
     
-    print("\n✅ Recommendations ready!")
+    print("\nâœ… Recommendations ready!")
     return config
 
 
@@ -398,8 +398,8 @@ if __name__ == "__main__":
         # Save to file
         output_file = Path(dataset_path) / "recommended_config.json"
         output_file.write_text(json.dumps(config, indent=2), encoding='utf-8')
-        print(f"\n💾 Saved to: {output_file}")
+        print(f"\nðŸ’¾ Saved to: {output_file}")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         sys.exit(1)

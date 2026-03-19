@@ -1,4 +1,4 @@
-"""
+﻿"""
 Coordinated Reasoning Service
 Implements multi-round reasoning inspired by StepFun's approach
 
@@ -9,8 +9,8 @@ This service provides:
 4. Final answer synthesis
 
 Workflow:
-    Problem → Model (Parallel Exploration) → Reasoning Trajectories 
-    → Compaction Function → Compacted Messages → Final Output
+    Problem â†’ Model (Parallel Exploration) â†’ Reasoning Trajectories 
+    â†’ Compaction Function â†’ Compacted Messages â†’ Final Output
 """
 
 import asyncio
@@ -57,16 +57,16 @@ class ReasoningService:
     
     # Complexity indicators for auto-detection
     COMPLEXITY_PATTERNS = [
-        (r'giải thích|explain|why|tại sao|như thế nào|how', 1),
-        (r'so sánh|compare|difference|khác nhau', 1),
-        (r'phân tích|analyze|analysis', 1),
-        (r'code|programming|bug|error|lỗi|debug', 2),
-        (r'math|toán|calculate|tính|equation', 2),
-        (r'step by step|từng bước|chi tiết', 1),
-        (r'complex|phức tạp|nhiều bước', 2),
-        (r'optimize|tối ưu|improve|cải thiện', 1),
-        (r'design|thiết kế|architecture|kiến trúc', 2),
-        (r'implement|triển khai|xây dựng|build', 1),
+        (r'giáº£i thÃ­ch|explain|why|táº¡i sao|nhÆ° tháº¿ nÃ o|how', 1),
+        (r'so sÃ¡nh|compare|difference|khÃ¡c nhau', 1),
+        (r'phÃ¢n tÃ­ch|analyze|analysis', 1),
+        (r'code|programming|bug|error|lá»—i|debug', 2),
+        (r'math|toÃ¡n|calculate|tÃ­nh|equation', 2),
+        (r'step by step|tá»«ng bÆ°á»›c|chi tiáº¿t', 1),
+        (r'complex|phá»©c táº¡p|nhiá»u bÆ°á»›c', 2),
+        (r'optimize|tá»‘i Æ°u|improve|cáº£i thiá»‡n', 1),
+        (r'design|thiáº¿t káº¿|architecture|kiáº¿n trÃºc', 2),
+        (r'implement|triá»ƒn khai|xÃ¢y dá»±ng|build', 1),
     ]
     
     # Thresholds for auto-mode decision
@@ -215,26 +215,26 @@ class ReasoningService:
     ) -> str:
         """Build prompt for exploration phase"""
         
-        base_prompt = f"""Bạn đang trong vòng suy luận thứ {round_number + 1}.
-Hãy suy nghĩ theo một hướng tiếp cận riêng biệt (trajectory {trajectory_id}).
+        base_prompt = f"""Báº¡n Ä‘ang trong vÃ²ng suy luáº­n thá»© {round_number + 1}.
+HÃ£y suy nghÄ© theo má»™t hÆ°á»›ng tiáº¿p cáº­n riÃªng biá»‡t (trajectory {trajectory_id}).
 
-Câu hỏi gốc: {message}
+CÃ¢u há»i gá»‘c: {message}
 
 """
         if previous_insights:
-            base_prompt += f"""Thông tin từ các vòng trước:
+            base_prompt += f"""ThÃ´ng tin tá»« cÃ¡c vÃ²ng trÆ°á»›c:
 {previous_insights}
 
-Dựa trên thông tin này, hãy:
-1. Khám phá thêm các khía cạnh chưa được đề cập
-2. Đào sâu vào các điểm quan trọng
-3. Đưa ra góc nhìn mới
+Dá»±a trÃªn thÃ´ng tin nÃ y, hÃ£y:
+1. KhÃ¡m phÃ¡ thÃªm cÃ¡c khÃ­a cáº¡nh chÆ°a Ä‘Æ°á»£c Ä‘á» cáº­p
+2. ÄÃ o sÃ¢u vÃ o cÃ¡c Ä‘iá»ƒm quan trá»ng
+3. ÄÆ°a ra gÃ³c nhÃ¬n má»›i
 
 """
         
-        base_prompt += """Hãy suy luận chi tiết từng bước. 
-Đánh dấu các insight quan trọng với [INSIGHT].
-Kết thúc với [CONCLUSION] tóm tắt kết luận chính."""
+        base_prompt += """HÃ£y suy luáº­n chi tiáº¿t tá»«ng bÆ°á»›c. 
+ÄÃ¡nh dáº¥u cÃ¡c insight quan trá»ng vá»›i [INSIGHT].
+Káº¿t thÃºc vá»›i [CONCLUSION] tÃ³m táº¯t káº¿t luáº­n chÃ­nh."""
 
         return base_prompt
     
@@ -247,11 +247,11 @@ Kết thúc với [CONCLUSION] tóm tắt kết luận chính."""
             confidence += 0.1
         if '[CONCLUSION]' in content:
             confidence += 0.1
-        if 'chắc chắn' in content.lower() or 'confident' in content.lower():
+        if 'cháº¯c cháº¯n' in content.lower() or 'confident' in content.lower():
             confidence += 0.1
         if len(content) > 500:
             confidence += 0.1
-        if 'bước 1' in content.lower() or 'step 1' in content.lower():
+        if 'bÆ°á»›c 1' in content.lower() or 'step 1' in content.lower():
             confidence += 0.1
             
         return min(confidence, 1.0)
@@ -288,16 +288,16 @@ Kết thúc với [CONCLUSION] tóm tắt kết luận chính."""
         compacted = []
         
         if insights:
-            compacted.append("### Insights đã phát hiện:")
+            compacted.append("### Insights Ä‘Ã£ phÃ¡t hiá»‡n:")
             for i, insight in enumerate(insights[:5], 1):  # Limit to 5
                 compacted.append(f"{i}. {insight[:200]}...")
                 
         if conclusions:
-            compacted.append("\n### Kết luận sơ bộ:")
+            compacted.append("\n### Káº¿t luáº­n sÆ¡ bá»™:")
             for i, conclusion in enumerate(conclusions[:3], 1):  # Limit to 3
                 compacted.append(f"{i}. {conclusion[:300]}...")
                 
-        return "\n".join(compacted) if compacted else "Chưa có insights rõ ràng."
+        return "\n".join(compacted) if compacted else "ChÆ°a cÃ³ insights rÃµ rÃ ng."
     
     async def _run_round(
         self,
@@ -343,15 +343,15 @@ Kết thúc với [CONCLUSION] tóm tắt kết luận chính."""
         """
         Synthesize final answer from all reasoning trajectories
         """
-        synthesis_prompt = f"""Dựa trên quá trình suy luận đa chiều, hãy tổng hợp câu trả lời tốt nhất.
+        synthesis_prompt = f"""Dá»±a trÃªn quÃ¡ trÃ¬nh suy luáº­n Ä‘a chiá»u, hÃ£y tá»•ng há»£p cÃ¢u tráº£ lá»i tá»‘t nháº¥t.
 
-Câu hỏi gốc: {message}
+CÃ¢u há»i gá»‘c: {message}
 
-Các insights đã thu thập:
+CÃ¡c insights Ä‘Ã£ thu tháº­p:
 {final_insights}
 
-Hãy đưa ra câu trả lời toàn diện, chính xác và dễ hiểu.
-Ưu tiên các điểm có độ tin cậy cao nhất từ quá trình suy luận."""
+HÃ£y Ä‘Æ°a ra cÃ¢u tráº£ lá»i toÃ n diá»‡n, chÃ­nh xÃ¡c vÃ  dá»… hiá»ƒu.
+Æ¯u tiÃªn cÃ¡c Ä‘iá»ƒm cÃ³ Ä‘á»™ tin cáº­y cao nháº¥t tá»« quÃ¡ trÃ¬nh suy luáº­n."""
 
         try:
             if self.ai_service:
@@ -361,12 +361,12 @@ Hãy đưa ra câu trả lời toàn diện, chính xác và dễ hiểu.
                     context=context,
                     deep_thinking=True
                 )
-                return result.get('text', 'Không thể tổng hợp câu trả lời.')
+                return result.get('text', 'KhÃ´ng thá»ƒ tá»•ng há»£p cÃ¢u tráº£ lá»i.')
             else:
                 return f"[Synthesized] Answer based on {len(all_trajectories)} trajectories"
         except Exception as e:
             logger.error(f"[Reasoning] Synthesis failed: {e}")
-            return f"Lỗi tổng hợp: {str(e)}"
+            return f"Lá»—i tá»•ng há»£p: {str(e)}"
     
     async def coordinate_reasoning(
         self,
@@ -409,8 +409,8 @@ Hãy đưa ra câu trả lời toàn diện, chính xác và dễ hiểu.
             current_insights = compacted
             
             # Build thinking display
-            thinking_parts.append(f"### 🔄 Vòng {round_num + 1}")
-            thinking_parts.append(f"Đã khám phá {len(trajectories)} hướng suy luận")
+            thinking_parts.append(f"### ðŸ”„ VÃ²ng {round_num + 1}")
+            thinking_parts.append(f"ÄÃ£ khÃ¡m phÃ¡ {len(trajectories)} hÆ°á»›ng suy luáº­n")
             thinking_parts.append(f"**Insights:**\n{compacted}\n")
             
             # Early exit if high confidence reached
@@ -420,7 +420,7 @@ Hãy đưa ra câu trả lời toàn diện, chính xác và dễ hiểu.
                 break
         
         # Synthesize final answer
-        thinking_parts.append("### ✨ Tổng hợp câu trả lời")
+        thinking_parts.append("### âœ¨ Tá»•ng há»£p cÃ¢u tráº£ lá»i")
         final_answer = self._synthesize_final_answer(
             message, all_trajectories, current_insights, context
         )

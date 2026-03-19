@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database Package for Chatbot Service
 
 Repository pattern implementation for MongoDB.

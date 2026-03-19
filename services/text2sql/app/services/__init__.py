@@ -1,4 +1,4 @@
-"""
+﻿"""
 Text2SQL Services Package
 Business logic for SQL generation
 """

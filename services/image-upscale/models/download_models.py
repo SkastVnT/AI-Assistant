@@ -1,4 +1,4 @@
-"""
+﻿"""
 Script to download pretrained models
 """
 import os
@@ -38,17 +38,17 @@ def download_models(models_to_download=None):
         output_path = model_dir / f"{model_name}.pth"
         
         if output_path.exists():
-            print(f"✓ {model_name} already downloaded")
+            print(f"âœ“ {model_name} already downloaded")
             continue
         
         try:
-            print(f"\n📥 Downloading {model_name}...")
+            print(f"\nðŸ“¥ Downloading {model_name}...")
             download_file(url, str(output_path))
-            print(f"✓ {model_name} downloaded successfully")
+            print(f"âœ“ {model_name} downloaded successfully")
         except Exception as e:
-            print(f"✗ Failed to download {model_name}: {e}")
+            print(f"âœ— Failed to download {model_name}: {e}")
     
-    print("\n✨ Download complete!")
+    print("\nâœ¨ Download complete!")
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Create sample test images in data/input folder
 """
 from PIL import Image, ImageDraw, ImageFont
@@ -14,7 +14,7 @@ def create_test_images():
         color = int(255 * y / 200)
         draw.rectangle([0, y, 200, y+1], fill=(color, 100, 255-color))
     img1.save('data/input/gradient.png')
-    print("✓ Created gradient.png")
+    print("âœ“ Created gradient.png")
     
     # 2. Geometric shapes
     img2 = Image.new('RGB', (300, 300), color='white')
@@ -23,7 +23,7 @@ def create_test_images():
     draw.ellipse([150, 50, 250, 150], fill='blue', outline='black', width=2)
     draw.polygon([(150, 250), (200, 200), (250, 250)], fill='green', outline='black')
     img2.save('data/input/shapes.png')
-    print("✓ Created shapes.png")
+    print("âœ“ Created shapes.png")
     
     # 3. Text image
     img3 = Image.new('RGB', (400, 200), color='lightblue')
@@ -33,7 +33,7 @@ def create_test_images():
     except:
         draw.text((50, 80), "Test Image", fill='black')
     img3.save('data/input/text_sample.png')
-    print("✓ Created text_sample.png")
+    print("âœ“ Created text_sample.png")
     
     # 4. Random pattern
     img4 = Image.new('RGB', (256, 256))
@@ -46,7 +46,7 @@ def create_test_images():
                 random.randint(0, 255)
             )
     img4.save('data/input/random_pattern.png')
-    print("✓ Created random_pattern.png")
+    print("âœ“ Created random_pattern.png")
     
     # 5. Checkerboard
     img5 = Image.new('RGB', (400, 400), color='white')
@@ -57,9 +57,9 @@ def create_test_images():
             if (i // square_size + j // square_size) % 2 == 0:
                 draw.rectangle([i, j, i+square_size, j+square_size], fill='black')
     img5.save('data/input/checkerboard.png')
-    print("✓ Created checkerboard.png")
+    print("âœ“ Created checkerboard.png")
     
-    print(f"\n✅ Created 5 test images in data/input/")
+    print(f"\nâœ… Created 5 test images in data/input/")
 
 if __name__ == '__main__':
     import os

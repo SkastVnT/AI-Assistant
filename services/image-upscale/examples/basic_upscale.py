@@ -1,4 +1,4 @@
-"""
+﻿"""
 Basic upscaling example
 """
 from upscale_tool import ImageUpscaler

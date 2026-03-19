@@ -1,4 +1,4 @@
-"""
+﻿"""
 PostImages Free Image Hosting
 No API key required!
 URL: https://postimages.org/
@@ -51,16 +51,16 @@ class PostImagesUploader:
             image_path = Path(image_path)
             
             if not image_path.exists():
-                logger.error(f"❌ Image not found: {image_path}")
+                logger.error(f"âŒ Image not found: {image_path}")
                 return None
             
             # Validate file is image
             valid_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'}
             if image_path.suffix.lower() not in valid_extensions:
-                logger.error(f"❌ Invalid image format: {image_path.suffix}")
+                logger.error(f"âŒ Invalid image format: {image_path.suffix}")
                 return None
             
-            logger.info(f"📤 Uploading {image_path.name} to PostImages...")
+            logger.info(f"ðŸ“¤ Uploading {image_path.name} to PostImages...")
             
             # Read image file
             with open(image_path, 'rb') as f:
@@ -91,11 +91,11 @@ class PostImagesUploader:
                             image_url = result.get('url')
                             
                             if not image_url:
-                                logger.error(f"❌ No URL in response: {result}")
+                                logger.error(f"âŒ No URL in response: {result}")
                                 return None
                             
-                            logger.info(f"✅ Upload successful!")
-                            logger.info(f"🔗 URL: {image_url}")
+                            logger.info(f"âœ… Upload successful!")
+                            logger.info(f"ðŸ”— URL: {image_url}")
                             
                             return {
                                 'url': image_url,
@@ -108,26 +108,26 @@ class PostImagesUploader:
                             }
                         else:
                             error_msg = result.get('error', result.get('msg', 'Unknown error'))
-                            logger.error(f"❌ Upload failed: {error_msg}")
+                            logger.error(f"âŒ Upload failed: {error_msg}")
                             return None
                             
                     except json.JSONDecodeError as e:
-                        logger.error(f"❌ Invalid JSON response: {response.text[:200]}")
+                        logger.error(f"âŒ Invalid JSON response: {response.text[:200]}")
                         logger.error(f"JSON decode error: {e}")
                         return None
                 else:
-                    logger.error(f"❌ HTTP {response.status_code}")
+                    logger.error(f"âŒ HTTP {response.status_code}")
                     logger.error(f"Response: {response.text[:200]}")
                     return None
                     
         except requests.exceptions.Timeout:
-            logger.error("❌ Upload timeout (>60s)")
+            logger.error("âŒ Upload timeout (>60s)")
             return None
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Network error: {e}")
+            logger.error(f"âŒ Network error: {e}")
             return None
         except Exception as e:
-            logger.error(f"❌ Upload error: {e}")
+            logger.error(f"âŒ Upload error: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -152,19 +152,19 @@ class PostImagesUploader:
                 logger.warning("No delete URL provided")
                 return False
                 
-            logger.info(f"🗑️ Deleting image from PostImages...")
+            logger.info(f"ðŸ—‘ï¸ Deleting image from PostImages...")
             
             response = requests.get(delete_url, timeout=10)
             
             if response.status_code == 200:
-                logger.info("✅ Image deleted successfully")
+                logger.info("âœ… Image deleted successfully")
                 return True
             else:
-                logger.warning(f"⚠️ Delete failed: HTTP {response.status_code}")
+                logger.warning(f"âš ï¸ Delete failed: HTTP {response.status_code}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ Delete error: {e}")
+            logger.error(f"âŒ Delete error: {e}")
             return False
 
 
@@ -209,12 +209,12 @@ if __name__ == "__main__":
     image_path = sys.argv[1]
     
     print("\n" + "="*60)
-    print("🧪 TESTING POSTIMAGES UPLOAD")
+    print("ðŸ§ª TESTING POSTIMAGES UPLOAD")
     print("="*60)
-    print(f"📁 File: {image_path}")
+    print(f"ðŸ“ File: {image_path}")
     
     if Path(image_path).exists():
-        print(f"📦 Size: {Path(image_path).stat().st_size:,} bytes")
+        print(f"ðŸ“¦ Size: {Path(image_path).stat().st_size:,} bytes")
     
     print("="*60 + "\n")
     
@@ -222,19 +222,19 @@ if __name__ == "__main__":
     
     if result:
         print("\n" + "="*60)
-        print("✅ UPLOAD SUCCESS!")
+        print("âœ… UPLOAD SUCCESS!")
         print("="*60)
-        print(f"🔗 Image URL:     {result['url']}")
-        print(f"🌐 Page URL:      {result['page_url']}")
-        print(f"🖼️  Thumbnail URL: {result['thumbnail_url']}")
-        print(f"🗑️  Delete URL:    {result['delete_url']}")
-        print(f"📦 Size:          {result['size']:,} bytes")
-        print(f"📝 Service:       {result['service']}")
+        print(f"ðŸ”— Image URL:     {result['url']}")
+        print(f"ðŸŒ Page URL:      {result['page_url']}")
+        print(f"ðŸ–¼ï¸  Thumbnail URL: {result['thumbnail_url']}")
+        print(f"ðŸ—‘ï¸  Delete URL:    {result['delete_url']}")
+        print(f"ðŸ“¦ Size:          {result['size']:,} bytes")
+        print(f"ðŸ“ Service:       {result['service']}")
         print("="*60)
-        print("\n💡 Copy URL above and paste into browser to view!\n")
+        print("\nðŸ’¡ Copy URL above and paste into browser to view!\n")
     else:
         print("\n" + "="*60)
-        print("❌ UPLOAD FAILED!")
+        print("âŒ UPLOAD FAILED!")
         print("="*60)
         print("Check the error messages above for details.\n")
         sys.exit(1)

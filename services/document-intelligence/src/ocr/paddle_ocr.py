@@ -1,4 +1,4 @@
-"""
+﻿"""
 PaddleOCR Engine Integration
 FREE OCR with Vietnamese support
 """
@@ -34,9 +34,9 @@ class PaddleOCREngine:
         try:
             logger.info("Initializing PaddleOCR engine...")
             self.ocr = PaddleOCR(**self.config)
-            logger.info("✅ PaddleOCR engine initialized successfully")
+            logger.info("âœ… PaddleOCR engine initialized successfully")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize PaddleOCR: {e}")
+            logger.error(f"âŒ Failed to initialize PaddleOCR: {e}")
             raise
     
     def extract_text(self, image_path: str) -> List[Dict[str, Any]]:
@@ -84,11 +84,11 @@ class PaddleOCREngine:
                     }
                 })
             
-            logger.info(f"✅ Extracted {len(text_blocks)} text blocks from {Path(image_path).name}")
+            logger.info(f"âœ… Extracted {len(text_blocks)} text blocks from {Path(image_path).name}")
             return text_blocks
             
         except Exception as e:
-            logger.error(f"❌ OCR extraction failed: {type(e).__name__}: {str(e)}")
+            logger.error(f"âŒ OCR extraction failed: {type(e).__name__}: {str(e)}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return []

@@ -1,4 +1,4 @@
-"""
+﻿"""
 MongoDB Database Helper Functions
 CRUD operations for ChatBot service
 

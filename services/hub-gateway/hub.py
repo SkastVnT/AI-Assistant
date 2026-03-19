@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Assistant Hub - Main Gateway (Refactored)
 Professional structure following Generative AI template
 """
@@ -153,20 +153,20 @@ def print_banner():
     services = HubConfig.get_all_services()
     
     print("=" * 70)
-    print("🚀 AI ASSISTANT HUB - MAIN GATEWAY v2.0")
+    print("ðŸš€ AI ASSISTANT HUB - MAIN GATEWAY v2.0")
     print("=" * 70)
-    print(f"📍 Hub URL: http://{HubConfig.HOST}:{HubConfig.PORT}")
-    print(f"🐛 Debug Mode: {HubConfig.DEBUG}")
-    print(f"📊 Log Level: {HubConfig.LOG_LEVEL}")
+    print(f"ðŸ“ Hub URL: http://{HubConfig.HOST}:{HubConfig.PORT}")
+    print(f"ðŸ› Debug Mode: {HubConfig.DEBUG}")
+    print(f"ðŸ“Š Log Level: {HubConfig.LOG_LEVEL}")
     print(f"")
-    print(f"📦 Available Services ({len(services)}):")
+    print(f"ðŸ“¦ Available Services ({len(services)}):")
     for key, service in services.items():
-        print(f"   {service.icon} {service.name:20s} → {service.url}")
+        print(f"   {service.icon} {service.name:20s} â†’ {service.url}")
     print(f"")
-    print(f"💡 Important Notes:")
-    print(f"   • Each service must run independently on its designated port")
-    print(f"   • Check service README for startup instructions")
-    print(f"   • Use 'start_all.bat' to launch all services at once")
+    print(f"ðŸ’¡ Important Notes:")
+    print(f"   â€¢ Each service must run independently on its designated port")
+    print(f"   â€¢ Check service README for startup instructions")
+    print(f"   â€¢ Use 'start_all.bat' to launch all services at once")
     print("=" * 70)
     logger.info("AI Assistant Hub started successfully")
 

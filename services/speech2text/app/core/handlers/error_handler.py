@@ -1,4 +1,4 @@
-"""
+﻿"""
 Centralized Error Handling for VistralS2T
 Custom exceptions and error handling utilities
 """

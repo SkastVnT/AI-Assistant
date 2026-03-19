@@ -1,13 +1,13 @@
-"""
+﻿"""
 AI-Assistant MCP Server
 =======================
 Model Context Protocol server cho AI-Assistant project.
-Sử dụng FastMCP SDK (miễn phí, mã nguồn mở).
+Sá»­ dá»¥ng FastMCP SDK (miá»…n phÃ­, mÃ£ nguá»“n má»Ÿ).
 
-Server này cung cấp:
-- Tools: Các công cụ để AI thực thi (search, query database, file operations)
-- Resources: Dữ liệu và tài nguyên từ project (logs, configs, data)
-- Prompts: Template prompts cho các tác vụ phổ biến
+Server nÃ y cung cáº¥p:
+- Tools: CÃ¡c cÃ´ng cá»¥ Ä‘á»ƒ AI thá»±c thi (search, query database, file operations)
+- Resources: Dá»¯ liá»‡u vÃ  tÃ i nguyÃªn tá»« project (logs, configs, data)
+- Prompts: Template prompts cho cÃ¡c tÃ¡c vá»¥ phá»• biáº¿n
 """
 
 import os
@@ -20,11 +20,11 @@ from datetime import datetime
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:
-    print("ERROR: FastMCP không được cài đặt.")
-    print("Vui lòng chạy: pip install 'mcp[cli]'")
+    print("ERROR: FastMCP khÃ´ng Ä‘Æ°á»£c cÃ i Ä‘áº·t.")
+    print("Vui lÃ²ng cháº¡y: pip install 'mcp[cli]'")
     exit(1)
 
-# Khởi tạo MCP server
+# Khá»Ÿi táº¡o MCP server
 mcp = FastMCP("AI-Assistant")
 
 # Base paths
@@ -39,15 +39,15 @@ LOGS_DIR = RESOURCES_DIR / "logs"
 @mcp.tool()
 def search_files(query: str, file_type: str = "all", max_results: int = 10) -> Dict[str, Any]:
     """
-    Tìm kiếm files trong workspace theo query.
+    TÃ¬m kiáº¿m files trong workspace theo query.
     
     Args:
-        query: Từ khóa tìm kiếm
-        file_type: Loại file (all, py, md, json, txt)
-        max_results: Số kết quả tối đa
+        query: Tá»« khÃ³a tÃ¬m kiáº¿m
+        file_type: Loáº¡i file (all, py, md, json, txt)
+        max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
         
     Returns:
-        Dict chứa danh sách files tìm thấy
+        Dict chá»©a danh sÃ¡ch files tÃ¬m tháº¥y
     """
     results = []
     extensions = {
@@ -93,25 +93,25 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
 @mcp.tool()
 def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
     """
-    Đọc nội dung file.
+    Äá»c ná»™i dung file.
     
     Args:
-        file_path: Đường dẫn tương đối từ project root
-        max_lines: Số dòng tối đa đọc
+        file_path: ÄÆ°á»ng dáº«n tÆ°Æ¡ng Ä‘á»‘i tá»« project root
+        max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a Ä‘á»c
         
     Returns:
-        Dict chứa nội dung file
+        Dict chá»©a ná»™i dung file
     """
     try:
         full_path = BASE_DIR / file_path
         
         if not full_path.exists():
-            return {"error": f"File không tồn tại: {file_path}"}
+            return {"error": f"File khÃ´ng tá»“n táº¡i: {file_path}"}
         
         if not full_path.is_file():
-            return {"error": f"Đường dẫn không phải là file: {file_path}"}
+            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  file: {file_path}"}
         
-        # Đọc file
+        # Äá»c file
         with open(full_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         
@@ -127,29 +127,29 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        return {"error": f"Lỗi đọc file: {str(e)}"}
+        return {"error": f"Lá»—i Ä‘á»c file: {str(e)}"}
 
 
 @mcp.tool()
 def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[str, Any]:
     """
-    Liệt kê nội dung thư mục.
+    Liá»‡t kÃª ná»™i dung thÆ° má»¥c.
     
     Args:
-        dir_path: Đường dẫn thư mục (tương đối từ project root)
-        include_hidden: Có hiển thị file/folder ẩn không
+        dir_path: ÄÆ°á»ng dáº«n thÆ° má»¥c (tÆ°Æ¡ng Ä‘á»‘i tá»« project root)
+        include_hidden: CÃ³ hiá»ƒn thá»‹ file/folder áº©n khÃ´ng
         
     Returns:
-        Dict chứa danh sách files và folders
+        Dict chá»©a danh sÃ¡ch files vÃ  folders
     """
     try:
         full_path = BASE_DIR / dir_path
         
         if not full_path.exists():
-            return {"error": f"Thư mục không tồn tại: {dir_path}"}
+            return {"error": f"ThÆ° má»¥c khÃ´ng tá»“n táº¡i: {dir_path}"}
         
         if not full_path.is_dir():
-            return {"error": f"Đường dẫn không phải là thư mục: {dir_path}"}
+            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
         
         files = []
         folders = []
@@ -178,16 +178,16 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
         }
     
     except Exception as e:
-        return {"error": f"Lỗi liệt kê thư mục: {str(e)}"}
+        return {"error": f"Lá»—i liá»‡t kÃª thÆ° má»¥c: {str(e)}"}
 
 
 @mcp.tool()
 def get_project_info() -> Dict[str, Any]:
     """
-    Lấy thông tin tổng quan về project AI-Assistant.
+    Láº¥y thÃ´ng tin tá»•ng quan vá» project AI-Assistant.
     
     Returns:
-        Dict chứa thông tin project
+        Dict chá»©a thÃ´ng tin project
     """
     services = []
     services_dir = BASE_DIR / "services"
@@ -210,30 +210,30 @@ def get_project_info() -> Dict[str, Any]:
             "resources": (BASE_DIR / "resources").exists(),
             "local_data": (BASE_DIR / "local_data").exists()
         },
-        "description": "Multi-service AI application với chatbot, document intelligence, image processing, và nhiều tính năng khác."
+        "description": "Multi-service AI application vá»›i chatbot, document intelligence, image processing, vÃ  nhiá»u tÃ­nh nÄƒng khÃ¡c."
     }
 
 
 @mcp.tool()
 def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50) -> Dict[str, Any]:
     """
-    Tìm kiếm và đọc logs từ các services.
+    TÃ¬m kiáº¿m vÃ  Ä‘á»c logs tá»« cÃ¡c services.
     
     Args:
-        service: Tên service (all, chatbot, text2sql, etc.)
+        service: TÃªn service (all, chatbot, text2sql, etc.)
         level: Log level (all, error, warning, info)
-        last_n_lines: Số dòng cuối cùng đọc từ log
+        last_n_lines: Sá»‘ dÃ²ng cuá»‘i cÃ¹ng Ä‘á»c tá»« log
         
     Returns:
-        Dict chứa log entries
+        Dict chá»©a log entries
     """
     try:
         logs_found = []
         
         if not LOGS_DIR.exists():
-            return {"error": "Thư mục logs không tồn tại"}
+            return {"error": "ThÆ° má»¥c logs khÃ´ng tá»“n táº¡i"}
         
-        # Tìm log files
+        # TÃ¬m log files
         for log_file in LOGS_DIR.glob("*.log"):
             if service != "all" and service.lower() not in log_file.name.lower():
                 continue
@@ -262,24 +262,24 @@ def search_logs(service: str = "all", level: str = "all", last_n_lines: int = 50
         }
     
     except Exception as e:
-        return {"error": f"Lỗi đọc logs: {str(e)}"}
+        return {"error": f"Lá»—i Ä‘á»c logs: {str(e)}"}
 
 
 @mcp.tool()
 def calculate(expression: str) -> Dict[str, Any]:
     """
-    Thực hiện phép tính toán học.
+    Thá»±c hiá»‡n phÃ©p tÃ­nh toÃ¡n há»c.
     
     Args:
-        expression: Biểu thức toán học (vd: "2 + 2", "sqrt(16)", "10 ** 2")
+        expression: Biá»ƒu thá»©c toÃ¡n há»c (vd: "2 + 2", "sqrt(16)", "10 ** 2")
         
     Returns:
-        Dict chứa kết quả tính toán
+        Dict chá»©a káº¿t quáº£ tÃ­nh toÃ¡n
     """
     import math
     
     try:
-        # Safe eval với math functions
+        # Safe eval vá»›i math functions
         allowed_names = {
             k: v for k, v in math.__dict__.items() if not k.startswith("__")
         }
@@ -303,7 +303,7 @@ def calculate(expression: str) -> Dict[str, Any]:
     except Exception as e:
         return {
             "expression": expression,
-            "error": f"Lỗi tính toán: {str(e)}"
+            "error": f"Lá»—i tÃ­nh toÃ¡n: {str(e)}"
         }
 
 
@@ -311,7 +311,7 @@ def calculate(expression: str) -> Dict[str, Any]:
 
 @mcp.resource("config://model")
 def get_model_config() -> str:
-    """Lấy cấu hình model từ config/model_config.py"""
+    """Láº¥y cáº¥u hÃ¬nh model tá»« config/model_config.py"""
     try:
         config_file = BASE_DIR / "config" / "model_config.py"
         if config_file.exists():
@@ -324,7 +324,7 @@ def get_model_config() -> str:
 
 @mcp.resource("config://logging")
 def get_logging_config() -> str:
-    """Lấy cấu hình logging từ config/logging_config.py"""
+    """Láº¥y cáº¥u hÃ¬nh logging tá»« config/logging_config.py"""
     try:
         config_file = BASE_DIR / "config" / "logging_config.py"
         if config_file.exists():
@@ -337,7 +337,7 @@ def get_logging_config() -> str:
 
 @mcp.resource("docs://readme")
 def get_readme() -> str:
-    """Lấy nội dung README.md chính của project"""
+    """Láº¥y ná»™i dung README.md chÃ­nh cá»§a project"""
     try:
         readme_file = BASE_DIR / "README.md"
         if readme_file.exists():
@@ -350,7 +350,7 @@ def get_readme() -> str:
 
 @mcp.resource("docs://structure")
 def get_structure_doc() -> str:
-    """Lấy tài liệu cấu trúc project"""
+    """Láº¥y tÃ i liá»‡u cáº¥u trÃºc project"""
     try:
         structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
         if structure_file.exists():
@@ -366,78 +366,78 @@ def get_structure_doc() -> str:
 @mcp.prompt()
 def code_review_prompt(file_path: str) -> str:
     """
-    Prompt template để review code.
+    Prompt template Ä‘á»ƒ review code.
     
     Args:
-        file_path: Đường dẫn file cần review
+        file_path: ÄÆ°á»ng dáº«n file cáº§n review
     """
-    return f"""Hãy review code trong file: {file_path}
+    return f"""HÃ£y review code trong file: {file_path}
 
-Tập trung vào:
-1. Code quality và best practices
-2. Potential bugs hoặc issues
+Táº­p trung vÃ o:
+1. Code quality vÃ  best practices
+2. Potential bugs hoáº·c issues
 3. Performance optimization
 4. Security concerns
 5. Suggestions for improvement
 
-Hãy đưa ra phân tích chi tiết và constructive feedback."""
+HÃ£y Ä‘Æ°a ra phÃ¢n tÃ­ch chi tiáº¿t vÃ  constructive feedback."""
 
 
 @mcp.prompt()
 def debug_prompt(error_message: str, context: str = "") -> str:
     """
-    Prompt template để debug lỗi.
+    Prompt template Ä‘á»ƒ debug lá»—i.
     
     Args:
-        error_message: Thông báo lỗi
-        context: Context thêm về lỗi
+        error_message: ThÃ´ng bÃ¡o lá»—i
+        context: Context thÃªm vá» lá»—i
     """
-    return f"""Debug lỗi sau:
+    return f"""Debug lá»—i sau:
 
 Error Message: {error_message}
 
 Context: {context}
 
-Hãy:
-1. Phân tích nguyên nhân gốc rễ của lỗi
-2. Đưa ra các bước để reproduce
-3. Suggest solution để fix
+HÃ£y:
+1. PhÃ¢n tÃ­ch nguyÃªn nhÃ¢n gá»‘c rá»… cá»§a lá»—i
+2. ÄÆ°a ra cÃ¡c bÆ°á»›c Ä‘á»ƒ reproduce
+3. Suggest solution Ä‘á»ƒ fix
 4. Recommend preventive measures"""
 
 
 @mcp.prompt()
 def explain_code_prompt(code_snippet: str) -> str:
     """
-    Prompt template để giải thích code.
+    Prompt template Ä‘á»ƒ giáº£i thÃ­ch code.
     
     Args:
-        code_snippet: Đoạn code cần giải thích
+        code_snippet: Äoáº¡n code cáº§n giáº£i thÃ­ch
     """
-    return f"""Hãy giải thích đoạn code sau:
+    return f"""HÃ£y giáº£i thÃ­ch Ä‘oáº¡n code sau:
 
 ```
 {code_snippet}
 ```
 
-Giải thích:
-1. Mục đích của code
-2. Cách hoạt động từng phần
+Giáº£i thÃ­ch:
+1. Má»¥c Ä‘Ã­ch cá»§a code
+2. CÃ¡ch hoáº¡t Ä‘á»™ng tá»«ng pháº§n
 3. Input/Output expected
-4. Các edge cases cần lưu ý"""
+4. CÃ¡c edge cases cáº§n lÆ°u Ã½"""
 
 
 # ==================== MAIN ====================
 
 def main():
-    """Khởi động MCP server"""
-    print(f"🚀 Starting AI-Assistant MCP Server...")
-    print(f"📁 Base Directory: {BASE_DIR}")
-    print(f"\n📋 Available Features:")
-    print(f"   🔧 Tools: File operations, search, logs, calculations")
-    print(f"   📦 Resources: Configuration, documentation")
-    print(f"   💬 Prompts: Code review, debugging, explanations")
-    print(f"\n✅ Server is ready!")
-    print(f"📡 Listening for MCP client connections...")
+    """Khá»Ÿi Ä‘á»™ng MCP server"""
+    print(f"ðŸš€ Starting AI-Assistant MCP Server...")
+    print(f"ðŸ“ Base Directory: {BASE_DIR}")
+    print(f"\nðŸ“‹ Available Features:")
+    print(f"   ðŸ”§ Tools: File operations, search, logs, calculations")
+    print(f"   ðŸ“¦ Resources: Configuration, documentation")
+    print(f"   ðŸ’¬ Prompts: Code review, debugging, explanations")
+    print(f"\nâœ… Server is ready!")
+    print(f"ðŸ“¡ Listening for MCP client connections...")
     
     # Run server
     mcp.run()

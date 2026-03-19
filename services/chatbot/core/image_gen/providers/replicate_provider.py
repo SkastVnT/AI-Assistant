@@ -1,5 +1,5 @@
-"""
-Replicate provider — run any model on the cloud.
+﻿"""
+Replicate provider â€” run any model on the cloud.
 Supports FLUX, Grok-Imagine, Recraft, Seedream, and community models.
 """
 
@@ -43,7 +43,7 @@ REPLICATE_COST = {
 
 
 class ReplicateProvider(BaseImageProvider):
-    """Replicate — run any model via prediction API."""
+    """Replicate â€” run any model via prediction API."""
 
     name = "replicate"
     tier = ProviderTier.ULTRA

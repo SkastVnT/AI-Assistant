@@ -1,4 +1,4 @@
-"""
+﻿"""
 Image storage routes with session-based privacy
 Each user session can only see their own images
 But all images are still stored in MongoDB/Firebase for the owner
@@ -234,7 +234,7 @@ def get_gallery():
         images = []
         source = 'local'
         
-        # ── Try MongoDB first (generated_images collection) ──
+        # â”€â”€ Try MongoDB first (generated_images collection) â”€â”€
         try:
             from core.image_storage import images_collection
             if images_collection is not None:
@@ -292,7 +292,7 @@ def get_gallery():
         except Exception as mongo_err:
             logger.warning(f"[Gallery] MongoDB fetch failed, falling back to local: {mongo_err}")
         
-        # ── Fallback: local disk ──
+        # â”€â”€ Fallback: local disk â”€â”€
         if not images:
             for img_file in IMAGE_STORAGE_DIR.glob('*.png'):
                 metadata_file = img_file.with_suffix('.json')

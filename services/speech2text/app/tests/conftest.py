@@ -1,4 +1,4 @@
-"""
+﻿"""
 Pytest configuration for VistralS2T tests
 Shared fixtures and settings
 """
@@ -34,9 +34,9 @@ def output_dir(tmp_path_factory):
 def sample_transcripts():
     """Sample transcripts for testing"""
     return {
-        "whisper": "Xin chào tôi muốn hỏi về đơn hàng",
-        "phowhisper": "Xin chào, tôi muốn hỏi về đơn hàng của tôi",
-        "fused": "Khách hàng: Xin chào, tôi muốn hỏi về đơn hàng của tôi.",
+        "whisper": "Xin chÃ o tÃ´i muá»‘n há»i vá» Ä‘Æ¡n hÃ ng",
+        "phowhisper": "Xin chÃ o, tÃ´i muá»‘n há»i vá» Ä‘Æ¡n hÃ ng cá»§a tÃ´i",
+        "fused": "KhÃ¡ch hÃ ng: Xin chÃ o, tÃ´i muá»‘n há»i vá» Ä‘Æ¡n hÃ ng cá»§a tÃ´i.",
     }
 
 

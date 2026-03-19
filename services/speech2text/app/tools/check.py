@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 VistralS2T System Health Check
@@ -17,12 +17,12 @@ def print_header(text):
 def check_python():
     """Check Python version"""
     print("\n[1/8] Python Version")
-    print(f"  ✓ Python {sys.version.split()[0]}")
+    print(f"  âœ“ Python {sys.version.split()[0]}")
     if sys.version_info >= (3, 10) and sys.version_info < (3, 11):
-        print("  ✓ Version OK (3.10.x required)")
+        print("  âœ“ Version OK (3.10.x required)")
         return True
     else:
-        print("  ✗ Version mismatch (3.10.x recommended)")
+        print("  âœ— Version mismatch (3.10.x recommended)")
         return False
 
 def check_pytorch():
@@ -30,18 +30,18 @@ def check_pytorch():
     print("\n[2/8] PyTorch & CUDA")
     try:
         import torch
-        print(f"  ✓ PyTorch {torch.__version__}")
+        print(f"  âœ“ PyTorch {torch.__version__}")
         
         cuda_available = torch.cuda.is_available()
         if cuda_available:
-            print(f"  ✓ CUDA Available: {torch.cuda.get_device_name(0)}")
-            print(f"  ✓ CUDA Version: {torch.version.cuda}")
+            print(f"  âœ“ CUDA Available: {torch.cuda.get_device_name(0)}")
+            print(f"  âœ“ CUDA Version: {torch.version.cuda}")
             return True
         else:
-            print("  ⚠ CUDA not available (CPU mode)")
+            print("  âš  CUDA not available (CPU mode)")
             return True
     except ImportError as e:
-        print(f"  ✗ PyTorch not found: {e}")
+        print(f"  âœ— PyTorch not found: {e}")
         return False
 
 def check_transformers():
@@ -49,13 +49,13 @@ def check_transformers():
     print("\n[3/8] Transformers & HuggingFace")
     try:
         import transformers
-        print(f"  ✓ Transformers {transformers.__version__}")
+        print(f"  âœ“ Transformers {transformers.__version__}")
         
         import huggingface_hub
-        print(f"  ✓ HuggingFace Hub installed")
+        print(f"  âœ“ HuggingFace Hub installed")
         return True
     except ImportError as e:
-        print(f"  ✗ Transformers/HF Hub not found: {e}")
+        print(f"  âœ— Transformers/HF Hub not found: {e}")
         return False
 
 def check_whisper():
@@ -63,10 +63,10 @@ def check_whisper():
     print("\n[4/8] Faster-Whisper")
     try:
         import faster_whisper
-        print(f"  ✓ Faster-Whisper installed")
+        print(f"  âœ“ Faster-Whisper installed")
         return True
     except ImportError as e:
-        print(f"  ✗ Faster-Whisper not found: {e}")
+        print(f"  âœ— Faster-Whisper not found: {e}")
         return False
 
 def check_audio_libs():
@@ -84,9 +84,9 @@ def check_audio_libs():
     for module, name in libs.items():
         try:
             __import__(module)
-            print(f"  ✓ {name}")
+            print(f"  âœ“ {name}")
         except ImportError:
-            print(f"  ✗ {name} not found")
+            print(f"  âœ— {name} not found")
             all_ok = False
     
     return all_ok
@@ -96,7 +96,7 @@ def check_diarization():
     print("\n[6/8] Speaker Diarization")
     try:
         import pyannote.audio
-        print(f"  ✓ Pyannote.audio installed")
+        print(f"  âœ“ Pyannote.audio installed")
         
         # Check for HF token
         env_path = os.path.join('app', 'config', '.env')
@@ -104,18 +104,18 @@ def check_diarization():
             with open(env_path, 'r', encoding='utf-8') as f:
                 content = f.read()
                 if 'HF_TOKEN' in content and 'your_token_here' not in content:
-                    print(f"  ✓ HuggingFace token configured")
+                    print(f"  âœ“ HuggingFace token configured")
                 else:
-                    print(f"  ⚠ HF_TOKEN not set in .env (required for diarization)")
+                    print(f"  âš  HF_TOKEN not set in .env (required for diarization)")
         else:
-            print(f"  ⚠ .env file not found (create from .env.example)")
+            print(f"  âš  .env file not found (create from .env.example)")
         
         return True
     except ImportError as e:
-        print(f"  ✗ Pyannote.audio not found: {e}")
+        print(f"  âœ— Pyannote.audio not found: {e}")
         return False
     except Exception as e:
-        print(f"  ⚠ Error checking diarization: {e}")
+        print(f"  âš  Error checking diarization: {e}")
         return True
 
 def check_web_ui():
@@ -132,9 +132,9 @@ def check_web_ui():
     for module, name in libs.items():
         try:
             __import__(module)
-            print(f"  ✓ {name}")
+            print(f"  âœ“ {name}")
         except ImportError:
-            print(f"  ✗ {name} not found")
+            print(f"  âœ— {name} not found")
             all_ok = False
     
     return all_ok
@@ -152,9 +152,9 @@ def check_dev_tools():
     for module, name in tools.items():
         try:
             __import__(module)
-            print(f"  ✓ {name}")
+            print(f"  âœ“ {name}")
         except ImportError:
-            print(f"  ⚠ {name} not found (optional)")
+            print(f"  âš  {name} not found (optional)")
     
     return True
 
@@ -173,9 +173,9 @@ def check_directories():
     all_ok = True
     for dir_path in required_dirs:
         if os.path.exists(dir_path):
-            print(f"  ✓ {dir_path}/")
+            print(f"  âœ“ {dir_path}/")
         else:
-            print(f"  ✗ {dir_path}/ not found")
+            print(f"  âœ— {dir_path}/ not found")
             all_ok = False
     
     return all_ok
@@ -202,7 +202,7 @@ def main():
             result = check()
             results.append(result)
         except Exception as e:
-            print(f"  ✗ Check failed: {e}")
+            print(f"  âœ— Check failed: {e}")
             results.append(False)
     
     # Summary
@@ -213,17 +213,17 @@ def main():
     print(f"\n  Passed: {passed}/{total} checks")
     
     if passed == total:
-        print("  ✅ System is fully operational!")
+        print("  âœ… System is fully operational!")
         print("\n  Next steps:")
         print("    1. Configure .env: notepad app\\config\\.env")
         print("    2. Run transcription: run.bat")
         print("    3. Or launch Web UI: start_webui.bat")
     elif passed >= total - 2:
-        print("  ⚠ System is mostly operational with minor issues")
-        print("  ✓ You can proceed but some features may be limited")
+        print("  âš  System is mostly operational with minor issues")
+        print("  âœ“ You can proceed but some features may be limited")
     else:
-        print("  ✗ System has critical issues")
-        print("  ⚠ Please run: rebuild_project.bat")
+        print("  âœ— System has critical issues")
+        print("  âš  Please run: rebuild_project.bat")
     
     print("\n" + "="*70 + "\n")
     

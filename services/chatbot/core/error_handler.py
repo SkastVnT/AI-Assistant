@@ -1,5 +1,5 @@
-"""
-Enhanced Error Handler — Centralized error handling with user-friendly messages,
+﻿"""
+Enhanced Error Handler â€” Centralized error handling with user-friendly messages,
 automatic model fallback suggestions, and error analytics.
 """
 import logging
@@ -17,38 +17,38 @@ logger = logging.getLogger(__name__)
 ERROR_MESSAGES = {
     # API Key issues
     'no_api_key': {
-        'vi': '❌ API key chưa được cấu hình cho model {model}. Vui lòng kiểm tra file .env',
-        'en': '❌ API key not configured for model {model}. Please check your .env file',
+        'vi': 'âŒ API key chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh cho model {model}. Vui lÃ²ng kiá»ƒm tra file .env',
+        'en': 'âŒ API key not configured for model {model}. Please check your .env file',
     },
     # Rate limiting
     'rate_limited': {
-        'vi': '⏳ Đã vượt giới hạn request. Vui lòng đợi {wait}s hoặc chuyển sang model khác.',
-        'en': '⏳ Rate limited. Please wait {wait}s or switch to another model.',
+        'vi': 'â³ ÄÃ£ vÆ°á»£t giá»›i háº¡n request. Vui lÃ²ng Ä‘á»£i {wait}s hoáº·c chuyá»ƒn sang model khÃ¡c.',
+        'en': 'â³ Rate limited. Please wait {wait}s or switch to another model.',
     },
     # Network errors
     'connection_error': {
-        'vi': '🌐 Không thể kết nối đến {provider}. Kiểm tra mạng hoặc thử model khác.',
-        'en': '🌐 Cannot connect to {provider}. Check network or try another model.',
+        'vi': 'ðŸŒ KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n {provider}. Kiá»ƒm tra máº¡ng hoáº·c thá»­ model khÃ¡c.',
+        'en': 'ðŸŒ Cannot connect to {provider}. Check network or try another model.',
     },
     # Timeout
     'timeout': {
-        'vi': '⏱️ Request timeout ({timeout}s). Thử lại với tin nhắn ngắn hơn hoặc model nhanh hơn.',
-        'en': '⏱️ Request timeout ({timeout}s). Try a shorter message or faster model.',
+        'vi': 'â±ï¸ Request timeout ({timeout}s). Thá»­ láº¡i vá»›i tin nháº¯n ngáº¯n hÆ¡n hoáº·c model nhanh hÆ¡n.',
+        'en': 'â±ï¸ Request timeout ({timeout}s). Try a shorter message or faster model.',
     },
     # Model unavailable
     'model_unavailable': {
-        'vi': '❌ Model {model} hiện không khả dụng. Gợi ý: {fallbacks}',
-        'en': '❌ Model {model} is currently unavailable. Suggestions: {fallbacks}',
+        'vi': 'âŒ Model {model} hiá»‡n khÃ´ng kháº£ dá»¥ng. Gá»£i Ã½: {fallbacks}',
+        'en': 'âŒ Model {model} is currently unavailable. Suggestions: {fallbacks}',
     },
     # Balance issues
     'insufficient_balance': {
-        'vi': '💰 Hết balance cho {model}. Sử dụng model FREE: Gemini, Step-3.5 Flash, BloomVN',
-        'en': '💰 Insufficient balance for {model}. Use FREE models: Gemini, Step-3.5 Flash, BloomVN',
+        'vi': 'ðŸ’° Háº¿t balance cho {model}. Sá»­ dá»¥ng model FREE: Gemini, Step-3.5 Flash, BloomVN',
+        'en': 'ðŸ’° Insufficient balance for {model}. Use FREE models: Gemini, Step-3.5 Flash, BloomVN',
     },
     # Generic
     'unknown': {
-        'vi': '❌ Lỗi không xác định: {error}',
-        'en': '❌ Unknown error: {error}',
+        'vi': 'âŒ Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh: {error}',
+        'en': 'âŒ Unknown error: {error}',
     },
 }
 
@@ -98,7 +98,7 @@ def get_user_friendly_error(error: Exception, model: str = 'unknown', language: 
     error_type = classify_error(error)
     
     messages = ERROR_MESSAGES.get(error_type, ERROR_MESSAGES['unknown'])
-    msg_template = messages.get(language, messages.get('vi', '❌ Error: {error}'))
+    msg_template = messages.get(language, messages.get('vi', 'âŒ Error: {error}'))
     
     # Get fallback suggestions
     fallbacks = MODEL_FALLBACKS.get(model, ['gemini', 'step-flash', 'deepseek'])
@@ -115,7 +115,7 @@ def get_user_friendly_error(error: Exception, model: str = 'unknown', language: 
             fallbacks=fallback_str,
         )
     except (KeyError, IndexError):
-        msg = f"❌ Error with {model}: {str(error)[:200]}"
+        msg = f"âŒ Error with {model}: {str(error)[:200]}"
     
     # Track stats
     _track_error(model, error_type, str(error))
@@ -157,7 +157,7 @@ def get_error_stats() -> dict:
 
 
 def api_error_handler(f):
-    """Decorator for Flask API routes — catches errors and returns user-friendly JSON"""
+    """Decorator for Flask API routes â€” catches errors and returns user-friendly JSON"""
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:

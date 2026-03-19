@@ -1,4 +1,4 @@
-"""
+﻿"""
 Text2SQL Application Package
 Modular Flask application for natural language to SQL conversion
 """

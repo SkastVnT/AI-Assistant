@@ -1,4 +1,4 @@
-"""
+﻿"""
 OCR Processing Pipeline
 Handles image preprocessing, OCR execution, and post-processing
 """
@@ -49,7 +49,7 @@ class OCRProcessor:
         image_path = Path(image_path)
         
         try:
-            logger.info(f"📄 Processing image: {image_path.name}")
+            logger.info(f"ðŸ“„ Processing image: {image_path.name}")
             
             # Verify file exists
             if not image_path.exists():
@@ -79,11 +79,11 @@ class OCRProcessor:
             if options.get('save_output', True):
                 self._save_result(result, image_path.stem)
             
-            logger.info(f"✅ Successfully processed {image_path.name}")
+            logger.info(f"âœ… Successfully processed {image_path.name}")
             return result
             
         except Exception as e:
-            logger.error(f"❌ Failed to process {image_path.name}: {e}")
+            logger.error(f"âŒ Failed to process {image_path.name}: {e}")
             return {
                 'success': False,
                 'filename': image_path.name,
@@ -105,7 +105,7 @@ class OCRProcessor:
         pdf_path = Path(pdf_path)
         
         try:
-            logger.info(f"📑 Processing PDF: {pdf_path.name}")
+            logger.info(f"ðŸ“‘ Processing PDF: {pdf_path.name}")
             
             # Open PDF
             doc = fitz.open(pdf_path)
@@ -159,11 +159,11 @@ class OCRProcessor:
             if options.get('save_output', True):
                 self._save_result(combined_result, pdf_path.stem)
             
-            logger.info(f"✅ Successfully processed PDF with {total_pages} pages")
+            logger.info(f"âœ… Successfully processed PDF with {total_pages} pages")
             return combined_result
             
         except Exception as e:
-            logger.error(f"❌ Failed to process PDF {pdf_path.name}: {e}")
+            logger.error(f"âŒ Failed to process PDF {pdf_path.name}: {e}")
             return {
                 'success': False,
                 'filename': pdf_path.name,
@@ -213,7 +213,7 @@ class OCRProcessor:
                 with open(txt_path, 'w', encoding='utf-8') as f:
                     f.write(text_content)
                 
-                logger.info(f"💾 Saved results: {json_path.name}, {txt_path.name}")
+                logger.info(f"ðŸ’¾ Saved results: {json_path.name}, {txt_path.name}")
             
         except Exception as e:
             logger.error(f"Failed to save result: {e}")

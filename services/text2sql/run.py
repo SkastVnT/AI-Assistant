@@ -1,4 +1,4 @@
-"""
+﻿"""
 Text2SQL Service Entry Point
 Run with: python run.py
 """
@@ -20,12 +20,12 @@ def main():
     
     # Print startup banner
     print("=" * 60)
-    print("🔍 TEXT2SQL SERVICE v2.0")
+    print("ðŸ” TEXT2SQL SERVICE v2.0")
     print("=" * 60)
-    print(f"📍 URL: http://{config.HOST}:{config.PORT}")
-    print(f"🐛 Debug: {config.DEBUG}")
-    print(f"🤖 Default Model: {config.DEFAULT_SQL_MODEL}")
-    print(f"🔧 Refine Strategy: {config.REFINE_STRATEGY}")
+    print(f"ðŸ“ URL: http://{config.HOST}:{config.PORT}")
+    print(f"ðŸ› Debug: {config.DEBUG}")
+    print(f"ðŸ¤– Default Model: {config.DEFAULT_SQL_MODEL}")
+    print(f"ðŸ”§ Refine Strategy: {config.REFINE_STRATEGY}")
     print("=" * 60)
     
     app.run(

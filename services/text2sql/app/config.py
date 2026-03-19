@@ -1,16 +1,26 @@
-"""
+﻿"""
 Text2SQL Configuration
 Environment-based configuration management
 """
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
 env_path = Path(__file__).parent.parent.parent.parent / '.env'
-load_dotenv(env_path)
-
+load_shared_env(__file__)
 
 class BaseConfig:
     """Base configuration."""
@@ -103,3 +113,5 @@ def get_config(config_name: str = None) -> BaseConfig:
     }
     
     return configs.get(config_name, DevelopmentConfig)()
+
+

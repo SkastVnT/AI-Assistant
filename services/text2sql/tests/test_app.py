@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit Tests for Text2SQL Application
 """
 import pytest
@@ -76,7 +76,7 @@ class TestSQLGeneration:
         """Test Vietnamese language question"""
         response = client.post('/chat',
                               json={
-                                  'question': 'Hiển thị 10 khách hàng có doanh thu cao nhất',
+                                  'question': 'Hiá»ƒn thá»‹ 10 khÃ¡ch hÃ ng cÃ³ doanh thu cao nháº¥t',
                                   'database_type': 'clickhouse'
                               },
                               content_type='application/json')
@@ -89,7 +89,7 @@ class TestQuestionGeneration:
         """Test question generation from schema"""
         response = client.post('/chat',
                               json={
-                                  'question': 'tạo câu hỏi',
+                                  'question': 'táº¡o cÃ¢u há»i',
                                   'schema': sample_schema
                               },
                               content_type='application/json')
@@ -97,7 +97,7 @@ class TestQuestionGeneration:
     
     def test_generate_questions_keywords(self, client, sample_schema):
         """Test various question generation keywords"""
-        keywords = ['tạo câu hỏi', 'generate questions', 'gợi ý', 'ví dụ']
+        keywords = ['táº¡o cÃ¢u há»i', 'generate questions', 'gá»£i Ã½', 'vÃ­ dá»¥']
         
         for keyword in keywords:
             response = client.post('/chat',
@@ -130,7 +130,7 @@ class TestKnowledgeBase:
         """Test AI learning keyword detection"""
         response = client.post('/chat',
                               json={
-                                  'question': 'Câu SQL đúng là: SELECT * FROM users',
+                                  'question': 'CÃ¢u SQL Ä‘Ãºng lÃ : SELECT * FROM users',
                               },
                               content_type='application/json')
         # Should be recognized as learning intent

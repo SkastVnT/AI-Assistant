@@ -1,15 +1,25 @@
-"""
-Test script để kiểm tra FORCE_CPU setting
+﻿"""
+Test script Ä‘á»ƒ kiá»ƒm tra FORCE_CPU setting
 """
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment
-load_dotenv("app/config/.env")
-
+load_shared_env(__file__)
 print("=" * 60)
 print("FORCE_CPU TEST")
 print("=" * 60)
@@ -21,7 +31,7 @@ print(f"Should force CPU: {force_cpu.lower() in ['true', '1', 'yes']}")
 print("\nTesting PyTorch import...")
 try:
     import torch
-    print(f"✅ PyTorch imported successfully: {torch.__version__}")
+    print(f"âœ… PyTorch imported successfully: {torch.__version__}")
     print(f"CUDA available: {torch.cuda.is_available()}")
     
     if torch.cuda.is_available():
@@ -31,12 +41,12 @@ try:
             # Test simple CUDA operation
             test_tensor = torch.randn(1).cuda()
             result = test_tensor + 1
-            print("✅ CUDA test passed")
+            print("âœ… CUDA test passed")
         except Exception as e:
-            print(f"❌ CUDA test failed: {e}")
+            print(f"âŒ CUDA test failed: {e}")
     
 except Exception as e:
-    print(f"❌ PyTorch import failed: {e}")
+    print(f"âŒ PyTorch import failed: {e}")
 
 print("\nTesting device utils...")
 try:
@@ -45,6 +55,7 @@ try:
     recommended_device = get_device()
     print(f"Recommended device: {recommended_device}")
 except Exception as e:
-    print(f"❌ Device utils failed: {e}")
+    print(f"âŒ Device utils failed: {e}")
 
 print("=" * 60)
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test Qwen2.5 fusion only - Use existing transcripts from result/dual
 """
 import torch
@@ -6,9 +6,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import time
 
 # Existing transcripts from previous run
-whisper_transcript = """ Cảm ơn quý khách đã gọi đến giao hàng nhanh. Cước phí của gọi là 1 ngàn đồng 1 phút.  Hãy subscribe cho kênh La La School Để không bỏ lỡ những video hấp dẫn  Nhân viên hỗ trợ khách hàng quay vô sân game  Thì hỗ trợ cho chị  À em ơi em hỗ trợ dùm chị  Cái đơn hàng là  G I  V B  B B B B  I 6  9  F  F là F  Em xin tên chị  À chị Hoàng Đông  Chị đơn gửi cho  Đi xa thật ở Duyên Hải Trà Vinh hả chị?  Đúng rồi  Em thấy đơn mình có xác nhận nhau lại  Mà chưa có phân tuyến cho nhân viên giao  Bà yêu cầu giao đơn đúng không chị?  Dạ  Nhưng mà cho em báo cái này một xíu  Có nghĩa là nhiều lúc  Trong cái thời gian này là  Em vẫn thông cảm cái đoạn là  Mưa gió thì em không nói  Cái vấn đề là  Khách thì cần hàng  Số điện thoại của khách  Em vẫn liên lạc bình thường  Bao nhiêu lần ở trên app báo là không liên lạc được với khách  Khách chặn số này kia em gọi lại cho khách luôn theo số điện thoại đó  Vẫn liên lạc được khách, vẫn chờ hàng  Rồi cuối cùng cũng không giao ngày này qua ngày khác  Từ hôm 4 giờ đi hàng hôm 4 giờ  Mà bây giờ mãi đến giao lại là tụi em phải tốn thêm tiền tiếp  Chứ không phải tốn thêm  Mà cuối cùng là khách kia lỡ việc  Cái đó nhờ mấy anh hội tử giùm em cái chứ  Cái tình hình này đúng là hoàn đơn  Hoàn đơn là tụi em mất tình hoàn  Dạ rồi xin lỗi vấn đề mình gặp phải về đơn ha chị  Thì em để em lưu ý vấn đề này với nhân viên rồi  Báo bộ phận xử lý dân hàng dân"""
+whisper_transcript = """ Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n giao hÃ ng nhanh. CÆ°á»›c phÃ­ cá»§a gá»i lÃ  1 ngÃ n Ä‘á»“ng 1 phÃºt.  HÃ£y subscribe cho kÃªnh La La School Äá»ƒ khÃ´ng bá» lá»¡ nhá»¯ng video háº¥p dáº«n  NhÃ¢n viÃªn há»— trá»£ khÃ¡ch hÃ ng quay vÃ´ sÃ¢n game  ThÃ¬ há»— trá»£ cho chá»‹  Ã€ em Æ¡i em há»— trá»£ dÃ¹m chá»‹  CÃ¡i Ä‘Æ¡n hÃ ng lÃ   G I  V B  B B B B  I 6  9  F  F lÃ  F  Em xin tÃªn chá»‹  Ã€ chá»‹ HoÃ ng ÄÃ´ng  Chá»‹ Ä‘Æ¡n gá»­i cho  Äi xa tháº­t á»Ÿ DuyÃªn Háº£i TrÃ  Vinh háº£ chá»‹?  ÄÃºng rá»“i  Em tháº¥y Ä‘Æ¡n mÃ¬nh cÃ³ xÃ¡c nháº­n nhau láº¡i  MÃ  chÆ°a cÃ³ phÃ¢n tuyáº¿n cho nhÃ¢n viÃªn giao  BÃ  yÃªu cáº§u giao Ä‘Æ¡n Ä‘Ãºng khÃ´ng chá»‹?  Dáº¡  NhÆ°ng mÃ  cho em bÃ¡o cÃ¡i nÃ y má»™t xÃ­u  CÃ³ nghÄ©a lÃ  nhiá»u lÃºc  Trong cÃ¡i thá»i gian nÃ y lÃ   Em váº«n thÃ´ng cáº£m cÃ¡i Ä‘oáº¡n lÃ   MÆ°a giÃ³ thÃ¬ em khÃ´ng nÃ³i  CÃ¡i váº¥n Ä‘á» lÃ   KhÃ¡ch thÃ¬ cáº§n hÃ ng  Sá»‘ Ä‘iá»‡n thoáº¡i cá»§a khÃ¡ch  Em váº«n liÃªn láº¡c bÃ¬nh thÆ°á»ng  Bao nhiÃªu láº§n á»Ÿ trÃªn app bÃ¡o lÃ  khÃ´ng liÃªn láº¡c Ä‘Æ°á»£c vá»›i khÃ¡ch  KhÃ¡ch cháº·n sá»‘ nÃ y kia em gá»i láº¡i cho khÃ¡ch luÃ´n theo sá»‘ Ä‘iá»‡n thoáº¡i Ä‘Ã³  Váº«n liÃªn láº¡c Ä‘Æ°á»£c khÃ¡ch, váº«n chá» hÃ ng  Rá»“i cuá»‘i cÃ¹ng cÅ©ng khÃ´ng giao ngÃ y nÃ y qua ngÃ y khÃ¡c  Tá»« hÃ´m 4 giá» Ä‘i hÃ ng hÃ´m 4 giá»  MÃ  bÃ¢y giá» mÃ£i Ä‘áº¿n giao láº¡i lÃ  tá»¥i em pháº£i tá»‘n thÃªm tiá»n tiáº¿p  Chá»© khÃ´ng pháº£i tá»‘n thÃªm  MÃ  cuá»‘i cÃ¹ng lÃ  khÃ¡ch kia lá»¡ viá»‡c  CÃ¡i Ä‘Ã³ nhá» máº¥y anh há»™i tá»­ giÃ¹m em cÃ¡i chá»©  CÃ¡i tÃ¬nh hÃ¬nh nÃ y Ä‘Ãºng lÃ  hoÃ n Ä‘Æ¡n  HoÃ n Ä‘Æ¡n lÃ  tá»¥i em máº¥t tÃ¬nh hoÃ n  Dáº¡ rá»“i xin lá»—i váº¥n Ä‘á» mÃ¬nh gáº·p pháº£i vá» Ä‘Æ¡n ha chá»‹  ThÃ¬ em Ä‘á»ƒ em lÆ°u Ã½ váº¥n Ä‘á» nÃ y vá»›i nhÃ¢n viÃªn rá»“i  BÃ¡o bá»™ pháº­n xá»­ lÃ½ dÃ¢n hÃ ng dÃ¢n"""
 
-phowhisper_transcript = """xin cảm ơn quý khách đã gọi đến giao hàng nhanh cước phí cuộc gọi là một ngàn giờ một phút một ngàn phút cuộc gọi một chút mỗi ai nghe mời. nghĩa là. nhân viên hỗ trợ khách hàng vừa vừa xin em tận hỗ trợ cho anh chị. xa thật ở duy ngã trà vinh hả chị đúng rồi em thấy đơn mình đã sáng tác xác nhận nhau lại rồi mà chưa có phân tuyến cho nhân viên giao như báo yêu cầu mới giao đơn đúng không chị dạ nhưng mà cho em báo cái này xíu có nghĩa là nhiều lúc trong cái thời gian này là em vẫn thông cảm cái đoạn làm mưa gió thì em không nói chứ vấn đề là khách thì cần hàng số điện thoại của khách em vẫn liên lạc bình thường bao nhiêu lần. ở trên áp báo là là không liên lạc được với khách khách chặn số này kia em gọi lại cho khách luôn theo xuân thoại đó vẫn liên lạc được khách vẫn chờ hàng rồi cuối cùng cũng không giao ngày này qua ngày khác từ hôm mùng bốn giờ đi hàng hôm mùng bốn giờ mà bây giờ mà đến giao lại là tụi em thì tốn thêm tiền tiếp chứ không phải tốn thêm mà cuối cùng là khách lỡ việc thế đó nhờ mấy anh hỗ trợ giùm em cái chứ. dạ rồi xin lỗi vấn đề mình gặp phải vậy đơn ha chị thì em để em lưu ý vấn đề này với nhân viên rồi báo bộ phận xử lý dựng hàng gian."""
+phowhisper_transcript = """xin cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n giao hÃ ng nhanh cÆ°á»›c phÃ­ cuá»™c gá»i lÃ  má»™t ngÃ n giá» má»™t phÃºt má»™t ngÃ n phÃºt cuá»™c gá»i má»™t chÃºt má»—i ai nghe má»i. nghÄ©a lÃ . nhÃ¢n viÃªn há»— trá»£ khÃ¡ch hÃ ng vá»«a vá»«a xin em táº­n há»— trá»£ cho anh chá»‹. xa tháº­t á»Ÿ duy ngÃ£ trÃ  vinh háº£ chá»‹ Ä‘Ãºng rá»“i em tháº¥y Ä‘Æ¡n mÃ¬nh Ä‘Ã£ sÃ¡ng tÃ¡c xÃ¡c nháº­n nhau láº¡i rá»“i mÃ  chÆ°a cÃ³ phÃ¢n tuyáº¿n cho nhÃ¢n viÃªn giao nhÆ° bÃ¡o yÃªu cáº§u má»›i giao Ä‘Æ¡n Ä‘Ãºng khÃ´ng chá»‹ dáº¡ nhÆ°ng mÃ  cho em bÃ¡o cÃ¡i nÃ y xÃ­u cÃ³ nghÄ©a lÃ  nhiá»u lÃºc trong cÃ¡i thá»i gian nÃ y lÃ  em váº«n thÃ´ng cáº£m cÃ¡i Ä‘oáº¡n lÃ m mÆ°a giÃ³ thÃ¬ em khÃ´ng nÃ³i chá»© váº¥n Ä‘á» lÃ  khÃ¡ch thÃ¬ cáº§n hÃ ng sá»‘ Ä‘iá»‡n thoáº¡i cá»§a khÃ¡ch em váº«n liÃªn láº¡c bÃ¬nh thÆ°á»ng bao nhiÃªu láº§n. á»Ÿ trÃªn Ã¡p bÃ¡o lÃ  lÃ  khÃ´ng liÃªn láº¡c Ä‘Æ°á»£c vá»›i khÃ¡ch khÃ¡ch cháº·n sá»‘ nÃ y kia em gá»i láº¡i cho khÃ¡ch luÃ´n theo xuÃ¢n thoáº¡i Ä‘Ã³ váº«n liÃªn láº¡c Ä‘Æ°á»£c khÃ¡ch váº«n chá» hÃ ng rá»“i cuá»‘i cÃ¹ng cÅ©ng khÃ´ng giao ngÃ y nÃ y qua ngÃ y khÃ¡c tá»« hÃ´m mÃ¹ng bá»‘n giá» Ä‘i hÃ ng hÃ´m mÃ¹ng bá»‘n giá» mÃ  bÃ¢y giá» mÃ  Ä‘áº¿n giao láº¡i lÃ  tá»¥i em thÃ¬ tá»‘n thÃªm tiá»n tiáº¿p chá»© khÃ´ng pháº£i tá»‘n thÃªm mÃ  cuá»‘i cÃ¹ng lÃ  khÃ¡ch lá»¡ viá»‡c tháº¿ Ä‘Ã³ nhá» máº¥y anh há»— trá»£ giÃ¹m em cÃ¡i chá»©. dáº¡ rá»“i xin lá»—i váº¥n Ä‘á» mÃ¬nh gáº·p pháº£i váº­y Ä‘Æ¡n ha chá»‹ thÃ¬ em Ä‘á»ƒ em lÆ°u Ã½ váº¥n Ä‘á» nÃ y vá»›i nhÃ¢n viÃªn rá»“i bÃ¡o bá»™ pháº­n xá»­ lÃ½ dá»±ng hÃ ng gian."""
 
 print("="*80)
 print("TEST QWEN2.5-1.5B FUSION ONLY (SMALLER MODEL)")
@@ -49,44 +49,44 @@ full_raw_text = f"TRANSCRIPT 1 (Whisper large-v3):\n{whisper_transcript}\n\nTRAN
 
 # Enhanced prompt with 3 speaker roles: System, Employee, Customer
 prompt_text = f"""<|im_start|>system
-Bạn là trợ lý chuyên xử lý transcript tiếng Việt, được thiết kế để làm sạch dữ liệu đầu ra từ mô hình nhận dạng giọng nói (speech-to-text).
-Nhiệm vụ của bạn là giữ nguyên nội dung và ý nghĩa gốc, nhưng chỉnh sửa toàn bộ lỗi chính tả, ngữ pháp, dấu câu và định dạng lại cho dễ đọc.
+Báº¡n lÃ  trá»£ lÃ½ chuyÃªn xá»­ lÃ½ transcript tiáº¿ng Viá»‡t, Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘á»ƒ lÃ m sáº¡ch dá»¯ liá»‡u Ä‘áº§u ra tá»« mÃ´ hÃ¬nh nháº­n dáº¡ng giá»ng nÃ³i (speech-to-text).
+Nhiá»‡m vá»¥ cá»§a báº¡n lÃ  giá»¯ nguyÃªn ná»™i dung vÃ  Ã½ nghÄ©a gá»‘c, nhÆ°ng chá»‰nh sá»­a toÃ n bá»™ lá»—i chÃ­nh táº£, ngá»¯ phÃ¡p, dáº¥u cÃ¢u vÃ  Ä‘á»‹nh dáº¡ng láº¡i cho dá»… Ä‘á»c.
 <|im_end|>
 <|im_start|>user
-NHIỆM VỤ:
-1. Sửa lỗi chính tả, lỗi gõ, lỗi ngữ pháp.
-2. Thêm đầy đủ dấu câu (chấm, phẩy, hỏi, than...) đúng vị trí và tự nhiên.
-3. Phân vai người nói rõ ràng, gồm các nhóm:
-   - Hệ thống: Giọng máy, thông báo tự động (ví dụ: "Cảm ơn quý khách đã gọi đến...")
-   - Nhân viên: Người đại diện công ty, tổng đài viên, nhân viên hỗ trợ.
-   - Khách hàng: Người gọi đến hoặc người được gọi.
-4. Tách đoạn theo từng người nói, mỗi lượt nói một đoạn riêng.
-5. Giữ nguyên nội dung và ý nghĩa gốc.
-6. Không bỏ hoặc thêm ý.
-7. Đảm bảo đoạn hội thoại dễ đọc, đúng chuẩn tiếng Việt.
-8. Không giải thích, không thêm ghi chú.
+NHIá»†M Vá»¤:
+1. Sá»­a lá»—i chÃ­nh táº£, lá»—i gÃµ, lá»—i ngá»¯ phÃ¡p.
+2. ThÃªm Ä‘áº§y Ä‘á»§ dáº¥u cÃ¢u (cháº¥m, pháº©y, há»i, than...) Ä‘Ãºng vá»‹ trÃ­ vÃ  tá»± nhiÃªn.
+3. PhÃ¢n vai ngÆ°á»i nÃ³i rÃµ rÃ ng, gá»“m cÃ¡c nhÃ³m:
+   - Há»‡ thá»‘ng: Giá»ng mÃ¡y, thÃ´ng bÃ¡o tá»± Ä‘á»™ng (vÃ­ dá»¥: "Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n...")
+   - NhÃ¢n viÃªn: NgÆ°á»i Ä‘áº¡i diá»‡n cÃ´ng ty, tá»•ng Ä‘Ã i viÃªn, nhÃ¢n viÃªn há»— trá»£.
+   - KhÃ¡ch hÃ ng: NgÆ°á»i gá»i Ä‘áº¿n hoáº·c ngÆ°á»i Ä‘Æ°á»£c gá»i.
+4. TÃ¡ch Ä‘oáº¡n theo tá»«ng ngÆ°á»i nÃ³i, má»—i lÆ°á»£t nÃ³i má»™t Ä‘oáº¡n riÃªng.
+5. Giá»¯ nguyÃªn ná»™i dung vÃ  Ã½ nghÄ©a gá»‘c.
+6. KhÃ´ng bá» hoáº·c thÃªm Ã½.
+7. Äáº£m báº£o Ä‘oáº¡n há»™i thoáº¡i dá»… Ä‘á»c, Ä‘Ãºng chuáº©n tiáº¿ng Viá»‡t.
+8. KhÃ´ng giáº£i thÃ­ch, khÃ´ng thÃªm ghi chÃº.
 
-TRANSCRIPT GỐC (có thể sai chính tả, thiếu dấu hoặc nối liền từ):
+TRANSCRIPT Gá»C (cÃ³ thá»ƒ sai chÃ­nh táº£, thiáº¿u dáº¥u hoáº·c ná»‘i liá»n tá»«):
 {full_raw_text}
 
-YÊU CẦU ĐẦU RA:
-- Chỉ trả về transcript đã được sửa lỗi, chia vai và format rõ ràng.
-- Mỗi người nói hiển thị trên một dòng riêng, có dạng như sau:
+YÃŠU Cáº¦U Äáº¦U RA:
+- Chá»‰ tráº£ vá» transcript Ä‘Ã£ Ä‘Æ°á»£c sá»­a lá»—i, chia vai vÃ  format rÃµ rÃ ng.
+- Má»—i ngÆ°á»i nÃ³i hiá»ƒn thá»‹ trÃªn má»™t dÃ²ng riÃªng, cÃ³ dáº¡ng nhÆ° sau:
 
-MẪU ĐỊNH DẠNG:
-Hệ thống: Xin cảm ơn quý khách đã gọi đến tổng đài Giao Hàng Nhanh.
-Khách hàng: Alo, cho tôi hỏi về đơn hàng mã GHN12345 ạ.
-Nhân viên: Dạ, em xin chào anh ạ. Anh vui lòng chờ em kiểm tra thông tin đơn hàng nhé.
-Khách hàng: Vâng, cảm ơn em.
+MáºªU Äá»ŠNH Dáº NG:
+Há»‡ thá»‘ng: Xin cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n tá»•ng Ä‘Ã i Giao HÃ ng Nhanh.
+KhÃ¡ch hÃ ng: Alo, cho tÃ´i há»i vá» Ä‘Æ¡n hÃ ng mÃ£ GHN12345 áº¡.
+NhÃ¢n viÃªn: Dáº¡, em xin chÃ o anh áº¡. Anh vui lÃ²ng chá» em kiá»ƒm tra thÃ´ng tin Ä‘Æ¡n hÃ ng nhÃ©.
+KhÃ¡ch hÃ ng: VÃ¢ng, cáº£m Æ¡n em.
 
-LƯU Ý:
-- Nếu không chắc người nói là ai, hãy suy luận dựa trên ngữ cảnh, ví dụ:
-  - "Xin chào quý khách..." thường là Hệ thống hoặc Nhân viên.
-  - "Alo, tôi muốn hỏi..." thường là Khách hàng.
-  - "Em kiểm tra đơn giúp anh nhé" thường là Nhân viên.
-- Nếu vẫn không rõ, gán là "Người nói không xác định:".
-- Không thêm tiêu đề, không in lại transcript gốc, không thêm giải thích.
-- Đảm bảo văn bản cuối cùng sạch, rõ, tự nhiên, dễ đọc, đúng ngữ pháp tiếng Việt.
+LÆ¯U Ã:
+- Náº¿u khÃ´ng cháº¯c ngÆ°á»i nÃ³i lÃ  ai, hÃ£y suy luáº­n dá»±a trÃªn ngá»¯ cáº£nh, vÃ­ dá»¥:
+  - "Xin chÃ o quÃ½ khÃ¡ch..." thÆ°á»ng lÃ  Há»‡ thá»‘ng hoáº·c NhÃ¢n viÃªn.
+  - "Alo, tÃ´i muá»‘n há»i..." thÆ°á»ng lÃ  KhÃ¡ch hÃ ng.
+  - "Em kiá»ƒm tra Ä‘Æ¡n giÃºp anh nhÃ©" thÆ°á»ng lÃ  NhÃ¢n viÃªn.
+- Náº¿u váº«n khÃ´ng rÃµ, gÃ¡n lÃ  "NgÆ°á»i nÃ³i khÃ´ng xÃ¡c Ä‘á»‹nh:".
+- KhÃ´ng thÃªm tiÃªu Ä‘á», khÃ´ng in láº¡i transcript gá»‘c, khÃ´ng thÃªm giáº£i thÃ­ch.
+- Äáº£m báº£o vÄƒn báº£n cuá»‘i cÃ¹ng sáº¡ch, rÃµ, tá»± nhiÃªn, dá»… Ä‘á»c, Ä‘Ãºng ngá»¯ phÃ¡p tiáº¿ng Viá»‡t.
 <|im_end|>
 <|im_start|>assistant
 """
@@ -112,15 +112,15 @@ fused_text = response.strip()
 process_time = time.time() - process_start
 
 print("\n" + "="*80)
-print("🎉 QWEN2.5-7B ENHANCED RESULT:")
+print("ðŸŽ‰ QWEN2.5-7B ENHANCED RESULT:")
 print("="*80)
 print(fused_text)
 print("="*80)
-print(f"⏱️ Processing time: {process_time:.2f}s")
+print(f"â±ï¸ Processing time: {process_time:.2f}s")
 print("="*80)
 
 # Save result
 output_file = "./result/vistral/test_qwen_enhanced.txt"
 with open(output_file, "w", encoding="utf-8") as f:
     f.write(fused_text)
-print(f"💾 Saved to: {output_file}")
+print(f"ðŸ’¾ Saved to: {output_file}")

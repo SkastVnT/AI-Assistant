@@ -1,4 +1,4 @@
-"""
+﻿"""
 Core package for chatbot
 """
 import sys

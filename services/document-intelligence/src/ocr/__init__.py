@@ -1,4 +1,4 @@
-"""
+﻿"""
 OCR Module - PaddleOCR Integration
 """
 from .paddle_ocr import PaddleOCREngine

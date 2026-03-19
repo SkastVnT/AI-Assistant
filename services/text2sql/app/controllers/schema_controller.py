@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schema Controller
 Handle schema upload and management requests
 """

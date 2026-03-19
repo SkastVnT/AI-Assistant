@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flask Application Factory
 
 This module creates and configures the Flask application
@@ -11,7 +11,18 @@ import logging
 from pathlib import Path
 from flask import Flask
 from flask_cors import CORS
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Add parent paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
@@ -33,8 +44,7 @@ def create_application(config_name: str = 'default') -> Flask:
         Configured Flask application
     """
     # Load environment variables
-    load_dotenv()
-    
+    load_shared_env(__file__)
     # Create Flask app
     app = Flask(
         __name__,
@@ -65,7 +75,7 @@ def create_application(config_name: str = 'default') -> Flask:
     # Register health check
     register_health_check(app)
     
-    app.logger.info(f"✅ Chatbot application created with config: {config_name}")
+    app.logger.info(f"âœ… Chatbot application created with config: {config_name}")
     
     return app
 
@@ -92,3 +102,5 @@ def register_health_check(app: Flask) -> None:
     @app.route('/health')
     def health():
         return {'status': 'healthy', 'service': 'chatbot'}, 200
+
+

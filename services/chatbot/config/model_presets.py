@@ -1,4 +1,4 @@
-"""
+﻿"""
 Model Presets Configuration
 Defines presets for different image generation styles
 """
@@ -99,19 +99,19 @@ MODEL_PRESETS = {
 # Category descriptions
 CATEGORIES = {
     "anime": {
-        "name": "🎨 Anime",
+        "name": "ðŸŽ¨ Anime",
         "description": "Anime & illustration styles",
-        "icon": "🎨"
+        "icon": "ðŸŽ¨"
     },
     "realistic": {
-        "name": "📷 Realistic",
+        "name": "ðŸ“· Realistic",
         "description": "Photorealistic human portraits",
-        "icon": "📷"
+        "icon": "ðŸ“·"
     },
     "versatile": {
-        "name": "✨ Versatile",
+        "name": "âœ¨ Versatile",
         "description": "General purpose models",
-        "icon": "✨"
+        "icon": "âœ¨"
     }
 }
 
@@ -119,22 +119,22 @@ CATEGORIES = {
 QUICK_PRESETS = [
     {
         "id": "anime_xl",
-        "name": "🎨 Anime XL",
+        "name": "ðŸŽ¨ Anime XL",
         "description": "High quality anime"
     },
     {
         "id": "realistic_xl",
-        "name": "📷 Realistic (Fast)",
+        "name": "ðŸ“· Realistic (Fast)",
         "description": "Photorealistic Lightning"
     },
     {
         "id": "realistic_juggernaut",
-        "name": "📷 Realistic Pro",
+        "name": "ðŸ“· Realistic Pro",
         "description": "Professional photos"
     },
     {
         "id": "anime_counterfeit",
-        "name": "🎨 Anime Classic",
+        "name": "ðŸŽ¨ Anime Classic",
         "description": "Classic anime style"
     }
 ]

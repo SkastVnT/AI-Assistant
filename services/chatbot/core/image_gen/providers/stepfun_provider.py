@@ -1,5 +1,5 @@
-"""
-StepFun (阶跃星辰) provider — Chinese SOTA image generation & editing.
+﻿"""
+StepFun (é˜¶è·ƒæ˜Ÿè¾°) provider â€” Chinese SOTA image generation & editing.
 Step1X-Edit: Best-in-class instruction-based image editing.
 Step1X-Fill: High quality inpainting.
 Step1-Turbo: Fast text-to-image.
@@ -40,7 +40,7 @@ STEPFUN_COST = {
 
 
 class StepFunProvider(BaseImageProvider):
-    """StepFun AI — Chinese SOTA with excellent editing capabilities."""
+    """StepFun AI â€” Chinese SOTA with excellent editing capabilities."""
 
     name = "stepfun"
     tier = ProviderTier.HIGH
@@ -123,7 +123,7 @@ class StepFunProvider(BaseImageProvider):
     ) -> ImageResult:
         """
         Instruction-based image editing using Step1X-Edit.
-        This is StepFun's killer feature — like ChatGPT's image editing.
+        This is StepFun's killer feature â€” like ChatGPT's image editing.
         """
         # Step1X-Edit uses chat-like API with image + instruction
         model_key = "step1x-edit"

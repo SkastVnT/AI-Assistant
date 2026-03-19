@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Flask backend cho Text-to-SQL + Memory + Pretrain
-- Upload nhiều schema (txt/json/jsonl/csv/sql) -> bundle trong ./sample/uploaded/
-- Auto-pretrain (cấu hình qua .env) + Pretrain thêm
-- Lưu memory theo 1 bảng (memory_<table>.txt) hoặc nhiều schema (memories_XX+YY+.txt)
+- Upload nhiá»u schema (txt/json/jsonl/csv/sql) -> bundle trong ./sample/uploaded/
+- Auto-pretrain (cáº¥u hÃ¬nh qua .env) + Pretrain thÃªm
+- LÆ°u memory theo 1 báº£ng (memory_<table>.txt) hoáº·c nhiá»u schema (memories_XX+YY+.txt)
 - Chat flow: dataset lookup -> confirm generate -> save/skip -> refine
-- Xem log pretrain JSONL và file pretrain text đẹp trong ./pretrain/<bundle>.txt
+- Xem log pretrain JSONL vÃ  file pretrain text Ä‘áº¹p trong ./pretrain/<bundle>.txt
 """
 
 import os
@@ -16,10 +16,21 @@ from pathlib import Path
 from typing import Tuple
 
 from flask import Flask, request, jsonify, render_template
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from werkzeug.utils import secure_filename
 
-# Optional: Gemini + ClickHouse + HTTP clients (chỉ dùng nếu có env/driver)
+# Optional: Gemini + ClickHouse + HTTP clients (chá»‰ dÃ¹ng náº¿u cÃ³ env/driver)
 import requests
 
 try:
@@ -33,8 +44,7 @@ except Exception:
     get_client = None
 
 # ------------------- Load ENV -------------------
-load_dotenv()
-
+load_shared_env(__file__)
 # Model & strategy
 SQLCODER_BACKEND = os.getenv("SQLCODER_BACKEND", "hf").lower()  # hf | ollama | vllm
 SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "defog/sqlcoder-7b-2")
@@ -87,15 +97,15 @@ app = Flask(__name__)
 # ------------------- Runtime State -------------------
 SCHEMA_FILES: list[str] = []  # [bundle_path]
 KNOWN_TABLES: set[str] = set()
-ACTIVE_TABLES: list[str] = []  # theo thứ tự upload
+ACTIVE_TABLES: list[str] = []  # theo thá»© tá»± upload
 ACTIVE_PRIMARY_TABLE: str | None = None
 ACTIVE_IDMAP: dict[str, str] = {}  # table -> "01","02",...
-ACTIVE_UPLOAD_ORDER: list[str] = []  # theo thứ tự upload
+ACTIVE_UPLOAD_ORDER: list[str] = []  # theo thá»© tá»± upload
 ACTIVE_AGG_FILE: str | None = None  # path memories_XX+YY.txt (khi multi)
 pending_question: str | None = None
 
-YES_WORDS = ["có", "đồng ý", "yes", "ok", "oke", "okay"]
-NO_WORDS = ["không", "không cần", "no", "ko", "khong"]
+YES_WORDS = ["cÃ³", "Ä‘á»“ng Ã½", "yes", "ok", "oke", "okay"]
+NO_WORDS = ["khÃ´ng", "khÃ´ng cáº§n", "no", "ko", "khong"]
 
 
 # ------------------- Utils -------------------
@@ -171,7 +181,7 @@ def extract_sql(text: str) -> str:
         text = m.group(1)
     text = re.sub(r"(?im)^status\s*:\s*.*$", "", text)
     text = re.sub(r"(?im)^result\s*:\s*.*$", "", text)
-    text = re.sub(r"(?i)^\s*(sql\s*được\s*tạo|sql|query)\s*[:\-]*", "", text).strip()
+    text = re.sub(r"(?i)^\s*(sql\s*Ä‘Æ°á»£c\s*táº¡o|sql|query)\s*[:\-]*", "", text).strip()
     m2 = re.search(r"(?is)\b(select|insert|update|delete)\b[\s\S]*$", text)
     if m2:
         text = text[m2.start() :].strip()
@@ -284,7 +294,7 @@ def generate_sql_with_sqlcoder(schema_text: str, question: str) -> str | None:
 # ------------------- Gemini callers (optional) -------------------
 def generate_sql_with_gemini(schema_text: str, question: str) -> str:
     if not genai or not GEMINI_API_KEY:
-        # fallback đơn giản nếu không có Gemini
+        # fallback Ä‘Æ¡n giáº£n náº¿u khÃ´ng cÃ³ Gemini
         t = (KNOWN_TABLES and list(KNOWN_TABLES)[0]) or (
             ACTIVE_PRIMARY_TABLE or "table"
         )
@@ -310,7 +320,7 @@ Return ONLY the SQL query (no explanations)."""
 def generate_refined_sql_with_sqlcoder(
     schema_text: str, question: str, prev_sql: str, feedback: str, extra: str
 ) -> str | None:
-    # dùng lại SQLCoder với prompt refine đơn giản
+    # dÃ¹ng láº¡i SQLCoder vá»›i prompt refine Ä‘Æ¡n giáº£n
     full = f"""You are SQLCoder for ClickHouse.
 
 Schema:
@@ -477,14 +487,14 @@ def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
                 + "\n"
             )
         mapping = ", ".join(f"{ACTIVE_IDMAP[t]}={t}" for t in ACTIVE_UPLOAD_ORDER)
-        return True, f"Đã lưu vào {ACTIVE_AGG_FILE} (mapping: {mapping})"
+        return True, f"ÄÃ£ lÆ°u vÃ o {ACTIVE_AGG_FILE} (mapping: {mapping})"
     # single
     table = ACTIVE_PRIMARY_TABLE or infer_table_from_sql(sql)
     if not table and len(SCHEMA_FILES) == 1:
         base = os.path.splitext(os.path.basename(SCHEMA_FILES[0]))[0]
         table = _normalize_table_name(base)
     if not table:
-        return False, "❗ Không xác định được bảng đang hoạt động, nên không lưu."
+        return False, "â— KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c báº£ng Ä‘ang hoáº¡t Ä‘á»™ng, nÃªn khÃ´ng lÆ°u."
     path = MEMORY_DIR / f"memory_{table}.txt"
     with open(path, "a", encoding="utf-8") as f:
         f.write(
@@ -493,7 +503,7 @@ def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
             )
             + "\n"
         )
-    return True, f"Đã lưu vào {path}"
+    return True, f"ÄÃ£ lÆ°u vÃ o {path}"
 
 
 def collect_seen_questions_for_active() -> set:
@@ -624,26 +634,26 @@ def synthesize_questions(schema_text: str, limit: int = 15) -> list[tuple[str, s
 
         qs.extend(
             [
-                (f"Hiển thị 20 dòng đầu tiên của bảng {t}", t),
-                (f"Đếm tổng số bản ghi trong bảng {t}", t),
+                (f"Hiá»ƒn thá»‹ 20 dÃ²ng Ä‘áº§u tiÃªn cá»§a báº£ng {t}", t),
+                (f"Äáº¿m tá»•ng sá»‘ báº£n ghi trong báº£ng {t}", t),
             ]
         )
         if id_col:
-            qs.append((f"Đếm số bản ghi theo {id_col} trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ báº£n ghi theo {id_col} trong báº£ng {t}", t))
         if time_col:
             qs.append(
                 (
-                    f"Đếm số bản ghi theo ngày dựa trên {time_col} trong 7 ngày gần nhất của bảng {t}",
+                    f"Äáº¿m sá»‘ báº£n ghi theo ngÃ y dá»±a trÃªn {time_col} trong 7 ngÃ y gáº§n nháº¥t cá»§a báº£ng {t}",
                     t,
                 )
             )
         if shop_col:
-            qs.append((f"Đếm số lượng shop_id khác nhau trong bảng {t}", t))
-            qs.append((f"Top 10 shop_id có nhiều bản ghi nhất trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ lÆ°á»£ng shop_id khÃ¡c nhau trong báº£ng {t}", t))
+            qs.append((f"Top 10 shop_id cÃ³ nhiá»u báº£n ghi nháº¥t trong báº£ng {t}", t))
         if user_col:
-            qs.append((f"Top 10 {user_col} có nhiều bản ghi nhất trong bảng {t}", t))
+            qs.append((f"Top 10 {user_col} cÃ³ nhiá»u báº£n ghi nháº¥t trong báº£ng {t}", t))
         if conv_col:
-            qs.append((f"Đếm số {conv_col} khác nhau trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ {conv_col} khÃ¡c nhau trong báº£ng {t}", t))
 
     out = []
     seen = set()
@@ -677,7 +687,7 @@ def write_pretrain_text(items: list[dict], rounds: int, strategy: str) -> str:
                     "Gemini"
                     if src == "gemini"
                     else (
-                        "SQLCoder-7B-2 → Gemini (cascade)"
+                        "SQLCoder-7B-2 â†’ Gemini (cascade)"
                         if src in ("cascade", "sqlcoder+gemini")
                         else src
                     )
@@ -688,7 +698,7 @@ def write_pretrain_text(items: list[dict], rounds: int, strategy: str) -> str:
             pf.write(f"SQL: {it.get('sql') or '(NO_SQL)'}\n")
             pf.write(f"Model: {model}\n")
             pf.write(f"Status: {it.get('exec_status') or it.get('status') or ''}\n")
-            pf.write(f"Saved: {'✓' if it.get('saved') else '×'}\n")
+            pf.write(f"Saved: {'âœ“' if it.get('saved') else 'Ã—'}\n")
             raw = it.get("raw")
             if raw:
                 short = (
@@ -782,7 +792,7 @@ def index():
 def upload_schema():
     global SCHEMA_FILES, KNOWN_TABLES, ACTIVE_TABLES, ACTIVE_PRIMARY_TABLE, ACTIVE_IDMAP, ACTIVE_UPLOAD_ORDER, ACTIVE_AGG_FILE
     if "file" not in request.files:
-        return jsonify({"error": "Không có file"}), 400
+        return jsonify({"error": "KhÃ´ng cÃ³ file"}), 400
 
     # reset state
     SCHEMA_FILES = []
@@ -864,7 +874,7 @@ def upload_schema():
     return (
         jsonify(
             {
-                "message": f"Đã upload: {', '.join(saved)}",
+                "message": f"ÄÃ£ upload: {', '.join(saved)}",
                 "schema_text": preview,
                 "files_uploaded": saved,
                 "tables": ACTIVE_UPLOAD_ORDER,
@@ -889,7 +899,7 @@ def schema_info():
     return (
         jsonify(
             {
-                "schema_text": preview or "(Chưa có schema — vui lòng upload trước)",
+                "schema_text": preview or "(ChÆ°a cÃ³ schema â€” vui lÃ²ng upload trÆ°á»›c)",
                 "files": [os.path.basename(p) for p in SCHEMA_FILES],
                 "tables": ACTIVE_UPLOAD_ORDER,
                 "id_map": ACTIVE_IDMAP,
@@ -908,7 +918,7 @@ def schema_info():
 def pretrain_api():
     schema_text = read_all_schemas()
     if not schema_text:
-        return jsonify({"error": "Chưa có schema/bundle để pretrain"}), 200
+        return jsonify({"error": "ChÆ°a cÃ³ schema/bundle Ä‘á»ƒ pretrain"}), 200
     payload = request.get_json(silent=True) or {}
     rounds = payload.get("rounds") or PRETRAIN_ROUNDS
     strategy = payload.get("strategy") or PRETRAIN_STRATEGY
@@ -925,7 +935,7 @@ def pretrain_report():
                 {
                     "count": 0,
                     "items": [],
-                    "message": "Chưa có log pretrain cho bundle hiện tại.",
+                    "message": "ChÆ°a cÃ³ log pretrain cho bundle hiá»‡n táº¡i.",
                 }
             ),
             200,
@@ -995,7 +1005,7 @@ def chat():
     payload = request.get_json(force=True)
     msg = (payload.get("message") or "").strip()
     if not msg:
-        return jsonify({"response": "⚠️ Tin nhắn rỗng"}), 200
+        return jsonify({"response": "âš ï¸ Tin nháº¯n rá»—ng"}), 200
 
     # pending confirm
     if pending_question:
@@ -1004,13 +1014,13 @@ def chat():
             schema_text = read_all_schemas()
             if not schema_text:
                 pending_question = None
-                return jsonify({"response": "⚠️ Vui lòng upload schema trước"}), 200
+                return jsonify({"response": "âš ï¸ Vui lÃ²ng upload schema trÆ°á»›c"}), 200
             sql, src = hybrid_generate_sql(schema_text, pending_question)
             sql = extract_sql(sql)
             q = pending_question
             pending_question = None
             data, st = try_execute_sql(sql)
-            combined = f"SQL Được Tạo:\n{sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data)}"
+            combined = f"SQL ÄÆ°á»£c Táº¡o:\n{sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data)}"
             return (
                 jsonify(
                     {
@@ -1027,10 +1037,10 @@ def chat():
             )
         if any(w in low for w in NO_WORDS):
             pending_question = None
-            return jsonify({"response": "Ok, tôi sẽ không tạo câu truy vấn."}), 200
+            return jsonify({"response": "Ok, tÃ´i sáº½ khÃ´ng táº¡o cÃ¢u truy váº¥n."}), 200
         return (
             jsonify(
-                {"response": "⚠️ Vui lòng trả lời 'có/đồng ý' hoặc 'không/không cần'."}
+                {"response": "âš ï¸ Vui lÃ²ng tráº£ lá»i 'cÃ³/Ä‘á»“ng Ã½' hoáº·c 'khÃ´ng/khÃ´ng cáº§n'."}
             ),
             200,
         )
@@ -1039,7 +1049,7 @@ def chat():
     sql = find_in_dataset(msg)
     if sql:
         data, st = try_execute_sql(sql)
-        combined = f"SQL Được Tạo:\n{sql}\n\nResult:\n{preview_result_text(data)}"
+        combined = f"SQL ÄÆ°á»£c Táº¡o:\n{sql}\n\nResult:\n{preview_result_text(data)}"
         return (
             jsonify(
                 {
@@ -1058,7 +1068,7 @@ def chat():
     return (
         jsonify(
             {
-                "response": "❓ Câu hỏi này chưa có trong dataset. Bạn có muốn tôi tạo câu truy vấn SQL dựa trên schema đã upload không?",
+                "response": "â“ CÃ¢u há»i nÃ y chÆ°a cÃ³ trong dataset. Báº¡n cÃ³ muá»‘n tÃ´i táº¡o cÃ¢u truy váº¥n SQL dá»±a trÃªn schema Ä‘Ã£ upload khÃ´ng?",
                 "needs_confirmation": True,
                 "question": msg,
             }
@@ -1074,9 +1084,9 @@ def check():
     sql = (data.get("sql") or "").strip()
     approve = bool(data.get("approve", False))
     if not question or not sql:
-        return jsonify({"message": "Thiếu question hoặc sql"}), 400
+        return jsonify({"message": "Thiáº¿u question hoáº·c sql"}), 400
     if not approve:
-        return jsonify({"message": "Đã bỏ qua, không lưu."}), 200
+        return jsonify({"message": "ÄÃ£ bá» qua, khÃ´ng lÆ°u."}), 200
     ok, msg = save_to_memory_per_table(question, sql)
     return jsonify({"message": msg}), 200
 
@@ -1089,14 +1099,14 @@ def refine():
     feedback = (data.get("feedback") or "").strip()
     extra = (data.get("extra_context") or "").strip()
     if not question or not prev_sql:
-        return jsonify({"error": "Thiếu question hoặc sql"}), 400
+        return jsonify({"error": "Thiáº¿u question hoáº·c sql"}), 400
     schema_text = read_all_schemas()
     if not schema_text:
-        return jsonify({"error": "⚠️ Vui lòng upload schema trước"}), 200
+        return jsonify({"error": "âš ï¸ Vui lÃ²ng upload schema trÆ°á»›c"}), 200
     new_sql, src = hybrid_refine_sql(schema_text, question, prev_sql, feedback, extra)
     new_sql = extract_sql(new_sql)
     data_res, st = try_execute_sql(new_sql)
-    combined = f"SQL Được Tạo:\n{new_sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data_res)}"
+    combined = f"SQL ÄÆ°á»£c Táº¡o:\n{new_sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data_res)}"
     return (
         jsonify(
             {
@@ -1116,3 +1126,5 @@ def refine():
 # ------------------- Run -------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+
+

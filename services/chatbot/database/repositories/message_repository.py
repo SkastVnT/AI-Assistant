@@ -1,4 +1,4 @@
-"""
+﻿"""
 Message Repository
 
 Repository for message CRUD operations.

@@ -1,6 +1,6 @@
-"""
+﻿"""
 Stable Diffusion API Client
-Kết nối tới Stable Diffusion WebUI API để tạo ảnh
+Káº¿t ná»‘i tá»›i Stable Diffusion WebUI API Ä‘á»ƒ táº¡o áº£nh
 """
 
 import requests
@@ -11,26 +11,26 @@ from typing import Optional, List, Dict
 
 
 class StableDiffusionClient:
-    """Client để tương tác với Stable Diffusion WebUI API"""
+    """Client Ä‘á»ƒ tÆ°Æ¡ng tÃ¡c vá»›i Stable Diffusion WebUI API"""
     
     def __init__(self, api_url: str = "http://127.0.0.1:7860"):
         """
         Initialize SD Client
         
         Args:
-            api_url: URL của Stable Diffusion WebUI (mặc định: http://127.0.0.1:7860)
+            api_url: URL cá»§a Stable Diffusion WebUI (máº·c Ä‘á»‹nh: http://127.0.0.1:7860)
         """
         self.api_url = api_url.rstrip('/')
         self.base_timeout = 300  # Base timeout 5 minutes
         
     def _calculate_timeout(self, width: int, height: int, steps: int) -> int:
         """
-        Tính timeout động dựa trên kích thước ảnh và số steps
+        TÃ­nh timeout Ä‘á»™ng dá»±a trÃªn kÃ­ch thÆ°á»›c áº£nh vÃ  sá»‘ steps
         
         Args:
-            width: Chiều rộng
-            height: Chiều cao
-            steps: Số steps
+            width: Chiá»u rá»™ng
+            height: Chiá»u cao
+            steps: Sá»‘ steps
             
         Returns:
             Timeout in seconds
@@ -48,7 +48,7 @@ class StableDiffusionClient:
         return timeout
         
     def check_health(self) -> bool:
-        """Kiểm tra xem Stable Diffusion API có đang chạy không (hỗ trợ cả ComfyUI và A1111)"""
+        """Kiá»ƒm tra xem Stable Diffusion API cÃ³ Ä‘ang cháº¡y khÃ´ng (há»— trá»£ cáº£ ComfyUI vÃ  A1111)"""
         try:
             print(f"[SD Client] Checking health at {self.api_url}", flush=True)
             
@@ -78,10 +78,10 @@ class StableDiffusionClient:
     
     def get_models(self) -> List[Dict]:
         """
-        Lấy danh sách tất cả các checkpoint models (hỗ trợ ComfyUI và A1111)
+        Láº¥y danh sÃ¡ch táº¥t cáº£ cÃ¡c checkpoint models (há»— trá»£ ComfyUI vÃ  A1111)
         
         Returns:
-            List of model dicts với keys: title, model_name, hash, sha256, filename, config
+            List of model dicts vá»›i keys: title, model_name, hash, sha256, filename, config
         """
         try:
             # Try ComfyUI first
@@ -104,7 +104,7 @@ class StableDiffusionClient:
             return []
     
     def get_current_model(self) -> Dict:
-        """Lấy thông tin model hiện tại đang được sử dụng"""
+        """Láº¥y thÃ´ng tin model hiá»‡n táº¡i Ä‘ang Ä‘Æ°á»£c sá»­ dá»¥ng"""
         try:
             # Try ComfyUI first
             models = self.get_models()
@@ -125,13 +125,13 @@ class StableDiffusionClient:
     
     def change_model(self, model_name: str) -> bool:
         """
-        Đổi checkpoint model
+        Äá»•i checkpoint model
         
         Args:
-            model_name: Tên model (title hoặc model_name từ get_models())
+            model_name: TÃªn model (title hoáº·c model_name tá»« get_models())
         
         Returns:
-            True nếu thành công, False nếu thất bại
+            True náº¿u thÃ nh cÃ´ng, False náº¿u tháº¥t báº¡i
         """
         try:
             payload = {
@@ -170,30 +170,30 @@ class StableDiffusionClient:
         vae: Optional[str] = None
     ) -> Dict:
         """
-        Tạo ảnh từ text prompt
+        Táº¡o áº£nh tá»« text prompt
         
         Args:
-            prompt: Text prompt mô tả ảnh muốn tạo
-            negative_prompt: Những gì KHÔNG muốn có trong ảnh
-            width: Chiều rộng ảnh (khuyến nghị: 512, 768, 1024)
-            height: Chiều cao ảnh (khuyến nghị: 512, 768, 1024)
-            steps: Số bước sampling (20-50 là tốt)
-            cfg_scale: Độ tuân theo prompt (7-12 là tốt)
-            sampler_name: Tên sampler (DPM++ 2M Karras, Euler a, DDIM, etc.)
+            prompt: Text prompt mÃ´ táº£ áº£nh muá»‘n táº¡o
+            negative_prompt: Nhá»¯ng gÃ¬ KHÃ”NG muá»‘n cÃ³ trong áº£nh
+            width: Chiá»u rá»™ng áº£nh (khuyáº¿n nghá»‹: 512, 768, 1024)
+            height: Chiá»u cao áº£nh (khuyáº¿n nghá»‹: 512, 768, 1024)
+            steps: Sá»‘ bÆ°á»›c sampling (20-50 lÃ  tá»‘t)
+            cfg_scale: Äá»™ tuÃ¢n theo prompt (7-12 lÃ  tá»‘t)
+            sampler_name: TÃªn sampler (DPM++ 2M Karras, Euler a, DDIM, etc.)
             seed: Random seed (-1 = random)
-            batch_size: Số ảnh tạo mỗi lần
-            n_iter: Số lần lặp
-            restore_faces: Có restore faces không (GFPGAN/CodeFormer)
-            enable_hr: Bật Hires. fix để tạo ảnh chất lượng cao hơn
-            hr_scale: Hệ số scale khi dùng Hires. fix
-            hr_upscaler: Upscaler dùng cho Hires. fix
-            denoising_strength: Độ mạnh denoising cho Hires. fix
-            save_images: Có lưu ảnh vào outputs/ không
+            batch_size: Sá»‘ áº£nh táº¡o má»—i láº§n
+            n_iter: Sá»‘ láº§n láº·p
+            restore_faces: CÃ³ restore faces khÃ´ng (GFPGAN/CodeFormer)
+            enable_hr: Báº­t Hires. fix Ä‘á»ƒ táº¡o áº£nh cháº¥t lÆ°á»£ng cao hÆ¡n
+            hr_scale: Há»‡ sá»‘ scale khi dÃ¹ng Hires. fix
+            hr_upscaler: Upscaler dÃ¹ng cho Hires. fix
+            denoising_strength: Äá»™ máº¡nh denoising cho Hires. fix
+            save_images: CÃ³ lÆ°u áº£nh vÃ o outputs/ khÃ´ng
             lora_models: List of Lora models to apply [{"name": "lora_name", "weight": 0.8}]
             vae: VAE model name (None = Automatic)
         
         Returns:
-            Dict với keys: images (list base64), parameters, info
+            Dict vá»›i keys: images (list base64), parameters, info
         """
         # Apply Lora to prompt
         final_prompt = prompt
@@ -262,7 +262,7 @@ class StableDiffusionClient:
             return {"error": "An internal error occurred while generating the image."}
     
     def get_samplers(self) -> List[Dict]:
-        """Lấy danh sách tất cả các samplers có sẵn"""
+        """Láº¥y danh sÃ¡ch táº¥t cáº£ cÃ¡c samplers cÃ³ sáºµn"""
         try:
             response = requests.get(f"{self.api_url}/sdapi/v1/samplers", timeout=10)
             response.raise_for_status()
@@ -282,10 +282,10 @@ class StableDiffusionClient:
     
     def get_loras(self) -> List[Dict]:
         """
-        Lấy danh sách tất cả các Lora models
+        Láº¥y danh sÃ¡ch táº¥t cáº£ cÃ¡c Lora models
         
         Returns:
-            List of Lora dicts với keys: name, alias, path, metadata
+            List of Lora dicts vá»›i keys: name, alias, path, metadata
         """
         try:
             response = requests.get(f"{self.api_url}/sdapi/v1/loras", timeout=10)
@@ -297,7 +297,7 @@ class StableDiffusionClient:
     
     def get_vaes(self) -> List[Dict]:
         """
-        Lấy danh sách tất cả các VAE models
+        Láº¥y danh sÃ¡ch táº¥t cáº£ cÃ¡c VAE models
         
         Returns:
             List of VAE names
@@ -328,29 +328,29 @@ class StableDiffusionClient:
         vae: Optional[str] = None
     ) -> Dict:
         """
-        Tạo ảnh từ ảnh gốc (img2img)
+        Táº¡o áº£nh tá»« áº£nh gá»‘c (img2img)
         
         Args:
             init_images: List of base64 encoded images
-            prompt: Text prompt mô tả ảnh muốn tạo
-            negative_prompt: Những gì KHÔNG muốn có
-            denoising_strength: Tỉ lệ thay đổi so với ảnh gốc (0.0-1.0)
-                - 0.0 = giữ nguyên 100%
-                - 1.0 = tạo mới hoàn toàn
-                - 0.75-0.85 = recommended (75-85% mới, 15-25% giữ lại)
-            width: Chiều rộng
-            height: Chiều cao
-            steps: Số bước sampling (img2img thường cần nhiều steps hơn txt2img)
-            cfg_scale: Độ tuân theo prompt
-            sampler_name: Tên sampler
+            prompt: Text prompt mÃ´ táº£ áº£nh muá»‘n táº¡o
+            negative_prompt: Nhá»¯ng gÃ¬ KHÃ”NG muá»‘n cÃ³
+            denoising_strength: Tá»‰ lá»‡ thay Ä‘á»•i so vá»›i áº£nh gá»‘c (0.0-1.0)
+                - 0.0 = giá»¯ nguyÃªn 100%
+                - 1.0 = táº¡o má»›i hoÃ n toÃ n
+                - 0.75-0.85 = recommended (75-85% má»›i, 15-25% giá»¯ láº¡i)
+            width: Chiá»u rá»™ng
+            height: Chiá»u cao
+            steps: Sá»‘ bÆ°á»›c sampling (img2img thÆ°á»ng cáº§n nhiá»u steps hÆ¡n txt2img)
+            cfg_scale: Äá»™ tuÃ¢n theo prompt
+            sampler_name: TÃªn sampler
             seed: Random seed (-1 = random)
-            restore_faces: Có restore faces không
-            resize_mode: Cách resize ảnh input
+            restore_faces: CÃ³ restore faces khÃ´ng
+            resize_mode: CÃ¡ch resize áº£nh input
             lora_models: List of Lora models to apply [{"name": "lora_name", "weight": 0.8}]
             vae: VAE model name (None = Automatic)
         
         Returns:
-            Dict với keys: images (list base64), parameters, info
+            Dict vá»›i keys: images (list base64), parameters, info
         """
         # Apply Lora to prompt
         final_prompt = prompt
@@ -398,10 +398,10 @@ class StableDiffusionClient:
         except requests.exceptions.RequestException as e:
             return {"error": f"Network error: {str(e)}"}
         except Exception as e:
-            return {"error": f"Lỗi khi tạo ảnh: {str(e)}"}
+            return {"error": f"Lá»—i khi táº¡o áº£nh: {str(e)}"}
     
     def interrupt(self) -> bool:
-        """Dừng việc tạo ảnh đang chạy"""
+        """Dá»«ng viá»‡c táº¡o áº£nh Ä‘ang cháº¡y"""
         try:
             response = requests.post(f"{self.api_url}/sdapi/v1/interrupt", timeout=5)
             response.raise_for_status()
@@ -410,12 +410,12 @@ class StableDiffusionClient:
             return False
     
     def base64_to_image(self, base64_string: str) -> Image.Image:
-        """Convert base64 string thành PIL Image"""
+        """Convert base64 string thÃ nh PIL Image"""
         image_data = base64.b64decode(base64_string)
         return Image.open(io.BytesIO(image_data))
     
     def image_to_base64(self, image: Image.Image) -> str:
-        """Convert PIL Image thành base64 string"""
+        """Convert PIL Image thÃ nh base64 string"""
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
@@ -425,7 +425,7 @@ class StableDiffusionClient:
 _sd_client = None
 
 def get_sd_client(api_url: str = None) -> StableDiffusionClient:
-    """Get hoặc tạo SD client instance"""
+    """Get hoáº·c táº¡o SD client instance"""
     import os
     global _sd_client
     
@@ -433,7 +433,7 @@ def get_sd_client(api_url: str = None) -> StableDiffusionClient:
     if api_url is None:
         api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189'))
     
-    # Nếu URL thay đổi, tạo client mới
+    # Náº¿u URL thay Ä‘á»•i, táº¡o client má»›i
     if (
         _sd_client is None
         or getattr(_sd_client, "api_url", "").rstrip("/") != api_url.rstrip("/")

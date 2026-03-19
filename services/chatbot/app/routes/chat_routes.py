@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chat Routes
 
 API endpoints for chat functionality.

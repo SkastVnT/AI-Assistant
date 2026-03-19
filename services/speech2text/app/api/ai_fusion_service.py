@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Fusion Service - Uses DeepSeek/OpenAI for transcript fusion
 Replaces deprecated Gemini service
 """
@@ -124,7 +124,7 @@ async def fuse_transcripts(request: FusionRequest):
                 logger.warning(f"Cache error: {e}")
         
         # Prepare prompt for Vietnamese fusion
-        prompt = f"""Bạn là chuyên gia nhận dạng giọng nói tiếng Việt. Hãy kết hợp 2 bản transcript sau để tạo ra 1 bản chính xác nhất:
+        prompt = f"""Báº¡n lÃ  chuyÃªn gia nháº­n dáº¡ng giá»ng nÃ³i tiáº¿ng Viá»‡t. HÃ£y káº¿t há»£p 2 báº£n transcript sau Ä‘á»ƒ táº¡o ra 1 báº£n chÃ­nh xÃ¡c nháº¥t:
 
 TRANSCRIPT 1 (Whisper):
 {request.whisper_transcript}
@@ -132,20 +132,20 @@ TRANSCRIPT 1 (Whisper):
 TRANSCRIPT 2 (PhoWhisper):  
 {request.phowhisper_transcript}
 
-YÊU CẦU:
-- Kết hợp thông minh để tạo transcript chính xác nhất
-- Ưu tiên các từ tiếng Việt chính xác hơn
-- Sửa lỗi chính tả và ngữ pháp
-- Giữ nguyên ý nghĩa và ngữ cảnh
-- Chỉ trả về text đã kết hợp, không giải thích
+YÃŠU Cáº¦U:
+- Káº¿t há»£p thÃ´ng minh Ä‘á»ƒ táº¡o transcript chÃ­nh xÃ¡c nháº¥t
+- Æ¯u tiÃªn cÃ¡c tá»« tiáº¿ng Viá»‡t chÃ­nh xÃ¡c hÆ¡n
+- Sá»­a lá»—i chÃ­nh táº£ vÃ  ngá»¯ phÃ¡p
+- Giá»¯ nguyÃªn Ã½ nghÄ©a vÃ  ngá»¯ cáº£nh
+- Chá»‰ tráº£ vá» text Ä‘Ã£ káº¿t há»£p, khÃ´ng giáº£i thÃ­ch
 
-TRANSCRIPT CUỐI:"""
+TRANSCRIPT CUá»I:"""
 
         # Call AI API
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "Bạn là chuyên gia xử lý ngôn ngữ tiếng Việt. Chỉ trả về kết quả, không giải thích."},
+                {"role": "system", "content": "Báº¡n lÃ  chuyÃªn gia xá»­ lÃ½ ngÃ´n ngá»¯ tiáº¿ng Viá»‡t. Chá»‰ tráº£ vá» káº¿t quáº£, khÃ´ng giáº£i thÃ­ch."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,

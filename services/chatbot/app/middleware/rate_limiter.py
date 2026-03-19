@@ -1,4 +1,4 @@
-"""
+﻿"""
 Rate Limiter Middleware
 
 Handles request rate limiting.

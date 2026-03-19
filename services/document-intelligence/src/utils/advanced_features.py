@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Features for Document Intelligence Service
 Provides processing history tracking and quick actions
 """
@@ -162,7 +162,7 @@ class QuickActions:
                 'id': 'ocr_basic',
                 'name': 'Basic OCR',
                 'description': 'Extract text from image using OCR',
-                'icon': '📝',
+                'icon': 'ðŸ“',
                 'params': {
                     'mode': 'text',
                     'language': 'vi'
@@ -172,7 +172,7 @@ class QuickActions:
                 'id': 'ocr_structured',
                 'name': 'Structured OCR',
                 'description': 'Extract text with layout preservation',
-                'icon': '📋',
+                'icon': 'ðŸ“‹',
                 'params': {
                     'mode': 'structured',
                     'language': 'vi'
@@ -182,7 +182,7 @@ class QuickActions:
                 'id': 'ocr_table',
                 'name': 'Table Extraction',
                 'description': 'Extract tables from document',
-                'icon': '📊',
+                'icon': 'ðŸ“Š',
                 'params': {
                     'mode': 'table',
                     'language': 'vi'
@@ -192,7 +192,7 @@ class QuickActions:
                 'id': 'pdf_to_text',
                 'name': 'PDF to Text',
                 'description': 'Convert PDF document to text',
-                'icon': '📄',
+                'icon': 'ðŸ“„',
                 'params': {
                     'mode': 'pdf',
                     'output_format': 'text'
@@ -202,7 +202,7 @@ class QuickActions:
                 'id': 'ai_enhance',
                 'name': 'AI Enhancement',
                 'description': 'Enhance OCR results with AI',
-                'icon': '🤖',
+                'icon': 'ðŸ¤–',
                 'params': {
                     'mode': 'text',
                     'ai_enhance': True
@@ -212,7 +212,7 @@ class QuickActions:
                 'id': 'batch_process',
                 'name': 'Batch Process',
                 'description': 'Process multiple files at once',
-                'icon': '📁',
+                'icon': 'ðŸ“',
                 'params': {
                     'mode': 'batch'
                 }
@@ -236,7 +236,7 @@ class QuickActions:
         name: str,
         description: str,
         params: Dict[str, Any],
-        icon: str = '⚡'
+        icon: str = 'âš¡'
     ) -> Dict[str, Any]:
         """Add a custom action"""
         action = {

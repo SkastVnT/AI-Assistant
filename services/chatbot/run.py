@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chatbot Application Entry Point
 
 This file provides backward compatibility and runs the new modular application.
@@ -38,12 +38,12 @@ if USE_NEW_STRUCTURE:
         port = int(os.getenv('FLASK_PORT', 5000))
         debug = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
         
-        print(f"🚀 Starting Chatbot (New Structure) on port {port}")
+        print(f"ðŸš€ Starting Chatbot (New Structure) on port {port}")
         app.run(host='0.0.0.0', port=port, debug=debug)
 else:
     # Use legacy chatbot_main.py (renamed from app.py to avoid conflict)
-    print("ℹ️ Using legacy application structure")
-    print("💡 Set USE_NEW_STRUCTURE=true to use the new modular structure")
+    print("â„¹ï¸ Using legacy application structure")
+    print("ðŸ’¡ Set USE_NEW_STRUCTURE=true to use the new modular structure")
     
     if __name__ == '__main__':
         # Load and execute chatbot_main.py as a script to avoid import conflicts

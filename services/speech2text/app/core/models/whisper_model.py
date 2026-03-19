@@ -1,4 +1,4 @@
-"""
+﻿"""
 Whisper Client - OpenAI Whisper large-v3 for Global ASR
 Uses faster_whisper for optimized inference
 """

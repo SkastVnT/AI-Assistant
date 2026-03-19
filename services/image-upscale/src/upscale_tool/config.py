@@ -1,4 +1,4 @@
-"""
+﻿"""
 Configuration for upscale tool
 """
 import yaml
@@ -180,7 +180,7 @@ SUPPORTED_MODELS = {
         'url': 'https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/003_realSR_BSRGAN_DFOWMFC_s64w8_SwinIR-L_x4_GAN.pth',
         'num_block': None,
         'scale': 4,
-        'description': '👑 [CUHK] Highest quality, Swin Transformer, slow, high VRAM'
+        'description': 'ðŸ‘‘ [CUHK] Highest quality, Swin Transformer, slow, high VRAM'
     },
     'Swin2SR_realSR_x4': {
         'url': 'https://github.com/mv-lab/swin2sr/releases/download/v0.0.1/Swin2SR_RealworldSR_X4_64_BSRGAN_PSNR.pth',

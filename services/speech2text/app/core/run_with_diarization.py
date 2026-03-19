@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Speech-to-Text with Speaker Diarization - VistralS2T v3.5
-Pipeline: VAD → Diarization → Segment Audio → Dual Model (Whisper + PhoWhisper) → Qwen Fusion
+Pipeline: VAD â†’ Diarization â†’ Segment Audio â†’ Dual Model (Whisper + PhoWhisper) â†’ Qwen Fusion
 OPTIMIZED: Voice Activity Detection for faster processing
 """
 import os
@@ -11,7 +11,18 @@ import datetime
 import librosa
 import soundfile as sf
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Add app directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,8 +35,7 @@ from utils.audio_utils import preprocess_audio
 from utils.logger import setup_logger
 
 # Load environment
-load_dotenv("../config/.env")
-
+load_shared_env(__file__)
 # Configuration
 HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN")
 AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
@@ -34,10 +44,10 @@ print("=" * 80)
 print("SPEECH-TO-TEXT WITH SPEAKER DIARIZATION - v3.5")
 print("=" * 80)
 print("FEATURES:")
-print("  ✓ Voice Activity Detection (VAD) - Faster processing")
-print("  ✓ Dual Model: Whisper + PhoWhisper")
-print("  ✓ Speaker Diarization with pyannote.audio 3.1")
-print("  ✓ Qwen2.5-1.5B Smart Fusion")
+print("  âœ“ Voice Activity Detection (VAD) - Faster processing")
+print("  âœ“ Dual Model: Whisper + PhoWhisper")
+print("  âœ“ Speaker Diarization with pyannote.audio 3.1")
+print("  âœ“ Qwen2.5-1.5B Smart Fusion")
 print("=" * 80)
 print()
 
@@ -151,7 +161,7 @@ for i, seg in enumerate(segments):
     segment_files.append((seg, segment_path))
     
     print(f"[{i+1:3d}/{len(segments):3d}] {seg.speaker_id}: "
-          f"{seg.start_time:7.2f}s-{seg.end_time:7.2f}s → {os.path.basename(segment_path)}")
+          f"{seg.start_time:7.2f}s-{seg.end_time:7.2f}s â†’ {os.path.basename(segment_path)}")
 
 print(f"[OK] Extracted {len(segment_files)} audio segments")
 
@@ -242,15 +252,15 @@ if enhance_qwen:
         qwen.load()
         
         # Build prompt for Qwen
-        prompt = """Bạn là trợ lý AI chuyên xử lý transcript cuộc hội thoại.
+        prompt = """Báº¡n lÃ  trá»£ lÃ½ AI chuyÃªn xá»­ lÃ½ transcript cuá»™c há»™i thoáº¡i.
 
-Nhiệm vụ:
-1. Sửa lỗi chính tả, ngữ pháp
-2. Thêm dấu câu phù hợp
-3. Format lại cho dễ đọc
-4. GIỮ NGUYÊN thời gian và speaker ID
+Nhiá»‡m vá»¥:
+1. Sá»­a lá»—i chÃ­nh táº£, ngá»¯ phÃ¡p
+2. ThÃªm dáº¥u cÃ¢u phÃ¹ há»£p
+3. Format láº¡i cho dá»… Ä‘á»c
+4. GIá»® NGUYÃŠN thá»i gian vÃ  speaker ID
 
-Transcript gốc:
+Transcript gá»‘c:
 """
         prompt += timeline_text
         
@@ -282,25 +292,25 @@ total_time = preprocess_time + diarize_time + whisper_time + qwen_time
 print(f"\n{'='*80}")
 print(f"PROCESSING COMPLETE!")
 print(f"{'='*80}")
-print(f"\n📊 STATISTICS:")
+print(f"\nðŸ“Š STATISTICS:")
 print(f"  Audio duration: {duration:.2f}s")
 print(f"  Speakers detected: {len(set(seg.speaker_id for seg in segments))}")
 print(f"  Total segments: {len(segments)}")
-print(f"\n⏱️  PROCESSING TIME:")
+print(f"\nâ±ï¸  PROCESSING TIME:")
 print(f"  Preprocessing: {preprocess_time:7.2f}s")
 print(f"  Diarization: {diarize_time:7.2f}s")
 print(f"  Whisper: {whisper_time:7.2f}s")
 print(f"  Qwen: {qwen_time:7.2f}s")
-print(f"  {'─'*40}")
+print(f"  {'â”€'*40}")
 print(f"  Total: {total_time:7.2f}s")
-print(f"\n📁 OUTPUT FILES:")
-print(f"  📄 Timeline transcript: {timeline_file}")
+print(f"\nðŸ“ OUTPUT FILES:")
+print(f"  ðŸ“„ Timeline transcript: {timeline_file}")
 if segments_file:
-    print(f"  📄 Speaker segments: {segments_file}")
-print(f"  📁 Audio segments: {segment_dir}/ ({len(segment_files)} files)")
+    print(f"  ðŸ“„ Speaker segments: {segments_file}")
+print(f"  ðŸ“ Audio segments: {segment_dir}/ ({len(segment_files)} files)")
 if enhance_qwen and enhanced_file:
-    print(f"  📄 Enhanced transcript: {enhanced_file}")
-print(f"\n✅ Session saved: {SESSION_DIR}")
+    print(f"  ðŸ“„ Enhanced transcript: {enhanced_file}")
+print(f"\nâœ… Session saved: {SESSION_DIR}")
 print(f"{'='*80}")
 
 # Save processing summary
@@ -322,3 +332,5 @@ with open(summary_file, 'w', encoding='utf-8') as f:
     f.write(f"  - Total: {total_time:.2f}s\n")
 
 print(f"[SAVE] Processing summary: {summary_file}")
+
+

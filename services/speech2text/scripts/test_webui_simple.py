@@ -1,5 +1,5 @@
-"""
-Simple Web UI Test với FORCE_CPU
+﻿"""
+Simple Web UI Test vá»›i FORCE_CPU
 Test basic functionality without complex models
 """
 import os
@@ -8,11 +8,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template_string, request, jsonify
 from flask_socketio import SocketIO
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment
-load_dotenv("app/config/.env")
-
+load_shared_env(__file__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'test-key'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -27,7 +37,7 @@ def index():
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
 <body>
-    <h1>🎤 VistralS2T - Force CPU Test</h1>
+    <h1>ðŸŽ¤ VistralS2T - Force CPU Test</h1>
     
     <div>
         <h2>Environment Status</h2>
@@ -108,9 +118,9 @@ def upload():
 def test_torch():
     try:
         import torch
-        return f"✅ {torch.__version__}"
+        return f"âœ… {torch.__version__}"
     except Exception as e:
-        return f"❌ {str(e)}"
+        return f"âŒ {str(e)}"
 
 def test_cuda():
     try:
@@ -150,3 +160,4 @@ if __name__ == '__main__':
     print("Starting server at http://localhost:5001")
     
     socketio.run(app, host='0.0.0.0', port=5001, debug=True)
+

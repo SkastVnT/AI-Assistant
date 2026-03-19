@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced usage example
 """
 import numpy as np

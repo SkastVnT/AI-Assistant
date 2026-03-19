@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Image Generation Module
 Features: ControlNet, Upscaling, Inpainting, Outpainting, Face Restoration, Style Transfer
 """
@@ -52,10 +52,10 @@ class AdvancedImageGenerator:
         self.is_available = self._check_api_availability()
         
         if self.is_available:
-            logger.info(f"✅ SD API available at {sd_api_url}")
+            logger.info(f"âœ… SD API available at {sd_api_url}")
             self._load_available_features()
         else:
-            logger.warning(f"⚠️ SD API not available at {sd_api_url}")
+            logger.warning(f"âš ï¸ SD API not available at {sd_api_url}")
     
     def _check_api_availability(self) -> bool:
         """Check if SD API is available"""
@@ -88,8 +88,8 @@ class AdvancedImageGenerator:
             else:
                 self.upscalers = []
             
-            logger.info(f"✅ Loaded {len(self.controlnet_models)} ControlNet models")
-            logger.info(f"✅ Loaded {len(self.upscalers)} upscalers")
+            logger.info(f"âœ… Loaded {len(self.controlnet_models)} ControlNet models")
+            logger.info(f"âœ… Loaded {len(self.upscalers)} upscalers")
             
         except Exception as e:
             logger.error(f"Failed to load features: {e}")

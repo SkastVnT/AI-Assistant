@@ -1,47 +1,57 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 System Status Check - VistralS2T
 Verifies all components are working correctly
 """
 import os
 import sys
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment
-load_dotenv("app/config/.env")
-
+load_shared_env(__file__)
 def test_pytorch():
     """Test PyTorch and CUDA"""
     try:
         import torch
-        print(f"✅ PyTorch version: {torch.__version__}")
-        print(f"✅ CUDA available: {torch.cuda.is_available()}")
+        print(f"âœ… PyTorch version: {torch.__version__}")
+        print(f"âœ… CUDA available: {torch.cuda.is_available()}")
         if torch.cuda.is_available():
-            print(f"✅ GPU: {torch.cuda.get_device_name(0)}")
-            print(f"✅ CUDA version: {torch.version.cuda}")
+            print(f"âœ… GPU: {torch.cuda.get_device_name(0)}")
+            print(f"âœ… CUDA version: {torch.version.cuda}")
         return True
     except Exception as e:
-        print(f"❌ PyTorch error: {e}")
+        print(f"âŒ PyTorch error: {e}")
         return False
 
 def test_whisper():
     """Test Whisper (faster-whisper)"""
     try:
         from faster_whisper import WhisperModel
-        print(f"✅ Faster-Whisper available")
+        print(f"âœ… Faster-Whisper available")
         return True
     except Exception as e:
-        print(f"❌ Faster-Whisper error: {e}")
+        print(f"âŒ Faster-Whisper error: {e}")
         return False
 
 def test_transformers():
     """Test Transformers"""
     try:
         import transformers
-        print(f"✅ Transformers version: {transformers.__version__}")
+        print(f"âœ… Transformers version: {transformers.__version__}")
         return True
     except Exception as e:
-        print(f"❌ Transformers error: {e}")
+        print(f"âŒ Transformers error: {e}")
         return False
 
 def test_phowhisper():
@@ -49,38 +59,38 @@ def test_phowhisper():
     try:
         from transformers import pipeline
         # Quick test without full model loading
-        print(f"✅ PhoWhisper pipeline available")
+        print(f"âœ… PhoWhisper pipeline available")
         return True
     except Exception as e:
-        print(f"❌ PhoWhisper error: {e}")
+        print(f"âŒ PhoWhisper error: {e}")
         return False
 
 def test_hf_token():
     """Test HuggingFace token"""
     token = os.getenv('HF_TOKEN')
     if token:
-        print(f"✅ HF_TOKEN loaded: {token[:20]}...")
+        print(f"âœ… HF_TOKEN loaded: {token[:20]}...")
         return True
     else:
-        print(f"❌ HF_TOKEN not found")
+        print(f"âŒ HF_TOKEN not found")
         return False
 
 def test_diarization():
     """Test pyannote diarization"""
     try:
         from pyannote.audio import Pipeline
-        print(f"✅ Pyannote audio available")
+        print(f"âœ… Pyannote audio available")
         
         # Test if models are accessible (without loading)
         token = os.getenv('HF_TOKEN')
         if not token:
-            print(f"⚠️  HF_TOKEN required for diarization models")
+            print(f"âš ï¸  HF_TOKEN required for diarization models")
             return False
             
-        print(f"✅ Ready to test diarization models")
+        print(f"âœ… Ready to test diarization models")
         return True
     except Exception as e:
-        print(f"❌ Diarization error: {e}")
+        print(f"âŒ Diarization error: {e}")
         return False
 
 def main():
@@ -118,12 +128,12 @@ def main():
     print(f"Tests passed: {passed}/{total}")
     
     if passed == total:
-        print("🎉 ALL SYSTEMS READY!")
+        print("ðŸŽ‰ ALL SYSTEMS READY!")
         print("\nNext steps:")
         print("1. Accept HuggingFace model licenses (run accept_licenses.py)")
         print("2. Start the web UI (run start_webui.bat)")
     else:
-        print("⚠️  Some issues need attention.")
+        print("âš ï¸  Some issues need attention.")
         print("\nTroubleshooting:")
         print("- Run accept_licenses.py for diarization models")
         print("- Check your .env file for HF_TOKEN")
@@ -131,3 +141,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 MongoDB Configuration for ChatBot Service
 Database: AI-Assistant MongoDB Atlas
 Created: 2025-11-09
@@ -8,10 +8,20 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime
 import os
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
 
-load_dotenv()
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
+load_shared_env(__file__)
 # MongoDB Atlas URI
 MONGODB_URI = os.getenv(
     'MONGODB_URI'
@@ -48,7 +58,7 @@ class MongoDBClient:
         if self._client is None:
             # Skip if no URI configured
             if not MONGODB_URI:
-                print("⚠️ MongoDB URI not configured, running without database")
+                print("âš ï¸ MongoDB URI not configured, running without database")
                 return False
             try:
                 self._client = MongoClient(
@@ -62,11 +72,11 @@ class MongoDBClient:
                 # Test connection
                 self._client.admin.command('ping')
                 self._db = self._client[DATABASE_NAME]
-                print(f"✅ Successfully connected to MongoDB Atlas - Database: {DATABASE_NAME}")
+                print(f"âœ… Successfully connected to MongoDB Atlas - Database: {DATABASE_NAME}")
                 self._create_indexes()
                 return True
             except Exception as e:
-                print(f"⚠️ MongoDB connection failed (app will run without DB): {str(e)[:100]}")
+                print(f"âš ï¸ MongoDB connection failed (app will run without DB): {str(e)[:100]}")
                 self._client = None
                 self._db = None
                 return False
@@ -97,7 +107,7 @@ class MongoDBClient:
         db.uploaded_files.create_index([("conversation_id", 1)])
         db.uploaded_files.create_index([("created_at", -1)])
         
-        print("✅ MongoDB indexes created successfully")
+        print("âœ… MongoDB indexes created successfully")
     
     @property
     def db(self):
@@ -152,7 +162,7 @@ class MongoDBClient:
             self._client.close()
             self._client = None
             self._db = None
-            print("✅ MongoDB connection closed")
+            print("âœ… MongoDB connection closed")
 
 
 # Global instance
@@ -175,19 +185,19 @@ def test_connection():
             "timestamp": datetime.utcnow()
         }
         result = test_collection.insert_one(test_doc)
-        print(f"✅ Test document inserted with ID: {result.inserted_id}")
+        print(f"âœ… Test document inserted with ID: {result.inserted_id}")
         
         # Delete test document
         test_collection.delete_one({"_id": result.inserted_id})
-        print("✅ Test document deleted")
+        print("âœ… Test document deleted")
         
         # Drop test collection
         mongodb_client.db.drop_collection('test')
-        print("✅ Test collection dropped")
+        print("âœ… Test collection dropped")
         
         return True
     except Exception as e:
-        print(f"❌ Connection test failed: {e}")
+        print(f"âŒ Connection test failed: {e}")
         return False
 
 
@@ -197,3 +207,5 @@ if __name__ == "__main__":
     print("=" * 50)
     test_connection()
     mongodb_client.close()
+
+

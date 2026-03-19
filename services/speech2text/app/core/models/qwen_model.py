@@ -1,4 +1,4 @@
-"""
+﻿"""
 Qwen Client - Alibaba Qwen2.5-1.5B-Instruct for Smart Fusion
 Lightweight LLM for combining and enhancing dual transcripts
 """

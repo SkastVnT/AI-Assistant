@@ -1,5 +1,5 @@
-"""
-OpenAI image provider — GPT-Image-1 / DALL-E API.
+﻿"""
+OpenAI image provider â€” GPT-Image-1 / DALL-E API.
 Supports conversational image generation & editing via OpenAI's /images endpoint.
 """
 
@@ -33,7 +33,7 @@ OPENAI_COST = {
 
 
 class OpenAIImageProvider(BaseImageProvider):
-    """OpenAI gpt-image-1 / DALL-E 3 — native image generation with conversation understanding."""
+    """OpenAI gpt-image-1 / DALL-E 3 â€” native image generation with conversation understanding."""
 
     name = "openai"
     tier = ProviderTier.ULTRA

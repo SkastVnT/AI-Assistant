@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Test script to verify CUDA fix for Whisper
 Tests if faster-whisper can load models without CUDA library errors
@@ -37,15 +37,15 @@ def test_cuda_setup():
         y = torch.randn(1000, 1000).to(device)
         z = torch.mm(x, y)
         
-        print("✅ GPU memory allocation successful!")
-        print("✅ GPU matrix multiplication successful!")
+        print("âœ… GPU memory allocation successful!")
+        print("âœ… GPU matrix multiplication successful!")
         
         # Clear GPU memory
         del x, y, z
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
         
     except Exception as e:
-        print(f"❌ GPU test failed: {e}")
+        print(f"âŒ GPU test failed: {e}")
         return False
     
     print("\n" + "=" * 60)
@@ -58,23 +58,23 @@ def test_cuda_setup():
         # Test model loading (tiny model for quick test)
         print("Loading tiny Whisper model...")
         model = WhisperModel("tiny", device=device, compute_type="float16" if device == "cuda" else "int8")
-        print("✅ Faster-Whisper model loaded successfully!")
+        print("âœ… Faster-Whisper model loaded successfully!")
         
         # Test if model can be used
         print("Testing model inference...")
         segments, info = model.transcribe("test", beam_size=1)
-        print("✅ Faster-Whisper inference test passed!")
+        print("âœ… Faster-Whisper inference test passed!")
         
         del model
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
         
     except Exception as e:
-        print(f"❌ Faster-Whisper test failed: {e}")
+        print(f"âŒ Faster-Whisper test failed: {e}")
         return False
     
     print("\n" + "=" * 60)
-    print("✅ ALL TESTS PASSED!")
-    print("✅ CUDA error should be resolved!")
+    print("âœ… ALL TESTS PASSED!")
+    print("âœ… CUDA error should be resolved!")
     print("=" * 60)
     return True
 

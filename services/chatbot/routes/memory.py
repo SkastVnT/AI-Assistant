@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory routes for AI learning/knowledge base
 """
 import os

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Integration Tests
 
 End-to-end tests for the chatbot database layer.
@@ -52,7 +52,7 @@ class TestCompleteConversationFlow:
         return db
     
     def test_create_conversation_add_messages_save_memory(self, mock_db):
-        """Test: Create conv → Add messages → Save memory → Retrieve"""
+        """Test: Create conv â†’ Add messages â†’ Save memory â†’ Retrieve"""
         from database.repositories.conversation_repository import ConversationRepository
         from database.repositories.message_repository import MessageRepository
         from database.repositories.memory_repository import MemoryRepository

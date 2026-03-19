@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tool functions for chatbot
 """
 import sys
@@ -22,7 +22,7 @@ def google_search_tool(query):
     """Google Custom Search API with improved error handling"""
     try:
         if not GOOGLE_SEARCH_API_KEY_1 or not GOOGLE_CSE_ID:
-            return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
+            return "âŒ Google Search API chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GOOGLE_SEARCH_API_KEY vÃ  GOOGLE_CSE_ID vÃ o file .env"
         
         logger.info(f"[GOOGLE SEARCH] Query: {query}")
         
@@ -61,11 +61,11 @@ def google_search_tool(query):
                     title = item.get('title', 'No title')
                     link = item.get('link', '')
                     snippet = item.get('snippet', 'No description')
-                    results.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                    results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
                 
-                return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+                return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
             else:
-                return "Không tìm thấy kết quả nào."
+                return "KhÃ´ng tÃ¬m tháº¥y káº¿t quáº£ nÃ o."
                 
         elif response.status_code == 429:
             # Quota exceeded, try second key
@@ -80,28 +80,28 @@ def google_search_tool(query):
                             title = item.get('title', 'No title')
                             link = item.get('link', '')
                             snippet = item.get('snippet', 'No description')
-                            results.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                        return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
-            return "❌ Đã hết quota Google Search API. Vui lòng thử lại sau."
+                            results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
+                        return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
+            return "âŒ ÄÃ£ háº¿t quota Google Search API. Vui lÃ²ng thá»­ láº¡i sau."
         else:
-            return f"❌ Lỗi Google Search API: {response.status_code}"
+            return f"âŒ Lá»—i Google Search API: {response.status_code}"
     
     except requests.exceptions.ConnectionError as e:
         logger.error(f"[GOOGLE SEARCH] Connection Error: {e}")
-        return "❌ Lỗi kết nối đến Google Search API"
+        return "âŒ Lá»—i káº¿t ná»‘i Ä‘áº¿n Google Search API"
     except requests.exceptions.Timeout as e:
         logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
-        return "❌ Timeout khi kết nối đến Google Search API"
+        return "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API"
     except Exception as e:
         logger.error(f"[GOOGLE SEARCH] Unexpected Error: {e}")
-        return f"❌ Lỗi: {str(e)}"
+        return f"âŒ Lá»—i: {str(e)}"
 
 
 def github_search_tool(query):
     """GitHub Repository Search"""
     try:
         if not GITHUB_TOKEN:
-            return "❌ GitHub Token chưa được cấu hình. Vui lòng thêm GITHUB_TOKEN vào file .env"
+            return "âŒ GitHub Token chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GITHUB_TOKEN vÃ o file .env"
         
         url = "https://api.github.com/search/repositories"
         headers = {
@@ -131,14 +131,14 @@ def github_search_tool(query):
                     html_url = repo.get('html_url', '')
                     language = repo.get('language', 'N/A')
                     
-                    results.append(f"**{name}** ⭐ {stars}\n{desc}\n💻 {language} | 🔗 {html_url}")
+                    results.append(f"**{name}** â­ {stars}\n{desc}\nðŸ’» {language} | ðŸ”— {html_url}")
                 
-                return "🐙 **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
+                return "ðŸ™ **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
             else:
-                return "Không tìm thấy repository nào."
+                return "KhÃ´ng tÃ¬m tháº¥y repository nÃ o."
         else:
-            return f"❌ Lỗi GitHub API: {response.status_code}"
+            return f"âŒ Lá»—i GitHub API: {response.status_code}"
     
     except Exception as e:
         logger.error(f"[GITHUB SEARCH] Error: {e}")
-        return f"❌ Lỗi: {str(e)}"
+        return f"âŒ Lá»—i: {str(e)}"

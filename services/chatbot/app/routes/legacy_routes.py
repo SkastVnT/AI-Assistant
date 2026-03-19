@@ -1,4 +1,4 @@
-"""
+﻿"""
 Legacy Routes
 
 Backward-compatible routes for existing frontend.

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Learning Controller
 
 Handles AI self-learning operations.
@@ -40,7 +40,7 @@ class LearningController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error listing learning data: {e}")
+            logger.error(f"âŒ Error listing learning data: {e}")
             raise
     
     def submit_learning_data(
@@ -59,21 +59,21 @@ class LearningController:
                 quality_score=quality_score
             )
             
-            logger.info(f"✅ Submitted learning data: {result.get('_id')}")
+            logger.info(f"âœ… Submitted learning data: {result.get('_id')}")
             return result
             
         except Exception as e:
-            logger.error(f"❌ Error submitting learning data: {e}")
+            logger.error(f"âŒ Error submitting learning data: {e}")
             raise
     
     def approve_learning_data(self, data_id: str) -> Dict[str, Any]:
         """Approve learning data for use"""
         try:
             result = self.learning_service.approve(data_id)
-            logger.info(f"✅ Approved learning data: {data_id}")
+            logger.info(f"âœ… Approved learning data: {data_id}")
             return result
         except Exception as e:
-            logger.error(f"❌ Error approving learning data: {e}")
+            logger.error(f"âŒ Error approving learning data: {e}")
             raise
     
     def reject_learning_data(
@@ -86,11 +86,11 @@ class LearningController:
             result = self.learning_service.reject(data_id, reason)
             safe_id = str(data_id).replace('\n', ' ').replace('\r', '')
             safe_reason = str(reason).replace('\n', ' ').replace('\r', '')
-            logger.info(f"✅ Rejected learning data: {safe_id} - {safe_reason}")
+            logger.info(f"âœ… Rejected learning data: {safe_id} - {safe_reason}")
             return result
         except Exception as e:
             safe_error = str(e).replace('\n', ' ').replace('\r', '')
-            logger.error(f"❌ Error rejecting learning data: {safe_error}")
+            logger.error(f"âŒ Error rejecting learning data: {safe_error}")
             raise
     
     def extract_from_conversation(
@@ -115,7 +115,7 @@ class LearningController:
                 auto_approve=auto_approve
             )
             
-            logger.info(f"✅ Extracted {extracted['count']} learning items from conversation")
+            logger.info(f"âœ… Extracted {extracted['count']} learning items from conversation")
             
             return {
                 'conversation_id': conversation_id,
@@ -124,7 +124,7 @@ class LearningController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error extracting learning data: {e}")
+            logger.error(f"âŒ Error extracting learning data: {e}")
             raise
     
     def get_stats(self) -> Dict[str, Any]:
@@ -132,7 +132,7 @@ class LearningController:
         try:
             return self.learning_service.get_stats()
         except Exception as e:
-            logger.error(f"❌ Error getting learning stats: {e}")
+            logger.error(f"âŒ Error getting learning stats: {e}")
             raise
     
     def list_deleted_conversations(
@@ -151,5 +151,5 @@ class LearningController:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error listing deleted conversations: {e}")
+            logger.error(f"âŒ Error listing deleted conversations: {e}")
             raise

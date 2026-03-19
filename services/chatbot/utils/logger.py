@@ -1,4 +1,4 @@
-"""
+﻿"""
 Enhanced Logging Module
 
 Provides structured JSON logging with rotation for production.

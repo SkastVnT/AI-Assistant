@@ -1,5 +1,5 @@
-"""
-fal.ai provider — fastest inference engine for diffusion models.
+﻿"""
+fal.ai provider â€” fastest inference engine for diffusion models.
 Supports FLUX.2, FLUX.1-Kontext, Seedream, Nano-Banana, and more.
 """
 
@@ -18,7 +18,7 @@ from .base import (
 
 logger = logging.getLogger(__name__)
 
-# fal.ai model catalog — map friendly names to endpoints
+# fal.ai model catalog â€” map friendly names to endpoints
 FAL_MODELS = {
     # FLUX.2 family (latest, best)
     "flux2-dev":        "fal-ai/flux-2-dev",
@@ -50,7 +50,7 @@ FAL_COST = {
 
 
 class FalProvider(BaseImageProvider):
-    """fal.ai — fastest diffusion inference, huge model catalog."""
+    """fal.ai â€” fastest diffusion inference, huge model catalog."""
 
     name = "fal"
     tier = ProviderTier.HIGH

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database Service
 Handle ClickHouse database operations
 """

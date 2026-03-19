@@ -1,4 +1,4 @@
-"""
+﻿"""
 Document Intelligence Service - Source Package
 
 Uses lazy imports to handle numpy/opencv compatibility issues.

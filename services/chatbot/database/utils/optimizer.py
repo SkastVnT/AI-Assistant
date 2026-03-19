@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database Query Optimizer
 
 Provides utilities for optimizing database queries:

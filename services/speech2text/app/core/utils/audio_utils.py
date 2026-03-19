@@ -1,4 +1,4 @@
-"""
+﻿"""
 Audio Utilities for VistralS2T
 Functions for audio preprocessing, chunking, and manipulation
 """

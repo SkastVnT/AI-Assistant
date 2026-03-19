@@ -1,4 +1,4 @@
-"""
+﻿"""
 Async Chat Module - Asynchronous chat implementations for better I/O performance
 """
 import asyncio
@@ -297,7 +297,7 @@ class AsyncChatbotAgent:
         
         if not handler or not config:
             return ChatResponse(
-                content=f"❌ Model '{model}' not available",
+                content=f"âŒ Model '{model}' not available",
                 model=model,
                 provider="unknown",
                 success=False,
@@ -318,7 +318,7 @@ class AsyncChatbotAgent:
             if ctx.memories:
                 system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
                 for mem in ctx.memories:
-                    system_prompt += f"\n📚 {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                    system_prompt += f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
             
             messages = self._build_messages(ctx, system_prompt)
@@ -355,7 +355,7 @@ class AsyncChatbotAgent:
         config = self.config_map.get(model)
         
         if not handler or not config:
-            yield f"❌ Model '{model}' not available"
+            yield f"âŒ Model '{model}' not available"
             return
         
         try:
@@ -372,7 +372,7 @@ class AsyncChatbotAgent:
             if ctx.memories:
                 system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
                 for mem in ctx.memories:
-                    system_prompt += f"\n📚 {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                    system_prompt += f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
             
             messages = self._build_messages(ctx, system_prompt)
@@ -385,7 +385,7 @@ class AsyncChatbotAgent:
                 
         except Exception as e:
             logger.error(f"[{model}] Async streaming error: {e}")
-            yield f"❌ Error: {str(e)}"
+            yield f"âŒ Error: {str(e)}"
 
 
 async def run_multiple_chats(

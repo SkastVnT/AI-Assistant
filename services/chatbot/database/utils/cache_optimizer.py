@@ -1,4 +1,4 @@
-"""
+﻿"""
 Cache Optimization Module
 
 Provides utilities for optimizing cache operations:

@@ -1,4 +1,4 @@
-"""
+﻿"""
 PyTest Configuration for Text2SQL Service
 """
 import pytest

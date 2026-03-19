@@ -1,4 +1,4 @@
-"""
+﻿"""
 Quick Test Script for MongoDB ChatBot Database
 Run this to verify MongoDB connection and basic operations
 
@@ -30,10 +30,10 @@ def test_connection_only():
     print("=" * 60)
     
     if test_connection():
-        print("✅ Connection successful!")
+        print("âœ… Connection successful!")
         return True
     else:
-        print("❌ Connection failed!")
+        print("âŒ Connection failed!")
         return False
 
 
@@ -45,36 +45,36 @@ def test_conversation_operations():
     
     try:
         # Create conversation
-        print("\n📝 Creating test conversation...")
+        print("\nðŸ“ Creating test conversation...")
         conv = ConversationDB.create_conversation(
             user_id="test_user_001",
             model="grok-3",
             title="Test Conversation"
         )
-        print(f"✅ Created conversation: {conv['_id']}")
+        print(f"âœ… Created conversation: {conv['_id']}")
         
         # Get conversation
-        print("\n🔍 Retrieving conversation...")
+        print("\nðŸ” Retrieving conversation...")
         retrieved = ConversationDB.get_conversation(str(conv["_id"]))
-        print(f"✅ Retrieved: {retrieved['title']}")
+        print(f"âœ… Retrieved: {retrieved['title']}")
         
         # Update conversation
-        print("\n✏️  Updating conversation title...")
+        print("\nâœï¸  Updating conversation title...")
         updated = ConversationDB.update_conversation(
             str(conv["_id"]),
             {"title": "Updated Test Conversation"}
         )
-        print(f"✅ Updated: {updated}")
+        print(f"âœ… Updated: {updated}")
         
         # Get user conversations
-        print("\n📋 Getting user conversations...")
+        print("\nðŸ“‹ Getting user conversations...")
         user_convs = ConversationDB.get_user_conversations("test_user_001")
-        print(f"✅ Found {len(user_convs)} conversations")
+        print(f"âœ… Found {len(user_convs)} conversations")
         
         return str(conv["_id"])
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return None
 
 
@@ -86,16 +86,16 @@ def test_message_operations(conversation_id: str):
     
     try:
         # Add user message
-        print("\n💬 Adding user message...")
+        print("\nðŸ’¬ Adding user message...")
         msg1 = MessageDB.add_message(
             conversation_id=conversation_id,
             role="user",
             content="Hello, this is a test message!"
         )
-        print(f"✅ Created message: {msg1['_id']}")
+        print(f"âœ… Created message: {msg1['_id']}")
         
         # Add assistant message
-        print("\n🤖 Adding assistant message...")
+        print("\nðŸ¤– Adding assistant message...")
         msg2 = MessageDB.add_message(
             conversation_id=conversation_id,
             role="assistant",
@@ -106,12 +106,12 @@ def test_message_operations(conversation_id: str):
                 "generation_time_ms": 500
             }
         )
-        print(f"✅ Created message: {msg2['_id']}")
+        print(f"âœ… Created message: {msg2['_id']}")
         
         # Get all messages
-        print("\n📨 Getting conversation messages...")
+        print("\nðŸ“¨ Getting conversation messages...")
         messages = MessageDB.get_conversation_messages(conversation_id)
-        print(f"✅ Found {len(messages)} messages")
+        print(f"âœ… Found {len(messages)} messages")
         
         for i, msg in enumerate(messages, 1):
             print(f"   {i}. [{msg['role']}]: {msg['content'][:50]}...")
@@ -119,7 +119,7 @@ def test_message_operations(conversation_id: str):
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return False
 
 
@@ -131,7 +131,7 @@ def test_memory_operations():
     
     try:
         # Save memory
-        print("\n🧠 Saving memory...")
+        print("\nðŸ§  Saving memory...")
         memory = MemoryDB.save_memory(
             user_id="test_user_001",
             question="What is MongoDB?",
@@ -139,22 +139,22 @@ def test_memory_operations():
             tags=["mongodb", "database", "nosql"],
             is_public=True
         )
-        print(f"✅ Saved memory: {memory['_id']}")
+        print(f"âœ… Saved memory: {memory['_id']}")
         
         # Get user memories
-        print("\n🔍 Getting user memories...")
+        print("\nðŸ” Getting user memories...")
         memories = MemoryDB.get_user_memories("test_user_001")
-        print(f"✅ Found {len(memories)} memories")
+        print(f"âœ… Found {len(memories)} memories")
         
         # Rate memory
-        print("\n⭐ Rating memory...")
+        print("\nâ­ Rating memory...")
         rated = MemoryDB.rate_memory(str(memory["_id"]), 5)
-        print(f"✅ Rated: {rated}")
+        print(f"âœ… Rated: {rated}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return False
 
 
@@ -166,7 +166,7 @@ def test_file_operations():
     
     try:
         # Save file record
-        print("\n📁 Saving file record...")
+        print("\nðŸ“ Saving file record...")
         file_record = FileDB.save_file_record(
             user_id="test_user_001",
             original_filename="test_document.pdf",
@@ -177,22 +177,22 @@ def test_file_operations():
             mime_type="application/pdf",
             analysis_result="Test PDF document"
         )
-        print(f"✅ Saved file: {file_record['_id']}")
+        print(f"âœ… Saved file: {file_record['_id']}")
         
         # Get user files
-        print("\n📂 Getting user files...")
+        print("\nðŸ“‚ Getting user files...")
         files = FileDB.get_user_files("test_user_001")
-        print(f"✅ Found {len(files)} files")
+        print(f"âœ… Found {len(files)} files")
         
         # Get storage size
-        print("\n💾 Calculating storage size...")
+        print("\nðŸ’¾ Calculating storage size...")
         storage = FileDB.get_total_storage_size("test_user_001")
-        print(f"✅ Total storage: {storage / 1024:.2f} KB")
+        print(f"âœ… Total storage: {storage / 1024:.2f} KB")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return False
 
 
@@ -204,12 +204,12 @@ def test_settings_operations():
     
     try:
         # Create default settings
-        print("\n⚙️  Creating default settings...")
+        print("\nâš™ï¸  Creating default settings...")
         settings = UserSettingsDB.create_default_settings("test_user_001")
-        print(f"✅ Created settings for user: test_user_001")
+        print(f"âœ… Created settings for user: test_user_001")
         
         # Update settings
-        print("\n✏️  Updating settings...")
+        print("\nâœï¸  Updating settings...")
         updated = UserSettingsDB.update_settings(
             "test_user_001",
             {
@@ -217,19 +217,19 @@ def test_settings_operations():
                 "chatbot_settings.temperature": 0.9
             }
         )
-        print(f"✅ Updated: {updated}")
+        print(f"âœ… Updated: {updated}")
         
         # Get settings
-        print("\n🔍 Getting settings...")
+        print("\nðŸ” Getting settings...")
         user_settings = UserSettingsDB.get_settings("test_user_001")
-        print(f"✅ Retrieved settings")
+        print(f"âœ… Retrieved settings")
         print(f"   Theme: {user_settings.get('ui_settings', {}).get('theme')}")
         print(f"   Temperature: {user_settings.get('chatbot_settings', {}).get('temperature')}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return False
 
 
@@ -240,10 +240,10 @@ def test_statistics():
     print("=" * 60)
     
     try:
-        print("\n📊 Getting user statistics...")
+        print("\nðŸ“Š Getting user statistics...")
         stats = get_user_statistics("test_user_001")
         
-        print("\n✅ Statistics:")
+        print("\nâœ… Statistics:")
         print(f"   Total Conversations: {stats['total_conversations']}")
         print(f"   Active Conversations: {stats['active_conversations']}")
         print(f"   Total Messages: {stats['total_messages']}")
@@ -255,7 +255,7 @@ def test_statistics():
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return False
 
 
@@ -269,10 +269,10 @@ def cleanup_test_data():
         db = get_db()
         
         # Delete test user data
-        print("\n🗑️  Deleting test data...")
+        print("\nðŸ—‘ï¸  Deleting test data...")
         
         result1 = db.conversations.delete_many({"user_id": "test_user_001"})
-        print(f"   ✅ Deleted {result1.deleted_count} conversations")
+        print(f"   âœ… Deleted {result1.deleted_count} conversations")
         
         result2 = db.messages.delete_many({
             "conversation_id": {"$in": [
@@ -280,36 +280,36 @@ def cleanup_test_data():
                 db.conversations.find({"user_id": "test_user_001"})
             ]}
         })
-        print(f"   ✅ Deleted {result2.deleted_count} messages")
+        print(f"   âœ… Deleted {result2.deleted_count} messages")
         
         result3 = db.chatbot_memory.delete_many({"user_id": "test_user_001"})
-        print(f"   ✅ Deleted {result3.deleted_count} memories")
+        print(f"   âœ… Deleted {result3.deleted_count} memories")
         
         result4 = db.uploaded_files.delete_many({"user_id": "test_user_001"})
-        print(f"   ✅ Deleted {result4.deleted_count} files")
+        print(f"   âœ… Deleted {result4.deleted_count} files")
         
         result5 = db.user_settings.delete_many({"user_id": "test_user_001"})
-        print(f"   ✅ Deleted {result5.deleted_count} settings")
+        print(f"   âœ… Deleted {result5.deleted_count} settings")
         
-        print("\n✅ Cleanup complete!")
+        print("\nâœ… Cleanup complete!")
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"âŒ Error: {e}")
         return False
 
 
 def main():
     """Run all tests"""
     print("\n" + "=" * 60)
-    print("🚀 MongoDB ChatBot Database Test Suite")
+    print("ðŸš€ MongoDB ChatBot Database Test Suite")
     print("=" * 60)
     
     results = []
     
     # Test 1: Connection
     if not test_connection_only():
-        print("\n❌ Connection failed! Cannot proceed with tests.")
+        print("\nâŒ Connection failed! Cannot proceed with tests.")
         return
     results.append(("Connection", True))
     
@@ -318,7 +318,7 @@ def main():
     results.append(("Conversations", conversation_id is not None))
     
     if not conversation_id:
-        print("\n❌ Conversation test failed! Skipping dependent tests.")
+        print("\nâŒ Conversation test failed! Skipping dependent tests.")
         return
     
     # Test 3: Messages
@@ -347,25 +347,25 @@ def main():
     
     # Summary
     print("\n" + "=" * 60)
-    print("📋 TEST SUMMARY")
+    print("ðŸ“‹ TEST SUMMARY")
     print("=" * 60)
     
     passed = sum(1 for _, result in results if result)
     total = len(results)
     
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "âœ… PASS" if result else "âŒ FAIL"
         print(f"{status:10} | {test_name}")
     
     print("=" * 60)
-    print(f"\n🎯 Results: {passed}/{total} tests passed")
+    print(f"\nðŸŽ¯ Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("✨ All tests passed! MongoDB is ready for ChatBot service.")
+        print("âœ¨ All tests passed! MongoDB is ready for ChatBot service.")
     else:
-        print("⚠️  Some tests failed. Please check the errors above.")
+        print("âš ï¸  Some tests failed. Please check the errors above.")
     
-    print("\n📖 Next steps:")
+    print("\nðŸ“– Next steps:")
     print("  1. Run: python ChatBot/scripts/init_mongodb.py")
     print("  2. Update ChatBot/app.py to use MongoDB")
     print("  3. Install: pip install pymongo")

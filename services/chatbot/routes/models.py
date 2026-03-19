@@ -1,5 +1,5 @@
-"""
-Model Health & Status routes — /api/models/*
+﻿"""
+Model Health & Status routes â€” /api/models/*
 Provides real-time model availability, health checks, and performance stats.
 """
 import json
@@ -27,7 +27,7 @@ from core.extensions import logger
 models_bp = Blueprint('models', __name__)
 
 # ============================================================
-# MODEL CATALOG — Complete info for all supported models
+# MODEL CATALOG â€” Complete info for all supported models
 # ============================================================
 
 MODEL_CATALOG = {
@@ -36,11 +36,11 @@ MODEL_CATALOG = {
         'provider': 'xAI',
         'model_id': 'grok-3',
         'context_window': 128000,
-        'pricing': 'Paid — $5/$15 per 1M tokens',
+        'pricing': 'Paid â€” $5/$15 per 1M tokens',
         'supports_streaming': True,
         'supports_deep_thinking': True,
         'description': 'Powerful conversational AI by xAI with real-time knowledge',
-        'icon': '🤖',
+        'icon': 'ðŸ¤–',
         'tier': 'premium',
         'languages': ['en', 'vi', 'multi'],
         'strengths': ['Conversation', 'Analysis', 'Creative', 'NSFW-capable'],
@@ -54,7 +54,7 @@ MODEL_CATALOG = {
         'supports_streaming': True,
         'supports_deep_thinking': True,
         'description': 'Fast and affordable GPT model for everyday tasks',
-        'icon': '🧠',
+        'icon': 'ðŸ§ ',
         'tier': 'standard',
         'languages': ['en', 'vi', 'multi'],
         'strengths': ['General', 'Code', 'Analysis', 'Creative'],
@@ -68,7 +68,7 @@ MODEL_CATALOG = {
         'supports_streaming': True,
         'supports_deep_thinking': True,
         'description': 'Cost-effective model with strong coding abilities',
-        'icon': '🔍',
+        'icon': 'ðŸ”',
         'tier': 'standard',
         'languages': ['en', 'zh', 'vi', 'multi'],
         'strengths': ['Code', 'Math', 'Analysis', 'Reasoning'],
@@ -82,7 +82,7 @@ MODEL_CATALOG = {
         'supports_streaming': True,
         'supports_deep_thinking': True,
         'description': 'Advanced reasoning model with chain-of-thought',
-        'icon': '🧪',
+        'icon': 'ðŸ§ª',
         'tier': 'premium',
         'languages': ['en', 'zh', 'vi', 'multi'],
         'strengths': ['Reasoning', 'Math', 'Code', 'Logic'],
@@ -96,7 +96,7 @@ MODEL_CATALOG = {
         'supports_streaming': True,
         'supports_deep_thinking': True,
         'description': 'Google\'s fastest multimodal model with 1M context',
-        'icon': '💎',
+        'icon': 'ðŸ’Ž',
         'tier': 'free',
         'languages': ['en', 'vi', 'multi'],
         'strengths': ['Multimodal', 'Long context', 'Creative', 'Speed'],
@@ -109,8 +109,8 @@ MODEL_CATALOG = {
         'pricing': 'FREE via OpenRouter',
         'supports_streaming': True,
         'supports_deep_thinking': True,
-        'description': '196B MoE (11B active) — Free powerful Chinese AI model',
-        'icon': '⚡',
+        'description': '196B MoE (11B active) â€” Free powerful Chinese AI model',
+        'icon': 'âš¡',
         'tier': 'free',
         'languages': ['en', 'zh', 'vi', 'multi'],
         'strengths': ['Chinese', 'Reasoning', 'Code', 'Multilingual'],
@@ -120,11 +120,11 @@ MODEL_CATALOG = {
         'provider': 'StepFun Direct',
         'model_id': 'step-2-16k',
         'context_window': 16000,
-        'pricing': 'Paid — requires StepFun balance',
+        'pricing': 'Paid â€” requires StepFun balance',
         'supports_streaming': True,
         'supports_deep_thinking': True,
         'description': 'StepFun\'s direct API model',
-        'icon': '🚀',
+        'icon': 'ðŸš€',
         'tier': 'standard',
         'languages': ['en', 'zh', 'vi'],
         'strengths': ['Chinese', 'General', 'Code'],
@@ -134,11 +134,11 @@ MODEL_CATALOG = {
         'provider': 'Alibaba Cloud',
         'model_id': 'qwen-turbo',
         'context_window': 8000,
-        'pricing': 'Cheap — $0.001/$0.002 per 1K tokens',
+        'pricing': 'Cheap â€” $0.001/$0.002 per 1K tokens',
         'supports_streaming': True,
         'supports_deep_thinking': False,
         'description': 'Fast and affordable Chinese AI model',
-        'icon': '🌙',
+        'icon': 'ðŸŒ™',
         'tier': 'economy',
         'languages': ['en', 'zh', 'vi'],
         'strengths': ['Chinese', 'Speed', 'General'],
@@ -152,7 +152,7 @@ MODEL_CATALOG = {
         'supports_streaming': False,
         'supports_deep_thinking': False,
         'description': 'Vietnamese-focused open-source model',
-        'icon': '🌸',
+        'icon': 'ðŸŒ¸',
         'tier': 'free',
         'languages': ['vi', 'en'],
         'strengths': ['Vietnamese', 'General'],
@@ -270,34 +270,34 @@ def list_contexts():
     
     context_info = {
         'psychological': {
-            'name': 'Tâm lý' if language == 'vi' else 'Psychology',
-            'icon': '🧘',
-            'description': 'Tư vấn tâm lý, hỗ trợ cảm xúc' if language == 'vi' else 'Psychological counseling, emotional support',
+            'name': 'TÃ¢m lÃ½' if language == 'vi' else 'Psychology',
+            'icon': 'ðŸ§˜',
+            'description': 'TÆ° váº¥n tÃ¢m lÃ½, há»— trá»£ cáº£m xÃºc' if language == 'vi' else 'Psychological counseling, emotional support',
         },
         'lifestyle': {
-            'name': 'Lối sống' if language == 'vi' else 'Lifestyle',
-            'icon': '🌟',
-            'description': 'Tư vấn lối sống, phát triển bản thân' if language == 'vi' else 'Lifestyle advice, personal development',
+            'name': 'Lá»‘i sá»‘ng' if language == 'vi' else 'Lifestyle',
+            'icon': 'ðŸŒŸ',
+            'description': 'TÆ° váº¥n lá»‘i sá»‘ng, phÃ¡t triá»ƒn báº£n thÃ¢n' if language == 'vi' else 'Lifestyle advice, personal development',
         },
         'casual': {
-            'name': 'Thân mật' if language == 'vi' else 'Casual',
-            'icon': '💬',
-            'description': 'Trò chuyện thân thiện, đa chủ đề' if language == 'vi' else 'Friendly chat, any topic',
+            'name': 'ThÃ¢n máº­t' if language == 'vi' else 'Casual',
+            'icon': 'ðŸ’¬',
+            'description': 'TrÃ² chuyá»‡n thÃ¢n thiá»‡n, Ä‘a chá»§ Ä‘á»' if language == 'vi' else 'Friendly chat, any topic',
         },
         'programming': {
-            'name': 'Lập trình' if language == 'vi' else 'Programming',
-            'icon': '💻',
-            'description': 'Coding, debug, kiến trúc phần mềm' if language == 'vi' else 'Coding, debug, software architecture',
+            'name': 'Láº­p trÃ¬nh' if language == 'vi' else 'Programming',
+            'icon': 'ðŸ’»',
+            'description': 'Coding, debug, kiáº¿n trÃºc pháº§n má»m' if language == 'vi' else 'Coding, debug, software architecture',
         },
         'creative': {
-            'name': 'Sáng tạo' if language == 'vi' else 'Creative',
-            'icon': '🎨',
-            'description': 'Viết lách, brainstorm, thiết kế' if language == 'vi' else 'Writing, brainstorming, design',
+            'name': 'SÃ¡ng táº¡o' if language == 'vi' else 'Creative',
+            'icon': 'ðŸŽ¨',
+            'description': 'Viáº¿t lÃ¡ch, brainstorm, thiáº¿t káº¿' if language == 'vi' else 'Writing, brainstorming, design',
         },
         'research': {
-            'name': 'Nghiên cứu' if language == 'vi' else 'Research',
-            'icon': '🔬',
-            'description': 'Phân tích chuyên sâu, tổng hợp thông tin' if language == 'vi' else 'Deep analysis, information synthesis',
+            'name': 'NghiÃªn cá»©u' if language == 'vi' else 'Research',
+            'icon': 'ðŸ”¬',
+            'description': 'PhÃ¢n tÃ­ch chuyÃªn sÃ¢u, tá»•ng há»£p thÃ´ng tin' if language == 'vi' else 'Deep analysis, information synthesis',
         },
     }
     
@@ -364,10 +364,10 @@ def recommend_model():
         if 'reason' in task or 'math' in task or 'logic' in task:
             if 'reasoning' in strengths:
                 score += 25
-        if 'vietnamese' in task or 'tiếng việt' in task:
+        if 'vietnamese' in task or 'tiáº¿ng viá»‡t' in task:
             if 'vietnamese' in strengths:
                 score += 30
-        if 'chinese' in task or 'tiếng trung' in task:
+        if 'chinese' in task or 'tiáº¿ng trung' in task:
             if 'chinese' in strengths:
                 score += 30
         

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for WhisperClient
 Run with: pytest app/tests/test_whisper.py -v
 """

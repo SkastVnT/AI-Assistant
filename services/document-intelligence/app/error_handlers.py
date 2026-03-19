@@ -1,4 +1,4 @@
-"""
+﻿"""
 Document Intelligence Error Handlers
 Centralized error handling for the application
 """

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test script for upscale tool
 """
 import unittest

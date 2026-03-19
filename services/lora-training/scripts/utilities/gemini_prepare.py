@@ -1,4 +1,4 @@
-"""
+﻿"""
 Gemini-powered dataset preparation tool for LoRA training
 Auto-generate captions, analyze quality, optimize tags
 """
@@ -51,12 +51,12 @@ def main():
         return
     
     # Initialize Gemini assistant
-    print("🤖 Initializing Gemini 2.0 Flash...")
+    print("ðŸ¤– Initializing Gemini 2.0 Flash...")
     assistant = GeminiLoRAAssistant()
     
     # Execute command
     if args.command == 'caption':
-        print(f"\n🎨 Generating captions for: {args.input}")
+        print(f"\nðŸŽ¨ Generating captions for: {args.input}")
         print(f"   Style: {args.style}, Focus: {args.focus}")
         
         captions = assistant.batch_generate_captions(
@@ -66,15 +66,15 @@ def main():
             focus=args.focus
         )
         
-        print(f"\n✓ Generated {len(captions)} captions!")
+        print(f"\nâœ“ Generated {len(captions)} captions!")
     
     elif args.command == 'analyze':
-        print(f"\n📊 Analyzing dataset: {args.input}")
+        print(f"\nðŸ“Š Analyzing dataset: {args.input}")
         
         analysis = assistant.analyze_dataset_quality(args.input)
         
         if 'error' not in analysis:
-            print(f"\n📈 Analysis Results:")
+            print(f"\nðŸ“ˆ Analysis Results:")
             print(f"   Overall Score: {analysis.get('overall_score', 'N/A')}/10")
             print(f"   Quality: {analysis.get('quality_score', 'N/A')}/10")
             print(f"   Consistency: {analysis.get('consistency_score', 'N/A')}/10")
@@ -87,12 +87,12 @@ def main():
             if args.output:
                 import json
                 Path(args.output).write_text(json.dumps(analysis, indent=2))
-                print(f"\n✓ Saved report to: {args.output}")
+                print(f"\nâœ“ Saved report to: {args.output}")
         else:
-            print(f"✗ Error: {analysis.get('error')}")
+            print(f"âœ— Error: {analysis.get('error')}")
     
     elif args.command == 'recommend':
-        print(f"\n⚙️ Getting hyperparameter recommendations...")
+        print(f"\nâš™ï¸ Getting hyperparameter recommendations...")
         print(f"   Dataset: {args.dataset}")
         print(f"   Goal: {args.goal}")
         
@@ -115,7 +115,7 @@ def main():
         )
         
         if 'error' not in recommendations:
-            print(f"\n📋 Recommended Hyperparameters:")
+            print(f"\nðŸ“‹ Recommended Hyperparameters:")
             print(f"   Rank: {recommendations.get('rank')}")
             print(f"   Alpha: {recommendations.get('alpha')}")
             print(f"   Learning Rate: {recommendations.get('learning_rate')}")
@@ -153,12 +153,12 @@ def main():
                 }
                 
                 Path(args.output).write_text(yaml.dump(config, sort_keys=False))
-                print(f"\n✓ Saved config to: {args.output}")
+                print(f"\nâœ“ Saved config to: {args.output}")
         else:
-            print(f"✗ Error: {recommendations.get('error')}")
+            print(f"âœ— Error: {recommendations.get('error')}")
     
     elif args.command == 'outliers':
-        print(f"\n🔍 Detecting outliers in: {args.input}")
+        print(f"\nðŸ” Detecting outliers in: {args.input}")
         
         dataset_path = Path(args.input)
         images = list(dataset_path.glob('*.jpg')) + list(dataset_path.glob('*.png'))
@@ -168,21 +168,21 @@ def main():
         outliers = assistant.detect_outliers([str(img) for img in images])
         
         if outliers:
-            print(f"\n⚠️ Found {len(outliers)} potential outliers:")
+            print(f"\nâš ï¸ Found {len(outliers)} potential outliers:")
             for img_path, reason in outliers:
                 print(f"   - {Path(img_path).name}: {reason}")
             
             if args.remove:
-                print(f"\n🗑️ Removing outliers...")
+                print(f"\nðŸ—‘ï¸ Removing outliers...")
                 for img_path, _ in outliers:
                     Path(img_path).unlink()
                     # Also remove caption file if exists
                     caption_path = Path(img_path).with_suffix('.txt')
                     if caption_path.exists():
                         caption_path.unlink()
-                print(f"✓ Removed {len(outliers)} outliers")
+                print(f"âœ“ Removed {len(outliers)} outliers")
         else:
-            print(f"\n✓ No outliers detected! Dataset looks good.")
+            print(f"\nâœ“ No outliers detected! Dataset looks good.")
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Web UI for upscale tool using Gradio
 """
 import gradio as gr
@@ -7,15 +7,25 @@ import os
 from PIL import Image
 from pathlib import Path
 from datetime import datetime
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 from .multi_upscaler import MultiArchUpscaler
 from .imgbb_uploader import ImgBBUploader
 from .gif_upscaler import GIFUpscaler, is_gif
 
 # Load .env file
-load_dotenv()
-
+load_shared_env(__file__)
 
 class UpscaleWebUI:
     """Web UI for image upscaling"""
@@ -91,7 +101,7 @@ class UpscaleWebUI:
             else:
                 image = self.load_image_from_folder(selected_file)
                 if image is None:
-                    return None, "", f"❌ Error: Could not load {selected_file}", None
+                    return None, "", f"âŒ Error: Could not load {selected_file}", None
         
         # Handle GIF upscaling
         if gif_path:
@@ -116,11 +126,11 @@ class UpscaleWebUI:
                 
                 # Upscale GIF
                 frames_text = "ALL frames" if max_gif_frames == 0 else f"max {max_gif_frames} frames"
-                info = f"🎬 Processing GIF: {gif_path.name}\n"
-                info += f"⚙️ Model: {model_name}\n"
-                info += f"📏 Scale: {scale}x\n"
-                info += f"🎞️ Processing: {frames_text}\n\n"
-                info += "⏳ Upscaling frames... This may take a while...\n"
+                info = f"ðŸŽ¬ Processing GIF: {gif_path.name}\n"
+                info += f"âš™ï¸ Model: {model_name}\n"
+                info += f"ðŸ“ Scale: {scale}x\n"
+                info += f"ðŸŽžï¸ Processing: {frames_text}\n\n"
+                info += "â³ Upscaling frames... This may take a while...\n"
                 
                 # Convert 0 to None for "all frames"
                 max_frames_param = None if max_gif_frames == 0 else int(max_gif_frames)
@@ -132,8 +142,8 @@ class UpscaleWebUI:
                     output_path=output_path
                 )
                 
-                info += f"\n✅ GIF upscaling successful!\n"
-                info += f"💾 Saved to: {output_gif}\n"
+                info += f"\nâœ… GIF upscaling successful!\n"
+                info += f"ðŸ’¾ Saved to: {output_gif}\n"
                 
                 # Create HTML for animated GIF preview using base64
                 import base64
@@ -142,11 +152,11 @@ class UpscaleWebUI:
                 
                 gif_html = f"""
                 <div style="text-align: center; padding: 20px; background: rgba(102, 126, 234, 0.05); border-radius: 12px;">
-                    <h3 style="color: #667eea; margin-bottom: 15px;">🎬 Animated GIF Result</h3>
+                    <h3 style="color: #667eea; margin-bottom: 15px;">ðŸŽ¬ Animated GIF Result</h3>
                     <img src="data:image/gif;base64,{gif_data}" 
                          style="max-width: 100%; max-height: 600px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
                     <p style="margin-top: 10px; color: #888; font-size: 14px;">
-                        ✅ Animation is working! Click Download button to save the GIF file.
+                        âœ… Animation is working! Click Download button to save the GIF file.
                     </p>
                 </div>
                 """
@@ -156,7 +166,7 @@ class UpscaleWebUI:
                 
             except Exception as e:
                 import traceback
-                error_msg = f"❌ Error upscaling GIF: {str(e)}\n{traceback.format_exc()}"
+                error_msg = f"âŒ Error upscaling GIF: {str(e)}\n{traceback.format_exc()}"
                 return None, "", error_msg, None
         
         # Normal image upscaling
@@ -186,7 +196,7 @@ class UpscaleWebUI:
             
             # Info
             info = (
-                f"✅ Upscaling successful!\n"
+                f"âœ… Upscaling successful!\n"
                 f"Input size: {image.shape[1]}x{image.shape[0]}\n"
                 f"Output size: {output.shape[1]}x{output.shape[0]}\n"
                 f"Scale: {scale}x\n"
@@ -205,7 +215,7 @@ class UpscaleWebUI:
             
         except Exception as e:
             import traceback
-            error_msg = f"❌ Error: {str(e)}\n{traceback.format_exc()}"
+            error_msg = f"âŒ Error: {str(e)}\n{traceback.format_exc()}"
             return None, "", error_msg, None
     
     def get_image_info(self, image):
@@ -231,7 +241,7 @@ class UpscaleWebUI:
             # Rough size estimate in MB
             size_mb = (w * h * channels) / (1024 * 1024)
             
-            info = f"""📊 **Image Information:**
+            info = f"""ðŸ“Š **Image Information:**
 - **Dimensions**: {w} x {h} pixels
 - **Format**: {format_type}
 - **Size**: ~{size_mb:.2f} MB
@@ -256,7 +266,7 @@ class UpscaleWebUI:
             # Estimate upscaled size
             new_size_mb = (new_w * new_h * channels) / (1024 * 1024)
             
-            info = f"""🔍 **Upscale Preview:**
+            info = f"""ðŸ” **Upscale Preview:**
 - **Current**: {w} x {h} pixels
 - **After {scale}x upscale**: {new_w} x {new_h} pixels
 - **Estimated size**: ~{new_size_mb:.2f} MB
@@ -272,24 +282,24 @@ class UpscaleWebUI:
             output_path = output_path.name
         
         if not output_path or not os.path.exists(str(output_path)):
-            return "⚠️ No output image to share. Please upscale an image first."
+            return "âš ï¸ No output image to share. Please upscale an image first."
         
         try:
             result = self.imgbb_uploader.upload_image(output_path)
             if result:
                 share_info = (
-                    f"✅ Image uploaded to ImgBB!\n\n"
-                    f"🔗 Direct Link: {result['url']}\n\n"
-                    f"👁️ View Link: {result['display_url']}\n\n"
-                    f"📊 Size: {result['width']}x{result['height']}\n\n"
-                    f"🗑️ Delete Link: {result['delete_url']}\n\n"
-                    f"💡 Tip: Copy the Direct Link to share your image!"
+                    f"âœ… Image uploaded to ImgBB!\n\n"
+                    f"ðŸ”— Direct Link: {result['url']}\n\n"
+                    f"ðŸ‘ï¸ View Link: {result['display_url']}\n\n"
+                    f"ðŸ“Š Size: {result['width']}x{result['height']}\n\n"
+                    f"ðŸ—‘ï¸ Delete Link: {result['delete_url']}\n\n"
+                    f"ðŸ’¡ Tip: Copy the Direct Link to share your image!"
                 )
                 return share_info
             else:
-                return "❌ Failed to upload image to ImgBB"
+                return "âŒ Failed to upload image to ImgBB"
         except Exception as e:
-            return f"❌ Error uploading to ImgBB: {str(e)}"
+            return f"âŒ Error uploading to ImgBB: {str(e)}"
     
     def create_interface(self):
         """Create Gradio interface"""
@@ -336,14 +346,14 @@ class UpscaleWebUI:
         with gr.Blocks(title="AI Image Upscaler") as interface:
             gr.Markdown(
                 """
-                # 🎨 AI Image Upscaler - Super Resolution
-                ### 🚀 11 Models: Real-ESRGAN + SwinIR + Swin2SR + ScuNET
+                # ðŸŽ¨ AI Image Upscaler - Super Resolution
+                ### ðŸš€ 11 Models: Real-ESRGAN + SwinIR + Swin2SR + ScuNET
                 """
             )
             
             with gr.Row():
                 with gr.Column(scale=1):
-                    gr.Markdown("### 📁 Input Source")
+                    gr.Markdown("### ðŸ“ Input Source")
                     
                     with gr.Tabs():
                         with gr.Tab("Upload Image"):
@@ -363,10 +373,10 @@ class UpscaleWebUI:
                             file_dropdown = gr.Dropdown(
                                 choices=["None"] + self.get_available_images(),
                                 value="None",
-                                label=f"📂 Select from {self.input_dir}",
+                                label=f"ðŸ“‚ Select from {self.input_dir}",
                                 interactive=True
                             )
-                            refresh_btn = gr.Button("🔄 Refresh List", size="sm")
+                            refresh_btn = gr.Button("ðŸ”„ Refresh List", size="sm")
                             preview_image = gr.Image(
                                 label="Preview",
                                 type="numpy",
@@ -374,28 +384,28 @@ class UpscaleWebUI:
                             )
                     
                     # Image info display
-                    input_info = gr.Markdown("📊 *Upload or select an image to see details*")
+                    input_info = gr.Markdown("ðŸ“Š *Upload or select an image to see details*")
                     
-                    gr.Markdown("### ⚙️ Settings")
+                    gr.Markdown("### âš™ï¸ Settings")
                     
                     model_choice = gr.Dropdown(
                         choices=[
                             # Real-ESRGAN Models (RRDBNet)
-                            "RealESRGAN_x4plus (Tencent - Tốt nhất cho ảnh)",
+                            "RealESRGAN_x4plus (Tencent - Tá»‘t nháº¥t cho áº£nh)",
                             "RealESRGAN_x2plus (Tencent - Nhanh, x2)",
                             "RealESRGAN_x4plus_anime_6B (Tencent - Anime)",
                             "RealESRGAN_animevideov3 (Tencent - Video anime)",
-                            "RealESRNet_x4plus (Tencent - Ít artifacts)",
-                            "realesr-general-x4v3 (Tencent - Nhỏ gọn)",
-                            "realesr-general-wdn-x4v3 (Tencent - Khử nhiễu)",
+                            "RealESRNet_x4plus (Tencent - Ãt artifacts)",
+                            "realesr-general-x4v3 (Tencent - Nhá» gá»n)",
+                            "realesr-general-wdn-x4v3 (Tencent - Khá»­ nhiá»…u)",
                             # Chinese Models (Swin Transformer, U-Net)
-                            "SwinIR_realSR_x4 [CUHK - Chất lượng cao nhất]",
-                            "Swin2SR_realSR_x4 [ETH Zurich - Nhanh hơn SwinIR]",
-                            "ScuNET_GAN [CUHK - Khử nhiễu mạnh + GAN]",
-                            "ScuNET_PSNR [CUHK - Ít artifacts, ảnh cũ]",
+                            "SwinIR_realSR_x4 [CUHK - Cháº¥t lÆ°á»£ng cao nháº¥t]",
+                            "Swin2SR_realSR_x4 [ETH Zurich - Nhanh hÆ¡n SwinIR]",
+                            "ScuNET_GAN [CUHK - Khá»­ nhiá»…u máº¡nh + GAN]",
+                            "ScuNET_PSNR [CUHK - Ãt artifacts, áº£nh cÅ©]",
                         ],
-                        value="RealESRGAN_x4plus (Tencent - Tốt nhất cho ảnh)",
-                        label="🎯 Model Selection (11 models)"
+                        value="RealESRGAN_x4plus (Tencent - Tá»‘t nháº¥t cho áº£nh)",
+                        label="ðŸŽ¯ Model Selection (11 models)"
                     )
                     
                     scale_slider = gr.Slider(
@@ -403,18 +413,18 @@ class UpscaleWebUI:
                         maximum=10,
                         value=4,
                         step=1,
-                        label="📏 Upscale Ratio"
+                        label="ðŸ“ Upscale Ratio"
                     )
                     
                     # Upscale preview
-                    upscale_preview = gr.Markdown("🔍 *Adjust ratio to see output preview*")
+                    upscale_preview = gr.Markdown("ðŸ” *Adjust ratio to see output preview*")
                     
                     save_output = gr.Checkbox(
                         value=True,
-                        label=f"💾 Save output to {self.output_dir}"
+                        label=f"ðŸ’¾ Save output to {self.output_dir}"
                     )
                     
-                    with gr.Accordion("🔧 Advanced Settings", open=False):
+                    with gr.Accordion("ðŸ”§ Advanced Settings", open=False):
                         device_choice = gr.Radio(
                             choices=["auto", "cuda", "cpu"],
                             value="auto",
@@ -434,15 +444,15 @@ class UpscaleWebUI:
                             maximum=500,
                             value=0,
                             step=10,
-                            label="🎬 Max GIF Frames (0 = process all frames)"
+                            label="ðŸŽ¬ Max GIF Frames (0 = process all frames)"
                         )
                         
-                        gr.Markdown("💡 **GIF Tips**: Set to 0 for all frames, or limit to 50-100 for faster testing")
+                        gr.Markdown("ðŸ’¡ **GIF Tips**: Set to 0 for all frames, or limit to 50-100 for faster testing")
                     
-                    upscale_btn = gr.Button("🚀 Upscale Now", variant="primary", size="lg")
+                    upscale_btn = gr.Button("ðŸš€ Upscale Now", variant="primary", size="lg")
                 
                 with gr.Column(scale=1):
-                    gr.Markdown("### 📤 Output")
+                    gr.Markdown("### ðŸ“¤ Output")
                     
                     # Output preview (image or GIF)
                     output_image = gr.Image(
@@ -459,21 +469,21 @@ class UpscaleWebUI:
                     
                     with gr.Row():
                         download_file = gr.File(
-                            label="💾 Download",
+                            label="ðŸ’¾ Download",
                             visible=True
                         )
-                        share_btn = gr.Button("🔗 Share to ImgBB", variant="secondary")
+                        share_btn = gr.Button("ðŸ”— Share to ImgBB", variant="secondary")
                     
                     info_text = gr.Textbox(
-                        label="📋 Status",
+                        label="ðŸ“‹ Status",
                         lines=10,
                         max_lines=20
                     )
             
-            with gr.Accordion("📖 Model Guide & Tips", open=False):
+            with gr.Accordion("ðŸ“– Model Guide & Tips", open=False):
                 gr.Markdown(
                     """
-                    ### 🌟 Real-ESRGAN Models (7 models)
+                    ### ðŸŒŸ Real-ESRGAN Models (7 models)
                     - **RealESRGAN_x4plus**: Best for general photos, 4x upscale
                     - **RealESRGAN_x2plus**: Faster, 2x upscale
                     - **RealESRGAN_x4plus_anime_6B**: Optimized for anime/manga
@@ -482,13 +492,13 @@ class UpscaleWebUI:
                     - **realesr-general-x4v3**: Small, fast model
                     - **realesr-general-wdn-x4v3**: With denoise, good for noisy images
                     
-                    ### 👑 Chinese Models (4 models - NEW!)
+                    ### ðŸ‘‘ Chinese Models (4 models - NEW!)
                     - **SwinIR_realSR_x4**: Highest quality, Swin Transformer (slow, high VRAM)
                     - **Swin2SR_realSR_x4**: Swin Transformer v2, faster than SwinIR
                     - **ScuNET_GAN**: Strong denoise + upscale, for noisy/old images
                     - **ScuNET_PSNR**: Less artifacts, good for old photos
                     
-                    ### 🎬 Animated GIF Support (NEW!)
+                    ### ðŸŽ¬ Animated GIF Support (NEW!)
                     - **Select GIF** from folder dropdown (GIF files now visible!)
                     - **Upload tab** also works for GIFs
                     - Each frame upscaled individually with consistent quality
@@ -497,13 +507,13 @@ class UpscaleWebUI:
                       - `50-100` = Limit for quick testing
                       - `200+` = For very long GIFs
                     - Recommended models: 
-                      - 🥇 **RealESRGAN_animevideov3** - Best for anime GIFs
-                      - 🥈 **RealESRGAN_x4plus_anime_6B** - Anime/manga style
-                      - 🥉 **RealESRGAN_x4plus** - General purpose
-                    - ⏱️ Processing time: ~1-3 seconds per frame (GPU)
-                    - 📦 Output format: Animated GIF with original timing
+                      - ðŸ¥‡ **RealESRGAN_animevideov3** - Best for anime GIFs
+                      - ðŸ¥ˆ **RealESRGAN_x4plus_anime_6B** - Anime/manga style
+                      - ðŸ¥‰ **RealESRGAN_x4plus** - General purpose
+                    - â±ï¸ Processing time: ~1-3 seconds per frame (GPU)
+                    - ðŸ“¦ Output format: Animated GIF with original timing
                     
-                    ### 💡 Tips
+                    ### ðŸ’¡ Tips
                     - **Images**: Upload or select from `data/input/` folder
                     - **GIFs**: Upload OR select from `data/input/` (both work!)
                     - Outputs auto-saved to `data/output/` folder
@@ -602,18 +612,18 @@ def launch_ui(share=False, server_port=7863, debug=False):
     interface = ui.create_interface()
     
     print(f"""
-    ╔════════════════════════════════════════════════════════════╗
-    ║          🎨 AI Image Upscaler - Super Resolution          ║
-    ║                                                            ║
-    ║  🌐 URL: http://127.0.0.1:{server_port}                          ║
-    ║  🔄 Hot Reload: {'Enabled - Press Ctrl+Shift+R to refresh UI' if debug else 'Disabled'}        ║
-    ║                                                            ║
-    ║  💡 Features:                                              ║
-    ║     ✓ 11 AI Models (7 Real-ESRGAN + 4 Chinese)            ║
-    ║     ✓ Auto image info & upscale preview                   ║
-    ║     ✓ ImgBB sharing with retry                            ║
-    ║     ✓ CUDA GPU acceleration                               ║
-    ╚════════════════════════════════════════════════════════════╝
+    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+    â•‘          ðŸŽ¨ AI Image Upscaler - Super Resolution          â•‘
+    â•‘                                                            â•‘
+    â•‘  ðŸŒ URL: http://127.0.0.1:{server_port}                          â•‘
+    â•‘  ðŸ”„ Hot Reload: {'Enabled - Press Ctrl+Shift+R to refresh UI' if debug else 'Disabled'}        â•‘
+    â•‘                                                            â•‘
+    â•‘  ðŸ’¡ Features:                                              â•‘
+    â•‘     âœ“ 11 AI Models (7 Real-ESRGAN + 4 Chinese)            â•‘
+    â•‘     âœ“ Auto image info & upscale preview                   â•‘
+    â•‘     âœ“ ImgBB sharing with retry                            â•‘
+    â•‘     âœ“ CUDA GPU acceleration                               â•‘
+    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     """)
     
     interface.launch(
@@ -629,3 +639,5 @@ if __name__ == '__main__':
     import sys
     debug = '--debug' in sys.argv
     launch_ui(debug=debug)
+
+

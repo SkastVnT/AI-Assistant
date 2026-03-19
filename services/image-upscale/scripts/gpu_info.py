@@ -1,4 +1,4 @@
-"""
+﻿"""
 GPU Information and CUDA Detection Script
 Shows detailed GPU info and optimal settings for upscaling
 """
@@ -16,19 +16,19 @@ def check_cuda_installation():
     # Check PyTorch
     try:
         import torch
-        print(f"✓ PyTorch installed: {torch.__version__}")
+        print(f"âœ“ PyTorch installed: {torch.__version__}")
     except ImportError:
-        print("✗ PyTorch not installed")
+        print("âœ— PyTorch not installed")
         print("  Install: pip install torch torchvision")
         return False
     
     # Check CUDA availability
     if torch.cuda.is_available():
-        print(f"✓ CUDA available: {torch.version.cuda}")
-        print(f"✓ cuDNN version: {torch.backends.cudnn.version()}")
+        print(f"âœ“ CUDA available: {torch.version.cuda}")
+        print(f"âœ“ cuDNN version: {torch.backends.cudnn.version()}")
         return True
     else:
-        print("✗ CUDA not available")
+        print("âœ— CUDA not available")
         print("  Your PyTorch installation may be CPU-only")
         print("  Install CUDA PyTorch: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118")
         return False
@@ -165,7 +165,7 @@ def run_benchmark():
 
 def main():
     """Main function"""
-    print("\n🔍 GPU Detection & Optimization Tool")
+    print("\nðŸ” GPU Detection & Optimization Tool")
     print("=" * 70)
     
     # Check CUDA installation
@@ -184,7 +184,7 @@ def main():
             run_benchmark()
     
     print_separator()
-    print("\n✓ GPU check complete!")
+    print("\nâœ“ GPU check complete!")
     print()
 
 if __name__ == "__main__":

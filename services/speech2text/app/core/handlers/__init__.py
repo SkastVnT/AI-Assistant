@@ -1,4 +1,4 @@
-"""
+﻿"""
 Error handlers and exception management
 Centralized error handling for the application
 """

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Async Streaming routes: /chat/async - Async SSE endpoint for high-performance chat
 Requires Flask with async support or use with Quart/FastAPI
 """

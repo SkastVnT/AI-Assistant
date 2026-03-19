@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI-Assistant MCP Server Package
 """
 

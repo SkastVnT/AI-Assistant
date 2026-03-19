@@ -1,14 +1,14 @@
-"""
+﻿"""
 Dataset Processing Tools for LoRA Training
 ===========================================
 
-Tổng hợp các tools hữu ích để xử lý dataset trước khi train:
-- Resize images (giảm resolution tự động)
-- Convert image formats (PNG → WebP, JPG, etc.)
-- Deduplicate images (phát hiện ảnh trùng)
+Tá»•ng há»£p cÃ¡c tools há»¯u Ã­ch Ä‘á»ƒ xá»­ lÃ½ dataset trÆ°á»›c khi train:
+- Resize images (giáº£m resolution tá»± Ä‘á»™ng)
+- Convert image formats (PNG â†’ WebP, JPG, etc.)
+- Deduplicate images (phÃ¡t hiá»‡n áº£nh trÃ¹ng)
 - Auto-organize by resolution
-- Balance dataset (đảm bảo số lượng cân bằng)
-- Validate dataset (check lỗi)
+- Balance dataset (Ä‘áº£m báº£o sá»‘ lÆ°á»£ng cÃ¢n báº±ng)
+- Validate dataset (check lá»—i)
 
 Created: 2024-12-01
 Version: 1.0.0
@@ -25,7 +25,7 @@ import json
 
 
 class DatasetResizer:
-    """Resize tất cả images trong dataset về resolution nhất định"""
+    """Resize táº¥t cáº£ images trong dataset vá» resolution nháº¥t Ä‘á»‹nh"""
     
     def __init__(self, dataset_path: str, on_progress: Optional[Callable] = None):
         self.dataset_path = Path(dataset_path)
@@ -37,16 +37,16 @@ class DatasetResizer:
                       quality: int = 95,
                       backup: bool = True) -> Dict:
         """
-        Resize tất cả images
+        Resize táº¥t cáº£ images
         
         Args:
             target_resolution: (width, height) - VD: (512, 512)
-            keep_aspect_ratio: Giữ tỷ lệ khung hình (crop/pad nếu cần)
+            keep_aspect_ratio: Giá»¯ tá»· lá»‡ khung hÃ¬nh (crop/pad náº¿u cáº§n)
             quality: JPEG quality (1-100)
-            backup: Backup ảnh gốc trước khi resize
+            backup: Backup áº£nh gá»‘c trÆ°á»›c khi resize
             
         Returns:
-            Dict với stats: processed, errors, size_saved
+            Dict vá»›i stats: processed, errors, size_saved
         """
         
         image_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
@@ -60,7 +60,7 @@ class DatasetResizer:
         if backup:
             backup_dir = self.dataset_path / '_backup_original'
             backup_dir.mkdir(exist_ok=True)
-            self.on_progress(f"📦 Backup folder: {backup_dir}")
+            self.on_progress(f"ðŸ“¦ Backup folder: {backup_dir}")
         
         stats = {
             'processed': 0,
@@ -121,7 +121,7 @@ class DatasetResizer:
                 stats['processed'] += 1
                 
             except Exception as e:
-                self.on_progress(f"❌ Error processing {img_path.name}: {e}")
+                self.on_progress(f"âŒ Error processing {img_path.name}: {e}")
                 stats['errors'] += 1
         
         # Calculate savings
@@ -129,19 +129,19 @@ class DatasetResizer:
         stats['size_saved_mb'] = stats['size_saved'] / (1024 * 1024)
         stats['compression_ratio'] = (1 - stats['size_after'] / stats['size_before']) * 100 if stats['size_before'] > 0 else 0
         
-        self.on_progress(f"\n✅ Done! Processed: {stats['processed']}, Errors: {stats['errors']}, Skipped: {stats['skipped']}")
-        self.on_progress(f"💾 Size saved: {stats['size_saved_mb']:.2f} MB ({stats['compression_ratio']:.1f}%)")
+        self.on_progress(f"\nâœ… Done! Processed: {stats['processed']}, Errors: {stats['errors']}, Skipped: {stats['skipped']}")
+        self.on_progress(f"ðŸ’¾ Size saved: {stats['size_saved_mb']:.2f} MB ({stats['compression_ratio']:.1f}%)")
         
         return stats
     
     def _resize_and_crop(self, img: Image.Image, target_w: int, target_h: int) -> Image.Image:
-        """Resize giữ aspect ratio, crop phần thừa"""
+        """Resize giá»¯ aspect ratio, crop pháº§n thá»«a"""
         orig_w, orig_h = img.size
         orig_ratio = orig_w / orig_h
         target_ratio = target_w / target_h
         
         if orig_ratio > target_ratio:
-            # Image quá rộng → resize theo height, crop width
+            # Image quÃ¡ rá»™ng â†’ resize theo height, crop width
             new_h = target_h
             new_w = int(target_h * orig_ratio)
             img = img.resize((new_w, new_h), Image.LANCZOS)
@@ -149,7 +149,7 @@ class DatasetResizer:
             left = (new_w - target_w) // 2
             img = img.crop((left, 0, left + target_w, target_h))
         else:
-            # Image quá cao → resize theo width, crop height
+            # Image quÃ¡ cao â†’ resize theo width, crop height
             new_w = target_w
             new_h = int(target_w / orig_ratio)
             img = img.resize((new_w, new_h), Image.LANCZOS)
@@ -161,7 +161,7 @@ class DatasetResizer:
 
 
 class ImageFormatConverter:
-    """Convert image formats (PNG → WebP, JPG, etc.)"""
+    """Convert image formats (PNG â†’ WebP, JPG, etc.)"""
     
     def __init__(self, dataset_path: str, on_progress: Optional[Callable] = None):
         self.dataset_path = Path(dataset_path)
@@ -172,12 +172,12 @@ class ImageFormatConverter:
                    quality: int = 95,
                    delete_original: bool = False) -> Dict:
         """
-        Convert tất cả images sang format khác
+        Convert táº¥t cáº£ images sang format khÃ¡c
         
         Args:
             target_format: 'webp', 'jpg', 'png'
             quality: 1-100 (for lossy formats)
-            delete_original: Xóa file gốc sau khi convert
+            delete_original: XÃ³a file gá»‘c sau khi convert
             
         Returns:
             Stats dict
@@ -251,19 +251,19 @@ class ImageFormatConverter:
                 stats['converted'] += 1
                 
             except Exception as e:
-                self.on_progress(f"❌ Error: {e}")
+                self.on_progress(f"âŒ Error: {e}")
                 stats['errors'] += 1
         
         stats['size_saved_mb'] = (stats['size_before'] - stats['size_after']) / (1024 * 1024)
         
-        self.on_progress(f"\n✅ Converted: {stats['converted']}, Errors: {stats['errors']}, Skipped: {stats['skipped']}")
-        self.on_progress(f"💾 Size change: {stats['size_saved_mb']:+.2f} MB")
+        self.on_progress(f"\nâœ… Converted: {stats['converted']}, Errors: {stats['errors']}, Skipped: {stats['skipped']}")
+        self.on_progress(f"ðŸ’¾ Size change: {stats['size_saved_mb']:+.2f} MB")
         
         return stats
 
 
 class ImageDeduplicator:
-    """Phát hiện và xóa ảnh trùng lặp"""
+    """PhÃ¡t hiá»‡n vÃ  xÃ³a áº£nh trÃ¹ng láº·p"""
     
     def __init__(self, dataset_path: str, on_progress: Optional[Callable] = None):
         self.dataset_path = Path(dataset_path)
@@ -271,10 +271,10 @@ class ImageDeduplicator:
     
     def find_duplicates(self, method: str = 'hash') -> Dict[str, List[Path]]:
         """
-        Tìm ảnh trùng
+        TÃ¬m áº£nh trÃ¹ng
         
         Args:
-            method: 'hash' (exact) hoặc 'perceptual' (similar)
+            method: 'hash' (exact) hoáº·c 'perceptual' (similar)
             
         Returns:
             Dict: {hash: [list of duplicate files]}
@@ -284,7 +284,7 @@ class ImageDeduplicator:
         images = [f for f in self.dataset_path.iterdir() 
                  if f.suffix.lower() in image_exts]
         
-        self.on_progress(f"🔍 Scanning {len(images)} images for duplicates...")
+        self.on_progress(f"ðŸ” Scanning {len(images)} images for duplicates...")
         
         hash_map = defaultdict(list)
         
@@ -304,19 +304,19 @@ class ImageDeduplicator:
                 hash_map[img_hash].append(img_path)
                 
             except Exception as e:
-                self.on_progress(f"⚠️ Error hashing {img_path.name}: {e}")
+                self.on_progress(f"âš ï¸ Error hashing {img_path.name}: {e}")
         
         # Filter only duplicates
         duplicates = {h: files for h, files in hash_map.items() if len(files) > 1}
         
         total_dupes = sum(len(files) - 1 for files in duplicates.values())
-        self.on_progress(f"\n🔍 Found {len(duplicates)} groups with {total_dupes} duplicate images")
+        self.on_progress(f"\nðŸ” Found {len(duplicates)} groups with {total_dupes} duplicate images")
         
         return duplicates
     
     def remove_duplicates(self, keep: str = 'first') -> Dict:
         """
-        Xóa ảnh trùng
+        XÃ³a áº£nh trÃ¹ng
         
         Args:
             keep: 'first', 'last', 'largest', 'smallest'
@@ -362,12 +362,12 @@ class ImageDeduplicator:
                     caption_file.unlink()
                 
                 stats['removed'] += 1
-                self.on_progress(f"🗑️ Removed: {remove_file.name}")
+                self.on_progress(f"ðŸ—‘ï¸ Removed: {remove_file.name}")
             
             stats['kept'] += 1
-            self.on_progress(f"✅ Kept: {keep_file.name}")
+            self.on_progress(f"âœ… Kept: {keep_file.name}")
         
-        self.on_progress(f"\n✅ Removed {stats['removed']} duplicates, freed {stats['space_freed_mb']:.2f} MB")
+        self.on_progress(f"\nâœ… Removed {stats['removed']} duplicates, freed {stats['space_freed_mb']:.2f} MB")
         
         return stats
     
@@ -393,14 +393,14 @@ class ImageDeduplicator:
 
 
 class DatasetOrganizer:
-    """Tự động organize dataset theo resolution, tags, etc."""
+    """Tá»± Ä‘á»™ng organize dataset theo resolution, tags, etc."""
     
     def __init__(self, dataset_path: str, on_progress: Optional[Callable] = None):
         self.dataset_path = Path(dataset_path)
         self.on_progress = on_progress or (lambda msg: print(msg))
     
     def organize_by_resolution(self) -> Dict:
-        """Tạo subfolder cho mỗi resolution khác nhau"""
+        """Táº¡o subfolder cho má»—i resolution khÃ¡c nhau"""
         
         image_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
         images = [f for f in self.dataset_path.iterdir() 
@@ -415,7 +415,7 @@ class DatasetOrganizer:
                     res = f"{img.width}x{img.height}"
                     resolution_groups[res].append(img_path)
             except Exception as e:
-                self.on_progress(f"⚠️ Error reading {img_path.name}: {e}")
+                self.on_progress(f"âš ï¸ Error reading {img_path.name}: {e}")
         
         # Create folders and move
         stats = {'moved': 0, 'errors': 0}
@@ -438,18 +438,18 @@ class DatasetOrganizer:
                     stats['moved'] += 1
                     
                 except Exception as e:
-                    self.on_progress(f"❌ Error moving {img_path.name}: {e}")
+                    self.on_progress(f"âŒ Error moving {img_path.name}: {e}")
                     stats['errors'] += 1
             
-            self.on_progress(f"📁 {resolution}/: {len(files)} images")
+            self.on_progress(f"ðŸ“ {resolution}/: {len(files)} images")
         
-        self.on_progress(f"\n✅ Organized into {len(resolution_groups)} folders")
+        self.on_progress(f"\nâœ… Organized into {len(resolution_groups)} folders")
         
         return stats
 
 
 class DatasetValidator:
-    """Validate dataset - check lỗi, corrupted files, etc."""
+    """Validate dataset - check lá»—i, corrupted files, etc."""
     
     def __init__(self, dataset_path: str, on_progress: Optional[Callable] = None):
         self.dataset_path = Path(dataset_path)
@@ -507,12 +507,12 @@ class DatasetValidator:
                 issues['corrupted'].append(f"{img_path.name}: {str(e)}")
         
         # Report
-        self.on_progress("\n📋 Validation Report:")
+        self.on_progress("\nðŸ“‹ Validation Report:")
         self.on_progress("=" * 50)
         
         for issue_type, items in issues.items():
             if items:
-                self.on_progress(f"\n⚠️ {issue_type.replace('_', ' ').title()}: {len(items)}")
+                self.on_progress(f"\nâš ï¸ {issue_type.replace('_', ' ').title()}: {len(items)}")
                 for item in items[:5]:  # Show first 5
                     self.on_progress(f"   - {item}")
                 if len(items) > 5:
@@ -520,9 +520,9 @@ class DatasetValidator:
         
         total_issues = sum(len(items) for items in issues.values())
         if total_issues == 0:
-            self.on_progress("\n✅ No issues found! Dataset looks good.")
+            self.on_progress("\nâœ… No issues found! Dataset looks good.")
         else:
-            self.on_progress(f"\n⚠️ Total issues: {total_issues}")
+            self.on_progress(f"\nâš ï¸ Total issues: {total_issues}")
         
         return issues
 

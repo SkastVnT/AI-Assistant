@@ -1,4 +1,4 @@
-"""
+﻿"""
 Blueprint Registration
 
 Registers all API blueprints with the Flask application.
@@ -34,4 +34,4 @@ def register_blueprints(app: Flask) -> None:
     from .routes.legacy_routes import legacy_bp
     app.register_blueprint(legacy_bp)
     
-    app.logger.info("✅ All blueprints registered")
+    app.logger.info("âœ… All blueprints registered")

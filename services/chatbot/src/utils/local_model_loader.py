@@ -1,4 +1,4 @@
-"""
+﻿"""
 Local Model Loader for ChatBot
 Supports: BloomVN-8B, Qwen1.5-1.8B, Qwen2.5-14B
 """
@@ -34,7 +34,7 @@ class LocalModelLoader:
                 'path': 'Qwen2.5-14B-Instruct',
                 'name': 'Qwen2.5-14B Local',
                 'max_tokens': 2000,
-                'quantize': True  # Use 8-bit: 14GB → 7GB VRAM
+                'quantize': True  # Use 8-bit: 14GB â†’ 7GB VRAM
             }
         }
     
@@ -125,11 +125,11 @@ class LocalModelLoader:
             self.models[model_key] = model
             self.tokenizers[model_key] = tokenizer
             
-            logger.info(f"✅ {config['name']} loaded successfully on {device}")
+            logger.info(f"âœ… {config['name']} loaded successfully on {device}")
             return model, tokenizer
             
         except Exception as e:
-            logger.error(f"❌ Failed to load model {model_key}: {e}")
+            logger.error(f"âŒ Failed to load model {model_key}: {e}")
             raise
     
     def generate(self, model_key, messages, system_prompt="", max_tokens=None, temperature=0.7):
@@ -190,11 +190,11 @@ class LocalModelLoader:
             content = msg.get('content', '')
             
             if role == 'user':
-                prompt += f"Người dùng: {content}\n"
+                prompt += f"NgÆ°á»i dÃ¹ng: {content}\n"
             elif role == 'assistant':
-                prompt += f"Trợ lý: {content}\n"
+                prompt += f"Trá»£ lÃ½: {content}\n"
         
-        prompt += "Trợ lý:"
+        prompt += "Trá»£ lÃ½:"
         return prompt
     
     def _format_qwen_prompt(self, messages, system_prompt):

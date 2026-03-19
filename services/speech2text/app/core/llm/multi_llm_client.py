@@ -1,4 +1,4 @@
-"""
+﻿"""
 Multi-LLM Client - Unified interface with automatic retry mechanism
 Supports Gemini (4 API keys with retry), OpenAI, and DeepSeek
 """
@@ -7,11 +7,21 @@ import os
 import time
 from typing import Tuple, Optional, Literal
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
-load_dotenv()
-
+load_shared_env(__file__)
 # Import individual clients
 from .gemini_client import GeminiClient, GEMINI_AVAILABLE
 
@@ -109,15 +119,15 @@ class MultiLLMClient:
             load_time = self.client.load()
             self._is_loaded = True
             
-            print(f"[MultiLLM] ✅ {self.model_type.upper()} loaded successfully in {load_time:.2f}s")
+            print(f"[MultiLLM] âœ… {self.model_type.upper()} loaded successfully in {load_time:.2f}s")
             return load_time
             
         except Exception as e:
             error_msg = f"Failed to load {self.model_type.upper()}: {str(e)}"
-            print(f"[MultiLLM] ❌ {error_msg}")
+            print(f"[MultiLLM] âŒ {error_msg}")
             
             if self.auto_fallback:
-                print(f"[MultiLLM] 🔄 Attempting fallback to other models...")
+                print(f"[MultiLLM] ðŸ”„ Attempting fallback to other models...")
                 return self._try_fallback()
             raise RuntimeError(error_msg) from e
     
@@ -130,16 +140,16 @@ class MultiLLMClient:
         
         for model in fallback_order:
             try:
-                print(f"[MultiLLM] 🔄 Attempting fallback: {self.model_type} → {model.upper()}...")
+                print(f"[MultiLLM] ðŸ”„ Attempting fallback: {self.model_type} â†’ {model.upper()}...")
                 original_type = self.model_type
                 self.model_type = model
                 self._is_loaded = False  # Reset load state
                 load_time = self.load()
-                print(f"[MultiLLM] ✅ Fallback successful: {original_type} → {model.upper()}")
+                print(f"[MultiLLM] âœ… Fallback successful: {original_type} â†’ {model.upper()}")
                 return load_time
             except Exception as e:
                 errors[model] = str(e)
-                print(f"[MultiLLM] ❌ {model.upper()} fallback failed: {e}")
+                print(f"[MultiLLM] âŒ {model.upper()} fallback failed: {e}")
                 continue
         
         # All models failed
@@ -197,7 +207,7 @@ class MultiLLMClient:
         
         for idx, api_key in enumerate(self.gemini_keys):
             try:
-                print(f"[MultiLLM] 🔑 Trying Gemini API Key #{idx + 1}/{len(self.gemini_keys)}...")
+                print(f"[MultiLLM] ðŸ”‘ Trying Gemini API Key #{idx + 1}/{len(self.gemini_keys)}...")
                 
                 # Emit progress via callback if provided
                 if 'progress_callback' in kwargs:
@@ -213,7 +223,7 @@ class MultiLLMClient:
                 )
                 
                 if idx > 0:
-                    success_msg = f"✅ Success with Gemini API Key #{idx + 1}"
+                    success_msg = f"âœ… Success with Gemini API Key #{idx + 1}"
                     print(f"[MultiLLM] {success_msg}")
                     if 'progress_callback' in kwargs:
                         kwargs['progress_callback'](success_msg)
@@ -233,27 +243,27 @@ class MultiLLMClient:
                 )
                 
                 if is_quota_error:
-                    warning_msg = f"⚠️ Gemini quota exceeded - API Key #{idx + 1}"
+                    warning_msg = f"âš ï¸ Gemini quota exceeded - API Key #{idx + 1}"
                     print(f"[MultiLLM] {warning_msg}")
                     if 'progress_callback' in kwargs:
                         kwargs['progress_callback'](warning_msg)
                     
                     # If not the last key, try next
                     if idx < len(self.gemini_keys) - 1:
-                        retry_msg = f"🔄 Retrying with next Gemini API key..."
+                        retry_msg = f"ðŸ”„ Retrying with next Gemini API key..."
                         print(f"[MultiLLM] {retry_msg}")
                         if 'progress_callback' in kwargs:
                             kwargs['progress_callback'](retry_msg)
                         time.sleep(1)  # Small delay before retry
                         continue
                     else:
-                        exhausted_msg = f"❌ All {len(self.gemini_keys)} Gemini API keys exhausted"
+                        exhausted_msg = f"âŒ All {len(self.gemini_keys)} Gemini API keys exhausted"
                         print(f"[MultiLLM] {exhausted_msg}")
                         if 'progress_callback' in kwargs:
                             kwargs['progress_callback'](exhausted_msg)
                 else:
                     # Non-quota error, fail immediately
-                    error_detail = f"❌ Gemini error (not quota): {error_msg[:100]}"
+                    error_detail = f"âŒ Gemini error (not quota): {error_msg[:100]}"
                     print(f"[MultiLLM] {error_detail}")
                     if 'progress_callback' in kwargs:
                         kwargs['progress_callback'](error_detail)
@@ -321,3 +331,5 @@ class MultiLLMClient:
         status = "loaded" if self._is_loaded else "not loaded"
         gemini_keys_info = f", {len(self.gemini_keys)} keys" if self.model_type == "gemini" else ""
         return f"MultiLLMClient(model={self.model_type}{gemini_keys_info}, status={status})"
+
+

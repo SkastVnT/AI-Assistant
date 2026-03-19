@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI-Assistant MCP Server V2.0 - Memory Manager
 Manages persistent memory storage with SQLite
 """
@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class MemoryManager:
-    """Quản lý bộ nhớ persistent cho MCP Server"""
+    """Quáº£n lÃ½ bá»™ nhá»› persistent cho MCP Server"""
     
     def __init__(self, db_path: str = None):
         """
         Initialize Memory Manager
         
         Args:
-            db_path: Đường dẫn đến SQLite database
+            db_path: ÄÆ°á»ng dáº«n Ä‘áº¿n SQLite database
         """
         if db_path is None:
             db_path = Path(__file__).parent / "mcp_memory.db"
@@ -33,7 +33,7 @@ class MemoryManager:
         self._init_database()
         
     def _init_database(self):
-        """Khởi tạo database với schema"""
+        """Khá»Ÿi táº¡o database vá»›i schema"""
         schema_path = Path(__file__).parent / "schema.sql"
         
         with sqlite3.connect(self.db_path) as conn:
@@ -41,7 +41,7 @@ class MemoryManager:
                 conn.executescript(f.read())
             conn.commit()
         
-        logger.info(f"✅ Database initialized: {self.db_path}")
+        logger.info(f"âœ… Database initialized: {self.db_path}")
 
     def _normalize_text(self, value: Optional[str], max_len: int = 10000) -> str:
         """Normalize text to improve storage consistency and deduping."""
@@ -290,7 +290,7 @@ class MemoryManager:
     
     def create_session(self, project_name: str = "AI-Assistant") -> str:
         """
-        Tạo session mới
+        Táº¡o session má»›i
         
         Returns:
             session_id
@@ -305,11 +305,11 @@ class MemoryManager:
             conn.commit()
         
         self.current_session_id = session_id
-        logger.info(f"📝 Created session: {session_id}")
+        logger.info(f"ðŸ“ Created session: {session_id}")
         return session_id
     
     def end_session(self, session_id: str = None, summary: str = None):
-        """Kết thúc session"""
+        """Káº¿t thÃºc session"""
         if session_id is None:
             session_id = self.current_session_id
         
@@ -324,10 +324,10 @@ class MemoryManager:
             """, (datetime.now(), summary, session_id))
             conn.commit()
         
-        logger.info(f"✅ Ended session: {session_id}")
+        logger.info(f"âœ… Ended session: {session_id}")
     
     def get_active_session(self) -> Optional[str]:
-        """Lấy session đang active"""
+        """Láº¥y session Ä‘ang active"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
                 SELECT id FROM sessions 
@@ -350,7 +350,7 @@ class MemoryManager:
         error_message: str = None
     ) -> str:
         """
-        Ghi lại việc sử dụng tool
+        Ghi láº¡i viá»‡c sá»­ dá»¥ng tool
         
         Returns:
             tool_usage_id
@@ -405,14 +405,14 @@ class MemoryManager:
         tool_output: str = None
     ) -> str:
         """
-        Lưu observation (AI-generated learning)
+        LÆ°u observation (AI-generated learning)
         
         Args:
-            tool_name: Tên tool
-            observation: Nội dung học được
+            tool_name: TÃªn tool
+            observation: Ná»™i dung há»c Ä‘Æ°á»£c
             observation_type: decision, bugfix, feature, refactor, discovery
-            concept_tags: Tags như discovery, problem-solution, pattern
-            file_references: Files liên quan
+            concept_tags: Tags nhÆ° discovery, problem-solution, pattern
+            file_references: Files liÃªn quan
             importance: 1-10 scale
         
         Returns:
@@ -469,7 +469,7 @@ class MemoryManager:
 
         self.clear_context_cache(context_type="relevant_query")
         
-        logger.info(f"💡 Saved observation: {obs_id} ({observation_type})")
+        logger.info(f"ðŸ’¡ Saved observation: {obs_id} ({observation_type})")
         return obs_id
     
     # ==================== SEARCH & RETRIEVAL ====================
@@ -484,9 +484,9 @@ class MemoryManager:
         Full-text search qua observations
         
         Args:
-            query: Từ khóa tìm kiếm
-            limit: Số kết quả
-            min_importance: Độ quan trọng tối thiểu
+            query: Tá»« khÃ³a tÃ¬m kiáº¿m
+            limit: Sá»‘ káº¿t quáº£
+            min_importance: Äá»™ quan trá»ng tá»‘i thiá»ƒu
         
         Returns:
             List of observations
@@ -543,7 +543,7 @@ class MemoryManager:
         limit: int = 50,
         min_importance: int = 0
     ) -> List[Dict[str, Any]]:
-        """Lấy observations gần đây"""
+        """Láº¥y observations gáº§n Ä‘Ã¢y"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
@@ -564,7 +564,7 @@ class MemoryManager:
         file_path: str,
         limit: int = 20
     ) -> List[Dict[str, Any]]:
-        """Lấy observations liên quan đến file"""
+        """Láº¥y observations liÃªn quan Ä‘áº¿n file"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
@@ -585,7 +585,7 @@ class MemoryManager:
         obs_type: str,
         limit: int = 20
     ) -> List[Dict[str, Any]]:
-        """Lấy observations theo type"""
+        """Láº¥y observations theo type"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
@@ -613,7 +613,7 @@ class MemoryManager:
         next_steps: List[str] = None,
         tags: List[str] = None
     ) -> str:
-        """Tạo summary cho session"""
+        """Táº¡o summary cho session"""
         summary_id = f"summ_{uuid.uuid4().hex[:12]}"
         
         with sqlite3.connect(self.db_path) as conn:
@@ -635,11 +635,11 @@ class MemoryManager:
             ))
             conn.commit()
         
-        logger.info(f"📋 Created session summary: {summary_id}")
+        logger.info(f"ðŸ“‹ Created session summary: {summary_id}")
         return summary_id
     
     def get_session_summary(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Lấy summary của session"""
+        """Láº¥y summary cá»§a session"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
@@ -649,7 +649,7 @@ class MemoryManager:
             return dict(row) if row else None
     
     def get_recent_sessions(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Lấy sessions gần đây với summaries"""
+        """Láº¥y sessions gáº§n Ä‘Ã¢y vá»›i summaries"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
@@ -666,7 +666,7 @@ class MemoryManager:
         max_chars: int = 12000
     ) -> str:
         """
-        Tạo context để inject vào session mới
+        Táº¡o context Ä‘á»ƒ inject vÃ o session má»›i
         
         Returns:
             Formatted context string
@@ -686,7 +686,7 @@ class MemoryManager:
         ]
         
         for i, obs in enumerate(observations, 1):
-            importance_icon = "🔴" if obs['importance'] >= 8 else "🟡" if obs['importance'] >= 6 else "🔵"
+            importance_icon = "ðŸ”´" if obs['importance'] >= 8 else "ðŸŸ¡" if obs['importance'] >= 6 else "ðŸ”µ"
             type_label = obs['observation_type'].upper() if obs['observation_type'] else "GENERAL"
             
             context_lines.append(
@@ -812,7 +812,7 @@ class MemoryManager:
     # ==================== STATISTICS ====================
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Lấy thống kê tổng quan"""
+        """Láº¥y thá»‘ng kÃª tá»•ng quan"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             
@@ -850,7 +850,7 @@ class MemoryManager:
     # ==================== CLEANUP ====================
     
     def cleanup_old_data(self, days: int = 90):
-        """Xóa dữ liệu cũ hơn N ngày và trả về thống kê."""
+        """XÃ³a dá»¯ liá»‡u cÅ© hÆ¡n N ngÃ y vÃ  tráº£ vá» thá»‘ng kÃª."""
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         now_utc = datetime.utcnow()
 
@@ -885,8 +885,8 @@ class MemoryManager:
 
     def hard_delete_archived_data(self, days: int = 365) -> Dict[str, int]:
         """
-        Xóa cứng dữ liệu đã archived cũ hơn N ngày.
-        Dùng cho maintenance định kỳ để giảm kích thước DB.
+        XÃ³a cá»©ng dá»¯ liá»‡u Ä‘Ã£ archived cÅ© hÆ¡n N ngÃ y.
+        DÃ¹ng cho maintenance Ä‘á»‹nh ká»³ Ä‘á»ƒ giáº£m kÃ­ch thÆ°á»›c DB.
         """
         cutoff_date = datetime.utcnow() - timedelta(days=days)
 
@@ -943,13 +943,13 @@ class MemoryManager:
         return stats
 
     def vacuum_database(self) -> None:
-        """VACUUM để reclaim disk space."""
+        """VACUUM Ä‘á»ƒ reclaim disk space."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("VACUUM")
             conn.commit()
 
     def get_database_health(self) -> Dict[str, Any]:
-        """Trả về thông tin health cơ bản của SQLite DB."""
+        """Tráº£ vá» thÃ´ng tin health cÆ¡ báº£n cá»§a SQLite DB."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
@@ -971,7 +971,7 @@ class MemoryManager:
 _memory_manager = None
 
 def get_memory_manager(db_path: str = None) -> MemoryManager:
-    """Get singleton instance của MemoryManager"""
+    """Get singleton instance cá»§a MemoryManager"""
     global _memory_manager
     if _memory_manager is None:
         _memory_manager = MemoryManager(db_path)

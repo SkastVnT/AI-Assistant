@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test script for all upscale models
 Tests 7 Real-ESRGAN models + 4 Chinese models
 """

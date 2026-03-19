@@ -1,4 +1,4 @@
-"""
+﻿"""
 MongoDB Database Schema for ChatBot Service
 Database: chatbot_db (MongoDB Atlas)
 Collections: 6 main collections

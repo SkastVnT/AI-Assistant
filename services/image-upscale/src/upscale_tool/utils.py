@@ -1,4 +1,4 @@
-"""
+﻿"""
 Utility functions for upscale tool
 """
 import os

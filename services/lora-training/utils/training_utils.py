@@ -1,4 +1,4 @@
-"""
+﻿"""
 Training utilities
 Optimizer, scheduler, training loop, and checkpoint management
 """

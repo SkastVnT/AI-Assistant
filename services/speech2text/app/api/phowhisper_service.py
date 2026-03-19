@@ -1,4 +1,4 @@
-"""
+﻿"""
 PhoWhisper Model Service - Microservice for Vietnamese Specialized Model
 """
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flask app with Gradio embedded - supports hot reload
 """
 from flask import Flask, redirect
@@ -47,19 +47,19 @@ def run_gradio():
 def launch(host="0.0.0.0", port=7861, debug=False):
     """Launch Gradio app directly without Flask wrapper"""
     print(f"""
-    ╔════════════════════════════════════════════════════════════╗
-    ║          🎨 AI Image Upscaler - Gradio                    ║
-    ║                                                            ║
-    ║  🌐 Gradio UI: http://{host}:{port}                        ║
-    ║                                                            ║
-    ║  💡 Features:                                              ║
-    ║     ✓ 11 AI Models (Real-ESRGAN + Chinese)                ║
-    ║     ✓ Auto image info display                             ║
-    ║     ✓ Upscale preview calculator                          ║
-    ║     ✓ ImgBB sharing                                        ║
-    ║                                                            ║
-    ║  🚀 Open: http://{host}:{port} in your browser            ║
-    ╚════════════════════════════════════════════════════════════╝
+    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+    â•‘          ðŸŽ¨ AI Image Upscaler - Gradio                    â•‘
+    â•‘                                                            â•‘
+    â•‘  ðŸŒ Gradio UI: http://{host}:{port}                        â•‘
+    â•‘                                                            â•‘
+    â•‘  ðŸ’¡ Features:                                              â•‘
+    â•‘     âœ“ 11 AI Models (Real-ESRGAN + Chinese)                â•‘
+    â•‘     âœ“ Auto image info display                             â•‘
+    â•‘     âœ“ Upscale preview calculator                          â•‘
+    â•‘     âœ“ ImgBB sharing                                        â•‘
+    â•‘                                                            â•‘
+    â•‘  ðŸš€ Open: http://{host}:{port} in your browser            â•‘
+    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     """)
     
     # Run Gradio directly

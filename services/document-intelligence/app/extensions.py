@@ -1,4 +1,4 @@
-"""
+﻿"""
 Document Intelligence Extensions
 Initialize and manage external services
 """
@@ -35,9 +35,9 @@ def init_extensions(app):
         from src.utils.advanced_features import ProcessingHistory, QuickActions
         _processing_history = ProcessingHistory(output_folder / 'history.json')
         _quick_actions = QuickActions()
-        logger.info("✅ Document Intelligence extensions initialized")
+        logger.info("âœ… Document Intelligence extensions initialized")
     except ImportError as e:
-        logger.warning(f"⚠️ Advanced features unavailable: {e}")
+        logger.warning(f"âš ï¸ Advanced features unavailable: {e}")
         _processing_history = None
         _quick_actions = None
 
@@ -49,7 +49,7 @@ def get_ocr_processor():
         from flask import current_app
         from src.ocr import PaddleOCREngine, OCRProcessor
         
-        logger.info("🚀 Initializing OCR Engine...")
+        logger.info("ðŸš€ Initializing OCR Engine...")
         
         ocr_config = {
             'lang': current_app.config.get('OCR_LANGUAGE', 'vi'),
@@ -62,7 +62,7 @@ def get_ocr_processor():
         _ocr_engine = PaddleOCREngine(ocr_config)
         _ocr_processor = OCRProcessor(_ocr_engine, output_folder)
         
-        logger.info("✅ OCR Engine ready!")
+        logger.info("âœ… OCR Engine ready!")
     
     return _ocr_processor
 
@@ -80,7 +80,7 @@ def get_document_analyzer():
         try:
             from src.ai import GeminiClient, DocumentAnalyzer
             
-            logger.info("🤖 Initializing GROK AI...")
+            logger.info("ðŸ¤– Initializing GROK AI...")
             
             api_key = current_app.config.get('GROK_API_KEY')
             model = current_app.config.get('AI_MODEL', 'grok-3')
@@ -88,9 +88,9 @@ def get_document_analyzer():
             _gemini_client = GeminiClient(api_key, model)
             _document_analyzer = DocumentAnalyzer(_gemini_client)
             
-            logger.info("✅ AI Enhancement ready!")
+            logger.info("âœ… AI Enhancement ready!")
         except Exception as e:
-            logger.error(f"❌ AI initialization failed: {e}")
+            logger.error(f"âŒ AI initialization failed: {e}")
             return None
     
     return _document_analyzer
@@ -106,7 +106,7 @@ def get_batch_processor():
         processor = get_ocr_processor()
         _batch_processor = BatchProcessor(processor, max_batch_size=10)
         
-        logger.info("📦 Batch Processor ready!")
+        logger.info("ðŸ“¦ Batch Processor ready!")
     
     return _batch_processor
 

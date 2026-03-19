@@ -1,16 +1,26 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 HuggingFace Model License Acceptance Script
 Accepts licenses for required pyannote models
 """
 import webbrowser
 import time
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 import os
 
 # Load environment
-load_dotenv("app/config/.env")
-
+load_shared_env(__file__)
 def main():
     print("=" * 80)
     print("HUGGINGFACE MODEL LICENSE ACCEPTANCE")
@@ -19,11 +29,11 @@ def main():
     # Check HF token
     hf_token = os.getenv('HF_TOKEN')
     if not hf_token:
-        print("❌ HF_TOKEN not found in app/config/.env")
+        print("âŒ HF_TOKEN not found in app/config/.env")
         print("Please add your HuggingFace token to the .env file.")
         return
     
-    print(f"✅ HF_TOKEN found: {hf_token[:20]}...")
+    print(f"âœ… HF_TOKEN found: {hf_token[:20]}...")
     
     # Models that need license acceptance
     models_to_accept = [
@@ -60,7 +70,7 @@ def main():
         time.sleep(2)  # Small delay between opening tabs
     
     print("\n" + "=" * 80)
-    print("✅ BROWSER WINDOWS OPENED!")
+    print("âœ… BROWSER WINDOWS OPENED!")
     print("=" * 80)
     print("\nPlease:")
     print("1. Accept licenses in the opened browser tabs")
@@ -71,3 +81,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

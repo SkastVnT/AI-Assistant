@@ -1,4 +1,4 @@
-"""
+﻿"""
 Base Repository
 
 Generic CRUD repository with MongoDB support.

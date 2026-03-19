@@ -1,4 +1,4 @@
-"""
+﻿"""
 Firebase Authentication Routes
 Supports Email/Password and Google Sign-In
 """
@@ -270,7 +270,7 @@ LOGIN_TEMPLATE = '''
 <body>
     <div class="login-container">
         <div class="logo">
-            <h1>🤖 AI <span>Assistant</span></h1>
+            <h1>ðŸ¤– AI <span>Assistant</span></h1>
         </div>
         
         <div id="error-message" class="error-message"></div>

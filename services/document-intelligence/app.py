@@ -1,4 +1,4 @@
-"""
+﻿"""
 Document Intelligence Service - Main Flask Application
 Phase 1: Basic OCR & WebUI
 """
@@ -8,11 +8,21 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
-load_dotenv()
-
+load_shared_env(__file__)
 # Import configurations and modules
 from config import (
     HOST, PORT, DEBUG, 
@@ -60,10 +70,10 @@ def get_ocr_processor():
     global ocr_engine, ocr_processor
     
     if ocr_processor is None:
-        logger.info("🚀 Initializing OCR Engine...")
+        logger.info("ðŸš€ Initializing OCR Engine...")
         ocr_engine = PaddleOCREngine(OCR_CONFIG)
         ocr_processor = OCRProcessor(ocr_engine, OUTPUT_FOLDER)
-        logger.info("✅ OCR Engine ready!")
+        logger.info("âœ… OCR Engine ready!")
     
     return ocr_processor
 
@@ -77,12 +87,12 @@ def get_document_analyzer():
     
     if document_analyzer is None:
         try:
-            logger.info("🤖 Initializing Gemini AI...")
+            logger.info("ðŸ¤– Initializing Gemini AI...")
             gemini_client = GeminiClient(GEMINI_API_KEY, AI_MODEL)
             document_analyzer = DocumentAnalyzer(gemini_client)
-            logger.info("✅ AI Enhancement ready!")
+            logger.info("âœ… AI Enhancement ready!")
         except Exception as e:
-            logger.error(f"❌ AI initialization failed: {e}")
+            logger.error(f"âŒ AI initialization failed: {e}")
             return None
     
     return document_analyzer
@@ -95,7 +105,7 @@ def get_batch_processor():
     if batch_processor is None:
         processor = get_ocr_processor()
         batch_processor = BatchProcessor(processor, max_batch_size=10)
-        logger.info("📦 Batch Processor ready!")
+        logger.info("ðŸ“¦ Batch Processor ready!")
     
     return batch_processor
 
@@ -170,7 +180,7 @@ def upload_file():
         filepath = Path(app.config['UPLOAD_FOLDER']) / filename
         file.save(str(filepath))
         
-        logger.info(f"📁 Uploaded file: {filename}")
+        logger.info(f"ðŸ“ Uploaded file: {filename}")
         
         # Get processing options
         options = request.form.get('options', '{}')
@@ -186,7 +196,7 @@ def upload_file():
             analyzer = get_document_analyzer()
             if analyzer:
                 try:
-                    logger.info("🤖 Applying AI enhancement...")
+                    logger.info("ðŸ¤– Applying AI enhancement...")
                     result = analyzer.analyze_complete(
                         result,
                         enable_classification=AI_FEATURES.get('enable_classification', True) and options.get('ai_classify', True),
@@ -213,7 +223,7 @@ def upload_file():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Upload error: {e}")
+        logger.error(f"âŒ Upload error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -258,7 +268,7 @@ def process_text():
         })
         
     except Exception as e:
-        logger.error(f"❌ Processing error: {e}")
+        logger.error(f"âŒ Processing error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -280,7 +290,7 @@ def download_result(filename):
         return send_file(str(filepath), as_attachment=True)
         
     except Exception as e:
-        logger.error(f"❌ Download error: {e}")
+        logger.error(f"âŒ Download error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -338,7 +348,7 @@ def ai_classify():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Classification error: {e}")
+        logger.error(f"âŒ Classification error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -385,7 +395,7 @@ def ai_extract():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Extraction error: {e}")
+        logger.error(f"âŒ Extraction error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -432,7 +442,7 @@ def ai_summarize():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Summarization error: {e}")
+        logger.error(f"âŒ Summarization error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -479,7 +489,7 @@ def ai_question_answer():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ QA error: {e}")
+        logger.error(f"âŒ QA error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -526,7 +536,7 @@ def ai_translate():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Translation error: {e}")
+        logger.error(f"âŒ Translation error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -571,7 +581,7 @@ def ai_insights():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Insights error: {e}")
+        logger.error(f"âŒ Insights error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -787,35 +797,37 @@ def batch_upload():
 
 
 if __name__ == '__main__':
-    ai_status = "✅ Enabled" if ENABLE_AI_ENHANCEMENT else "❌ Disabled"
+    ai_status = "âœ… Enabled" if ENABLE_AI_ENHANCEMENT else "âŒ Disabled"
     ai_model_info = f" ({AI_MODEL})" if ENABLE_AI_ENHANCEMENT else ""
     
     logger.info(f"""
-    ╔════════════════════════════════════════════════════╗
-    ║   📄 Document Intelligence Service v1.6.0         ║
-    ║   OCR + AI + Advanced Tools                       ║
-    ╠════════════════════════════════════════════════════╣
-    ║   🌐 URL: http://{HOST}:{PORT}                    
-    ║   🎯 OCR: PaddleOCR (Vietnamese)                  ║
-    ║   🤖 AI: {ai_status}{ai_model_info}
-    ║   📊 Status: Production Ready                     ║
-    ╚════════════════════════════════════════════════════╝
+    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+    â•‘   ðŸ“„ Document Intelligence Service v1.6.0         â•‘
+    â•‘   OCR + AI + Advanced Tools                       â•‘
+    â• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•£
+    â•‘   ðŸŒ URL: http://{HOST}:{PORT}                    
+    â•‘   ðŸŽ¯ OCR: PaddleOCR (Vietnamese)                  â•‘
+    â•‘   ðŸ¤– AI: {ai_status}{ai_model_info}
+    â•‘   ðŸ“Š Status: Production Ready                     â•‘
+    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     
-    🚀 Core Features:
-       ✅ OCR Text Extraction (Vietnamese optimized)
-       ✅ PDF Multi-page Support
-       {"✅" if ENABLE_AI_ENHANCEMENT else "❌"} AI Document Classification
-       {"✅" if ENABLE_AI_ENHANCEMENT else "❌"} Smart Information Extraction
-       {"✅" if ENABLE_AI_ENHANCEMENT else "❌"} Document Summarization
-       {"✅" if ENABLE_AI_ENHANCEMENT else "❌"} Q&A over Documents
-       {"✅" if ENABLE_AI_ENHANCEMENT else "❌"} Multi-language Translation
+    ðŸš€ Core Features:
+       âœ… OCR Text Extraction (Vietnamese optimized)
+       âœ… PDF Multi-page Support
+       {"âœ…" if ENABLE_AI_ENHANCEMENT else "âŒ"} AI Document Classification
+       {"âœ…" if ENABLE_AI_ENHANCEMENT else "âŒ"} Smart Information Extraction
+       {"âœ…" if ENABLE_AI_ENHANCEMENT else "âŒ"} Document Summarization
+       {"âœ…" if ENABLE_AI_ENHANCEMENT else "âŒ"} Q&A over Documents
+       {"âœ…" if ENABLE_AI_ENHANCEMENT else "âŒ"} Multi-language Translation
     
-    ⚡ NEW Advanced Features:
-       ✅ Batch Processing (up to 10 files)
-       ✅ Document Templates (CMND, Invoice, Contract...)
-       ✅ Processing History with Search
-       ✅ Quick Actions (Clean, Extract, Format)
-       ✅ Text Formatter Utilities
+    âš¡ NEW Advanced Features:
+       âœ… Batch Processing (up to 10 files)
+       âœ… Document Templates (CMND, Invoice, Contract...)
+       âœ… Processing History with Search
+       âœ… Quick Actions (Clean, Extract, Format)
+       âœ… Text Formatter Utilities
     """)
     
     app.run(host=HOST, port=PORT, debug=DEBUG)
+
+

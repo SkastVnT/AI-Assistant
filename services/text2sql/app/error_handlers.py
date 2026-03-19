@@ -1,4 +1,4 @@
-"""
+﻿"""
 Text2SQL Error Handlers
 Centralized error handling for the application
 """

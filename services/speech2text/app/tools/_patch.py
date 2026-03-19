@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import re
 
 file_path = 's2t/lib/site-packages/transformers/utils/import_utils.py'

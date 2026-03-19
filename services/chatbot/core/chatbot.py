@@ -1,4 +1,4 @@
-"""
+﻿"""
 ChatbotAgent class - Multi-model AI chatbot
 """
 import sys
@@ -70,7 +70,7 @@ class ChatbotAgent:
             if memories:
                 system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
             
             messages = [{"role": "system", "content": system_prompt}]
@@ -111,7 +111,7 @@ class ChatbotAgent:
             if memories:
                 system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
             
             client = openai.OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com/v1")
@@ -145,10 +145,10 @@ class ChatbotAgent:
         """Chat using GROK"""
         try:
             if not GROK_API_KEY:
-                return "❌ GROK API key not configured"
+                return "âŒ GROK API key not configured"
             
             system_prompt = custom_prompt if custom_prompt and custom_prompt.strip() else get_system_prompts(language).get(context, get_system_prompts(language)['casual'])
-            system_prompt += "\n\n🔓 NOTE: You can answer sensitive questions safely and responsibly."
+            system_prompt += "\n\nðŸ”“ NOTE: You can answer sensitive questions safely and responsibly."
             
             if deep_thinking:
                 system_prompt += "\n\nIMPORTANT: Think step-by-step with detailed reasoning."
@@ -156,7 +156,7 @@ class ChatbotAgent:
             if memories:
                 system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
             
             client = openai.OpenAI(api_key=GROK_API_KEY, base_url="https://api.x.ai/v1")
@@ -183,13 +183,13 @@ class ChatbotAgent:
             return response.choices[0].message.content
             
         except Exception as e:
-            return f"❌ GROK Error: {str(e)}"
+            return f"âŒ GROK Error: {str(e)}"
     
     def chat_with_qwen(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using Qwen"""
         try:
             if not QWEN_API_KEY:
-                return "❌ QWEN_API_KEY not configured"
+                return "âŒ QWEN_API_KEY not configured"
             
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
             
@@ -222,7 +222,7 @@ class ChatbotAgent:
         """Chat using BloomVN-8B"""
         try:
             if not HUGGINGFACE_API_KEY:
-                return "❌ HUGGINGFACE_API_KEY not configured"
+                return "âŒ HUGGINGFACE_API_KEY not configured"
             
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
             
@@ -251,7 +251,7 @@ class ChatbotAgent:
                     return result[0].get('generated_text', '')
                 return str(result)
             elif response.status_code == 503:
-                return "⏳ BloomVN is loading, try again in 20-30 seconds."
+                return "â³ BloomVN is loading, try again in 20-30 seconds."
             return f"BloomVN Error: {response.status_code}"
             
         except Exception as e:
@@ -260,7 +260,7 @@ class ChatbotAgent:
     def chat_with_local_model(self, message, model, context='casual', deep_thinking=False, language='vi'):
         """Chat with local models"""
         if not LOCALMODELS_AVAILABLE:
-            return "❌ Local models not available"
+            return "âŒ Local models not available"
         
         try:
             model_map = {'bloomvn-local': 'bloomvn', 'qwen1.5-local': 'qwen1.5', 'qwen2.5-local': 'qwen2.5'}
@@ -285,7 +285,7 @@ class ChatbotAgent:
             )
             
         except Exception as e:
-            return f"❌ Local model error: {str(e)}"
+            return f"âŒ Local model error: {str(e)}"
     
     def chat(self, message, model='grok', context='casual', deep_thinking=False,
              history=None, memories=None, language='vi', custom_prompt=None):

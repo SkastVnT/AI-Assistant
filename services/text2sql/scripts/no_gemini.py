@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Flask backend cho Text-to-SQL + Memory + Pretrain (SQLCoder-only)
-- Upload nhiều schema (txt/json/jsonl/csv/sql) -> bundle trong ./sample/uploaded/
-- Auto-pretrain (cấu hình qua .env) + Pretrain thêm
-- Lưu memory theo 1 bảng (memory_<table>.txt) hoặc nhiều schema (memories_XX+YY+.txt)
+- Upload nhiá»u schema (txt/json/jsonl/csv/sql) -> bundle trong ./sample/uploaded/
+- Auto-pretrain (cáº¥u hÃ¬nh qua .env) + Pretrain thÃªm
+- LÆ°u memory theo 1 báº£ng (memory_<table>.txt) hoáº·c nhiá»u schema (memories_XX+YY+.txt)
 - Chat flow: dataset lookup -> confirm generate -> save/skip -> refine
-- Xem log pretrain JSONL và file pretrain text trong ./pretrain/<bundle>.txt
-- CHỈ DÙNG SQLCoder-7B-2, KHÔNG DÙNG GEMINI
+- Xem log pretrain JSONL vÃ  file pretrain text trong ./pretrain/<bundle>.txt
+- CHá»ˆ DÃ™NG SQLCoder-7B-2, KHÃ”NG DÃ™NG GEMINI
 """
 
 import os
@@ -18,22 +18,32 @@ from pathlib import Path
 from typing import Tuple
 
 from flask import Flask, request, jsonify, render_template
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from werkzeug.utils import secure_filename
 
 # HTTP client (HF/ollama/vLLM)
 import requests
 
-# ClickHouse client (tùy chọn)
+# ClickHouse client (tÃ¹y chá»n)
 try:
     from clickhouse_connect import get_client
 except Exception:
     get_client = None
 
 # ------------------- Load ENV -------------------
-load_dotenv()
-
-# Model & strategy (không còn tuỳ chọn gemini)
+load_shared_env(__file__)
+# Model & strategy (khÃ´ng cÃ²n tuá»³ chá»n gemini)
 SQLCODER_BACKEND = os.getenv("SQLCODER_BACKEND", "hf").lower()  # hf | ollama | vllm
 SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "defog/sqlcoder-7b-2")
 HYBRID_STRATEGY = os.getenv(
@@ -77,10 +87,10 @@ app = Flask(__name__)
 # ------------------- Runtime State -------------------
 SCHEMA_FILES: list[str] = []  # [bundle_path]
 KNOWN_TABLES: set[str] = set()
-ACTIVE_TABLES: list[str] = []  # theo thứ tự upload
+ACTIVE_TABLES: list[str] = []  # theo thá»© tá»± upload
 ACTIVE_PRIMARY_TABLE: str | None = None
 ACTIVE_IDMAP: dict[str, str] = {}  # table -> "01","02",...
-ACTIVE_UPLOAD_ORDER: list[str] = []  # theo thứ tự upload
+ACTIVE_UPLOAD_ORDER: list[str] = []  # theo thá»© tá»± upload
 ACTIVE_AGG_FILE: str | None = None  # path memories_XX+YY.txt (khi multi)
 pending_question: str | None = None
 
@@ -99,8 +109,8 @@ _ID_NAME = {
     "account_id",
 }
 
-YES_WORDS = ["có", "đồng ý", "yes", "ok", "oke", "okay"]
-NO_WORDS = ["không", "không cần", "no", "ko", "khong"]
+YES_WORDS = ["cÃ³", "Ä‘á»“ng Ã½", "yes", "ok", "oke", "okay"]
+NO_WORDS = ["khÃ´ng", "khÃ´ng cáº§n", "no", "ko", "khong"]
 
 
 # ------------------- Utils -------------------
@@ -108,8 +118,8 @@ def parse_schema_any(
     schema_text: str, file_hint: str | None = None, sample_cap: int = 500
 ):
     """
-    Trả về dict {table: [(col, generic_type), ...]}
-    Hỗ trợ: CREATE TABLE, JSON/JSONL, CSV header, và text tự do.
+    Tráº£ vá» dict {table: [(col, generic_type), ...]}
+    Há»— trá»£: CREATE TABLE, JSON/JSONL, CSV header, vÃ  text tá»± do.
     """
     txt = schema_text or ""
     # 1) DDL
@@ -161,31 +171,31 @@ def parse_schema_any(
                     if len(rows) >= sample_cap:
                         break
             except:
-                # nếu gặp một dòng không parse được → coi như không phải JSONL
+                # náº¿u gáº·p má»™t dÃ²ng khÃ´ng parse Ä‘Æ°á»£c â†’ coi nhÆ° khÃ´ng pháº£i JSONL
                 return []
         return rows
 
     json_rows = []
     try:
-        # dạng JSON array/object
+        # dáº¡ng JSON array/object
         jobj = json.loads(txt)
         if isinstance(jobj, list):
             json_rows = [x for x in jobj if isinstance(x, dict)][:sample_cap]
         elif isinstance(jobj, dict):
             json_rows = [jobj]
     except:
-        # JSONL (1 object mỗi dòng)
+        # JSONL (1 object má»—i dÃ²ng)
         json_rows = _try_json_lines(txt)
 
     if json_rows:
-        # đoán table name
+        # Ä‘oÃ¡n table name
         tname = _norm_table((file_hint or "uploaded").split("/")[-1].split(".")[0])
         field_types = {}
         for r in json_rows:
             flat = _flatten(r)
             for k, v in flat.items():
                 g = _ctype_from_name_and_val(k, v)
-                # giữ loại "mạnh" hơn (time/id/num ưu tiên)
+                # giá»¯ loáº¡i "máº¡nh" hÆ¡n (time/id/num Æ°u tiÃªn)
                 old = field_types.get(k)
                 rank = {
                     "id": 5,
@@ -209,7 +219,7 @@ def parse_schema_any(
         rows = list(reader)
         if rows and len(rows[0]) > 1:
             header = rows[0]
-            # lấy 50 dòng mẫu để đoán kiểu
+            # láº¥y 50 dÃ²ng máº«u Ä‘á»ƒ Ä‘oÃ¡n kiá»ƒu
             sample = rows[1:sample_cap]
             col_types = []
             for ix, h in enumerate(header):
@@ -232,7 +242,7 @@ def parse_schema_any(
     except Exception:
         pass
 
-    # 4) Text tự do: móc ra các "từ" dạng *_id, created_at, status,...
+    # 4) Text tá»± do: mÃ³c ra cÃ¡c "tá»«" dáº¡ng *_id, created_at, status,...
     tokens = set()
     for m in re.finditer(r"\b[a-zA-Z_][a-zA-Z0-9_]{2,}\b", txt):
         tokens.add(m.group(0))
@@ -274,7 +284,7 @@ def _flatten(d, parent="", sep="."):
         for k, v in d.items():
             out.update(_flatten(v, parent + k + sep, sep))
     elif isinstance(d, list):
-        # đại diện mảng bằng join text; đồng thời ghi thêm size
+        # Ä‘áº¡i diá»‡n máº£ng báº±ng join text; Ä‘á»“ng thá»i ghi thÃªm size
         out[parent[:-1]] = d
         out[parent[:-1] + "_len"] = len(d)
     else:
@@ -284,7 +294,7 @@ def _flatten(d, parent="", sep="."):
 
 def _ctype_from_name_and_val(name: str, val):
     n = (name or "").lower()
-    # Ưu tiên theo tên
+    # Æ¯u tiÃªn theo tÃªn
     if n in _ID_NAME or n.endswith("_id"):
         return "id"
     if any(k in n for k in ["created", "updated", "resolved", "date", "time"]):
@@ -293,7 +303,7 @@ def _ctype_from_name_and_val(name: str, val):
         k in n for k in ["status", "channel", "category", "type", "state", "priority"]
     ):
         return "cat"
-    # Theo giá trị
+    # Theo giÃ¡ trá»‹
     if isinstance(val, bool):
         return "bool"
     if isinstance(val, (int, float)):
@@ -307,7 +317,7 @@ def _ctype_from_name_and_val(name: str, val):
             return "time"
         try:
             float(val)
-            # đừng nhầm id string thành số: nếu tên gợi ý id thì vẫn là id
+            # Ä‘á»«ng nháº§m id string thÃ nh sá»‘: náº¿u tÃªn gá»£i Ã½ id thÃ¬ váº«n lÃ  id
             return "num" if "id" not in n else "id"
         except:
             pass
@@ -321,14 +331,14 @@ def _norm_table(s: str) -> str:
 
 
 def _sqlfp(s: str) -> str:
-    # fingerprint cho SQL: bỏ comment, lower, gọn khoảng trắng
+    # fingerprint cho SQL: bá» comment, lower, gá»n khoáº£ng tráº¯ng
     s = re.sub(r"--.*?$", "", s or "", flags=re.M)
     s = re.sub(r"/\*.*?\*/", "", s, flags=re.S)
     return re.sub(r"\s+", " ", s.strip().lower())
 
 
 def _qfp(s: str) -> str:
-    # fingerprint cho câu hỏi: lower + gọn khoảng trắng
+    # fingerprint cho cÃ¢u há»i: lower + gá»n khoáº£ng tráº¯ng
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
 
@@ -394,8 +404,8 @@ def current_pretrain_log_path() -> str | None:
 
 def parse_table_columns_typed(schema_text: str) -> dict[str, list[tuple[str, str]]]:
     """
-    Trả về {table: [(col, type), ...]} dựa trên CREATE TABLE.
-    Bắt cả kiểu để bóc tách time/number/string tốt hơn.
+    Tráº£ vá» {table: [(col, type), ...]} dá»±a trÃªn CREATE TABLE.
+    Báº¯t cáº£ kiá»ƒu Ä‘á»ƒ bÃ³c tÃ¡ch time/number/string tá»‘t hÆ¡n.
     """
     out = {}
     for mm in re.finditer(
@@ -427,7 +437,7 @@ def extract_sql(text: str) -> str:
         text = m.group(1)
     text = re.sub(r"(?im)^status\s*:\s*.*$", "", text)
     text = re.sub(r"(?im)^result\s*:\s*.*$", "", text)
-    text = re.sub(r"(?i)^\s*(sql\s*được\s*tạo|sql|query)\s*[:\-]*", "", text).strip()
+    text = re.sub(r"(?i)^\s*(sql\s*Ä‘Æ°á»£c\s*táº¡o|sql|query)\s*[:\-]*", "", text).strip()
     m2 = re.search(r"(?is)\b(select|insert|update|delete)\b[\s\S]*$", text)
     if m2:
         text = text[m2.start() :].strip()
@@ -537,7 +547,7 @@ def generate_sql_with_sqlcoder(schema_text: str, question: str) -> str | None:
     return extract_sql(raw or "") or None
 
 
-# ------------------- Heuristic fallback (không dùng Gemini) -------------------
+# ------------------- Heuristic fallback (khÃ´ng dÃ¹ng Gemini) -------------------
 def _pick_table(schema_text: str) -> str:
     if ACTIVE_PRIMARY_TABLE:
         return ACTIVE_PRIMARY_TABLE
@@ -552,17 +562,17 @@ def _pick_table(schema_text: str) -> str:
 def generate_sql_heuristic(schema_text: str, question: str) -> str:
     q = (question or "").lower()
     t = _pick_table(schema_text)
-    # vài mẫu phổ biến
+    # vÃ i máº«u phá»• biáº¿n
     if (
-        "hiển thị" in q
-        and ("20" in q or "hai mươi" in q)
-        or "20 dòng" in q
+        "hiá»ƒn thá»‹" in q
+        and ("20" in q or "hai mÆ°Æ¡i" in q)
+        or "20 dÃ²ng" in q
         or "show" in q
     ):
         return f"SELECT * FROM {t} LIMIT 20;"
-    if "đếm tổng" in q or "tổng số bản ghi" in q or "đếm số bản ghi" in q:
+    if "Ä‘áº¿m tá»•ng" in q or "tá»•ng sá»‘ báº£n ghi" in q or "Ä‘áº¿m sá»‘ báº£n ghi" in q:
         return f"SELECT count(*) FROM {t};"
-    m = re.search(r"đếm số\s+(\w+)\s+khác nhau", q)
+    m = re.search(r"Ä‘áº¿m sá»‘\s+(\w+)\s+khÃ¡c nhau", q)
     if m:
         col = m.group(1)
         return f"SELECT count(DISTINCT {col}) FROM {t};"
@@ -573,9 +583,9 @@ def generate_sql_heuristic(schema_text: str, question: str) -> str:
 def generate_refined_sql_heuristic(
     schema_text: str, question: str, prev_sql: str, feedback: str, extra: str
 ) -> str:
-    # đơn giản: tạo lại từ câu hỏi (ưu tiên cột nhắc trong feedback/extra)
+    # Ä‘Æ¡n giáº£n: táº¡o láº¡i tá»« cÃ¢u há»i (Æ°u tiÃªn cá»™t nháº¯c trong feedback/extra)
     base = generate_sql_heuristic(schema_text, question)
-    # nếu feedback gợi ý "distinct <col>"
+    # náº¿u feedback gá»£i Ã½ "distinct <col>"
     m = re.search(r"distinct\s+(\w+)", feedback.lower())
     if not m:
         m = re.search(r"distinct\s+(\w+)", (extra or "").lower())
@@ -591,7 +601,7 @@ def hybrid_generate_sql(schema_text: str, question: str) -> Tuple[str, str]:
     if HYBRID_STRATEGY == "sqlcoder_only":
         s = generate_sql_with_sqlcoder(schema_text, question) or ""
         return (s or generate_sql_heuristic(schema_text, question)), "sqlcoder"
-    # cascade: thử sqlcoder -> heuristic
+    # cascade: thá»­ sqlcoder -> heuristic
     s1 = generate_sql_with_sqlcoder(schema_text, question) or ""
     if s1 and looks_valid_sql(s1):
         return s1, "sqlcoder"
@@ -690,7 +700,7 @@ def infer_table_from_sql(sql: str) -> str | None:
 def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
     # multi: memories_...
     if ACTIVE_AGG_FILE and ACTIVE_UPLOAD_ORDER and ACTIVE_IDMAP:
-        # chống trùng SQL ở file memories_...
+        # chá»‘ng trÃ¹ng SQL á»Ÿ file memories_...
         existing = set()
         if os.path.exists(ACTIVE_AGG_FILE):
             with open(ACTIVE_AGG_FILE, "r", encoding="utf-8") as f:
@@ -701,14 +711,14 @@ def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
                     except:
                         pass
         if _sqlfp(sql) in existing:
-            return False, f"❎ Bỏ qua: SQL đã tồn tại trong {ACTIVE_AGG_FILE}"
+            return False, f"âŽ Bá» qua: SQL Ä‘Ã£ tá»“n táº¡i trong {ACTIVE_AGG_FILE}"
         with open(ACTIVE_AGG_FILE, "a", encoding="utf-8") as f:
             f.write(
                 json.dumps({"question": question, "sql": sql}, ensure_ascii=False)
                 + "\n"
             )
         mapping = ", ".join(f"{ACTIVE_IDMAP[t]}={t}" for t in ACTIVE_UPLOAD_ORDER)
-        return True, f"Đã lưu vào {ACTIVE_AGG_FILE} (mapping: {mapping})"
+        return True, f"ÄÃ£ lÆ°u vÃ o {ACTIVE_AGG_FILE} (mapping: {mapping})"
 
     # single
     table = ACTIVE_PRIMARY_TABLE or infer_table_from_sql(sql)
@@ -716,10 +726,10 @@ def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
         base = os.path.splitext(os.path.basename(SCHEMA_FILES[0]))[0]
         table = _normalize_table_name(base)
     if not table:
-        return False, "❗ Không xác định được bảng đang hoạt động, nên không lưu."
+        return False, "â— KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c báº£ng Ä‘ang hoáº¡t Ä‘á»™ng, nÃªn khÃ´ng lÆ°u."
     path = MEMORY_DIR / f"memory_{table}.txt"
 
-    # chống trùng SQL ở file memory_<table>.txt
+    # chá»‘ng trÃ¹ng SQL á»Ÿ file memory_<table>.txt
     existing = set()
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
@@ -730,7 +740,7 @@ def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
                 except:
                     pass
     if _sqlfp(sql) in existing:
-        return False, f"❎ Bỏ qua: SQL đã tồn tại trong {path}"
+        return False, f"âŽ Bá» qua: SQL Ä‘Ã£ tá»“n táº¡i trong {path}"
 
     with open(path, "a", encoding="utf-8") as f:
         f.write(
@@ -739,7 +749,7 @@ def save_to_memory_per_table(question: str, sql: str) -> tuple[bool, str]:
             )
             + "\n"
         )
-    return True, f"✅ Đã lưu vào {path}"
+    return True, f"âœ… ÄÃ£ lÆ°u vÃ o {path}"
 
 
 def collect_seen_questions_for_active() -> set:
@@ -834,11 +844,11 @@ def parse_table_columns_map(schema_text: str) -> dict[str, list[str]]:
 
 def synthesize_questions(schema_text: str, limit: int = 15) -> list[tuple[str, str]]:
     """
-    Sinh nhiều biến thể Q&A theo schema:
-    - Cơ bản: preview, count, distinct
-    - Theo thời gian: 7/30 ngày, theo giờ
-    - Theo định danh: top-N theo *_id / user_id / shop_id / conversation_id
-    - Theo số: sum/avg/min/max theo ngày
+    Sinh nhiá»u biáº¿n thá»ƒ Q&A theo schema:
+    - CÆ¡ báº£n: preview, count, distinct
+    - Theo thá»i gian: 7/30 ngÃ y, theo giá»
+    - Theo Ä‘á»‹nh danh: top-N theo *_id / user_id / shop_id / conversation_id
+    - Theo sá»‘: sum/avg/min/max theo ngÃ y
     """
     tbl_cols = parse_table_columns_typed(schema_text)
     tables = (
@@ -855,7 +865,7 @@ def synthesize_questions(schema_text: str, limit: int = 15) -> list[tuple[str, s
         cols_t = tbl_cols.get(t, [])
         names = [c for c, _ in cols_t]
 
-        # Phân loại cột
+        # PhÃ¢n loáº¡i cá»™t
         def is_time(col, typ):
             n = col.lower()
             return (
@@ -893,71 +903,71 @@ def synthesize_questions(schema_text: str, limit: int = 15) -> list[tuple[str, s
         num_cols = [c for c, tp in cols_t if is_num(tp)]
         str_cols = [c for c, tp in cols_t if is_str(tp)]
 
-        # Câu hỏi cơ bản
+        # CÃ¢u há»i cÆ¡ báº£n
         qs.extend(
             [
-                (f"Hiển thị 20 dòng đầu tiên của bảng {t}", t),
-                (f"Đếm tổng số bản ghi trong bảng {t}", t),
+                (f"Hiá»ƒn thá»‹ 20 dÃ²ng Ä‘áº§u tiÃªn cá»§a báº£ng {t}", t),
+                (f"Äáº¿m tá»•ng sá»‘ báº£n ghi trong báº£ng {t}", t),
             ]
         )
 
-        # Distinct theo các ID/chuỗi
+        # Distinct theo cÃ¡c ID/chuá»—i
         for c in (id_cols or str_cols)[:6]:
-            qs.append((f"Đếm số giá trị khác nhau của {c} trong bảng {t}", t))
-            qs.append((f"Top 10 {c} xuất hiện nhiều nhất trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ giÃ¡ trá»‹ khÃ¡c nhau cá»§a {c} trong báº£ng {t}", t))
+            qs.append((f"Top 10 {c} xuáº¥t hiá»‡n nhiá»u nháº¥t trong báº£ng {t}", t))
 
-        # Theo thời gian (nếu có)
+        # Theo thá»i gian (náº¿u cÃ³)
         for tc in time_cols[:3]:
             qs.append(
                 (
-                    f"Đếm số bản ghi theo ngày trong 7 ngày gần nhất dựa trên {tc} của bảng {t}",
+                    f"Äáº¿m sá»‘ báº£n ghi theo ngÃ y trong 7 ngÃ y gáº§n nháº¥t dá»±a trÃªn {tc} cá»§a báº£ng {t}",
                     t,
                 )
             )
             qs.append(
                 (
-                    f"Đếm số bản ghi theo ngày trong 30 ngày gần nhất dựa trên {tc} của bảng {t}",
+                    f"Äáº¿m sá»‘ báº£n ghi theo ngÃ y trong 30 ngÃ y gáº§n nháº¥t dá»±a trÃªn {tc} cá»§a báº£ng {t}",
                     t,
                 )
             )
             qs.append(
                 (
-                    f"Phân bố số bản ghi theo giờ trong 24 giờ gần nhất dựa trên {tc} của bảng {t}",
+                    f"PhÃ¢n bá»‘ sá»‘ báº£n ghi theo giá» trong 24 giá» gáº§n nháº¥t dá»±a trÃªn {tc} cá»§a báº£ng {t}",
                     t,
                 )
             )
 
-        # Số liệu tổng hợp theo ngày cho cột số
+        # Sá»‘ liá»‡u tá»•ng há»£p theo ngÃ y cho cá»™t sá»‘
         for nc in num_cols[:3]:
             if time_cols:
                 tc = time_cols[0]
                 qs.append(
                     (
-                        f"Tính tổng {nc} theo ngày trong 30 ngày gần nhất dựa trên {tc} của bảng {t}",
+                        f"TÃ­nh tá»•ng {nc} theo ngÃ y trong 30 ngÃ y gáº§n nháº¥t dá»±a trÃªn {tc} cá»§a báº£ng {t}",
                         t,
                     )
                 )
                 qs.append(
                     (
-                        f"Tính giá trị trung bình {nc} theo ngày trong 30 ngày gần nhất dựa trên {tc} của bảng {t}",
+                        f"TÃ­nh giÃ¡ trá»‹ trung bÃ¬nh {nc} theo ngÃ y trong 30 ngÃ y gáº§n nháº¥t dá»±a trÃªn {tc} cá»§a báº£ng {t}",
                         t,
                     )
                 )
                 qs.append(
                     (
-                        f"Tính min và max của {nc} theo ngày trong 30 ngày gần nhất dựa trên {tc} của bảng {t}",
+                        f"TÃ­nh min vÃ  max cá»§a {nc} theo ngÃ y trong 30 ngÃ y gáº§n nháº¥t dá»±a trÃªn {tc} cá»§a báº£ng {t}",
                         t,
                     )
                 )
             else:
-                qs.append((f"Tính tổng {nc} của bảng {t}", t))
-                qs.append((f"Tính giá trị trung bình {nc} của bảng {t}", t))
+                qs.append((f"TÃ­nh tá»•ng {nc} cá»§a báº£ng {t}", t))
+                qs.append((f"TÃ­nh giÃ¡ trá»‹ trung bÃ¬nh {nc} cá»§a báº£ng {t}", t))
 
-        # Một ít biến thể theo điều kiện rỗng/không rỗng
+        # Má»™t Ã­t biáº¿n thá»ƒ theo Ä‘iá»u kiá»‡n rá»—ng/khÃ´ng rá»—ng
         for c in (str_cols or id_cols)[:4]:
-            qs.append((f"Đếm số bản ghi có {c} khác rỗng trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ báº£n ghi cÃ³ {c} khÃ¡c rá»—ng trong báº£ng {t}", t))
 
-    # Khử trùng lặp theo fingerprint câu hỏi, đảo thứ tự, cắt theo limit
+    # Khá»­ trÃ¹ng láº·p theo fingerprint cÃ¢u há»i, Ä‘áº£o thá»© tá»±, cáº¯t theo limit
     uniq, seen = [], set()
     random.shuffle(qs)
     for q, t in qs:
@@ -996,26 +1006,26 @@ def synthesize_questions(schema_text: str, limit: int = 15) -> list[tuple[str, s
 
         qs.extend(
             [
-                (f"Hiển thị 20 dòng đầu tiên của bảng {t}", t),
-                (f"Đếm tổng số bản ghi trong bảng {t}", t),
+                (f"Hiá»ƒn thá»‹ 20 dÃ²ng Ä‘áº§u tiÃªn cá»§a báº£ng {t}", t),
+                (f"Äáº¿m tá»•ng sá»‘ báº£n ghi trong báº£ng {t}", t),
             ]
         )
         if id_col:
-            qs.append((f"Đếm số bản ghi theo {id_col} trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ báº£n ghi theo {id_col} trong báº£ng {t}", t))
         if time_col:
             qs.append(
                 (
-                    f"Đếm số bản ghi theo ngày dựa trên {time_col} trong 7 ngày gần nhất của bảng {t}",
+                    f"Äáº¿m sá»‘ báº£n ghi theo ngÃ y dá»±a trÃªn {time_col} trong 7 ngÃ y gáº§n nháº¥t cá»§a báº£ng {t}",
                     t,
                 )
             )
         if shop_col:
-            qs.append((f"Đếm số lượng shop_id khác nhau trong bảng {t}", t))
-            qs.append((f"Top 10 shop_id có nhiều bản ghi nhất trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ lÆ°á»£ng shop_id khÃ¡c nhau trong báº£ng {t}", t))
+            qs.append((f"Top 10 shop_id cÃ³ nhiá»u báº£n ghi nháº¥t trong báº£ng {t}", t))
         if user_col:
-            qs.append((f"Top 10 {user_col} có nhiều bản ghi nhất trong bảng {t}", t))
+            qs.append((f"Top 10 {user_col} cÃ³ nhiá»u báº£n ghi nháº¥t trong báº£ng {t}", t))
         if conv_col:
-            qs.append((f"Đếm số {conv_col} khác nhau trong bảng {t}", t))
+            qs.append((f"Äáº¿m sá»‘ {conv_col} khÃ¡c nhau trong báº£ng {t}", t))
 
     out = []
     seen = set()
@@ -1045,7 +1055,7 @@ def write_pretrain_text(items: list[dict], rounds: int, strategy: str) -> str:
             if src == "sqlcoder":
                 model = "SQLCoder-7B-2"
             elif src in ("cascade", "sqlcoder+heuristic"):
-                model = "SQLCoder-7B-2 → Heuristic"
+                model = "SQLCoder-7B-2 â†’ Heuristic"
             elif src.startswith("refined"):
                 model = src
             else:
@@ -1055,7 +1065,7 @@ def write_pretrain_text(items: list[dict], rounds: int, strategy: str) -> str:
             pf.write(f"SQL: {it.get('sql') or '(NO_SQL)'}\n")
             pf.write(f"Model: {model}\n")
             pf.write(f"Status: {it.get('exec_status') or it.get('status') or ''}\n")
-            pf.write(f"Saved: {'✓' if it.get('saved') else '×'}\n")
+            pf.write(f"Saved: {'âœ“' if it.get('saved') else 'Ã—'}\n")
             raw = it.get("raw")
             if raw:
                 short = (
@@ -1079,7 +1089,7 @@ def pretrain_on_schema(
 
     base_pairs = synthesize_questions(schema_text, limit=rounds * 4)
     seen = collect_seen_questions_for_active()
-    pool = base_pairs  # cho phép sinh lại cả câu đã có
+    pool = base_pairs  # cho phÃ©p sinh láº¡i cáº£ cÃ¢u Ä‘Ã£ cÃ³
     random.shuffle(pool)
     pairs = pool[:rounds] if pool else []
 
@@ -1151,7 +1161,7 @@ def index():
 def upload_schema():
     global SCHEMA_FILES, KNOWN_TABLES, ACTIVE_TABLES, ACTIVE_PRIMARY_TABLE, ACTIVE_IDMAP, ACTIVE_UPLOAD_ORDER, ACTIVE_AGG_FILE
     if "file" not in request.files:
-        return jsonify({"error": "Không có file"}), 400
+        return jsonify({"error": "KhÃ´ng cÃ³ file"}), 400
 
     # reset state
     SCHEMA_FILES = []
@@ -1233,7 +1243,7 @@ def upload_schema():
     return (
         jsonify(
             {
-                "message": f"Đã upload: {', '.join(saved)}",
+                "message": f"ÄÃ£ upload: {', '.join(saved)}",
                 "schema_text": preview,
                 "files_uploaded": saved,
                 "tables": ACTIVE_UPLOAD_ORDER,
@@ -1258,7 +1268,7 @@ def schema_info():
     return (
         jsonify(
             {
-                "schema_text": preview or "(Chưa có schema — vui lòng upload trước)",
+                "schema_text": preview or "(ChÆ°a cÃ³ schema â€” vui lÃ²ng upload trÆ°á»›c)",
                 "files": [os.path.basename(p) for p in SCHEMA_FILES],
                 "tables": ACTIVE_UPLOAD_ORDER,
                 "id_map": ACTIVE_IDMAP,
@@ -1277,7 +1287,7 @@ def schema_info():
 def pretrain_api():
     schema_text = read_all_schemas()
     if not schema_text:
-        return jsonify({"error": "Chưa có schema/bundle để pretrain"}), 200
+        return jsonify({"error": "ChÆ°a cÃ³ schema/bundle Ä‘á»ƒ pretrain"}), 200
     payload = request.get_json(silent=True) or {}
     rounds = payload.get("rounds") or PRETRAIN_ROUNDS
     strategy = payload.get("strategy") or PRETRAIN_STRATEGY
@@ -1294,7 +1304,7 @@ def pretrain_report():
                 {
                     "count": 0,
                     "items": [],
-                    "message": "Chưa có log pretrain cho bundle hiện tại.",
+                    "message": "ChÆ°a cÃ³ log pretrain cho bundle hiá»‡n táº¡i.",
                 }
             ),
             200,
@@ -1364,7 +1374,7 @@ def chat():
     payload = request.get_json(force=True)
     msg = (payload.get("message") or "").strip()
     if not msg:
-        return jsonify({"response": "⚠️ Tin nhắn rỗng"}), 200
+        return jsonify({"response": "âš ï¸ Tin nháº¯n rá»—ng"}), 200
 
     # pending confirm
     if pending_question:
@@ -1373,13 +1383,13 @@ def chat():
             schema_text = read_all_schemas()
             if not schema_text:
                 pending_question = None
-                return jsonify({"response": "⚠️ Vui lòng upload schema trước"}), 200
+                return jsonify({"response": "âš ï¸ Vui lÃ²ng upload schema trÆ°á»›c"}), 200
             sql, src = hybrid_generate_sql(schema_text, pending_question)
             sql = extract_sql(sql)
             q = pending_question
             pending_question = None
             data, st = try_execute_sql(sql)
-            combined = f"SQL Được Tạo:\n{sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data)}"
+            combined = f"SQL ÄÆ°á»£c Táº¡o:\n{sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data)}"
             return (
                 jsonify(
                     {
@@ -1396,10 +1406,10 @@ def chat():
             )
         if any(w in low for w in NO_WORDS):
             pending_question = None
-            return jsonify({"response": "Ok, tôi sẽ không tạo câu truy vấn."}), 200
+            return jsonify({"response": "Ok, tÃ´i sáº½ khÃ´ng táº¡o cÃ¢u truy váº¥n."}), 200
         return (
             jsonify(
-                {"response": "⚠️ Vui lòng trả lời 'có/đồng ý' hoặc 'không/không cần'."}
+                {"response": "âš ï¸ Vui lÃ²ng tráº£ lá»i 'cÃ³/Ä‘á»“ng Ã½' hoáº·c 'khÃ´ng/khÃ´ng cáº§n'."}
             ),
             200,
         )
@@ -1408,7 +1418,7 @@ def chat():
     sql = find_in_dataset(msg)
     if sql:
         data, st = try_execute_sql(sql)
-        combined = f"SQL Được Tạo:\n{sql}\n\nResult:\n{preview_result_text(data)}"
+        combined = f"SQL ÄÆ°á»£c Táº¡o:\n{sql}\n\nResult:\n{preview_result_text(data)}"
         return (
             jsonify(
                 {
@@ -1427,7 +1437,7 @@ def chat():
     return (
         jsonify(
             {
-                "response": "❓ Câu hỏi này chưa có trong dataset. Bạn có muốn tôi tạo câu truy vấn SQL dựa trên schema đã upload không?",
+                "response": "â“ CÃ¢u há»i nÃ y chÆ°a cÃ³ trong dataset. Báº¡n cÃ³ muá»‘n tÃ´i táº¡o cÃ¢u truy váº¥n SQL dá»±a trÃªn schema Ä‘Ã£ upload khÃ´ng?",
                 "needs_confirmation": True,
                 "question": msg,
             }
@@ -1443,9 +1453,9 @@ def check():
     sql = (data.get("sql") or "").strip()
     approve = bool(data.get("approve", False))
     if not question or not sql:
-        return jsonify({"message": "Thiếu question hoặc sql"}), 400
+        return jsonify({"message": "Thiáº¿u question hoáº·c sql"}), 400
     if not approve:
-        return jsonify({"message": "Đã bỏ qua, không lưu."}), 200
+        return jsonify({"message": "ÄÃ£ bá» qua, khÃ´ng lÆ°u."}), 200
     ok, msg = save_to_memory_per_table(question, sql)
     return jsonify({"message": msg}), 200
 
@@ -1458,10 +1468,10 @@ def refine():
     feedback = (data.get("feedback") or "").strip()
     extra = (data.get("extra_context") or "").strip()
     if not question or not prev_sql:
-        return jsonify({"error": "Thiếu question hoặc sql"}), 400
+        return jsonify({"error": "Thiáº¿u question hoáº·c sql"}), 400
     schema_text = read_all_schemas()
     if not schema_text:
-        return jsonify({"error": "⚠️ Vui lòng upload schema trước"}), 200
+        return jsonify({"error": "âš ï¸ Vui lÃ²ng upload schema trÆ°á»›c"}), 200
     # refine: sqlcoder -> heuristic
     s1 = (
         generate_sql_with_sqlcoder(
@@ -1482,7 +1492,7 @@ def refine():
 
     new_sql = extract_sql(new_sql)
     data_res, st = try_execute_sql(new_sql)
-    combined = f"SQL Được Tạo:\n{new_sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data_res)}"
+    combined = f"SQL ÄÆ°á»£c Táº¡o:\n{new_sql}\n\nStatus: {st}\nResult:\n{preview_result_text(data_res)}"
     return (
         jsonify(
             {
@@ -1502,3 +1512,5 @@ def refine():
 # ------------------- Run -------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+
+

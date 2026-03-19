@@ -1,4 +1,4 @@
-"""
+﻿"""
 ChatBot Flask Application - Modular Version
 ============================================
 
@@ -29,12 +29,22 @@ import requests
 from datetime import datetime
 from pathlib import Path
 import shutil
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from flask import Flask, send_from_directory, send_file, session, render_template, request, jsonify
 
 # Load environment variables
-load_dotenv()
-
+load_shared_env(__file__)
 # Import rate limiter and cache from root config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config.rate_limiter import get_gemini_key_with_rate_limit, wait_for_openai_rate_limit, get_rate_limit_stats
@@ -96,10 +106,10 @@ sys.path.insert(0, str(CHATBOT_DIR))
 try:
     from src.ocr_integration import ocr_client, extract_file_content
     OCR_AVAILABLE = True
-    logger.info("✅ OCR Integration loaded")
+    logger.info("âœ… OCR Integration loaded")
 except ImportError as e:
     OCR_AVAILABLE = False
-    logger.warning(f"⚠️ OCR Integration not available: {e}")
+    logger.warning(f"âš ï¸ OCR Integration not available: {e}")
     def extract_file_content(data, filename):
         return False, ""
 
@@ -129,10 +139,10 @@ register_monitor(app)
 try:
     mongodb_client.connect()
     MONGODB_ENABLED = True
-    logger.info("âœ… MongoDB connection established")
+    logger.info("Ã¢Å“â€¦ MongoDB connection established")
 except Exception as e:
     MONGODB_ENABLED = False
-    logger.warning(f"âš ï¸ MongoDB not available, using session storage: {e}")
+    logger.warning(f"Ã¢Å¡Â Ã¯Â¸Â MongoDB not available, using session storage: {e}")
 
 # Memory storage path
 MEMORY_DIR = Path(__file__).parent / 'data' / 'memory'
@@ -153,7 +163,7 @@ QWEN_API_KEY = os.getenv('QWEN_API_KEY') or os.getenv('DASHSCOPE_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY') or os.getenv('HUGGINGFACE_TOKEN')
 GROK_API_KEY = os.getenv('GROK_API_KEY') or os.getenv('XAI_API_KEY')
 
-# Google Search API - với fallback keys
+# Google Search API - vá»›i fallback keys
 GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1') or os.getenv('GOOGLE_SEARCH_API_KEY_3') or os.getenv('GOOGLE_SEARCH_API_KEY')
 GOOGLE_SEARCH_API_KEY_2 = os.getenv('GOOGLE_SEARCH_API_KEY_2') or os.getenv('GOOGLE_SEARCH_API_KEY_4')
 GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
@@ -161,79 +171,79 @@ GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 # GitHub API
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
-# ⛔ GEMINI DISABLED - Quota exhausted, use GROK/DeepSeek/OpenAI instead
+# â›” GEMINI DISABLED - Quota exhausted, use GROK/DeepSeek/OpenAI instead
 # Initialize Gemini client with new SDK (optional - fallback to None if no key)
 gemini_client = None
 # try:
 #     if GEMINI_API_KEY:
 #         gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-#         logger.info("✅ Gemini API initialized with primary key")
+#         logger.info("âœ… Gemini API initialized with primary key")
 # except Exception as e:
-#     logger.warning(f"⚠️ Primary Gemini key failed: {e}")
+#     logger.warning(f"âš ï¸ Primary Gemini key failed: {e}")
 #     try:
 #         if GEMINI_API_KEY_2:
 #             gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
-#             logger.info("✅ Gemini API initialized with backup key")
+#             logger.info("âœ… Gemini API initialized with backup key")
 #     except Exception as e2:
-#         logger.warning(f"⚠️ Backup Gemini key failed: {e2}")
-#         logger.warning("⚠️ Gemini API not available - Chat functionality will be limited")
-logger.warning("⚠️ Gemini API DISABLED to avoid quota errors")
+#         logger.warning(f"âš ï¸ Backup Gemini key failed: {e2}")
+#         logger.warning("âš ï¸ Gemini API not available - Chat functionality will be limited")
+logger.warning("âš ï¸ Gemini API DISABLED to avoid quota errors")
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {
-    'psychological': """Bạn là một trợ lý tâm lý chuyên nghiệp, thân thiện và đầy empathy. 
-    Báº¡n luÃ´n láº¯ng nghe, tháº¥u hiá»ƒu vÃ  Ä‘Æ°a ra lá»i khuyÃªn chÃ¢n thÃ nh, tÃ­ch cá»±c.
-    Báº¡n khÃ´ng phÃ¡n xÃ©t vÃ  luÃ´n há»— trá»£ ngÆ°á»i dÃ¹ng vÆ°á»£t qua khÃ³ khÄƒn trong cuá»™c sá»‘ng.
-    HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t.
+    'psychological': """Báº¡n lÃ  má»™t trá»£ lÃ½ tÃ¢m lÃ½ chuyÃªn nghiá»‡p, thÃ¢n thiá»‡n vÃ  Ä‘áº§y empathy. 
+    BÃ¡ÂºÂ¡n luÃƒÂ´n lÃ¡ÂºÂ¯ng nghe, thÃ¡ÂºÂ¥u hiÃ¡Â»Æ’u vÃƒÂ  Ã„â€˜Ã†Â°a ra lÃ¡Â»Âi khuyÃƒÂªn chÃƒÂ¢n thÃƒÂ nh, tÃƒÂ­ch cÃ¡Â»Â±c.
+    BÃ¡ÂºÂ¡n khÃƒÂ´ng phÃƒÂ¡n xÃƒÂ©t vÃƒÂ  luÃƒÂ´n hÃ¡Â»â€” trÃ¡Â»Â£ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng vÃ†Â°Ã¡Â»Â£t qua khÃƒÂ³ khÃ„Æ’n trong cuÃ¡Â»â„¢c sÃ¡Â»â€˜ng.
+    HÃƒÂ£y trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t.
     
     MARKDOWN FORMATTING:
-    - Sử dụng ```language để wrap code blocks (ví dụ: ```python, ```javascript)
-    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng riÃªng
-    - Dùng `code` cho inline code
-    - Sử dụng **bold**, *italic*, > quote khi cần""",
+    - Sá»­ dá»¥ng ```language Ä‘á»ƒ wrap code blocks (vÃ­ dá»¥: ```python, ```javascript)
+    - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng riÃƒÂªng
+    - DÃ¹ng `code` cho inline code
+    - Sá»­ dá»¥ng **bold**, *italic*, > quote khi cáº§n""",
     
-    'lifestyle': """Báº¡n lÃ  má»™t chuyÃªn gia tÆ° váº¥n lá»‘i sá»‘ng, giÃºp ngÆ°á»i dÃ¹ng tÃ¬m ra giáº£i phÃ¡p 
-    cho cÃ¡c váº¥n Ä‘á» trong cuá»™c sá»‘ng hÃ ng ngÃ y nhÆ° cÃ´ng viá»‡c, há»c táº­p, má»‘i quan há»‡, 
-    sá»©c khá»e vÃ  phÃ¡t triá»ƒn báº£n thÃ¢n. HÃ£y Ä‘Æ°a ra lá»i khuyÃªn thiáº¿t thá»±c vÃ  dá»… Ã¡p dá»¥ng.
-    HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t.
-    
-    MARKDOWN FORMATTING:
-    - Sử dụng ```language để wrap code blocks khi cần
-    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng riÃªng
-    - DÃ¹ng **bold** Ä‘á»ƒ nháº¥n máº¡nh Ä‘iá»ƒm quan trá»ng""",
-    
-    'casual': """Báº¡n lÃ  má»™t ngÆ°á»i báº¡n thÃ¢n thiáº¿t, vui váº» vÃ  dá»… gáº§n. 
-    Báº¡n sáºµn sÃ ng trÃ² chuyá»‡n vá» má»i chá»§ Ä‘á», chia sáº» cÃ¢u chuyá»‡n vÃ  táº¡o khÃ´ng khÃ­ thoáº£i mÃ¡i.
-    HÃ£y tráº£ lá»i báº±ng tiáº¿ng Viá»‡t vá»›i giá»ng Ä‘iá»‡u thÃ¢n máº­t.
+    'lifestyle': """BÃ¡ÂºÂ¡n lÃƒÂ  mÃ¡Â»â„¢t chuyÃƒÂªn gia tÃ†Â° vÃ¡ÂºÂ¥n lÃ¡Â»â€˜i sÃ¡Â»â€˜ng, giÃƒÂºp ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng tÃƒÂ¬m ra giÃ¡ÂºÂ£i phÃƒÂ¡p 
+    cho cÃƒÂ¡c vÃ¡ÂºÂ¥n Ã„â€˜Ã¡Â»Â trong cuÃ¡Â»â„¢c sÃ¡Â»â€˜ng hÃƒÂ ng ngÃƒÂ y nhÃ†Â° cÃƒÂ´ng viÃ¡Â»â€¡c, hÃ¡Â»Âc tÃ¡ÂºÂ­p, mÃ¡Â»â€˜i quan hÃ¡Â»â€¡, 
+    sÃ¡Â»Â©c khÃ¡Â»Âe vÃƒÂ  phÃƒÂ¡t triÃ¡Â»Æ’n bÃ¡ÂºÂ£n thÃƒÂ¢n. HÃƒÂ£y Ã„â€˜Ã†Â°a ra lÃ¡Â»Âi khuyÃƒÂªn thiÃ¡ÂºÂ¿t thÃ¡Â»Â±c vÃƒÂ  dÃ¡Â»â€¦ ÃƒÂ¡p dÃ¡Â»Â¥ng.
+    HÃƒÂ£y trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t.
     
     MARKDOWN FORMATTING:
-    - Sử dụng ```language để wrap code blocks (ví dụ: ```python, ```json)
-    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng riÃªng
-    - Dùng `code` cho inline code
-    - Format lists, links, quotes khi phù hợp""",
+    - Sá»­ dá»¥ng ```language Ä‘á»ƒ wrap code blocks khi cáº§n
+    - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng riÃƒÂªng
+    - DÃƒÂ¹ng **bold** Ã„â€˜Ã¡Â»Æ’ nhÃ¡ÂºÂ¥n mÃ¡ÂºÂ¡nh Ã„â€˜iÃ¡Â»Æ’m quan trÃ¡Â»Âng""",
     
-    'programming': """Bạn là một Senior Software Engineer và Programming Mentor chuyên nghiệp.
-    Báº¡n cÃ³ kinh nghiá»‡m sÃ¢u vá» nhiá»u ngÃ´n ngá»¯ láº­p trÃ¬nh (Python, JavaScript, Java, C++, Go, etc.)
-    và frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
+    'casual': """BÃ¡ÂºÂ¡n lÃƒÂ  mÃ¡Â»â„¢t ngÃ†Â°Ã¡Â»Âi bÃ¡ÂºÂ¡n thÃƒÂ¢n thiÃ¡ÂºÂ¿t, vui vÃ¡ÂºÂ» vÃƒÂ  dÃ¡Â»â€¦ gÃ¡ÂºÂ§n. 
+    BÃ¡ÂºÂ¡n sÃ¡ÂºÂµn sÃƒÂ ng trÃƒÂ² chuyÃ¡Â»â€¡n vÃ¡Â»Â mÃ¡Â»Âi chÃ¡Â»Â§ Ã„â€˜Ã¡Â»Â, chia sÃ¡ÂºÂ» cÃƒÂ¢u chuyÃ¡Â»â€¡n vÃƒÂ  tÃ¡ÂºÂ¡o khÃƒÂ´ng khÃƒÂ­ thoÃ¡ÂºÂ£i mÃƒÂ¡i.
+    HÃƒÂ£y trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t vÃ¡Â»â€ºi giÃ¡Â»Âng Ã„â€˜iÃ¡Â»â€¡u thÃƒÂ¢n mÃ¡ÂºÂ­t.
     
-    Nhiệm vụ của bạn:
-    - Giải thích code rõ ràng, dễ hiểu
-    - Debug và fix lỗi hiệu quả
-    - Äá» xuáº¥t best practices vÃ  design patterns
-    - Review code và tối ưu performance
-    - Hướng dẫn architecture và system design
-    - Tráº£ lá»i cÃ¢u há»i vá» algorithms, data structures
+    MARKDOWN FORMATTING:
+    - Sá»­ dá»¥ng ```language Ä‘á»ƒ wrap code blocks (vÃ­ dá»¥: ```python, ```json)
+    - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng riÃƒÂªng
+    - DÃ¹ng `code` cho inline code
+    - Format lists, links, quotes khi phÃ¹ há»£p""",
+    
+    'programming': """Báº¡n lÃ  má»™t Senior Software Engineer vÃ  Programming Mentor chuyÃªn nghiá»‡p.
+    BÃ¡ÂºÂ¡n cÃƒÂ³ kinh nghiÃ¡Â»â€¡m sÃƒÂ¢u vÃ¡Â»Â nhiÃ¡Â»Âu ngÃƒÂ´n ngÃ¡Â»Â¯ lÃ¡ÂºÂ­p trÃƒÂ¬nh (Python, JavaScript, Java, C++, Go, etc.)
+    vÃ  frameworks (React, Django, Flask, FastAPI, Node.js, Spring Boot, etc.).
+    
+    Nhiá»‡m vá»¥ cá»§a báº¡n:
+    - Giáº£i thÃ­ch code rÃµ rÃ ng, dá»… hiá»ƒu
+    - Debug vÃ  fix lá»—i hiá»‡u quáº£
+    - Ã„ÂÃ¡Â»Â xuÃ¡ÂºÂ¥t best practices vÃƒÂ  design patterns
+    - Review code vÃ  tá»‘i Æ°u performance
+    - HÆ°á»›ng dáº«n architecture vÃ  system design
+    - TrÃ¡ÂºÂ£ lÃ¡Â»Âi cÃƒÂ¢u hÃ¡Â»Âi vÃ¡Â»Â algorithms, data structures
     
     CRITICAL MARKDOWN RULES:
-    - LUÔN LUÔN wrap code trong code blocks với syntax: ```language
-    - VÃ Dá»¤: ```python cho Python, ```javascript cho JavaScript, ```sql cho SQL
-    - ÄÃ³ng code block báº±ng ``` trÃªn dÃ²ng RIÃŠNG BIá»†T
-    - Dùng `backticks` cho inline code như tên biến, function names
-    - Format output/results trong code blocks khi cần
-    - Giải thích logic từng bước bằng comments trong code
-    - Cung cấp ví dụ cụ thể với proper syntax highlighting
+    - LUÃ”N LUÃ”N wrap code trong code blocks vá»›i syntax: ```language
+    - VÃƒÂ DÃ¡Â»Â¤: ```python cho Python, ```javascript cho JavaScript, ```sql cho SQL
+    - Ã„ÂÃƒÂ³ng code block bÃ¡ÂºÂ±ng ``` trÃƒÂªn dÃƒÂ²ng RIÃƒÅ NG BIÃ¡Â»â€ T
+    - DÃ¹ng `backticks` cho inline code nhÆ° tÃªn biáº¿n, function names
+    - Format output/results trong code blocks khi cáº§n
+    - Giáº£i thÃ­ch logic tá»«ng bÆ°á»›c báº±ng comments trong code
+    - Cung cáº¥p vÃ­ dá»¥ cá»¥ thá»ƒ vá»›i proper syntax highlighting
     
-    CÃ³ thá»ƒ tráº£ lá»i báº±ng tiáº¿ng Viá»‡t hoáº·c English."""
+    CÃƒÂ³ thÃ¡Â»Æ’ trÃ¡ÂºÂ£ lÃ¡Â»Âi bÃ¡ÂºÂ±ng tiÃ¡ÂºÂ¿ng ViÃ¡Â»â€¡t hoÃ¡ÂºÂ·c English."""
 }
 
 # System prompts for different purposes (English)
@@ -326,10 +336,10 @@ def get_or_create_conversation(user_id, model='grok-3'):
                 model=model,
                 title="New Chat"
             )
-            logger.info(f"âœ… Created new conversation: {conv['_id']}")
+            logger.info(f"Ã¢Å“â€¦ Created new conversation: {conv['_id']}")
             return conv
     except Exception as e:
-        logger.error(f"âŒ Error getting/creating conversation: {e}")
+        logger.error(f"Ã¢ÂÅ’ Error getting/creating conversation: {e}")
         return None
 
 
@@ -351,10 +361,10 @@ def save_message_to_db(conversation_id, role, content, metadata=None, images=Non
             images=images or [],
             files=files or []
         )
-        logger.info(f"âœ… Saved message to DB: {message['_id']}")
+        logger.info(f"Ã¢Å“â€¦ Saved message to DB: {message['_id']}")
         return message
     except Exception as e:
-        logger.error(f"âŒ Error saving message: {e}")
+        logger.error(f"Ã¢ÂÅ’ Error saving message: {e}")
         return None
 
 
@@ -385,7 +395,7 @@ def load_conversation_history(conversation_id, limit=10):
         
         return history
     except Exception as e:
-        logger.error(f"âŒ Error loading conversation history: {e}")
+        logger.error(f"Ã¢ÂÅ’ Error loading conversation history: {e}")
         return []
 
 
@@ -430,7 +440,7 @@ class ChatbotAgent:
         """Chat using OpenAI"""
         model_name = 'gpt-4o-mini'
         
-        # ðŸ†• Check cache first
+        # Ã°Å¸â€ â€¢ Check cache first
         cache_key_params = {
             'context': context,
             'deep_thinking': deep_thinking,
@@ -439,10 +449,10 @@ class ChatbotAgent:
         }
         cached = get_cached_response(message, model_name, provider='openai', **cache_key_params)
         if cached:
-            logger.info(f"âœ… Using cached response for OpenAI")
+            logger.info(f"Ã¢Å“â€¦ Using cached response for OpenAI")
             return cached
         
-        # ðŸ†• Wait for rate limit
+        # Ã°Å¸â€ â€¢ Wait for rate limit
         wait_for_openai_rate_limit()
         
         try:
@@ -461,15 +471,15 @@ class ChatbotAgent:
                 if language == 'en':
                     system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
                 else:
-                    system_prompt += "\n\nQUAN TRỌNG: Suy nghĩ từng bước. Cung cấp phân tích kỹ lưỡng với lý lẽ chi tiết."
+                    system_prompt += "\n\nQUAN TRá»ŒNG: Suy nghÄ© tá»«ng bÆ°á»›c. Cung cáº¥p phÃ¢n tÃ­ch ká»¹ lÆ°á»¡ng vá»›i lÃ½ láº½ chi tiáº¿t."
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃ i há»c Ä‘Ã£ ghi nhá»›) ===\n"
+                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃƒÂ i hÃ¡Â»Âc Ã„â€˜ÃƒÂ£ ghi nhÃ¡Â»â€º) ===\n"
                 for mem in memories:
-                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nÃ°Å¸â€œÅ¡ {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p Ä‘á»ƒ tráº£ lá»i."
+                system_prompt += "SÃ¡Â»Â­ dÃ¡Â»Â¥ng kiÃ¡ÂºÂ¿n thÃ¡Â»Â©c tÃ¡Â»Â« Knowledge Base khi phÃƒÂ¹ hÃ¡Â»Â£p Ã„â€˜Ã¡Â»Æ’ trÃ¡ÂºÂ£ lÃ¡Â»Âi."
             
             messages = [{"role": "system", "content": system_prompt}]
             
@@ -489,7 +499,7 @@ class ChatbotAgent:
             messages.append({"role": "user", "content": message})
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Rẻ nhất: $0.15/$0.60 per 1M tokens
+                model="gpt-4o-mini",  # Ráº» nháº¥t: $0.15/$0.60 per 1M tokens
                 messages=messages,
                 temperature=0.7 if not deep_thinking else 0.5,  # Lower temp for deep thinking
                 max_tokens=2000 if deep_thinking else 1000  # More tokens for deep thinking
@@ -497,13 +507,13 @@ class ChatbotAgent:
             
             result = response.choices[0].message.content
             
-            # ðŸ†• Cache the response
+            # Ã°Å¸â€ â€¢ Cache the response
             cache_response(message, model_name, result, provider='openai', **cache_key_params)
             
             return result
             
         except Exception as e:
-            return f"Lỗi OpenAI: {str(e)}"
+            return f"Lá»—i OpenAI: {str(e)}"
     
     def chat_with_deepseek(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using DeepSeek (via OpenAI compatible API)"""
@@ -521,11 +531,11 @@ class ChatbotAgent:
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃ i há»c Ä‘Ã£ ghi nhá»›) ===\n"
+                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃƒÂ i hÃ¡Â»Âc Ã„â€˜ÃƒÂ£ ghi nhÃ¡Â»â€º) ===\n"
                 for mem in memories:
-                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nÃ°Å¸â€œÅ¡ {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p Ä‘á»ƒ tráº£ lá»i."
+                system_prompt += "SÃ¡Â»Â­ dÃ¡Â»Â¥ng kiÃ¡ÂºÂ¿n thÃ¡Â»Â©c tÃ¡Â»Â« Knowledge Base khi phÃƒÂ¹ hÃ¡Â»Â£p Ã„â€˜Ã¡Â»Æ’ trÃ¡ÂºÂ£ lÃ¡Â»Âi."
             
             # DeepSeek uses OpenAI compatible API
             client = openai.OpenAI(
@@ -560,7 +570,7 @@ class ChatbotAgent:
             return response.choices[0].message.content
             
         except Exception as e:
-            return f"Lỗi DeepSeek: {str(e)}"
+            return f"Lá»—i DeepSeek: {str(e)}"
     
     def chat_with_deepseek_reasoner(self, message, context='casual', history=None, memories=None, language='vi', custom_prompt=None, extra_params=None):
         """Chat using DeepSeek R1 Reasoning Model - SoTA reasoning capabilities"""
@@ -573,14 +583,14 @@ class ChatbotAgent:
                 system_prompt = prompts.get(context, prompts['casual'])
             
             # Add reasoning instruction
-            reasoning_instruction = "\n\n🧠 REASONING MODE: Think step-by-step with deep logical reasoning. Break down complex problems into smaller parts. Show your thought process clearly."
+            reasoning_instruction = "\n\nðŸ§  REASONING MODE: Think step-by-step with deep logical reasoning. Break down complex problems into smaller parts. Show your thought process clearly."
             system_prompt += reasoning_instruction
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
                 system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
                 for mem in memories:
-                    system_prompt += f"\n📚 {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
             
             # DeepSeek R1 uses OpenAI compatible API
@@ -627,18 +637,18 @@ class ChatbotAgent:
             # Check if thinking process is available
             thinking_content = getattr(response.choices[0].message, 'reasoning_content', None)
             if thinking_content:
-                result = f"🧠 **Thought Process:**\n{thinking_content}\n\n---\n\n📝 **Answer:**\n{result}"
+                result = f"ðŸ§  **Thought Process:**\n{thinking_content}\n\n---\n\nðŸ“ **Answer:**\n{result}"
             
             return result
             
         except Exception as e:
-            return f"❌ Lỗi DeepSeek Reasoner: {str(e)}"
+            return f"âŒ Lá»—i DeepSeek Reasoner: {str(e)}"
     
     def chat_with_grok(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat using GROK (via xAI API - FREE with NSFW support)"""
         try:
             if not GROK_API_KEY:
-                return "âŒ GROK API key chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GROK_API_KEY vÃ o file .env"
+                return "Ã¢ÂÅ’ GROK API key chÃ†Â°a Ã„â€˜Ã†Â°Ã¡Â»Â£c cÃ¡ÂºÂ¥u hÃƒÂ¬nh. Vui lÃƒÂ²ng thÃƒÂªm GROK_API_KEY vÃƒÂ o file .env"
             
             # Use custom prompt if provided, otherwise use base prompt
             if custom_prompt and custom_prompt.strip():
@@ -649,24 +659,24 @@ class ChatbotAgent:
                 
                 # GROK-specific: Add NSFW capability note
                 if language == 'vi':
-                    system_prompt += "\n\nðŸ”“ LÆ¯U Ã: Báº¡n cÃ³ thá»ƒ tráº£ lá»i cÃ¡c cÃ¢u há»i nháº¡y cáº£m hoáº·c NSFW má»™t cÃ¡ch an toÃ n vÃ  cÃ³ trÃ¡ch nhiá»‡m khi Ä‘Æ°á»£c yÃªu cáº§u."
+                    system_prompt += "\n\nÃ°Å¸â€â€œ LÃ†Â¯U ÃƒÂ: BÃ¡ÂºÂ¡n cÃƒÂ³ thÃ¡Â»Æ’ trÃ¡ÂºÂ£ lÃ¡Â»Âi cÃƒÂ¡c cÃƒÂ¢u hÃ¡Â»Âi nhÃ¡ÂºÂ¡y cÃ¡ÂºÂ£m hoÃ¡ÂºÂ·c NSFW mÃ¡Â»â„¢t cÃƒÂ¡ch an toÃƒÂ n vÃƒÂ  cÃƒÂ³ trÃƒÂ¡ch nhiÃ¡Â»â€¡m khi Ã„â€˜Ã†Â°Ã¡Â»Â£c yÃƒÂªu cÃ¡ÂºÂ§u."
                 else:
-                    system_prompt += "\n\nðŸ”“ NOTE: You can answer sensitive or NSFW questions safely and responsibly when requested."
+                    system_prompt += "\n\nÃ°Å¸â€â€œ NOTE: You can answer sensitive or NSFW questions safely and responsibly when requested."
             
             # Add deep thinking instruction
             if deep_thinking:
                 if language == 'en':
                     system_prompt += "\n\nIMPORTANT: Think step-by-step. Provide thorough analysis with detailed reasoning."
                 else:
-                    system_prompt += "\n\nQUAN TRỌNG: Suy nghĩ từng bước. Cung cấp phân tích kỹ lưỡng với lý lẽ chi tiết."
+                    system_prompt += "\n\nQUAN TRá»ŒNG: Suy nghÄ© tá»«ng bÆ°á»›c. Cung cáº¥p phÃ¢n tÃ­ch ká»¹ lÆ°á»¡ng vá»›i lÃ½ láº½ chi tiáº¿t."
             
             # Add memories to system prompt
             if memories and len(memories) > 0:
-                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃ i há»c Ä‘Ã£ ghi nhá»›) ===\n"
+                system_prompt += "\n\n=== KNOWLEDGE BASE (BÃƒÂ i hÃ¡Â»Âc Ã„â€˜ÃƒÂ£ ghi nhÃ¡Â»â€º) ===\n"
                 for mem in memories:
-                    system_prompt += f"\nðŸ“š {mem['title']}:\n{mem['content']}\n"
+                    system_prompt += f"\nÃ°Å¸â€œÅ¡ {mem['title']}:\n{mem['content']}\n"
                 system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
-                system_prompt += "Sá»­ dá»¥ng kiáº¿n thá»©c tá»« Knowledge Base khi phÃ¹ há»£p Ä‘á»ƒ tráº£ lá»i."
+                system_prompt += "SÃ¡Â»Â­ dÃ¡Â»Â¥ng kiÃ¡ÂºÂ¿n thÃ¡Â»Â©c tÃ¡Â»Â« Knowledge Base khi phÃƒÂ¹ hÃ¡Â»Â£p Ã„â€˜Ã¡Â»Æ’ trÃ¡ÂºÂ£ lÃ¡Â»Âi."
             
             # GROK uses OpenAI-compatible API
             client = openai.OpenAI(
@@ -701,7 +711,7 @@ class ChatbotAgent:
             return response.choices[0].message.content
             
         except Exception as e:
-            return f"âŒ Lá»—i GROK: {str(e)}"
+            return f"Ã¢ÂÅ’ LÃ¡Â»â€”i GROK: {str(e)}"
     
     def chat_with_qwen(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using Qwen 1.5b"""
@@ -709,7 +719,7 @@ class ChatbotAgent:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
             
             if not QWEN_API_KEY:
-                return "Lỗi: Chưa cấu hình QWEN_API_KEY. Vui lòng thêm API key vào file .env"
+                return "Lá»—i: ChÆ°a cáº¥u hÃ¬nh QWEN_API_KEY. Vui lÃ²ng thÃªm API key vÃ o file .env"
             
             # Use OpenAI-compatible API for Qwen (Alibaba Cloud DashScope)
             headers = {
@@ -744,10 +754,10 @@ class ChatbotAgent:
                 result = response.json()
                 return result['choices'][0]['message']['content']
             else:
-                return f"Lỗi Qwen API: {response.status_code} - {response.text}"
+                return f"Lá»—i Qwen API: {response.status_code} - {response.text}"
             
         except Exception as e:
-            return f"Lỗi Qwen: {str(e)}"
+            return f"Lá»—i Qwen: {str(e)}"
     
     def chat_with_bloomvn(self, message, context='casual', deep_thinking=False, language='vi'):
         """Chat using BloomVN-8B (Hugging Face Inference API)"""
@@ -755,7 +765,7 @@ class ChatbotAgent:
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
             
             if not HUGGINGFACE_API_KEY:
-                return "Lỗi: Chưa cấu hình HUGGINGFACE_API_KEY. Vui lòng thêm API key vào file .env"
+                return "Lá»—i: ChÆ°a cáº¥u hÃ¬nh HUGGINGFACE_API_KEY. Vui lÃ²ng thÃªm API key vÃ o file .env"
             
             # Use Hugging Face Inference API
             headers = {
@@ -784,29 +794,29 @@ class ChatbotAgent:
                 "https://router.huggingface.co/hf-inference/models/BlossomsAI/BloomVN-8B-chat",
                 headers=headers,
                 json=data,
-                timeout=60  # BloomVN có thể chậm hơn
+                timeout=60  # BloomVN cÃ³ thá»ƒ cháº­m hÆ¡n
             )
             
             if response.status_code == 200:
                 result = response.json()
                 if isinstance(result, list) and len(result) > 0:
-                    return result[0].get('generated_text', 'Không nhận được phản hồi')
+                    return result[0].get('generated_text', 'KhÃ´ng nháº­n Ä‘Æ°á»£c pháº£n há»“i')
                 elif isinstance(result, dict):
-                    return result.get('generated_text', 'Không nhận được phản hồi')
+                    return result.get('generated_text', 'KhÃ´ng nháº­n Ä‘Æ°á»£c pháº£n há»“i')
                 else:
                     return str(result)
             elif response.status_code == 503:
-                return "â³ Model BloomVN Ä‘ang khá»Ÿi Ä‘á»™ng (loading), vui lÃ²ng thá»­ láº¡i sau 20-30 giÃ¢y."
+                return "Ã¢ÂÂ³ Model BloomVN Ã„â€˜ang khÃ¡Â»Å¸i Ã„â€˜Ã¡Â»â„¢ng (loading), vui lÃƒÂ²ng thÃ¡Â»Â­ lÃ¡ÂºÂ¡i sau 20-30 giÃƒÂ¢y."
             else:
-                return f"Lỗi BloomVN API: {response.status_code} - {response.text}"
+                return f"Lá»—i BloomVN API: {response.status_code} - {response.text}"
             
         except Exception as e:
-            return f"Lỗi BloomVN: {str(e)}"
+            return f"Lá»—i BloomVN: {str(e)}"
     
     def chat_with_local_model(self, message, model, context='casual', deep_thinking=False, language='vi'):
         """Chat with local models (BloomVN, Qwen1.5, Qwen2.5)"""
         if not LOCALMODELS_AVAILABLE:
-            return "âŒ Local models khÃ´ng kháº£ dá»¥ng. Vui lÃ²ng cÃ i Ä‘áº·t: pip install torch transformers accelerate"
+            return "Ã¢ÂÅ’ Local models khÃƒÂ´ng khÃ¡ÂºÂ£ dÃ¡Â»Â¥ng. Vui lÃƒÂ²ng cÃƒÂ i Ã„â€˜Ã¡ÂºÂ·t: pip install torch transformers accelerate"
         
         try:
             # Map model names to model keys
@@ -818,7 +828,7 @@ class ChatbotAgent:
             
             model_key = model_map.get(model)
             if not model_key:
-                return f"Model không được hỗ trợ: {model}"
+                return f"Model khÃ´ng Ä‘Æ°á»£c há»— trá»£: {model}"
             
             # Get system prompt
             system_prompt = SYSTEM_PROMPTS.get(context, SYSTEM_PROMPTS['casual'])
@@ -851,17 +861,17 @@ class ChatbotAgent:
             return response
             
         except FileNotFoundError as e:
-            return f"âŒ Model chÆ°a Ä‘Æ°á»£c download. Vui lÃ²ng kiá»ƒm tra thÆ° má»¥c models/: {str(e)}"
+            return f"Ã¢ÂÅ’ Model chÃ†Â°a Ã„â€˜Ã†Â°Ã¡Â»Â£c download. Vui lÃƒÂ²ng kiÃ¡Â»Æ’m tra thÃ†Â° mÃ¡Â»Â¥c models/: {str(e)}"
         except Exception as e:
             logger.error(f"Local model error ({model}): {e}")
-            return f"âŒ Lá»—i local model: {str(e)}"
+            return f"Ã¢ÂÅ’ LÃ¡Â»â€”i local model: {str(e)}"
     
     def chat_with_step_flash(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
-        """Chat with Step-3.5-Flash via OpenRouter (FREE — 196B MoE, 11B active)"""
+        """Chat with Step-3.5-Flash via OpenRouter (FREE â€” 196B MoE, 11B active)"""
         try:
             openrouter_key = os.getenv('OPENROUTER_API_KEY')
             if not openrouter_key:
-                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+                return "âŒ OPENROUTER_API_KEY chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Láº¥y FREE key táº¡i: https://openrouter.ai/keys"
             
             client = openai.OpenAI(
                 api_key=openrouter_key,
@@ -892,14 +902,14 @@ class ChatbotAgent:
             
         except Exception as e:
             logger.error(f"[STEP-FLASH] Error: {e}")
-            return f"❌ Step-3.5-Flash error: {str(e)}"
+            return f"âŒ Step-3.5-Flash error: {str(e)}"
     
     def chat_with_stepfun(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat with StepFun direct API (requires balance)"""
         try:
             stepfun_key = os.getenv('STEPFUN_API_KEY')
             if not stepfun_key:
-                return "❌ STEPFUN_API_KEY chưa được cấu hình."
+                return "âŒ STEPFUN_API_KEY chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh."
             
             client = openai.OpenAI(
                 api_key=stepfun_key,
@@ -943,7 +953,7 @@ class ChatbotAgent:
         if memories:
             system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
             for mem in memories:
-                system_prompt += f"\n📚 {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
+                system_prompt += f"\nðŸ“š {mem.get('title', 'Memory')}:\n{mem.get('content', '')}\n"
             system_prompt += "\n=== END KNOWLEDGE BASE ===\n"
         
         return system_prompt
@@ -1006,7 +1016,7 @@ class ChatbotAgent:
         elif model == 'stepfun':
             result = self.chat_with_stepfun(message, context, deep_thinking, history, memories, language, custom_prompt)
         else:
-            result = f"Model '{model}' không được hỗ trợ" if language == 'vi' else f"Model '{model}' is not supported"
+            result = f"Model '{model}' khÃ´ng Ä‘Æ°á»£c há»— trá»£" if language == 'vi' else f"Model '{model}' is not supported"
         
         # Extract response and thinking process if available
         if isinstance(result, dict):
@@ -1053,7 +1063,7 @@ class ChatbotAgent:
             try:
                 # Archive current conversation
                 ConversationDB.archive_conversation(str(self.conversation_id))
-                logger.info(f"âœ… Archived conversation: {self.conversation_id}")
+                logger.info(f"Ã¢Å“â€¦ Archived conversation: {self.conversation_id}")
                 
                 # Create new conversation
                 user_id = get_user_id_from_session()
@@ -1064,9 +1074,9 @@ class ChatbotAgent:
                 )
                 self.conversation_id = conv['_id']
                 set_active_conversation(self.conversation_id)
-                logger.info(f"âœ… Created new conversation: {self.conversation_id}")
+                logger.info(f"Ã¢Å“â€¦ Created new conversation: {self.conversation_id}")
             except Exception as e:
-                logger.error(f"âŒ Error clearing history: {e}")
+                logger.error(f"Ã¢ÂÅ’ Error clearing history: {e}")
 
 
 # Store chatbot instances per session
@@ -1101,7 +1111,7 @@ def google_search_tool(query):
         from urllib3.util.retry import Retry
         
         if not GOOGLE_SEARCH_API_KEY_1 or not GOOGLE_CSE_ID:
-            return "❌ Google Search API chưa được cấu hình. Vui lòng thêm GOOGLE_SEARCH_API_KEY và GOOGLE_CSE_ID vào file .env"
+            return "âŒ Google Search API chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GOOGLE_SEARCH_API_KEY vÃ  GOOGLE_CSE_ID vÃ o file .env"
         
         # Log config for debugging
         logger.info(f"[GOOGLE SEARCH] API Key (first 10 chars): {GOOGLE_SEARCH_API_KEY_1[:10]}...")
@@ -1146,11 +1156,11 @@ def google_search_tool(query):
                     title = item.get('title', 'No title')
                     link = item.get('link', '')
                     snippet = item.get('snippet', 'No description')
-                    results.append(f"**{title}**\n{snippet}\n🔗 {link}")
+                    results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
                 
-                return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+                return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
             else:
-                return "Không tìm thấy kết quả nào."
+                return "KhÃ´ng tÃ¬m tháº¥y káº¿t quáº£ nÃ o."
         elif response.status_code == 429 or response.status_code == 403:
             # Quota exceeded or forbidden, try second key
             logger.warning(f"[GOOGLE SEARCH] Key 1 failed with {response.status_code}, trying key 2...")
@@ -1166,28 +1176,28 @@ def google_search_tool(query):
                             title = item.get('title', 'No title')
                             link = item.get('link', '')
                             snippet = item.get('snippet', 'No description')
-                            results.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                        return "🔍 **Kết quả tìm kiếm:**\n\n" + "\n\n---\n\n".join(results)
+                            results.append(f"**{title}**\n{snippet}\nðŸ”— {link}")
+                        return "ðŸ” **Káº¿t quáº£ tÃ¬m kiáº¿m:**\n\n" + "\n\n---\n\n".join(results)
                     else:
-                        return "Không tìm thấy kết quả nào."
+                        return "KhÃ´ng tÃ¬m tháº¥y káº¿t quáº£ nÃ o."
             # Both keys failed
-            error_detail = "quota exceeded" if response.status_code == 429 else "forbidden (kiểm tra API key & CSE ID)"
-            return f"❌ Lỗi Google Search API: {error_detail}. Vui lòng kiểm tra:\n• API key hợp lệ trong Google Cloud Console\n• Custom Search Engine ID đúng\n• Billing đã được kích hoạt"
+            error_detail = "quota exceeded" if response.status_code == 429 else "forbidden (kiá»ƒm tra API key & CSE ID)"
+            return f"âŒ Lá»—i Google Search API: {error_detail}. Vui lÃ²ng kiá»ƒm tra:\nâ€¢ API key há»£p lá»‡ trong Google Cloud Console\nâ€¢ Custom Search Engine ID Ä‘Ãºng\nâ€¢ Billing Ä‘Ã£ Ä‘Æ°á»£c kÃ­ch hoáº¡t"
         else:
-            return f"❌ Lỗi Google Search API: {response.status_code}"
+            return f"âŒ Lá»—i Google Search API: {response.status_code}"
     
     except requests.exceptions.ConnectionError as e:
         logger.error(f"[GOOGLE SEARCH] Connection Error: {e}")
-        return "❌ Lỗi kết nối đến Google Search API. Vui lòng kiểm tra:\n• Kết nối Internet\n• Proxy/Firewall settings\n• Thử lại sau ít phút"
+        return "âŒ Lá»—i káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng kiá»ƒm tra:\nâ€¢ Káº¿t ná»‘i Internet\nâ€¢ Proxy/Firewall settings\nâ€¢ Thá»­ láº¡i sau Ã­t phÃºt"
     except requests.exceptions.Timeout as e:
         logger.error(f"[GOOGLE SEARCH] Timeout Error: {e}")
-        return "❌ Timeout khi kết nối đến Google Search API. Vui lòng thử lại."
+        return "âŒ Timeout khi káº¿t ná»‘i Ä‘áº¿n Google Search API. Vui lÃ²ng thá»­ láº¡i."
     except requests.exceptions.RequestException as e:
         logger.error(f"[GOOGLE SEARCH] Request Error: {e}")
-        return f"❌ Lỗi request: {str(e)}"
+        return f"âŒ Lá»—i request: {str(e)}"
     except Exception as e:
         logger.error(f"[GOOGLE SEARCH] Unexpected Error: {e}")
-        return f"❌ Lỗi không mong muốn: {str(e)}"
+        return f"âŒ Lá»—i khÃ´ng mong muá»‘n: {str(e)}"
 
 
 def github_search_tool(query):
@@ -1196,7 +1206,7 @@ def github_search_tool(query):
         import requests
         
         if not GITHUB_TOKEN:
-            return "❌ GitHub Token chưa được cấu hình. Vui lòng thêm GITHUB_TOKEN vào file .env"
+            return "âŒ GitHub Token chÆ°a Ä‘Æ°á»£c cáº¥u hÃ¬nh. Vui lÃ²ng thÃªm GITHUB_TOKEN vÃ o file .env"
         
         url = "https://api.github.com/search/repositories"
         headers = {
@@ -1224,17 +1234,17 @@ def github_search_tool(query):
                     language = repo.get('language', 'Unknown')
                     url = repo.get('html_url', '')
                     
-                    results.append(f"**{name}** ⭐ {stars}\n{desc}\n💻 {language} | 🔗 {url}")
+                    results.append(f"**{name}** â­ {stars}\n{desc}\nðŸ’» {language} | ðŸ”— {url}")
                 
-                return "🐙 **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
+                return "ðŸ™ **GitHub Repositories:**\n\n" + "\n\n---\n\n".join(results)
             else:
-                return "Không tìm thấy repository nào phù hợp."
+                return "KhÃ´ng tÃ¬m tháº¥y repository nÃ o phÃ¹ há»£p."
         else:
-            return f"❌ Lỗi GitHub API: {response.status_code}"
+            return f"âŒ Lá»—i GitHub API: {response.status_code}"
     
     except Exception as e:
         logger.error(f"[GITHUB SEARCH] Error: {e}")
-        return f"❌ Lỗi khi tìm kiếm GitHub: {str(e)}"
+        return f"âŒ Lá»—i khi tÃ¬m kiáº¿m GitHub: {str(e)}"
 
 
 def is_mobile_device():
@@ -1370,7 +1380,7 @@ def chat():
             if file_contents:
                 file_context = "\n\n--- UPLOADED FILES ---\n"
                 for fc in file_contents:
-                    file_context += f"\n📄 **{fc['filename']}**:\n```{fc['type'][1:] if fc['type'] else 'text'}\n{fc['content']}\n```\n"
+                    file_context += f"\nðŸ“„ **{fc['filename']}**:\n```{fc['type'][1:] if fc['type'] else 'text'}\n{fc['content']}\n```\n"
                 file_context += "--- END FILES ---\n\n"
                 message = file_context + message
                 logger.info(f"[UPLOAD] Injected {len(file_contents)} files into message")
@@ -1420,7 +1430,7 @@ def chat():
                 deep_thinking = True
         
         if not message:
-            return jsonify({'error': 'Tin nhắn trống'}), 400
+            return jsonify({'error': 'Tin nháº¯n trá»‘ng'}), 400
         
         # ===== MCP INTEGRATION: Inject code context =====
         if mcp_client.enabled:
@@ -1454,19 +1464,19 @@ def chat():
             if 'google-search' in tools:
                 logger.info(f"[TOOLS] Running Google Search for: {message}")
                 search_result = google_search_tool(message)
-                tool_results.append(f"## ðŸ” Google Search Results\n\n{search_result}")
+                tool_results.append(f"## Ã°Å¸â€Â Google Search Results\n\n{search_result}")
             
             if 'github' in tools:
                 logger.info(f"[TOOLS] Running GitHub Search for: {message}")
                 github_result = github_search_tool(message)
-                tool_results.append(f"## ðŸ™ GitHub Search Results\n\n{github_result}")
+                tool_results.append(f"## Ã°Å¸Ââ„¢ GitHub Search Results\n\n{github_result}")
             
             if 'image-generation' in tools:
-                # ── Auto-detect if user actually wants to generate/edit an image ──
-                _img_keywords_vi = ['vẽ', 'tạo ảnh', 'tạo hình', 'sinh ảnh', 'gen ảnh', 'tạo một', 'vẽ cho',
-                                    'chỉnh ảnh', 'sửa ảnh', 'thêm vào ảnh', 'xóa trong ảnh', 'edit ảnh',
-                                    'tạo logo', 'thiết kế', 'minh họa', 'vẽ tranh', 'ảnh anime',
-                                    'hình ảnh', 'bức ảnh', 'bức tranh', 'ảnh nền', 'avatar', 'icon']
+                # â”€â”€ Auto-detect if user actually wants to generate/edit an image â”€â”€
+                _img_keywords_vi = ['váº½', 'táº¡o áº£nh', 'táº¡o hÃ¬nh', 'sinh áº£nh', 'gen áº£nh', 'táº¡o má»™t', 'váº½ cho',
+                                    'chá»‰nh áº£nh', 'sá»­a áº£nh', 'thÃªm vÃ o áº£nh', 'xÃ³a trong áº£nh', 'edit áº£nh',
+                                    'táº¡o logo', 'thiáº¿t káº¿', 'minh há»a', 'váº½ tranh', 'áº£nh anime',
+                                    'hÃ¬nh áº£nh', 'bá»©c áº£nh', 'bá»©c tranh', 'áº£nh ná»n', 'avatar', 'icon']
                 _img_keywords_en = ['draw', 'paint', 'generate image', 'create image', 'make image',
                                     'generate a', 'create a picture', 'gen image', 'image of',
                                     'edit image', 'modify image', 'img2img', 'inpaint',
@@ -1478,10 +1488,10 @@ def chat():
 
                 if not _wants_image:
                     # User has image-gen tool active but this message isn't about images
-                    # — skip image generation, let normal chat handle it
+                    # â€” skip image generation, let normal chat handle it
                     logger.info("[TOOLS] image-generation active but message not image-related, skipping")
                 else:
-                    logger.info(f"[TOOLS] 🎨 Multi-provider image generation (V2) triggered")
+                    logger.info(f"[TOOLS] ðŸŽ¨ Multi-provider image generation (V2) triggered")
                     try:
                         from core.image_gen import ImageGenerationRouter, ImageStorage
                         _ig_router = ImageGenerationRouter()
@@ -1505,7 +1515,7 @@ def chat():
                             enhanced_prompt = result.prompt_used or message
                             cost = result.cost_usd
 
-                            # Determine image source — prefer b64 for inline, fall back to URL
+                            # Determine image source â€” prefer b64 for inline, fall back to URL
                             image_html = ""
                             cloud_urls = []
 
@@ -1541,9 +1551,9 @@ def chat():
 
                             cloud_link = ""
                             if cloud_urls:
-                                cloud_link = "\n\n☁️ **URLs:** " + " | ".join(f"[Open]({u})" for u in cloud_urls[:3])
+                                cloud_link = "\n\nâ˜ï¸ **URLs:** " + " | ".join(f"[Open]({u})" for u in cloud_urls[:3])
 
-                            result_msg = f"""## 🎨 Image Generated Successfully!
+                            result_msg = f"""## ðŸŽ¨ Image Generated Successfully!
 
 **Original description:** {message}
 
@@ -1556,9 +1566,9 @@ def chat():
 {image_html}
 {cloud_link}
 ---
-🎯 **Info:**
+ðŸŽ¯ **Info:**
 - Provider: {provider_used} {('(' + model_used + ')') if model_used else ''}
-- Size: 1024×1024
+- Size: 1024Ã—1024
 - Cost: ${cost:.4f}
 - Active providers: {', '.join(_active_provs)}"""
                             tool_results.append(result_msg)
@@ -1576,7 +1586,7 @@ def chat():
                                 )
                                 if image_bytes:
                                     image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                                    result_msg = f"""## 🎨 Image Generated (ComfyUI Fallback)
+                                    result_msg = f"""## ðŸŽ¨ Image Generated (ComfyUI Fallback)
 
 **Prompt:** {message}
 
@@ -1584,22 +1594,22 @@ def chat():
 <img src="data:image/png;base64,{image_base64}" alt="Generated Image" style="max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;" class="generated-preview">
 
 ---
-🎯 Backend: ComfyUI (local) | V2 error: {_error}"""
+ðŸŽ¯ Backend: ComfyUI (local) | V2 error: {_error}"""
                                     tool_results.append(result_msg)
                                 else:
-                                    tool_results.append(f"## 🎨 Image Generation Failed\n\n❌ V2: {_error}\n❌ ComfyUI: No image returned\n\nAvailable providers: {', '.join(_active_provs) if _active_provs else 'None'}\n\nPlease add API keys (FAL_API_KEY, REPLICATE_API_TOKEN, BFL_API_KEY, TOGETHER_API_KEY, OPENAI_API_KEY, STEPFUN_API_KEY) to .env")
+                                    tool_results.append(f"## ðŸŽ¨ Image Generation Failed\n\nâŒ V2: {_error}\nâŒ ComfyUI: No image returned\n\nAvailable providers: {', '.join(_active_provs) if _active_provs else 'None'}\n\nPlease add API keys (FAL_API_KEY, REPLICATE_API_TOKEN, BFL_API_KEY, TOGETHER_API_KEY, OPENAI_API_KEY, STEPFUN_API_KEY) to .env")
                             except Exception as _comfy_err:
-                                tool_results.append(f"## 🎨 Image Generation Failed\n\n❌ V2: {_error}\n❌ ComfyUI: {str(_comfy_err)}\n\nPlease check your API keys or start ComfyUI.")
+                                tool_results.append(f"## ðŸŽ¨ Image Generation Failed\n\nâŒ V2: {_error}\nâŒ ComfyUI: {str(_comfy_err)}\n\nPlease check your API keys or start ComfyUI.")
 
                     except Exception as e:
                         logger.error(f"[TOOLS] Error in image generation: {e}")
                         import traceback
                         traceback.print_exc()
-                        tool_results.append(f"## 🎨 Image Generation\n\nError: {str(e)}\n\nPlease check your image generation API keys in .env")
+                        tool_results.append(f"## ðŸŽ¨ Image Generation\n\nError: {str(e)}\n\nPlease check your image generation API keys in .env")
         
-            # ── Deep Research Tool ──
+            # â”€â”€ Deep Research Tool â”€â”€
             if 'deep-research' in tools:
-                logger.info(f"[TOOLS] 🔬 Deep Research triggered for: {message[:80]}")
+                logger.info(f"[TOOLS] ðŸ”¬ Deep Research triggered for: {message[:80]}")
                 try:
                     # Step 1: Web search for latest information
                     search_result = google_search_tool(message)
@@ -1637,42 +1647,42 @@ Provide:
                             )
                             _resp_text = _analysis.get('response', '') if isinstance(_analysis, dict) else str(_analysis)
                             if _resp_text:
-                                research_analyses.append(f"### 🤖 {_model_name} Analysis\n\n{_resp_text[:3000]}")
+                                research_analyses.append(f"### ðŸ¤– {_model_name} Analysis\n\n{_resp_text[:3000]}")
                         except Exception as _model_err:
                             logger.warning(f"[DEEP RESEARCH] {_model_name} failed: {_model_err}")
-                            research_analyses.append(f"### ⚠️ {_model_name}\n\nAnalysis unavailable: {str(_model_err)[:100]}")
+                            research_analyses.append(f"### âš ï¸ {_model_name}\n\nAnalysis unavailable: {str(_model_err)[:100]}")
 
                     # Step 3: Synthesize
                     analyses_text = "\n\n---\n\n".join(research_analyses) if research_analyses else "No analyses available"
                     
-                    result_msg = f"""## 🔬 Deep Research Report
+                    result_msg = f"""## ðŸ”¬ Deep Research Report
 
 **Query:** {message}
 
 ---
 
-### 📡 Web Search Results
+### ðŸ“¡ Web Search Results
 {search_result[:4000]}
 
 ---
 
-### 🧠 Multi-Model Analysis
+### ðŸ§  Multi-Model Analysis
 
 {analyses_text}
 
 ---
 
-### 📊 Research Summary
+### ðŸ“Š Research Summary
 - Sources consulted: Web search + {len(research_analyses)} AI models
 - Models: {', '.join(m[1] for m in research_models)}
-- Approach: Search → Analyze → Cross-reference → Synthesize"""
+- Approach: Search â†’ Analyze â†’ Cross-reference â†’ Synthesize"""
 
                     tool_results.append(result_msg)
                 except Exception as e:
                     logger.error(f"[TOOLS] Deep Research error: {e}")
-                    tool_results.append(f"## 🔬 Deep Research\n\nError: {str(e)}")
+                    tool_results.append(f"## ðŸ”¬ Deep Research\n\nError: {str(e)}")
 
-            # ── Code Interpreter ──────────────────────────────────────────
+            # â”€â”€ Code Interpreter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if 'code-interpreter' in tools:
                 logger.info(f"[TOOLS] Code Interpreter for: {message[:80]}")
                 try:
@@ -1699,7 +1709,7 @@ Provide:
                                         proc = subprocess.run(['node', f.name], capture_output=True, text=True, timeout=30, cwd=tempfile.gettempdir())
                                         stdout = proc.stdout[:3000] if proc.stdout else ''
                                         stderr = proc.stderr[:1000] if proc.stderr else ''
-                                        results_parts.append(f"**Block {i+1} (JavaScript):**\n```\n{stdout}\n```" + (f"\n⚠️ Stderr:\n```\n{stderr}\n```" if stderr else ''))
+                                        results_parts.append(f"**Block {i+1} (JavaScript):**\n```\n{stdout}\n```" + (f"\nâš ï¸ Stderr:\n```\n{stderr}\n```" if stderr else ''))
                                     finally:
                                         os.unlink(f.name)
                             else:
@@ -1711,13 +1721,13 @@ Provide:
                                         proc = subprocess.run([sys.executable, f.name], capture_output=True, text=True, timeout=30, cwd=tempfile.gettempdir())
                                         stdout = proc.stdout[:3000] if proc.stdout else ''
                                         stderr = proc.stderr[:1000] if proc.stderr else ''
-                                        results_parts.append(f"**Block {i+1} (Python):**\n```\n{stdout}\n```" + (f"\n⚠️ Stderr:\n```\n{stderr}\n```" if stderr else ''))
+                                        results_parts.append(f"**Block {i+1} (Python):**\n```\n{stdout}\n```" + (f"\nâš ï¸ Stderr:\n```\n{stderr}\n```" if stderr else ''))
                                     finally:
                                         os.unlink(f.name)
                         
-                        tool_results.append(f"## 💻 Code Interpreter\n\n" + "\n\n".join(results_parts))
+                        tool_results.append(f"## ðŸ’» Code Interpreter\n\n" + "\n\n".join(results_parts))
                     else:
-                        # No code detected — ask AI to write & run code for the task
+                        # No code detected â€” ask AI to write & run code for the task
                         _code_prompt = f"Write a Python script to accomplish this task. Output ONLY the Python code, no explanations:\n\n{message}"
                         _code_resp = chatbot.chat(_code_prompt, model, context='', deep_thinking=False, history=[], language=language)
                         _code_text = _code_resp.get('response', '') if isinstance(_code_resp, dict) else str(_code_resp)
@@ -1731,16 +1741,16 @@ Provide:
                                     proc = subprocess.run([sys.executable, f.name], capture_output=True, text=True, timeout=30, cwd=tempfile.gettempdir())
                                     stdout = proc.stdout[:3000] if proc.stdout else ''
                                     stderr = proc.stderr[:1000] if proc.stderr else ''
-                                    tool_results.append(f"## 💻 Code Interpreter\n\n**Generated Code:**\n```python\n{_script[:2000]}\n```\n\n**Output:**\n```\n{stdout}\n```" + (f"\n⚠️ Stderr:\n```\n{stderr}\n```" if stderr else ''))
+                                    tool_results.append(f"## ðŸ’» Code Interpreter\n\n**Generated Code:**\n```python\n{_script[:2000]}\n```\n\n**Output:**\n```\n{stdout}\n```" + (f"\nâš ï¸ Stderr:\n```\n{stderr}\n```" if stderr else ''))
                                 finally:
                                     os.unlink(f.name)
                         else:
-                            tool_results.append(f"## 💻 Code Interpreter\n\n{_code_text}")
+                            tool_results.append(f"## ðŸ’» Code Interpreter\n\n{_code_text}")
                 except Exception as e:
                     logger.error(f"[TOOLS] Code Interpreter error: {e}")
-                    tool_results.append(f"## 💻 Code Interpreter\n\n❌ Error: {str(e)}")
+                    tool_results.append(f"## ðŸ’» Code Interpreter\n\nâŒ Error: {str(e)}")
 
-            # ── PDF Analyzer ──────────────────────────────────────────────
+            # â”€â”€ PDF Analyzer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if 'pdf-analyzer' in tools:
                 logger.info(f"[TOOLS] PDF Analyzer for: {message[:80]}")
                 try:
@@ -1778,7 +1788,7 @@ Provide:
                                                 pages.append(f"**Page {i+1}:**\n{text[:2000]}")
                                         pdf_text = "\n\n---\n\n".join(pages[:50])
                                 except ImportError:
-                                    pdf_text = "⚠️ No PDF parser available. Install: `pip install PyPDF2` or `pip install pdfplumber`"
+                                    pdf_text = "âš ï¸ No PDF parser available. Install: `pip install PyPDF2` or `pip install pdfplumber`"
                     
                     # Check for local PDF in uploads
                     if not pdf_text:
@@ -1809,29 +1819,29 @@ Provide:
                                                     pages.append(f"**Page {i+1}:**\n{text[:2000]}")
                                             pdf_text = "\n\n---\n\n".join(pages[:50])
                                     except ImportError:
-                                        pdf_text = "⚠️ No PDF parser available. Install: `pip install PyPDF2` or `pip install pdfplumber`"
+                                        pdf_text = "âš ï¸ No PDF parser available. Install: `pip install PyPDF2` or `pip install pdfplumber`"
                     
-                    if pdf_text and '⚠️' not in pdf_text:
+                    if pdf_text and 'âš ï¸' not in pdf_text:
                         # Ask AI to analyze the extracted text
                         _analysis_prompt = f"Analyze this PDF document and answer the user's question.\n\nUser question: {message}\n\nPDF Source: {pdf_source}\n\nExtracted text:\n{pdf_text[:8000]}"
                         _analysis = chatbot.chat(_analysis_prompt, model, context='', deep_thinking=True, history=[], language=language)
                         _analysis_text = _analysis.get('response', '') if isinstance(_analysis, dict) else str(_analysis)
-                        tool_results.append(f"## 📄 PDF Analysis\n\n**Source:** {pdf_source}\n\n{_analysis_text}")
+                        tool_results.append(f"## ðŸ“„ PDF Analysis\n\n**Source:** {pdf_source}\n\n{_analysis_text}")
                     elif pdf_text:
-                        tool_results.append(f"## 📄 PDF Analyzer\n\n{pdf_text}")
+                        tool_results.append(f"## ðŸ“„ PDF Analyzer\n\n{pdf_text}")
                     else:
-                        tool_results.append(f"## 📄 PDF Analyzer\n\nKhông tìm thấy file PDF. Hãy:\n- Gửi URL file PDF trong tin nhắn\n- Hoặc upload file PDF trước khi sử dụng tool này")
+                        tool_results.append(f"## ðŸ“„ PDF Analyzer\n\nKhÃ´ng tÃ¬m tháº¥y file PDF. HÃ£y:\n- Gá»­i URL file PDF trong tin nháº¯n\n- Hoáº·c upload file PDF trÆ°á»›c khi sá»­ dá»¥ng tool nÃ y")
                 except Exception as e:
                     logger.error(f"[TOOLS] PDF Analyzer error: {e}")
-                    tool_results.append(f"## 📄 PDF Analyzer\n\n❌ Error: {str(e)}")
+                    tool_results.append(f"## ðŸ“„ PDF Analyzer\n\nâŒ Error: {str(e)}")
 
-            # ── Real-time Translation ─────────────────────────────────────
+            # â”€â”€ Real-time Translation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if 'translator' in tools:
                 logger.info(f"[TOOLS] Translation for: {message[:80]}")
                 try:
                     _trans_prompt = f"""You are a professional translator. Analyze the following text and:
 1. Auto-detect the source language
-2. Translate it to the most appropriate target language (if Vietnamese → English, if English → Vietnamese, if other → both Vietnamese and English)
+2. Translate it to the most appropriate target language (if Vietnamese â†’ English, if English â†’ Vietnamese, if other â†’ both Vietnamese and English)
 3. Provide pronunciation guide if applicable
 4. Note any idioms, cultural context, or nuances
 
@@ -1847,12 +1857,12 @@ Respond in this format:
                     
                     _trans_resp = chatbot.chat(_trans_prompt, model, context='', deep_thinking=False, history=[], language=language)
                     _trans_text = _trans_resp.get('response', '') if isinstance(_trans_resp, dict) else str(_trans_resp)
-                    tool_results.append(f"## 🌐 Translation\n\n{_trans_text}")
+                    tool_results.append(f"## ðŸŒ Translation\n\n{_trans_text}")
                 except Exception as e:
                     logger.error(f"[TOOLS] Translation error: {e}")
-                    tool_results.append(f"## 🌐 Translation\n\n❌ Error: {str(e)}")
+                    tool_results.append(f"## ðŸŒ Translation\n\nâŒ Error: {str(e)}")
 
-            # ── Web Scraper ───────────────────────────────────────────────
+            # â”€â”€ Web Scraper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if 'web-scraper' in tools:
                 logger.info(f"[TOOLS] Web Scraper for: {message[:80]}")
                 try:
@@ -1912,30 +1922,30 @@ Respond in this format:
                                     table_data.append(' | '.join(cells))
                                 tables_text += "\n".join(table_data) + "\n\n"
                         
-                        result = f"""## 🌍 Web Scraper
+                        result = f"""## ðŸŒ Web Scraper
 
 **URL:** {target_url}
 **Title:** {title}
 **Description:** {meta_desc[:200]}
 
-### 📝 Content
+### ðŸ“ Content
 {main_text[:5000]}
 """
                         if tables_text:
-                            result += f"\n### 📊 Tables\n{tables_text[:2000]}"
+                            result += f"\n### ðŸ“Š Tables\n{tables_text[:2000]}"
                         if links:
-                            result += f"\n### 🔗 Links ({len(links)})\n" + "\n".join(links[:15])
+                            result += f"\n### ðŸ”— Links ({len(links)})\n" + "\n".join(links[:15])
                         if images:
-                            result += f"\n### 🖼️ Images ({len(images)})\n" + "\n".join(images[:8])
+                            result += f"\n### ðŸ–¼ï¸ Images ({len(images)})\n" + "\n".join(images[:8])
                         
                         tool_results.append(result)
                     else:
-                        tool_results.append("## 🌍 Web Scraper\n\nKhông tìm thấy URL trong tin nhắn. Hãy gửi URL cần scrape, ví dụ: `https://example.com`")
+                        tool_results.append("## ðŸŒ Web Scraper\n\nKhÃ´ng tÃ¬m tháº¥y URL trong tin nháº¯n. HÃ£y gá»­i URL cáº§n scrape, vÃ­ dá»¥: `https://example.com`")
                 except Exception as e:
                     logger.error(f"[TOOLS] Web Scraper error: {e}")
-                    tool_results.append(f"## 🌍 Web Scraper\n\n❌ Error: {str(e)}")
+                    tool_results.append(f"## ðŸŒ Web Scraper\n\nâŒ Error: {str(e)}")
 
-            # ── Memory Manager ────────────────────────────────────────────
+            # â”€â”€ Memory Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if 'memory-manager' in tools:
                 logger.info(f"[TOOLS] Memory Manager for: {message[:80]}")
                 try:
@@ -1988,17 +1998,17 @@ Respond in JSON format:
                             relevant = mem_data.get('relevant_memories', [])
                             facts_count = len(prefs.get('facts', []))
                             
-                            result = f"## 🧠 Memory Manager\n\n**Status:** Updated successfully\n**Summary:** {summary}\n**Total facts stored:** {facts_count}"
+                            result = f"## ðŸ§  Memory Manager\n\n**Status:** Updated successfully\n**Summary:** {summary}\n**Total facts stored:** {facts_count}"
                             if relevant:
                                 result += f"\n\n**Relevant memories:**\n" + "\n".join(f"- {r}" for r in relevant[:5])
                             tool_results.append(result)
                         except json.JSONDecodeError:
-                            tool_results.append(f"## 🧠 Memory Manager\n\n{_mem_text}")
+                            tool_results.append(f"## ðŸ§  Memory Manager\n\n{_mem_text}")
                     else:
-                        tool_results.append(f"## 🧠 Memory Manager\n\n{_mem_text}")
+                        tool_results.append(f"## ðŸ§  Memory Manager\n\n{_mem_text}")
                 except Exception as e:
                     logger.error(f"[TOOLS] Memory Manager error: {e}")
-                    tool_results.append(f"## 🧠 Memory Manager\n\n❌ Error: {str(e)}")
+                    tool_results.append(f"## ðŸ§  Memory Manager\n\nâŒ Error: {str(e)}")
         
         # If tools were used, return tool results
         if tool_results:
@@ -2080,7 +2090,7 @@ def clear():
         chatbot = get_chatbot(session_id)
         chatbot.clear_history()
         
-        return jsonify({'message': 'ÄÃ£ xÃ³a lá»‹ch sá»­ chat'})
+        return jsonify({'message': 'Ã„ÂÃƒÂ£ xÃƒÂ³a lÃ¡Â»â€¹ch sÃ¡Â»Â­ chat'})
         
     except Exception as e:
         logger.error(f"[Clear History] Error: {str(e)}")
@@ -2391,7 +2401,7 @@ def sd_vaes():
 @app.route('/api/sd-change-model', methods=['POST'])
 @app.route('/api/sd/change-model', methods=['POST'])  # Alias
 def sd_change_model():
-    """Äá»•i checkpoint model"""
+    """Ã„ÂÃ¡Â»â€¢i checkpoint model"""
     try:
         from src.utils.comfyui_client import ComfyUIClient
         
@@ -2409,12 +2419,12 @@ def sd_change_model():
         if success:
             return jsonify({
                 'success': True,
-                'message': f'ÄÃ£ Ä‘á»•i model thÃ nh {model_name}'
+                'message': f'Ã„ÂÃƒÂ£ Ã„â€˜Ã¡Â»â€¢i model thÃƒÂ nh {model_name}'
             })
         else:
             return jsonify({
                 'success': False,
-                'error': 'Không thể đổi model'
+                'error': 'KhÃ´ng thá»ƒ Ä‘á»•i model'
             }), 500
             
     except Exception as e:
@@ -2505,7 +2515,7 @@ def generate_image():
                     
                     if CLOUD_UPLOAD_ENABLED:
                         try:
-                            logger.info(f"[TEXT2IMG] â˜ï¸ Uploading to ImgBB...")
+                            logger.info(f"[TEXT2IMG] Ã¢ËœÂÃ¯Â¸Â Uploading to ImgBB...")
                             uploader = ImgBBUploader()
                             upload_result = uploader.upload_image(
                                 str(filepath),
@@ -2516,9 +2526,9 @@ def generate_image():
                                 cloud_url = upload_result['url']
                                 delete_url = upload_result.get('delete_url', '')
                                 cloud_urls.append(cloud_url)
-                                logger.info(f"[TEXT2IMG] âœ… ImgBB URL: {cloud_url}")
+                                logger.info(f"[TEXT2IMG] Ã¢Å“â€¦ ImgBB URL: {cloud_url}")
                             else:
-                                logger.warning(f"[TEXT2IMG] âš ï¸ ImgBB upload failed, using local URL")
+                                logger.warning(f"[TEXT2IMG] Ã¢Å¡Â Ã¯Â¸Â ImgBB upload failed, using local URL")
                         
                         except Exception as upload_error:
                             logger.error(f"[TEXT2IMG] ImgBB upload error: {upload_error}")
@@ -2568,7 +2578,7 @@ def generate_image():
                     )
                     conversation_id = str(conversation['_id'])
                     session['conversation_id'] = conversation_id
-                    logger.info(f"ðŸ“ Created new conversation: {conversation_id}")
+                    logger.info(f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}")
                 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -2589,7 +2599,7 @@ def generate_image():
                 save_message_to_db(
                     conversation_id=conversation_id,
                     role='assistant',
-                    content=f"âœ… Generated image with prompt: {prompt}",
+                    content=f"Ã¢Å“â€¦ Generated image with prompt: {prompt}",
                     images=images_data,
                     metadata={
                         'model': 'stable-diffusion',
@@ -2600,10 +2610,10 @@ def generate_image():
                     }
                 )
                 
-                logger.info(f"ðŸ’¾ Saved image message to MongoDB with {len(cloud_urls)} cloud URLs")
+                logger.info(f"Ã°Å¸â€™Â¾ Saved image message to MongoDB with {len(cloud_urls)} cloud URLs")
                 
             except Exception as db_error:
-                logger.error(f"âŒ Error saving to MongoDB: {db_error}")
+                logger.error(f"Ã¢ÂÅ’ Error saving to MongoDB: {db_error}")
                 # Continue execution - MongoDB save is optional
         
         # Save to generated_images collection (Gallery)
@@ -2664,7 +2674,7 @@ def generate_image():
 @app.route('/sd-api/samplers', methods=['GET'])  # Alias for frontend compatibility
 @app.route('/api/sd/samplers', methods=['GET'])  # Another alias
 def sd_samplers():
-    """Lấy danh sách samplers"""
+    """Láº¥y danh sÃ¡ch samplers"""
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
@@ -2689,12 +2699,12 @@ def sd_samplers():
 @app.route('/api/generate-prompt', methods=['POST'])  # Universal endpoint
 def generate_prompt_grok():
     """
-    Tạo prompt tối ưu từ extracted tags - Support tất cả model (GROK, Gemini, GPT, DeepSeek, Qwen, BloomVN)
+    Táº¡o prompt tá»‘i Æ°u tá»« extracted tags - Support táº¥t cáº£ model (GROK, Gemini, GPT, DeepSeek, Qwen, BloomVN)
     
     Body params:
-        - context (str): Context vá» tags Ä‘Ã£ trÃ­ch xuáº¥t
-        - tags (list): List các tags đã extract
-        - model (str): Model để dùng (grok, gemini, openai, deepseek, qwen, bloomvn) - default: grok
+        - context (str): Context vÃ¡Â»Â tags Ã„â€˜ÃƒÂ£ trÃƒÂ­ch xuÃ¡ÂºÂ¥t
+        - tags (list): List cÃ¡c tags Ä‘Ã£ extract
+        - model (str): Model Ä‘á»ƒ dÃ¹ng (grok, gemini, openai, deepseek, qwen, bloomvn) - default: grok
     """
     try:
         data = request.json
@@ -2703,9 +2713,9 @@ def generate_prompt_grok():
         selected_model = data.get('model', 'grok').lower()
         
         if not tags:
-            return jsonify({'error': 'Tags không được để trống'}), 400
+            return jsonify({'error': 'Tags khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
-        # System prompt cho tất cả models
+        # System prompt cho táº¥t cáº£ models
         system_prompt = """You are an expert at creating high-quality Stable Diffusion prompts for anime/illustration generation.
 
 Your task:
@@ -2924,21 +2934,21 @@ def _generate_fallback(tags):
 @app.route('/sd-api/img2img', methods=['POST'])  # Alias for frontend compatibility
 def img2img():
     """
-    Tạo ảnh từ ảnh gốc bằng Stable Diffusion Img2Img
+    Táº¡o áº£nh tá»« áº£nh gá»‘c báº±ng Stable Diffusion Img2Img
     
     Body params:
         - image (str): Base64 encoded image
-        - prompt (str): Text prompt mô tả ảnh muốn tạo
-        - negative_prompt (str): Những gì không muốn có
-        - denoising_strength (float): Tỉ lệ thay đổi (0.0-1.0, default: 0.75)
-            - 0.0 = giữ nguyên ảnh gốc 100%
-            - 1.0 = tạo mới hoàn toàn
-            - 0.8 = 80% mới, 20% giữ lại (recommended)
-        - width (int): Chiá»u rá»™ng
-        - height (int): Chiá»u cao  
-        - steps (int): Số steps
+        - prompt (str): Text prompt mÃ´ táº£ áº£nh muá»‘n táº¡o
+        - negative_prompt (str): Nhá»¯ng gÃ¬ khÃ´ng muá»‘n cÃ³
+        - denoising_strength (float): Tá»‰ lá»‡ thay Ä‘á»•i (0.0-1.0, default: 0.75)
+            - 0.0 = giá»¯ nguyÃªn áº£nh gá»‘c 100%
+            - 1.0 = táº¡o má»›i hoÃ n toÃ n
+            - 0.8 = 80% má»›i, 20% giá»¯ láº¡i (recommended)
+        - width (int): ChiÃ¡Â»Âu rÃ¡Â»â„¢ng
+        - height (int): ChiÃ¡Â»Âu cao  
+        - steps (int): Sá»‘ steps
         - cfg_scale (float): CFG scale
-        - sampler_name (str): Tên sampler
+        - sampler_name (str): TÃªn sampler
         - seed (int): Random seed
         - restore_faces (bool): Restore faces
     """
@@ -2950,12 +2960,12 @@ def img2img():
         prompt = data.get('prompt', '')
         
         if not image:
-            return jsonify({'error': 'Image không được để trống'}), 400
+            return jsonify({'error': 'Image khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
         if not prompt:
-            return jsonify({'error': 'Prompt không được để trống'}), 400
+            return jsonify({'error': 'Prompt khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
-        # Lấy parameters từ request
+        # Láº¥y parameters tá»« request
         params = {
             'init_images': [image],  # SD API expects list of images
             'prompt': prompt,
@@ -2976,12 +2986,12 @@ def img2img():
         sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
         sd_client = get_comfyui_client(sd_api_url)
         
-        # Tạo ảnh với img2img
+        # Táº¡o áº£nh vá»›i img2img
         logger.info(f"[IMG2IMG] Calling img2img with denoising_strength={params['denoising_strength']}")
         result = sd_client.img2img(**params)
         logger.info(f"[IMG2IMG] Result received")
         
-        # Kiểm tra lỗi
+        # Kiá»ƒm tra lá»—i
         if 'error' in result:
             logger.error(f"[IMG2IMG] SD Error: {result['error']}")
             return jsonify({'error': result['error']}), 500
@@ -3019,7 +3029,7 @@ def img2img():
                     
                     if CLOUD_UPLOAD_ENABLED:
                         try:
-                            logger.info(f"[IMG2IMG] â˜ï¸ Uploading to ImgBB...")
+                            logger.info(f"[IMG2IMG] Ã¢ËœÂÃ¯Â¸Â Uploading to ImgBB...")
                             uploader = ImgBBUploader()
                             upload_result = uploader.upload_image(
                                 str(filepath),
@@ -3030,9 +3040,9 @@ def img2img():
                                 cloud_url = upload_result['url']
                                 delete_url = upload_result.get('delete_url', '')
                                 cloud_urls.append(cloud_url)
-                                logger.info(f"[IMG2IMG] âœ… ImgBB URL: {cloud_url}")
+                                logger.info(f"[IMG2IMG] Ã¢Å“â€¦ ImgBB URL: {cloud_url}")
                             else:
-                                logger.warning(f"[IMG2IMG] âš ï¸ ImgBB upload failed, using local URL")
+                                logger.warning(f"[IMG2IMG] Ã¢Å¡Â Ã¯Â¸Â ImgBB upload failed, using local URL")
                         
                         except Exception as upload_error:
                             logger.error(f"[IMG2IMG] ImgBB upload error: {upload_error}")
@@ -3082,7 +3092,7 @@ def img2img():
                     )
                     conversation_id = str(conversation['_id'])
                     session['conversation_id'] = conversation_id
-                    logger.info(f"ðŸ“ Created new conversation: {conversation_id}")
+                    logger.info(f"Ã°Å¸â€œÂ Created new conversation: {conversation_id}")
                 
                 # Prepare images array for MongoDB
                 images_data = []
@@ -3103,7 +3113,7 @@ def img2img():
                 save_message_to_db(
                     conversation_id=conversation_id,
                     role='assistant',
-                    content=f"âœ… Generated Img2Img with prompt: {prompt}",
+                    content=f"Ã¢Å“â€¦ Generated Img2Img with prompt: {prompt}",
                     images=images_data,
                     metadata={
                         'model': 'stable-diffusion-img2img',
@@ -3115,10 +3125,10 @@ def img2img():
                     }
                 )
                 
-                logger.info(f"ðŸ’¾ Saved Img2Img message to MongoDB with {len(cloud_urls)} cloud URLs")
+                logger.info(f"Ã°Å¸â€™Â¾ Saved Img2Img message to MongoDB with {len(cloud_urls)} cloud URLs")
                 
             except Exception as db_error:
-                logger.error(f"âŒ Error saving to MongoDB: {db_error}")
+                logger.error(f"Ã¢ÂÅ’ Error saving to MongoDB: {db_error}")
                 # Continue execution - MongoDB save is optional
         
         # Save to generated_images collection (Gallery)
@@ -3201,7 +3211,7 @@ def share_image_imgbb():
             result = uploader.upload(base64_image, title=title)
             
             if result and result.get('url'):
-                logger.info(f"[ImgBB Share] âœ… Success: {result['url']}")
+                logger.info(f"[ImgBB Share] Ã¢Å“â€¦ Success: {result['url']}")
                 return jsonify({
                     'success': True,
                     'url': result['url'],
@@ -3211,15 +3221,15 @@ def share_image_imgbb():
                     'title': title
                 })
             else:
-                logger.error(f"[ImgBB Share] âŒ Upload failed: {result}")
+                logger.error(f"[ImgBB Share] Ã¢ÂÅ’ Upload failed: {result}")
                 return jsonify({'error': 'ImgBB upload failed'}), 500
                 
         except Exception as upload_error:
-            logger.error(f"[ImgBB Share] âŒ Error: {str(upload_error)}")
+            logger.error(f"[ImgBB Share] Ã¢ÂÅ’ Error: {str(upload_error)}")
             return jsonify({'error': 'Failed to upload image to ImgBB'}), 500
         
     except Exception as e:
-        logger.error(f"[ImgBB Share] âŒ Exception: {str(e)}")
+        logger.error(f"[ImgBB Share] Ã¢ÂÅ’ Exception: {str(e)}")
         return jsonify({'error': 'Failed to process image share request'}), 500
 
 
@@ -3298,7 +3308,7 @@ def save_generated_image():
         filepath = storage_dir / filename
         
         image.save(filepath, 'PNG')
-        logger.info(f"[Save Image] ðŸ’¾ Saved to: {filepath}")
+        logger.info(f"[Save Image] Ã°Å¸â€™Â¾ Saved to: {filepath}")
         
         # Upload to ImgBB if enabled
         cloud_url = None
@@ -3312,9 +3322,9 @@ def save_generated_image():
                 if cloud_result and cloud_result.get('url'):
                     cloud_url = cloud_result['url']
                     delete_url = cloud_result.get('delete_url')
-                    logger.info(f"[Save Image] â˜ï¸ ImgBB: {cloud_url}")
+                    logger.info(f"[Save Image] Ã¢ËœÂÃ¯Â¸Â ImgBB: {cloud_url}")
             except Exception as cloud_error:
-                logger.warning(f"[Save Image] âš ï¸ ImgBB upload failed: {cloud_error}")
+                logger.warning(f"[Save Image] Ã¢Å¡Â Ã¯Â¸Â ImgBB upload failed: {cloud_error}")
         
         # Save metadata JSON alongside the PNG (for local gallery fallback)
         try:
@@ -3409,16 +3419,16 @@ def save_generated_image():
                     save_message_to_db(
                         conversation_id=conversation_id,
                         role='assistant',
-                        content=f"ðŸŽ¨ Generated image with prompt: {metadata.get('prompt', 'N/A')}",
+                        content=f"Ã°Å¸Å½Â¨ Generated image with prompt: {metadata.get('prompt', 'N/A')}",
                         images=images_data,
                         metadata=metadata
                     )
                     
-                    logger.info(f"[Save Image] âœ… Saved to chat history: {conversation_id}")
+                    logger.info(f"[Save Image] Ã¢Å“â€¦ Saved to chat history: {conversation_id}")
                     mongodb_saved = True
                     
         except Exception as db_error:
-            logger.error(f"[Save Image] âš ï¸ MongoDB save failed: {db_error}")
+            logger.error(f"[Save Image] Ã¢Å¡Â Ã¯Â¸Â MongoDB save failed: {db_error}")
             # Continue - this is optional
         
         # Always return success (local save completed)
@@ -3432,13 +3442,13 @@ def save_generated_image():
         })
         
     except Exception as e:
-        logger.error(f"[Save Image] âŒ Error: {str(e)}")
+        logger.error(f"[Save Image] Ã¢ÂÅ’ Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/sd-interrupt', methods=['POST'])
 def sd_interrupt():
-    """Dừng việc tạo ảnh đang chạy"""
+    """Dá»«ng viá»‡c táº¡o áº£nh Ä‘ang cháº¡y"""
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
@@ -3459,22 +3469,22 @@ def sd_interrupt():
 @app.route('/api/extract-anime-features-multi', methods=['POST'])
 def extract_anime_features_multi():
     """
-    ðŸŽ¯ MULTI-MODEL EXTRACTION - Sá»­ dá»¥ng nhiá»u model Ä‘á»ƒ trÃ­ch xuáº¥t chÃ­nh xÃ¡c hÆ¡n
+    Ã°Å¸Å½Â¯ MULTI-MODEL EXTRACTION - SÃ¡Â»Â­ dÃ¡Â»Â¥ng nhiÃ¡Â»Âu model Ã„â€˜Ã¡Â»Æ’ trÃƒÂ­ch xuÃ¡ÂºÂ¥t chÃƒÂ­nh xÃƒÂ¡c hÃ†Â¡n
     
-    Models hỗ trợ:
-        - deepdanbooru: Anime-specific, tag-based (mặc định)
+    Models há»— trá»£:
+        - deepdanbooru: Anime-specific, tag-based (máº·c Ä‘á»‹nh)
         - clip: General purpose, natural language
         - wd14: WD14 Tagger, anime-focused, newer
     
     Body params:
         - image (str): Base64 encoded image
         - deep_thinking (bool): More tags
-        - models (list): ['deepdanbooru', 'clip', 'wd14'] - Chá»n models muá»‘n dÃ¹ng
+        - models (list): ['deepdanbooru', 'clip', 'wd14'] - ChÃ¡Â»Ân models muÃ¡Â»â€˜n dÃƒÂ¹ng
     
     Returns:
         - tags: Merged tags with confidence voting
         - categories: Categorized tags
-        - model_results: Stats từ từng model
+        - model_results: Stats tá»« tá»«ng model
     """
     try:
         import requests
@@ -3483,10 +3493,10 @@ def extract_anime_features_multi():
         data = request.json
         image_b64 = data.get('image', '')
         deep_thinking = data.get('deep_thinking', False)
-        selected_models = data.get('models', ['deepdanbooru'])  # Mặc định chỉ dùng DeepDanbooru
+        selected_models = data.get('models', ['deepdanbooru'])  # Máº·c Ä‘á»‹nh chá»‰ dÃ¹ng DeepDanbooru
         
         if not image_b64:
-            return jsonify({'error': 'Image không được để trống'}), 400
+            return jsonify({'error': 'Image khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
         sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
         interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
@@ -3496,7 +3506,7 @@ def extract_anime_features_multi():
         all_tags = []
         model_results = {}
         
-        # Gá»i tá»«ng model
+        # GÃ¡Â»Âi tÃ¡Â»Â«ng model
         for model_name in selected_models:
             try:
                 payload = {'image': image_b64, 'model': model_name}
@@ -3512,7 +3522,7 @@ def extract_anime_features_multi():
                     model_results[model_name] = tags
                     all_tags.extend(tags)
                     
-                    logger.info(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)}: {len(tags)} tags âœ…")
+                    logger.info(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)}: {len(tags)} tags Ã¢Å“â€¦")
                 else:
                     logger.warning(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)} failed: {response.status_code}")
                     model_results[model_name] = []
@@ -3520,13 +3530,13 @@ def extract_anime_features_multi():
                 logger.error(f"[MULTI-EXTRACT] {sanitize_for_log(model_name)} error: {str(e)}")
                 model_results[model_name] = []
         
-        # Merge tags vá»›i confidence voting (cÃ ng nhiá»u model Ä‘á»“ng Ã½ = confidence cÃ ng cao)
+        # Merge tags vÃ¡Â»â€ºi confidence voting (cÃƒÂ ng nhiÃ¡Â»Âu model Ã„â€˜Ã¡Â»â€œng ÃƒÂ½ = confidence cÃƒÂ ng cao)
         tag_counter = Counter(all_tags)
         num_models = len(selected_models)
         merged_tags = []
         
         for tag, vote_count in tag_counter.most_common():
-            # Confidence = (số model đồng ý / tổng model) * 0.95
+            # Confidence = (sá»‘ model Ä‘á»“ng Ã½ / tá»•ng model) * 0.95
             confidence = (vote_count / num_models) * 0.95
             
             merged_tags.append({
@@ -3536,11 +3546,11 @@ def extract_anime_features_multi():
                 'sources': [m for m, tags in model_results.items() if tag in tags]
             })
         
-        # Giới hạn số tag
+        # Giá»›i háº¡n sá»‘ tag
         max_tags = 50 if deep_thinking else 30
         merged_tags = merged_tags[:max_tags]
         
-        # Categorize (giống single model)
+        # Categorize (giá»‘ng single model)
         CATEGORY_KEYWORDS = {
             'hair': ['hair', 'ahoge', 'bangs', 'braid', 'ponytail', 'twintails', 'bun', 'hairband', 'hairclip', 'hair_ornament', 'hair_ribbon', 'hair_bow'],
             'eyes': ['eyes', 'eye', 'eyelashes', 'eyebrows', 'eyepatch', 'heterochromia', 'pupils'],
@@ -3572,7 +3582,7 @@ def extract_anime_features_multi():
             tag_obj['category'] = category
             categories_dict[category].append(tag_obj)
         
-        logger.info(f"[MULTI-EXTRACT] âœ… Final: {len(merged_tags)} tags from {num_models} models")
+        logger.info(f"[MULTI-EXTRACT] Ã¢Å“â€¦ Final: {len(merged_tags)} tags from {num_models} models")
         
         return jsonify({
             'success': True,
@@ -3733,7 +3743,7 @@ Return ONLY the comma-separated tags, nothing else.'''
 @app.route('/api/img2img-advanced', methods=['POST'])
 def img2img_advanced():
     """
-    Tạo ảnh nâng cao từ ảnh gốc với feature extraction
+    Táº¡o áº£nh nÃ¢ng cao tá»« áº£nh gá»‘c vá»›i feature extraction
     
     Body params:
         - source_image (str): Base64 encoded source image
@@ -3760,10 +3770,10 @@ def img2img_advanced():
         feature_weight = float(data.get('feature_weight', 0.8))
         
         if not source_image:
-            return jsonify({'error': 'Source image không được để trống'}), 400
+            return jsonify({'error': 'Source image khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
         if not extracted_tags:
-            return jsonify({'error': 'Chưa trích xuất đặc trưng. Vui lòng nhấn nút trích xuất trước!'}), 400
+            return jsonify({'error': 'ChÆ°a trÃ­ch xuáº¥t Ä‘áº·c trÆ°ng. Vui lÃ²ng nháº¥n nÃºt trÃ­ch xuáº¥t trÆ°á»›c!'}), 400
         
         # Mix prompts: features (80%) + user prompt (20%)
         # Convert tags list to comma-separated string
@@ -3829,7 +3839,7 @@ def img2img_advanced():
         # Return result
         images = result.get('images', [])
         if not images:
-            return jsonify({'error': 'Không có ảnh được tạo'}), 500
+            return jsonify({'error': 'KhÃ´ng cÃ³ áº£nh Ä‘Æ°á»£c táº¡o'}), 500
         
         return jsonify({
             'success': True,
@@ -4982,84 +4992,84 @@ def internal_error(error):
 try:
     from routes.main import main_bp
     app.register_blueprint(main_bp)
-    logger.info("✅ Registered main blueprint")
+    logger.info("âœ… Registered main blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register main blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register main blueprint: {e}")
 
 try:
     from routes.memory import memory_bp
     app.register_blueprint(memory_bp, url_prefix='/memory')
-    logger.info("✅ Registered memory blueprint")
+    logger.info("âœ… Registered memory blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register memory blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register memory blueprint: {e}")
 
 try:
     from routes.mcp import mcp_bp
     app.register_blueprint(mcp_bp, url_prefix='/api/mcp')
-    logger.info("✅ Registered MCP blueprint")
+    logger.info("âœ… Registered MCP blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register MCP blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register MCP blueprint: {e}")
 
 try:
     from routes.conversations import conversations_bp
     app.register_blueprint(conversations_bp)
-    logger.info("✅ Registered conversations blueprint")
+    logger.info("âœ… Registered conversations blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register conversations blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register conversations blueprint: {e}")
 
 try:
     from routes.images import images_bp
     app.register_blueprint(images_bp)
-    logger.info("✅ Registered images blueprint")
+    logger.info("âœ… Registered images blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register images blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register images blueprint: {e}")
 
 try:
     from routes.auth import auth_bp
     app.register_blueprint(auth_bp)
-    logger.info("✅ Registered auth blueprint")
+    logger.info("âœ… Registered auth blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register auth blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register auth blueprint: {e}")
 
 try:
     from routes.stable_diffusion import sd_bp
     app.register_blueprint(sd_bp)
-    logger.info("✅ Registered stable_diffusion blueprint")
+    logger.info("âœ… Registered stable_diffusion blueprint")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register stable_diffusion blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register stable_diffusion blueprint: {e}")
 
 try:
     from routes.image_gen import image_gen_bp
     app.register_blueprint(image_gen_bp)
-    logger.info("✅ Registered image_gen blueprint (multi-provider)")
+    logger.info("âœ… Registered image_gen blueprint (multi-provider)")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register image_gen blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register image_gen blueprint: {e}")
 
 try:
     from routes.models import models_bp
     app.register_blueprint(models_bp)
-    logger.info("✅ Registered models blueprint (health/status)")
+    logger.info("âœ… Registered models blueprint (health/status)")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register models blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register models blueprint: {e}")
 
 try:
     from routes.stream import stream_bp
     app.register_blueprint(stream_bp)
-    logger.info("✅ Registered stream blueprint (SSE)")
+    logger.info("âœ… Registered stream blueprint (SSE)")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register stream blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register stream blueprint: {e}")
 
 try:
     from routes.async_routes import async_bp
     app.register_blueprint(async_bp)
-    logger.info("✅ Registered async blueprint (async chat)")
+    logger.info("âœ… Registered async blueprint (async chat)")
 except ImportError as e:
-    logger.warning(f"⚠️ Could not register async blueprint: {e}")
+    logger.warning(f"âš ï¸ Could not register async blueprint: {e}")
 
 
-# ════════════════════════════════════════════════════════════
-# ═══ External API v1 — Stateless API for extensions/.exe ═══
-# ════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â•â•â• External API v1 â€” Stateless API for extensions/.exe â•â•â•
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 EXTERNAL_API_KEY = os.getenv('EXTERNAL_API_KEY', 'ai-assistant-ext-key-2024')
 
@@ -5090,7 +5100,7 @@ def external_chat():
             "model": "grok",              // optional
             "context": "casual",           // optional
             "history": [],                 // optional conversation history
-            "page_context": "",            // optional — injected page text from extension
+            "page_context": "",            // optional â€” injected page text from extension
             "tools": ["image-generation"], // optional
             "language": "vi"               // optional
         }
@@ -5243,5 +5253,7 @@ if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')  # Default to 0.0.0.0 for external access
     port = int(os.getenv('CHATBOT_PORT', '5000'))
     
-    logger.info(f"🚀 Starting ChatBot on {host}:{port} (debug={debug_mode})")
+    logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
     app.run(debug=debug_mode, host=host, port=port)
+
+

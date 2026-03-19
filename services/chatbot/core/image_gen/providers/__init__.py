@@ -1,5 +1,5 @@
-"""
-Image generation providers — multi-backend support.
+﻿"""
+Image generation providers â€” multi-backend support.
 Each provider wraps a different API/service for generating images.
 """
 
@@ -23,7 +23,7 @@ __all__ = [
     "StepFunProvider",
 ]
 
-# Registry: name → class
+# Registry: name â†’ class
 PROVIDER_REGISTRY: dict[str, type[BaseImageProvider]] = {
     "fal":       FalProvider,
     "replicate": ReplicateProvider,

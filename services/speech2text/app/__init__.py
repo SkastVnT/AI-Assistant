@@ -1,4 +1,4 @@
-"""
+﻿"""
 VistralS2T - Vietnamese Speech-to-Text System
 Version: 3.6.0 - Code Restructuring & Modular Architecture
 """

@@ -1,4 +1,4 @@
-"""
+﻿"""
 PhoWhisper Client - VinAI PhoWhisper-large for Vietnamese ASR
 Optimized for Vietnamese speech recognition with chunking strategy
 """

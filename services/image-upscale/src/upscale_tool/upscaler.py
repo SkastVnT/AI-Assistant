@@ -1,4 +1,4 @@
-"""
+﻿"""
 Main upscaler class
 Wrapper for Real-ESRGAN and other models
 """
@@ -40,7 +40,7 @@ class ImageUpscaler:
         'RealESRGAN_x4plus': {
             'num_block': 23,
             'scale': 4,
-            'description': '🌟 [Tencent ARC] Best for real photos, high quality, slower'
+            'description': 'ðŸŒŸ [Tencent ARC] Best for real photos, high quality, slower'
         },
         'RealESRGAN_x2plus': {
             'num_block': 23,
@@ -50,7 +50,7 @@ class ImageUpscaler:
         'RealESRGAN_x4plus_anime_6B': {
             'num_block': 6,
             'scale': 4,
-            'description': '🎌 [Tencent] Best for anime/manga, small model, fast'
+            'description': 'ðŸŽŒ [Tencent] Best for anime/manga, small model, fast'
         },
         'RealESRGAN_animevideov3': {
             'num_block': 6,
@@ -76,7 +76,7 @@ class ImageUpscaler:
         'SwinIR_realSR_x4': {
             'num_block': None,
             'scale': 4,
-            'description': '👑 [CUHK] Highest quality, Swin Transformer, slow, high VRAM'
+            'description': 'ðŸ‘‘ [CUHK] Highest quality, Swin Transformer, slow, high VRAM'
         },
         'Swin2SR_realSR_x4': {
             'num_block': None,

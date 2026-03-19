@@ -1,4 +1,4 @@
-"""
+﻿"""
 Cache Utility
 Simple file-based caching for API responses
 """

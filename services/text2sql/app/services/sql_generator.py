@@ -1,4 +1,4 @@
-"""
+﻿"""
 SQL Generator Service
 Multi-model SQL generation (Gemini, GROK, OpenAI, DeepSeek)
 """

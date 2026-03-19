@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI-Assistant Chatbot Application Package
 
 This package contains the restructured chatbot service with:

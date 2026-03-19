@@ -1,4 +1,4 @@
-"""
+﻿"""
 Streaming routes: /chat/stream - SSE endpoint for real-time chat responses
 """
 import json

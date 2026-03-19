@@ -1,5 +1,5 @@
-"""
-ImageStorage — save, retrieve, and manage generated images.
+﻿"""
+ImageStorage â€” save, retrieve, and manage generated images.
 Supports local filesystem + optional cloud upload (ImgBB, S3, etc.)
 """
 
@@ -110,7 +110,7 @@ class ImageStorage:
                 "file_size": len(img_bytes),
             }
 
-            logger.info(f"[ImageStorage] Saved {image_id} ({len(img_bytes)} bytes) → {img_path.name}")
+            logger.info(f"[ImageStorage] Saved {image_id} ({len(img_bytes)} bytes) â†’ {img_path.name}")
             return result
 
         except Exception as e:

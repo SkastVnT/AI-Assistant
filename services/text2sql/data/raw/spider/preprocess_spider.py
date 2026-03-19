@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-Chuyển Spider (train_spider.json / tables.json) thành instruction JSONL cho SFT:
-- input  = schema + question (tiếng Anh gốc; nếu có song ngữ, ghép thêm vi)
-- output = câu lệnh SQL ground-truth
+Chuyá»ƒn Spider (train_spider.json / tables.json) thÃ nh instruction JSONL cho SFT:
+- input  = schema + question (tiáº¿ng Anh gá»‘c; náº¿u cÃ³ song ngá»¯, ghÃ©p thÃªm vi)
+- output = cÃ¢u lá»‡nh SQL ground-truth
 """
 
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]  # thư mục TEST/
+ROOT = Path(__file__).resolve().parents[2]  # thÆ° má»¥c TEST/
 DATA = ROOT / "data" / "spider"
 OUT = ROOT / "models" / "spider_pretrain"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -20,7 +20,7 @@ def load(path):
 
 
 def build_schema_text(tables_json):
-    # tạo map {db_id: ' "table" , "col" type , ... [SEP] ... '}
+    # táº¡o map {db_id: ' "table" , "col" type , ... [SEP] ... '}
     db2schema = {}
     for db in tables_json:
         db_id = db["db_id"]
@@ -68,14 +68,14 @@ def main():
         for ex in split:
             db_id = ex["db_id"]
             schema = db2schema.get(db_id, "")
-            question = ex["question"]  # Spider: tiếng Anh
+            question = ex["question"]  # Spider: tiáº¿ng Anh
             sql = normalize_sql(ex["query"])
             prompt = (
                 "### Instruction:\n"
-                "Bạn là trợ lý Text-to-SQL. Viết CHỈ 1 câu lệnh SQL phù hợp yêu cầu.\n"
-                "- Không giải thích.\n"
-                "- Không bọc backticks.\n"
-                "- Dựa vào schema và câu hỏi.\n\n"
+                "Báº¡n lÃ  trá»£ lÃ½ Text-to-SQL. Viáº¿t CHá»ˆ 1 cÃ¢u lá»‡nh SQL phÃ¹ há»£p yÃªu cáº§u.\n"
+                "- KhÃ´ng giáº£i thÃ­ch.\n"
+                "- KhÃ´ng bá»c backticks.\n"
+                "- Dá»±a vÃ o schema vÃ  cÃ¢u há»i.\n\n"
                 f"### Schema:\n{schema}\n\n"
                 f"### Input:\n{question}\n\n"
                 "### SQL:"
@@ -93,7 +93,7 @@ def main():
         for r in val:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    print(f"Done. train={len(trn)} val={len(val)} → {OUT}")
+    print(f"Done. train={len(trn)} val={len(val)} â†’ {OUT}")
 
 
 if __name__ == "__main__":

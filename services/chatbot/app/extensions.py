@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flask Extensions Initialization
 
 Centralized extension management for:
@@ -30,7 +30,7 @@ def init_extensions(app: Flask) -> None:
     init_mongodb(app)
     init_redis(app)
     init_cache(app)
-    logger.info("✅ All extensions initialized")
+    logger.info("âœ… All extensions initialized")
 
 
 def init_mongodb(app: Flask) -> None:
@@ -38,7 +38,7 @@ def init_mongodb(app: Flask) -> None:
     global _mongodb_client
     
     if not app.config.get('MONGODB_ENABLED', False):
-        logger.info("ℹ️ MongoDB disabled by configuration")
+        logger.info("â„¹ï¸ MongoDB disabled by configuration")
         return
     
     try:
@@ -56,10 +56,10 @@ def init_mongodb(app: Flask) -> None:
         _mongodb_client.admin.command('ping')
         
         app.extensions['mongodb'] = _mongodb_client
-        logger.info("✅ MongoDB connected successfully")
+        logger.info("âœ… MongoDB connected successfully")
         
     except Exception as e:
-        logger.warning(f"⚠️ MongoDB connection failed: {e}")
+        logger.warning(f"âš ï¸ MongoDB connection failed: {e}")
         app.config['MONGODB_ENABLED'] = False
 
 
@@ -68,7 +68,7 @@ def init_redis(app: Flask) -> None:
     global _redis_client
     
     if not app.config.get('CACHE_ENABLED', False):
-        logger.info("ℹ️ Redis cache disabled by configuration")
+        logger.info("â„¹ï¸ Redis cache disabled by configuration")
         return
     
     try:
@@ -81,10 +81,10 @@ def init_redis(app: Flask) -> None:
         _redis_client.ping()
         
         app.extensions['redis'] = _redis_client
-        logger.info("✅ Redis connected successfully")
+        logger.info("âœ… Redis connected successfully")
         
     except Exception as e:
-        logger.warning(f"⚠️ Redis connection failed: {e}")
+        logger.warning(f"âš ï¸ Redis connection failed: {e}")
         app.config['CACHE_ENABLED'] = False
 
 
@@ -99,9 +99,9 @@ def init_cache(app: Flask) -> None:
         from .services.cache_service import CacheService
         _cache_manager = CacheService(app)
         app.extensions['cache'] = _cache_manager
-        logger.info("✅ Cache manager initialized")
+        logger.info("âœ… Cache manager initialized")
     except ImportError:
-        logger.info("ℹ️ Cache service not available")
+        logger.info("â„¹ï¸ Cache service not available")
 
 
 def get_mongodb():

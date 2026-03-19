@@ -1,4 +1,4 @@
-"""
+﻿"""
 Learning Routes
 
 API endpoints for AI self-learning capabilities.

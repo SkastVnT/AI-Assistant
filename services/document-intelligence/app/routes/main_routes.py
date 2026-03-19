@@ -1,4 +1,4 @@
-"""
+﻿"""
 Main Routes
 Home page and basic endpoints
 """

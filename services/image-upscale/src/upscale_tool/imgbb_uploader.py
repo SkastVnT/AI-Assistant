@@ -1,4 +1,4 @@
-"""
+﻿"""
 ImgBB image upload utility
 """
 import requests

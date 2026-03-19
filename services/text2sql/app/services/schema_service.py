@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schema Service
 Handle database schema upload and management
 """

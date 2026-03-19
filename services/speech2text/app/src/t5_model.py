@@ -1,18 +1,28 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import os
 import time
 import datetime
 import librosa
 import numpy as np
 import soundfile as sf
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 from scipy import signal
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 # ============= CONFIGURATION =============
-load_dotenv()
-
+load_shared_env(__file__)
 AUDIO_PATH = os.getenv("AUDIO_PATH", "./audio/sample.mp3")
 
 # Create directories
@@ -439,3 +449,4 @@ except Exception as e:
 print("\n" + "=" * 80)
 print("[SUCCESS] DUAL MODEL APP COMPLETED!")
 print("=" * 80)
+

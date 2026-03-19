@@ -1,4 +1,4 @@
-"""
+﻿"""
 Prompt Engineering Templates for VistralS2T
 Contains optimized prompts for transcript fusion and enhancement
 Version: 3.7.0 - GHN Telesales optimization

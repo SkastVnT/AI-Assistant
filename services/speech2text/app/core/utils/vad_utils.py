@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Voice Activity Detection (VAD) Utilities
 Detect speech segments to optimize diarization

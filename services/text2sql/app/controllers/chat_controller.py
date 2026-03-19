@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chat Controller
 Handle chat and SQL generation requests
 """
@@ -58,7 +58,7 @@ class ChatController:
         
         # Not found - ask for confirmation
         return {
-            'message': f'Không tìm thấy SQL cho câu hỏi này. Bạn muốn AI tạo SQL không? (có/không)',
+            'message': f'KhÃ´ng tÃ¬m tháº¥y SQL cho cÃ¢u há»i nÃ y. Báº¡n muá»‘n AI táº¡o SQL khÃ´ng? (cÃ³/khÃ´ng)',
             'question': question,
             'needs_confirmation': True
         }
@@ -80,7 +80,7 @@ class ChatController:
             
             if not schema_text:
                 return {
-                    'error': 'Chưa upload schema. Vui lòng upload schema trước.',
+                    'error': 'ChÆ°a upload schema. Vui lÃ²ng upload schema trÆ°á»›c.',
                     'needs_schema': True
                 }
             
@@ -98,13 +98,13 @@ class ChatController:
                 'status': status,
                 'preview': self.db_service.preview_result(data),
                 'needs_check': True,  # User should approve to save
-                'message': 'SQL đã được tạo. Xem kết quả và gọi /check để lưu vào memory nếu đúng.'
+                'message': 'SQL Ä‘Ã£ Ä‘Æ°á»£c táº¡o. Xem káº¿t quáº£ vÃ  gá»i /check Ä‘á»ƒ lÆ°u vÃ o memory náº¿u Ä‘Ãºng.'
             }
         
         except Exception as e:
             logger.error(f"SQL generation error: {e}")
             return {
-                'error': f'Lỗi tạo SQL: {str(e)}',
+                'error': f'Lá»—i táº¡o SQL: {str(e)}',
                 'question': question
             }
     
@@ -163,7 +163,7 @@ class ChatController:
             
             if not schema_text:
                 return {
-                    'error': 'Chưa upload schema',
+                    'error': 'ChÆ°a upload schema',
                     'needs_schema': True
                 }
             
@@ -189,7 +189,7 @@ class ChatController:
         except Exception as e:
             logger.error(f"SQL refinement error: {e}")
             return {
-                'error': f'Lỗi refine SQL: {str(e)}'
+                'error': f'Lá»—i refine SQL: {str(e)}'
             }
     
     def evaluate_model(self) -> Dict[str, Any]:
@@ -203,7 +203,7 @@ class ChatController:
         
         if not eval_data:
             return {
-                'error': 'Không tìm thấy file eval.jsonl',
+                'error': 'KhÃ´ng tÃ¬m tháº¥y file eval.jsonl',
                 'accuracy': 0
             }
         

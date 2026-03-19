@@ -1,14 +1,14 @@
-"""
+﻿"""
 AI-Assistant MCP Server V2.0 - WITH PERSISTENT MEMORY
 =======================================================
-Kết hợp tính năng của claude-mem và MCP Server:
-  ✅ Real-time project access (Tools)
-  ✅ Persistent memory across sessions (Memory System)
-  ✅ AI-powered observations & summaries
-  ✅ Full-text search qua history
-  ✅ Web UI để xem memory
+Káº¿t há»£p tÃ­nh nÄƒng cá»§a claude-mem vÃ  MCP Server:
+  âœ… Real-time project access (Tools)
+  âœ… Persistent memory across sessions (Memory System)
+  âœ… AI-powered observations & summaries
+  âœ… Full-text search qua history
+  âœ… Web UI Ä‘á»ƒ xem memory
 
-Sử dụng FastMCP SDK (miễn phí, mã nguồn mở).
+Sá»­ dá»¥ng FastMCP SDK (miá»…n phÃ­, mÃ£ nguá»“n má»Ÿ).
 """
 
 import os
@@ -34,14 +34,14 @@ logger = logging.getLogger(__name__)
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:
-    print("ERROR: FastMCP không được cài đặt.")
-    print("Vui lòng chạy: pip install 'mcp[cli]'")
+    print("ERROR: FastMCP khÃ´ng Ä‘Æ°á»£c cÃ i Ä‘áº·t.")
+    print("Vui lÃ²ng cháº¡y: pip install 'mcp[cli]'")
     exit(1)
 
 # Import memory system
 from database import get_memory_manager
 
-# Khởi tạo MCP server
+# Khá»Ÿi táº¡o MCP server
 mcp = FastMCP("AI-Assistant-V2-Memory")
 
 # Base paths
@@ -57,7 +57,7 @@ memory = get_memory_manager(
 
 # Auto-create session on startup
 SESSION_ID = memory.create_session(project_name="AI-Assistant")
-logger.info(f"🚀 Session created: {SESSION_ID}")
+logger.info(f"ðŸš€ Session created: {SESSION_ID}")
 
 SERVER_START_TIME = time.time()
 STARTED_AT = datetime.utcnow().isoformat()
@@ -162,7 +162,7 @@ def _safe_resolve_path(path_str: str, base_dir: Path) -> Optional[Path]:
 
 def with_memory(importance: int = 5, observation_type: str = "general"):
     """
-    Decorator tự động lưu tool usage vào memory
+    Decorator tá»± Ä‘á»™ng lÆ°u tool usage vÃ o memory
     
     Args:
         importance: 1-10 scale
@@ -270,15 +270,15 @@ _run_startup_cache_warmup()
 @with_memory(importance=5, observation_type="search")
 def search_files(query: str, file_type: str = "all", max_results: int = 10) -> Dict[str, Any]:
     """
-    Tìm kiếm files trong workspace theo query.
+    TÃ¬m kiáº¿m files trong workspace theo query.
     
     Args:
-        query: Từ khóa tìm kiếm
-        file_type: Loại file (all, py, md, json, txt, js, html, css)
-        max_results: Số kết quả tối đa
+        query: Tá»« khÃ³a tÃ¬m kiáº¿m
+        file_type: Loáº¡i file (all, py, md, json, txt, js, html, css)
+        max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
         
     Returns:
-        Dict chứa danh sách files tìm thấy
+        Dict chá»©a danh sÃ¡ch files tÃ¬m tháº¥y
     """
     results = []
     search_path = BASE_DIR
@@ -338,16 +338,16 @@ def read_file_content(
     max_lines: int = 500
 ) -> Dict[str, Any]:
     """
-    Đọc nội dung file.
+    Äá»c ná»™i dung file.
     
     Args:
-        file_path: Đường dẫn file (relative to BASE_DIR)
-        start_line: Dòng bắt đầu (1-based)
-        end_line: Dòng kết thúc (None = đến cuối file)
-        max_lines: Số dòng tối đa
+        file_path: ÄÆ°á»ng dáº«n file (relative to BASE_DIR)
+        start_line: DÃ²ng báº¯t Ä‘áº§u (1-based)
+        end_line: DÃ²ng káº¿t thÃºc (None = Ä‘áº¿n cuá»‘i file)
+        max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a
         
     Returns:
-        Dict chứa nội dung file
+        Dict chá»©a ná»™i dung file
     """
     full_path = _safe_resolve_path(file_path, BASE_DIR)
     
@@ -397,14 +397,14 @@ def read_file_content(
 @with_memory(importance=4, observation_type="list")
 def list_directory(directory_path: str = ".", show_hidden: bool = False) -> Dict[str, Any]:
     """
-    Liệt kê files và folders trong directory.
+    Liá»‡t kÃª files vÃ  folders trong directory.
     
     Args:
-        directory_path: Đường dẫn directory (relative to BASE_DIR)
-        show_hidden: Hiển thị files/folders ẩn
+        directory_path: ÄÆ°á»ng dáº«n directory (relative to BASE_DIR)
+        show_hidden: Hiá»ƒn thá»‹ files/folders áº©n
         
     Returns:
-        Dict chứa danh sách files và folders
+        Dict chá»©a danh sÃ¡ch files vÃ  folders
     """
     full_path = _safe_resolve_path(directory_path, BASE_DIR)
     
@@ -453,10 +453,10 @@ def list_directory(directory_path: str = ".", show_hidden: bool = False) -> Dict
 @with_memory(importance=7, observation_type="info")
 def get_project_info() -> Dict[str, Any]:
     """
-    Lấy thông tin tổng quan về AI-Assistant project.
+    Láº¥y thÃ´ng tin tá»•ng quan vá» AI-Assistant project.
     
     Returns:
-        Dict chứa thông tin project
+        Dict chá»©a thÃ´ng tin project
     """
     services = [
         {"name": "Hub Gateway", "port": 3000, "path": "services/hub-gateway"},
@@ -487,15 +487,15 @@ def search_logs(
     max_lines: int = 100
 ) -> Dict[str, Any]:
     """
-    Tìm kiếm trong log files của services.
+    TÃ¬m kiáº¿m trong log files cá»§a services.
     
     Args:
-        service_name: Tên service (chatbot, text2sql, hub-gateway, etc.)
+        service_name: TÃªn service (chatbot, text2sql, hub-gateway, etc.)
         level: Log level (ALL, ERROR, WARNING, INFO, DEBUG)
-        max_lines: Số dòng tối đa
+        max_lines: Sá»‘ dÃ²ng tá»‘i Ä‘a
         
     Returns:
-        Dict chứa kết quả tìm kiếm logs
+        Dict chá»©a káº¿t quáº£ tÃ¬m kiáº¿m logs
     """
     log_file = LOGS_DIR / f"{service_name}.log"
     
@@ -535,13 +535,13 @@ def search_logs(
 @with_memory(importance=3, observation_type="calculation")
 def calculate(expression: str) -> Dict[str, Any]:
     """
-    Thực hiện tính toán an toàn.
+    Thá»±c hiá»‡n tÃ­nh toÃ¡n an toÃ n.
     
     Args:
-        expression: Biểu thức toán học (vd: "2 + 2", "(10 * 5) / 2")
+        expression: Biá»ƒu thá»©c toÃ¡n há»c (vd: "2 + 2", "(10 * 5) / 2")
         
     Returns:
-        Dict chứa kết quả tính toán
+        Dict chá»©a káº¿t quáº£ tÃ­nh toÃ¡n
     """
     try:
         # Safe eval - only allow math operations
@@ -577,17 +577,17 @@ def grep_in_files(
     case_sensitive: bool = False
 ) -> Dict[str, Any]:
     """
-    Tìm kiếm NỘI DUNG trong files bằng regex/text pattern (như grep).
+    TÃ¬m kiáº¿m Ná»˜I DUNG trong files báº±ng regex/text pattern (nhÆ° grep).
     
     Args:
-        pattern: Text hoặc regex pattern cần tìm
-        directory: Thư mục tìm kiếm (relative to BASE_DIR)
-        file_type: Loại file (all, py, md, json, txt, js, html)
-        max_results: Số kết quả tối đa
-        case_sensitive: Phân biệt hoa/thường
+        pattern: Text hoáº·c regex pattern cáº§n tÃ¬m
+        directory: ThÆ° má»¥c tÃ¬m kiáº¿m (relative to BASE_DIR)
+        file_type: Loáº¡i file (all, py, md, json, txt, js, html)
+        max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
+        case_sensitive: PhÃ¢n biá»‡t hoa/thÆ°á»ng
         
     Returns:
-        Dict chứa danh sách matches với file và line number
+        Dict chá»©a danh sÃ¡ch matches vá»›i file vÃ  line number
     """
     search_dir = _safe_resolve_path(directory, BASE_DIR)
     if search_dir is None or not search_dir.is_dir():
@@ -657,16 +657,16 @@ def write_file(
     create_dirs: bool = True
 ) -> Dict[str, Any]:
     """
-    Ghi nội dung vào file (tạo mới hoặc chỉnh sửa).
+    Ghi ná»™i dung vÃ o file (táº¡o má»›i hoáº·c chá»‰nh sá»­a).
     
     Args:
-        file_path: Đường dẫn file (relative to BASE_DIR)
-        content: Nội dung cần ghi
-        mode: 'overwrite' (ghi đè) hoặc 'append' (thêm vào cuối)
-        create_dirs: Tự động tạo thư mục cha nếu chưa tồn tại
+        file_path: ÄÆ°á»ng dáº«n file (relative to BASE_DIR)
+        content: Ná»™i dung cáº§n ghi
+        mode: 'overwrite' (ghi Ä‘Ã¨) hoáº·c 'append' (thÃªm vÃ o cuá»‘i)
+        create_dirs: Tá»± Ä‘á»™ng táº¡o thÆ° má»¥c cha náº¿u chÆ°a tá»“n táº¡i
         
     Returns:
-        Dict với kết quả thao tác
+        Dict vá»›i káº¿t quáº£ thao tÃ¡c
     """
     resolved = _safe_resolve_path(file_path, BASE_DIR)
     if resolved is None:
@@ -703,10 +703,10 @@ def write_file(
 @with_memory(importance=6, observation_type="git")
 def git_status() -> Dict[str, Any]:
     """
-    Lấy git status của repository (modified, added, deleted, untracked files).
+    Láº¥y git status cá»§a repository (modified, added, deleted, untracked files).
     
     Returns:
-        Dict chứa trạng thái git working tree
+        Dict chá»©a tráº¡ng thÃ¡i git working tree
     """
     try:
         result = subprocess.run(
@@ -749,13 +749,13 @@ def git_status() -> Dict[str, Any]:
 @with_memory(importance=5, observation_type="git")
 def git_log(max_commits: int = 10) -> Dict[str, Any]:
     """
-    Lấy git commit history.
+    Láº¥y git commit history.
     
     Args:
-        max_commits: Số commits tối đa (max 50)
+        max_commits: Sá»‘ commits tá»‘i Ä‘a (max 50)
         
     Returns:
-        Dict chứa danh sách commits
+        Dict chá»©a danh sÃ¡ch commits
     """
     max_commits = min(max_commits, 50)
     try:
@@ -787,13 +787,13 @@ def git_log(max_commits: int = 10) -> Dict[str, Any]:
 @with_memory(importance=4, observation_type="git")
 def git_diff(file_path: Optional[str] = None) -> Dict[str, Any]:
     """
-    Lấy git diff để xem các thay đổi chưa staged.
+    Láº¥y git diff Ä‘á»ƒ xem cÃ¡c thay Ä‘á»•i chÆ°a staged.
     
     Args:
-        file_path: Đường dẫn file cụ thể (None = toàn bộ repo)
+        file_path: ÄÆ°á»ng dáº«n file cá»¥ thá»ƒ (None = toÃ n bá»™ repo)
         
     Returns:
-        Dict chứa diff output
+        Dict chá»©a diff output
     """
     cmd = ['git', 'diff']
     if file_path:
@@ -823,13 +823,13 @@ def git_diff(file_path: Optional[str] = None) -> Dict[str, Any]:
 @with_memory(importance=7, observation_type="analysis")
 def analyze_python_file(file_path: str) -> Dict[str, Any]:
     """
-    Phân tích cấu trúc Python file: functions, classes, imports, độ phức tạp.
+    PhÃ¢n tÃ­ch cáº¥u trÃºc Python file: functions, classes, imports, Ä‘á»™ phá»©c táº¡p.
     
     Args:
-        file_path: Đường dẫn file .py (relative to BASE_DIR)
+        file_path: ÄÆ°á»ng dáº«n file .py (relative to BASE_DIR)
         
     Returns:
-        Dict chứa phân tích chi tiết
+        Dict chá»©a phÃ¢n tÃ­ch chi tiáº¿t
     """
     full_path = _safe_resolve_path(file_path, BASE_DIR)
     if full_path is None:
@@ -901,13 +901,13 @@ def analyze_python_file(file_path: str) -> Dict[str, Any]:
 @with_memory(importance=5, observation_type="analysis")
 def find_todos(directory: str = ".") -> Dict[str, Any]:
     """
-    Tìm tất cả TODO, FIXME, HACK, NOTE comments trong code.
+    TÃ¬m táº¥t cáº£ TODO, FIXME, HACK, NOTE comments trong code.
     
     Args:
-        directory: Thư mục tìm kiếm (relative to BASE_DIR)
+        directory: ThÆ° má»¥c tÃ¬m kiáº¿m (relative to BASE_DIR)
         
     Returns:
-        Dict chứa danh sách todos phân loại
+        Dict chá»©a danh sÃ¡ch todos phÃ¢n loáº¡i
     """
     search_dir = _safe_resolve_path(directory, BASE_DIR)
     if search_dir is None or not search_dir.is_dir():
@@ -959,18 +959,18 @@ def http_request(
     timeout: int = 10
 ) -> Dict[str, Any]:
     """
-    Thực hiện HTTP request đến services hoặc APIs.
-    Chỉ được phép gọi localhost/internal services.
+    Thá»±c hiá»‡n HTTP request Ä‘áº¿n services hoáº·c APIs.
+    Chá»‰ Ä‘Æ°á»£c phÃ©p gá»i localhost/internal services.
     
     Args:
-        url: URL cần gọi (chỉ http://localhost:... hoặc http://127.0.0.1:...)
+        url: URL cáº§n gá»i (chá»‰ http://localhost:... hoáº·c http://127.0.0.1:...)
         method: HTTP method (GET, POST, PUT, DELETE)
-        headers: HTTP headers dạng dict
-        body: Request body (string, sẽ được gửi dưới dạng JSON nếu có Content-Type)
-        timeout: Timeout tính bằng giây (max 30)
+        headers: HTTP headers dáº¡ng dict
+        body: Request body (string, sáº½ Ä‘Æ°á»£c gá»­i dÆ°á»›i dáº¡ng JSON náº¿u cÃ³ Content-Type)
+        timeout: Timeout tÃ­nh báº±ng giÃ¢y (max 30)
         
     Returns:
-        Dict chứa status code, headers, body
+        Dict chá»©a status code, headers, body
     """
     import urllib.request
     import urllib.error
@@ -1033,10 +1033,10 @@ def http_request(
 @_safe_tool
 def get_server_health() -> Dict[str, Any]:
     """
-    Kiểm tra trạng thái của MCP server và memory system.
+    Kiá»ƒm tra tráº¡ng thÃ¡i cá»§a MCP server vÃ  memory system.
     
     Returns:
-        Dict chứa thông tin health và stats
+        Dict chá»©a thÃ´ng tin health vÃ  stats
     """
     import platform
     import sys
@@ -1112,15 +1112,15 @@ def search_memory(
     min_importance: int = 0
 ) -> Dict[str, Any]:
     """
-    🆕 Tìm kiếm trong memory (observations từ các sessions trước).
+    ðŸ†• TÃ¬m kiáº¿m trong memory (observations tá»« cÃ¡c sessions trÆ°á»›c).
     
     Args:
-        query: Từ khóa tìm kiếm
-        limit: Số kết quả tối đa
-        min_importance: Độ quan trọng tối thiểu (0-10)
+        query: Tá»« khÃ³a tÃ¬m kiáº¿m
+        limit: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
+        min_importance: Äá»™ quan trá»ng tá»‘i thiá»ƒu (0-10)
         
     Returns:
-        Dict chứa observations tìm thấy
+        Dict chá»©a observations tÃ¬m tháº¥y
     """
     results = memory.search_observations(
         query=query,
@@ -1155,14 +1155,14 @@ def get_recent_context(
     max_chars: int = 12000
 ) -> Dict[str, Any]:
     """
-    🆕 Lấy context gần đây để inject vào session mới.
+    ðŸ†• Láº¥y context gáº§n Ä‘Ã¢y Ä‘á»ƒ inject vÃ o session má»›i.
     
     Args:
-        limit: Số observations
-        min_importance: Độ quan trọng tối thiểu
+        limit: Sá»‘ observations
+        min_importance: Äá»™ quan trá»ng tá»‘i thiá»ƒu
         
     Returns:
-        Dict chứa formatted context
+        Dict chá»©a formatted context
     """
     context_text = memory.get_context_for_session(
         max_observations=limit,
@@ -1194,16 +1194,16 @@ def get_relevant_memory_context(
     cache_ttl_seconds: int = 600
 ) -> Dict[str, Any]:
     """
-    Lấy context memory liên quan trực tiếp đến query để inject vào chatbot.
+    Láº¥y context memory liÃªn quan trá»±c tiáº¿p Ä‘áº¿n query Ä‘á»ƒ inject vÃ o chatbot.
 
     Args:
-        query: Câu truy vấn hoặc keyword
-        limit: Số memory entries tối đa
-        min_importance: Độ quan trọng tối thiểu
-        max_chars: Độ dài context tối đa
+        query: CÃ¢u truy váº¥n hoáº·c keyword
+        limit: Sá»‘ memory entries tá»‘i Ä‘a
+        min_importance: Äá»™ quan trá»ng tá»‘i thiá»ƒu
+        max_chars: Äá»™ dÃ i context tá»‘i Ä‘a
 
     Returns:
-        Dict chứa context rút gọn + danh sách observations liên quan
+        Dict chá»©a context rÃºt gá»n + danh sÃ¡ch observations liÃªn quan
     """
     query = (query or "").strip()
     if not query:
@@ -1222,7 +1222,7 @@ def get_relevant_memory_context(
 @mcp.tool()
 @_safe_tool
 def get_memory_cache_stats() -> Dict[str, Any]:
-    """Lấy thống kê cache context của memory system."""
+    """Láº¥y thá»‘ng kÃª cache context cá»§a memory system."""
     return memory.get_context_cache_stats()
 
 
@@ -1234,14 +1234,14 @@ def clear_memory_context_cache(
     older_than_hours: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    Xóa cache memory_context theo filter.
+    XÃ³a cache memory_context theo filter.
 
     Args:
-        context_type: Lọc theo loại cache (vd: relevant_query)
-        older_than_hours: Chỉ xóa cache cũ hơn N giờ
+        context_type: Lá»c theo loáº¡i cache (vd: relevant_query)
+        older_than_hours: Chá»‰ xÃ³a cache cÅ© hÆ¡n N giá»
 
     Returns:
-        Dict chứa số bản ghi đã xóa
+        Dict chá»©a sá»‘ báº£n ghi Ä‘Ã£ xÃ³a
     """
     if older_than_hours is not None:
         older_than_hours = max(0, min(int(older_than_hours), 24 * 365))
@@ -1263,18 +1263,18 @@ def warm_memory_context_cache(
     force_refresh: bool = False
 ) -> Dict[str, Any]:
     """
-    Warm cache cho relevant memory context bằng danh sách queries.
+    Warm cache cho relevant memory context báº±ng danh sÃ¡ch queries.
 
     Args:
-        queries: Danh sách query cần warm cache
-        limit: Số observations tối đa cho mỗi query
-        min_importance: Độ quan trọng tối thiểu
-        max_chars: Độ dài context tối đa
-        cache_ttl_seconds: TTL của cache
-        force_refresh: Xóa cache relevant_query cũ trước khi warm
+        queries: Danh sÃ¡ch query cáº§n warm cache
+        limit: Sá»‘ observations tá»‘i Ä‘a cho má»—i query
+        min_importance: Äá»™ quan trá»ng tá»‘i thiá»ƒu
+        max_chars: Äá»™ dÃ i context tá»‘i Ä‘a
+        cache_ttl_seconds: TTL cá»§a cache
+        force_refresh: XÃ³a cache relevant_query cÅ© trÆ°á»›c khi warm
 
     Returns:
-        Dict chứa thống kê warm cache
+        Dict chá»©a thá»‘ng kÃª warm cache
     """
     if not queries:
         return _error_response("EMPTY_QUERIES", "queries must not be empty")
@@ -1298,14 +1298,14 @@ def warm_memory_context_cache(
 @_safe_tool
 def get_memory_by_file(file_path: str, limit: int = 20) -> Dict[str, Any]:
     """
-    🆕 Lấy memories liên quan đến file cụ thể.
+    ðŸ†• Láº¥y memories liÃªn quan Ä‘áº¿n file cá»¥ thá»ƒ.
     
     Args:
-        file_path: Đường dẫn file
-        limit: Số kết quả
+        file_path: ÄÆ°á»ng dáº«n file
+        limit: Sá»‘ káº¿t quáº£
         
     Returns:
-        Dict chứa observations liên quan
+        Dict chá»©a observations liÃªn quan
     """
     results = memory.get_observations_by_file(file_path, limit)
     
@@ -1328,13 +1328,13 @@ def get_memory_by_file(file_path: str, limit: int = 20) -> Dict[str, Any]:
 @_safe_tool
 def get_session_history(limit: int = 10) -> Dict[str, Any]:
     """
-    🆕 Lấy lịch sử các sessions gần đây.
+    ðŸ†• Láº¥y lá»‹ch sá»­ cÃ¡c sessions gáº§n Ä‘Ã¢y.
     
     Args:
-        limit: Số sessions
+        limit: Sá»‘ sessions
         
     Returns:
-        Dict chứa session history
+        Dict chá»©a session history
     """
     sessions = memory.get_recent_sessions(limit)
     
@@ -1365,17 +1365,17 @@ def save_important_observation(
     tags: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
-    🆕 Lưu một observation quan trọng thủ công.
+    ðŸ†• LÆ°u má»™t observation quan trá»ng thá»§ cÃ´ng.
     
     Args:
-        observation: Nội dung observation
+        observation: Ná»™i dung observation
         observation_type: decision, bugfix, feature, refactor, discovery
         importance: 1-10 scale
-        file_references: Danh sách files liên quan
+        file_references: Danh sÃ¡ch files liÃªn quan
         tags: Tags (discovery, problem-solution, pattern, etc.)
         
     Returns:
-        Dict với observation_id
+        Dict vá»›i observation_id
     """
     obs_id = memory.save_observation(
         tool_name="manual_save",
@@ -1398,10 +1398,10 @@ def save_important_observation(
 @_safe_tool
 def get_memory_statistics() -> Dict[str, Any]:
     """
-    🆕 Lấy thống kê về memory system.
+    ðŸ†• Láº¥y thá»‘ng kÃª vá» memory system.
     
     Returns:
-        Dict chứa statistics
+        Dict chá»©a statistics
     """
     stats = memory.get_statistics()
     
@@ -1426,15 +1426,15 @@ def run_memory_maintenance(
     vacuum: bool = False
 ) -> Dict[str, Any]:
     """
-    Chạy maintenance cho memory database: archive, hard delete, optional vacuum.
+    Cháº¡y maintenance cho memory database: archive, hard delete, optional vacuum.
 
     Args:
-        retention_days: Sessions completed cũ hơn N ngày sẽ chuyển archived
-        hard_delete_days: Sessions archived cũ hơn N ngày sẽ bị xóa cứng
-        vacuum: Có chạy VACUUM hay không
+        retention_days: Sessions completed cÅ© hÆ¡n N ngÃ y sáº½ chuyá»ƒn archived
+        hard_delete_days: Sessions archived cÅ© hÆ¡n N ngÃ y sáº½ bá»‹ xÃ³a cá»©ng
+        vacuum: CÃ³ cháº¡y VACUUM hay khÃ´ng
 
     Returns:
-        Dict chứa thống kê maintenance
+        Dict chá»©a thá»‘ng kÃª maintenance
     """
     retention_days = max(1, min(retention_days, 3650))
     hard_delete_days = max(retention_days, min(hard_delete_days, 3650))
@@ -1461,7 +1461,7 @@ def run_memory_maintenance(
 
 @mcp.resource("config://model")
 def get_model_config() -> str:
-    """Cấu hình models của AI-Assistant"""
+    """Cáº¥u hÃ¬nh models cá»§a AI-Assistant"""
     config_file = BASE_DIR / "config" / "model_config.py"
     if config_file.exists():
         with open(config_file, 'r', encoding='utf-8') as f:
@@ -1471,7 +1471,7 @@ def get_model_config() -> str:
 
 @mcp.resource("config://logging")
 def get_logging_config() -> str:
-    """Cấu hình logging của AI-Assistant"""
+    """Cáº¥u hÃ¬nh logging cá»§a AI-Assistant"""
     config_file = BASE_DIR / "config" / "logging_config.py"
     if config_file.exists():
         with open(config_file, 'r', encoding='utf-8') as f:
@@ -1481,7 +1481,7 @@ def get_logging_config() -> str:
 
 @mcp.resource("docs://readme")
 def get_readme() -> str:
-    """README của AI-Assistant project"""
+    """README cá»§a AI-Assistant project"""
     readme_file = BASE_DIR / "README.md"
     if readme_file.exists():
         with open(readme_file, 'r', encoding='utf-8') as f:
@@ -1491,7 +1491,7 @@ def get_readme() -> str:
 
 @mcp.resource("docs://structure")
 def get_project_structure() -> str:
-    """Cấu trúc thư mục của AI-Assistant"""
+    """Cáº¥u trÃºc thÆ° má»¥c cá»§a AI-Assistant"""
     structure_file = BASE_DIR / "docs" / "STRUCTURE.md"
     if structure_file.exists():
         with open(structure_file, 'r', encoding='utf-8') as f:
@@ -1501,7 +1501,7 @@ def get_project_structure() -> str:
 
 @mcp.resource("memory://context")
 def get_memory_context_resource() -> str:
-    """🆕 Context từ memory để inject vào session"""
+    """ðŸ†• Context tá»« memory Ä‘á»ƒ inject vÃ o session"""
     return memory.get_context_for_session(max_observations=30, min_importance=5)
 
 
@@ -1510,102 +1510,102 @@ def get_memory_context_resource() -> str:
 @mcp.prompt()
 def code_review(file_path: str) -> str:
     """
-    Prompt template để review code.
+    Prompt template Ä‘á»ƒ review code.
     
     Args:
-        file_path: Đường dẫn file cần review
+        file_path: ÄÆ°á»ng dáº«n file cáº§n review
     """
-    return f"""Hãy review code trong file: {file_path}
+    return f"""HÃ£y review code trong file: {file_path}
 
-Vui lòng phân tích:
-1. Code quality và best practices
-2. Potential bugs hoặc security issues
+Vui lÃ²ng phÃ¢n tÃ­ch:
+1. Code quality vÃ  best practices
+2. Potential bugs hoáº·c security issues
 3. Performance concerns
 4. Suggestions for improvement
 
-Sử dụng tool read_file_content để đọc file và phân tích chi tiết."""
+Sá»­ dá»¥ng tool read_file_content Ä‘á»ƒ Ä‘á»c file vÃ  phÃ¢n tÃ­ch chi tiáº¿t."""
 
 
 @mcp.prompt()
 def debug_error(error_message: str, service_name: str) -> str:
     """
-    Prompt template để debug lỗi.
+    Prompt template Ä‘á»ƒ debug lá»—i.
     
     Args:
-        error_message: Thông báo lỗi
-        service_name: Tên service bị lỗi
+        error_message: ThÃ´ng bÃ¡o lá»—i
+        service_name: TÃªn service bá»‹ lá»—i
     """
-    return f"""Service '{service_name}' đang gặp lỗi:
+    return f"""Service '{service_name}' Ä‘ang gáº·p lá»—i:
 Error: {error_message}
 
-Hãy giúp tôi debug bằng cách:
-1. Tìm kiếm logs liên quan (search_logs)
-2. Kiểm tra memory xem có gặp lỗi tương tự trước đây không (search_memory)
-3. Xác định root cause
-4. Đề xuất solution"""
+HÃ£y giÃºp tÃ´i debug báº±ng cÃ¡ch:
+1. TÃ¬m kiáº¿m logs liÃªn quan (search_logs)
+2. Kiá»ƒm tra memory xem cÃ³ gáº·p lá»—i tÆ°Æ¡ng tá»± trÆ°á»›c Ä‘Ã¢y khÃ´ng (search_memory)
+3. XÃ¡c Ä‘á»‹nh root cause
+4. Äá» xuáº¥t solution"""
 
 
 @mcp.prompt()
 def explain_code(file_path: str, function_name: Optional[str] = None) -> str:
     """
-    Prompt template để giải thích code.
+    Prompt template Ä‘á»ƒ giáº£i thÃ­ch code.
     
     Args:
-        file_path: Đường dẫn file
-        function_name: Tên function cần giải thích (optional)
+        file_path: ÄÆ°á»ng dáº«n file
+        function_name: TÃªn function cáº§n giáº£i thÃ­ch (optional)
     """
     target = f"function {function_name} trong " if function_name else ""
-    return f"""Hãy giải thích code {target}file: {file_path}
+    return f"""HÃ£y giáº£i thÃ­ch code {target}file: {file_path}
 
-Vui lòng:
-1. Đọc code (read_file_content)
-2. Kiểm tra memory xem có context về file này không (get_memory_by_file)
-3. Giải thích logic bằng tiếng Việt
+Vui lÃ²ng:
+1. Äá»c code (read_file_content)
+2. Kiá»ƒm tra memory xem cÃ³ context vá» file nÃ y khÃ´ng (get_memory_by_file)
+3. Giáº£i thÃ­ch logic báº±ng tiáº¿ng Viá»‡t
 4. Input/Output expected
-5. Các edge cases cần lưu ý"""
+5. CÃ¡c edge cases cáº§n lÆ°u Ã½"""
 
 
 @mcp.prompt()
 def session_summary() -> str:
-    """🆕 Prompt để tạo summary cho session"""
-    return """Hãy tạo summary cho session làm việc vừa rồi.
+    """ðŸ†• Prompt Ä‘á»ƒ táº¡o summary cho session"""
+    return """HÃ£y táº¡o summary cho session lÃ m viá»‡c vá»«a rá»“i.
 
-Sử dụng:
-1. get_session_history để xem session hiện tại
-2. get_memory_statistics để xem các tools đã dùng
-3. Tổng hợp thành summary ngắn gọn với:
-   - Các công việc đã làm
-   - Files đã thao tác
-   - Decisions quan trọng
+Sá»­ dá»¥ng:
+1. get_session_history Ä‘á»ƒ xem session hiá»‡n táº¡i
+2. get_memory_statistics Ä‘á»ƒ xem cÃ¡c tools Ä‘Ã£ dÃ¹ng
+3. Tá»•ng há»£p thÃ nh summary ngáº¯n gá»n vá»›i:
+   - CÃ¡c cÃ´ng viá»‡c Ä‘Ã£ lÃ m
+   - Files Ä‘Ã£ thao tÃ¡c
+   - Decisions quan trá»ng
    - Next steps"""
 
 
 # ==================== MAIN ====================
 
 def main():
-    """Khởi động MCP server"""
-    print(f"🚀 Starting AI-Assistant MCP Server V2.0 WITH MEMORY...")
-    print(f"📁 Base Directory: {BASE_DIR}")
-    print(f"🧠 Memory Database: {memory.db_path}")
-    print(f"📋 Session ID: {SESSION_ID}")
-    print(f"\n✨ NEW FEATURES:")
-    print(f"   🔧 Tools: All original tools + 11 memory tools")
-    print(f"   📦 Resources: Config, docs + memory context")
-    print(f"   💬 Prompts: Code review, debug, explain + session summary")
-    print(f"   🧠 MEMORY: Persistent storage, search history, AI observations")
-    print(f"\n✅ Server is ready!")
-    print(f"📡 Listening for MCP client connections...")
-    print(f"\n💡 TIP: Sau mỗi session, memory sẽ tự động lưu lại!")
+    """Khá»Ÿi Ä‘á»™ng MCP server"""
+    print(f"ðŸš€ Starting AI-Assistant MCP Server V2.0 WITH MEMORY...")
+    print(f"ðŸ“ Base Directory: {BASE_DIR}")
+    print(f"ðŸ§  Memory Database: {memory.db_path}")
+    print(f"ðŸ“‹ Session ID: {SESSION_ID}")
+    print(f"\nâœ¨ NEW FEATURES:")
+    print(f"   ðŸ”§ Tools: All original tools + 11 memory tools")
+    print(f"   ðŸ“¦ Resources: Config, docs + memory context")
+    print(f"   ðŸ’¬ Prompts: Code review, debug, explain + session summary")
+    print(f"   ðŸ§  MEMORY: Persistent storage, search history, AI observations")
+    print(f"\nâœ… Server is ready!")
+    print(f"ðŸ“¡ Listening for MCP client connections...")
+    print(f"\nðŸ’¡ TIP: Sau má»—i session, memory sáº½ tá»± Ä‘á»™ng lÆ°u láº¡i!")
     
     try:
         # Run server
         mcp.run()
     finally:
         # End session on shutdown
-        print(f"\n\n🛑 Shutting down...")
-        print(f"💾 Saving session summary...")
+        print(f"\n\nðŸ›‘ Shutting down...")
+        print(f"ðŸ’¾ Saving session summary...")
         memory.end_session(SESSION_ID, summary="Session ended")
-        print(f"✅ Session saved: {SESSION_ID}")
+        print(f"âœ… Session saved: {SESSION_ID}")
 
 
 if __name__ == "__main__":

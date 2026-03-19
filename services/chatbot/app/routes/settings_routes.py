@@ -1,4 +1,4 @@
-"""
+﻿"""
 Settings Routes
 
 API endpoints for user settings management.

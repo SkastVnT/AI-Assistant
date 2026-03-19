@@ -1,1 +1,1 @@
-"""Source code package for AI Assistant Hub."""
+﻿"""Source code package for AI Assistant Hub."""

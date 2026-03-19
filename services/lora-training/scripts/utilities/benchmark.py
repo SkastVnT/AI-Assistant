@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Benchmark and compare different LoRA training configurations
 """
@@ -211,7 +211,7 @@ class TrainingBenchmark:
         print("="*80)
         
         for result in self.results:
-            status = "✓" if result['success'] else "✗"
+            status = "âœ“" if result['success'] else "âœ—"
             elapsed = result['elapsed_time']
             
             print(f"{status} {result['variant_name']}: {elapsed:.1f}s")

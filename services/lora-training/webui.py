@@ -1,4 +1,4 @@
-"""
+﻿"""
 LoRA Training WebUI
 Real-time training monitoring with Socket.IO
 Similar to Stable Diffusion WebUI interface
@@ -34,11 +34,11 @@ try:
     )
     REDIS_ENABLED = is_redis_available()
     if REDIS_ENABLED:
-        print("✅ Redis enabled - Using task queue and caching")
+        print("âœ… Redis enabled - Using task queue and caching")
     else:
-        print("⚠️ Redis not available - Using in-memory mode")
+        print("âš ï¸ Redis not available - Using in-memory mode")
 except ImportError:
-    print("⚠️ Redis module not installed - Using in-memory mode")
+    print("âš ï¸ Redis module not installed - Using in-memory mode")
     REDIS_ENABLED = False
 
 app = Flask(__name__, 
@@ -272,7 +272,7 @@ def recommend_config():
         if REDIS_ENABLED:
             cached_config = cache.get_ai_recommendation(dataset_path, training_goal)
             if cached_config:
-                monitor.on_log("📦 Using cached AI recommendations")
+                monitor.on_log("ðŸ“¦ Using cached AI recommendations")
                 return jsonify({
                     'success': True,
                     'config': cached_config,
@@ -281,8 +281,8 @@ def recommend_config():
         
         from utils.config_recommender import quick_recommend
         
-        monitor.on_log("🤖 Analyzing dataset metadata...")
-        monitor.on_log("⚠️ No images sent to Gemini - privacy preserved!")
+        monitor.on_log("ðŸ¤– Analyzing dataset metadata...")
+        monitor.on_log("âš ï¸ No images sent to Gemini - privacy preserved!")
         
         # Get recommendations
         config = quick_recommend(dataset_path, training_goal)
@@ -290,9 +290,9 @@ def recommend_config():
         # Cache result (if Redis enabled)
         if REDIS_ENABLED:
             cache.cache_ai_recommendation(dataset_path, training_goal, config)
-            monitor.on_log("💾 Cached AI recommendations for future use")
+            monitor.on_log("ðŸ’¾ Cached AI recommendations for future use")
         
-        monitor.on_log(f"✅ AI recommendations ready!")
+        monitor.on_log(f"âœ… AI recommendations ready!")
         monitor.on_log(f"Recommended LR: {config['learning_rate']}")
         monitor.on_log(f"Network Dim: {config['network_dim']}")
         monitor.on_log(f"Epochs: {config['epochs']}")
@@ -304,7 +304,7 @@ def recommend_config():
         
     except Exception as e:
         error_msg = f"Error getting recommendations: {str(e)}"
-        monitor.on_log(f"❌ {error_msg}")
+        monitor.on_log(f"âŒ {error_msg}")
         return jsonify({'error': error_msg}), 500
 
 
@@ -387,7 +387,7 @@ def resize_dataset_endpoint():
         try:
             from utils.dataset_tools import DatasetResizer
             
-            monitor.on_log(f"🖼️ Resizing images to {target_width}x{target_height}...")
+            monitor.on_log(f"ðŸ–¼ï¸ Resizing images to {target_width}x{target_height}...")
             
             resizer = DatasetResizer(dataset_path, on_progress=monitor.on_log)
             stats = resizer.resize_dataset(
@@ -396,11 +396,11 @@ def resize_dataset_endpoint():
                 quality=quality
             )
             
-            monitor.on_log(f"✅ Resize complete!")
+            monitor.on_log(f"âœ… Resize complete!")
             monitor.on_log(f"Processed: {stats['processed']}, Saved: {stats['size_saved_mb']:.2f} MB")
             
         except Exception as e:
-            monitor.on_log(f"❌ Error: {str(e)}")
+            monitor.on_log(f"âŒ Error: {str(e)}")
     
     thread = threading.Thread(target=resize_worker, daemon=True)
     thread.start()
@@ -424,7 +424,7 @@ def convert_format_endpoint():
         try:
             from utils.dataset_tools import ImageFormatConverter
             
-            monitor.on_log(f"🔄 Converting images to {target_format.upper()}...")
+            monitor.on_log(f"ðŸ”„ Converting images to {target_format.upper()}...")
             
             converter = ImageFormatConverter(dataset_path, on_progress=monitor.on_log)
             stats = converter.convert_all(
@@ -433,11 +433,11 @@ def convert_format_endpoint():
                 delete_original=delete_original
             )
             
-            monitor.on_log(f"✅ Conversion complete!")
+            monitor.on_log(f"âœ… Conversion complete!")
             monitor.on_log(f"Converted: {stats['converted']}, Size change: {stats['size_saved_mb']:+.2f} MB")
             
         except Exception as e:
-            monitor.on_log(f"❌ Error: {str(e)}")
+            monitor.on_log(f"âŒ Error: {str(e)}")
     
     thread = threading.Thread(target=convert_worker, daemon=True)
     thread.start()
@@ -459,16 +459,16 @@ def deduplicate_endpoint():
         try:
             from utils.dataset_tools import ImageDeduplicator
             
-            monitor.on_log(f"🔍 Scanning for duplicate images...")
+            monitor.on_log(f"ðŸ” Scanning for duplicate images...")
             
             deduper = ImageDeduplicator(dataset_path, on_progress=monitor.on_log)
             stats = deduper.remove_duplicates(keep=keep_strategy)
             
-            monitor.on_log(f"✅ Deduplication complete!")
+            monitor.on_log(f"âœ… Deduplication complete!")
             monitor.on_log(f"Removed: {stats['removed']}, Freed: {stats['space_freed_mb']:.2f} MB")
             
         except Exception as e:
-            monitor.on_log(f"❌ Error: {str(e)}")
+            monitor.on_log(f"âŒ Error: {str(e)}")
     
     thread = threading.Thread(target=dedupe_worker, daemon=True)
     thread.start()
@@ -489,16 +489,16 @@ def organize_dataset_endpoint():
         try:
             from utils.dataset_tools import DatasetOrganizer
             
-            monitor.on_log(f"📁 Organizing dataset by resolution...")
+            monitor.on_log(f"ðŸ“ Organizing dataset by resolution...")
             
             organizer = DatasetOrganizer(dataset_path, on_progress=monitor.on_log)
             stats = organizer.organize_by_resolution()
             
-            monitor.on_log(f"✅ Organization complete!")
+            monitor.on_log(f"âœ… Organization complete!")
             monitor.on_log(f"Moved: {stats['moved']} images")
             
         except Exception as e:
-            monitor.on_log(f"❌ Error: {str(e)}")
+            monitor.on_log(f"âŒ Error: {str(e)}")
     
     thread = threading.Thread(target=organize_worker, daemon=True)
     thread.start()
@@ -519,7 +519,7 @@ def validate_dataset_endpoint():
         try:
             from utils.dataset_tools import DatasetValidator
             
-            monitor.on_log(f"🔍 Validating dataset...")
+            monitor.on_log(f"ðŸ” Validating dataset...")
             
             validator = DatasetValidator(dataset_path, on_progress=monitor.on_log)
             issues = validator.validate()
@@ -527,12 +527,12 @@ def validate_dataset_endpoint():
             total_issues = sum(len(items) for items in issues.values())
             
             if total_issues == 0:
-                monitor.on_log(f"✅ No issues found! Dataset is clean.")
+                monitor.on_log(f"âœ… No issues found! Dataset is clean.")
             else:
-                monitor.on_log(f"⚠️ Found {total_issues} issues. Check logs above for details.")
+                monitor.on_log(f"âš ï¸ Found {total_issues} issues. Check logs above for details.")
             
         except Exception as e:
-            monitor.on_log(f"❌ Error: {str(e)}")
+            monitor.on_log(f"âŒ Error: {str(e)}")
     
     thread = threading.Thread(target=validate_worker, daemon=True)
     thread.start()

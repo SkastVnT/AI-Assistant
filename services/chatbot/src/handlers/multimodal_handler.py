@@ -1,4 +1,4 @@
-"""
+﻿"""
 Multimodal AI Handler - Vision + Text + Audio Integration
 Supports: Image analysis, Document OCR, Audio transcription, Combined analysis
 """
@@ -61,17 +61,17 @@ class MultimodalHandler:
         # Initialize clients
         if self.gemini_api_key:
             self.gemini_client = genai.Client(api_key=self.gemini_api_key)
-            logger.info("✅ Gemini Vision initialized")
+            logger.info("âœ… Gemini Vision initialized")
         else:
             self.gemini_client = None
-            logger.warning("⚠️ Gemini API key not found")
+            logger.warning("âš ï¸ Gemini API key not found")
         
         if self.openai_api_key:
             self.openai_client = OpenAI(api_key=self.openai_api_key)
-            logger.info("✅ OpenAI Vision initialized")
+            logger.info("âœ… OpenAI Vision initialized")
         else:
             self.openai_client = None
-            logger.warning("⚠️ OpenAI API key not found")
+            logger.warning("âš ï¸ OpenAI API key not found")
     
     # =========================================================================
     # IMAGE ANALYSIS
@@ -139,28 +139,28 @@ class MultimodalHandler:
         image = Image.open(image_path)
         
         # Create enhanced prompt
-        lang_instruction = "Trả lời bằng tiếng Việt." if language == "vi" else "Answer in English."
+        lang_instruction = "Tráº£ lá»i báº±ng tiáº¿ng Viá»‡t." if language == "vi" else "Answer in English."
         enhanced_prompt = f"""
 {prompt}
 
 {lang_instruction}
 
-Hãy phân tích chi tiết:
-1. Mô tả tổng quan về hình ảnh
-2. Các đối tượng chính trong ảnh
-3. Màu sắc và bố cục
-4. Văn bản nếu có (OCR)
-5. Cảm xúc và không khí
-6. Ngữ cảnh và bối cảnh
+HÃ£y phÃ¢n tÃ­ch chi tiáº¿t:
+1. MÃ´ táº£ tá»•ng quan vá» hÃ¬nh áº£nh
+2. CÃ¡c Ä‘á»‘i tÆ°á»£ng chÃ­nh trong áº£nh
+3. MÃ u sáº¯c vÃ  bá»‘ cá»¥c
+4. VÄƒn báº£n náº¿u cÃ³ (OCR)
+5. Cáº£m xÃºc vÃ  khÃ´ng khÃ­
+6. Ngá»¯ cáº£nh vÃ  bá»‘i cáº£nh
 
-Trả về JSON format:
+Tráº£ vá» JSON format:
 {{
-    "analysis": "Phân tích chi tiết",
+    "analysis": "PhÃ¢n tÃ­ch chi tiáº¿t",
     "objects_detected": ["object1", "object2"],
-    "scene_description": "Mô tả cảnh",
-    "text_detected": "Văn bản trong ảnh",
+    "scene_description": "MÃ´ táº£ cáº£nh",
+    "text_detected": "VÄƒn báº£n trong áº£nh",
     "colors": ["color1", "color2"],
-    "mood": "Cảm xúc chung"
+    "mood": "Cáº£m xÃºc chung"
 }}
 """
         
@@ -556,19 +556,19 @@ Trả về JSON format:
         combined_context = "\n\n".join(context_parts)
         
         # Create synthesis prompt
-        lang_instruction = "Trả lời bằng tiếng Việt." if language == "vi" else "Answer in English."
+        lang_instruction = "Tráº£ lá»i báº±ng tiáº¿ng Viá»‡t." if language == "vi" else "Answer in English."
         synthesis_prompt = f"""
-Bạn là AI assistant phân tích đa phương thức (multimodal).
+Báº¡n lÃ  AI assistant phÃ¢n tÃ­ch Ä‘a phÆ°Æ¡ng thá»©c (multimodal).
 
-CONTEXT từ nhiều nguồn:
+CONTEXT tá»« nhiá»u nguá»“n:
 {combined_context}
 
 QUESTION: {query}
 
 {lang_instruction}
 
-Hãy tổng hợp thông tin từ TẤT CẢ các nguồn trên để trả lời câu hỏi.
-Nêu rõ thông tin từ nguồn nào và làm rõ mối liên hệ giữa các nguồn.
+HÃ£y tá»•ng há»£p thÃ´ng tin tá»« Táº¤T Cáº¢ cÃ¡c nguá»“n trÃªn Ä‘á»ƒ tráº£ lá»i cÃ¢u há»i.
+NÃªu rÃµ thÃ´ng tin tá»« nguá»“n nÃ o vÃ  lÃ m rÃµ má»‘i liÃªn há»‡ giá»¯a cÃ¡c nguá»“n.
 """
         
         # Use Gemini for synthesis

@@ -1,16 +1,26 @@
-"""
+﻿"""
 Configuration module for VistralS2T
 Handles environment variables and model configurations
 """
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
 
 # Load environment variables
 config_dir = Path(__file__).parent
-load_dotenv(config_dir / ".env")
-
+load_shared_env(__file__)
 # API Keys
 HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -43,3 +53,5 @@ __all__ = [
     "OUTPUT_VISTRAL",
     "OUTPUT_DUAL",
 ]
+
+

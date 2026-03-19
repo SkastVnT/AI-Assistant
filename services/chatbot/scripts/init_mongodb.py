@@ -1,4 +1,4 @@
-"""
+﻿"""
 MongoDB Database Initialization Script for ChatBot Service
 Creates collections, indexes, and validation rules
 Run this script once to set up the database
@@ -21,7 +21,7 @@ from datetime import datetime
 def create_collections_with_validation(db):
     """Create collections with schema validation"""
     
-    print("📦 Creating collections with validation rules...")
+    print("ðŸ“¦ Creating collections with validation rules...")
     
     # 1. Conversations collection
     try:
@@ -43,9 +43,9 @@ def create_collections_with_validation(db):
                 }
             }
         })
-        print("  ✅ Created: conversations")
+        print("  âœ… Created: conversations")
     except Exception as e:
-        print(f"  ⚠️  conversations already exists or error: {e}")
+        print(f"  âš ï¸  conversations already exists or error: {e}")
     
     # 2. Messages collection
     try:
@@ -68,9 +68,9 @@ def create_collections_with_validation(db):
                 }
             }
         })
-        print("  ✅ Created: messages")
+        print("  âœ… Created: messages")
     except Exception as e:
-        print(f"  ⚠️  messages already exists or error: {e}")
+        print(f"  âš ï¸  messages already exists or error: {e}")
     
     # 3. Chatbot memory collection
     try:
@@ -93,9 +93,9 @@ def create_collections_with_validation(db):
                 }
             }
         })
-        print("  ✅ Created: chatbot_memory")
+        print("  âœ… Created: chatbot_memory")
     except Exception as e:
-        print(f"  ⚠️  chatbot_memory already exists or error: {e}")
+        print(f"  âš ï¸  chatbot_memory already exists or error: {e}")
     
     # 4. Uploaded files collection
     try:
@@ -118,9 +118,9 @@ def create_collections_with_validation(db):
                 }
             }
         })
-        print("  ✅ Created: uploaded_files")
+        print("  âœ… Created: uploaded_files")
     except Exception as e:
-        print(f"  ⚠️  uploaded_files already exists or error: {e}")
+        print(f"  âš ï¸  uploaded_files already exists or error: {e}")
     
     # 5. Users collection (optional)
     try:
@@ -144,9 +144,9 @@ def create_collections_with_validation(db):
                 }
             }
         })
-        print("  ✅ Created: users")
+        print("  âœ… Created: users")
     except Exception as e:
-        print(f"  ⚠️  users already exists or error: {e}")
+        print(f"  âš ï¸  users already exists or error: {e}")
     
     # 6. User settings collection
     try:
@@ -163,15 +163,15 @@ def create_collections_with_validation(db):
                 }
             }
         })
-        print("  ✅ Created: user_settings")
+        print("  âœ… Created: user_settings")
     except Exception as e:
-        print(f"  ⚠️  user_settings already exists or error: {e}")
+        print(f"  âš ï¸  user_settings already exists or error: {e}")
 
 
 def create_indexes(db):
     """Create indexes for optimal query performance"""
     
-    print("\n🔍 Creating indexes...")
+    print("\nðŸ” Creating indexes...")
     
     # Conversations indexes
     conversations_indexes = [
@@ -181,7 +181,7 @@ def create_indexes(db):
         IndexModel([("model", ASCENDING)])
     ]
     result = db.conversations.create_indexes(conversations_indexes)
-    print(f"  ✅ conversations: {len(result)} indexes")
+    print(f"  âœ… conversations: {len(result)} indexes")
     
     # Messages indexes
     messages_indexes = [
@@ -191,7 +191,7 @@ def create_indexes(db):
         IndexModel([("parent_message_id", ASCENDING)])  # For versioning
     ]
     result = db.messages.create_indexes(messages_indexes)
-    print(f"  ✅ messages: {len(result)} indexes")
+    print(f"  âœ… messages: {len(result)} indexes")
     
     # Chatbot memory indexes
     memory_indexes = [
@@ -202,7 +202,7 @@ def create_indexes(db):
         IndexModel([("is_public", ASCENDING)])
     ]
     result = db.chatbot_memory.create_indexes(memory_indexes)
-    print(f"  ✅ chatbot_memory: {len(result)} indexes")
+    print(f"  âœ… chatbot_memory: {len(result)} indexes")
     
     # Uploaded files indexes
     files_indexes = [
@@ -212,7 +212,7 @@ def create_indexes(db):
         IndexModel([("original_filename", ASCENDING)])
     ]
     result = db.uploaded_files.create_indexes(files_indexes)
-    print(f"  ✅ uploaded_files: {len(result)} indexes")
+    print(f"  âœ… uploaded_files: {len(result)} indexes")
     
     # Users indexes
     users_indexes = [
@@ -222,20 +222,20 @@ def create_indexes(db):
         IndexModel([("role", ASCENDING)])
     ]
     result = db.users.create_indexes(users_indexes)
-    print(f"  ✅ users: {len(result)} indexes")
+    print(f"  âœ… users: {len(result)} indexes")
     
     # User settings indexes
     settings_indexes = [
         IndexModel([("user_id", ASCENDING)], unique=True)
     ]
     result = db.user_settings.create_indexes(settings_indexes)
-    print(f"  ✅ user_settings: {len(result)} indexes")
+    print(f"  âœ… user_settings: {len(result)} indexes")
 
 
 def insert_sample_data(db):
     """Insert sample data for testing"""
     
-    print("\n📝 Inserting sample data...")
+    print("\nðŸ“ Inserting sample data...")
     
     # Sample conversation
     conversation = {
@@ -254,7 +254,7 @@ def insert_sample_data(db):
         "updated_at": datetime.utcnow()
     }
     conv_id = db.conversations.insert_one(conversation).inserted_id
-    print(f"  ✅ Created sample conversation: {conv_id}")
+    print(f"  âœ… Created sample conversation: {conv_id}")
     
     # Sample messages
     messages = [
@@ -274,7 +274,7 @@ def insert_sample_data(db):
         {
             "conversation_id": conv_id,
             "role": "assistant",
-            "content": "Hello! I'm ChatBot v2.0. I can help you with:\n\n1. 💬 Natural conversations\n2. 📁 File analysis (PDFs, images, code)\n3. 🎨 Image generation (via Stable Diffusion)\n4. 🧠 Memory and learning\n5. 🔧 Multiple AI models (GROK, GPT, Qwen)\n\nHow can I assist you today?",
+            "content": "Hello! I'm ChatBot v2.0. I can help you with:\n\n1. ðŸ’¬ Natural conversations\n2. ðŸ“ File analysis (PDFs, images, code)\n3. ðŸŽ¨ Image generation (via Stable Diffusion)\n4. ðŸ§  Memory and learning\n5. ðŸ”§ Multiple AI models (GROK, GPT, Qwen)\n\nHow can I assist you today?",
             "images": [],
             "files": [],
             "metadata": {
@@ -292,7 +292,7 @@ def insert_sample_data(db):
         }
     ]
     db.messages.insert_many(messages)
-    print(f"  ✅ Created {len(messages)} sample messages")
+    print(f"  âœ… Created {len(messages)} sample messages")
     
     # Sample memory
     memory = {
@@ -313,7 +313,7 @@ def insert_sample_data(db):
         "created_at": datetime.utcnow()
     }
     mem_id = db.chatbot_memory.insert_one(memory).inserted_id
-    print(f"  ✅ Created sample memory: {mem_id}")
+    print(f"  âœ… Created sample memory: {mem_id}")
     
     # Sample user settings
     settings = {
@@ -341,13 +341,13 @@ def insert_sample_data(db):
         "updated_at": datetime.utcnow()
     }
     settings_id = db.user_settings.insert_one(settings).inserted_id
-    print(f"  ✅ Created sample user settings: {settings_id}")
+    print(f"  âœ… Created sample user settings: {settings_id}")
 
 
 def print_database_stats(db):
     """Print database statistics"""
     
-    print("\n📊 Database Statistics:")
+    print("\nðŸ“Š Database Statistics:")
     print("=" * 50)
     
     collections = [
@@ -362,7 +362,7 @@ def print_database_stats(db):
     for coll_name in collections:
         count = db[coll_name].count_documents({})
         indexes = len(db[coll_name].list_indexes())
-        print(f"  📦 {coll_name:20} | Documents: {count:5} | Indexes: {indexes}")
+        print(f"  ðŸ“¦ {coll_name:20} | Documents: {count:5} | Indexes: {indexes}")
     
     print("=" * 50)
 
@@ -370,35 +370,35 @@ def print_database_stats(db):
 def main():
     """Main initialization function"""
     
-    print("🚀 MongoDB Database Initialization for ChatBot Service")
+    print("ðŸš€ MongoDB Database Initialization for ChatBot Service")
     print("=" * 60)
     
     # Test connection
-    print("\n1️⃣  Testing connection...")
+    print("\n1ï¸âƒ£  Testing connection...")
     if not test_connection():
-        print("❌ Connection failed! Please check your MongoDB URI.")
+        print("âŒ Connection failed! Please check your MongoDB URI.")
         return
     
     # Get database
     db = get_db()
     
     # Create collections with validation
-    print("\n2️⃣  Setting up collections...")
+    print("\n2ï¸âƒ£  Setting up collections...")
     create_collections_with_validation(db)
     
     # Create indexes
-    print("\n3️⃣  Creating indexes...")
+    print("\n3ï¸âƒ£  Creating indexes...")
     create_indexes(db)
     
     # Insert sample data
-    print("\n4️⃣  Inserting sample data...")
+    print("\n4ï¸âƒ£  Inserting sample data...")
     insert_sample_data(db)
     
     # Print statistics
     print_database_stats(db)
     
-    print("\n✨ Database initialization complete!")
-    print("\n📖 Next steps:")
+    print("\nâœ¨ Database initialization complete!")
+    print("\nðŸ“– Next steps:")
     print("  1. Test the connection: python -c 'from config.mongodb_config import test_connection; test_connection()'")
     print("  2. View sample data: Connect to MongoDB Atlas and browse collections")
     print("  3. Update app.py to use MongoDB instead of SQLite")

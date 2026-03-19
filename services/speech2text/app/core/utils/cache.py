@@ -1,4 +1,4 @@
-"""
+﻿"""
 Caching Utilities for VistralS2T
 Simple file-based caching for transcripts and results
 """

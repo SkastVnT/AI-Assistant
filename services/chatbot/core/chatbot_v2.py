@@ -1,4 +1,4 @@
-"""
+﻿"""
 ChatbotAgent class - Multi-model AI chatbot with streaming, retry, and fallback support
 Refactored to eliminate code duplication and add enterprise features
 """
@@ -247,7 +247,7 @@ class ChatbotAgent:
         
         if handler is None:
             return ChatResponse(
-                content=f"❌ Model '{model}' not available or API key not configured",
+                content=f"âŒ Model '{model}' not available or API key not configured",
                 model=model,
                 provider="unknown",
                 success=False,
@@ -327,7 +327,7 @@ class ChatbotAgent:
         config = self.registry.get_config(model)
         
         if handler is None:
-            yield f"❌ Model '{model}' not available"
+            yield f"âŒ Model '{model}' not available"
             return
         
         if not config or not config.supports_streaming:
@@ -354,7 +354,7 @@ class ChatbotAgent:
             
         except Exception as e:
             logger.error(f"[{model}] Streaming error: {e}")
-            yield f"❌ Error: {str(e)}"
+            yield f"âŒ Error: {str(e)}"
     
     def _save_to_history(
         self,
@@ -439,9 +439,9 @@ class ChatbotAgent:
             if response.success:
                 result_text = response.content
                 if response.is_fallback:
-                    result_text = f"⚠️ [Fallback to {response.model}]\n\n{result_text}"
+                    result_text = f"âš ï¸ [Fallback to {response.model}]\n\n{result_text}"
             else:
-                result_text = f"❌ Error: {response.error}"
+                result_text = f"âŒ Error: {response.error}"
             
             # Save to history
             self._save_to_history(message, result_text, response.model, history, response.thinking_process)
@@ -467,7 +467,7 @@ class ChatbotAgent:
     ) -> Dict[str, Any]:
         """Chat with local models"""
         if not LOCALMODELS_AVAILABLE:
-            return {'response': "❌ Local models not available", 'thinking_process': None}
+            return {'response': "âŒ Local models not available", 'thinking_process': None}
         
         try:
             model_map = {
@@ -509,7 +509,7 @@ class ChatbotAgent:
             return {'response': response, 'thinking_process': None}
             
         except Exception as e:
-            error_msg = f"❌ Local model error: {str(e)}"
+            error_msg = f"âŒ Local model error: {str(e)}"
             return {'response': error_msg, 'thinking_process': None}
     
     # Legacy methods for backwards compatibility

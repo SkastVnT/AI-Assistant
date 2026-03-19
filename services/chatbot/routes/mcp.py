@@ -1,4 +1,4 @@
-"""
+﻿"""
 MCP (Model Context Protocol) integration routes
 """
 import sys
@@ -23,9 +23,9 @@ try:
     from src.utils.mcp_integration import get_mcp_client, inject_code_context
     mcp_client = get_mcp_client()
     MCP_AVAILABLE = True
-    logger.info("✅ MCP integration loaded in routes")
+    logger.info("âœ… MCP integration loaded in routes")
 except ImportError as e:
-    logger.warning(f"⚠️ MCP integration not available: {e}")
+    logger.warning(f"âš ï¸ MCP integration not available: {e}")
     
     def inject_code_context(message, context_data, selected_files=None):
         return message

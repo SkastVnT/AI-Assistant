@@ -1,10 +1,10 @@
-"""
+﻿"""
 FINAL SOLUTION: Use Whisper large-v3 only with post-processing
 No need for heavy LLM - Whisper already captures 100% conversation
 """
 import re
 
-whisper_result = """ Cảm ơn quý khách đã gọi đến giao hàng nhanh. Cước phí của gọi là 1 ngàn đồng 1 phút.  Hãy subscribe cho kênh La La School Để không bỏ lỡ những video hấp dẫn  Nhân viên hỗ trợ khách hàng quay vô sân game  Thì hỗ trợ cho chị  À em ơi em hỗ trợ dùm chị  Cái đơn hàng là  G I  V B  B B B B  I 6  9  F  F là F  Em xin tên chị  À chị Hoàng Đông  Chị đơn gửi cho  Đi xa thật ở Duyên Hải Trà Vinh hả chị?  Đúng rồi  Em thấy đơn mình có xác nhận nhau lại  Mà chưa có phân tuyến cho nhân viên giao  Bà yêu cầu giao đơn đúng không chị?  Dạ  Nhưng mà cho em báo cái này một xíu  Có nghĩa là nhiều lúc  Trong cái thời gian này là  Em vẫn thông cảm cái đoạn là  Mưa gió thì em không nói  Cái vấn đề là  Khách thì cần hàng  Số điện thoại của khách  Em vẫn liên lạc bình thường  Bao nhiêu lần ở trên app báo là không liên lạc được với khách  Khách chặn số này kia em gọi lại cho khách luôn theo số điện thoại đó  Vẫn liên lạc được khách, vẫn chờ hàng  Rồi cuối cùng cũng không giao ngày này qua ngày khác  Từ hôm 4 giờ đi hàng hôm 4 giờ  Mà bây giờ mãi đến giao lại là tụi em phải tốn thêm tiền tiếp  Chứ không phải tốn thêm  Mà cuối cùng là khách kia lỡ việc  Cái đó nhờ mấy anh hội tử giùm em cái chứ  Cái tình hình này đúng là hoàn đơn  Hoàn đơn là tụi em mất tình hoàn  Dạ rồi xin lỗi vấn đề mình gặp phải về đơn ha chị  Thì em để em lưu ý vấn đề này với nhân viên rồi  Báo bộ phận xử lý dân hàng dân"""
+whisper_result = """ Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ gá»i Ä‘áº¿n giao hÃ ng nhanh. CÆ°á»›c phÃ­ cá»§a gá»i lÃ  1 ngÃ n Ä‘á»“ng 1 phÃºt.  HÃ£y subscribe cho kÃªnh La La School Äá»ƒ khÃ´ng bá» lá»¡ nhá»¯ng video háº¥p dáº«n  NhÃ¢n viÃªn há»— trá»£ khÃ¡ch hÃ ng quay vÃ´ sÃ¢n game  ThÃ¬ há»— trá»£ cho chá»‹  Ã€ em Æ¡i em há»— trá»£ dÃ¹m chá»‹  CÃ¡i Ä‘Æ¡n hÃ ng lÃ   G I  V B  B B B B  I 6  9  F  F lÃ  F  Em xin tÃªn chá»‹  Ã€ chá»‹ HoÃ ng ÄÃ´ng  Chá»‹ Ä‘Æ¡n gá»­i cho  Äi xa tháº­t á»Ÿ DuyÃªn Háº£i TrÃ  Vinh háº£ chá»‹?  ÄÃºng rá»“i  Em tháº¥y Ä‘Æ¡n mÃ¬nh cÃ³ xÃ¡c nháº­n nhau láº¡i  MÃ  chÆ°a cÃ³ phÃ¢n tuyáº¿n cho nhÃ¢n viÃªn giao  BÃ  yÃªu cáº§u giao Ä‘Æ¡n Ä‘Ãºng khÃ´ng chá»‹?  Dáº¡  NhÆ°ng mÃ  cho em bÃ¡o cÃ¡i nÃ y má»™t xÃ­u  CÃ³ nghÄ©a lÃ  nhiá»u lÃºc  Trong cÃ¡i thá»i gian nÃ y lÃ   Em váº«n thÃ´ng cáº£m cÃ¡i Ä‘oáº¡n lÃ   MÆ°a giÃ³ thÃ¬ em khÃ´ng nÃ³i  CÃ¡i váº¥n Ä‘á» lÃ   KhÃ¡ch thÃ¬ cáº§n hÃ ng  Sá»‘ Ä‘iá»‡n thoáº¡i cá»§a khÃ¡ch  Em váº«n liÃªn láº¡c bÃ¬nh thÆ°á»ng  Bao nhiÃªu láº§n á»Ÿ trÃªn app bÃ¡o lÃ  khÃ´ng liÃªn láº¡c Ä‘Æ°á»£c vá»›i khÃ¡ch  KhÃ¡ch cháº·n sá»‘ nÃ y kia em gá»i láº¡i cho khÃ¡ch luÃ´n theo sá»‘ Ä‘iá»‡n thoáº¡i Ä‘Ã³  Váº«n liÃªn láº¡c Ä‘Æ°á»£c khÃ¡ch, váº«n chá» hÃ ng  Rá»“i cuá»‘i cÃ¹ng cÅ©ng khÃ´ng giao ngÃ y nÃ y qua ngÃ y khÃ¡c  Tá»« hÃ´m 4 giá» Ä‘i hÃ ng hÃ´m 4 giá»  MÃ  bÃ¢y giá» mÃ£i Ä‘áº¿n giao láº¡i lÃ  tá»¥i em pháº£i tá»‘n thÃªm tiá»n tiáº¿p  Chá»© khÃ´ng pháº£i tá»‘n thÃªm  MÃ  cuá»‘i cÃ¹ng lÃ  khÃ¡ch kia lá»¡ viá»‡c  CÃ¡i Ä‘Ã³ nhá» máº¥y anh há»™i tá»­ giÃ¹m em cÃ¡i chá»©  CÃ¡i tÃ¬nh hÃ¬nh nÃ y Ä‘Ãºng lÃ  hoÃ n Ä‘Æ¡n  HoÃ n Ä‘Æ¡n lÃ  tá»¥i em máº¥t tÃ¬nh hoÃ n  Dáº¡ rá»“i xin lá»—i váº¥n Ä‘á» mÃ¬nh gáº·p pháº£i vá» Ä‘Æ¡n ha chá»‹  ThÃ¬ em Ä‘á»ƒ em lÆ°u Ã½ váº¥n Ä‘á» nÃ y vá»›i nhÃ¢n viÃªn rá»“i  BÃ¡o bá»™ pháº­n xá»­ lÃ½ dÃ¢n hÃ ng dÃ¢n"""
 
 # Simple rule-based formatting (faster than any LLM)
 lines = whisper_result.strip().split('  ')
@@ -33,7 +33,7 @@ print("="*80)
 with open("./result/vistral/whisper_formatted_final.txt", "w", encoding="utf-8") as f:
     f.write(result)
 
-print("\n✅ Whisper đã capture 100% cuộc hội thoại!")
-print("✅ Không cần LLM nặng!")
-print("✅ Nhanh & chính xác!")
-print(f"💾 Saved to: ./result/vistral/whisper_formatted_final.txt")
+print("\nâœ… Whisper Ä‘Ã£ capture 100% cuá»™c há»™i thoáº¡i!")
+print("âœ… KhÃ´ng cáº§n LLM náº·ng!")
+print("âœ… Nhanh & chÃ­nh xÃ¡c!")
+print(f"ðŸ’¾ Saved to: ./result/vistral/whisper_formatted_final.txt")

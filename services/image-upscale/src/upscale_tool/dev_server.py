@@ -1,4 +1,4 @@
-"""
+﻿"""
 Development server with auto-reload using watchdog
 """
 import sys
@@ -23,8 +23,8 @@ class CodeChangeHandler(FileSystemEventHandler):
             current_time = time.time()
             # Debounce: only restart once per 2 seconds
             if current_time - self.last_restart > 2:
-                print(f"\n🔄 Detected change in: {event.src_path}")
-                print("⚡ Restarting server...\n")
+                print(f"\nðŸ”„ Detected change in: {event.src_path}")
+                print("âš¡ Restarting server...\n")
                 self.last_restart = current_time
                 self.restart_server()
     
@@ -44,14 +44,14 @@ class CodeChangeHandler(FileSystemEventHandler):
 def main():
     """Run development server with file watching"""
     print("""
-    ╔════════════════════════════════════════════════════════════╗
-    ║       🔥 Development Server with Hot Reload 🔥            ║
-    ║                                                            ║
-    ║  🌐 URL: http://127.0.0.1:7861                            ║
-    ║  🔄 Watching for file changes...                          ║
-    ║  💡 Edit web_ui.py and press Ctrl+S to auto-reload       ║
-    ║  🛑 Press Ctrl+C to stop                                  ║
-    ╚════════════════════════════════════════════════════════════╝
+    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+    â•‘       ðŸ”¥ Development Server with Hot Reload ðŸ”¥            â•‘
+    â•‘                                                            â•‘
+    â•‘  ðŸŒ URL: http://127.0.0.1:7861                            â•‘
+    â•‘  ðŸ”„ Watching for file changes...                          â•‘
+    â•‘  ðŸ’¡ Edit web_ui.py and press Ctrl+S to auto-reload       â•‘
+    â•‘  ðŸ›‘ Press Ctrl+C to stop                                  â•‘
+    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     """)
     
     # Watch current directory
@@ -66,7 +66,7 @@ def main():
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n\n🛑 Stopping server...")
+        print("\n\nðŸ›‘ Stopping server...")
         observer.stop()
         if event_handler.process:
             event_handler.process.terminate()

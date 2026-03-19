@@ -1,4 +1,4 @@
-"""
+﻿"""
 OCR Routes
 OCR processing endpoints
 """

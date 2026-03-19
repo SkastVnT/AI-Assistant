@@ -1,4 +1,4 @@
-"""
+﻿"""
 Gemini Proxy Service - Cloud AI Integration
 """
 

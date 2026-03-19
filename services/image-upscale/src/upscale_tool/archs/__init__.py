@@ -1,4 +1,4 @@
-"""
+﻿"""
 Architecture modules for different upscaling models
 """
 
