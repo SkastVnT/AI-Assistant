@@ -324,23 +324,19 @@ class MCPClient:
                 'truncated': total_lines > max_lines
             }
         except Exception as e:
-        # Ensure path is under allowed folders configured for this client
-        resolved_allowed_folders: List[Path] = []
-        for folder in getattr(self, "selected_folders", []) or []:
-            if not folder:
-                continue
-            resolved_folder = validate_and_resolve_path(str(folder), must_exist=False)
-            if resolved_folder is not None:
-                resolved_allowed_folders.append(resolved_folder)
+            logger.error(f"Error reading file: {sanitize_for_log(str(type(e).__name__))}")
+            return {"error": "Failed to read file"}
 
-        is_allowed = any(_is_subpath(path, base) for base in resolved_allowed_folders) if resolved_allowed_folders else False
+    def extract_file_with_ocr(self, file_path: str, max_chars: int = 12000) -> Dict[str, Any]:
+        """
+        Extract text from a document/image file using OCR integration.
 
         Args:
-            file_path: Path to file
-            max_chars: Max characters returned
+            file_path: Path to file.
+            max_chars: Max characters returned.
 
         Returns:
-            OCR extraction result
+            OCR extraction result.
         """
         if not self.enabled:
             return {"success": False, "error": "MCP is disabled"}
@@ -352,27 +348,16 @@ class MCPClient:
         if path is None or not path.is_file():
             return {"success": False, "error": "Invalid file path"}
 
-        # Ensure path is under allowed folders
-        path_str = str(path)
-        allowed_roots: List[Path] = []
-        for folder in getattr(self, "selected_folders", []):
-            resolved_folder = validate_and_resolve_path(folder, must_exist=False)
+        # Ensure path is under allowed folders configured for this client.
+        resolved_allowed_folders: List[Path] = []
+        for folder in getattr(self, "selected_folders", []) or []:
+            if not folder:
+                continue
+            resolved_folder = validate_and_resolve_path(str(folder), must_exist=False)
             if resolved_folder is not None:
-                allowed_roots.append(resolved_folder)
+                resolved_allowed_folders.append(resolved_folder)
 
-        is_allowed = False
-        for root in allowed_roots:
-            try:
-                # Python 3.9+: use is_relative_to for robust containment check
-                if path.is_relative_to(root):
-                    is_allowed = True
-                    break
-            except AttributeError:
-                root_str = str(root)
-                if path_str == root_str or path_str.startswith(root_str + os.sep):
-                    is_allowed = True
-                    break
-
+        is_allowed = any(_is_subpath(path, base) for base in resolved_allowed_folders) if resolved_allowed_folders else False
         if not is_allowed:
             return {"success": False, "error": "File not in allowed folders"}
 
@@ -398,17 +383,17 @@ class MCPClient:
         regex: bool = False,
     ) -> List[Dict[str, Any]]:
         """
-        TÃ¬m kiáº¿m Ná»˜I DUNG trong files theo pattern (nhÆ° grep).
-        
+        Search file contents across selected folders (grep-like).
+
         Args:
-            pattern: Text hoáº·c regex pattern
-            file_type: Loáº¡i file (all, py, js, md, ...)
-            max_results: Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
-            case_sensitive: PhÃ¢n biá»‡t hoa/thÆ°á»ng
-            regex: Náº¿u True, pattern Ä‘Æ°á»£c xá»­ lÃ½ nhÆ° regex; náº¿u False, tÃ¬m kiáº¿m theo chuá»—i literal
-            
+            pattern: Text or regex pattern to find.
+            file_type: File type filter (all, py, js, md, ...).
+            max_results: Maximum number of matches.
+            case_sensitive: Whether matching is case-sensitive.
+            regex: If True, pattern is treated as regex; otherwise literal search.
+
         Returns:
-            List of {file, line, content} matches
+            List of matches with file path, line number, and content.
         """
         if not self.enabled:
             return []
@@ -468,15 +453,19 @@ class MCPClient:
 
     def get_code_context(self, user_message: str, selected_files: list = None) -> Optional[str]:
         """
-        Táº¡o context tá»« code files Ä‘á»ƒ enhance AI response.
-        Æ¯u tiÃªn: selected_files > grep content search > filename search.
-        
+        Build contextual code snippets for improving AI responses.
+
+        Priority order:
+            1) Files explicitly selected by user.
+            2) Content matches from grep search.
+            3) Filename-based search.
+
         Args:
-            user_message: CÃ¢u há»i cá»§a user
-            selected_files: List of file paths Ä‘Æ°á»£c chá»n tá»« UI
-            
+            user_message: User question or prompt.
+            selected_files: Optional list of file paths selected in UI.
+
         Returns:
-            Context string hoáº·c None
+            Context string, or None when no context can be built.
         """
         if not self.enabled or not self.selected_folders:
             return None

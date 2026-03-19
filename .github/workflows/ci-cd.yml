@@ -1,14 +1,14 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ master, develop, 'feat/**' ]
+    branches: [ master, Ver_1, develop, 'feat/**' ]
   pull_request:
-    branches: [ master, develop ]
+    branches: [ master, Ver_1, develop ]
 
 jobs:
   lint:
-    name: Lint
+    name: Code Quality Check
     runs-on: ubuntu-latest
 
     steps:
@@ -26,12 +26,14 @@ jobs:
 
     - name: Run Python syntax check
       run: |
-        python -m compileall -q services app/src
+        python -m compileall -q \
+          -x '(^|[\\/])(venv|\.venv|__pycache__|site-packages)([\\/]|$)' \
+          services app/src
 
     - name: Run Flake8 (linting)
       run: |
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics \
-          --exclude=.git,__pycache__,venv,.venv,ComfyUI,node_modules,private
+        flake8 . --count --select=E9,F63,F7 --show-source --statistics \
+          --exclude=.git,__pycache__,venv,.venv,*venv*,site-packages,ComfyUI,node_modules,private,.tmp_*
 
   test-services:
     name: Test ${{ matrix.service }}
@@ -103,7 +105,7 @@ jobs:
         pytest tests/ -v --tb=short
 
   build-docker:
-    name: Docker Build Check
+    name: Build Docker Images
     runs-on: ubuntu-latest
     needs: [test-services, test-root]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -128,3 +130,27 @@ jobs:
         push: false
         tags: |
           ai-assistant-${{ matrix.service }}:${{ github.sha }}
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'

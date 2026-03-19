@@ -1,6 +1,10 @@
 name: Security Scanning
 
 on:
+  push:
+    branches: [ master, develop, Ver_1, 'feat/**' ]
+  pull_request:
+    branches: [ master, develop, Ver_1 ]
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
   workflow_dispatch:
@@ -11,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
+      pull-requests: write
     
     steps:
     - name: Checkout code
@@ -66,4 +72,34 @@ jobs:
         path: |
           bandit-report.json
         retention-days: 90
+
+    - name: Comment PR with security summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          let banditIssues = 0;
+          try {
+            const bandit = JSON.parse(fs.readFileSync('bandit-report.json', 'utf8'));
+            banditIssues = bandit.results.length;
+          } catch (e) {
+            banditIssues = 'N/A';
+          }
+
+          const body = `## Security Scan Results
+
+          **Bandit Issues:** ${banditIssues}
+
+          Download full reports from the Actions artifacts.
+
+          ${banditIssues > 0 ? 'Please review security findings before merging.' : 'No security issues detected.'}`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
         
