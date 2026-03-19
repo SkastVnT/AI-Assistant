@@ -106,6 +106,11 @@ private/             # Dữ liệu/submodule nội bộ
 2. Commit theo phạm vi thay đổi.
 3. Mở Pull Request.
 
+## Author & Collaborator
+
+- [SkastVnT](https://github.com/SkastVnT)
+- [sug1omyo](https://github.com/sug1omyo)
+
 ## License
 
 MIT. Xem chi tiết tại [LICENSE](LICENSE).
