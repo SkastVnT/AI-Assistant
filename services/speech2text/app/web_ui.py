@@ -46,7 +46,8 @@ from core.utils import preprocess_audio
 
 # Load environment with absolute path
 env_path = Path(__file__).parent / "config" / ".env"
-load_shared_env(__file__)print(f"[ENV] Loading environment from: {env_path}")
+load_shared_env(__file__)
+print(f"[ENV] Loading environment from: {env_path}")
 print(f"[ENV] HF_TOKEN loaded: {'YES' if os.getenv('HUGGINGFACE_TOKEN') else 'NO'}")
 
 # Get base directory

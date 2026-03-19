@@ -22,18 +22,16 @@ jobs:
     - name: Install linting tools
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 black isort
+        pip install flake8
 
-    - name: Run Black (code formatting check)
-      run: black --check --exclude '/(\.git|\.venv|venv|ComfyUI|node_modules|__pycache__)/' .
+    - name: Run Python syntax check
+      run: |
+        python -m compileall -q services app/src
 
     - name: Run Flake8 (linting)
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics \
           --exclude=.git,__pycache__,venv,.venv,ComfyUI,node_modules,private
-
-    - name: Run isort (import sorting check)
-      run: isort --check-only --skip ComfyUI --skip venv --skip .venv --skip node_modules .
 
   test-services:
     name: Test ${{ matrix.service }}

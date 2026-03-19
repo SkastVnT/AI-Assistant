@@ -46,11 +46,12 @@ def sanitize_for_log(text: str) -> str:
     if not text:
         return ""
     # Remove control characters, newlines, and limit length
+    sanitized = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', '', str(text))
+    return sanitized[:200]  # Limit to 200 chars
+
+
 def _is_subpath(path: Path, base: Path) -> bool:
-    """
-    Return True if 'path' is located inside directory 'base'.
-    Uses Path.relative_to when available, falling back gracefully.
-    """
+    """Return True if path is located inside base."""
     try:
         path.relative_to(base)
         return True
@@ -58,10 +59,6 @@ def _is_subpath(path: Path, base: Path) -> bool:
         return False
 
 
-    sanitized = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', '', str(text))
-    return sanitized[:200]  # Limit to 200 chars
-    Safely validate and resolve a path.
-    Returns None if path is invalid, outside allowed roots, or potentially malicious.
 def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optional[Path]:
     """
     Safely validate and resolve a path.
@@ -75,15 +72,17 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
     """
     if not path_str or not isinstance(path_str, str):
         return None
-    
+
     # Check for path traversal patterns BEFORE creating Path object
+    if '..' in path_str or path_str.startswith('~'):
+        logger.warning("Path traversal or home expansion detected")
         return None
-    
+
     # Check for suspicious characters
     if any(char in path_str for char in ['\0', '\n', '\r']):
         logger.warning("Suspicious characters in path")
         return None
-    
+
     try:
         # Normalize and resolve the path
         normalized = os.path.normpath(path_str)
@@ -97,16 +96,8 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
             logger.warning("Path outside allowed base directories")
             return None
 
-        return candidate
-            return None
-
-        # Double-check for path traversal after normalization
-        if '..' in real or real.startswith('.'):
-            logger.warning("Path traversal in normalized path")
-            return None
-
         # Enforce that the resolved path is under the safe root
-        real_path = Path(real).resolve()
+        real_path = candidate.resolve()
         try:
             # Python 3.9+ has is_relative_to
             if not real_path.is_relative_to(MCP_SAFE_ROOT):
@@ -119,8 +110,10 @@ def validate_and_resolve_path(path_str: str, must_exist: bool = True) -> Optiona
             if not (real_str == safe_root_str or real_str.startswith(safe_root_str + os.sep)):
                 logger.warning("Path outside of MCP safe root rejected")
                 return None
-        
-        # Now create Path from sanitized string
+
+        if must_exist and not real_path.exists():
+            return None
+
         return real_path
     except (ValueError, OSError, RuntimeError):
         return None
