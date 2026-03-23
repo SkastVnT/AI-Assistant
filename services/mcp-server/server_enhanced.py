@@ -527,24 +527,49 @@ def calculate(expression: str) -> Dict[str, Any]:
         Dict chá»©a káº¿t quáº£ tÃ­nh toÃ¡n
     """
     import math
-    
+    import ast
+    import operator as _op
+
     try:
         logger.info(f"Calculating: {expression}")
-        
-        # Safe eval vá»›i math functions
-        allowed_names = {
-            k: v for k, v in math.__dict__.items() if not k.startswith("__")
+
+        # Safe AST-based math evaluator
+        _allowed = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
+        _allowed.update({"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow})
+        _binops = {
+            ast.Add: _op.add, ast.Sub: _op.sub, ast.Mult: _op.mul,
+            ast.Div: _op.truediv, ast.Pow: _op.pow, ast.Mod: _op.mod,
+            ast.FloorDiv: _op.floordiv,
         }
-        allowed_names.update({
-            "abs": abs,
-            "round": round,
-            "min": min,
-            "max": max,
-            "sum": sum,
-            "pow": pow
-        })
-        
-        result = eval(expression, {"__builtins__": {}}, allowed_names)
+        _unops = {ast.UAdd: _op.pos, ast.USub: _op.neg}
+
+        def _eval_node(node):
+            if isinstance(node, ast.Constant):
+                if isinstance(node.value, (int, float, complex)):
+                    return node.value
+                raise ValueError(f"Unsupported literal: {node.value!r}")
+            if isinstance(node, ast.Name):
+                if node.id in _allowed:
+                    return _allowed[node.id]
+                raise ValueError(f"Name not allowed: {node.id}")
+            if isinstance(node, ast.BinOp):
+                if type(node.op) not in _binops:
+                    raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
+                return _binops[type(node.op)](_eval_node(node.left), _eval_node(node.right))
+            if isinstance(node, ast.UnaryOp):
+                if type(node.op) not in _unops:
+                    raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
+                return _unops[type(node.op)](_eval_node(node.operand))
+            if isinstance(node, ast.Call):
+                if not isinstance(node.func, ast.Name) or node.func.id not in _allowed or not callable(_allowed[node.func.id]):
+                    raise ValueError(f"Function not allowed: {ast.dump(node.func)}")
+                func = _allowed[node.func.id]
+                args = [_eval_node(a) for a in node.args]
+                kwargs = {kw.arg: _eval_node(kw.value) for kw in node.keywords}
+                return func(*args, **kwargs)
+            raise ValueError(f"Unsupported expression: {type(node).__name__}")
+
+        result = _eval_node(ast.parse(expression, mode='eval').body)
         
         logger.info(f"Result: {result}")
         

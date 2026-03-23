@@ -266,7 +266,7 @@ class ChatController:
         """Generate cache key for message"""
         import hashlib
         content = f"{model}:{context}:{language}:{message}"
-        return f"chat:{hashlib.md5(content.encode()).hexdigest()}"
+        return f"chat:{hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()}"
     
     def _load_relevant_memories(
         self,

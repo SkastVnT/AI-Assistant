@@ -8,6 +8,7 @@ Modes (set via environment variables):
 """
 
 import os
+import runpy
 import sys
 from pathlib import Path
 
@@ -69,6 +70,4 @@ else:
 
     if __name__ == '__main__':
         app_py_path = service_dir / 'chatbot_main.py'
-        with open(app_py_path, 'r', encoding='utf-8') as f:
-            code = compile(f.read(), app_py_path, 'exec')
-            exec(code, {'__name__': '__main__', '__file__': str(app_py_path)})
+        runpy.run_path(str(app_py_path), run_name='__main__')

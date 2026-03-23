@@ -95,4 +95,4 @@ class CacheService:
     def generate_key(*args, **kwargs) -> str:
         """Generate a cache key from arguments"""
         content = str(args) + str(sorted(kwargs.items()))
-        return hashlib.md5(content.encode()).hexdigest()
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()

@@ -216,7 +216,7 @@ class CacheKeyBuilder:
     def hash_query(cls, query: Dict[str, Any]) -> str:
         """Generate hash for query dict"""
         query_str = json.dumps(query, sort_keys=True, default=str)
-        return hashlib.md5(query_str.encode()).hexdigest()[:16]
+        return hashlib.md5(query_str.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
 class CacheInvalidator:

@@ -30,7 +30,7 @@ class Cache:
     
     def _get_cache_path(self, key: str) -> Path:
         """Get cache file path for key."""
-        key_hash = hashlib.md5(key.encode()).hexdigest()
+        key_hash = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()
         return self.cache_dir / f"{key_hash}.json"
     
     def get(self, key: str) -> Optional[Any]:
