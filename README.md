@@ -1,22 +1,46 @@
 # AI-Assistant
 
-Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (đa mô hình, voice, OCR, RAG), stable diffusion, edit image (ComfyUI), mcp server.
+Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (đa mô hình, voice, OCR, RAG, video generation), stable diffusion, edit image (ComfyUI), mcp server.
 
 ## Tổng quan
 
-- **Kiến trúc**: Python + Flask microservices.
+- **Kiến trúc**: Python microservices — Chatbot chạy **FastAPI** (uvicorn), các service khác dùng Flask.
 - **Chạy cục bộ** bằng script (`menu.bat` / `menu.sh`) hoặc Docker Compose.
 - **Cấu hình chung** qua file `.env` trong `app/config/` – tải bởi `services/shared_env.py`.
-- **Chatbot** tích hợp voice transcription (Whisper API) và OCR (Vision APIs) trực tiếp.
+- **Chatbot** tích hợp voice transcription (Whisper API), OCR (Vision APIs), và tạo video AI (Sora 2).
 
 ## Dịch vụ đang hoạt động
 
 | Service | Port | Entry Point | Mô tả |
 | --- | --- | --- | --- |
-| ChatBot | 5000 | `services/chatbot/run.py` | AI Chat + Voice + OCR + Tools |
+| ChatBot | 5000 | `services/chatbot/run.py` | AI Chat + Voice + OCR + Video + Tools |
 | Stable Diffusion | 7861 | `services/stable-diffusion/` | Image generation (SDXL) |
 | Edit Image | 8100 | `services/edit-image/` | AI image editing (ComfyUI backend) |
 | MCP Server | stdio | `services/mcp-server/server.py` | Model Context Protocol tools |
+
+## Tính năng Chatbot
+
+| Tính năng | Mô tả |
+| --- | --- |
+| Đa mô hình | Grok, OpenAI, DeepSeek, Gemini, Qwen, Local |
+| Voice (STT) | Whisper API — transcribe audio sang text |
+| OCR | Vision API — đọc nội dung ảnh/PDF |
+| RAG | MongoDB Atlas — lưu & tìm kiếm memory theo ngữ nghĩa |
+| **Video AI** | **OpenAI Sora 2** — tạo video từ text (4/8/12s, 720p/1080p) |
+| Streaming | Server-Sent Events (SSE) |
+| Swagger UI | Tài liệu API tự động tại `/docs` |
+
+### API Video (Sora 2)
+
+```
+POST /api/video/generate          # Gửi job (trả về ngay)
+POST /api/video/generate-sync     # Gửi job + chờ hoàn thành
+GET  /api/video/status/{id}       # Kiểm tra tiến độ (progress 0-100%)
+GET  /api/video/download/{id}     # Tải file mp4
+GET  /api/video/list              # Danh sách video đã tạo
+```
+
+Giá: `sora-2` $0.10/s · `sora-2-pro` $0.30/s · Thời lượng: 4, 8, hoặc 12 giây.
 
 ## Chạy nhanh
 
@@ -33,7 +57,19 @@ menu.bat
 ./menu.sh
 ```
 
-### 2) Chạy bằng Docker
+### 2) Chạy Chatbot (FastAPI mode)
+
+```bash
+# Windows
+set USE_FASTAPI=true
+cd services\chatbot
+python run.py
+
+# Linux/Mac
+USE_FASTAPI=true python services/chatbot/run.py
+```
+
+### 3) Chạy bằng Docker
 
 ```bash
 # Full stack
@@ -46,7 +82,7 @@ docker-compose -f app/config/docker-compose.light.yml up -d
 curl http://localhost:5000/health
 ```
 
-### 3) Chạy từng service (Windows)
+### 4) Chạy từng service (Windows)
 
 ```bat
 app\scripts\start-chatbot.bat
@@ -55,7 +91,7 @@ app\scripts\start-edit-image.bat
 app\scripts\start-mcp.bat
 ```
 
-### 4) Chạy tất cả
+### 5) Chạy tất cả
 
 ```bat
 app\scripts\start-all.bat
@@ -74,7 +110,7 @@ Biến tối thiểu nên có:
 ```env
 # Chọn ít nhất 1 nhà cung cấp LLM
 GROK_API_KEY=
-OPENAI_API_KEY=
+OPENAI_API_KEY=         # Bắt buộc để dùng Sora 2 video generation
 GOOGLE_API_KEY=
 DEEPSEEK_API_KEY=
 
@@ -98,14 +134,16 @@ app/
   src/             # Shared modules (utils, database, cache, security)
   ComfyUI/         # ComfyUI + extra model paths
 services/
-  shared_env.py    # Bộ tải env dùng chung
-  chatbot/         # Multi-model AI Chatbot (+ voice STT, OCR, RAG)
-  stable-diffusion/       # Image generation (SDXL)
-  edit-image/             # ComfyUI-based image editing
-  mcp-server/             # Model Context Protocol server
+  shared_env.py         # Bộ tải env dùng chung
+  chatbot/              # Multi-model AI Chatbot (FastAPI)
+    fastapi_app/        #   App factory, routers, models, dependencies
+    src/                #   Core logic: chatbot, video_generation, OCR, STT
+  stable-diffusion/     # Image generation (SDXL)
+  edit-image/           # ComfyUI-based image editing
+  mcp-server/           # Model Context Protocol server
 tests/             # Test suite
 private/           # Dữ liệu/submodule nội bộ
-  archived-services/     # Dịch vụ đã ngả hưu (speech2text, text2sql, ...)
+  archived-services/    # Dịch vụ đã ngả hưu (speech2text, text2sql, ...)
 ```
 
 ## Kiến trúc tích hợp
