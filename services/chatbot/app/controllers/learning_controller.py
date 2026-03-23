@@ -70,7 +70,8 @@ class LearningController:
         """Approve learning data for use"""
         try:
             result = self.learning_service.approve(data_id)
-            logger.info(f"âœ… Approved learning data: {data_id}")
+            safe_id = str(data_id).replace('\n', ' ').replace('\r', '')
+            logger.info(f"âœ… Approved learning data: {safe_id}")
             return result
         except Exception as e:
             logger.error(f"âŒ Error approving learning data: {e}")
