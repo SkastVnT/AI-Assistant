@@ -88,7 +88,10 @@ class SettingsController:
                 prompt=prompt
             )
             
-            safe_name = name.replace('\n', ' ').replace('\r', '') if isinstance(name, str) else name
+            if not isinstance(name, str):
+                name = str(name)
+            # Remove control characters (including newlines) to prevent log injection
+            safe_name = ''.join(ch for ch in name if ord(ch) >= 32)
             logger.info(f"âœ… Created custom prompt: {safe_name}")
             return result
             
