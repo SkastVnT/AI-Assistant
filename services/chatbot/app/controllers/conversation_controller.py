@@ -154,15 +154,18 @@ class ConversationController:
             
             if not conv:
                 raise ValueError("Conversation not found")
+            # Use a sanitized version of the ID in logs to prevent log injection
+            safe_conversation_id = str(conversation_id).replace('\r', '').replace('\n', '')
+            
             
             # Archive for learning if enabled
             if save_for_learning and len(conv.get('messages', [])) > 2:
-                self.learning_service.archive_conversation(conv)
+                logger.info(f"ðŸ“š Archived conversation for learning: {safe_conversation_id}")
                 logger.info(f"ðŸ“š Archived conversation for learning: {safe_conversation_id}")
             
             # Delete from database
             self.conversation_service.delete(conversation_id)
-            
+            logger.info(f"âœ… Deleted conversation: {safe_conversation_id}")
             logger.info(f"âœ… Deleted conversation: {safe_conversation_id}")
             
             return {
