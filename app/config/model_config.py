@@ -86,6 +86,34 @@ class HubConfig:
                 "SQL validation"
             ]
         ),
+        "document_intelligence": ServiceConfig(
+            name="Document Intelligence",
+            description="OCR + AI phân tích tài liệu thông minh",
+            icon="📄",
+            port=5003,
+            url="http://localhost:5003",
+            color="from-cyan-500 to-blue-600",
+            features=[
+                "OCR đa ngôn ngữ",
+                "AI phân tích nội dung",
+                "Hỗ trợ PDF, ảnh, Word",
+                "Trích xuất dữ liệu"
+            ]
+        ),
+        "stable_diffusion": ServiceConfig(
+            name="Stable Diffusion",
+            description="Tạo ảnh AI với Stable Diffusion WebUI",
+            icon="🖼️",
+            port=7861,
+            url="http://localhost:7861",
+            color="from-pink-500 to-rose-600",
+            features=[
+                "Text-to-Image",
+                "Image-to-Image",
+                "ControlNet",
+                "SDXL support"
+            ]
+        ),
         "comfyui": ServiceConfig(
             name="ComfyUI",
             description="Stable Diffusion workflow editor",
@@ -104,8 +132,8 @@ class HubConfig:
             name="LoRA Training",
             description="Huấn luyện LoRA cho Stable Diffusion",
             icon="🧠",
-            port=5006,
-            url="http://localhost:5006",
+            port=7862,
+            url="http://localhost:7862",
             color="from-amber-500 to-yellow-600",
             features=[
                 "Kohya SD Scripts",
@@ -113,7 +141,35 @@ class HubConfig:
                 "WebUI training",
                 "Model export"
             ]
-        )
+        ),
+        "image_upscale": ServiceConfig(
+            name="Image Upscale",
+            description="Nâng cấp chất lượng ảnh bằng AI",
+            icon="📸",
+            port=7863,
+            url="http://localhost:7863",
+            color="from-emerald-500 to-green-600",
+            features=[
+                "Real-ESRGAN (x2, x4)",
+                "SwinIR Real-SR",
+                "Batch processing",
+                "Nhiều mô hình AI"
+            ]
+        ),
+        "mcp_server": ServiceConfig(
+            name="MCP Server",
+            description="Model Context Protocol server cho AI tools",
+            icon="🔌",
+            port=8000,
+            url="http://localhost:8000",
+            color="from-slate-500 to-gray-600",
+            features=[
+                "Filesystem tools",
+                "Database tools",
+                "Memory management",
+                "Code assistance"
+            ]
+        ),
     }
     
     # Logging Configuration

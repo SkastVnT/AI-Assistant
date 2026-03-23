@@ -5,14 +5,18 @@ from flask import Flask, redirect
 import gradio as gr
 import threading
 import time
+import os
 
 app = Flask(__name__)
+
+# Default port from env or 7863 (matching start-image-upscale.bat)
+DEFAULT_PORT = int(os.getenv('IMAGE_UPSCALE_PORT', '7863'))
 
 
 @app.route('/')
 def home():
     """Redirect to Gradio interface"""
-    return redirect('http://127.0.0.1:7861')
+    return redirect(f'http://127.0.0.1:{DEFAULT_PORT}')
 
 
 def run_gradio():
@@ -35,7 +39,7 @@ def run_gradio():
     
     interface.launch(
         server_name="0.0.0.0",
-        server_port=7861,
+        server_port=DEFAULT_PORT,
         share=False,
         inbrowser=False,
         quiet=False,
@@ -44,7 +48,10 @@ def run_gradio():
     )
 
 
-def launch(host="0.0.0.0", port=7861, debug=False):
+def launch(host="0.0.0.0", port=None, debug=False):
+    """Launch Gradio app directly without Flask wrapper"""
+    if port is None:
+        port = DEFAULT_PORT
     """Launch Gradio app directly without Flask wrapper"""
     print(f"""
     â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—

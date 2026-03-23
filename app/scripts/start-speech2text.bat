@@ -47,7 +47,7 @@ cd services\speech2text
 
 echo.
 echo Starting Speech2Text Service...
-echo Access at: http://localhost:7860
+echo Access at: http://localhost:5001
 echo.
 
 REM Change to app directory before running

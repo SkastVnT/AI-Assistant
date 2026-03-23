@@ -12,6 +12,10 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Load shared environment configuration
+from services.shared_env import load_shared_env
+load_shared_env(__file__)
+
 from config.model_config import HubConfig
 from config.logging_config import setup_logging
 from handlers.error_handler import (

@@ -72,7 +72,7 @@ start "Document Intelligence - Port 5003" cmd /k "%~dp0start-document-intelligen
 timeout /t 2 >nul
 
 echo [5/8] Starting Speech2Text Service...
-start "Speech2Text Service - Port 7860" cmd /k "%~dp0start-speech2text.bat"
+start "Speech2Text Service - Port 5001" cmd /k "%~dp0start-speech2text.bat"
 timeout /t 2 >nul
 
 echo [6/8] Starting Stable Diffusion...
@@ -95,10 +95,10 @@ echo.
 echo Access the services at:
 echo.
 echo   🌐 Hub Gateway:            http://localhost:3000
-echo   💬 ChatBot:                http://localhost:5001
+echo   💬 ChatBot:                http://localhost:5000
 echo   📊 Text2SQL:               http://localhost:5002
 echo   📄 Document Intelligence:  http://localhost:5003
-echo   🎤 Speech2Text:            http://localhost:7860
+echo   🎤 Speech2Text:            http://localhost:5001
 echo   🎨 Stable Diffusion:       http://localhost:7861
 echo   🔧 LoRA Training:          http://localhost:7862
 echo   📸 Image Upscale:          http://localhost:7863

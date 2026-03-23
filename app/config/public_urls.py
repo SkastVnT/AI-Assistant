@@ -26,13 +26,17 @@ class PublicURLManager:
         "chatbot": {"port": 5000, "url": "http://localhost:5000"},
         "speech2text": {"port": 5001, "url": "http://localhost:5001"},
         "text2sql": {"port": 5002, "url": "http://localhost:5002"},
-        "document-intelligence": {"port": 5004, "url": "http://localhost:5004"},
-        "document_intelligence": {"port": 5004, "url": "http://localhost:5004"},
-        "stable-diffusion": {"port": 7860, "url": "http://localhost:7860"},
+        "document-intelligence": {"port": 5003, "url": "http://localhost:5003"},
+        "document_intelligence": {"port": 5003, "url": "http://localhost:5003"},
+        "stable-diffusion": {"port": 7861, "url": "http://localhost:7861"},
+        "stable_diffusion": {"port": 7861, "url": "http://localhost:7861"},
+        "lora-training": {"port": 7862, "url": "http://localhost:7862"},
+        "lora_training": {"port": 7862, "url": "http://localhost:7862"},
         "comfyui": {"port": 8189, "url": "http://localhost:8189"},
-        "image-upscale": {"port": 7861, "url": "http://localhost:7861"},
-        "image_upscale": {"port": 7861, "url": "http://localhost:7861"},
+        "image-upscale": {"port": 7863, "url": "http://localhost:7863"},
+        "image_upscale": {"port": 7863, "url": "http://localhost:7863"},
         "mcp-server": {"port": 8000, "url": "http://localhost:8000"},
+        "mcp_server": {"port": 8000, "url": "http://localhost:8000"},
     }
     
     _cache: Dict[str, str] = {}
