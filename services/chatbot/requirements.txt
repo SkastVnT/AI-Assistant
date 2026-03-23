@@ -8,6 +8,12 @@
 flask==3.1.3
 flask-cors==6.0.0  # Updated from 4.0.0 - Security fix (5 vulnerabilities patched)
 python-dotenv==1.0.0
+
+# ============= FASTAPI (async mode) =============
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9  # Required for UploadFile
+pydantic>=2.0.0
 werkzeug>=3.0.0
 
 # ============= PERFORMANCE & CACHING (Phase 1) =============
@@ -16,7 +22,7 @@ pymongo>=4.6.0
 dnspython>=2.4.0  # Required for MongoDB SRV connection
 
 # ============= AI APIs =============
-openai>=1.0.0
+openai>=2.29.0  # Videos API (Sora 2) requires >=2.29
 google-genai>=1.56.0
 
 # ============= IMAGE PROCESSING =============

@@ -24,6 +24,7 @@ werkzeug_logger.setLevel(logging.INFO)
 def _load_root_config_module(module_name, file_name):
     """Load a module from root config directory"""
     root_path = str(ROOT_DIR)
+    app_path = str(ROOT_DIR / 'app')
     chatbot_path = str(CHATBOT_DIR)
     
     original_path_0 = sys.path[0] if sys.path else None
@@ -31,9 +32,15 @@ def _load_root_config_module(module_name, file_name):
     if root_path in sys.path:
         sys.path.remove(root_path)
     sys.path.insert(0, root_path)
+    # app/ must also be on path so that internal `from config.X import Y` works
+    if app_path not in sys.path:
+        sys.path.insert(1, app_path)
     
     try:
-        module_path = ROOT_DIR / 'config' / file_name
+        # Try ROOT_DIR/app/config first, then ROOT_DIR/config as fallback
+        module_path = ROOT_DIR / 'app' / 'config' / file_name
+        if not module_path.exists():
+            module_path = ROOT_DIR / 'config' / file_name
         spec = importlib.util.spec_from_file_location(module_name, module_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -41,6 +48,8 @@ def _load_root_config_module(module_name, file_name):
     finally:
         if root_path in sys.path:
             sys.path.remove(root_path)
+        if app_path in sys.path:
+            sys.path.remove(app_path)
         if chatbot_path in sys.path:
             sys.path.remove(chatbot_path)
         sys.path.insert(0, chatbot_path)
