@@ -148,6 +148,7 @@ class ConversationController:
         to local_data for AI learning review.
         """
         try:
+            safe_conversation_id = str(conversation_id).replace('\r', '').replace('\n', '')
             # Get conversation with messages before deletion
             conv = self.get_conversation(conversation_id)
             
@@ -157,12 +158,12 @@ class ConversationController:
             # Archive for learning if enabled
             if save_for_learning and len(conv.get('messages', [])) > 2:
                 self.learning_service.archive_conversation(conv)
-                logger.info(f"ðŸ“š Archived conversation for learning: {conversation_id}")
+                logger.info(f"ðŸ“š Archived conversation for learning: {safe_conversation_id}")
             
             # Delete from database
             self.conversation_service.delete(conversation_id)
             
-            logger.info(f"âœ… Deleted conversation: {conversation_id}")
+            logger.info(f"âœ… Deleted conversation: {safe_conversation_id}")
             
             return {
                 'deleted': True,
