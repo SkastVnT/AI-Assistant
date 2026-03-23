@@ -107,12 +107,12 @@ class OCRIntegration:
         return {"success": False, "text": "", "confidence": 0, "language": "unknown", "method": "gemini_vision"}
 
     def _ocr_grok(self, base64_image: str, media_type: str, filename: str, api_key: str, prompt: str) -> Dict[str, Any]:
-        """OCR via Grok/xAI Vision API."""
+        """OCR via Grok/xAI Vision API (grok-4)."""
         response = requests.post(
             "https://api.x.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
-                "model": "grok-vision-beta",
+                "model": "grok-4-1-fast-non-reasoning",
                 "messages": [{"role": "user", "content": [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_image}"}}
