@@ -113,6 +113,19 @@ except ImportError as e:
     def extract_file_content(data, filename):
         return False, ""
 
+# Import Audio Transcription
+try:
+    from src.audio_transcription import transcribe_audio, is_audio_file
+    STT_AVAILABLE = True
+    logger.info("Audio Transcription loaded")
+except ImportError as e:
+    STT_AVAILABLE = False
+    logger.warning(f"Audio Transcription not available: {e}")
+    def is_audio_file(filename):
+        return False
+    def transcribe_audio(data, filename, language="vi"):
+        return {"success": False, "text": "", "error": "STT not available"}
+
 # Create Flask app
 app = Flask(__name__)
 # Use persistent secret key from environment or generate a fixed one
@@ -1354,7 +1367,7 @@ def chat():
             files = request.files.getlist('files')
             file_contents = []
             
-            # Process uploaded files with OCR
+            # Process uploaded files with OCR / Audio Transcription
             for file in files:
                 if file and file.filename:
                     try:
@@ -1362,17 +1375,31 @@ def chat():
                         filename = file.filename
                         logger.info(f"[UPLOAD] Processing file: {filename} ({len(file_data)} bytes)")
                         
-                        success, extracted_text = extract_file_content(file_data, filename)
-                        
-                        if success and extracted_text:
-                            file_contents.append({
-                                "filename": filename,
-                                "content": extracted_text[:10000],  # Limit content
-                                "type": Path(filename).suffix.lower()
-                            })
-                            logger.info(f"[UPLOAD] Extracted {len(extracted_text)} chars from {filename}")
+                        # Audio files -> speech-to-text
+                        if is_audio_file(filename):
+                            stt_result = transcribe_audio(file_data, filename, language=language)
+                            if stt_result["success"] and stt_result["text"]:
+                                file_contents.append({
+                                    "filename": filename,
+                                    "content": stt_result["text"],
+                                    "type": "audio_transcript"
+                                })
+                                logger.info(f"[STT] Transcribed {len(stt_result['text'])} chars from {filename} via {stt_result['method']}")
+                            else:
+                                logger.warning(f"[STT] Failed for {filename}: {stt_result.get('error', 'unknown')}")
                         else:
-                            logger.warning(f"[UPLOAD] Could not extract content from {filename}")
+                            # Documents/images -> OCR/text extraction
+                            success, extracted_text = extract_file_content(file_data, filename)
+                            
+                            if success and extracted_text:
+                                file_contents.append({
+                                    "filename": filename,
+                                    "content": extracted_text[:10000],
+                                    "type": Path(filename).suffix.lower()
+                                })
+                                logger.info(f"[UPLOAD] Extracted {len(extracted_text)} chars from {filename}")
+                            else:
+                                logger.warning(f"[UPLOAD] Could not extract content from {filename}")
                     except Exception as e:
                         logger.error(f"[UPLOAD] Error processing {file.filename}: {e}")
             
@@ -1380,11 +1407,15 @@ def chat():
             if file_contents:
                 file_context = "\n\n--- UPLOADED FILES ---\n"
                 for fc in file_contents:
-                    file_context += f"\nðŸ“„ **{fc['filename']}**:\n```{fc['type'][1:] if fc['type'] else 'text'}\n{fc['content']}\n```\n"
+                    if fc["type"] == "audio_transcript":
+                        file_context += f"\n[Audio transcript from {fc['filename']}]:\n{fc['content']}\n"
+                    else:
+                        ext = fc['type'][1:] if fc['type'].startswith('.') else fc['type']
+                        file_context += f"\n[File: {fc['filename']}]:\n```{ext}\n{fc['content']}\n```\n"
                 file_context += "--- END FILES ---\n\n"
                 message = file_context + message
                 logger.info(f"[UPLOAD] Injected {len(file_contents)} files into message")
-        else:
+            
             # JSON request
             data = request.json
             message = data.get('message', '')

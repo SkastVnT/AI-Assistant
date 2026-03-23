@@ -1,0 +1,82 @@
+================================================================================
+  MODEL & LORA LIST
+  Path: services/stable-diffusion/models/Lora/
+  Last updated: 2026-03-10
+================================================================================
+
+--- LoRA (Positive / Enhancement) ---
+
+[SD1.5]
+add_detail.safetensors                  36.11 MB  | Tăng chi tiết tổng thể (OedoSoldier)
+detail_tweaker_lora.safetensors         36.11 MB  | Tinh chỉnh mức độ chi tiết (OedoSoldier)
+more_details.safetensors                 9.11 MB  | Tăng chi tiết thêm
+handmix101.safetensors                  36.11 MB  | Sửa lỗi tay (PeymanKH) [NEW]
+eyecolle_cosmos_v100.safetensors        13.02 MB  | Mắt anime - phong cách cosmos (JujoHotaru) [NEW]
+
+[SDXL]
+add-detail-xl.safetensors              217.87 MB  | Tăng chi tiết cho SDXL
+CarlottaILVP.safetensors               217.87 MB  | Character LoRA - Carlotta
+PerfectEyesXL.safetensors             217.87 MB  | Mắt chi tiết cho SDXL (Benevolent) [NEW]
+body_proportion.safetensors              9.11 MB  | Tỷ lệ cơ thể cho SDXL (NicoEmb) [NEW]
+
+[Character / Style LoRA]
+Fury-10v3.safetensors                   56.37 MB  | Character LoRA - Fury
+Reiji.safetensors                       36.12 MB  | Character LoRA - Reiji
+devilmanV2.safetensors                  36.11 MB  | Character LoRA - Devilman
+nhk_misaki_lora_0.safetensors           18.11 MB  | Character LoRA - NHK Misaki
+nanaminishijoutest.safetensors          36.12 MB  | Character LoRA - Nanami Nishijou
+完美世界柳神2550.safetensors              36.11 MB  | Character LoRA - 完美世界 Liushen
+
+--- Negative Embeddings / Textual Inversion ---
+
+BadDream.pt                              0.20 MB  | Negative embedding - tránh giấc mơ tệ
+easynegative.safetensors                 0.02 MB  | Negative embedding - chất lượng thấp
+ng_deepnegative_v1_75t.pt               0.22 MB  | Negative embedding - sâu
+negative_hand-neg.pt                     0.02 MB  | Negative embedding - tay xấu
+verybadimagenegative_v1.3.pt             0.03 MB  | Negative embedding - ảnh rất xấu
+UnrealisticDream (1).pt                  0.11 MB  | Negative embedding - không thực tế
+corneo_pov_anal.pt                       0.04 MB  | Negative embedding
+
+--- VAE (lưu trong models/VAE/) ---
+
+ClearVAE_V2.3.safetensors              319.14 MB  | VAE rõ nét (đặt nhầm vào thư mục Lora)
+
+================================================================================
+  HƯỚNG DẪN SỬ DỤNG
+================================================================================
+
+Tay (Hands):
+  - LoRA: handmix101.safetensors        strength: 0.5~0.8
+  - Negative: negative_hand-neg.pt     weight: 1.0
+
+Mắt (Eyes):
+  - SD1.5: eyecolle_cosmos_v100.safetensors    strength: 0.4~0.7
+  - SDXL:  PerfectEyesXL.safetensors           strength: 0.3~0.6
+
+Chi tiết (Detail):
+  - add_detail.safetensors             strength: 0.5~1.0
+  - detail_tweaker_lora.safetensors    strength: 0.5~1.5
+  - more_details.safetensors           strength: 0.3~0.8
+
+Cơ thể (Body) [SDXL only]:
+  - body_proportion.safetensors        strength: 0.4~0.8
+
+Chất lượng chung:
+  - Negative: BadDream.pt, easynegative.safetensors, ng_deepnegative_v1_75t.pt
+
+================================================================================
+  MÔ HÌNH CHECKPOINT (services/stable-diffusion/models/Stable-diffusion/)
+================================================================================
+
+[SD1.5]
+AnythingV5Ink_ink.safetensors          2034 MB  | Anime style
+abyssorangemix2SFW_abyssorangemix2Sfw.safetensors  2034 MB  | Anime/Semi-real
+abyssorangemix3AOM3_aom3a1b.safetensors            2034 MB  | Anime/Semi-real
+anythingelseV4_v45.safetensors         4068 MB  | Anime (merge, cao chất lượng hơn)
+soushiki_v10.safetensors               2034 MB  | Anime style
+
+[SDXL]
+flatpiececorexl_a1818.safetensors      6617 MB  | SDXL - Anime flat style
+illustrij_v3.safetensors               6776 MB  | SDXL - Minh họa
+realvisxlV50_v50LightningBakedvae.safetensors  6617 MB  | SDXL - Realistic (edit-image dir)
+

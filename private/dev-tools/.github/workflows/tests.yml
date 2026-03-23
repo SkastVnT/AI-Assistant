@@ -1,0 +1,83 @@
+# =============================================================================
+# AI-Assistant Test Workflow
+# =============================================================================
+# Runs on every push to ensure code quality
+# =============================================================================
+
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'services/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'requirements*.txt'
+  pull_request:
+    branches: [main, master]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  quick-test:
+    name: Quick Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements-test.txt
+      
+      - name: Run smoke tests
+        run: |
+          pytest tests/ -v -m "smoke or not slow" --maxfail=5 -q
+        env:
+          TESTING: "true"
+          MONGODB_ENABLED: "false"
+          CACHE_ENABLED: "false"
+
+  full-test:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio pytest-mock
+          pip install -r requirements-test.txt
+      
+      - name: Run all tests
+        run: |
+          pytest tests/ -v --cov=services --cov-report=term-missing
+        env:
+          TESTING: "true"
+          MONGODB_URI: "mongodb://localhost:27017/ai_assistant_test"
+          MONGODB_ENABLED: "true"

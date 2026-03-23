@@ -1,0 +1,592 @@
+================================================================================
+     STEPFUN-AI REPOS - PHÂN TÍCH & GỢI Ý TÍCH HỢP VÀO AI-ASSISTANT
+     Ngày phân tích: 04/03/2026
+================================================================================
+
+TỔNG QUAN: stepfun-ai có 28 repos trên GitHub. Dưới đây là phân tích từng repo
+liên quan đến từng service hiện tại của bạn và cách tích hợp cụ thể.
+
+================================================================================
+PHẦN 1: BẢN ĐỒ REPO → SERVICE
+================================================================================
+
+┌─────────────────────────────┬────────────────────────────────────────────────┐
+│ StepFun Repo                │ Service AI-Assistant phù hợp                  │
+├─────────────────────────────┼────────────────────────────────────────────────┤
+│ Step-3.5-Flash              │ chatbot/ (thay toàn bộ API model)              │
+│ Step-Audio2                 │ speech2text/ (thay Whisper)                    │
+│ Step-Audio-EditX            │ speech2text/ (edit giọng nói)                  │
+│ Step-Audio (v1)             │ speech2text/ (TTS fallback)                    │
+│ Step-Audio-R1               │ speech2text/ (reasoning audio)                 │
+│ NextStep-1 / NextStep-1.1   │ edit-image/, stable-diffusion/                │
+│ gelab-zero                  │ mcp-server/ (GUI agent automation)             │
+│ SteptronOss                 │ lora-training/ (training framework)            │
+│ vllm (fork)                 │ tất cả service (inference engine)              │
+│ GEBench                     │ tests/ (benchmark tự đánh giá)                │
+└─────────────────────────────┴────────────────────────────────────────────────┘
+
+================================================================================
+PHẦN 2: CHI TIẾT TỪNG REPO VÀ CÁCH TÍCH HỢP
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+[1] Step-3.5-Flash  ⭐⭐⭐⭐⭐  (QUAN TRỌNG NHẤT)
+    https://github.com/stepfun-ai/Step-3.5-Flash
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - Model ngôn ngữ lớn (LLM) open-source mạnh nhất của StepFun
+  - Kiến trúc: Sparse MoE, 196B tổng params, chỉ kích hoạt 11B/token
+  - Context window: 256K tokens
+  - Tốc độ: 100–300 tok/s (peak 350 tok/s cho coding)
+  - Benchmark: AIME 2025 = 97.3%, SWE-bench = 74.4%, GAIA = 84.5%
+  - So sánh: ngang Claude 4 Sonnet / GPT-4.5 về reasoning và agentic
+  - License: Apache 2.0 (dùng thương mại được)
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/chatbot/  (thay thế hoặc bổ sung Grok/OpenAI/DeepSeek)
+
+VÌ SAO DÙNG:
+  - FREE qua OpenRouter: model "stepfun/step-3.5-flash:free"
+  - Hoặc API riêng: api.stepfun.ai/v1 với key riêng
+  - Tương thích hoàn toàn OpenAI SDK (base_url khác)
+  - Không cần thay code nhiều do đã dùng openai.OpenAI(base_url=...)
+
+CÁCH TÍCH HỢP (ĐƠN GIẢN NHẤT - CHỈ CẦN THÊM VÀO .env):
+
+  # services/chatbot/.env - thêm:
+  STEPFUN_API_KEY=your-stepfun-api-key
+  # hoặc dùng OpenRouter free:
+  OPENROUTER_API_KEY=your-openrouter-key
+
+  # services/chatbot/core/config.py - thêm:
+  STEPFUN_API_KEY = os.getenv('STEPFUN_API_KEY')
+  OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+
+  # services/chatbot/core/chatbot_v2.py - trong ModelRegistry._initialize_models():
+  if STEPFUN_API_KEY:
+      self._configs['step-flash'] = ModelConfig(
+          name='step-flash',
+          provider=ModelProvider.OPENAI,  # dùng lại OpenAI provider
+          api_key=STEPFUN_API_KEY,
+          base_url='https://api.stepfun.ai/v1',
+          model_id='step-3.5-flash',
+          supports_streaming=True,
+          fallback_model='grok'
+      )
+
+  # Hoặc dùng OpenRouter (FREE):
+  if OPENROUTER_API_KEY:
+      self._configs['step-flash-free'] = ModelConfig(
+          name='step-flash-free',
+          provider=ModelProvider.OPENAI,
+          api_key=OPENROUTER_API_KEY,
+          base_url='https://openrouter.ai/api/v1',
+          model_id='stepfun/step-3.5-flash:free',
+          supports_streaming=True,
+          fallback_model='grok'
+      )
+
+DEPLOY LOCAL (nếu có phần cứng mạnh - cần 8x GPU H100 hoặc Mac Studio M4):
+  # Via vLLM:
+  vllm serve stepfun-ai/Step-3.5-Flash \
+    --served-model-name step3p5-flash \
+    --tensor-parallel-size 8 \
+    --reasoning-parser step3p5 \
+    --enable-auto-tool-choice
+  
+  # Sau đó trong chatbot, dùng localhost thay vì cloud API:
+  base_url = "http://localhost:8000/v1"
+
+GGUF LOCAL (nhẹ hơn, cần 120GB unified memory - Mac Studio M4 Max hoặc DGX Spark):
+  - Tải GGUF int4: 111.5 GB từ HuggingFace
+  - Chạy qua llama.cpp
+  - Không phù hợp máy thường, cần máy chuyên dụng
+
+KẾT LUẬN:
+  ✅ ĐỀ XUẤT: Dùng ngay qua OpenRouter FREE (stepfun/step-3.5-flash:free)
+  → Không cần thêm phần cứng, không mất phí, chỉ cần thêm config
+
+
+────────────────────────────────────────────────────────────────────────────────
+[2] Step-Audio2  ⭐⭐⭐⭐⭐  (RẤT QUAN TRỌNG)
+    https://github.com/stepfun-ai/Step-Audio2
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - End-to-end multimodal LLM cho audio understanding + speech conversation
+  - Hỗ trợ: ASR (nhận dạng giọng nói), Speech-to-Speech, dịch giọng nói,
+    phân tích cảm xúc, tool calling qua giọng nói, RAG âm thanh
+  - Model sizes: mini (nhỏ), mini Base, mini Think (có reasoning)
+  - License: Apache 2.0
+  - Benchmark: MMAU = 73.2% (mini), ASR tiếng Anh ~3% WER (tốt hơn Whisper large)
+  - Hỗ trợ đặc biệt: tiếng Trung, giọng địa phương, phát hiện cảm xúc
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/speech2text/  (thay thế hoặc nâng cấp Whisper)
+
+LỢI THẾ SO VỚI WHISPER HIỆN TẠI:
+  - Whisper chỉ làm ASR thuần
+  - Step-Audio2: ASR + hiểu ngữ nghĩa + cảm xúc + tool calling + TTS
+  - Hỗ trợ voice conversation 2 chiều (không chỉ nhận dạng 1 chiều)
+  - Tích hợp web search qua giọng nói
+  - API streaming qua vLLM
+
+YÊU CẦU PHẦN CỨNG:
+  - Model mini: 7B params, cần ~14GB VRAM (RTX 3090/4090)
+  - mini Think: tương tự
+  - Có thể chạy CPU nếu quantize nhưng chậm
+
+CÁCH CÀI ĐẶT:
+  conda create -n stepaudio2 python=3.10
+  conda activate stepaudio2
+  pip install transformers==4.49.0 torchaudio librosa onnxruntime s3tokenizer diffusers hyperpyyaml
+  
+  git clone https://github.com/stepfun-ai/Step-Audio2
+  cd Step-Audio2
+  git lfs install
+  git clone https://huggingface.co/stepfun-ai/Step-Audio-2-mini
+
+TÍCH HỢP VÀO services/speech2text/:
+  # Tạo file: services/speech2text/src/step_audio2_handler.py
+  import sys
+  sys.path.insert(0, '/path/to/Step-Audio2')
+  from stepaudio2 import StepAudio2
+  
+  class StepAudio2Handler:
+      def __init__(self, model_path='Step-Audio-2-mini'):
+          self.model = StepAudio2(model_path)
+      
+      def transcribe(self, audio_path):
+          return self.model.transcribe(audio_path)
+      
+      def chat_with_audio(self, audio_path, text_context=None):
+          return self.model.chat(audio=audio_path, context=text_context)
+
+  # Chạy web demo riêng:
+  pip install gradio
+  python web_demo.py  # sẽ có UI trên localhost
+
+HOẶC DÙNG vLLM STREAM (production):
+  docker run --rm -ti --gpus all \
+    -v Step-Audio-2-mini:/Step-Audio-2-mini \
+    -p 8000:8000 \
+    stepfun2025/vllm:step-audio-2-v20250909 \
+    -- vllm serve /Step-Audio-2-mini \
+       --served-model-name step-audio-2-mini \
+       --port 8000 \
+       --enable-auto-tool-choice \
+       --tool-call-parser step_audio_2
+
+KẾT LUẬN:
+  ✅ ĐỀ XUẤT: Deploy Step-Audio-2-mini thay Whisper nếu có GPU ≥ RTX 3090
+  → Vừa nhận dạng tiếng nói VỪA trò chuyện bằng giọng nói hai chiều
+
+
+────────────────────────────────────────────────────────────────────────────────
+[3] Step-Audio-EditX  ⭐⭐⭐⭐
+    https://github.com/stepfun-ai/Step-Audio-EditX
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - Model 3B params dựa trên RL để chỉnh sửa âm thanh
+  - Có thể: thay đổi cảm xúc giọng nói, phong cách nói, paralinguistics
+  - Zero-shot TTS (text-to-speech không cần fine-tune)
+  - License: Apache 2.0
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/speech2text/ (mở rộng thành speech editing service)
+
+ỨNG DỤNG CỤ THỂ:
+  - Người dùng upload audio → sửa cảm xúc (vui → buồn, tức → bình thường)
+  - TTS: tạo giọng đọc từ văn bản với phong cách tùy chỉnh
+  - Clone giọng nói zero-shot
+
+CÁCH KẾT HỢP VỚI speech2text:
+  # Pipeline hoàn chỉnh:
+  1. Step-Audio2: nhận audio → transcribe + hiểu
+  2. ChatBot xử lý → trả lời text
+  3. Step-Audio-EditX: text → generate speech với style tùy chỉnh
+  → Kết quả: voice assistant hoàn chỉnh 2 chiều
+
+
+────────────────────────────────────────────────────────────────────────────────
+[4] NextStep-1 / NextStep-1.1  ⭐⭐⭐⭐⭐  (QUAN TRỌNG CHO IMAGE)
+    https://github.com/stepfun-ai/NextStep-1
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - ICLR 2026 Oral - Model tạo ảnh autoregressive SOTA
+  - 14B params, dùng continuous tokens (không phải discrete/VQ như cũ)
+  - Kết hợp LLM head (text) + flow matching head (image, 157M params)
+  - NextStep-1.1: phiên bản nâng cấp với RL post-training (flow-based RL)
+  - Hỗ trợ: Text-to-Image, Image Editing
+  - License: Apache 2.0
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/edit-image/  (thay hoặc bổ sung ComfyUI)
+  → services/stable-diffusion/  (pipeline song song)
+
+ĐIỂM MẠNH SO VỚI STABLE DIFFUSION:
+  - Không cần diffusion steps dài → faster inference
+  - Hiểu prompt tốt hơn (vì dùng LLM backbone Qwen2.5-14B)
+  - Image editing trực tiếp (NextStep-1-Large-Edit)
+  - Tích hợp tự nhiên với text context
+
+YÊU CẦU PHẦN CỨNG:
+  - NextStep-1.1: cần GPU VRAM lớn (≥ 40GB cho full precision)
+  - Có thể quantize để chạy nhẹ hơn
+  - vLLM-Omni hỗ trợ high-performance inference (từ Feb 2026)
+
+CÁCH SỬ DỤNG:
+  git clone https://github.com/stepfun-ai/NextStep-1
+  cd NextStep-1
+  conda create -n nextstep python=3.10 -y
+  conda activate nextstep
+  pip install uv
+  uv pip install -e .
+  
+  # Chạy inference nhanh:
+  python3 inference/inference.py
+
+  # Hoặc qua vLLM-Omni (từ Feb 2026):
+  # https://docs.vllm.ai/projects/vllm-omni/en/latest/user_guide/examples/offline_inference/text_to_image/
+
+TÍCH HỢP VÀO edit-image/:
+  # Thêm endpoint vào services/edit-image/app/
+  @app.route('/generate/nextstep', methods=['POST'])
+  def generate_nextstep():
+      prompt = request.json.get('prompt')
+      # Gọi NextStep-1.1 inference
+      result = nextstep_model.generate(prompt=prompt)
+      return jsonify({'image': base64_encode(result)})
+
+KẾT LUẬN:
+  ✅ ĐỀ XUẤT: Dùng thử NextStep-1.1 qua HuggingFace Space (đã deploy sẵn)
+  URL: https://huggingface.co/spaces/stepfun-ai/NextStep-1-Large-Edit
+  → Tích hợp sau khi verify chất lượng phù hợp nhu cầu
+
+
+────────────────────────────────────────────────────────────────────────────────
+[5] gelab-zero  ⭐⭐⭐⭐
+    https://github.com/stepfun-ai/gelab-zero
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - GUI Agent: model 4B có thể điều khiển màn hình / app Android
+  - Hỗ trợ MCP-Server để quản lý multi-device
+  - Chạy local hoàn toàn (Ollama hoặc llama.cpp), full privacy
+  - License: MIT
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/mcp-server/  (mở rộng capability của MCP)
+
+ỨNG DỤNG:
+  - ChatBot nhận lệnh → gelab-zero thực thi trên browser/app
+  - Automation: đặt vé, tìm kiếm, điền form, mua hàng
+  - Kết hợp với MCP để chatbot có thể "nhìn" và "nhấp" vào UI
+
+CÁCH CÀI ĐẶT (Windows):
+  # 1. Setup Ollama
+  # Tải từ https://ollama.com/
+
+  # 2. Tải model GELab-Zero-4B
+  pip install huggingface_hub
+  hf download --no-force-download stepfun-ai/GELab-Zero-4B-preview --local-dir gelab-zero-4b-preview
+  cd gelab-zero-4b-preview
+  ollama create gelab-zero-4b-preview -f Modelfile
+
+  # 3. Clone repo
+  git clone https://github.com/stepfun-ai/gelab-zero
+  cd gelab-zero
+  pip install -r requirements.txt
+
+  # 4. Chạy MCP server
+  python mcp_server/detailed_gelab_mcp_server.py
+
+  # 5. Kết nối chatbot với MCP server (đã có trong services/chatbot/routes/mcp.py)
+
+KẾT LUẬN:
+  ✅ ĐỀ XUẤT: Thêm vào mcp-server/ để chatbot có thể thực thi tác vụ GUI
+  → Phù hợp nếu muốn chatbot trở thành "agent" thực sự
+
+
+────────────────────────────────────────────────────────────────────────────────
+[6] SteptronOss  ⭐⭐⭐⭐
+    https://github.com/stepfun-ai/SteptronOss
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - Training framework cho LLM (SFT, RLVR, evaluation)
+  - Lightweight, AI-native, reproducible experiments
+  - Modular configuration
+  - License: Apache 2.0
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/lora-training/  (nâng cấp training pipeline)
+
+ĐIỂM MẠNH:
+  - SFT (Supervised Fine-Tuning): fine-tune Qwen models với dữ liệu của bạn
+  - RLVR: reinforcement learning với verifiable rewards
+  - Tích hợp W&B, DeepSpeed, Flash Attention
+  - Reproducible: mọi experiment đều có config đầy đủ
+
+ỨNG DỤNG CHO CHATBOT:
+  1. Thu thập conversation history từ MongoDB
+  2. Dùng SteptronOss SFT để fine-tune Qwen1.5-1.8B (đã có trong /models/)
+  3. Deploy model đã fine-tune → chatbot có "phong cách" riêng của bạn
+
+CÁCH BẮT ĐẦU:
+  git clone https://github.com/stepfun-ai/SteptronOss
+  cd SteptronOss
+  pip install -r requirements.txt
+  # Cấu hình trong configs/ theo hướng dẫn README
+
+KẾT LUẬN:
+  ✅ ĐỀ XUẤT: Dùng để fine-tune Qwen1.5-1.8B (đã có local)
+  → Tạo model riêng từ dữ liệu hội thoại thực của bạn
+
+
+────────────────────────────────────────────────────────────────────────────────
+[7] vllm (fork của StepFun)  ⭐⭐⭐⭐
+    https://github.com/stepfun-ai/vllm
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - Fork của vLLM chính thức với patches riêng của StepFun
+  - Hỗ trợ thêm Step-Audio2, Step-3.5-Flash
+  - High-throughput inference engine
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → Tất cả services (inference backend)
+
+ĐỀ XUẤT:
+  - Nếu deploy local models, dùng vllm làm serving engine
+  - Replaces Flask/direct HuggingFace inference → nhanh hơn 5-10x
+  - OpenAI-compatible API → không cần thay code chatbot
+
+
+────────────────────────────────────────────────────────────────────────────────
+[8] GEBench  ⭐⭐⭐
+    https://github.com/stepfun-ai/GEBench
+────────────────────────────────────────────────────────────────────────────────
+
+ĐÂY LÀ GÌ:
+  - Benchmark đánh giá GUI agent
+  - Có thể dùng để test quality của chatbot responses
+
+NÓ PHỤC VỤ SERVICE NÀO:
+  → services/chatbot/tests/  (thêm benchmark testing)
+
+ĐỀ XUẤT:
+  - Dùng để đánh giá chất lượng responses của chatbot
+  - So sánh các models (Grok vs Step-Flash vs Qwen local)
+
+
+================================================================================
+PHẦN 3: ROADMAP TÍCH HỢP THEO THỨ TỰ ƯU TIÊN
+================================================================================
+
+GIAI ĐOẠN 1 - NGAY LẬP TỨC (0 phí, 0 phần cứng mới):
+────────────────────────────────────────────────────────
+✅ Thêm Step-3.5-Flash qua OpenRouter FREE
+   - File sửa: services/chatbot/core/config.py
+   - File sửa: services/chatbot/core/chatbot_v2.py
+   - File sửa: services/chatbot/.env
+   - Thời gian: 30 phút
+   - Lợi ích: Thêm 1 model mạnh ngang GPT-4.5, MIỄN PHÍ
+
+GIAI ĐOẠN 2 - NGẮN HẠN (cần RTX 3090/4090, ~14GB VRAM):
+──────────────────────────────────────────────────────────
+✅ Deploy Step-Audio-2-mini thay Whisper trong speech2text/
+   - Cần: GPU ≥ RTX 3090 (VRAM 14GB+)
+   - Thời gian setup: 2-4 giờ
+   - Lợi ích: ASR tốt hơn + voice conversation 2 chiều
+
+✅ Deploy Qwen1.5-1.8B local (đã có model rồi!)
+   - File đã có: services/chatbot/src/utils/local_model_loader.py
+   - File đã có: services/chatbot/models/Qwen1.5-1.8B-Chat/
+   - Chỉ cần enable USE_API_ONLY=false trong .env
+   - Thời gian: 15 phút
+   - Lợi ích: 1 model chạy hoàn toàn local, 0 API cost
+
+GIAI ĐOẠN 3 - TRUNG HẠN (cần nghiên cứu thêm):
+─────────────────────────────────────────────────
+✅ Tích hợp gelab-zero vào mcp-server/
+   - Cần: Android device + ADB setup
+   - Thời gian: 1-2 ngày
+   - Lợi ích: Chatbot có thể điều khiển app Android
+
+✅ Fine-tune Qwen1.5-1.8B với SteptronOss
+   - Cần: GPU + dữ liệu hội thoại từ MongoDB
+   - Thời gian: 1-2 tuần (training)
+   - Lợi ích: Model riêng của bạn, style độc nhất
+
+GIAI ĐOẠN 4 - DÀI HẠN (cần phần cứng mạnh):
+──────────────────────────────────────────────
+✅ Deploy NextStep-1.1 cho image generation
+   - Cần: GPU 40GB+ VRAM
+   - Thời gian: setup 1 ngày
+   - Lợi ích: Image gen chất lượng cao, hiểu prompt tốt
+
+✅ Deploy Step-3.5-Flash local (nếu có 8x GPU H100 hoặc Mac Studio M4 Max)
+   - Cần: 120GB+ unified memory
+   - Thời gian: setup 2-3 ngày
+   - Lợi ích: Hoàn toàn offline, 0 API cost, 256K context
+
+
+================================================================================
+PHẦN 4: HƯỚNG DẪN THÊM MODEL LOCAL KHÔNG QUA API
+================================================================================
+
+CÁC OPTION LOCAL MODELS (không cần internet sau khi download):
+
+A) QWEN1.5-1.8B (ĐÃ CÓ SẴN TRONG /models/):
+   - Nhỏ nhất, chạy được trên CPU (chậm) hoặc GPU thường
+   - Phù hợp: chat nhanh, tiết kiệm resource
+   - Cách bật: đặt USE_API_ONLY=false trong services/chatbot/.env
+   - Code xử lý đã có: services/chatbot/src/utils/local_model_loader.py
+
+B) QWEN2.5-14B (ĐÃ CÓ SẴN TRONG /models/):
+   - Mạnh hơn nhiều, cần 7-14GB VRAM (với 8-bit quantization)
+   - Phù hợp: chat chất lượng cao, local
+   - Cách bật: tương tự, chọn model_key='qwen2.5'
+
+C) STEP-3.5-FLASH LOCAL (phần cứng rất mạnh):
+   - 196B MoE, chỉ kích hoạt 11B/token
+   - 111.5GB GGUF int4
+   - Cần: Mac Studio M4 Max hoặc DGX Spark (120GB+ memory)
+   - Chạy qua llama.cpp
+
+D) TỰ FINE-TUNE MODEL RIÊNG (via SteptronOss):
+   - Base: Qwen1.5-1.8B hoặc Qwen2.5-14B (đã có)
+   - Data: lấy từ MongoDB conversations của chính chatbot
+   - Framework: SteptronOss (SFT + RLVR)
+   - Kết quả: model nói tiếng Việt tốt hơn, có phong cách riêng
+
+STEP-BY-STEP BẬT LOCAL MODEL NGAY (Qwen đã có):
+─────────────────────────────────────────────────
+1. Mở services/chatbot/.env
+2. Thêm/sửa: USE_API_ONLY=false
+3. Restart chatbot service
+4. Trong UI, chọn model "qwen1.5" hoặc "qwen2.5"
+5. Test thử với 1 câu hỏi đơn giản
+
+
+================================================================================
+PHẦN 5: GỢI Ý TỰ CHẾ TẠO MODEL RIÊNG
+================================================================================
+
+MỤC TIÊU: Tạo model tiếng Việt riêng, hiểu context chatbot của bạn
+
+BƯỚC 1: Thu thập dữ liệu
+  - Lấy conversation history từ MongoDB (đã có ConversationDB)
+  - Format: {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+  - Lọc các conversation chất lượng tốt (rating cao, user satisfied)
+  - Mục tiêu: 10,000+ pairs để fine-tune hiệu quả
+
+  # Script thu thập data:
+  # services/chatbot/scripts/export_training_data.py (cần tạo mới)
+  from config.mongodb_helpers import ConversationDB, MessageDB
+  
+  def export_for_finetuning(min_messages=3, quality_threshold=0.7):
+      conversations = ConversationDB.get_all()
+      training_data = []
+      for conv in conversations:
+          messages = MessageDB.get_by_conversation(conv['_id'])
+          if len(messages) >= min_messages:
+              training_data.append(format_for_training(messages))
+      return training_data
+
+BƯỚC 2: Fine-tune với SteptronOss
+  git clone https://github.com/stepfun-ai/SteptronOss
+  # Theo hướng dẫn README để SFT Qwen1.5-1.8B với data của bạn
+  # Cần GPU, recommend RTX 3090+ hoặc A100
+  # Thời gian training: vài giờ đến vài ngày tuỳ data size
+
+BƯỚC 3: Thêm model vào local_model_loader.py
+  # services/chatbot/src/utils/local_model_loader.py
+  # Thêm vào model_configs:
+  'custom-vi': {
+      'path': 'custom-vietnamese-chatbot',  # thư mục sau khi train
+      'name': 'Custom Vietnamese Chatbot',
+      'max_tokens': 1000,
+      'quantize': False
+  }
+
+BƯỚC 4: Optimize với RLVR (nâng cao)
+  - Dùng SteptronOss RLVR để optimize model với reward signal
+  - Reward: user rating, conversation quality score
+  - Kết quả: model tự học cải thiện theo feedback thực tế
+
+
+================================================================================
+PHẦN 6: SO SÁNH CHI PHÍ - API vs LOCAL
+================================================================================
+
+HIỆN TẠI (toàn bộ API):
+  - Grok API: có phí (usage-based)
+  - OpenAI GPT-4o-mini: $0.15/$0.60 per 1M tokens
+  - DeepSeek: $0.14/$0.28 per 1M tokens
+  - Gemini: FREE (free tier có giới hạn)
+  - Tổng: phụ thuộc traffic, có thể tốn $10-100+/tháng
+
+SAU KHI TÍCH HỢP STEPFUN:
+  - Step-3.5-Flash FREE tier (OpenRouter): $0/tháng, limit request/day
+  - Qwen local (đã có): $0 (chỉ điện)
+  - Step-Audio2 local: $0 sau khi setup
+
+TIẾT KIỆM ƯỚC TÍNH:
+  - Dùng Step-Flash FREE cho ~80% requests thông thường
+  - Fallback sang Grok/OpenAI cho responses cần chất lượng cao hơn
+  - Ước tính tiết kiệm: 60-80% chi phí API
+
+
+================================================================================
+PHẦN 7: DANH SÁCH ĐẦY ĐỦ 28 REPOS STEPFUN-AI
+================================================================================
+
+ĐANG DÙNG ĐƯỢC NGAY:
+  1. Step-3.5-Flash      - LLM chính, tích hợp chatbot qua OpenRouter/API
+  2. Step-Audio2         - Speech-to-speech, nâng cấp speech2text service
+  3. Step-Audio-EditX    - Chỉnh sửa giọng nói, TTS style customization
+  4. Step-Audio-R1       - Audio reasoning (thinking audio model)
+  5. Step-Audio (v1)     - TTS fallback
+  6. NextStep-1.1        - Text-to-image SOTA, thay thế/bổ sung SD
+  7. gelab-zero          - GUI agent, mở rộng MCP capabilities
+  8. SteptronOss         - LLM training framework cho fine-tuning
+  9. vllm (fork)         - Inference engine cho local models
+ 10. GEBench             - Benchmark tool để evaluate chatbot quality
+
+CẦN NGHIÊN CỨU THÊM:
+ 11. Step-3.5-Flash cookbooks  - Hướng dẫn agent workflows
+ 12. StepDeepResearch           - Deep research agent (Step-3.5-Flash powered)
+
+RESEARCH-ONLY (chưa apply được trực tiếp):
+ 13-28. Các repos còn lại là tools benchmark, datasets, evaluation tools
+
+
+================================================================================
+TÓM TẮT HÀNH ĐỘNG NGAY HÔM NAY
+================================================================================
+
+1. [5 phút] Thêm OPENROUTER_API_KEY vào chatbot .env
+   → Bật Step-3.5-Flash FREE ngay
+
+2. [15 phút] Sửa chatbot_v2.py để add Step-3.5-Flash model config
+   → Có thêm 1 model mạnh trong dropdown
+
+3. [15 phút] Đặt USE_API_ONLY=false trong chatbot .env
+   → Bật Qwen local models đã có sẵn
+
+4. [Tùy chọn] Clone và test Step-Audio2 nếu có GPU ≥ RTX 3090
+   → Voice assistant 2 chiều
+
+5. [Tùy chọn] Test NextStep-1-Large-Edit trên HuggingFace Space
+   → Xem chất lượng trước khi deploy local
+
+================================================================================
+FILE NÀY ĐƯỢC TẠO BỞI: GitHub Copilot
+NGÀY: 04/03/2026
+SOURCE: https://github.com/stepfun-ai (28 repos, Apache 2.0 / MIT license)
+================================================================================

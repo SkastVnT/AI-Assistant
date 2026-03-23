@@ -59,31 +59,6 @@ def test_import(module_path: str, test_code: str) -> Tuple[bool, str]:
         return False, str(e)
 
 
-def check_hub_gateway() -> ServiceStatus:
-    """Check Hub Gateway service."""
-    name = "Hub Gateway"
-    port = 3000
-    
-    # Test import
-    try:
-        sys.path.insert(0, str(PROJECT_ROOT / 'services' / 'hub-gateway'))
-        from hub import app
-        import_ok = True
-        msg = "Import OK"
-    except Exception as e:
-        import_ok = False
-        msg = str(e)
-    
-    # Test port
-    if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-    
-    if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
-    else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
-
-
 def check_chatbot() -> ServiceStatus:
     """Check ChatBot service."""
     name = "ChatBot"
@@ -104,56 +79,6 @@ def check_chatbot() -> ServiceStatus:
         
         import_ok = True
         msg = "Syntax OK"
-    except Exception as e:
-        import_ok = False
-        msg = str(e)[:100]
-    
-    if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-    
-    if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
-    else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
-
-
-def check_document_intelligence() -> ServiceStatus:
-    """Check Document Intelligence service."""
-    name = "Document Intelligence"
-    port = 5003
-    
-    try:
-        doc_dir = PROJECT_ROOT / 'services' / 'document-intelligence'
-        sys.path.insert(0, str(doc_dir))
-        
-        from src.utils.advanced_features import ProcessingHistory, QuickActions
-        import_ok = True
-        msg = "Import OK"
-    except Exception as e:
-        import_ok = False
-        msg = str(e)[:100]
-    
-    if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-    
-    if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
-    else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
-
-
-def check_speech2text() -> ServiceStatus:
-    """Check Speech2Text service."""
-    name = "Speech2Text"
-    port = 5001
-    
-    try:
-        s2t_dir = PROJECT_ROOT / 'services' / 'speech2text' / 'app'
-        sys.path.insert(0, str(s2t_dir))
-        
-        from core.models import WhisperClient, check_cudnn_available
-        import_ok = True
-        msg = "Core models import OK"
     except Exception as e:
         import_ok = False
         msg = str(e)[:100]
@@ -277,103 +202,13 @@ def print_report(services: List[ServiceStatus]) -> None:
     print("=" * 70 + "\n")
 
 
-def check_text2sql() -> ServiceStatus:
-    """Check Text2SQL service."""
-    name = "Text2SQL"
-    port = 5002
-
-    try:
-        t2s_dir = PROJECT_ROOT / 'services' / 'text2sql'
-        sys.path.insert(0, str(t2s_dir))
-
-        import ast
-        with open(t2s_dir / 'run.py', 'r', encoding='utf-8') as f:
-            ast.parse(f.read())
-
-        import_ok = True
-        msg = "Syntax OK"
-    except Exception as e:
-        import_ok = False
-        msg = str(e)[:100]
-
-    if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-
-    if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
-    else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
-
-
-def check_lora_training() -> ServiceStatus:
-    """Check LoRA Training service."""
-    name = "LoRA Training"
-    port = 7862
-
-    try:
-        lora_dir = PROJECT_ROOT / 'services' / 'lora-training'
-        sys.path.insert(0, str(lora_dir))
-
-        import ast
-        with open(lora_dir / 'webui.py', 'r', encoding='utf-8') as f:
-            ast.parse(f.read())
-
-        import_ok = True
-        msg = "Syntax OK"
-    except Exception as e:
-        import_ok = False
-        msg = str(e)[:100]
-
-    if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-
-    if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
-    else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
-
-
-def check_image_upscale() -> ServiceStatus:
-    """Check Image Upscale service."""
-    name = "Image Upscale"
-    port = 7863
-
-    try:
-        upscale_dir = PROJECT_ROOT / 'services' / 'image-upscale' / 'src' / 'upscale_tool'
-        sys.path.insert(0, str(upscale_dir))
-
-        import ast
-        with open(upscale_dir / 'app.py', 'r', encoding='utf-8') as f:
-            ast.parse(f.read())
-
-        import_ok = True
-        msg = "Syntax OK"
-    except Exception as e:
-        import_ok = False
-        msg = str(e)[:100]
-
-    if check_port(port):
-        return ServiceStatus(name, port, 'running', f"Running on port {port}", import_ok)
-
-    if import_ok:
-        return ServiceStatus(name, port, 'import_ok', msg, import_ok)
-    else:
-        return ServiceStatus(name, port, 'error', msg, import_ok)
-
-
 def main():
     """Run all health checks."""
     logger.info("Starting AI-Assistant health check...")
     
     services = [
-        check_hub_gateway(),
         check_chatbot(),
-        check_text2sql(),
-        check_document_intelligence(),
-        check_speech2text(),
         check_edit_image(),
-        check_lora_training(),
-        check_image_upscale(),
         check_mcp_server(),
         check_stable_diffusion(),
     ]

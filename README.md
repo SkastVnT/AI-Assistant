@@ -1,28 +1,25 @@
 # AI-Assistant
 
-Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot, speech-to-text, OCR, text-to-sql, stable diffusion, comfyui, lora training, image upscale, mcp server.
+Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (tích hợp STT + OCR), edit-image, stable diffusion, comfyui, mcp server.
 
 ## Tổng quan
 
 - **Kiến trúc**: Python + Flask theo mô hình microservices.
 - **Chạy cục bộ** bằng script (`menu.bat` / `menu.sh`) hoặc Docker Compose.
 - **Cấu hình chung** qua file `.env` trong `app/config/` – tải bởi `services/shared_env.py`.
-- **Hub Gateway** là điểm vào chính, liệt kê tất cả service kèm URL public (Cloudflare tunnel).
+- **ChatBot** là dịch vụ trung tâm, tích hợp sẵn: audio transcription (Whisper API), OCR (Vision API fallback), xử lý tài liệu (PDF, DOCX, Excel).
 
 ## Cổng dịch vụ
 
 | Service | Port | Entry Point |
 | --- | --- | --- |
-| Hub Gateway | 3000 | `services/hub-gateway/hub.py` |
 | ChatBot | 5000 | `services/chatbot/run.py` |
-| Speech2Text | 5001 | `services/speech2text/app/web_ui.py` |
-| Text2SQL | 5002 | `services/text2sql/run.py` |
-| Document Intelligence | 5003 | `services/document-intelligence/run.py` |
+| Edit Image | 8100 | `services/edit-image/run_grok_ui.py` |
 | Stable Diffusion | 7861 | `services/stable-diffusion/` |
-| LoRA Training | 7862 | `services/lora-training/webui.py --port 7862` |
-| Image Upscale | 7863 | `services/image-upscale/src/upscale_tool/app.py` |
 | ComfyUI | 8189 | `app/ComfyUI/main.py` |
-| MCP Server | 8000 | `services/mcp-server/server.py` |
+| MCP Server | stdio | `services/mcp-server/server.py` |
+
+> **Lưu ý**: Các service cũ (speech2text, text2sql, document-intelligence, lora-training, image-upscale, hub-gateway) đã được archive tại `private/archived-services/`. Tính năng STT và OCR đã tích hợp trực tiếp vào ChatBot.
 
 ## Chạy nhanh
 
@@ -55,14 +52,10 @@ curl http://localhost:5000/health
 ### 3) Chạy từng service (Windows)
 
 ```bat
-app\scripts\start-hub-gateway.bat
 app\scripts\start-chatbot.bat
-app\scripts\start-speech2text.bat
-app\scripts\start-text2sql.bat
-app\scripts\start-document-intelligence.bat
+app\scripts\start-edit-image.bat
 app\scripts\start-stable-diffusion.bat
-app\scripts\start-lora-training.bat
-app\scripts\start-image-upscale.bat
+app\scripts\start-mcp.bat
 ```
 
 ### 4) Chạy tất cả
@@ -109,18 +102,12 @@ app/
   ComfyUI/         # ComfyUI + extra model paths
 services/
   shared_env.py    # Bộ tải env dùng chung
-  hub-gateway/     # API Gateway & Dashboard
-  chatbot/         # Multi-model AI Chatbot
-  speech2text/     # Audio → Text (Whisper)
-  text2sql/        # NL → SQL
-  document-intelligence/  # OCR + AI document analysis
+  chatbot/         # Multi-model AI Chatbot (tích hợp STT + OCR)
+  edit-image/      # ComfyUI-based image editing
   stable-diffusion/       # Image generation
-  lora-training/          # LoRA fine-tuning
-  image-upscale/          # AI image enhancement
-  edit-image/             # ComfyUI-based image editing
   mcp-server/             # Model Context Protocol server
 tests/             # Test suite
-private/           # Dữ liệu/submodule nội bộ
+private/           # Dữ liệu nội bộ + archived services
 ```
 
 ## Kiến trúc tích hợp

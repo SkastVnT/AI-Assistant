@@ -13,8 +13,8 @@ import io
 
 logger = logging.getLogger(__name__)
 
-# OCR Service URL
-OCR_SERVICE_URL = os.getenv("OCR_SERVICE_URL", "http://localhost:5004")
+# OCR Service URL (external service, optional - falls back to Vision API if unavailable)
+OCR_SERVICE_URL = os.getenv("OCR_SERVICE_URL", "")
 
 
 class OCRIntegration:
@@ -22,8 +22,9 @@ class OCRIntegration:
     
     def __init__(self, service_url: str = None):
         self.service_url = service_url or OCR_SERVICE_URL
-        self.enabled = True
-        self._check_service()
+        self.enabled = bool(self.service_url)
+        if self.enabled:
+            self._check_service()
     
     def _check_service(self):
         """Check if OCR service is available"""

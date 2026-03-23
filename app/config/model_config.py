@@ -58,48 +58,7 @@ class HubConfig:
                 "Trò chuyện tự nhiên"
             ]
         ),
-        "speech2text": ServiceConfig(
-            name="Speech to Text",
-            description="Chuyển đổi giọng nói thành văn bản tiếng Việt",
-            icon="🎤",
-            port=5001,
-            url="http://localhost:5001",
-            color="from-green-500 to-teal-600",
-            features=[
-                "Nhận dạng tiếng Việt chuẩn",
-                "Phân tách người nói (Diarization)",
-                "Hỗ trợ nhiều định dạng audio",
-                "Real-time transcription"
-            ]
-        ),
-        "text2sql": ServiceConfig(
-            name="Text to SQL",
-            description="Tạo câu truy vấn SQL từ ngôn ngữ tự nhiên",
-            icon="💾",
-            port=5002,
-            url="http://localhost:5002",
-            color="from-orange-500 to-red-600",
-            features=[
-                "Gemini AI powered",
-                "Học từ lịch sử truy vấn",
-                "Hỗ trợ nhiều loại database",
-                "SQL validation"
-            ]
-        ),
-        "document_intelligence": ServiceConfig(
-            name="Document Intelligence",
-            description="OCR + AI phân tích tài liệu thông minh",
-            icon="📄",
-            port=5003,
-            url="http://localhost:5003",
-            color="from-cyan-500 to-blue-600",
-            features=[
-                "OCR đa ngôn ngữ",
-                "AI phân tích nội dung",
-                "Hỗ trợ PDF, ảnh, Word",
-                "Trích xuất dữ liệu"
-            ]
-        ),
+
         "stable_diffusion": ServiceConfig(
             name="Stable Diffusion",
             description="Tạo ảnh AI với Stable Diffusion WebUI",
@@ -128,32 +87,18 @@ class HubConfig:
                 "API integration"
             ]
         ),
-        "lora_training": ServiceConfig(
-            name="LoRA Training",
-            description="Huấn luyện LoRA cho Stable Diffusion",
-            icon="🧠",
-            port=7862,
-            url="http://localhost:7862",
+        "edit_image": ServiceConfig(
+            name="Edit Image",
+            description="Chỉnh sửa ảnh bằng AI (Grok, ComfyUI workflow)",
+            icon="✏️",
+            port=8100,
+            url="http://localhost:8100",
             color="from-amber-500 to-yellow-600",
             features=[
-                "Kohya SD Scripts",
-                "Custom dataset",
-                "WebUI training",
-                "Model export"
-            ]
-        ),
-        "image_upscale": ServiceConfig(
-            name="Image Upscale",
-            description="Nâng cấp chất lượng ảnh bằng AI",
-            icon="📸",
-            port=7863,
-            url="http://localhost:7863",
-            color="from-emerald-500 to-green-600",
-            features=[
-                "Real-ESRGAN (x2, x4)",
-                "SwinIR Real-SR",
-                "Batch processing",
-                "Nhiều mô hình AI"
+                "Grok Image Editor",
+                "ComfyUI workflows",
+                "Inpainting & outpainting",
+                "Style transfer"
             ]
         ),
         "mcp_server": ServiceConfig(
