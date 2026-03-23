@@ -182,7 +182,10 @@ class ChatController:
             self._maybe_extract_learning(message, response_text, model)
             
             elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"âœ… Message processed in {elapsed:.2f}s with {model} ({thinking_mode} mode)")
+            # Sanitize user-controlled values before logging to prevent log injection
+            safe_model = str(model).replace('\r', '').replace('\n', '')
+            safe_thinking_mode = str(thinking_mode).replace('\r', '').replace('\n', '')
+            logger.info(f"âœ… Message processed in {elapsed:.2f}s with {safe_model} ({safe_thinking_mode} mode)")
             
             result = {
                 'response': response_text,
