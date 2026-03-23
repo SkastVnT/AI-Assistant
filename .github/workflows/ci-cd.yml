@@ -151,7 +151,7 @@ jobs:
 
     - name: Build image
       if: hashFiles(format('services/{0}/Dockerfile', matrix.service)) != ''
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v7
       with:
         context: ./services/${{ matrix.service }}
         file: ./services/${{ matrix.service }}/Dockerfile
