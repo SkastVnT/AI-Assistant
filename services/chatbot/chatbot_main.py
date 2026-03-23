@@ -1415,7 +1415,7 @@ def chat():
                 file_context += "--- END FILES ---\n\n"
                 message = file_context + message
                 logger.info(f"[UPLOAD] Injected {len(file_contents)} files into message")
-            
+        else:
             # JSON request
             data = request.json
             message = data.get('message', '')

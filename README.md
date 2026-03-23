@@ -1,25 +1,22 @@
 # AI-Assistant
 
-Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (tích hợp STT + OCR), edit-image, stable diffusion, comfyui, mcp server.
+Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (đa mô hình, voice, OCR, RAG), stable diffusion, edit image (ComfyUI), mcp server.
 
 ## Tổng quan
 
-- **Kiến trúc**: Python + Flask theo mô hình microservices.
+- **Kiến trúc**: Python + Flask microservices.
 - **Chạy cục bộ** bằng script (`menu.bat` / `menu.sh`) hoặc Docker Compose.
 - **Cấu hình chung** qua file `.env` trong `app/config/` – tải bởi `services/shared_env.py`.
-- **ChatBot** là dịch vụ trung tâm, tích hợp sẵn: audio transcription (Whisper API), OCR (Vision API fallback), xử lý tài liệu (PDF, DOCX, Excel).
+- **Chatbot** tích hợp voice transcription (Whisper API) và OCR (Vision APIs) trực tiếp.
 
-## Cổng dịch vụ
+## Dịch vụ đang hoạt động
 
-| Service | Port | Entry Point |
-| --- | --- | --- |
-| ChatBot | 5000 | `services/chatbot/run.py` |
-| Edit Image | 8100 | `services/edit-image/run_grok_ui.py` |
-| Stable Diffusion | 7861 | `services/stable-diffusion/` |
-| ComfyUI | 8189 | `app/ComfyUI/main.py` |
-| MCP Server | stdio | `services/mcp-server/server.py` |
-
-> **Lưu ý**: Các service cũ (speech2text, text2sql, document-intelligence, lora-training, image-upscale, hub-gateway) đã được archive tại `private/archived-services/`. Tính năng STT và OCR đã tích hợp trực tiếp vào ChatBot.
+| Service | Port | Entry Point | Mô tả |
+| --- | --- | --- | --- |
+| ChatBot | 5000 | `services/chatbot/run.py` | AI Chat + Voice + OCR + Tools |
+| Stable Diffusion | 7861 | `services/stable-diffusion/` | Image generation (SDXL) |
+| Edit Image | 8100 | `services/edit-image/` | AI image editing (ComfyUI backend) |
+| MCP Server | stdio | `services/mcp-server/server.py` | Model Context Protocol tools |
 
 ## Chạy nhanh
 
@@ -53,8 +50,8 @@ curl http://localhost:5000/health
 
 ```bat
 app\scripts\start-chatbot.bat
-app\scripts\start-edit-image.bat
 app\scripts\start-stable-diffusion.bat
+app\scripts\start-edit-image.bat
 app\scripts\start-mcp.bat
 ```
 
@@ -102,12 +99,13 @@ app/
   ComfyUI/         # ComfyUI + extra model paths
 services/
   shared_env.py    # Bộ tải env dùng chung
-  chatbot/         # Multi-model AI Chatbot (tích hợp STT + OCR)
-  edit-image/      # ComfyUI-based image editing
-  stable-diffusion/       # Image generation
+  chatbot/         # Multi-model AI Chatbot (+ voice STT, OCR, RAG)
+  stable-diffusion/       # Image generation (SDXL)
+  edit-image/             # ComfyUI-based image editing
   mcp-server/             # Model Context Protocol server
 tests/             # Test suite
-private/           # Dữ liệu nội bộ + archived services
+private/           # Dữ liệu/submodule nội bộ
+  archived-services/     # Dịch vụ đã ngả hưu (speech2text, text2sql, ...)
 ```
 
 ## Kiến trúc tích hợp

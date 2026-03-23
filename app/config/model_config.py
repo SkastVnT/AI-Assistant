@@ -46,19 +46,18 @@ class HubConfig:
     SERVICES: Dict[str, ServiceConfig] = {
         "chatbot": ServiceConfig(
             name="AI ChatBot",
-            description="Trợ lý AI thông minh với Gemini, GPT-3.5, DeepSeek",
+            description="Trợ lý AI đa năng - chat, voice, OCR, RAG",
             icon="🤖",
             port=5000,
             url="http://localhost:5000",
             color="from-blue-500 to-purple-600",
             features=[
-                "3 mô hình AI mạnh mẽ",
-                "Tư vấn tâm lý chuyên sâu",
-                "Giải pháp đời sống thực tế",
-                "Trò chuyện tự nhiên"
+                "Multi-model AI (Gemini, GPT, DeepSeek, Grok)",
+                "Voice transcription (Whisper API)",
+                "OCR & document analysis",
+                "Tool calling & MCP integration"
             ]
         ),
-
         "stable_diffusion": ServiceConfig(
             name="Stable Diffusion",
             description="Tạo ảnh AI với Stable Diffusion WebUI",
@@ -73,30 +72,16 @@ class HubConfig:
                 "SDXL support"
             ]
         ),
-        "comfyui": ServiceConfig(
-            name="ComfyUI",
-            description="Stable Diffusion workflow editor",
-            icon="🎨",
-            port=8189,
-            url="http://localhost:8189",
-            color="from-purple-500 to-indigo-600",
-            features=[
-                "Node-based workflow",
-                "SDXL support",
-                "Custom nodes",
-                "API integration"
-            ]
-        ),
         "edit_image": ServiceConfig(
             name="Edit Image",
-            description="Chỉnh sửa ảnh bằng AI (Grok, ComfyUI workflow)",
-            icon="✏️",
+            description="Chỉnh sửa ảnh AI với ComfyUI workflows",
+            icon="🎨",
             port=8100,
             url="http://localhost:8100",
-            color="from-amber-500 to-yellow-600",
+            color="from-purple-500 to-indigo-600",
             features=[
-                "Grok Image Editor",
-                "ComfyUI workflows",
+                "AI image editing",
+                "ComfyUI backend",
                 "Inpainting & outpainting",
                 "Style transfer"
             ]

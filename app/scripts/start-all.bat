@@ -22,10 +22,10 @@ echo ===========================================================================
 echo.
 echo This will start all AI Assistant services in separate windows:
 echo.
-echo   [1] ChatBot                Port 5000  - Multi-Model AI Chat
-echo   [2] Edit Image             Port 8100  - AI Image Editor
-echo   [3] Stable Diffusion       Port 7861  - Image Generation
-echo   [4] MCP Server             stdio      - Model Context Protocol
+echo   [1] ChatBot                Port 5000  - Multi-Model AI Chat + Voice + OCR
+echo   [2] Stable Diffusion       Port 7861  - Image Generation
+echo   [3] Edit Image             Port 8100  - AI Image Editing (ComfyUI)
+echo   [4] MCP Server             stdio      - AI Tools Protocol
 echo.
 echo ================================================================================
 echo.
@@ -55,12 +55,12 @@ echo [1/4] Starting ChatBot Service...
 start "ChatBot Service - Port 5000" cmd /k "%~dp0start-chatbot.bat"
 timeout /t 2 >nul
 
-echo [2/4] Starting Edit Image Service...
-start "Edit Image - Port 8100" cmd /k "%~dp0start-edit-image.bat"
+echo [2/4] Starting Stable Diffusion...
+start "Stable Diffusion - Port 7861" cmd /k "%~dp0start-stable-diffusion.bat"
 timeout /t 2 >nul
 
-echo [3/4] Starting Stable Diffusion...
-start "Stable Diffusion - Port 7861" cmd /k "%~dp0start-stable-diffusion.bat"
+echo [3/4] Starting Edit Image...
+start "Edit Image - Port 8100" cmd /k "%~dp0start-edit-image.bat"
 timeout /t 2 >nul
 
 echo [4/4] Starting MCP Server...
@@ -69,15 +69,15 @@ timeout /t 2 >nul
 
 echo.
 echo ================================================================================
-echo   All Services Started Successfully!
+echo   ✅ All Services Started Successfully!
 echo ================================================================================
 echo.
 echo Access the services at:
 echo.
 echo   ChatBot:                http://localhost:5000
-echo   Edit Image:             http://localhost:8100
 echo   Stable Diffusion:       http://localhost:7861
-echo   MCP Server:             stdio
+echo   Edit Image:             http://localhost:8100
+echo   MCP Server:             stdio (used by chatbot)
 echo.
 echo ================================================================================
 echo.

@@ -24,7 +24,6 @@ class PublicURLManager:
         "chatbot": {"port": 5000, "url": "http://localhost:5000"},
         "stable-diffusion": {"port": 7861, "url": "http://localhost:7861"},
         "stable_diffusion": {"port": 7861, "url": "http://localhost:7861"},
-        "comfyui": {"port": 8189, "url": "http://localhost:8189"},
         "edit-image": {"port": 8100, "url": "http://localhost:8100"},
         "edit_image": {"port": 8100, "url": "http://localhost:8100"},
         "mcp-server": {"port": 8000, "url": "http://localhost:8000"},

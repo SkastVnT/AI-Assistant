@@ -15,6 +15,9 @@ echo   Start Image-AI Services (Parallel)
 echo   Environment: venv-image (except dedicated local env services)
 echo ==================================================
 
+start "image-upscale" cmd /k "cd /d services\image-upscale && set PYTHONPATH=%CD%\src;%PYTHONPATH% && ..\..\venv-image\Scripts\python.exe -m upscale_tool.app"
+start "lora-training" cmd /k "cd /d services\lora-training && ..\..\venv-image\Scripts\python.exe webui.py --port 7862"
+
 rem Stable Diffusion uses its own internal venv under services\stable-diffusion\venv
 if exist "services\stable-diffusion\webui.bat" (
     start "stable-diffusion" cmd /k "cd /d services\stable-diffusion && set PYTHON=%CD%\venv\Scripts\python.exe && call webui.bat --port 7861 --api --skip-python-version-check --skip-torch-cuda-test --no-half"
@@ -27,4 +30,6 @@ if exist "services\edit-image\run_grok_ui.py" (
 
 echo [OK] Image services launched in separate terminals.
 echo Stable Diffusion: http://127.0.0.1:7861
+echo LoRA Training: http://127.0.0.1:7862
+echo Image Upscale: http://127.0.0.1:7863
 echo Edit Image (Grok UI): http://127.0.0.1:7860
