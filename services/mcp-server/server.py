@@ -11,8 +11,11 @@ Server nÃ y cung cáº¥p:
 """
 
 import os
+import ast
+import math
 import json
 import sqlite3
+import operator as _op
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
@@ -32,6 +35,46 @@ BASE_DIR = Path(__file__).parent.parent.parent
 LOCAL_DATA_DIR = BASE_DIR / "local_data"
 RESOURCES_DIR = BASE_DIR / "resources"
 LOGS_DIR = RESOURCES_DIR / "logs"
+
+# Module-level safe math evaluator setup
+_MATH_ALLOWED = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
+_MATH_ALLOWED.update({"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow})
+_MATH_BINOPS = {
+    ast.Add: _op.add, ast.Sub: _op.sub, ast.Mult: _op.mul,
+    ast.Div: _op.truediv, ast.Pow: _op.pow, ast.Mod: _op.mod,
+    ast.FloorDiv: _op.floordiv,
+}
+_MATH_UNOPS = {ast.UAdd: _op.pos, ast.USub: _op.neg}
+
+
+def _safe_math_eval(expression: str):
+    """Evaluate a mathematical expression safely using AST parsing."""
+    def _eval_node(node):
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, (int, float, complex)):
+                return node.value
+            raise ValueError(f"Unsupported literal: {node.value!r}")
+        if isinstance(node, ast.Name):
+            if node.id in _MATH_ALLOWED:
+                return _MATH_ALLOWED[node.id]
+            raise ValueError(f"Name not allowed: {node.id}")
+        if isinstance(node, ast.BinOp):
+            if type(node.op) not in _MATH_BINOPS:
+                raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
+            return _MATH_BINOPS[type(node.op)](_eval_node(node.left), _eval_node(node.right))
+        if isinstance(node, ast.UnaryOp):
+            if type(node.op) not in _MATH_UNOPS:
+                raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
+            return _MATH_UNOPS[type(node.op)](_eval_node(node.operand))
+        if isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name) or node.func.id not in _MATH_ALLOWED or not callable(_MATH_ALLOWED[node.func.id]):
+                raise ValueError(f"Function not allowed: {ast.dump(node.func)}")
+            func = _MATH_ALLOWED[node.func.id]
+            args = [_eval_node(a) for a in node.args]
+            kwargs = {kw.arg: _eval_node(kw.value) for kw in node.keywords}
+            return func(*args, **kwargs)
+        raise ValueError(f"Unsupported expression: {type(node).__name__}")
+    return _eval_node(ast.parse(expression, mode='eval').body)
 
 
 # ==================== TOOLS ====================
@@ -274,50 +317,10 @@ def calculate(expression: str) -> Dict[str, Any]:
         expression: Biá»ƒu thá»©c toÃ¡n há»c (vd: "2 + 2", "sqrt(16)", "10 ** 2")
         
     Returns:
-        Dict chá»©a káº¿t quáº£ tÃ­nh toÃ¡n
+        Dict chứa kết quả tính toán
     """
-    import math
-    import ast
-    import operator as _op
-
     try:
-        # Safe AST-based math evaluator
-        _allowed = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
-        _allowed.update({"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow})
-        _binops = {
-            ast.Add: _op.add, ast.Sub: _op.sub, ast.Mult: _op.mul,
-            ast.Div: _op.truediv, ast.Pow: _op.pow, ast.Mod: _op.mod,
-            ast.FloorDiv: _op.floordiv,
-        }
-        _unops = {ast.UAdd: _op.pos, ast.USub: _op.neg}
-
-        def _eval_node(node):
-            if isinstance(node, ast.Constant):
-                if isinstance(node.value, (int, float, complex)):
-                    return node.value
-                raise ValueError(f"Unsupported literal: {node.value!r}")
-            if isinstance(node, ast.Name):
-                if node.id in _allowed:
-                    return _allowed[node.id]
-                raise ValueError(f"Name not allowed: {node.id}")
-            if isinstance(node, ast.BinOp):
-                if type(node.op) not in _binops:
-                    raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
-                return _binops[type(node.op)](_eval_node(node.left), _eval_node(node.right))
-            if isinstance(node, ast.UnaryOp):
-                if type(node.op) not in _unops:
-                    raise ValueError(f"Operator not allowed: {type(node.op).__name__}")
-                return _unops[type(node.op)](_eval_node(node.operand))
-            if isinstance(node, ast.Call):
-                if not isinstance(node.func, ast.Name) or node.func.id not in _allowed or not callable(_allowed[node.func.id]):
-                    raise ValueError(f"Function not allowed: {ast.dump(node.func)}")
-                func = _allowed[node.func.id]
-                args = [_eval_node(a) for a in node.args]
-                kwargs = {kw.arg: _eval_node(kw.value) for kw in node.keywords}
-                return func(*args, **kwargs)
-            raise ValueError(f"Unsupported expression: {type(node).__name__}")
-
-        result = _eval_node(ast.parse(expression, mode='eval').body)
+        result = _safe_math_eval(expression)
         
         return {
             "expression": expression,
@@ -328,7 +331,7 @@ def calculate(expression: str) -> Dict[str, Any]:
     except Exception as e:
         return {
             "expression": expression,
-            "error": f"Lá»—i tÃ­nh toÃ¡n: {str(e)}"
+            "error": f"Lỗi tính toán: {str(e)}"
         }
 
 
