@@ -2,19 +2,18 @@ name: Tests
 
 on:
   push:
-    branches: [ master, develop, 'feat/**' ]
+    branches: [ master, develop, 'feat/**', 'refactor/**' ]
   pull_request:
     branches: [ master, develop ]
 
-jobs:
-  test-services:
-    name: Service Tests (${{ matrix.service }})
-    runs-on: ubuntu-latest
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [chatbot, text2sql, image-upscale]
+jobs:
+  test-chatbot:
+    name: Service Tests (chatbot)
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -26,21 +25,19 @@ jobs:
         cache: 'pip'
 
     - name: Install dependencies
-      working-directory: ./services/${{ matrix.service }}
+      working-directory: ./services/chatbot
       run: |
         python -m pip install --upgrade pip
-        if [ -f tests/requirements-test.txt ]; then pip install -r tests/requirements-test.txt; fi
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install pytest pytest-cov pytest-mock
+        pip install -r tests/requirements-test.txt
+        pip install -r requirements.txt
 
     - name: Run service tests
-      working-directory: ./services/${{ matrix.service }}
+      working-directory: ./services/chatbot
+      env:
+        TESTING: "True"
+        MONGODB_ENABLED: "False"
       run: |
-        if [ -d tests ]; then
-          pytest tests/ -v --tb=short
-        else
-          echo "No tests directory found for services/${{ matrix.service }}, skipping."
-        fi
+        pytest tests/ -v --tb=short --timeout=60
 
   test-root:
     name: Root Integration Tests
@@ -58,10 +55,22 @@ jobs:
     - name: Install test dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f tests/requirements-test.txt ]; then pip install -r tests/requirements-test.txt; fi
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install pytest pytest-cov pytest-mock
+        pip install -r tests/requirements-test.txt
+        pip install -r services/chatbot/requirements.txt
 
-    - name: Run root tests
+    - name: Run root tests (active services only)
+      env:
+        TESTING: "True"
+        MONGODB_ENABLED: "False"
       run: |
-        pytest tests/ -v --tb=short
+        pytest \
+          tests/test_chatbot_improvements.py \
+          tests/unit/test_chatbot.py \
+          tests/unit/test_env_validator.py \
+          tests/unit/test_errors.py \
+          tests/unit/test_health.py \
+          tests/unit/test_security.py \
+          tests/unit/test_utils.py \
+          tests/integration/test_chatbot_api.py \
+          tests/e2e/ \
+          -v --tb=short --timeout=120

@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # ChatBot Service (Python 3.11.9)
+  # ChatBot Service
   - package-ecosystem: "pip"
-    directory: "/ChatBot"
+    directory: "/services/chatbot"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -16,62 +16,35 @@ updates:
       - "security"
       - "chatbot"
     commit-message:
-      prefix: "🔒"
+      prefix: "deps"
       include: "scope"
-    
-  # Text2SQL Service (Python 3.10.11)
+
+  # MCP Server
   - package-ecosystem: "pip"
-    directory: "/Text2SQL Services"
+    directory: "/services/mcp-server"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "security"
-      - "text2sql"
     commit-message:
-      prefix: "🔒"
-    
-  # Document Intelligence Service (Python 3.10.11)
-  - package-ecosystem: "pip"
-    directory: "/Document Intelligence Service"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "security"
-      - "document-intelligence"
-    commit-message:
-      prefix: "🔒"
-    
-  # Speech2Text Service (Python 3.10.11)
-  - package-ecosystem: "pip"
-    directory: "/Speech2Text Services"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "security"
-      - "speech2text"
-    commit-message:
-      prefix: "🔒"
-    
-  # Docker base images
-  - package-ecosystem: "docker"
+      prefix: "deps"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
+      timezone: "Asia/Ho_Chi_Minh"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
-      - "docker"
+      - "ci"
+    commit-message:
+      prefix: "ci"

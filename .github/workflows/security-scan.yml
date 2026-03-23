@@ -2,11 +2,11 @@ name: Security Scanning
 
 on:
   push:
-    branches: [ master, develop, Ver_1, 'feat/**' ]
+    branches: [ master, develop, 'feat/**', 'refactor/**' ]
   pull_request:
-    branches: [ master, develop, Ver_1 ]
+    branches: [ master, develop ]
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+    - cron: '0 0 * * 0'
   workflow_dispatch:
 
 jobs:
@@ -21,8 +21,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
@@ -37,25 +35,22 @@ jobs:
         
     - name: Run Bandit (Python Security Linter)
       run: |
-        bandit -r . \
-          --exclude ./venv*,./.venv*,./ComfyUI,./app/ComfyUI,./private,**/tests/**,**/node_modules/** \
+        bandit -r services/ app/src/ \
+          --exclude '**/tests/**,**/__pycache__/**' \
           --severity-level medium \
           --confidence-level medium \
           -f json -o bandit-report.json || true
-        bandit -r . \
-          --exclude ./venv*,./.venv*,./ComfyUI,./app/ComfyUI,./private \
+        bandit -r services/ app/src/ \
+          --exclude '**/tests/**,**/__pycache__/**' \
           -f txt || true
       continue-on-error: true
         
-    - name: Run pip-audit (PyPI Package Auditor)
+    - name: Run pip-audit (active services only)
       run: |
         for req in \
           services/chatbot/requirements.txt \
-          services/text2sql/requirements.txt \
-          services/document-intelligence/requirements.txt \
-          services/speech2text/requirements.txt \
-          services/image-upscale/requirements.txt \
-          services/lora-training/requirements.txt \
+          services/stable-diffusion/requirements.txt \
+          services/edit-image/requirements.txt \
           services/mcp-server/requirements.txt; do
           if [ -f "$req" ]; then
             echo "=== Auditing $req ==="

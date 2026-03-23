@@ -105,29 +105,6 @@ def sample_data_dir(temp_dir):
 # ============================================================================
 
 @pytest.fixture
-def hub_app():
-    """Create Hub Gateway Flask app for testing"""
-    # Add services/hub-gateway to path
-    hub_path = project_root / "services" / "hub-gateway"
-    if str(hub_path) not in sys.path:
-        sys.path.insert(0, str(hub_path))
-    
-    try:
-        from hub import app
-        app.config['TESTING'] = True
-        app.config['DEBUG'] = False
-        return app
-    except ImportError:
-        pytest.skip("Hub Gateway app not available")
-
-
-@pytest.fixture
-def hub_client(hub_app):
-    """Create test client for Hub Gateway"""
-    return hub_app.test_client()
-
-
-@pytest.fixture
 def chatbot_app():
     """Create ChatBot Flask app for testing"""
     # Add services/chatbot to path
@@ -175,29 +152,6 @@ def chatbot_app():
 def chatbot_client(chatbot_app):
     """Create test client for ChatBot"""
     return chatbot_app.test_client()
-
-
-@pytest.fixture
-def text2sql_app():
-    """Create Text2SQL Flask app for testing"""
-    # Add services/text2sql to path
-    text2sql_path = project_root / "services" / "text2sql"
-    if str(text2sql_path) not in sys.path:
-        sys.path.insert(0, str(text2sql_path))
-    
-    try:
-        from app_simple import app
-        app.config['TESTING'] = True
-        app.config['DEBUG'] = False
-        return app
-    except ImportError:
-        pytest.skip("Text2SQL app not available")
-
-
-@pytest.fixture
-def text2sql_client(text2sql_app):
-    """Create test client for Text2SQL"""
-    return text2sql_app.test_client()
 
 
 # ============================================================================
@@ -376,23 +330,7 @@ def mock_database():
 # ============================================================================
 
 @pytest.fixture
-def hub_config():
-    """Hub Gateway configuration"""
-    from config.model_config import HubConfig
-    return HubConfig
 
-
-@pytest.fixture
-def service_configs(hub_config):
-    """All service configurations"""
-    return hub_config.get_all_services()
-
-
-# ============================================================================
-# Helper Functions for Tests
-# ============================================================================
-
-@pytest.fixture
 def assert_response_ok():
     """Helper to assert successful API response"""
     def _assert(response, expected_status=200):

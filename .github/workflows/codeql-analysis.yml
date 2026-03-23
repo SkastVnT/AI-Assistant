@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ master ]
   schedule:
-    # Run weekly scan every Monday at 00:00 UTC (07:00 Vietnam)
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
@@ -29,12 +28,25 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
+    - name: Remove excluded directories
+      run: |
+        rm -rf ComfyUI app/ComfyUI private venv* .venv*
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
         queries: +security-and-quality
+        config: |
+          paths:
+            - services/
+            - app/src/
+          paths-ignore:
+            - '**/tests/**'
+            - '**/test_*'
+            - '**/__pycache__/**'
+            - '**/venv*/**'
         
     - name: Autobuild
       uses: github/codeql-action/autobuild@v3
