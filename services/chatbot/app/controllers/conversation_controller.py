@@ -148,7 +148,6 @@ class ConversationController:
         to local_data for AI learning review.
         """
         try:
-            safe_conversation_id = str(conversation_id).replace('\r', '').replace('\n', '')
             # Get conversation with messages before deletion
             conv = self.get_conversation(conversation_id)
             
