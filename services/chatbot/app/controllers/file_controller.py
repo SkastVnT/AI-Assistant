@@ -15,6 +15,16 @@ from ..services.file_service import FileService
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_for_log(value: Any) -> str:
+    """
+    Sanitize potentially untrusted data before logging to prevent log injection.
+    Removes newline and carriage return characters that could forge additional log entries.
+    """
+    if not isinstance(value, str):
+        value = str(value)
+    return value.replace('\r', '').replace('\n', '')
+
+
 class FileController:
     """Controller for file operations"""
     
@@ -101,7 +111,8 @@ class FileController:
         """Delete a file"""
         try:
             self.file_service.delete(file_id)
-            logger.info(f"âœ… Deleted file: {file_id}")
+            safe_file_id = _sanitize_for_log(file_id)
+            logger.info(f"âœ… Deleted file: {safe_file_id}")
             return {'deleted': True, 'file_id': file_id}
         except Exception as e:
             logger.error(f"âŒ Error deleting file: {e}")
