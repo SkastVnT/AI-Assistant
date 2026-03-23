@@ -128,7 +128,8 @@ class ConversationController:
             
             conv = self.conversation_service.update(conversation_id, updates)
             
-            logger.info(f"âœ… Updated conversation: {conversation_id}")
+            safe_conversation_id = str(conversation_id).replace('\r', '').replace('\n', '')
+            logger.info(f"âœ… Updated conversation: {safe_conversation_id}")
             return conv
             
         except Exception as e:
