@@ -160,10 +160,17 @@ export class ImageGenV2 {
             } else {
                 this._showStatus(`❌ Lỗi: ${data.error}`, 'error');
                 if (resultArea) {
-                    resultArea.innerHTML = `<div class="igv2-error">
-                        <p>❌ ${data.error}</p>
-                        <p class="text-sm mt-2">Prompt used: ${data.prompt_used || prompt}</p>
-                    </div>`;
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'igv2-error';
+                    const errorP = document.createElement('p');
+                    errorP.textContent = '❌ ' + (data.error || 'Unknown error');
+                    errorDiv.appendChild(errorP);
+                    const promptP = document.createElement('p');
+                    promptP.className = 'text-sm mt-2';
+                    promptP.textContent = 'Prompt used: ' + (data.prompt_used || prompt);
+                    errorDiv.appendChild(promptP);
+                    resultArea.innerHTML = '';
+                    resultArea.appendChild(errorDiv);
                 }
             }
         } catch (e) {

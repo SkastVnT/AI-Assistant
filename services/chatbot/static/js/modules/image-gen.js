@@ -967,24 +967,24 @@ Prompt:`;
                     <div class="message-content">
                         <div class="message-header">
                             <span class="message-role">🎨 AI Image Generation</span>
-                            <span class="message-timestamp">${timestamp}</span>
+                            <span class="message-timestamp">${this._escapeHtml(timestamp)}</span>
                         </div>
                         <div class="message-body">
                             <img src="data:image/png;base64,${this.currentGeneratedImage.image}" 
                                  style="max-width: 100%; border-radius: 8px; margin-bottom: 10px; cursor: pointer;"
                                  onclick="openImagePreview(this)" />
                             <div style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px;">
-                                <div style="margin-bottom: 8px;"><strong>📝 Prompt:</strong> ${metadata.prompt}</div>
-                                <div style="margin-bottom: 8px;"><strong>🚫 Negative:</strong> ${metadata.negative_prompt}</div>
+                                <div style="margin-bottom: 8px;"><strong>📝 Prompt:</strong> ${this._escapeHtml(metadata.prompt)}</div>
+                                <div style="margin-bottom: 8px;"><strong>🚫 Negative:</strong> ${this._escapeHtml(metadata.negative_prompt)}</div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
-                                    <div><strong>🤖 Model:</strong> ${metadata.model}</div>
-                                    <div><strong>⚙️ Sampler:</strong> ${metadata.sampler}</div>
-                                    <div><strong>🔢 Steps:</strong> ${metadata.steps}</div>
-                                    <div><strong>🎚️ CFG:</strong> ${metadata.cfg_scale}</div>
-                                    <div><strong>📐 Size:</strong> ${metadata.size}</div>
-                                    ${metadata.denoising_strength !== 'N/A' ? `<div><strong>🔧 Denoising:</strong> ${metadata.denoising_strength}</div>` : ''}
-                                    <div><strong>🎨 LoRA:</strong> ${metadata.lora_models}</div>
-                                    <div><strong>🔧 VAE:</strong> ${metadata.vae}</div>
+                                    <div><strong>🤖 Model:</strong> ${this._escapeHtml(metadata.model)}</div>
+                                    <div><strong>⚙️ Sampler:</strong> ${this._escapeHtml(metadata.sampler)}</div>
+                                    <div><strong>🔢 Steps:</strong> ${this._escapeHtml(metadata.steps)}</div>
+                                    <div><strong>🎚️ CFG:</strong> ${this._escapeHtml(metadata.cfg_scale)}</div>
+                                    <div><strong>📐 Size:</strong> ${this._escapeHtml(metadata.size)}</div>
+                                    ${metadata.denoising_strength !== 'N/A' ? `<div><strong>🔧 Denoising:</strong> ${this._escapeHtml(metadata.denoising_strength)}</div>` : ''}
+                                    <div><strong>🎨 LoRA:</strong> ${this._escapeHtml(metadata.lora_models)}</div>
+                                    <div><strong>🔧 VAE:</strong> ${this._escapeHtml(metadata.vae)}</div>
                                 </div>
                             </div>
                         </div>
@@ -1584,5 +1584,11 @@ Prompt:`;
             container.style.display = 'flex';
             this.currentGeneratedImage = { image: b64, type };
         }
+    }
+
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
     }
 }

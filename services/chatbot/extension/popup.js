@@ -6,7 +6,7 @@
 // State
 let conversationHistory = [];
 let serverUrl = 'http://localhost:5000';
-let apiKey = 'ai-assistant-ext-key-2024';
+let apiKey = '';
 let model = 'grok';
 let pageContext = null;
 
@@ -225,7 +225,7 @@ settingsBtn.addEventListener('click', () => {
 
 saveSettingsBtn.addEventListener('click', () => {
     serverUrl = document.getElementById('serverUrl').value || 'http://localhost:5000';
-    apiKey = document.getElementById('apiKey').value || 'ai-assistant-ext-key-2024';
+    apiKey = document.getElementById('apiKey').value || '';
     model = document.getElementById('modelSelect').value || 'grok';
 
     chrome.storage.sync.set({ serverUrl, apiKey, model });

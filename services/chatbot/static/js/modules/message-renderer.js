@@ -116,7 +116,8 @@ export class MessageRenderer {
         } else {
             // Parse markdown for assistant messages
             if (typeof marked !== 'undefined') {
-                textDiv.innerHTML = marked.parse(content);
+                const rawHtml = marked.parse(content);
+                textDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
                 
                 // Highlight code blocks
                 if (typeof hljs !== 'undefined') {

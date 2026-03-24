@@ -48,7 +48,8 @@ export class SplitViewManager {
         
         // Move existing chatArea content into left pane
         const leftChatArea = leftPane.querySelector('.split-pane__chat');
-        leftChatArea.innerHTML = this.chatArea.innerHTML;
+        const leftContent = this.chatArea.innerHTML;
+        leftChatArea.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(leftContent) : leftContent;
 
         // Divider
         const divider = document.createElement('div');
@@ -122,7 +123,8 @@ export class SplitViewManager {
         // Load messages into this pane
         const messagesContainer = pane.querySelector('.chat-area__messages');
         if (session && session.messages.length > 0) {
-            messagesContainer.innerHTML = session.messages.join('');
+            const joined = session.messages.join('');
+            messagesContainer.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(joined) : joined;
         } else {
             messagesContainer.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">No messages yet</div>';
         }
@@ -215,7 +217,8 @@ export class SplitViewManager {
         const chatArea = document.createElement('div');
         chatArea.className = 'split-pane__chat chat-area';
         chatArea.style.cssText = 'flex:1;overflow-y:auto;';
-        chatArea.innerHTML = `<div class="chat-area__messages" style="max-width:100%;padding:16px;">${session.messages.join('')}</div>`;
+        const chatContent = `<div class="chat-area__messages" style="max-width:100%;padding:16px;">${session.messages.join('')}</div>`;
+        chatArea.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(chatContent) : chatContent;
 
         if (existingBody) {
             pane.replaceChild(chatArea, existingBody);

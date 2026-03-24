@@ -36,6 +36,8 @@ export class ChatManager {
                 const parsed = JSON.parse(saved);
                 this.chatSessions = {};
                 Object.keys(parsed).forEach(id => {
+                    // Guard against prototype pollution
+                    if (id === '__proto__' || id === 'constructor' || id === 'prototype') return;
                     const session = parsed[id];
                     this.chatSessions[id] = session;
                     this.chatSessions[id].createdAt = new Date(session.createdAt);

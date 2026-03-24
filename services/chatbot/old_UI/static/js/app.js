@@ -111,13 +111,20 @@ function addChatItem(chatId, title, preview, timestamp) {
     const time = timestamp ? formatTimestamp(new Date(timestamp)) : formatTimestamp(new Date());
     
     chatItem.innerHTML = `
-        <div class="chat-item-title">${title}</div>
-        <div class="chat-item-preview">${preview}</div>
-        <div class="chat-item-time">${time}</div>
+        <div class="chat-item-title"></div>
+        <div class="chat-item-preview"></div>
+        <div class="chat-item-time"></div>
         <div class="chat-item-actions">
-            <button class="chat-item-btn" onclick="deleteChat('${chatId}')" title="Xóa">🗑️</button>
+            <button class="chat-item-btn" title="Xóa">🗑️</button>
         </div>
     `;
+    chatItem.querySelector('.chat-item-title').textContent = title;
+    chatItem.querySelector('.chat-item-preview').textContent = preview;
+    chatItem.querySelector('.chat-item-time').textContent = time;
+    chatItem.querySelector('.chat-item-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteChat(chatId);
+    });
     
     chatItem.addEventListener('click', (e) => {
         if (!e.target.classList.contains('chat-item-btn')) {
@@ -260,7 +267,8 @@ function addMessage(content, isUser, model = '', context = '', timestamp = '', s
     if (isUser) {
         contentDiv.textContent = content;
     } else {
-        contentDiv.innerHTML = marked.parse(content);
+        const rawHtml = marked.parse(content);
+        contentDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
         
         // Syntax highlighting
         contentDiv.querySelectorAll('pre code').forEach((block) => {

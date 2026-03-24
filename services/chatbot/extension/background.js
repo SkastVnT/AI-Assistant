@@ -22,9 +22,7 @@ chrome.runtime.onInstalled.addListener(() => {
         if (!result.serverUrl) {
             chrome.storage.sync.set({ serverUrl: 'http://localhost:5000' });
         }
-        if (!result.apiKey) {
-            chrome.storage.sync.set({ apiKey: 'ai-assistant-ext-key-2024' });
-        }
+        // API key must be configured by the user — no hardcoded default
     });
 });
 
@@ -32,7 +30,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const { serverUrl, apiKey } = await chrome.storage.sync.get(['serverUrl', 'apiKey']);
     const baseUrl = serverUrl || 'http://localhost:5000';
-    const key = apiKey || 'ai-assistant-ext-key-2024';
+    const key = apiKey || '';
 
     if (info.menuItemId === 'send-to-ai') {
         // Send selected text as context + open popup
