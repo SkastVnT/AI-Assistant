@@ -265,7 +265,9 @@ def legacy_img2img():
             seed=int(data.get('seed') or -1),
         )
         if 'error' in result:
-            return jsonify({'error': result['error']}), 500
+            # Log internal error details but return a generic message to the client
+            logger.error(f"ComfyUI img2img error: {result.get('error')}")
+            return jsonify({'error': 'Image generation failed'}), 500
 
         return jsonify({'images': result.get('images', [])}), 200
 

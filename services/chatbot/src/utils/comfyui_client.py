@@ -343,8 +343,9 @@ class ComfyUIClient:
             return {'images': [base64_image]}
             
         except Exception as e:
-            logger.error(f"Error in img2img: {e}")
-            return {'error': str(e)}
+            # Log full exception details on the server, but return a generic error to the client
+            logger.exception("Unhandled error in ComfyUI img2img")
+            return {'error': 'Internal error during image generation'}
     
     def _upload_image(self, image_bytes: bytes, filename: str = None) -> Optional[Dict]:
         """Upload image to ComfyUI input folder"""
