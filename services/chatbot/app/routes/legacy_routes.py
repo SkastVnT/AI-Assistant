@@ -157,6 +157,194 @@ def legacy_save_memory():
 # HEALTH & STATUS
 # ============================================================================
 
+@legacy_bp.route('/clear', methods=['POST'])
+def legacy_clear():
+    """Legacy clear conversation history"""
+    try:
+        data = request.get_json() or {}
+        conversation_id = data.get('conversation_id')
+        if conversation_id:
+            try:
+                conversation_controller.delete_conversation(
+                    conversation_id=conversation_id,
+                    save_for_learning=False
+                )
+            except Exception:
+                pass  # Best-effort clear; ignore if conversation not found or DB down
+        return jsonify({'message': 'Conversation cleared'}), 200
+    except Exception as e:
+        logger.error(f"Error clearing conversation: {str(e)}")
+        return jsonify({'error': 'Failed to clear conversation'}), 500
+
+
+@legacy_bp.route('/history', methods=['GET'])
+def legacy_history():
+    """Legacy get conversation history"""
+    try:
+        user_id = session.get('user_id', 'anonymous')
+        result = conversation_controller.list_conversations(user_id=user_id)
+        return jsonify({
+            'history': result.get('conversations', [])
+        }), 200
+    except Exception as e:
+        logger.error(f"Error getting history: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve history'}), 500
+
+
+# ============================================================================
+# LEGACY IMAGE GENERATION ROUTES
+# ============================================================================
+
+@legacy_bp.route('/api/generate-image', methods=['POST'])
+def legacy_generate_image():
+    """Legacy generate image endpoint"""
+    try:
+        data = request.get_json() or {}
+        prompt = data.get('prompt', '')
+
+        if not prompt:
+            return jsonify({'error': 'Prompt is required'}), 400
+
+        from src.utils.comfyui_client import get_comfyui_client
+        import os
+
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
+
+        import base64
+        image_bytes = sd_client.generate_image(
+            prompt=prompt,
+            negative_prompt=data.get('negative_prompt', 'bad quality, blurry'),
+            width=int(data.get('width') or 1024),
+            height=int(data.get('height') or 1024),
+            steps=int(data.get('steps') or 20),
+            cfg_scale=float(data.get('cfg_scale') or 7.0),
+            seed=int(data.get('seed') or -1),
+        )
+        if not image_bytes:
+            return jsonify({'error': 'Failed to generate image'}), 500
+
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        return jsonify({'images': [base64_image]}), 200
+
+    except ImportError:
+        return jsonify({'error': 'Image generation service not available'}), 503
+    except Exception as e:
+        logger.error(f"Error generating image: {str(e)}")
+        return jsonify({'error': 'Image generation failed'}), 500
+
+
+@legacy_bp.route('/api/img2img', methods=['POST'])
+def legacy_img2img():
+    """Legacy img2img endpoint"""
+    try:
+        data = request.get_json() or {}
+        image = data.get('image') or data.get('init_image', '')
+        prompt = data.get('prompt', '')
+
+        if not image:
+            return jsonify({'error': 'Image is required'}), 400
+        if not prompt:
+            return jsonify({'error': 'Prompt is required'}), 400
+
+        from src.utils.comfyui_client import get_comfyui_client
+        import os
+
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
+
+        result = sd_client.img2img(
+            init_images=[image],
+            prompt=prompt,
+            negative_prompt=data.get('negative_prompt', ''),
+            denoising_strength=float(data.get('denoising_strength') or 0.8),
+            width=int(data.get('width') or 512),
+            height=int(data.get('height') or 512),
+            steps=int(data.get('steps') or 30),
+            cfg_scale=float(data.get('cfg_scale') or 7.0),
+            seed=int(data.get('seed') or -1),
+        )
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 500
+
+        return jsonify({'images': result.get('images', [])}), 200
+
+    except ImportError:
+        return jsonify({'error': 'Image generation service not available'}), 503
+    except Exception as e:
+        logger.error(f"Error in img2img: {str(e)}")
+        return jsonify({'error': 'img2img failed'}), 500
+
+
+@legacy_bp.route('/api/sd-models', methods=['GET'])
+def legacy_sd_models():
+    """Legacy get SD models endpoint"""
+    try:
+        from src.utils.comfyui_client import get_comfyui_client
+        import os
+
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_client = get_comfyui_client(sd_api_url)
+
+        models = sd_client.get_models()
+        current = sd_client.get_current_model()
+
+        return jsonify({'models': models, 'current_model': current}), 200
+
+    except ImportError:
+        return jsonify({'error': 'Image generation service not available'}), 503
+    except Exception as e:
+        logger.error(f"Error getting SD models: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve SD models'}), 500
+
+
+# ============================================================================
+# LEGACY MEMORY API ROUTES
+# ============================================================================
+
+@legacy_bp.route('/api/memory/save', methods=['POST'])
+def legacy_api_save_memory():
+    """Legacy save memory via API path"""
+    from ..controllers.memory_controller import MemoryController
+    controller = MemoryController()
+
+    try:
+        data = request.get_json() or {}
+        user_id = session.get('user_id', 'anonymous')
+
+        result = controller.create_memory(
+            user_id=user_id,
+            title=data.get('title', 'Untitled'),
+            content=data.get('summary', data.get('content', '')),
+            category=data.get('category', 'general')
+        )
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.error(f"Error saving memory: {str(e)}")
+        return jsonify({'error': 'Failed to save memory'}), 500
+
+
+@legacy_bp.route('/api/memory/list', methods=['GET'])
+def legacy_api_list_memories():
+    """Legacy list memories via API path"""
+    from ..controllers.memory_controller import MemoryController
+    controller = MemoryController()
+
+    try:
+        user_id = session.get('user_id', 'anonymous')
+        result = controller.list_memories(user_id=user_id)
+        return jsonify({'memories': result.get('memories', [])}), 200
+    except Exception as e:
+        logger.error(f"Error listing memories: {str(e)}")
+        return jsonify({'error': 'Failed to list memories'}), 500
+
+
+# ============================================================================
+# HEALTH & STATUS
+# ============================================================================
+
 @legacy_bp.route('/health')
 def health():
     """Health check"""

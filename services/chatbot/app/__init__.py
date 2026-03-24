@@ -12,6 +12,8 @@ from flask import Flask
 from typing import Optional
 import os
 
+from core.config import SYSTEM_PROMPTS
+
 
 def create_app(config_name: str = 'default') -> Flask:
     """
@@ -38,5 +40,5 @@ _default_config = 'testing' if os.getenv('TESTING', '').lower() == 'true' else '
 app = create_app(_default_config)
 
 
-__all__ = ['create_app', 'app']
+__all__ = ['create_app', 'app', 'SYSTEM_PROMPTS']
 __version__ = '3.0.0'
