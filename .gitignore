@@ -224,6 +224,8 @@ resources/templates/temp/
 **/output/**/*.jpeg
 **/logs/**/*.log
 **/cache/
+!services/chatbot/database/cache/
+!services/chatbot/database/cache/**
 **/tmp/
 **/temp/
 **/test_output/
