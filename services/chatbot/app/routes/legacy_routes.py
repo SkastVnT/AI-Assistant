@@ -169,8 +169,8 @@ def legacy_clear():
                     conversation_id=conversation_id,
                     save_for_learning=False
                 )
-            except Exception:
-                pass  # Best-effort clear; ignore if conversation not found or DB down
+            except Exception as e:
+                logger.debug(f"Clear conversation best-effort failed: {str(e)}")
         return jsonify({'message': 'Conversation cleared'}), 200
     except Exception as e:
         logger.error(f"Error clearing conversation: {str(e)}")
@@ -250,7 +250,7 @@ def legacy_img2img():
         from src.utils.comfyui_client import get_comfyui_client
         import os
 
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189'))
         sd_client = get_comfyui_client(sd_api_url)
 
         result = sd_client.img2img(
