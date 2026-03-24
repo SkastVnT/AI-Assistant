@@ -4488,14 +4488,15 @@ def mcp_list_files():
     try:
         folder_path = request.args.get('folder')
 
-        # Path traversal protection: resolve and validate
+        # Path traversal protection: resolve and validate against cwd
         if folder_path:
             resolved = os.path.realpath(folder_path)
-            if '..' in os.path.relpath(resolved, os.getcwd()):
+            if not resolved.startswith(os.path.realpath(os.getcwd())):
                 return jsonify({
                     'success': False,
                     'error': 'Invalid folder path'
                 }), 400
+            folder_path = resolved
 
         files = mcp_client.list_files_in_folder(folder_path)
         
@@ -4547,9 +4548,9 @@ def mcp_read_file():
                 'error': 'File path is required'
             }), 400
 
-        # Path traversal protection: resolve and validate
+        # Path traversal protection: resolve and validate against cwd
         resolved = os.path.realpath(file_path)
-        if '..' in os.path.relpath(resolved, os.getcwd()):
+        if not resolved.startswith(os.path.realpath(os.getcwd())):
             return jsonify({
                 'success': False,
                 'error': 'Invalid file path'
