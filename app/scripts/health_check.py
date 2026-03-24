@@ -50,10 +50,11 @@ def check_port(port: int, host: str = 'localhost', timeout: float = 2.0) -> bool
         return False
 
 
-def test_import(module_path: str, test_code: str) -> Tuple[bool, str]:
+def test_import(module_path: str, test_code: str = None) -> Tuple[bool, str]:
     """Test if a module can be imported."""
     try:
-        exec(test_code)
+        import importlib
+        importlib.import_module(module_path)
         return True, "Import OK"
     except Exception as e:
         return False, str(e)

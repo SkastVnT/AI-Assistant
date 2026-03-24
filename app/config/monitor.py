@@ -2,7 +2,7 @@
 Monitor và Dashboard cho Rate Limits & Cache
 Hiển thị real-time stats về API usage
 """
-from flask import Blueprint, jsonify, render_template_string
+from flask import Blueprint, jsonify, make_response
 import sys
 from pathlib import Path
 
@@ -304,7 +304,9 @@ def monitor_dashboard():
 </body>
 </html>
     """
-    return render_template_string(html)
+    response = make_response(html)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
 
 
 def register_monitor(app):

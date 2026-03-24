@@ -140,10 +140,10 @@ def login_page():
         from config.firebase_config import get_firebase_config
         config = get_firebase_config()
         
-        return render_template_string(LOGIN_TEMPLATE, firebase_config=json.dumps(config))
+        return render_template_string(LOGIN_TEMPLATE, firebase_config=config)
     except Exception as e:
         logger.error(f"[Auth] Login page error: {e}")
-        return f"Error: {e}", 500
+        return "Error loading login page", 500
 
 
 # Login page template with Firebase Auth
@@ -315,7 +315,7 @@ LOGIN_TEMPLATE = '''
             GoogleAuthProvider 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         
-        const firebaseConfig = {{ firebase_config|safe }};
+        const firebaseConfig = {{ firebase_config|tojson }};
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const googleProvider = new GoogleAuthProvider();

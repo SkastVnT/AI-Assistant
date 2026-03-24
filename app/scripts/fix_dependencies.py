@@ -116,9 +116,10 @@ def verify_dependencies():
         ('redis', 'Redis'),
     ]
     
+    import importlib
     for module, attr in test_imports:
         try:
-            exec(f"import {module}")
+            importlib.import_module(module)
             logger.info(f"✅ {module} - OK")
         except ImportError as e:
             logger.warning(f"❌ {module} - FAILED: {e}")

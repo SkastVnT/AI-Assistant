@@ -74,7 +74,10 @@ def create_application(config_name: str = 'default') -> Flask:
     
     # Register health check
     register_health_check(app)
-    
+
+    # Register security headers
+    register_security_headers(app)
+
     app.logger.info(f"âœ… Chatbot application created with config: {config_name}")
     
     return app
@@ -102,5 +105,16 @@ def register_health_check(app: Flask) -> None:
     @app.route('/health')
     def health():
         return {'status': 'healthy', 'service': 'chatbot'}, 200
+
+
+def register_security_headers(app: Flask) -> None:
+    """Register security headers on all responses"""
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        return response
 
 
