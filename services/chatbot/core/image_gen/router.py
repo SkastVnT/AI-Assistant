@@ -103,7 +103,11 @@ class ImageGenerationRouter:
         # ComfyUI (local) â€” always available as fallback
         comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8189"))
         self._providers["comfyui"] = ProviderConfig(
-            provider=ComfyUIProvider(base_url=comfyui_url),
+            provider=ComfyUIProvider(
+                base_url=comfyui_url,
+                sdxl_checkpoint=os.getenv("COMFYUI_SDXL_CHECKPOINT", "sd_xl_base_1.0.safetensors"),
+                upscale_factor=float(os.getenv("COMFYUI_UPSCALE_FACTOR", "1.5")),
+            ),
             priority=10,  # lowest priority unless explicitly requested
         )
 

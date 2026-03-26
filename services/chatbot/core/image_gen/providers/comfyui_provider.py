@@ -69,6 +69,109 @@ def _flux_txt2img_workflow(prompt: str, width: int, height: int,
     }
 
 
+def _flux_sdxl_upscale_workflow(
+    prompt: str, width: int, height: int,
+    steps: int, guidance: float, seed: int,
+    flux_checkpoint: str = "flux1-schnell-fp8.safetensors",
+    sdxl_checkpoint: str = "sd_xl_base_1.0.safetensors",
+    sdxl_steps: int = 20,
+    sdxl_denoise: float = 0.4,
+    sdxl_guidance: float = 7.5,
+    upscale_factor: float = 1.5,
+) -> dict:
+    """FLUX → SDXL refinement → Upscale → Save workflow for ComfyUI API."""
+    return {
+        # ── FLUX stage ───────────────────────────────────────────────────
+        "1": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": flux_checkpoint}
+        },
+        "2": {
+            "class_type": "EmptyLatentImage",
+            "inputs": {"width": width, "height": height, "batch_size": 1}
+        },
+        "3": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": prompt, "clip": ["1", 1]}
+        },
+        "4": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "", "clip": ["1", 1]}
+        },
+        "5": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": seed,
+                "steps": steps,
+                "cfg": guidance,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1.0,
+                "model": ["1", 0],
+                "positive": ["3", 0],
+                "negative": ["4", 0],
+                "latent_image": ["2", 0],
+            }
+        },
+        "6": {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": ["5", 0], "vae": ["1", 2]}
+        },
+        # ── SDXL refinement stage ────────────────────────────────────────
+        "7": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": sdxl_checkpoint}
+        },
+        "8": {
+            "class_type": "VAEEncode",
+            "inputs": {"pixels": ["6", 0], "vae": ["7", 2]}
+        },
+        "9": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": prompt, "clip": ["7", 1]}
+        },
+        "10": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "", "clip": ["7", 1]}
+        },
+        "11": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": seed,
+                "steps": sdxl_steps,
+                "cfg": sdxl_guidance,
+                "sampler_name": "euler_ancestral",
+                "scheduler": "karras",
+                "denoise": sdxl_denoise,
+                "model": ["7", 0],
+                "positive": ["9", 0],
+                "negative": ["10", 0],
+                "latent_image": ["8", 0],
+            }
+        },
+        "12": {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": ["11", 0], "vae": ["7", 2]}
+        },
+        # ── Upscale stage ────────────────────────────────────────────────
+        "13": {
+            "class_type": "ImageScale",
+            "inputs": {
+                "image": ["12", 0],
+                "upscale_method": "lanczos",
+                "width": int(width * upscale_factor),
+                "height": int(height * upscale_factor),
+                "crop": "disabled",
+            }
+        },
+        # ── Save ──────────────────────────────────────────────────────────
+        "14": {
+            "class_type": "SaveImage",
+            "inputs": {"filename_prefix": "api_flux_sdxl", "images": ["13", 0]}
+        },
+    }
+
+
 def _img2img_workflow(prompt: str, width: int, height: int,
                        steps: int, guidance: float, seed: int,
                        strength: float, image_b64: str,
@@ -134,6 +237,11 @@ class ComfyUIProvider(BaseImageProvider):
         base_url = base_url or "http://127.0.0.1:8189"
         super().__init__(api_key=api_key, base_url=base_url, **kwargs)
         self.checkpoint = kwargs.get("checkpoint", "flux1-schnell-fp8.safetensors")
+        self.sdxl_checkpoint = kwargs.get("sdxl_checkpoint", "sd_xl_base_1.0.safetensors")
+        self.sdxl_steps = int(kwargs.get("sdxl_steps", 20))
+        self.sdxl_denoise = float(kwargs.get("sdxl_denoise", 0.4))
+        self.sdxl_guidance = float(kwargs.get("sdxl_guidance", 7.5))
+        self.upscale_factor = float(kwargs.get("upscale_factor", 1.5))
         self._http = httpx.Client(base_url=self.base_url, timeout=300.0)
         self._configured = True  # Always try local
 
@@ -153,6 +261,17 @@ class ComfyUIProvider(BaseImageProvider):
                     steps=req.steps, guidance=req.guidance, seed=seed,
                     strength=req.strength, image_b64=req.source_image_b64,
                     checkpoint=self.checkpoint,
+                )
+            elif self.sdxl_checkpoint and self.sdxl_checkpoint.strip():
+                workflow = _flux_sdxl_upscale_workflow(
+                    prompt=req.prompt, width=req.width, height=req.height,
+                    steps=req.steps, guidance=req.guidance, seed=seed,
+                    flux_checkpoint=self.checkpoint,
+                    sdxl_checkpoint=self.sdxl_checkpoint,
+                    sdxl_steps=self.sdxl_steps,
+                    sdxl_denoise=self.sdxl_denoise,
+                    sdxl_guidance=self.sdxl_guidance,
+                    upscale_factor=self.upscale_factor,
                 )
             else:
                 workflow = _flux_txt2img_workflow(
@@ -177,7 +296,11 @@ class ComfyUIProvider(BaseImageProvider):
                 success=True,
                 images_b64=images_b64,
                 provider=self.name,
-                model=f"comfyui/{self.checkpoint}",
+                model=(
+                    f"comfyui/{self.checkpoint}+{self.sdxl_checkpoint}"
+                    if self.sdxl_checkpoint and req.mode != ImageMode.IMAGE_TO_IMAGE
+                    else f"comfyui/{self.checkpoint}"
+                ),
                 prompt_used=req.prompt,
                 latency_ms=latency,
                 cost_usd=0.0,
