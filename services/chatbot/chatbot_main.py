@@ -1592,7 +1592,12 @@ def chat():
                         _ig_storage = ImageStorage()
                         _ig_providers = _ig_router.get_available_providers()
                         _active_provs = [p['name'] for p in _ig_providers if p['available']]
+                        _default_img_model = os.getenv('IMAGE_GEN_DEFAULT_MODEL', 'nano-banana-auto')
+                        _use_nano_model = any(p in _active_provs for p in ('fal', 'replicate'))
+                        _selected_model = _default_img_model if _use_nano_model else None
                         logger.info(f"[TOOLS] Available providers: {_active_provs}")
+                        if _selected_model:
+                            logger.info(f"[TOOLS] Preferred image model: {_selected_model}")
 
                         # Generate via V2 router (auto-selects best provider)
                         result = _ig_router.generate(
@@ -1601,6 +1606,7 @@ def chat():
                             width=1024,
                             height=1024,
                             enhance_prompt=True,
+                            model_name=_selected_model,
                         )
 
                         if result.success and (result.images_b64 or result.images_url):

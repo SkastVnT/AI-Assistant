@@ -31,6 +31,8 @@ FAL_MODELS = {
     "flux1-kontext":    "fal-ai/flux-kontext/dev",      # img2img editing
     # Other top models
     "seedream5":        "fal-ai/seedream-5-lite",       # ByteDance, reasoning
+    "nano-banana":      "fal-ai/nano-banana",           # Google Pro alias
+    "nano-banana-pro":  "fal-ai/nano-banana",           # Google Pro
     "nano-banana-2":    "fal-ai/nano-banana-2",         # Google, fast
     "recraft-v4":       "fal-ai/recraft-v4",            # Design taste
 }
@@ -44,6 +46,8 @@ FAL_COST = {
     "flux1-schnell":    0.003,
     "flux1-kontext":    0.025,
     "seedream5":        0.020,
+    "nano-banana":      0.011,
+    "nano-banana-pro":  0.011,
     "nano-banana-2":    0.005,
     "recraft-v4":       0.020,
 }
