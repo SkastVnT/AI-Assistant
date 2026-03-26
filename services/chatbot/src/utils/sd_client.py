@@ -431,7 +431,7 @@ def get_sd_client(api_url: str = None) -> StableDiffusionClient:
     
     # Use environment variable or default
     if api_url is None:
-        api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189'))
+        api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188'))
     
     # Náº¿u URL thay Ä‘á»•i, táº¡o client má»›i
     if (
@@ -440,3 +440,4 @@ def get_sd_client(api_url: str = None) -> StableDiffusionClient:
     ):
         _sd_client = StableDiffusionClient(api_url)
     return _sd_client
+

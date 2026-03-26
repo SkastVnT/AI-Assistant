@@ -1436,7 +1436,7 @@ try {
     // ════════════════════════════════════════════════════════════
     // TOOLS MENU
     // ════════════════════════════════════════════════════════════
-    let activeTools = new Set();
+    let activeTools = new Set(['image-generation', 'img2img']);
 
     function initToolsMenu() {
         const btn = document.getElementById('toolsMenuBtn');
@@ -1452,6 +1452,12 @@ try {
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         setupToolItemClicks();
+        // Default to image-focused tools while still allowing users to toggle others.
+        ['imageGenToolBtn', 'img2imgToolBtn'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('active');
+        });
+        updateActiveToolsDisplay();
     }
 
     function setupToolItemClicks() {

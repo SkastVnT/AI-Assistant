@@ -169,11 +169,11 @@ def sd_health():
         # Try ComfyUI first
         try:
             from src.utils.comfyui_client import get_comfyui_client
-            sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8189'))
+            sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8188'))
             sd_client = get_comfyui_client(sd_api_url)
         except ImportError:
             from src.utils.sd_client import get_sd_client
-            sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+            sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
             sd_client = get_sd_client(sd_api_url)
         
         is_running = sd_client.check_health()
@@ -479,7 +479,7 @@ def generate_image():
 def img2img():
     """Generate image from image"""
     try:
-        from src.utils.sd_client import get_sd_client
+        from src.utils.comfyui_client import get_comfyui_client
         
         data = request.json
         image = data.get('image', '')
@@ -507,7 +507,8 @@ def img2img():
             'vae': data.get('vae', None)
         }
         
-        sd_client = get_sd_client()
+        sd_api_url = os.getenv('COMFYUI_URL', os.getenv('SD_API_URL', 'http://127.0.0.1:8188'))
+        sd_client = get_comfyui_client(sd_api_url)
         logger.info(f"[IMG2IMG] Generating with denoising={params['denoising_strength']}")
         result = sd_client.img2img(**params)
         
@@ -1320,3 +1321,4 @@ def save_cost_log():
     if len(costs) > 200:
         _cost_log[sid] = costs[-200:]
     return jsonify({'success': True})
+

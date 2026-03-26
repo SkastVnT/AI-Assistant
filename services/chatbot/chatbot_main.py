@@ -1577,8 +1577,17 @@ def chat():
                                     'design', 'illustrate', 'render', 'visualize',
                                     'photo of', 'picture of', 'artwork', 'wallpaper',
                                     'logo', 'portrait', 'landscape painting']
+                _chat_only_keywords = [
+                    'giải thích', 'explain', 'dịch', 'translate', 'tóm tắt', 'summarize',
+                    'code', 'lập trình', 'debug', 'fix bug', 'sửa lỗi', 'viết hàm', 'algorithm',
+                    'so sánh', 'compare', 'phân tích', 'analyze', 'review', 'tư vấn',
+                    'hỏi đáp', 'question', 'what is', 'how to'
+                ]
                 _msg_lower = message.lower()
-                _wants_image = any(kw in _msg_lower for kw in _img_keywords_vi + _img_keywords_en)
+                _image_first_mode = os.getenv('IMAGE_FIRST_MODE', '1').lower() in ('1', 'true', 'yes', 'on')
+                _has_image_intent = any(kw in _msg_lower for kw in _img_keywords_vi + _img_keywords_en)
+                _has_chat_only_intent = any(kw in _msg_lower for kw in _chat_only_keywords)
+                _wants_image = _has_image_intent or (_image_first_mode and not _has_chat_only_intent)
 
                 if not _wants_image:
                     # User has image-gen tool active but this message isn't about images
@@ -2351,7 +2360,7 @@ def sd_health():
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
         
         is_running = sd_client.check_health()
@@ -2370,7 +2379,7 @@ def sd_health():
             response = jsonify({
                 'status': 'offline',
                 'api_url': sd_api_url,
-                'message': 'ComfyUI is not running. Please start it with: cd /workspace/AI-Assistant/ComfyUI && python main.py --listen 0.0.0.0 --port 8189'
+                'message': 'ComfyUI is not running. Please start it with: cd /workspace/AI-Assistant/ComfyUI && python main.py --listen 0.0.0.0 --port 8188'
             })
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             return response, 503
@@ -2392,7 +2401,7 @@ def sd_models():
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
         
         models = sd_client.get_models()
@@ -2417,7 +2426,7 @@ def sd_loras():
         from pathlib import Path
         
         # Try ComfyUI API first
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         
         try:
             response = requests.get(f"{sd_api_url}/object_info/LoraLoader", timeout=5)
@@ -2458,7 +2467,7 @@ def sd_vaes():
         from pathlib import Path
         
         # Try ComfyUI API first
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         
         try:
             response = requests.get(f"{sd_api_url}/object_info/VAELoader", timeout=5)
@@ -2508,7 +2517,7 @@ def sd_change_model():
         if not model_name:
             return jsonify({'error': 'model_name is required'}), 400
         
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188')
         from src.utils.comfyui_client import get_comfyui_client; sd_client = get_comfyui_client(sd_api_url)
         
         success = sd_client.change_model(model_name)
@@ -2569,7 +2578,7 @@ def generate_image():
         }
         
         # Get ComfyUI client
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
         
         # Generate image using ComfyUI
@@ -2775,7 +2784,7 @@ def sd_samplers():
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
         
         samplers = sd_client.get_samplers()
@@ -3080,7 +3089,7 @@ def img2img():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
         
         # Táº¡o áº£nh vá»›i img2img
@@ -3584,7 +3593,7 @@ def sd_interrupt():
     try:
         from src.utils.comfyui_client import get_comfyui_client
         
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
         
         success = sd_client.interrupt()
@@ -3630,7 +3639,7 @@ def extract_anime_features_multi():
         if not image_b64:
             return jsonify({'error': 'Image khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'}), 400
         
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188')
         interrogate_url = f"{sd_api_url}/sdapi/v1/interrogate"
         
         logger.info(f"[MULTI-EXTRACT] Models: {[sanitize_for_log(m) for m in selected_models]} | Deep: {deep_thinking}")
@@ -3945,7 +3954,7 @@ def img2img_advanced():
         }
         
         # Get SD client
-        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188')
         from src.utils.comfyui_client import get_comfyui_client
         sd_client = get_comfyui_client(sd_api_url)
         
@@ -5465,5 +5474,6 @@ if __name__ == '__main__':
     
     logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
     app.run(debug=debug_mode, host=host, port=port)
+
 
 

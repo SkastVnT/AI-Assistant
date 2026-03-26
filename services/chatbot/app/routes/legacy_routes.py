@@ -226,7 +226,7 @@ def legacy_generate_image():
         from src.utils.comfyui_client import get_comfyui_client
         import os
 
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
 
         import base64
@@ -268,7 +268,7 @@ def legacy_img2img():
         from src.utils.comfyui_client import get_comfyui_client
         import os
 
-        sd_api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8189'))
+        sd_api_url = os.getenv('SD_API_URL', os.getenv('COMFYUI_URL', 'http://127.0.0.1:8188'))
         sd_client = get_comfyui_client(sd_api_url)
 
         result = sd_client.img2img(
@@ -303,7 +303,7 @@ def legacy_sd_models():
         from src.utils.comfyui_client import get_comfyui_client
         import os
 
-        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8189')
+        sd_api_url = os.getenv('SD_API_URL', 'http://127.0.0.1:8188')
         sd_client = get_comfyui_client(sd_api_url)
 
         models = sd_client.get_models()
@@ -485,3 +485,4 @@ def legacy_upload_image_to_db():
     except Exception as e:
         logger.error(f"Gallery upload-to-db failed: {e}")
         return jsonify({'error': 'Failed to upload to database'}), 500
+

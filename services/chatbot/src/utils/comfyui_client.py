@@ -20,7 +20,7 @@ class ComfyUIClient:
     
     def __init__(self, api_url: str = None):
         """Initialize ComfyUI Client"""
-        self.api_url = (api_url or os.getenv('COMFYUI_URL', 'http://localhost:8189')).rstrip('/')
+        self.api_url = (api_url or os.getenv('COMFYUI_URL', 'http://localhost:8188')).rstrip('/')
         self.client_id = str(uuid.uuid4())
         
     def check_health(self) -> bool:
@@ -161,7 +161,7 @@ class ComfyUIClient:
         try:
             # Check ComfyUI connectivity first
             if not self.check_health():
-                return {'error': 'ComfyUI is not running. Please start ComfyUI on port 8189.'}
+                return {'error': 'ComfyUI is not running. Please start ComfyUI on port 8188.'}
 
             if not init_images or not init_images[0]:
                 return {'error': 'No input image provided'}
@@ -568,3 +568,4 @@ def get_comfyui_client(api_url: str = None) -> ComfyUIClient:
 def get_sd_client(api_url: str = None) -> ComfyUIClient:
     """Get SD client (uses ComfyUI) - Alias for compatibility"""
     return ComfyUIClient(api_url)
+
