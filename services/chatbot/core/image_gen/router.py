@@ -21,6 +21,8 @@ from .providers import (
     OpenAIImageProvider, ComfyUIProvider, TogetherProvider,
     StepFunProvider,
 )
+from .providers.fal_provider import FAL_COST
+from .providers.replicate_provider import REPLICATE_COST
 from .enhancer import PromptEnhancer, create_enhancer, STYLE_PRESETS
 
 logger = logging.getLogger(__name__)
@@ -101,7 +103,11 @@ class ImageGenerationRouter:
         # ComfyUI (local) â€” always available as fallback
         comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
         self._providers["comfyui"] = ProviderConfig(
-            provider=ComfyUIProvider(base_url=comfyui_url),
+            provider=ComfyUIProvider(
+                base_url=comfyui_url,
+                sdxl_checkpoint=os.getenv("COMFYUI_SDXL_CHECKPOINT", "sd_xl_base_1.0.safetensors"),
+                upscale_factor=float(os.getenv("COMFYUI_UPSCALE_FACTOR", "1.5")),
+            ),
             priority=10,  # lowest priority unless explicitly requested
         )
 
@@ -185,6 +191,7 @@ class ImageGenerationRouter:
                 logger.warning(f"[ImageRouter] Enhance failed: {e}")
 
         # 3. Build request
+        resolved_model = self._resolve_requested_model(model_name)
         req = ImageRequest(
             prompt=enhanced_prompt,
             mode=img_mode,
@@ -198,13 +205,22 @@ class ImageGenerationRouter:
             seed=seed,
             style_preset=style,
             num_images=num_images,
-            extra={"model": model_name} if model_name else {},
+            extra={"model": resolved_model} if resolved_model else {},
         )
 
         # 4. Select provider(s)
         providers = self._select_providers(quality, img_mode, provider_name)
 
+        if resolved_model and resolved_model.startswith("nano-banana"):
+            providers = [cfg for cfg in providers if cfg.provider.name in {"fal", "replicate"}]
+
         if not providers:
+            if resolved_model and resolved_model.startswith("nano-banana"):
+                return ImageResult(
+                    success=False,
+                    error="Nano Banana requires fal.ai or Replicate API key.",
+                    prompt_used=enhanced_prompt,
+                )
             return ImageResult(
                 success=False,
                 error="No image providers available. Add API keys for fal.ai, Replicate, or BFL.",
@@ -225,6 +241,8 @@ class ImageGenerationRouter:
                     result.metadata["original_prompt"] = prompt
                     result.metadata["enhanced"] = enhance_prompt
                     result.metadata["style"] = style
+                    if resolved_model:
+                        result.metadata["requested_model"] = resolved_model
                     return result
                 else:
                     last_error = result.error or "Unknown error"
@@ -288,6 +306,54 @@ class ImageGenerationRouter:
         if mode == "i2i" or source_b64:
             return ImageMode.IMAGE_TO_IMAGE
         return ImageMode.TEXT_TO_IMAGE
+
+    def _resolve_requested_model(self, model_name: Optional[str]) -> Optional[str]:
+        """Resolve model alias/defaults, including nano-banana auto cost selection."""
+        raw = (model_name or os.getenv("IMAGE_GEN_DEFAULT_MODEL", "")).strip().lower()
+        if not raw:
+            return None
+
+        aliases = {
+            "nano": "nano-banana-auto",
+            "nano-banana": "nano-banana-pro",
+            "nano-pro": "nano-banana-pro",
+            "nano2": "nano-banana-2",
+            "nano-2": "nano-banana-2",
+            "nb-pro": "nano-banana-pro",
+            "nb2": "nano-banana-2",
+            "auto": "nano-banana-auto",
+        }
+        resolved = aliases.get(raw, raw)
+
+        if resolved == "nano-banana-auto":
+            return self._pick_cheaper_nano_model()
+        return resolved
+
+    def _pick_cheaper_nano_model(self) -> str:
+        """Pick the cheaper model between nano-banana-pro and nano-banana-2."""
+        pro_cost = self._estimate_model_cost("nano-banana-pro")
+        v2_cost = self._estimate_model_cost("nano-banana-2")
+
+        if pro_cost is None and v2_cost is None:
+            return "nano-banana-pro"
+        if pro_cost is None:
+            return "nano-banana-2"
+        if v2_cost is None:
+            return "nano-banana-pro"
+        return "nano-banana-pro" if pro_cost <= v2_cost else "nano-banana-2"
+
+    def _estimate_model_cost(self, model_key: str) -> Optional[float]:
+        """Estimate lowest available cost for a model across configured providers."""
+        costs: list[float] = []
+        if "fal" in self._providers and self._providers["fal"].provider.is_available:
+            if model_key in FAL_COST:
+                costs.append(FAL_COST[model_key])
+        if "replicate" in self._providers and self._providers["replicate"].provider.is_available:
+            if model_key in REPLICATE_COST:
+                costs.append(REPLICATE_COST[model_key])
+        if not costs:
+            return None
+        return min(costs)
 
     def _select_providers(
         self,

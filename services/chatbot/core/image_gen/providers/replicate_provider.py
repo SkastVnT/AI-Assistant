@@ -25,6 +25,8 @@ REPLICATE_MODELS = {
     "flux-kontext-pro": "black-forest-labs/flux-kontext-pro",
     "recraft-v4":       "recraft-ai/recraft-v4",
     "seedream5":        "bytedance/seedream-5-lite",
+    "nano-banana":      "google/nano-banana",
+    "nano-banana-pro":  "google/nano-banana",
     "nano-banana-2":    "google/nano-banana-2",
     "sdxl-lightning":   "bytedance/sdxl-lightning-4step",
 }
@@ -37,6 +39,8 @@ REPLICATE_COST = {
     "flux-kontext-pro": 0.040,
     "recraft-v4":       0.020,
     "seedream5":        0.018,
+    "nano-banana":      0.011,
+    "nano-banana-pro":  0.011,
     "nano-banana-2":    0.005,
     "sdxl-lightning":   0.002,
 }
