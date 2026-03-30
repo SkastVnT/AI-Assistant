@@ -1,0 +1,31 @@
+[project]
+name = "rag-system"
+version = "0.1.0"
+description = "Production-ready RAG system"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
+ignore = ["B008"]  # Allow Depends() in FastAPI signatures
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/*" = ["E501"]  # Migrations often have long lines
+
+[tool.ruff.lint.isort]
+known-first-party = ["libs", "apps"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
