@@ -13,6 +13,7 @@ from fastapi import APIRouter, File, Form, Request, UploadFile, HTTPException
 
 from fastapi_app.dependencies import get_chatbot_for_session, get_session_id
 from fastapi_app.models import ChatRequest, ChatResponse
+from fastapi_app.rag_helpers import retrieve_rag_context
 from core.config import MEMORY_DIR
 from core.extensions import logger
 
@@ -109,7 +110,7 @@ def _inject_file_context(message: str, file_contents: list[dict]) -> str:
 @router.post("/chat", response_model=ChatResponse)
 async def chat_json(body: ChatRequest, request: Request):
     """Chat via JSON body (no file uploads)."""
-    return _do_chat(
+    return await _do_chat(
         request=request,
         message=body.message,
         model=body.model,
@@ -122,6 +123,8 @@ async def chat_json(body: ChatRequest, request: Request):
         mcp_selected_files=body.mcp_selected_files,
         agent_config=body.agent_config,
         tools=body.tools,
+        rag_collection_ids=body.rag_collection_ids,
+        rag_top_k=body.rag_top_k,
     )
 
 
@@ -141,13 +144,15 @@ async def chat_upload(
     history: str = Form("null"),
     memory_ids: str = Form("[]"),
     mcp_selected_files: str = Form("[]"),
+    rag_collection_ids: str = Form("[]"),
+    rag_top_k: int = Form(5),
     files: list[UploadFile] = File(default=[]),
 ):
     """Chat with file uploads (multipart/form-data)."""
     file_contents = await _process_files(files, language)
     message = _inject_file_context(message, file_contents)
 
-    return _do_chat(
+    return await _do_chat(
         request=request,
         message=message,
         model=model,
@@ -160,12 +165,14 @@ async def chat_upload(
         mcp_selected_files=_safe_json(mcp_selected_files, []),
         agent_config=_safe_json(agent_config),
         tools=_safe_json(tools, []),
+        rag_collection_ids=_safe_json(rag_collection_ids, []),
+        rag_top_k=rag_top_k,
     )
 
 
 # ── Shared implementation ─────────────────────────────────────────────
 
-def _do_chat(
+async def _do_chat(
     *,
     request: Request,
     message: str,
@@ -179,6 +186,8 @@ def _do_chat(
     mcp_selected_files: list[str],
     agent_config: dict | None,
     tools: list[str],
+    rag_collection_ids: list[str] | None = None,
+    rag_top_k: int = 5,
 ) -> ChatResponse:
     # Agent config processing
     if agent_config:
@@ -207,6 +216,18 @@ def _do_chat(
     chatbot = get_chatbot_for_session(request)
     memories = _load_memories(memory_ids) if memory_ids else None
 
+    # RAG retrieval — shared helper (no logic duplication with stream.py)
+    rag = await retrieve_rag_context(
+        message=message,
+        custom_prompt=custom_prompt,
+        language=language,
+        tenant_id=get_session_id(request),
+        rag_collection_ids=rag_collection_ids or [],
+        rag_top_k=rag_top_k,
+    )
+    message = rag.message
+    custom_prompt = rag.custom_prompt
+
     # Call chatbot
     result = chatbot.chat(
         message=message,
@@ -228,4 +249,5 @@ def _do_chat(
         context=context,
         deep_thinking=deep_thinking,
         thinking_process=thinking,
+        citations=rag.citations,
     )

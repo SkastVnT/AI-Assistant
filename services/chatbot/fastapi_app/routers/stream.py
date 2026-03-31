@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 
 from fastapi_app.dependencies import get_chatbot_for_session, get_session_id
 from fastapi_app.models import StreamRequest
+from fastapi_app.rag_helpers import retrieve_rag_context
 from core.config import MEMORY_DIR
 from core.extensions import logger
 
@@ -72,8 +73,29 @@ async def chat_stream(body: StreamRequest, request: Request):
             except Exception:
                 pass
 
+    # RAG retrieval — shared helper (no logic duplication with chat.py)
+    rag_collection_ids = getattr(body, "rag_collection_ids", [])
+    rag_top_k = getattr(body, "rag_top_k", 5)
+    rag = await retrieve_rag_context(
+        message=message,
+        custom_prompt=custom_prompt,
+        language=language,
+        tenant_id=get_session_id(request),
+        rag_collection_ids=rag_collection_ids,
+        rag_top_k=rag_top_k,
+    )
+    message = rag.message
+    custom_prompt = rag.custom_prompt
+
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
+            # ── Early RAG metadata event (before any tokens) ──
+            if rag.chunk_count > 0:
+                yield _sse("rag_context", {
+                    "chunk_count": rag.chunk_count,
+                    "citations": rag.citations,
+                })
+
             yield _sse("metadata", {
                 "model": model,
                 "context": context,
@@ -108,6 +130,9 @@ async def chat_stream(body: StreamRequest, request: Request):
                 "total_chunks": chunk_count,
                 "timestamp": datetime.now().isoformat(),
             })
+
+            if rag.citations:
+                yield _sse("citations", {"citations": rag.citations})
 
         except GeneratorExit:
             logger.info("[SSE] Client disconnected")

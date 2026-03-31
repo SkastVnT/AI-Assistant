@@ -33,7 +33,7 @@ MONGODB_X509_CERT_PATH = os.getenv('MONGODB_X509_CERT_PATH', '').strip()
 MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'true').lower() == 'true'
 
 # Database name
-DATABASE_NAME = "chatbot_db"
+DATABASE_NAME = os.getenv('MONGODB_DB_NAME', 'chatbot_db')
 
 # Collection names
 COLLECTIONS = {
@@ -92,13 +92,18 @@ class MongoDBClient:
                 self._client.admin.command('ping')
                 self._db = self._client[DATABASE_NAME]
                 print(f"âœ… Successfully connected to MongoDB Atlas - Database: {DATABASE_NAME}")
-                self._create_indexes()
                 return True
             except Exception as e:
-                print(f"âš ï¸ MongoDB connection failed (app will run without DB): {str(e)[:100]}")
+                print(f"âš ï¸ MongoDB connection failed (app will run without DB): {str(e)[:100]}")
                 self._client = None
                 self._db = None
                 return False
+
+        # Create indexes after a successful connection (errors here are non-fatal)
+        try:
+            self._create_indexes()
+        except Exception as e:
+            print(f"âš ï¸ Index setup skipped (non-fatal): {str(e)[:120]}")
         return True
     
     def _create_indexes(self):
@@ -197,8 +202,12 @@ def test_connection():
     """Test MongoDB connection"""
     try:
         mongodb_client.connect()
+        db = mongodb_client.db
+        if db is None:
+            print("âŒ Connection test failed: could not obtain database handle")
+            return False
         # Insert test document
-        test_collection = mongodb_client.db.test
+        test_collection = db.test
         test_doc = {
             "test": "connection",
             "timestamp": datetime.utcnow()
@@ -211,7 +220,7 @@ def test_connection():
         print("âœ… Test document deleted")
         
         # Drop test collection
-        mongodb_client.db.drop_collection('test')
+        db.drop_collection('test')
         print("âœ… Test collection dropped")
         
         return True

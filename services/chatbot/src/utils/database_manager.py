@@ -80,7 +80,8 @@ class DatabaseManager:
                 raise ping_error
             
             # Database and collections
-            self.db = self.client['ai_assistant']
+            _db_name = os.getenv('MONGODB_DB_NAME', 'chatbot_db')
+            self.db = self.client[_db_name]
             self.conversations = self.db['conversations']
             self.messages = self.db['messages']
             self.users = self.db['users']

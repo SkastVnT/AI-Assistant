@@ -28,7 +28,7 @@ class DatabaseSession:
     
     _instance: Optional['DatabaseSession'] = None
     _client: Optional[MongoClient] = None
-    _default_db_name: str = 'ai_assistant'
+    _default_db_name: str = os.getenv('MONGODB_DB_NAME', 'chatbot_db')
     
     def __new__(cls):
         if cls._instance is None:
@@ -44,7 +44,7 @@ class DatabaseSession:
         try:
             mongo_uri = os.getenv(
                 'MONGODB_URI',
-                'mongodb://localhost:27017/ai_assistant'
+                'mongodb://localhost:27017/chatbot_db'
             )
             
             self._client = MongoClient(
@@ -92,7 +92,7 @@ class DatabaseSession:
         Get database instance.
         
         Args:
-            db_name: Database name (defaults to ai_assistant)
+            db_name: Database name (defaults to MONGODB_DB_NAME env var)
             
         Returns:
             MongoDB Database or None

@@ -63,6 +63,9 @@ class ChatRequest(BaseModel):
     # Agent / tool config
     agent_config: dict[str, Any] | None = None
     tools: list[str] = Field(default_factory=list)
+    # RAG
+    rag_collection_ids: list[str] = Field(default_factory=list, description="RAG collections to search")
+    rag_top_k: int = Field(5, description="Max RAG results to retrieve")
 
 
 class ChatResponse(BaseModel):
@@ -71,6 +74,7 @@ class ChatResponse(BaseModel):
     context: str
     deep_thinking: bool = False
     thinking_process: str | None = None
+    citations: list[dict[str, Any]] | None = None
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 
