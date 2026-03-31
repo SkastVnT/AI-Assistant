@@ -518,3 +518,339 @@ class RetrievalTrace(TimestampMixin, Base):
         Index("idx_traces_user_id", "user_id"),
         Index("idx_traces_created_at", "created_at"),
     )
+
+
+# =============================================================================
+# SecurityEvent
+# =============================================================================
+
+
+class SecurityEventKind(enum.StrEnum):
+    """Enumeration of security event types logged by guardrails."""
+
+    INGESTION_SANITIZE = "ingestion_sanitize"      # malicious content at ingest
+    PROMPT_INJECTION = "prompt_injection"           # injection detected in context
+    PII_REDACTED = "pii_redacted"                  # PII found and redacted
+    OUTPUT_BLOCKED = "output_blocked"               # LLM output failed validation
+    SOURCE_UNTRUSTED = "source_untrusted"           # untrusted source flagged
+    HUMAN_REVIEW = "human_review"                   # response queued for review
+
+
+class SecurityEvent(TimestampMixin, Base):
+    """Audit log for all guardrail actions (blocks, flags, redactions).
+
+    Every time a guardrail fires — whether it blocks content, redacts PII,
+    or flags a response for human review — an event is recorded here.
+    This table is append-only and never updated or deleted (audit trail).
+    """
+
+    __tablename__ = "security_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[SecurityEventKind] = mapped_column(
+        Enum(SecurityEventKind, name="security_event_kind_enum"), nullable=False
+    )
+    severity: Mapped[str] = mapped_column(
+        String(20), server_default="medium", nullable=False
+    )  # low | medium | high | critical
+    source: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # which guardrail component
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    document_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL")
+    )
+    trace_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("retrieval_traces.id", ondelete="SET NULL")
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
+    details: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )  # pattern matched, redacted fields, etc.
+    resolved: Mapped[bool] = mapped_column(default=False, nullable=False)
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("idx_security_events_tenant_id", "tenant_id"),
+        Index("idx_security_events_kind", "kind"),
+        Index("idx_security_events_severity", "severity"),
+        Index("idx_security_events_created_at", "created_at"),
+        Index("idx_security_events_resolved", "resolved"),
+    )
+
+
+# =============================================================================
+# EvalRun + EvalResult (RAGOps evaluation layer)
+# =============================================================================
+
+
+class EvalRun(TimestampMixin, Base):
+    """A batch evaluation run over a dataset of test cases.
+
+    Tracks aggregate metrics, configuration used, pass/fail status.
+    Used by CI and ad-hoc evaluation workflows.
+    """
+
+    __tablename__ = "eval_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    dataset_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    config: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )  # settings snapshot
+    status: Mapped[str] = mapped_column(
+        String(20), server_default="pending", nullable=False
+    )  # pending | running | completed | failed
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    summary: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )  # aggregate scores
+    total_cases: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
+    passed_cases: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
+    failed_cases: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False
+    )
+
+    results: Mapped[list[EvalResult]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("idx_eval_runs_tenant_id", "tenant_id"),
+        Index("idx_eval_runs_status", "status"),
+        Index("idx_eval_runs_dataset_name", "dataset_name"),
+    )
+
+
+class EvalResult(TimestampMixin, Base):
+    """Single evaluation case result within an EvalRun.
+
+    Stores per-metric scores for both retriever and generator evaluation,
+    plus the raw data used for evaluation.
+    """
+
+    __tablename__ = "eval_results"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("eval_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    trace_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("retrieval_traces.id", ondelete="SET NULL"),
+    )
+    case_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    expected_answer: Mapped[str | None] = mapped_column(Text)
+    retrieved_context: Mapped[str | None] = mapped_column(Text)
+    generated_answer: Mapped[str | None] = mapped_column(Text)
+    # Retriever metrics
+    context_relevance: Mapped[float | None] = mapped_column(Float)
+    # Generator metrics
+    groundedness: Mapped[float | None] = mapped_column(Float)
+    answer_relevance: Mapped[float | None] = mapped_column(Float)
+    # Combined
+    overall_score: Mapped[float | None] = mapped_column(Float)
+    passed: Mapped[bool] = mapped_column(default=True, nullable=False)
+    # Detailed breakdown
+    retriever_details: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )
+    generator_details: Mapped[dict] = mapped_column(
+        JSONB, server_default="{}", nullable=False
+    )
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(Text)
+
+    run: Mapped[EvalRun] = relationship(back_populates="results")
+
+    __table_args__ = (
+        Index("idx_eval_results_run_id", "run_id"),
+        Index("idx_eval_results_case_id", "case_id"),
+        Index("idx_eval_results_passed", "passed"),
+    )
+
+
+# =============================================================================
+# GraphRAG — Entity / Relationship / Community
+# =============================================================================
+
+
+class GraphEntity(TimestampMixin, Base):
+    """A named entity extracted from document chunks.
+
+    Entities are the nodes of the knowledge graph. Each has a canonical
+    name, type, description, and optional embedding for semantic matching.
+    """
+
+    __tablename__ = "graph_entities"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(512), nullable=False)
+    entity_type: Mapped[str] = mapped_column(
+        String(100), nullable=False,
+    )  # PERSON, ORG, CONCEPT, TECHNOLOGY, LOCATION, EVENT, etc.
+    description: Mapped[str] = mapped_column(Text, server_default="", nullable=False)
+    embedding = mapped_column(Vector(1536))
+    # Source provenance
+    source_chunk_ids: Mapped[list] = mapped_column(
+        JSONB, server_default="[]", nullable=False,
+    )  # [{chunk_id, document_id}]
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False,
+    )
+    # Community assignment (set by community detection)
+    community_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("graph_communities.id", ondelete="SET NULL"),
+    )
+
+    community: Mapped[GraphCommunity | None] = relationship(
+        back_populates="entities",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id", "name", "entity_type",
+            name="uq_entity_tenant_name_type",
+        ),
+        Index("idx_graph_entities_tenant_id", "tenant_id"),
+        Index("idx_graph_entities_type", "entity_type"),
+        Index("idx_graph_entities_name", "name"),
+        Index(
+            "idx_graph_entities_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
+
+
+class GraphRelationship(TimestampMixin, Base):
+    """A directed relationship between two entities.
+
+    Edges of the knowledge graph, typed and weighted.
+    """
+
+    __tablename__ = "graph_relationships"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    source_entity_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("graph_entities.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    target_entity_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("graph_entities.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    relationship_type: Mapped[str] = mapped_column(
+        String(100), nullable=False,
+    )  # USES, PART_OF, DEPENDS_ON, MENTIONS, CREATED_BY, etc.
+    description: Mapped[str] = mapped_column(Text, server_default="", nullable=False)
+    weight: Mapped[float] = mapped_column(Float, server_default="1.0", nullable=False)
+    source_chunk_ids: Mapped[list] = mapped_column(
+        JSONB, server_default="[]", nullable=False,
+    )
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False,
+    )
+
+    source_entity: Mapped[GraphEntity] = relationship(
+        foreign_keys=[source_entity_id],
+    )
+    target_entity: Mapped[GraphEntity] = relationship(
+        foreign_keys=[target_entity_id],
+    )
+
+    __table_args__ = (
+        Index("idx_graph_rels_tenant_id", "tenant_id"),
+        Index("idx_graph_rels_source", "source_entity_id"),
+        Index("idx_graph_rels_target", "target_entity_id"),
+        Index("idx_graph_rels_type", "relationship_type"),
+    )
+
+
+class GraphCommunity(TimestampMixin, Base):
+    """A detected community (cluster) of related entities.
+
+    Used for global retrieval — the community summary provides a
+    high-level overview of a topic cluster.
+    """
+
+    __tablename__ = "graph_communities"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(512), nullable=False)
+    level: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False,
+    )  # hierarchy level (0 = leaf)
+    summary: Mapped[str] = mapped_column(Text, server_default="", nullable=False)
+    summary_embedding = mapped_column(Vector(1536))
+    entity_count: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False,
+    )
+    relationship_count: Mapped[int] = mapped_column(
+        Integer, server_default="0", nullable=False,
+    )
+    metadata_: Mapped[dict] = mapped_column(
+        "metadata", JSONB, server_default="{}", nullable=False,
+    )
+
+    entities: Mapped[list[GraphEntity]] = relationship(
+        back_populates="community",
+    )
+
+    __table_args__ = (
+        Index("idx_graph_communities_tenant_id", "tenant_id"),
+        Index("idx_graph_communities_level", "level"),
+        Index(
+            "idx_graph_communities_summary_hnsw",
+            "summary_embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"summary_embedding": "vector_cosine_ops"},
+        ),
+    )

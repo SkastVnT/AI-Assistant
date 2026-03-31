@@ -295,6 +295,117 @@ class QueryResponse(BaseModel):
 
 
 # =============================================================================
+# Retrieve (baseline retrieval — no LLM generation)
+# =============================================================================
+
+
+class RetrieveFilters(BaseModel):
+    sensitivity_levels: list[str] | None = None
+    languages: list[str] | None = None
+    tags: list[str] | None = None
+    source_ids: list[UUID] | None = None
+
+
+class RetrieveRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    top_k: int = Field(default=5, ge=1, le=50)
+    score_threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    filters: RetrieveFilters | None = None
+
+
+class RetrievedChunkResponse(BaseModel):
+    chunk_id: UUID
+    document_id: UUID
+    version_id: UUID
+    content: str
+    score: float
+    chunk_index: int
+    # Citation metadata
+    document_title: str
+    filename: str
+    version_number: int
+    page_number: int | None = None
+    heading_path: str | None = None
+    sensitivity_level: str
+    language: str
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
+
+
+class RetrieveResponse(BaseModel):
+    query: str
+    chunks: list[RetrievedChunkResponse]
+    total_found: int
+    trace_id: UUID | None = None
+    retrieval_ms: int
+    embedding_model: str | None = None
+    transformed_query: str | None = None
+    sub_queries: list[str] = Field(default_factory=list)
+    transform_log: list[dict] = Field(default_factory=list)
+    transform_ms: int = 0
+    # Hybrid retrieval diagnostics
+    retrieval_strategy: str = "vector_cosine"
+    dense_count: int = 0
+    lexical_count: int = 0
+    fused_count: int = 0
+    reranked_count: int = 0
+    dense_ms: int = 0
+    lexical_ms: int = 0
+    fusion_ms: int = 0
+    rerank_ms: int = 0
+
+
+# =============================================================================
+# Answer Generation (grounded RAG answer with citations)
+# =============================================================================
+
+
+class AnswerRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    top_k: int = Field(default=5, ge=1, le=50)
+    score_threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    mode: str = Field(
+        default="standard",
+        pattern=r"^(concise|standard|detailed)$",
+        description="Response verbosity: concise, standard, or detailed.",
+    )
+    filters: RetrieveFilters | None = None
+
+
+class CitationRef(BaseModel):
+    """A single citation reference to a source chunk."""
+
+    source_index: int = Field(
+        ..., description="1-based index matching [Source N] in the answer."
+    )
+    chunk_id: UUID
+    document_id: UUID
+    version_id: UUID
+    filename: str
+    content_snippet: str = Field(
+        ..., max_length=300,
+        description="Truncated content of the chunk used as evidence.",
+    )
+    score: float
+    page_number: int | None = None
+    heading_path: str | None = None
+
+
+class AnswerResponse(BaseModel):
+    answer: str
+    citations: list[CitationRef]
+    query: str
+    mode: str
+    evidence_used: int = Field(
+        ..., description="Number of evidence chunks fed to the LLM."
+    )
+    trace_id: UUID | None = None
+    retrieval_ms: int = 0
+    generation_ms: int = 0
+    total_ms: int = 0
+
+
+# =============================================================================
 # Health
 # =============================================================================
 

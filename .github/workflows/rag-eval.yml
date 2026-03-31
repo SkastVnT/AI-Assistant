@@ -1,0 +1,49 @@
+name: RAG Evaluation
+
+on:
+  pull_request:
+    branches: [main, "feat/adv_RAG"]
+    paths:
+      - "rag/**"
+      - ".github/workflows/rag-eval.yml"
+
+jobs:
+  eval:
+    name: Run RAG evaluation suite
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rag
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: rag/requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run evaluation (heuristic judge)
+        run: |
+          python -m eval.run_eval \
+            --dataset eval/datasets/sample.json \
+            --output eval/reports \
+            --judge heuristic \
+            --min-context-relevance 0.3 \
+            --min-groundedness 0.3 \
+            --min-answer-relevance 0.3
+
+      - name: Upload evaluation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-eval-reports
+          path: rag/eval/reports/
+          retention-days: 30

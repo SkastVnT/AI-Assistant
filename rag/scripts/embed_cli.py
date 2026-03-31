@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import sys
 from uuid import UUID
 
 from libs.core.database import async_session_factory
@@ -115,9 +114,9 @@ async def cmd_full_reindex(
 ) -> None:
     """Re-embed all chunks for an entire tenant."""
     async with async_session_factory() as db:
-        chunk_repo = SqlDocumentChunkRepository(db)
         # Count total chunks for the tenant
         from sqlalchemy import func, select
+
         from libs.core.models import DocumentChunk
 
         total = await db.scalar(
