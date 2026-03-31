@@ -63,7 +63,6 @@ class RagFileStore:
 
         try:
             from minio import Minio  # type: ignore[import]
-            from minio.error import S3Error  # type: ignore[import]
 
             client = Minio(
                 _endpoint,
@@ -77,7 +76,13 @@ class RagFileStore:
                 client.make_bucket(self._bucket)
             self._minio = client
             logger.info("RagFileStore: using MinIO at %s (bucket=%s)", _endpoint, self._bucket)
-        except Exception as exc:  # minio not installed or unreachable
+        except ImportError:
+            logger.debug("RagFileStore: minio package not installed — using local disk")
+        except OSError as exc:
+            logger.debug(
+                "RagFileStore: MinIO unreachable (%s) — falling back to local disk", exc
+            )
+        except Exception as exc:  # noqa: BLE001 — catch-all for unexpected MinIO errors
             logger.debug(
                 "RagFileStore: MinIO unavailable (%s) — falling back to local disk", exc
             )
