@@ -74,9 +74,19 @@ class RedisCache:
         Redis connection URL (e.g. ``"redis://localhost:6379/0"``).
     default_ttl : int
         Time-to-live in seconds for cached entries.  Default: 3600.
+    connect_timeout : int
+        Seconds to wait when establishing a TCP connection.  Default: 5.
+    socket_timeout : int
+        Seconds to wait for a response from Redis.  Default: 5.
     """
 
-    def __init__(self, redis_url: str, default_ttl: int = 3600) -> None:
+    def __init__(
+        self,
+        redis_url: str,
+        default_ttl: int = 3600,
+        connect_timeout: int = 5,
+        socket_timeout: int = 5,
+    ) -> None:
         self._ttl = default_ttl
         self._redis: Any = None  # redis.asyncio.Redis or None
 
@@ -85,8 +95,8 @@ class RedisCache:
 
             self._redis = aioredis.from_url(
                 redis_url,
-                socket_connect_timeout=1,
-                socket_timeout=1,
+                socket_connect_timeout=connect_timeout,
+                socket_timeout=socket_timeout,
             )
         except ImportError:
             logger.debug("RedisCache: redis package not installed — cache disabled")
