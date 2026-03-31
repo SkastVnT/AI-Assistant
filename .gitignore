@@ -226,6 +226,8 @@ resources/templates/temp/
 **/cache/
 !services/chatbot/database/cache/
 !services/chatbot/database/cache/**
+!services/chatbot/src/rag/cache/
+!services/chatbot/src/rag/cache/**
 **/tmp/
 **/temp/
 **/test_output/
