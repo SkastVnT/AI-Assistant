@@ -25,6 +25,7 @@ from sqlalchemy import func, select
 from core.rag_settings import get_rag_settings
 from src.rag.db.base import get_session_factory
 from src.rag.db.models import RagChunk, RagDocument
+from src.rag.embeddings.base import EmbeddingProvider
 from src.rag.embeddings.factory import create_embedding_provider
 from src.rag.ingest.chunking_pkg import chunk_pages
 from src.rag.ingest.parsers import get_parser
@@ -81,6 +82,7 @@ class IngestService:
         self,
         *,
         file_store: RagFileStore | None = None,
+        embedder: EmbeddingProvider | None = None,
         embed_batch_size: int = _EMBED_BATCH_SIZE,
         max_chars: int = 512,
         overlap_chars: int = 64,
@@ -89,13 +91,10 @@ class IngestService:
         self._batch_size = embed_batch_size
         self._max_chars = max_chars
         self._overlap_chars = overlap_chars
-
-        cfg = get_rag_settings()
-        self._embedder = create_embedding_provider(
-            provider=cfg.embed_provider,
-            model=cfg.embed_model,
-            dim=cfg.embed_dim,
-        )
+        # Embedder is created lazily on first batch-embed call so that
+        # construction never fails in environments without API credentials
+        # (e.g. unit tests that exercise policy checks before any embedding).
+        self._embedder: EmbeddingProvider | None = embedder
 
     # ------------------------------------------------------------------
     # Public API
@@ -223,6 +222,13 @@ class IngestService:
 
     def _batch_embed(self, texts: list[str]) -> list[list[float]]:
         """Embed texts in batches to respect API size limits."""
+        if self._embedder is None:
+            cfg = get_rag_settings()
+            self._embedder = create_embedding_provider(
+                provider=cfg.embed_provider,
+                model=cfg.embed_model,
+                dim=cfg.embed_dim,
+            )
         all_vectors: list[list[float]] = []
         for start in range(0, len(texts), self._batch_size):
             batch = texts[start : start + self._batch_size]

@@ -58,7 +58,8 @@ class RetrievalService:
     Parameters
     ----------
     embedder : EmbeddingProvider | None
-        Custom embedder. ``None`` → created from ``RAGSettings``.
+        Custom embedder. ``None`` → created lazily on first retrieval call
+        from ``RAGSettings`` to avoid eager API-client instantiation.
     cache : RedisCache | None
         ``None`` → a default ``RedisCache`` is created from settings.
         Pass ``False`` (cast to ``None`` inside) to disable caching entirely.
@@ -73,14 +74,13 @@ class RetrievalService:
     ) -> None:
         cfg = get_rag_settings()
 
-        if embedder is not None:
-            self._embedder = embedder
-        else:
-            self._embedder = create_embedding_provider(
-                provider=cfg.embed_provider,
-                model=cfg.embed_model,
-                dim=cfg.embed_dim,
-            )
+        # Store the override; if None the provider is created lazily on first
+        # call to _get_embedder() so that construction never fails in
+        # environments without API credentials (e.g. unit tests).
+        self._embedder: EmbeddingProvider | None = embedder
+        self._embed_provider = cfg.embed_provider
+        self._embed_model = cfg.embed_model
+        self._embed_dim = cfg.embed_dim
 
         if _disable_cache:
             self._cache: RedisCache | None = None
@@ -94,6 +94,16 @@ class RetrievalService:
 
         self._default_top_k = cfg.top_k
         self._min_score = cfg.min_score
+
+    def _get_embedder(self) -> EmbeddingProvider:
+        """Return the embedding provider, creating it on first call if needed."""
+        if self._embedder is None:
+            self._embedder = create_embedding_provider(
+                provider=self._embed_provider,
+                model=self._embed_model,
+                dim=self._embed_dim,
+            )
+        return self._embedder
 
     # ------------------------------------------------------------------
     # Public API
@@ -145,7 +155,7 @@ class RetrievalService:
                 return [RetrievalHit(**row) for row in cached]
 
         # ── 2. Embed query ────────────────────────────────────────────
-        query_vector = self._embedder.embed_query(query)
+        query_vector = self._get_embedder().embed_query(query)
 
         # ── 3. pgvector similarity search ─────────────────────────────
         hits = await self._vector_search(
