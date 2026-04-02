@@ -377,9 +377,6 @@ async def chat_stream(body: StreamRequest, request: Request):
                 "tokens": _est_tokens,
             })
 
-            if rag.citations:
-                yield _sse("citations", {"citations": rag.citations})
-
             # Generate follow-up suggestions (lightweight, non-blocking)
             try:
                 suggestions = _generate_suggestions(message, full_response, language)
@@ -387,6 +384,9 @@ async def chat_stream(body: StreamRequest, request: Request):
                     yield _sse("suggestions", {"items": suggestions})
             except Exception:
                 pass  # Non-critical, skip silently
+
+            if rag.citations:
+                yield _sse("citations", {"citations": rag.citations})
 
         except GeneratorExit:
             logger.info("[SSE] Client disconnected")
