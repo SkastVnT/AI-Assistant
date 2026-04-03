@@ -152,12 +152,13 @@ def _build_config(
     preferred_critic_model: str | None,
     preferred_synthesizer_model: str | None,
 ) -> CouncilConfig:
+    default_config = CouncilConfig()
     return CouncilConfig(
         max_rounds=max_agent_iterations,
-        planner_model=preferred_planner_model or CouncilConfig.__fields__["planner_model"].default_factory(),
-        researcher_model=preferred_researcher_model or CouncilConfig.__fields__["researcher_model"].default_factory(),
-        critic_model=preferred_critic_model or CouncilConfig.__fields__["critic_model"].default_factory(),
-        synthesizer_model=preferred_synthesizer_model or CouncilConfig.__fields__["synthesizer_model"].default_factory(),
+        planner_model=preferred_planner_model or default_config.planner_model,
+        researcher_model=preferred_researcher_model or default_config.researcher_model,
+        critic_model=preferred_critic_model or default_config.critic_model,
+        synthesizer_model=preferred_synthesizer_model or default_config.synthesizer_model,
     )
 
 
