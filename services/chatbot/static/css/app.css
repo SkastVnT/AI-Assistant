@@ -4722,13 +4722,14 @@ table.enhanced-table tbody tr:hover {
     transform: none;
   }
 
-  /* Shorten all transitions globally */
+  /* Disable all transitions and animations globally */
   *,
   *::before,
   *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    animation: none !important;
+    animation-duration: 0s !important;
     animation-iteration-count: 1 !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
 }

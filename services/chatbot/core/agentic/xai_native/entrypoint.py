@@ -156,6 +156,9 @@ async def run_xai_native(
     )
 
     adapter = _get_adapter()
+    if adapter is None:
+        return _disabled_response(context_type, rag_citations)
+
     result: XaiNativeResult = await adapter.call(
         message=augmented_message,
         config=config,
@@ -225,6 +228,11 @@ async def run_xai_native_stream(
     })
 
     adapter = _get_adapter()
+    if adapter is None:
+        yield _sse("xai_native_error", {
+            "error": "xAI adapter could not be initialized. Check GROK_API_KEY.",
+        })
+        return
 
     async for chunk in adapter.stream(
         message=augmented_message,
