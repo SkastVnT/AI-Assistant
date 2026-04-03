@@ -14,7 +14,7 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from fastapi_app.dependencies import get_chatbot_for_session, get_session_id
+from fastapi_app.dependencies import get_session_id
 from fastapi_app.models import ChatRequest
 from fastapi_app.rag_helpers import retrieve_rag_context
 from core.agentic.entrypoint import run_council_stream, is_council_enabled

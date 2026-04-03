@@ -8,7 +8,6 @@ Mirrors the pattern in ``council_stream.py`` — keeps RAG/MCP pre-processing
 identical.
 """
 import json
-import logging
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Request

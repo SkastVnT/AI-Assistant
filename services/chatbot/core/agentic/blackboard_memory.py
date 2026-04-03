@@ -57,7 +57,8 @@ class InMemoryBlackboard:
         return state
 
     def get_run(self, run_id: str) -> AgentRunState | None:
-        return self._runs.get(run_id)
+        with self._lock:
+            return self._runs.get(run_id)
 
     def update_run_status(self, run_id: str, status: RunStatus) -> None:
         with self._lock:
@@ -82,34 +83,35 @@ class InMemoryBlackboard:
             state.status = RunStatus.completed
 
     def summarize_trace(self, run_id: str) -> dict:
-        state = self._must_get(run_id)
-        return {
-            "run_id": state.run_id,
-            "status": state.status.value,
-            "rounds": state.current_round,
-            "total_llm_calls": state.total_llm_calls,
-            "total_tokens": state.total_tokens,
-            "planner_tasks": sum(
-                len(p.tasks) for p in state.planner_outputs
-            ),
-            "evidence_items": sum(
-                len(r.evidence) for r in state.researcher_outputs
-            ),
-            "critic_issues": sum(
-                len(c.issues) for c in state.critic_outputs
-            ),
-            "has_final_answer": state.synthesizer_output is not None,
-            "steps": [
-                {
-                    "agent": s.agent.value,
-                    "round": s.round,
-                    "tokens": s.tokens,
-                    "elapsed_ms": s.elapsed_ms,
-                }
-                for s in state.steps
-            ],
-            "started_at": state.started_at,
-        }
+        with self._lock:
+            state = self._must_get(run_id)
+            return {
+                "run_id": state.run_id,
+                "status": state.status.value,
+                "rounds": state.current_round,
+                "total_llm_calls": state.total_llm_calls,
+                "total_tokens": state.total_tokens,
+                "planner_tasks": sum(
+                    len(p.tasks) for p in state.planner_outputs
+                ),
+                "evidence_items": sum(
+                    len(r.evidence) for r in state.researcher_outputs
+                ),
+                "critic_issues": sum(
+                    len(c.issues) for c in state.critic_outputs
+                ),
+                "has_final_answer": state.synthesizer_output is not None,
+                "steps": [
+                    {
+                        "agent": s.agent.value,
+                        "round": s.round,
+                        "tokens": s.tokens,
+                        "elapsed_ms": s.elapsed_ms,
+                    }
+                    for s in state.steps
+                ],
+                "started_at": state.started_at,
+            }
 
     # convenience for tests / debugging
     def clear(self) -> None:

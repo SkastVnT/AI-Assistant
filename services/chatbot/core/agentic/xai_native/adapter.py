@@ -164,6 +164,7 @@ class XaiResponsesAdapter:
         )
         start = time.monotonic()
         accumulated_text = ""
+        accumulated_annotations: list[XaiAnnotation] = []
         last_usage: dict[str, Any] = {}
         response_id = ""
         model_used = config.model
@@ -229,6 +230,11 @@ class XaiResponsesAdapter:
                                 "text": content_delta,
                             }
 
+                        # Collect annotations from this chunk
+                        chunk_annotations = self._extract_annotations_from_chunk(chunk)
+                        if chunk_annotations:
+                            accumulated_annotations.extend(chunk_annotations)
+
         except httpx.TimeoutException:
             elapsed = time.monotonic() - start
             yield {"type": "error", "error": f"Request timed out after {elapsed:.0f}s"}
@@ -241,14 +247,13 @@ class XaiResponsesAdapter:
 
         # Build final result
         usage = self._parse_usage(last_usage)
-        annotations = self._parse_annotations_from_text(accumulated_text)
         result = XaiNativeResult(
             response_id=response_id,
             status=XaiNativeStatus.completed,
             content=accumulated_text,
             model=model_used,
             usage=usage,
-            annotations=annotations,
+            annotations=accumulated_annotations,
             elapsed_seconds=elapsed,
         )
         yield {"type": "done", "result": result}
@@ -315,6 +320,41 @@ class XaiResponsesAdapter:
             num_server_side_tools_used=raw.get("num_server_side_tools_used", 0),
         )
 
+    def _extract_annotations_from_chunk(self, chunk: dict[str, Any]) -> list[XaiAnnotation]:
+        """Extract annotations from a streaming SSE chunk.
+
+        Annotations appear in ``output`` items (output_text.annotations) and
+        occasionally in ``delta`` objects for streaming annotation updates.
+        """
+        annotations: list[XaiAnnotation] = []
+
+        # Responses API: annotations inside output items
+        for item in chunk.get("output", []):
+            if item.get("type") == "message":
+                for c in item.get("content", []):
+                    if c.get("type") == "output_text":
+                        for ann in c.get("annotations", []):
+                            annotations.append(XaiAnnotation(
+                                type=ann.get("type", ""),
+                                url=ann.get("url"),
+                                title=ann.get("title"),
+                                start_index=ann.get("start_index"),
+                                end_index=ann.get("end_index"),
+                            ))
+
+        # Responses API: annotations in delta (streaming annotation deltas)
+        if "delta" in chunk and isinstance(chunk["delta"], dict):
+            for ann in chunk["delta"].get("annotations", []):
+                annotations.append(XaiAnnotation(
+                    type=ann.get("type", ""),
+                    url=ann.get("url"),
+                    title=ann.get("title"),
+                    start_index=ann.get("start_index"),
+                    end_index=ann.get("end_index"),
+                ))
+
+        return annotations
+
     def _extract_content_delta(self, chunk: dict[str, Any]) -> str:
         """Extract content text from an SSE chunk (Responses or Chat Completions format)."""
         # Responses API streaming format
@@ -341,7 +381,3 @@ class XaiResponsesAdapter:
                         return c.get("text", "")
 
         return ""
-
-    def _parse_annotations_from_text(self, _text: str) -> list[XaiAnnotation]:
-        """Parse inline annotations (placeholder — annotations come from API)."""
-        return []

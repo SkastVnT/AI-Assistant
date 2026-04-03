@@ -18,7 +18,7 @@ class ReasoningEffort(str, Enum):
     """Maps to xAI ``reasoning.effort`` / agent_count configuration.
 
     low/medium  → 4 agents
-    high/xhigh  → 16 agents
+    high        → 16 agents
     """
     low = "low"
     medium = "medium"
