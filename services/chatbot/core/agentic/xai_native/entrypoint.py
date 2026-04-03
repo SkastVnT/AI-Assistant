@@ -45,12 +45,24 @@ def is_xai_native_enabled() -> bool:
 
 # ── Adapter factory ───────────────────────────────────────────────────
 
-def _get_adapter() -> XaiResponsesAdapter:
+def _get_adapter() -> XaiResponsesAdapter | None:
     """Create an adapter using the GROK_API_KEY env var."""
     from core.config import GROK_API_KEY
-    return XaiResponsesAdapter(api_key=GROK_API_KEY or "")
 
+    if not GROK_API_KEY:
+        logger.error(
+            "xAI native multi-agent is enabled, but GROK_API_KEY is missing or empty."
+        )
+        return None
 
+    try:
+        return XaiResponsesAdapter(api_key=GROK_API_KEY)
+    except ValueError as exc:
+        logger.error(
+            "Failed to initialize XaiResponsesAdapter due to invalid GROK_API_KEY configuration: %s",
+            exc,
+        )
+        return None
 def _build_system_prompt(
     *,
     context_type: str,
