@@ -16,6 +16,8 @@ from fastapi_app.models import ChatRequest, ChatResponse
 from fastapi_app.rag_helpers import retrieve_rag_context
 from core.config import MEMORY_DIR
 from core.extensions import logger
+from core.agentic.council_entry import is_council_enabled, run_council
+from core.agentic.xai_native.entrypoint import run_xai_native
 
 router = APIRouter()
 
@@ -125,6 +127,15 @@ async def chat_json(body: ChatRequest, request: Request):
         tools=body.tools,
         rag_collection_ids=body.rag_collection_ids,
         rag_top_k=body.rag_top_k,
+        agent_mode=body.agent_mode,
+        max_agent_iterations=body.max_agent_iterations,
+        preferred_planner_model=body.preferred_planner_model,
+        preferred_researcher_model=body.preferred_researcher_model,
+        preferred_critic_model=body.preferred_critic_model,
+        preferred_synthesizer_model=body.preferred_synthesizer_model,
+        reasoning_effort=body.reasoning_effort,
+        enable_web_search=body.enable_web_search,
+        enable_x_search=body.enable_x_search,
     )
 
 
@@ -146,6 +157,15 @@ async def chat_upload(
     mcp_selected_files: str = Form("[]"),
     rag_collection_ids: str = Form("[]"),
     rag_top_k: int = Form(5),
+    agent_mode: str = Form("off"),
+    max_agent_iterations: int = Form(2),
+    preferred_planner_model: str = Form(""),
+    preferred_researcher_model: str = Form(""),
+    preferred_critic_model: str = Form(""),
+    preferred_synthesizer_model: str = Form(""),
+    reasoning_effort: str = Form("high"),
+    enable_web_search: bool = Form(True),
+    enable_x_search: bool = Form(False),
     files: list[UploadFile] = File(default=[]),
 ):
     """Chat with file uploads (multipart/form-data)."""
@@ -167,6 +187,15 @@ async def chat_upload(
         tools=_safe_json(tools, []),
         rag_collection_ids=_safe_json(rag_collection_ids, []),
         rag_top_k=rag_top_k,
+        agent_mode=agent_mode,
+        max_agent_iterations=max_agent_iterations,
+        preferred_planner_model=preferred_planner_model or None,
+        preferred_researcher_model=preferred_researcher_model or None,
+        preferred_critic_model=preferred_critic_model or None,
+        preferred_synthesizer_model=preferred_synthesizer_model or None,
+        reasoning_effort=reasoning_effort,
+        enable_web_search=enable_web_search,
+        enable_x_search=enable_x_search,
     )
 
 
@@ -188,6 +217,17 @@ async def _do_chat(
     tools: list[str],
     rag_collection_ids: list[str] | None = None,
     rag_top_k: int = 5,
+    # ── Council parameters (defaults keep backward compat) ──
+    agent_mode: str = "off",
+    max_agent_iterations: int = 2,
+    preferred_planner_model: str | None = None,
+    preferred_researcher_model: str | None = None,
+    preferred_critic_model: str | None = None,
+    preferred_synthesizer_model: str | None = None,
+    # ── xAI native parameters ──
+    reasoning_effort: str = "high",
+    enable_web_search: bool = True,
+    enable_x_search: bool = False,
 ) -> ChatResponse:
     # Agent config processing
     if agent_config:
@@ -204,12 +244,20 @@ async def _do_chat(
     if not message:
         raise HTTPException(status_code=400, detail="Empty message")
 
+    # Save original message before MCP/RAG augmentation (for council)
+    original_message = message
+    mcp_context = ""
+
     # MCP context injection
     if MCP_AVAILABLE:
         try:
             mcp_client = get_mcp_client()
             if mcp_client and mcp_client.enabled:
-                message = inject_code_context(message, mcp_client, mcp_selected_files)
+                augmented = inject_code_context(message, mcp_client, mcp_selected_files)
+                # Capture the injected MCP context for council mode
+                if augmented != message:
+                    mcp_context = augmented[: augmented.find(message)] if message in augmented else ""
+                message = augmented
         except Exception as e:
             logger.warning(f"[MCP] Error injecting context: {e}")
 
@@ -228,7 +276,43 @@ async def _do_chat(
     message = rag.message
     custom_prompt = rag.custom_prompt
 
-    # Call chatbot
+    # ── Council branch ─────────────────────────────────────────────
+    if agent_mode == "council":
+        council_result = await run_council(
+            original_message=original_message,
+            augmented_message=message,
+            language=language,
+            context_type=context,
+            custom_prompt=custom_prompt,
+            rag_chunks=None,
+            rag_citations=rag.citations,
+            mcp_context=mcp_context,
+            max_agent_iterations=max_agent_iterations,
+            preferred_planner_model=preferred_planner_model,
+            preferred_researcher_model=preferred_researcher_model,
+            preferred_critic_model=preferred_critic_model,
+            preferred_synthesizer_model=preferred_synthesizer_model,
+        )
+        return ChatResponse(**council_result)
+
+    # ── xAI native multi-agent branch ──────────────────────────────
+    if agent_mode == "grok_native_research":
+        xai_result = await run_xai_native(
+            original_message=original_message,
+            augmented_message=message,
+            language=language,
+            context_type=context,
+            custom_prompt=custom_prompt,
+            rag_context="",
+            rag_citations=rag.citations,
+            mcp_context=mcp_context,
+            reasoning_effort=reasoning_effort,
+            enable_web_search=enable_web_search,
+            enable_x_search=enable_x_search,
+        )
+        return ChatResponse(**xai_result)
+
+    # ── Standard single-model path ─────────────────────────────────
     result = chatbot.chat(
         message=message,
         model=model,

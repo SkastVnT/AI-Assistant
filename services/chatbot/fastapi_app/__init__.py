@@ -29,6 +29,8 @@ from core.extensions import MONGODB_ENABLED, logger
 # Import routers
 from fastapi_app.routers import (
     chat,
+    council_stream,
+    xai_native_stream,
     stream,
     conversations,
     memory,
@@ -94,6 +96,8 @@ def create_app() -> FastAPI:
 
     # --- Routers ---
     app.include_router(chat.router, tags=["Chat"])
+    app.include_router(council_stream.router, tags=["Council Streaming"])
+    app.include_router(xai_native_stream.router, tags=["xAI Native Streaming"])
     app.include_router(stream.router, tags=["Streaming"])
     app.include_router(conversations.router, prefix="/api", tags=["Conversations"])
     app.include_router(memory.router, prefix="/api/memory", tags=["Memory"])
