@@ -4645,3 +4645,90 @@ table.enhanced-table td {
 table.enhanced-table tbody tr:hover {
   background: var(--bg-hover, rgba(124,92,255,0.06));
 }
+
+
+/* ── Accessibility: reduced-motion support ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Stop all infinite/looping animations */
+  .welcome__icon {
+    animation: none;
+  }
+  .welcome__title {
+    animation: none;
+    background-position: 0% 50%;
+  }
+  .input-area__send.ready {
+    animation: none;
+    box-shadow: 0 0 5px rgba(124, 108, 240, 0.3);
+  }
+  .typing-indicator__dot {
+    animation: none;
+    opacity: 0.7;
+    transform: none;
+  }
+  .thinking-container.thinking--loading {
+    animation: none;
+  }
+  .thinking-icon__pulse {
+    animation: none;
+    transform: none;
+  }
+  .loading-bar {
+    animation: none;
+    background-position: 50% 0;
+  }
+  .image-gen-v2-loading {
+    animation: none;
+    background-position: 0% 0;
+  }
+  .image-gen-loading .loading-spinner {
+    animation: none;
+  }
+  .igv2-stream-icon.spinning {
+    animation: none;
+  }
+
+  /* Flatten entrance animations to simple fade-in */
+  .message,
+  .message.user,
+  .message.assistant {
+    animation: none;
+    opacity: 1;
+  }
+  .chat-ctx-menu {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .topbar__more-menu {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .igv2-stream-step {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Remove hover transforms */
+  .welcome__suggestion:hover {
+    transform: none;
+  }
+  .message__content img:hover {
+    transform: none;
+  }
+  .gallery-item:hover {
+    transform: none;
+  }
+
+  /* Shorten all transitions globally */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
