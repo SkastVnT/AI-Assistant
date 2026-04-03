@@ -561,7 +561,7 @@ class TestStreamRAGIntegration:
         assert "rag_context" not in event_names
 
     def test_stream_sse_event_order(self, stream_client):
-        """Full event order: rag_context → metadata → chunks → complete → citations [→ suggestions]."""
+        """Full event order: rag_context → metadata → chunks → complete → [suggestions] → citations."""
         bot = self._mock_chatbot(["A", "B"])
         hits = [_make_hit(), _make_hit(chunk_id="c2")]
         mock_svc = MagicMock()
@@ -585,13 +585,11 @@ class TestStreamRAGIntegration:
         assert event_names[1] == "metadata"
         # chunks in the middle
         assert "chunk" in event_names
-        # complete then citations (suggestions may follow as a non-critical trailing event)
+        # complete comes before citations; citations is the last event
         assert "complete" in event_names
         assert "citations" in event_names
-        complete_idx = event_names.index("complete")
-        citations_idx = event_names.index("citations")
-        assert complete_idx < citations_idx, "complete must come before citations"
-        assert citations_idx == complete_idx + 1, "citations must immediately follow complete"
+        assert event_names.index("complete") < event_names.index("citations")
+        assert event_names[-1] == "citations"
 
     def test_stream_message_augmented_with_rag_block(self, stream_client):
         """The chatbot.chat_stream receives the RAG-augmented message."""
