@@ -710,7 +710,6 @@ class ComfyUIProvider(BaseImageProvider):
                     "model_type": model_type,
                     "resolution": f"{native_w}x{native_h}",
                     "upscaled_to": f"{upscale_to[0]}x{upscale_to[1]}" if upscale_to else None,
-                    "vae": vae or "built-in",
                     "loras": [l[0] for l in loras],
                 },
             )
