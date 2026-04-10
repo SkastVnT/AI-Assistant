@@ -613,7 +613,6 @@ class ComfyUIProvider(BaseImageProvider):
         seed = req.seed if req.seed is not None else int(time.time()) % (2**32)
         checkpoint = req.checkpoint or self.checkpoint
         vae_name = req.vae_name
-        has_loras = bool(req.lora_models)
 
         try:
             checkpoint, profile = self._select_model(req)
