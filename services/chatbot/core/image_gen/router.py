@@ -810,9 +810,13 @@ class ImageGenerationRouter:
             ) if k in preset
         }
 
+        safe_preset_id = str(preset_id).replace("\r", "").replace("\n", "")
         logger.info(
-            f"[ImageRouter] Preset '{preset_id}': ckpt={ckpt}, "
-            f"loras={[l.name for l in lora_specs]}, settings={list(settings.keys())}"
+            "[ImageRouter] Preset '%s': ckpt=%s, loras=%s, settings=%s",
+            safe_preset_id,
+            ckpt,
+            [l.name for l in lora_specs],
+            list(settings.keys()),
         )
         return ckpt, lora_specs, settings
 
