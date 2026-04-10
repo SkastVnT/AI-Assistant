@@ -657,6 +657,7 @@ class ComfyUIProvider(BaseImageProvider):
                     steps=req.steps, guidance=req.guidance, seed=seed,
                     checkpoint=checkpoint,
                 )
+                )
             checkpoint, profile = self._select_model(req)
             model_type = profile["type"]
             native_w, native_h = _pick_resolution(profile, req.width, req.height)
