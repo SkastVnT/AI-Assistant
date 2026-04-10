@@ -775,7 +775,8 @@ class ImageGenerationRouter:
 
         preset = get_workflow_preset(preset_id)
         if not preset:
-            logger.warning(f"[ImageRouter] Unknown preset: {preset_id}")
+            safe_preset_id = str(preset_id).replace("\r", "").replace("\n", "")
+            logger.warning("[ImageRouter] Unknown preset: %s", safe_preset_id)
             return checkpoint_override, [], {}
 
         # Checkpoint: override > preset
