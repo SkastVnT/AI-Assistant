@@ -450,19 +450,6 @@ def _build_img2img_workflow(
 
 # -- Provider class --------------------------------------------------------
 
-
-    # 8. Save
-    save_id = nid()
-    nodes[save_id] = {
-        "class_type": "SaveImage",
-        "inputs": {"filename_prefix": "api_i2i", "images": [decode_id, 0]},
-    }
-
-    return nodes
-
-
-# -- Provider class --------------------------------------------------------
-
 class ComfyUIProvider(BaseImageProvider):
     name = "comfyui"
     tier = ProviderTier.LOCAL
