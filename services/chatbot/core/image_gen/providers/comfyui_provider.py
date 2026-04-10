@@ -611,7 +611,6 @@ class ComfyUIProvider(BaseImageProvider):
         t0 = time.time()
         client_id = str(uuid.uuid4())[:8]
         seed = req.seed if req.seed is not None else int(time.time()) % (2**32)
-        checkpoint = req.checkpoint or self.checkpoint
         vae_name = req.vae_name
 
         try:
