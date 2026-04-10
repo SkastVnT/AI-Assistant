@@ -657,47 +657,6 @@ class ComfyUIProvider(BaseImageProvider):
                     checkpoint=checkpoint, vae=vae,
                 )
             else:
-            checkpoint, profile = self._select_model(req)
-            model_type = profile["type"]
-            native_w, native_h = _pick_resolution(profile, req.width, req.height)
-
-            vae = profile.get("vae")
-            if vae and self._available_vaes and vae not in self._available_vaes:
-                vae = None
-
-            loras = self._resolve_loras(model_type, _classify_style(req.prompt, req.style_preset))
-            negative = NEGATIVE_SDXL if model_type.startswith("sdxl") else NEGATIVE_SD15
-
-            upscale_to = None
-            if self._enable_hires and model_type == "sd15":
-                target_w, target_h = req.width, req.height
-                if target_w > native_w or target_h > native_h:
-                    upscale_to = (
-                        min(target_w, int(native_w * self._upscale_factor)),
-                        min(target_h, int(native_h * self._upscale_factor)),
-                    )
-
-            logger.info(
-                f"[ComfyUI] Generating: ckpt={checkpoint}, "
-                f"res={native_w}x{native_h}, steps={profile['steps']}, "
-                f"cfg={profile['cfg']}, sampler={profile['sampler']}, "
-                f"clip_skip={profile.get('clip_skip', 1)}, "
-                f"vae={'ext' if vae else 'built-in'}, "
-                f"loras={[l[0] for l in loras]}, "
-                f"hires={'latent→' + str(upscale_to) if upscale_to else 'none'}"
-            )
-
-            if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
-                workflow = _build_img2img_workflow(
-                    prompt=req.prompt, negative=negative,
-                    steps=profile["steps"], cfg=profile["cfg"],
-                    seed=seed,
-                    sampler=profile["sampler"], scheduler=profile["scheduler"],
-                    strength=req.strength,
-                    image_b64=req.source_image_b64,
-                    checkpoint=checkpoint, vae=vae,
-                )
-            else:
                 workflow = _build_txt2img_workflow(
                     prompt=req.prompt, negative=negative,
                     width=native_w, height=native_h,
