@@ -57,6 +57,11 @@ def create_application(config_name: str = 'default') -> Flask:
     config = get_config(config_name)
     app.config.from_object(config)
     
+    # Session config
+    from datetime import timedelta
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
     # Setup logging
     setup_logging(app)
     
@@ -77,6 +82,9 @@ def create_application(config_name: str = 'default') -> Flask:
 
     # Register security headers
     register_security_headers(app)
+
+    # Seed admin users
+    _seed_admin_users(app)
 
     app.logger.info(f"âœ… Chatbot application created with config: {config_name}")
     
@@ -116,5 +124,18 @@ def register_security_headers(app: Flask) -> None:
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         return response
+
+
+def _seed_admin_users(app: Flask) -> None:
+    """Seed admin users into MongoDB on startup."""
+    try:
+        from core.user_auth import init_admin_users
+        from core.extensions import get_db
+        db = get_db()
+        if db is not None:
+            init_admin_users(db)
+            app.logger.info("âœ… Admin users seeded")
+    except Exception as e:
+        app.logger.warning(f"âš ï¸ Admin seed skipped: {e}")
 
 

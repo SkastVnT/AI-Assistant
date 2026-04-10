@@ -14,6 +14,7 @@ Usage:
 
 import logging
 import sys
+import uuid
 import importlib.util
 from pathlib import Path
 from typing import List, Dict, Optional, Any
@@ -22,6 +23,19 @@ from bson import ObjectId
 from pymongo import DESCENDING, ASCENDING
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_id(doc_id):
+    """Parse document ID — supports both ObjectId (legacy) and UUID string formats."""
+    if isinstance(doc_id, ObjectId):
+        return doc_id
+    if isinstance(doc_id, str):
+        try:
+            if len(doc_id) == 24:
+                return ObjectId(doc_id)
+        except Exception:
+            pass
+    return doc_id
 
 # Import get_db - will be injected from parent
 # This allows importlib to load this module without package context
@@ -75,6 +89,7 @@ class ConversationDB:
             raise Exception("MongoDB not connected")
         
         conversation = {
+            "_id": str(uuid.uuid4()),
             "user_id": user_id,
             "model": model,
             "title": title,
@@ -110,7 +125,7 @@ class ConversationDB:
         if db is None or db.conversations is None:
             return None
         
-        result = db.conversations.find_one({"_id": ObjectId(conversation_id)})
+        result = db.conversations.find_one({"_id": _parse_id(conversation_id)})
         
         # Cache the result
         if result and CACHE_AVAILABLE:
@@ -159,7 +174,7 @@ class ConversationDB:
         
         update_data["updated_at"] = datetime.utcnow()
         result = db.conversations.update_one(
-            {"_id": ObjectId(conversation_id)},
+            {"_id": _parse_id(conversation_id)},
             {"$set": update_data}
         )
         
@@ -178,7 +193,7 @@ class ConversationDB:
         db = get_db()
         
         result = db.conversations.update_one(
-            {"_id": ObjectId(conversation_id)},
+            {"_id": _parse_id(conversation_id)},
             {
                 "$inc": {
                     "total_messages": 1,
@@ -204,14 +219,14 @@ class ConversationDB:
         db = get_db()
         
         # Get conversation first to get user_id for cache invalidation
-        conv = db.conversations.find_one({"_id": ObjectId(conversation_id)})
+        conv = db.conversations.find_one({"_id": _parse_id(conversation_id)})
         user_id = conv.get("user_id") if conv else None
         
         # Delete all messages first
-        db.messages.delete_many({"conversation_id": ObjectId(conversation_id)})
+        db.messages.delete_many({"conversation_id": _parse_id(conversation_id)})
         
         # Delete conversation
-        result = db.conversations.delete_one({"_id": ObjectId(conversation_id)})
+        result = db.conversations.delete_one({"_id": _parse_id(conversation_id)})
         
         # Invalidate cache
         if CACHE_AVAILABLE:
@@ -228,7 +243,7 @@ class ConversationDB:
         db = get_db()
         
         pipeline = [
-            {"$match": {"_id": ObjectId(conversation_id)}},
+            {"$match": {"_id": _parse_id(conversation_id)}},
             {"$lookup": {
                 "from": "messages",
                 "localField": "_id",
@@ -281,14 +296,15 @@ class MessageDB:
         db = get_db()
         
         message = {
-            "conversation_id": ObjectId(conversation_id),
+            "_id": str(uuid.uuid4()),
+            "conversation_id": conversation_id,
             "role": role,
             "content": content,
             "images": images or [],
             "files": files or [],
             "metadata": metadata or {},
             "version": 1,
-            "parent_message_id": ObjectId(parent_message_id) if parent_message_id else None,
+            "parent_message_id": parent_message_id,
             "is_edited": False,
             "is_stopped": False,
             "created_at": datetime.utcnow()
@@ -311,7 +327,7 @@ class MessageDB:
     def get_message(message_id: str) -> Optional[Dict]:
         """Get message by ID"""
         db = get_db()
-        return db.messages.find_one({"_id": ObjectId(message_id)})
+        return db.messages.find_one({"_id": _parse_id(message_id)})
     
     @staticmethod
     def get_conversation_messages(
@@ -328,7 +344,7 @@ class MessageDB:
         db = get_db()
         
         query = db.messages.find(
-            {"conversation_id": ObjectId(conversation_id)}
+            {"conversation_id": _parse_id(conversation_id)}
         ).sort("created_at", ASCENDING)
         
         if limit:
@@ -358,10 +374,10 @@ class MessageDB:
         # Create new version
         new_message = {
             **original,
-            "_id": ObjectId(),  # New ID
+            "_id": str(uuid.uuid4()),
             "content": content,
             "version": original.get("version", 1) + 1,
-            "parent_message_id": ObjectId(message_id),
+            "parent_message_id": message_id,
             "is_edited": True,
             "created_at": datetime.utcnow()
         }
@@ -375,7 +391,7 @@ class MessageDB:
         db = get_db()
         
         result = db.messages.update_one(
-            {"_id": ObjectId(message_id)},
+            {"_id": _parse_id(message_id)},
             {"$set": {"is_stopped": True}}
         )
         
@@ -385,7 +401,7 @@ class MessageDB:
     def delete_message(message_id: str) -> bool:
         """Delete a message"""
         db = get_db()
-        result = db.messages.delete_one({"_id": ObjectId(message_id)})
+        result = db.messages.delete_one({"_id": _parse_id(message_id)})
         return result.deleted_count > 0
     
     @staticmethod
@@ -395,7 +411,7 @@ class MessageDB:
         
         # Get all messages with this parent_message_id
         versions = db.messages.find(
-            {"parent_message_id": ObjectId(message_id)}
+            {"parent_message_id": _parse_id(message_id)}
         ).sort("version", ASCENDING)
         
         return list(versions)
@@ -425,7 +441,7 @@ class MemoryDB:
         
         memory = {
             "user_id": user_id,
-            "conversation_id": ObjectId(conversation_id) if conversation_id else None,
+            "conversation_id": conversation_id,
             "question": question,
             "answer": answer,
             "context": context,
@@ -498,7 +514,7 @@ class MemoryDB:
             return False
         
         result = db.chatbot_memory.update_one(
-            {"_id": ObjectId(memory_id)},
+            {"_id": _parse_id(memory_id)},
             {"$set": {"rating": rating}}
         )
         
@@ -523,7 +539,7 @@ class MemoryDB:
     def delete_memory(memory_id: str) -> bool:
         """Delete a memory"""
         db = get_db()
-        result = db.chatbot_memory.delete_one({"_id": ObjectId(memory_id)})
+        result = db.chatbot_memory.delete_one({"_id": _parse_id(memory_id)})
         return result.deleted_count > 0
 
 
@@ -552,7 +568,7 @@ class FileDB:
         
         file_record = {
             "user_id": user_id,
-            "conversation_id": ObjectId(conversation_id) if conversation_id else None,
+            "conversation_id": conversation_id,
             "original_filename": original_filename,
             "stored_filename": stored_filename,
             "file_path": file_path,
@@ -572,7 +588,7 @@ class FileDB:
     def get_file(file_id: str) -> Optional[Dict]:
         """Get file record by ID"""
         db = get_db()
-        return db.uploaded_files.find_one({"_id": ObjectId(file_id)})
+        return db.uploaded_files.find_one({"_id": _parse_id(file_id)})
     
     @staticmethod
     def get_user_files(
@@ -599,7 +615,7 @@ class FileDB:
         db = get_db()
         
         files = db.uploaded_files.find(
-            {"conversation_id": ObjectId(conversation_id)}
+            {"conversation_id": _parse_id(conversation_id)}
         ).sort("created_at", ASCENDING)
         
         return list(files)
@@ -608,7 +624,7 @@ class FileDB:
     def delete_file(file_id: str) -> bool:
         """Delete file record"""
         db = get_db()
-        result = db.uploaded_files.delete_one({"_id": ObjectId(file_id)})
+        result = db.uploaded_files.delete_one({"_id": _parse_id(file_id)})
         return result.deleted_count > 0
     
     @staticmethod

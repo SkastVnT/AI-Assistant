@@ -105,8 +105,8 @@ def generate_video():
         logger.error("[Video] Generation runtime error: %s", e)
         return jsonify({"error": "Video generation service unavailable"}), 503
     except Exception as e:
-        logger.error("[Video] Generation error: %s", e)
-        return jsonify({"error": "An internal error occurred"}), 500
+        logger.error("[Video] Generation error: %s", e, exc_info=True)
+        return jsonify({"error": f"Video generation failed: {str(e)}"}), 500
     finally:
         _cleanup_temps(image_paths)
 

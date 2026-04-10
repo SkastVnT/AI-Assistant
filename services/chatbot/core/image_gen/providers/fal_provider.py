@@ -93,9 +93,14 @@ class FalProvider(BaseImageProvider):
             submit_resp.raise_for_status()
             submit_data = submit_resp.json()
             
-            # If we got a request_id, poll for result
+            # fal returns status_url / response_url directly — prefer those
             if "request_id" in submit_data:
-                result_data = self._poll_result(endpoint, submit_data["request_id"])
+                result_data = self._poll_result(
+                    endpoint,
+                    submit_data["request_id"],
+                    status_url=submit_data.get("status_url"),
+                    response_url=submit_data.get("response_url"),
+                )
             else:
                 result_data = submit_data
 
@@ -158,23 +163,52 @@ class FalProvider(BaseImageProvider):
 
         return payload
 
-    def _poll_result(self, endpoint: str, request_id: str, max_wait: int = 120) -> dict:
-        """Poll fal queue until result is ready."""
-        status_url = f"/{endpoint}/requests/{request_id}/status"
-        result_url = f"/{endpoint}/requests/{request_id}"
+    def _poll_result(
+        self,
+        endpoint: str,
+        request_id: str,
+        max_wait: int = 120,
+        status_url: Optional[str] = None,
+        response_url: Optional[str] = None,
+    ) -> dict:
+        """Poll fal queue until result is ready.
+        
+        Uses status_url/response_url from submit response when available
+        (new fal API), falls back to constructed URLs (legacy).
+        """
+        # Prefer URLs given by fal directly; fall back to constructed paths
+        _status_url = status_url or f"https://queue.fal.run/{endpoint}/requests/{request_id}/status"
+        _result_url = response_url or f"https://queue.fal.run/{endpoint}/requests/{request_id}"
 
         deadline = time.time() + max_wait
         while time.time() < deadline:
-            status_resp = self._http.get(status_url)
-            status_data = status_resp.json()
-            status = status_data.get("status", "")
+            status_resp = self._http.get(_status_url)
+            if status_resp.status_code == 200:
+                try:
+                    status_data = status_resp.json()
+                except Exception:
+                    status_data = {}
+                status = status_data.get("status", "")
 
-            if status == "COMPLETED":
-                resp = self._http.get(result_url)
-                resp.raise_for_status()
-                return resp.json()
-            elif status in ("FAILED", "CANCELLED"):
-                raise RuntimeError(f"fal job {request_id} {status}: {status_data}")
+                if status == "COMPLETED":
+                    resp = self._http.get(_result_url)
+                    resp.raise_for_status()
+                    return resp.json()
+                elif status in ("FAILED", "CANCELLED"):
+                    raise RuntimeError(f"fal job {request_id} {status}: {status_data}")
+                # IN_QUEUE / IN_PROGRESS → keep polling
+
+            elif status_resp.status_code in (405, 404):
+                # Some endpoints return the result directly without status polling
+                resp = self._http.get(_result_url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # If it already has images, it's done
+                    if data.get("images") or data.get("image"):
+                        return data
+                # Not ready yet, keep waiting
+            else:
+                status_resp.raise_for_status()
 
             time.sleep(1.0)
 

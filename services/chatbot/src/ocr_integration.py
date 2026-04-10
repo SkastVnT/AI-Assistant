@@ -129,20 +129,101 @@ class OCRIntegration:
         return {"success": False, "text": "", "confidence": 0, "language": "unknown", "method": "grok_vision"}
 
     def extract_text_from_pdf(self, pdf_data: bytes, filename: str = "document.pdf") -> Dict[str, Any]:
-        """Extract text from PDF using PyPDF2."""
+        """Extract text from PDF with multi-library fallback + Vision OCR for scanned PDFs."""
         result = {"success": False, "text": "", "pages": 0, "method": "none"}
+
+        # Try 1: pdfplumber (best for tables & complex layouts)
         try:
-            import PyPDF2
-            reader = PyPDF2.PdfReader(io.BytesIO(pdf_data))
-            text_parts = [page.extract_text() or "" for page in reader.pages]
-            result["success"] = True
-            result["text"] = "\n\n".join(text_parts)
-            result["pages"] = len(reader.pages)
-            result["method"] = "pypdf2"
-            logger.info(f"[OCR] Extracted {len(result['text'])} chars from {filename}")
+            import pdfplumber
+            with pdfplumber.open(io.BytesIO(pdf_data)) as pdf:
+                text_parts = []
+                for page in pdf.pages:
+                    text = page.extract_text() or ""
+                    # Also try extracting tables
+                    if not text.strip():
+                        tables = page.extract_tables()
+                        for table in tables:
+                            for row in table:
+                                text += " | ".join(str(cell or "") for cell in row) + "\n"
+                    text_parts.append(text)
+                combined = "\n\n".join(text_parts).strip()
+                if combined:
+                    result["success"] = True
+                    result["text"] = combined
+                    result["pages"] = len(pdf.pages)
+                    result["method"] = "pdfplumber"
+                    logger.info(f"[OCR] pdfplumber extracted {len(combined)} chars from {filename}")
+                    return result
+                result["pages"] = len(pdf.pages)
+        except ImportError:
+            pass
         except Exception as e:
-            logger.error(f"[OCR] PDF extraction failed: {e}")
+            logger.warning(f"[OCR] pdfplumber failed for {filename}: {e}")
+
+        # Try 2: pypdf / PyPDF2
+        for lib_name, import_path in [("pypdf", "pypdf"), ("PyPDF2", "PyPDF2")]:
+            try:
+                mod = __import__(import_path)
+                reader = mod.PdfReader(io.BytesIO(pdf_data))
+                text_parts = [page.extract_text() or "" for page in reader.pages]
+                combined = "\n\n".join(text_parts).strip()
+                if combined:
+                    result["success"] = True
+                    result["text"] = combined
+                    result["pages"] = len(reader.pages)
+                    result["method"] = lib_name
+                    logger.info(f"[OCR] {lib_name} extracted {len(combined)} chars from {filename}")
+                    return result
+                result["pages"] = len(reader.pages)
+                break  # Library worked but no text → likely scanned PDF
+            except ImportError:
+                continue
+            except Exception as e:
+                logger.warning(f"[OCR] {lib_name} failed for {filename}: {e}")
+
+        # Try 3: Vision OCR fallback for scanned / image-based PDFs
+        page_count = result.get("pages", 0) or 1
+        logger.info(f"[OCR] Text extraction empty for {filename} ({page_count} pages), trying Vision OCR...")
+        try:
+            ocr_texts = self._ocr_pdf_pages(pdf_data, filename, max_pages=10)
+            if ocr_texts:
+                combined = "\n\n---\n\n".join(ocr_texts).strip()
+                if combined:
+                    result["success"] = True
+                    result["text"] = combined
+                    result["pages"] = len(ocr_texts)
+                    result["method"] = "vision_ocr"
+                    logger.info(f"[OCR] Vision OCR extracted {len(combined)} chars from {filename}")
+                    return result
+        except Exception as e:
+            logger.warning(f"[OCR] Vision OCR fallback failed for {filename}: {e}")
+
+        logger.error(f"[OCR] All PDF extraction methods failed for {filename}")
         return result
+
+    def _ocr_pdf_pages(self, pdf_data: bytes, filename: str, max_pages: int = 10) -> list:
+        """Convert PDF pages to images and OCR them via Vision API."""
+        texts = []
+        try:
+            from pdf2image import convert_from_bytes
+            images = convert_from_bytes(pdf_data, first_page=1, last_page=max_pages, dpi=200)
+        except ImportError:
+            logger.warning("[OCR] pdf2image not installed, cannot OCR scanned PDF")
+            return texts
+        except Exception as e:
+            logger.warning(f"[OCR] pdf2image conversion failed: {e}")
+            return texts
+
+        for i, img in enumerate(images):
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            img_bytes = buf.getvalue()
+            result = self.extract_text_from_image(img_bytes, f"{filename}_page{i+1}.png")
+            if result.get("success") and result.get("text", "").strip():
+                texts.append(f"**Page {i+1}:**\n{result['text']}")
+            else:
+                texts.append(f"**Page {i+1}:** (no text extracted)")
+        return texts
 
     def process_file(self, file_data: bytes, filename: str, content_type: str = None) -> Dict[str, Any]:
         """Process any file and extract text."""

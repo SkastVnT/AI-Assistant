@@ -21,6 +21,16 @@ redis>=5.0.0
 pymongo>=4.6.0
 dnspython>=2.4.0  # Required for MongoDB SRV connection
 
+# ============= RAG =============
+chromadb>=0.5.0
+sqlalchemy[asyncio]>=2.0.0
+alembic>=1.13.0
+pgvector>=0.3.0
+psycopg2-binary>=2.9.9
+boto3>=1.34.0
+beautifulsoup4>=4.12.0
+pymupdf>=1.24.0
+
 # ============= AI APIs =============
 openai>=2.29.0  # Videos API (Sora 2) requires >=2.29
 google-genai>=1.56.0

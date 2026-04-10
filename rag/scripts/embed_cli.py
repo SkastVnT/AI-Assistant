@@ -118,6 +118,9 @@ async def cmd_full_reindex(
         chunk_repo = SqlDocumentChunkRepository(db)
         # Count total chunks for the tenant
         from sqlalchemy import func, select
+        # Count total chunks for the tenant
+        from sqlalchemy import func, select
+
         from libs.core.models import DocumentChunk
 
         total = await db.scalar(

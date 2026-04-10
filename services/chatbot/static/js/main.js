@@ -117,7 +117,7 @@ class ChatBotApp {
             }
         });
 
-        // Render staging previews above the textarea
+        // Render staging previews above the textarea (ChatGPT-style thumbnails)
         this._renderStagingArea = () => {
             const area = document.getElementById('fileStagingArea');
             if (!area) return;
@@ -128,17 +128,51 @@ class ChatBotApp {
             }
             area.style.display = 'flex';
             area.innerHTML = this._stagedFiles.map((f, i) => {
-                const icon = f.type && f.type.startsWith('image/') ? '🖼️' : '📄';
-                return `<span class="file-staging__badge">${icon} ${f.name} <button class="file-staging__remove" data-idx="${i}" title="Remove">×</button></span>`;
+                if (f.type && f.type.startsWith('image/') && f.preview) {
+                    // Image thumbnail
+                    return `<div class="file-staging__thumb" data-idx="${i}">
+                        <img src="${f.preview}" alt="${this.fileHandler.escapeHtml(f.name)}">
+                        <button class="file-staging__remove" data-idx="${i}" title="Remove">×</button>
+                    </div>`;
+                }
+                const icon = this.fileHandler.getFileIcon ? this.fileHandler.getFileIcon(f.type || '', f.name) : '📄';
+                return `<span class="file-staging__badge">${icon} ${this.fileHandler.escapeHtml(f.name)} <button class="file-staging__remove" data-idx="${i}" title="Remove">×</button></span>`;
             }).join('');
             area.querySelectorAll('.file-staging__remove').forEach(btn => {
                 btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const idx = parseInt(e.currentTarget.dataset.idx);
                     this._stagedFiles.splice(idx, 1);
                     this._renderStagingArea();
                 });
             });
         };
+
+        // Drag & drop support on the input area
+        const inputArea = document.querySelector('.input-area');
+        if (inputArea) {
+            ['dragenter', 'dragover'].forEach(evt => {
+                inputArea.addEventListener(evt, (e) => { e.preventDefault(); inputArea.classList.add('input-area--dragover'); });
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                inputArea.addEventListener(evt, () => { inputArea.classList.remove('input-area--dragover'); });
+            });
+            inputArea.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const droppedFiles = Array.from(e.dataTransfer.files);
+                if (droppedFiles.length > 0) {
+                    for (const file of droppedFiles) {
+                        try {
+                            const fileData = await this.fileHandler.processFile(file);
+                            this._stagedFiles.push(fileData);
+                        } catch (err) {
+                            console.error('[App] Drop file error:', err);
+                        }
+                    }
+                    this._renderStagingArea();
+                }
+            });
+        }
 
         // Flush staged files into session when message is sent
         const _originalSend = this.sendMessage ? this.sendMessage.bind(this) : null;
@@ -152,6 +186,8 @@ class ChatBotApp {
             this.messageRenderer.addFileMessage(elements.chatContainer, this._stagedFiles, timestamp);
             this._stagedFiles = [];
             this._renderStagingArea();
+            // Re-render session file list so remove buttons are available
+            this.fileHandler.renderSessionFiles(elements.fileList);
         };
         
         // Update elements reference to use new file input
@@ -425,7 +461,7 @@ class ChatBotApp {
         const uploadFilesBtn = document.getElementById('uploadFilesBtn');
         if (uploadFilesBtn && elements.fileInput) {
             uploadFilesBtn.addEventListener('click', () => {
-                console.log('[App] Upload button clicked, triggering file input');
+                if (typeof closeToolsMenu === 'function') closeToolsMenu();
                 elements.fileInput.click();
             });
         }
@@ -556,16 +592,184 @@ class ChatBotApp {
             );
             this.uiUtils.clearInput();
 
-            // Show generating indicator
-            this.messageRenderer.addMessage(
-                elements.chatContainer,
-                '🎨 Đang tạo ảnh với AI...',
-                false, formValues.model, formValues.context,
-                this.uiUtils.formatTimestamp(new Date())
-            );
+            // ── Provider Choice Dialog (LOCAL / API / CANCEL) with 30s timeout ──
+            const providerChoice = await new Promise((resolve) => {
+                const TIMEOUT_SECONDS = 30;
+                const choiceContainer = document.createElement('div');
+                choiceContainer.className = 'message assistant';
+                choiceContainer.innerHTML = `
+                    <div class="message__avatar">🎨</div>
+                    <div class="message__body">
+                        <div class="message-content">
+                            <div class="igv2-provider-choice">
+                                <div class="igv2-choice-header">
+                                    <span class="igv2-choice-icon">⚡</span>
+                                    <span class="igv2-choice-title">Chọn phương thức tạo ảnh</span>
+                                    <span class="igv2-choice-timer">${TIMEOUT_SECONDS}s</span>
+                                </div>
+                                <div class="igv2-choice-buttons">
+                                    <button class="igv2-choice-btn igv2-choice-local" data-choice="local">
+                                        <span class="igv2-choice-btn-icon">🖥️</span>
+                                        <span class="igv2-choice-btn-label">LOCAL</span>
+                                        <span class="igv2-choice-btn-desc">ComfyUI · Miễn phí</span>
+                                    </button>
+                                    <button class="igv2-choice-btn igv2-choice-api" data-choice="api">
+                                        <span class="igv2-choice-btn-icon">☁️</span>
+                                        <span class="igv2-choice-btn-label">API</span>
+                                        <span class="igv2-choice-btn-desc">Cloud · Nhanh & chất lượng</span>
+                                    </button>
+                                    <button class="igv2-choice-btn igv2-choice-cancel" data-choice="cancel">
+                                        <span class="igv2-choice-btn-icon">❌</span>
+                                        <span class="igv2-choice-btn-label">HỦY</span>
+                                        <span class="igv2-choice-btn-desc">Không tạo ảnh</span>
+                                    </button>
+                                </div>
+                                <div class="igv2-choice-progress">
+                                    <div class="igv2-choice-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                elements.chatContainer.appendChild(choiceContainer);
+                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+
+                const timerEl = choiceContainer.querySelector('.igv2-choice-timer');
+                const progressBar = choiceContainer.querySelector('.igv2-choice-progress-bar');
+                let remaining = TIMEOUT_SECONDS;
+                let resolved = false;
+
+                const finalize = (choice) => {
+                    if (resolved) return;
+                    resolved = true;
+                    clearInterval(countdownInterval);
+                    // Mark selected button
+                    choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
+                        btn.disabled = true;
+                        if (btn.dataset.choice === choice) btn.classList.add('selected');
+                        else btn.classList.add('dimmed');
+                    });
+                    timerEl.textContent = choice === 'cancel' ? 'Đã hủy' : choice === 'local' ? 'LOCAL' : 'API';
+                    resolve(choice);
+                };
+
+                choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
+                    btn.addEventListener('click', () => finalize(btn.dataset.choice));
+                });
+
+                const countdownInterval = setInterval(() => {
+                    remaining--;
+                    if (timerEl) timerEl.textContent = `${remaining}s`;
+                    if (progressBar) progressBar.style.width = `${(remaining / TIMEOUT_SECONDS) * 100}%`;
+                    if (remaining <= 0) {
+                        finalize('cancel');
+                    }
+                }, 1000);
+                // Initial progress bar
+                if (progressBar) progressBar.style.width = '100%';
+            });
+
+            if (providerChoice === 'cancel') {
+                this.messageRenderer.addMessage(
+                    elements.chatContainer,
+                    '⏰ Đã hủy tạo ảnh — không có phản hồi hoặc người dùng chọn HỦY.',
+                    false, formValues.model, formValues.context,
+                    this.uiUtils.formatTimestamp(new Date())
+                );
+                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                await this.saveCurrentSession(true);
+                return;
+            }
+
+            const imageGenOptions = providerChoice === 'local'
+                ? { quality: 'free', provider: 'comfyui' }
+                : { quality: 'auto' };
+            console.log('[App] Provider choice:', providerChoice, imageGenOptions);
+
+            // Create streaming status container (like thinking but for image gen)
+            const statusContainer = document.createElement('div');
+            statusContainer.className = 'message assistant';
+            statusContainer.innerHTML = `
+                <div class="message__avatar">🎨</div>
+                <div class="message__body">
+                    <div class="message-content">
+                        <div class="igv2-stream-status">
+                            <div class="igv2-stream-header">
+                                <span class="igv2-stream-icon spinning">⚙️</span>
+                                <span class="igv2-stream-title">Image Generation</span>
+                            </div>
+                            <div class="igv2-stream-steps"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            elements.chatContainer.appendChild(statusContainer);
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+
+            const stepsContainer = statusContainer.querySelector('.igv2-stream-steps');
+            const headerIcon = statusContainer.querySelector('.igv2-stream-icon');
+            let currentStepEl = null;
+
+            const addStep = (icon, text, className = '') => {
+                const step = document.createElement('div');
+                step.className = `igv2-stream-step ${className}`;
+                step.innerHTML = `<span class="igv2-step-icon">${icon}</span><span class="igv2-step-text">${text}</span>`;
+                stepsContainer.appendChild(step);
+                currentStepEl = step;
+                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                return step;
+            };
+
+            const updateStep = (stepEl, icon, text, className = '') => {
+                if (!stepEl) return;
+                stepEl.className = `igv2-stream-step ${className}`;
+                stepEl.innerHTML = `<span class="igv2-step-icon">${icon}</span><span class="igv2-step-text">${text}</span>`;
+            };
 
             const conversationId = this.chatManager.getCurrentSession()?.id || '';
-            const result = await this.imageGenV2.generateFromChat(message, conversationId);
+            this.currentAbortController = new AbortController();
+
+            let providerStep = null;
+            const result = await this.imageGenV2.generateFromChatStream(
+                message, conversationId, this.currentAbortController.signal,
+                {
+                    onStatus: (data) => {
+                        if (data.phase === 'enhance') {
+                            if (data.enhanced_prompt) {
+                                addStep('✨', `Prompt enhanced`, 'done');
+                            } else {
+                                addStep('✨', data.step, 'active');
+                            }
+                        } else if (data.phase === 'select') {
+                            if (data.providers) {
+                                addStep('📡', `Providers: ${data.providers.join(', ')}`, 'done');
+                            } else {
+                                addStep('🔍', data.step, 'active');
+                            }
+                        } else {
+                            addStep('⚙️', data.step, 'active');
+                        }
+                    },
+                    onProviderTry: (data) => {
+                        providerStep = addStep('🔄', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
+                    },
+                    onProviderFail: (data) => {
+                        updateStep(providerStep, '❌', `${data.provider} failed: ${data.error}`, 'fail');
+                        providerStep = null;
+                    },
+                    onProviderSuccess: (data) => {
+                        updateStep(providerStep, '✅', `${data.provider} / ${data.model} — ${Math.round(data.latency_ms)}ms`, 'done');
+                        headerIcon.textContent = '✅';
+                        headerIcon.classList.remove('spinning');
+                    },
+                    onError: (data) => {
+                        addStep('❌', data.error, 'fail');
+                        headerIcon.textContent = '❌';
+                        headerIcon.classList.remove('spinning');
+                    },
+                },
+                imageGenOptions,
+            );
 
             if (result.success) {
                 let imgSrc = '';
@@ -600,6 +804,50 @@ class ChatBotApp {
                     false, formValues.model, formValues.context,
                     this.uiUtils.formatTimestamp(new Date())
                 );
+
+                // Store image gen metadata on the message div for regeneration
+                const lastAssistantMsg = elements.chatContainer.querySelector('.message.assistant:last-child');
+                if (lastAssistantMsg) {
+                    lastAssistantMsg.dataset.igv2Provider = providerChoice;  // 'local' or 'api'
+                    lastAssistantMsg.dataset.igv2Prompt = message;           // original user prompt
+                    lastAssistantMsg.dataset.igv2RegenCount = '0';
+                    lastAssistantMsg.dataset.igv2ConversationId = conversationId;
+                    lastAssistantMsg.dataset.igv2IsImage = 'true';
+                }
+
+                // ── 4-Agents Deep Thinking Analysis (when multi-thinking mode) ──
+                if (formValues.thinkingMode === 'multi-thinking' && result.success) {
+                    const thinkingSection = this.messageRenderer.createThinkingSection(null, true);
+                    const thinkMsgEl = document.createElement('div');
+                    thinkMsgEl.className = 'message assistant';
+                    thinkMsgEl.innerHTML = '<div class="message__avatar">🧠</div><div class="message__body"><div class="message-content"></div></div>';
+                    thinkMsgEl.querySelector('.message-content').appendChild(thinkingSection);
+                    elements.chatContainer.appendChild(thinkMsgEl);
+                    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+
+                    const analysisSteps = [
+                        { icon: '🔍', text: `**Phân tích prompt** — "${(result.prompt_used || message).substring(0, 80)}..."` },
+                        { icon: '🎨', text: `**Provider:** ${result.provider} / ${result.model}` },
+                        { icon: '⚡', text: `**Hiệu suất:** ${Math.round(result.latency_ms)}ms · Chi phí: $${result.cost_usd}` },
+                        { icon: '📐', text: `**Đánh giá bố cục:** Ảnh được tạo với kích thước ${result.metadata?.width || '?'}×${result.metadata?.height || '?'}` },
+                        { icon: '✨', text: `**Chất lượng:** ${providerChoice === 'local' ? 'ComfyUI local — miễn phí, tùy chỉnh tốt' : 'Cloud API — chất lượng cao, tốc độ nhanh'}` },
+                        { icon: '✅', text: '**Kết luận:** Ảnh đã được tạo thành công. Bạn có thể yêu cầu chỉnh sửa thêm.' },
+                    ];
+
+                    for (let i = 0; i < analysisSteps.length; i++) {
+                        await new Promise(r => setTimeout(r, 400));
+                        this.messageRenderer.addThinkingStep(
+                            thinkingSection,
+                            `${analysisSteps[i].icon} ${analysisSteps[i].text}`
+                        );
+                        elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                    }
+
+                    // Finalize thinking
+                    if (this.messageRenderer.finalizeThinking) {
+                        this.messageRenderer.finalizeThinking(thinkingSection);
+                    }
+                }
             } else {
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
@@ -607,9 +855,18 @@ class ChatBotApp {
                     false, formValues.model, formValues.context,
                     this.uiUtils.formatTimestamp(new Date())
                 );
+                // Store image gen metadata on error message too for retry
+                const lastErrMsg = elements.chatContainer.querySelector('.message.assistant:last-child');
+                if (lastErrMsg) {
+                    lastErrMsg.dataset.igv2Provider = providerChoice;
+                    lastErrMsg.dataset.igv2Prompt = message;
+                    lastErrMsg.dataset.igv2RegenCount = '0';
+                    lastErrMsg.dataset.igv2ConversationId = conversationId;
+                    lastErrMsg.dataset.igv2IsImage = 'true';
+                }
             }
             elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-            await this.saveCurrentSession(true);  // Persist image message before any session switch
+            await this.saveCurrentSession(true);
             return;  // Don't send to chat API
         }
         // ── End Image Gen V2 ─────────────────────────────────
@@ -708,14 +965,37 @@ class ChatBotApp {
         }
         
         // Auto-include file context if files are attached
+        // Keep original message for display, build augmented message for API
+        const originalUserMessage = message;
+
+        // Inject quoted context if any (select-and-reply feature)
+        const quotedCtx = this.messageRenderer.consumeQuotedContext();
+        if (quotedCtx) {
+            message = `[Ngữ cảnh được chọn — ưu tiên trả lời dựa trên đoạn này]\n> ${quotedCtx}\n\n${message}`;
+        }
+
+        // Extract image base64 data URLs for vision API (sent separately from text)
+        const imageDataUrls = [];
         if (sessionFiles.length > 0) {
-            const fileContext = this.buildFileContext(sessionFiles);
-            if (fileContext) {
-                message = `${fileContext}\n\n${message || 'Hãy phân tích các file được đính kèm.'}`;
+            // Separate images from text files
+            const textFiles = [];
+            for (const file of sessionFiles) {
+                if (file.type && file.type.startsWith('image/') && file.content && file.content.startsWith('data:')) {
+                    imageDataUrls.push(file.content);
+                } else {
+                    textFiles.push(file);
+                }
+            }
+            // Build text context only for non-image files
+            const fileContext = this.buildFileContext(textFiles);
+            if (fileContext || imageDataUrls.length > 0) {
+                const textPart = fileContext ? `${fileContext}\n\n` : '';
+                const imagePart = imageDataUrls.length > 0 ? `📷 ${imageDataUrls.length} image(s) attached for analysis.\n\n` : '';
+                message = `${textPart}${imagePart}${message || 'Hãy phân tích các file được đính kèm.'}`;
             }
             // Auto-enable deep thinking when files are attached for better analysis
             deepThinking = true;
-            console.log('[App] Auto-enabled Deep Thinking due to attached files');
+            console.log('[App] Auto-enabled Deep Thinking due to attached files, images:', imageDataUrls.length);
         }
         
         // activeTools already declared above (before image gen routing)
@@ -745,7 +1025,7 @@ class ChatBotApp {
         const customPromptUsed = window.customPromptEnabled === true;
         this.messageRenderer.addMessage(
             elements.chatContainer,
-            message,
+            originalUserMessage || message,
             true,
             formValues.model,
             formValues.context,
@@ -777,10 +1057,8 @@ class ChatBotApp {
             elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
         }
         
-        // Always show thinking container with live animation (for ALL messages)
-        let thinkingContainer = this.messageRenderer.createThinkingSection(null, true);
-        elements.chatContainer.appendChild(thinkingContainer);
-        elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        // Thinking container created on-demand when thinking events arrive
+        let thinkingContainer = null;
         
         // Clear input (but keep files attached for this session)
         this.uiUtils.clearInput();
@@ -803,6 +1081,10 @@ class ChatBotApp {
             let thinkingSteps = [];
             let thinkingData = {};
             let streamFailed = false;
+            let thinkingReceived = false;
+            let streamCompleteData = {};
+            let streamSuggestions = [];
+            const _streamStartMs = performance.now();
 
             // Prepare streaming message div for progressive rendering
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
@@ -837,24 +1119,54 @@ class ChatBotApp {
                         history: history,
                         memories: selectedMemories,
                         customPrompt: agentConfig ? agentConfig.systemPrompt : '',
+                        images: imageDataUrls.length > 0 ? imageDataUrls : undefined,
+                        tools: activeTools,
                     },
                     this.currentAbortController.signal,
                     {
                         onThinkingStart: (data) => {
-                            // Thinking already visible
+                            thinkingReceived = true;
+                            // Create thinking container on-demand if not already present
+                            if (!thinkingContainer) {
+                                thinkingContainer = this.messageRenderer.createThinkingSection(null, true);
+                                // Insert before the stream message div
+                                streamMsgDiv.parentNode.insertBefore(thinkingContainer, streamMsgDiv);
+                            }
+                            if (data?.request_id && thinkingContainer) {
+                                thinkingContainer.dataset.requestId = data.request_id;
+                            }
                         },
                         onThinking: (data) => {
+                            thinkingReceived = true;
+                            if (!thinkingContainer) {
+                                thinkingContainer = this.messageRenderer.createThinkingSection(null, true);
+                                streamMsgDiv.parentNode.insertBefore(thinkingContainer, streamMsgDiv);
+                            }
+                            if (data?.request_id && thinkingContainer) {
+                                thinkingContainer.dataset.requestId = data.request_id;
+                            }
                             thinkingSteps.push(data.step);
                             this.messageRenderer.addThinkingStep(
-                                thinkingContainer, data.step, !!data.is_reasoning_chunk
+                                thinkingContainer, data.step, !!data.is_reasoning_chunk,
+                                data.trajectory_id || null
                             );
                             elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
                         },
                         onThinkingEnd: (data) => {
                             thinkingData = data;
-                            this.messageRenderer.finalizeThinking(thinkingContainer, data);
+                            if (thinkingContainer) {
+                                if (data?.request_id) {
+                                    thinkingContainer.dataset.requestId = data.request_id;
+                                }
+                                this.messageRenderer.finalizeThinking(thinkingContainer, data);
+                            }
                         },
                         onChunk: (data) => {
+                            // On first content chunk, clean up empty thinking container
+                            if (thinkingContainer && !thinkingReceived) {
+                                thinkingContainer.remove();
+                                thinkingContainer = null;
+                            }
                             // Show the streaming message on first chunk
                             if (streamMsgDiv.style.display === 'none') {
                                 streamMsgDiv.style.display = '';
@@ -871,6 +1183,17 @@ class ChatBotApp {
                         },
                         onComplete: (data) => {
                             fullResponse = data.response || fullResponse;
+                            streamCompleteData = data;
+                            // Clean up thinking container if it never got content
+                            if (thinkingContainer && !thinkingReceived) {
+                                thinkingContainer.remove();
+                                thinkingContainer = null;
+                            }
+                        },
+                        onSuggestions: (data) => {
+                            if (data.items && data.items.length > 0) {
+                                streamSuggestions = data.items;
+                            }
                         },
                         onError: (data) => {
                             console.error('[Stream] Error:', data.error);
@@ -896,7 +1219,7 @@ class ChatBotApp {
                     activeTools,
                     deepThinking,
                     history,
-                    this.fileHandler.getFiles(),
+                    [],  // files already included in message context
                     selectedMemories,
                     this.currentAbortController.signal,
                     agentConfig ? agentConfig.systemPrompt : '',
@@ -906,8 +1229,12 @@ class ChatBotApp {
                 
                 // Update thinking with data from non-streaming response
                 if (data.thinking_process) {
+                    if (!thinkingContainer) {
+                        thinkingContainer = this.messageRenderer.createThinkingSection(null, false);
+                        elements.chatContainer.insertBefore(thinkingContainer, streamMsgDiv.nextSibling || null);
+                    }
                     this.messageRenderer.updateThinkingContent(thinkingContainer, data.thinking_process);
-                } else {
+                } else if (thinkingContainer) {
                     this.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'Hoàn thành' });
                 }
             }
@@ -965,8 +1292,28 @@ class ChatBotApp {
                     if (typeof hljs !== 'undefined') {
                         streamTextDiv.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
                     }
+                    this.messageRenderer.enhanceCodeBlocks(streamTextDiv);
+                    // Enhance tables with interactive viewer
+                    this.messageRenderer.enhanceMarkdownTables(streamTextDiv);
                     // Add action buttons to streaming message
                     this.messageRenderer.addMessageButtons(streamContentDiv, responseContent, false, streamMsgDiv);
+
+                    // ── Stats badge (time · model · tokens) ──
+                    const _clientElapsed = ((performance.now() - _streamStartMs) / 1000);
+                    const _serverElapsed = streamCompleteData.elapsed_time || _clientElapsed;
+                    const _tokens = streamCompleteData.tokens || 0;
+                    const _maxTokens = streamCompleteData.max_tokens || 0;
+                    const _modelName = this.messageRenderer.modelNames[formValues.model] || formValues.model;
+                    const _speedLabel = _serverElapsed < 2 ? 'Fast' : _serverElapsed < 5 ? '' : 'Slow';
+                    this.messageRenderer.addResponseStats(streamContentDiv, {
+                        elapsed: _serverElapsed,
+                        model: _modelName,
+                        tokens: _tokens,
+                        maxTokens: _maxTokens,
+                        speedLabel: _speedLabel,
+                        thinkingMode: thinkingMode,
+                    });
+
                     if (window.lucide) lucide.createIcons({ nodes: [streamMsgDiv] });
                 } else if (streamFailed) {
                     // Non-streaming fallback: use addMessage
@@ -1038,6 +1385,66 @@ class ChatBotApp {
             const makeClickable = () => this.messageRenderer.makeImagesClickable((img) => this.openImagePreview(img));
             setTimeout(makeClickable, 100);
             setTimeout(makeClickable, 500);
+
+            // ── Follow-up suggestions + Think Harder ──
+            if (!streamFailed && this.messageRenderer.features?.suggestionChips !== false) {
+                // Client-side fallback suggestions when server sends none
+                if (streamSuggestions.length === 0 && responseContent) {
+                    const hasCode = responseContent.includes('```');
+                    const hasList = (responseContent.match(/\n- /g) || []).length >= 3;
+                    if (hasCode) {
+                        streamSuggestions = ['Giải thích chi tiết đoạn code này', 'Tối ưu hiệu suất được không?', 'Viết unit test cho code này'];
+                    } else if (hasList) {
+                        streamSuggestions = ['Phân tích chi tiết hơn từng mục', 'Cái nào quan trọng nhất?', 'Tóm tắt ngắn gọn hơn'];
+                    } else {
+                        streamSuggestions = ['Giải thích thêm chi tiết', 'Có ví dụ cụ thể không?', 'Áp dụng vào thực tế như thế nào?'];
+                    }
+                }
+
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'follow-up-suggestions';
+
+                // "Think Harder" button (only if current mode is instant)
+                if (thinkingMode === 'instant') {
+                    const thinkBtn = document.createElement('button');
+                    thinkBtn.className = 'suggestion-chip suggestion-chip--think';
+                    thinkBtn.innerHTML = '<i data-lucide="brain" class="lucide"></i> Deep Thinking';
+                    thinkBtn.title = '4-Agents involvement';
+                    thinkBtn.onclick = () => {
+                        // Re-send last message with multi-thinking mode
+                        suggestionsContainer.remove();
+                        const lastUserMsg = message;
+                        if (window.selectThinkingMode) {
+                            window.selectThinkingMode('multi-thinking', 'layers', '4-Agents');
+                        }
+                        // Set input and trigger send
+                        this.uiUtils.setInputValue(lastUserMsg);
+                        setTimeout(() => { document.getElementById('sendBtn')?.click(); }, 100);
+                    };
+                    suggestionsContainer.appendChild(thinkBtn);
+                }
+
+                // Follow-up suggestion chips (Grok-style with arrow)
+                if (streamSuggestions.length > 0) {
+                    streamSuggestions.forEach(text => {
+                        const chip = document.createElement('button');
+                        chip.className = 'suggestion-chip';
+                        chip.innerHTML = `<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">${this._escapeHtml(text)}</span>`;
+                        chip.onclick = () => {
+                            suggestionsContainer.remove();
+                            this.uiUtils.setInputValue(text);
+                            setTimeout(() => { document.getElementById('sendBtn')?.click(); }, 100);
+                        };
+                        suggestionsContainer.appendChild(chip);
+                    });
+                }
+
+                if (suggestionsContainer.children.length > 0) {
+                    elements.chatContainer.appendChild(suggestionsContainer);
+                    if (window.lucide) lucide.createIcons({ nodes: [suggestionsContainer] });
+                    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                }
+            }
             
         } catch (error) {
             // Remove thinking container if error
@@ -1207,7 +1614,10 @@ class ChatBotApp {
                     : file.content;
                 context += `\nContent:\n\`\`\`\n${content}\n\`\`\`\n`;
             } else if (file.type && file.type.startsWith('image/')) {
-                context += `(Image file - visual content)\n`;
+                // Images are sent via vision API separately, just note it here
+                context += `(Image file attached — sent to vision API)\n`;
+            } else if (file.content && file.content.startsWith('data:')) {
+                context += `(Binary file — text extraction unavailable)\n`;
             }
             context += '\n---\n\n';
         });

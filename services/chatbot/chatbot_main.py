@@ -41,7 +41,7 @@ except ModuleNotFoundError:
                 sys.path.insert(0, str(_parent))
             break
     from services.shared_env import load_shared_env
-from flask import Flask, send_from_directory, send_file, session, render_template, request, jsonify
+from flask import Flask, send_from_directory, send_file, session, render_template, request, jsonify, redirect
 
 # Load environment variables
 load_shared_env(__file__)
@@ -1297,6 +1297,8 @@ def is_mobile_device():
 @app.route('/')
 def index():
     """Home page - Responsive UI (works on both mobile and desktop)"""
+    if not session.get('authenticated'):
+        return redirect('/login')
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
     
@@ -1316,6 +1318,8 @@ def index():
 @app.route('/new')
 def index_new():
     """New Tailwind version (experimental)"""
+    if not session.get('authenticated'):
+        return redirect('/login')
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
     return render_template('index_tailwind.html')
@@ -1552,6 +1556,18 @@ def chat():
         
         # Handle tools
         tool_results = []
+
+        # ── Auto web search: trigger even without explicit google-search tool ──
+        _auto_search_done = False
+        if not tools or 'google-search' not in tools:
+            from routes.stream import _needs_web_search, _run_web_search
+            if _needs_web_search(message, tools or []):
+                logger.info(f"[TOOLS] Auto web search triggered for: {message[:60]}")
+                _auto_result = _run_web_search(message)
+                if _auto_result:
+                    tool_results.append(_auto_result)
+                    _auto_search_done = True
+
         if tools and len(tools) > 0:
             logger.info(f"[TOOLS] Active tools: {tools}")
             
@@ -1565,6 +1581,56 @@ def chat():
                 github_result = github_search_tool(message)
                 tool_results.append(f"## Ã°Å¸Ââ„¢ GitHub Search Results\n\n{github_result}")
             
+            if 'saucenao' in tools:
+                import re as _re
+                _img_urls = _re.findall(r'https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*', message, _re.IGNORECASE)
+                if _img_urls:
+                    logger.info(f"[TOOLS] Running SauceNAO for: {_img_urls[0][:80]}")
+                    from core.tools import saucenao_search_tool
+                    _sauce_result = saucenao_search_tool(image_url=_img_urls[0])
+                    tool_results.append(_sauce_result)
+                elif images:
+                    import base64 as _b64
+                    _first_img = images[0]
+                    if ',' in _first_img:
+                        _first_img = _first_img.split(',', 1)[1]
+                    _img_bytes = _b64.b64decode(_first_img)
+                    logger.info(f"[TOOLS] Running SauceNAO for uploaded image ({len(_img_bytes)} bytes)")
+                    from core.tools import saucenao_search_tool
+                    _sauce_result = saucenao_search_tool(image_data=_img_bytes)
+                    tool_results.append(_sauce_result)
+                else:
+                    tool_results.append("⚠️ SauceNAO: Cần đính kèm ảnh hoặc gửi URL ảnh để tìm kiếm nguồn gốc.")
+
+            # ── SerpAPI — Google Lens / Reverse Image ──
+            if 'serpapi-reverse-image' in tools:
+                import re as _re
+                _img_urls = _re.findall(r'https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*', message, _re.IGNORECASE)
+                if _img_urls:
+                    logger.info(f"[TOOLS] Running Google Lens for: {_img_urls[0][:80]}")
+                    from core.tools import serpapi_reverse_image
+                    tool_results.append(serpapi_reverse_image(_img_urls[0]))
+                else:
+                    tool_results.append("⚠️ Google Lens: Cần gửi URL ảnh (http/https) trong tin nhắn.")
+
+            # ── SerpAPI — Bing Search ──
+            if 'serpapi-bing' in tools:
+                logger.info(f"[TOOLS] Running Bing Search")
+                from core.tools import serpapi_web_search
+                tool_results.append(serpapi_web_search(message, engine='bing'))
+
+            # ── SerpAPI — Baidu Search ──
+            if 'serpapi-baidu' in tools:
+                logger.info(f"[TOOLS] Running Baidu Search")
+                from core.tools import serpapi_web_search
+                tool_results.append(serpapi_web_search(message, engine='baidu'))
+
+            # ── SerpAPI — Image Search ──
+            if 'serpapi-images' in tools:
+                logger.info(f"[TOOLS] Running SerpAPI Image Search")
+                from core.tools import serpapi_image_search
+                tool_results.append(serpapi_image_search(message))
+
             if 'image-generation' in tools:
                 # â”€â”€ Auto-detect if user actually wants to generate/edit an image â”€â”€
                 _img_keywords_vi = ['váº½', 'táº¡o áº£nh', 'táº¡o hÃ¬nh', 'sinh áº£nh', 'gen áº£nh', 'táº¡o má»™t', 'váº½ cho',
@@ -5142,6 +5208,73 @@ def serve_storage_image(filename):
     return send_from_directory(storage_dir, filename)
 
 
+
+# -- Extract text from uploaded file (base64) via OCR/parsing --
+@app.route('/api/extract-file-text', methods=['POST'])
+def app_extract_file_text():
+    import base64 as _b64
+    data = request.get_json(silent=True) or {}
+    file_b64 = data.get('file_b64', '')
+    filename = str(data.get('filename', 'file')).strip()
+    if not file_b64 or not filename:
+        return jsonify({'success': False, 'error': 'file_b64 and filename required'}), 400
+    if ',' in file_b64:
+        file_b64 = file_b64.split(',', 1)[1]
+    try:
+        file_data = _b64.b64decode(file_b64)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid base64: {e}'}), 400
+    success, text = extract_file_content(file_data, filename)
+    if success and text and text.strip():
+        return jsonify({'success': True, 'text': text.strip(), 'filename': filename})
+    return jsonify({'success': False, 'text': '', 'error': 'Could not extract text from file'})
+
+
+# -- Auto-generate title via Ollama --
+@app.route('/api/generate-title', methods=['POST'])
+def app_generate_title():
+    import requests as _req
+    data = request.get_json(silent=True) or {}
+    raw_message = data.get('message', '')
+    if not isinstance(raw_message, str):
+        raw_message = ''
+    user_message = raw_message.strip()[:200]
+    language = str(data.get('language', 'vi')).strip()
+    if not user_message:
+        return jsonify({'error': 'message is required'}), 400
+    if language == 'en':
+        prompt = (
+            'Generate a concise 3-5 word English title for this conversation. '
+            'Return ONLY the title text, no quotes, no explanation:\n'
+            f'"{user_message}"'
+        )
+    else:
+        prompt = (
+            'Tao tieu de ngan gon 3-7 tu tieng Viet cho cuoc tro chuyen nay. '
+            'Chi tra ve tieu de, khong giai thich, khong ngoac kep:\n'
+            f'"{user_message}"'
+        )
+    try:
+        resp = _req.post(
+            'http://localhost:11434/api/generate',
+            json={
+                'model': 'qwen2.5:0.5b',
+                'prompt': prompt,
+                'stream': False,
+                'options': {'temperature': 0.7, 'num_predict': 20},
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        title = resp.json().get('response', '').strip().replace('"', '').replace("'", '').strip()
+        if title:
+            return jsonify({'title': title})
+    except Exception as e:
+        logger.debug(f'[generate-title] Ollama unavailable: {e}')
+    fallback = user_message[:40] + ('...' if len(user_message) > 40 else '')
+    return jsonify({'title': fallback})
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -5155,12 +5288,7 @@ def internal_error(error):
 
 
 # Register blueprints from routes/
-try:
-    from routes.main import main_bp
-    app.register_blueprint(main_bp)
-    logger.info("âœ… Registered main blueprint")
-except ImportError as e:
-    logger.warning(f"âš ï¸ Could not register main blueprint: {e}")
+# main_bp skipped — routes (/, /chat, /clear, etc.) already on app directly
 
 try:
     from routes.memory import memory_bp
@@ -5236,6 +5364,36 @@ except ImportError as e:
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # â•â•â• External API v1 â€” Stateless API for extensions/.exe â•â•â•
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+try:
+    from routes.user_auth import user_auth_bp
+    app.register_blueprint(user_auth_bp)
+    logger.info("Registered user_auth blueprint")
+except ImportError as e:
+    logger.warning(f"Could not register user_auth blueprint: {e}")
+
+try:
+    from routes.admin import admin_bp
+    app.register_blueprint(admin_bp)
+    logger.info("Registered admin blueprint")
+except ImportError as e:
+    logger.warning(f"Could not register admin blueprint: {e}")
+
+try:
+    from routes.qr_payment import qr_bp
+    app.register_blueprint(qr_bp)
+    logger.info("Registered qr_payment blueprint")
+except ImportError as e:
+    logger.warning(f"Could not register qr_payment blueprint: {e}")
+
+try:
+    from core.user_auth import init_admin_users
+    _seed_db = get_db()
+    if _seed_db is not None:
+        init_admin_users(_seed_db)
+        logger.info("Admin users seeded successfully")
+except Exception as e:
+    logger.warning(f"Could not seed admin users: {e}")
 
 EXTERNAL_API_KEY = os.getenv('EXTERNAL_API_KEY', 'ai-assistant-ext-key-2024')
 

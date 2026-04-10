@@ -420,7 +420,8 @@ export class VideoGen {
         if (metaEl) {
             const parts = [];
             if (meta.model) parts.push(`Model: ${meta.model}`);
-            if (meta.size) parts.push(`Size: ${meta.size}`);
+            if (meta.aspect_ratio) parts.push(`Aspect: ${meta.aspect_ratio}`);
+            else if (meta.size) parts.push(`Size: ${meta.size}`);
             if (meta.seconds) parts.push(`Duration: ${meta.seconds}s`);
             if (meta.cost_estimate) parts.push(`Cost: ${meta.cost_estimate}`);
             metaEl.textContent = parts.join(' • ');
@@ -487,7 +488,7 @@ export class VideoGen {
                         <p class="vg-job-prompt">${this._escapeHtml(prompt)}</p>
                         <div class="vg-job-meta">
                             <span>${this._escapeHtml(job.model || '')}</span>
-                            <span>${this._escapeHtml(job.size || '')}</span>
+                            <span>${this._escapeHtml(job.aspect_ratio || job.size || '')}</span>
                             <span>${this._escapeHtml(String(job.seconds || ''))}s</span>
                             <span>${this._escapeHtml(job.cost_estimate || '')}</span>
                         </div>

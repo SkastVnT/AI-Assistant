@@ -31,14 +31,15 @@ class ConversationService:
             from ..extensions import get_mongodb, get_db
             client = get_mongodb()
             
+            now = datetime.utcnow()
             conv = {
                 '_id': str(uuid.uuid4()),
                 'user_id': user_id,
                 'title': title,
                 'model': model,
                 'is_archived': False,
-                'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat()
+                'created_at': now,
+                'updated_at': now
             }
             
             if client:
@@ -129,7 +130,7 @@ class ConversationService:
             from ..extensions import get_mongodb, get_db
             client = get_mongodb()
             
-            updates['updated_at'] = datetime.now().isoformat()
+            updates['updated_at'] = datetime.utcnow()
             
             if client:
                 db = get_db()
@@ -183,6 +184,7 @@ class ConversationService:
             from ..extensions import get_mongodb, get_db
             client = get_mongodb()
             
+            now = datetime.utcnow()
             message = {
                 '_id': str(uuid.uuid4()),
                 'conversation_id': conversation_id,
@@ -190,7 +192,7 @@ class ConversationService:
                 'content': content,
                 'metadata': metadata or {},
                 'images': images or [],
-                'created_at': datetime.now().isoformat()
+                'created_at': now
             }
             
             if client:
@@ -199,14 +201,14 @@ class ConversationService:
                 # Update conversation timestamp
                 db.conversations.update_one(
                     {'_id': conversation_id},
-                    {'$set': {'updated_at': datetime.now().isoformat()}}
+                    {'$set': {'updated_at': now}}
                 )
             else:
                 if conversation_id not in self._messages:
                     self._messages[conversation_id] = []
                 self._messages[conversation_id].append(message)
                 if conversation_id in self._conversations:
-                    self._conversations[conversation_id]['updated_at'] = datetime.now().isoformat()
+                    self._conversations[conversation_id]['updated_at'] = now
             
             return message
             

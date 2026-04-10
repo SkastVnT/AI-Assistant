@@ -7,12 +7,18 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.dependencies import db_session
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from apps.api.dependencies import auth_context, db_session
 from apps.api.schemas import (
     DocumentListResponse,
     DocumentResponse,
     DocumentVersionResponse,
     IngestionJobResponse,
 )
+from libs.auth.context import AuthContext
 from libs.core.models import Document, DocumentVersion, IngestionJob
 from libs.ingestion.parsers.registry import get_supported_extensions
 from libs.ingestion.pipeline import enqueue_document
@@ -30,6 +36,8 @@ async def upload_document(
     language: str = Form("en"),
     db: AsyncSession = Depends(db_session),
     x_tenant_id: str = Header(...),
+    auth: AuthContext = Depends(auth_context),
+    db: AsyncSession = Depends(db_session),
 ) -> dict:
     """Upload a document and enqueue it for async ingestion.
 
@@ -60,6 +68,14 @@ async def upload_document(
         raise HTTPException(400, "File is empty")
 
     tenant_id = uuid.UUID(x_tenant_id)
+    tenant_id = auth.tenant_id
+
+    # Enforce: non-admins cannot upload restricted docs
+    if sensitivity_level == "restricted" and not auth.is_admin:
+        raise HTTPException(
+            403,
+            "Only admins may upload documents with 'restricted' sensitivity.",
+        )
 
     try:
         doc, version, job = await enqueue_document(
@@ -91,6 +107,11 @@ async def get_job_status(
 ) -> dict:
     """Check the status of an ingestion job."""
     tenant_id = uuid.UUID(x_tenant_id)
+    auth: AuthContext = Depends(auth_context),
+    db: AsyncSession = Depends(db_session),
+) -> dict:
+    """Check the status of an ingestion job."""
+    tenant_id = auth.tenant_id
     job = await db.get(IngestionJob, uuid.UUID(job_id))
     if not job or job.tenant_id != tenant_id:
         raise HTTPException(404, "Job not found")
@@ -101,11 +122,14 @@ async def get_job_status(
 async def list_documents(
     db: AsyncSession = Depends(db_session),
     x_tenant_id: str = Header(...),
+    auth: AuthContext = Depends(auth_context),
+    db: AsyncSession = Depends(db_session),
     skip: int = 0,
     limit: int = 20,
 ) -> DocumentListResponse:
     """List all ingested documents for a tenant."""
     tenant_id = uuid.UUID(x_tenant_id)
+    tenant_id = auth.tenant_id
 
     total = await db.scalar(
         select(func.count())
@@ -141,6 +165,11 @@ async def delete_document(
 ) -> None:
     """Delete a document and all its versions/chunks (cascade)."""
     tenant_id = uuid.UUID(x_tenant_id)
+    auth: AuthContext = Depends(auth_context),
+    db: AsyncSession = Depends(db_session),
+) -> None:
+    """Delete a document and all its versions/chunks (cascade)."""
+    tenant_id = auth.tenant_id
     doc = await db.get(Document, document_id)
     if not doc or doc.tenant_id != tenant_id:
         raise HTTPException(404, "Document not found")

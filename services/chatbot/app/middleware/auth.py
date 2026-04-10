@@ -1,12 +1,12 @@
 ﻿"""
 Authentication Middleware
 
-Handles session and API key authentication.
+Handles session, login, admin, and API key authentication.
 """
 
 import os
 from functools import wraps
-from flask import session, request, jsonify
+from flask import session, request, jsonify, redirect, url_for
 
 
 def require_session(f):
@@ -17,6 +17,35 @@ def require_session(f):
             # Create anonymous session
             import uuid
             session['user_id'] = f"anonymous_{str(uuid.uuid4())[:8]}"
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_login(f):
+    """Decorator to require authenticated user. Redirects to /login if not logged in."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('authenticated'):
+            # API requests get 401, browser requests get redirect
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'Unauthorized', 'message': 'Login required'}), 401
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_admin(f):
+    """Decorator to require admin role."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('authenticated'):
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'Unauthorized', 'message': 'Login required'}), 401
+            return redirect('/login')
+        if session.get('user_role') != 'admin':
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'Forbidden', 'message': 'Admin access required'}), 403
+            return redirect('/')
         return f(*args, **kwargs)
     return decorated_function
 

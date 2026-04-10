@@ -38,6 +38,28 @@ try {
         localStorage.setItem('sidebarFixApplied_v1', '1');
     }
 } catch(e) {}
+
+// Runtime feature flags (override via localStorage or window.__CHAT_FEATURES)
+try {
+    const storedFlags = JSON.parse(localStorage.getItem('chatFeatureFlags') || '{}');
+    window.__CHAT_FEATURES = {
+        tokenGauge: true,
+        collapsibleThinking: true,
+        suggestionChips: true,
+        selectAndReply: true,
+        codeCopy: true,
+        ...storedFlags,
+        ...(window.__CHAT_FEATURES || {}),
+    };
+} catch (e) {
+    window.__CHAT_FEATURES = {
+        tokenGauge: true,
+        collapsibleThinking: true,
+        suggestionChips: true,
+        selectAndReply: true,
+        codeCopy: true,
+    };
+}
 </script>
 
 <div class="app">
@@ -77,6 +99,409 @@ try {
                 <i data-lucide="brain" class="lucide"></i> <span>AI Memory</span>
             </button>
             <div id="storageInfo" style="padding: 4px 12px; font-size: 11px; color: var(--text-tertiary);"></div>
+
+            <!-- Quota + Video unlock bar (non-admin only) -->
+            <div id="quotaSection" style="display:none;padding:6px 10px 2px;">
+                <!-- Image quota bar -->
+                <div id="imageQuotaWrap" style="margin-bottom:6px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                        <span style="font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px;">
+                            <i data-lucide="image" style="width:11px;height:11px;"></i> Ảnh đã tạo
+                        </span>
+                        <span id="quotaText" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0/5</span>
+                    </div>
+                    <div style="height:5px;border-radius:3px;background:var(--bg-active);overflow:hidden;">
+                        <div id="quotaBar" style="height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,#7c6cf0,#ab7df6);transition:width .4s;"></div>
+                    </div>
+                </div>
+                <!-- Video unlock button -->
+                <button id="videoUnlockBtn" onclick="openVideoUnlockModal()" style="
+                    display:none;width:100%;padding:7px 10px;border:1px solid rgba(241,196,15,.35);
+                    border-radius:9px;background:rgba(241,196,15,.08);color:#f1c40f;
+                    font-size:12px;font-weight:500;font-family:var(--font-sans);cursor:pointer;
+                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;"
+                    onmouseover="this.style.background='rgba(241,196,15,.14)'" onmouseout="this.style.background='rgba(241,196,15,.08)'">
+                    <i data-lucide="lock" style="width:13px;height:13px;"></i>
+                    <span>Mở khóa tính năng Video</span>
+                </button>
+                <div id="videoUnlockedMsg" style="display:none;width:100%;padding:6px 10px;border:1px solid rgba(46,204,113,.3);border-radius:9px;background:rgba(46,204,113,.08);color:#2ecc71;font-size:11px;font-weight:500;text-align:center;margin-bottom:4px;">
+                    ✓ Video đã được mở khóa
+                </div>
+            </div>
+
+            <!-- User section -->
+            <div style="position:relative; margin-top:4px; border-top: 1px solid var(--border-primary); padding-top:6px;">
+                <!-- User dropdown panel -->
+                <div id="userDropdown" style="
+                    display:none; position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
+                    background:var(--bg-secondary); border:1px solid var(--border-primary);
+                    border-radius:12px; box-shadow:0 -8px 32px rgba(0,0,0,0.45); overflow:hidden; z-index:200;">
+                    <!-- Header -->
+                    <div style="padding:14px 14px 10px; border-bottom:1px solid var(--border-primary);">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div id="dropAvatar" style="
+                                width:38px;height:38px;border-radius:50%;
+                                background:var(--accent-gradient);flex-shrink:0;
+                                display:flex;align-items:center;justify-content:center;
+                                font-size:15px;font-weight:700;color:#fff;">U</div>
+                            <div style="min-width:0;">
+                                <div id="dropDisplayName" style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">User</div>
+                                <div id="dropUsername" style="font-size:11px;color:var(--text-tertiary);">@username</div>
+                            </div>
+                            <span id="dropRoleBadge" style="
+                                display:none;margin-left:auto;flex-shrink:0;
+                                font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;
+                                background:rgba(124,108,240,0.2);color:#9488f4;border:1px solid rgba(124,108,240,0.3);">Admin</span>
+                        </div>
+                    </div>
+                    <!-- Menu items -->
+                    <div style="padding:6px;">
+                        <a href="/admin" id="dropAdminLink" style="display:none;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;"
+                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                            <i data-lucide="shield" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>Admin Panel</span>
+                        </a>
+                        <button onclick="openChangePassword()" style="
+                            width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+                            color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
+                            font-family:var(--font-sans);transition:background 0.15s;"
+                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                            <i data-lucide="key-round" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>Đổi mật khẩu</span>
+                        </button>
+                        <a href="/logout" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
+                           onmouseover="this.style.background='rgba(231,76,60,0.08)'" onmouseout="this.style.background='transparent'">
+                            <i data-lucide="log-out" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>Đăng xuất</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Trigger row -->
+                <button id="userTrigger" onclick="toggleUserDropdown()" style="
+                    width:100%;display:flex;align-items:center;gap:10px;padding:6px 10px;
+                    background:transparent;border:none;cursor:pointer;border-radius:10px;
+                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);"
+                    onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="if(!document.getElementById('userDropdown').style.display||document.getElementById('userDropdown').style.display==='none')this.style.background='transparent'">
+                    <div id="userAvatar" style="
+                        width:30px;height:30px;border-radius:50%;background:var(--accent-gradient);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">U</div>
+                    <div style="min-width:0;flex:1;">
+                        <div id="userName" style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">User</div>
+                        <div id="userRoleLabel" style="font-size:10px;color:var(--text-tertiary);">member</div>
+                    </div>
+                    <i data-lucide="chevrons-up-down" id="userChevron" style="width:14px;height:14px;color:var(--text-tertiary);flex-shrink:0;transition:transform 0.2s;"></i>
+                </button>
+            </div>
+
+            <!-- QR Payment Modal -->
+            <div id="qrPayModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
+                <div onclick="closeVideoUnlockModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
+                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:18px;padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);text-align:center;">
+                    <button onclick="closeVideoUnlockModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='none'">
+                        <i data-lucide="x" style="width:18px;height:18px;"></i>
+                    </button>
+                    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎬 Mở khóa Video</div>
+                    <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:18px;">Quét mã QR để chuyển khoản và gửi yêu cầu mở khóa</p>
+                    <!-- QR Image -->
+                    <div id="qrImgWrap" style="margin:0 auto 16px;width:220px;height:220px;background:var(--bg-tertiary);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        <div id="qrLoading" style="font-size:12px;color:var(--text-tertiary);">Đang tải…</div>
+                        <img id="qrImg" src="" alt="QR" style="display:none;width:100%;height:100%;object-fit:contain;">
+                    </div>
+                    <!-- Bank info -->
+                    <div id="qrBankInfo" style="background:var(--bg-tertiary);border-radius:10px;padding:12px 16px;text-align:left;margin-bottom:16px;font-size:12px;line-height:1.9;">
+                        <div><span style="color:var(--text-tertiary)">Ngân hàng:</span> <strong id="qrBankName">—</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Số TK:</span> <strong id="qrAccountNo">—</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Chủ TK:</span> <strong id="qrAccountName">—</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Số tiền:</span> <strong id="qrAmount" style="color:#f1c40f;">—</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Nội dung:</span> <strong id="qrDesc">—</strong></div>
+                    </div>
+                    <div id="qrRequestAlert" style="display:none;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
+                    <button onclick="submitVideoUnlockRequest()" id="qrSubmitBtn" style="
+                        width:100%;padding:11px;border:none;border-radius:12px;background:var(--accent-gradient);
+                        color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
+                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;"
+                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                        <i data-lucide="send" style="width:16px;height:16px;"></i>
+                        <span id="qrSubmitLbl">Đã chuyển khoản — Gửi yêu cầu</span>
+                    </button>
+                    <p style="font-size:11px;color:var(--text-tertiary);margin-top:10px;">Sau khi admin xác nhận, tính năng Video sẽ được mở khóa.</p>
+                </div>
+            </div>
+
+            <!-- Change Password Modal -->
+            <div id="changePwModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
+                <div onclick="closeChangePassword()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:360px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="key-round" style="width:18px;height:18px;color:var(--accent);"></i> Đổi mật khẩu
+                    </h3>
+                    <div id="cpwError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+                    <div id="cpwSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mật khẩu hiện tại</label>
+                        <input type="password" id="cpwCurrent" class="form-input" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="••••••••">
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mật khẩu mới</label>
+                        <input type="password" id="cpwNew" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="Ít nhất 6 ký tự">
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="closeChangePassword()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
+                        <button onclick="submitChangePw()" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Xác nhận</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+            (function(){
+                // Color palette for avatars
+                const AVATAR_COLORS = ['#7c6cf0','#ab7df6','#3498db','#e74c3c','#2ecc71','#e67e22','#1abc9c','#9b59b6'];
+                function strColor(str) {
+                    let h = 0;
+                    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff;
+                    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+                }
+
+                fetch('/api/auth/me').then(r=>r.json()).then(d=>{
+                    if(d.authenticated && d.user) {
+                        const u = d.user;
+                        const initial = (u.display_name || u.username)[0].toUpperCase();
+                        const color = strColor(u.username);
+
+                        // Trigger row
+                        const av = document.getElementById('userAvatar');
+                        av.textContent = initial;
+                        av.style.background = color;
+                        document.getElementById('userName').textContent = u.display_name || u.username;
+                        document.getElementById('userRoleLabel').textContent = u.role === 'admin' ? '⭐ admin' : 'member';
+
+                        // Dropdown header
+                        const dav = document.getElementById('dropAvatar');
+                        dav.textContent = initial;
+                        dav.style.background = color;
+                        document.getElementById('dropDisplayName').textContent = u.display_name || u.username;
+                        document.getElementById('dropUsername').textContent = '@' + u.username;
+
+                        if(u.role === 'admin') {
+                            document.getElementById('dropAdminLink').style.display = 'flex';
+                            document.getElementById('dropRoleBadge').style.display = 'inline-block';
+                        }
+
+                        // Quota bar (non-admin only)
+                        if(u.role !== 'admin') {
+                            loadQuotaBar();
+                        }
+                    }
+                }).catch(()=>{});
+            })();
+
+            let _dropOpen = false;
+
+            /* ── Quota bar ── */
+            function loadQuotaBar() {
+                // First check if features are enabled at all
+                fetch('/api/features').then(r => r.json()).then(flags => {
+                    const quotaOn   = flags.quota   !== false;
+                    const videoOn   = flags.video   !== false;
+                    const paymentOn = flags.payment !== false;
+
+                    if (!quotaOn && !videoOn) {
+                        // Both off — hide entirely
+                        document.getElementById('quotaSection').style.display = 'none';
+                        return;
+                    }
+
+                    // Show the section then fill with real data
+                    document.getElementById('quotaSection').style.display = 'block';
+                    // Hide sub-sections that are off
+                    document.getElementById('imageQuotaWrap').style.display = quotaOn ? 'block' : 'none';
+
+                    fetch('/api/auth/quota').then(r => r.json()).then(d => {
+                        if (!d.success) return;
+                        const q = d.quota || {};
+                        if (quotaOn) {
+                            const used  = q.image_quota_used  || 0;
+                            const limit = q.image_quota_limit || 5;
+                            const pct   = Math.min(100, Math.round(used / limit * 100));
+                            const danger = pct >= 80;
+                            document.getElementById('quotaText').textContent = used + '/' + limit;
+                            const bar = document.getElementById('quotaBar');
+                            bar.style.width = pct + '%';
+                            bar.style.background = danger ? 'linear-gradient(90deg,#e74c3c,#c0392b)' : 'linear-gradient(90deg,#7c6cf0,#ab7df6)';
+                            document.getElementById('quotaText').style.color = danger ? '#e74c3c' : 'var(--text-secondary)';
+                        }
+                        if (videoOn) {
+                            if (q.video_unlocked) {
+                                document.getElementById('videoUnlockedMsg').style.display = 'block';
+                                document.getElementById('videoUnlockBtn').style.display = 'none';
+                            } else if (paymentOn && flags.video_requires_payment !== false) {
+                                document.getElementById('videoUnlockBtn').style.display = 'flex';
+                                document.getElementById('videoUnlockedMsg').style.display = 'none';
+                            } else {
+                                // Video on but no payment required — hide button
+                                document.getElementById('videoUnlockBtn').style.display = 'none';
+                                document.getElementById('videoUnlockedMsg').style.display = 'none';
+                            }
+                        } else {
+                            document.getElementById('videoUnlockBtn').style.display = 'none';
+                            document.getElementById('videoUnlockedMsg').style.display = 'none';
+                        }
+                        lucide.createIcons({ nodes: [document.getElementById('quotaSection')] });
+                    }).catch(() => {});
+                }).catch(() => {
+                    // If /api/features fails, fall back to showing the quota bar normally
+                    loadQuotaBarFallback();
+                });
+            }
+
+            /* fallback if /api/features unreachable */
+            function loadQuotaBarFallback() {
+                fetch('/api/auth/quota').then(r => r.json()).then(d => {
+                    if (!d.success) return;
+                    const q = d.quota || {};
+                    document.getElementById('quotaSection').style.display = 'block';
+                    const used  = q.image_quota_used  || 0;
+                    const limit = q.image_quota_limit || 5;
+                    const pct   = Math.min(100, Math.round(used / limit * 100));
+                    document.getElementById('quotaText').textContent = used + '/' + limit;
+                    document.getElementById('quotaBar').style.width = pct + '%';
+                    if (q.video_unlocked) {
+                        document.getElementById('videoUnlockedMsg').style.display = 'block';
+                        document.getElementById('videoUnlockBtn').style.display = 'none';
+                    } else {
+                        document.getElementById('videoUnlockBtn').style.display = 'flex';
+                        document.getElementById('videoUnlockedMsg').style.display = 'none';
+                    }
+                    lucide.createIcons({ nodes: [document.getElementById('quotaSection')] });
+                }).catch(() => {});
+            }
+
+            /* ── QR Modal ── */
+            function openVideoUnlockModal() {
+                const m = document.getElementById('qrPayModal');
+                m.style.display = 'flex';
+                document.getElementById('qrImg').style.display = 'none';
+                document.getElementById('qrLoading').style.display = 'block';
+                document.getElementById('qrRequestAlert').style.display = 'none';
+                document.getElementById('qrSubmitBtn').disabled = false;
+                document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
+                lucide.createIcons({ nodes: [m] });
+                // Fetch QR
+                fetch('/api/payment/qr', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type: 'video_unlock'})
+                }).then(r => r.json()).then(d => {
+                    if (d.qr_url) {
+                        document.getElementById('qrImg').src = d.qr_url;
+                        document.getElementById('qrImg').style.display = 'block';
+                    }
+                    document.getElementById('qrLoading').style.display = 'none';
+                    document.getElementById('qrBankName').textContent = d.bank_name || '—';
+                    document.getElementById('qrAccountNo').textContent = d.account_no || '—';
+                    document.getElementById('qrAccountName').textContent = d.account_name || '—';
+                    document.getElementById('qrAmount').textContent = d.amount ? d.amount.toLocaleString('vi-VN') + ' đ' : '—';
+                    document.getElementById('qrDesc').textContent = d.description || '—';
+                }).catch(() => { document.getElementById('qrLoading').textContent = 'Không tải được QR code'; });
+            }
+
+            function closeVideoUnlockModal() {
+                document.getElementById('qrPayModal').style.display = 'none';
+            }
+
+            async function submitVideoUnlockRequest() {
+                const btn = document.getElementById('qrSubmitBtn');
+                const alertEl = document.getElementById('qrRequestAlert');
+                btn.disabled = true;
+                document.getElementById('qrSubmitLbl').textContent = 'Đang gửi…';
+                alertEl.style.display = 'none';
+                try {
+                    const res = await fetch('/api/auth/request-video-unlock', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({note: 'Yêu cầu mở khóa Video qua QR'})
+                    });
+                    const data = await res.json();
+                    alertEl.style.display = 'block';
+                    if (data.success) {
+                        alertEl.style.background = 'rgba(46,204,113,.12)';
+                        alertEl.style.border = '1px solid rgba(46,204,113,.3)';
+                        alertEl.style.color = '#2ecc71';
+                        alertEl.textContent = data.message || 'Yêu cầu đã được gửi. Vui lòng chờ admin xác nhận.';
+                        document.getElementById('qrSubmitBtn').style.display = 'none';
+                    } else {
+                        alertEl.style.background = 'rgba(231,76,60,.12)';
+                        alertEl.style.border = '1px solid rgba(231,76,60,.3)';
+                        alertEl.style.color = '#e74c3c';
+                        alertEl.textContent = data.message || 'Lỗi gửi yêu cầu';
+                        btn.disabled = false;
+                        document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
+                    }
+                } catch(e) {
+                    alertEl.style.display = 'block';
+                    alertEl.style.background = 'rgba(231,76,60,.12)';
+                    alertEl.style.border = '1px solid rgba(231,76,60,.3)';
+                    alertEl.style.color = '#e74c3c';
+                    alertEl.textContent = 'Lỗi kết nối server';
+                    btn.disabled = false;
+                    document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
+                }
+            }
+
+            function toggleUserDropdown() {
+                _dropOpen = !_dropOpen;
+                const dd = document.getElementById('userDropdown');
+                const chevron = document.getElementById('userChevron');
+                dd.style.display = _dropOpen ? 'block' : 'none';
+                chevron.style.transform = _dropOpen ? 'rotate(180deg)' : '';
+                document.getElementById('userTrigger').style.background = _dropOpen ? 'var(--bg-tertiary)' : '';
+                lucide.createIcons();
+            }
+
+            document.addEventListener('click', function(e) {
+                if(_dropOpen && !document.getElementById('userTrigger').contains(e.target) && !document.getElementById('userDropdown').contains(e.target)) {
+                    _dropOpen = false;
+                    document.getElementById('userDropdown').style.display = 'none';
+                    document.getElementById('userChevron').style.transform = '';
+                    document.getElementById('userTrigger').style.background = '';
+                }
+            });
+
+            function openChangePassword() {
+                toggleUserDropdown();
+                const m = document.getElementById('changePwModal');
+                m.style.display = 'flex';
+                document.getElementById('cpwCurrent').value = '';
+                document.getElementById('cpwNew').value = '';
+                document.getElementById('cpwError').style.display = 'none';
+                document.getElementById('cpwSuccess').style.display = 'none';
+                lucide.createIcons();
+                setTimeout(() => document.getElementById('cpwCurrent').focus(), 100);
+            }
+            function closeChangePassword() {
+                document.getElementById('changePwModal').style.display = 'none';
+            }
+            async function submitChangePw() {
+                const btn = document.getElementById('cpwBtn');
+                const errEl = document.getElementById('cpwError');
+                const okEl = document.getElementById('cpwSuccess');
+                errEl.style.display = 'none'; okEl.style.display = 'none';
+                const current = document.getElementById('cpwCurrent').value;
+                const newpw = document.getElementById('cpwNew').value;
+                if(!current || !newpw) { errEl.textContent='Vui lòng điền đầy đủ'; errEl.style.display='block'; return; }
+                btn.disabled = true; btn.textContent = '...';
+                try {
+                    const res = await fetch('/api/auth/change-password', {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({current_password: current, new_password: newpw})
+                    });
+                    const data = await res.json();
+                    if(data.success) { okEl.textContent = data.message; okEl.style.display='block'; setTimeout(closeChangePassword, 1800); }
+                    else { errEl.textContent = data.message; errEl.style.display='block'; }
+                } catch { errEl.textContent='Lỗi kết nối'; errEl.style.display='block'; }
+                finally { btn.disabled=false; btn.textContent='Xác nhận'; }
+            }
+            </script>
         </div>
     </aside>
 
@@ -220,13 +645,6 @@ try {
                     <div id="thinkingModeDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 260px; top: calc(100% + 4px);">
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Thinking Mode</div>
-                            <div class="thinking-mode-option model-dropdown__item" data-mode="auto" data-icon="cpu" data-label="Auto">
-                                <span class="model-dropdown__item-icon"><i data-lucide="cpu" class="lucide"></i></span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Auto</div>
-                                    <div class="model-dropdown__item-desc">Tự quyết định thời gian suy nghĩ</div>
-                                </div>
-                            </div>
                             <div class="thinking-mode-option model-dropdown__item active" data-mode="instant" data-icon="zap" data-label="Instant">
                                 <span class="model-dropdown__item-icon"><i data-lucide="zap" class="lucide"></i></span>
                                 <div class="model-dropdown__item-info">
@@ -234,26 +652,11 @@ try {
                                     <div class="model-dropdown__item-desc">Trả lời tức thời</div>
                                 </div>
                             </div>
-                            <div class="thinking-mode-option model-dropdown__item" data-mode="thinking" data-icon="brain" data-label="Thinking">
-                                <span class="model-dropdown__item-icon"><i data-lucide="brain" class="lucide"></i></span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Thinking</div>
-                                    <div class="model-dropdown__item-desc">Phân tích kỹ lưỡng</div>
-                                </div>
-                            </div>
-                            <div class="thinking-mode-option model-dropdown__item" data-mode="deep" data-icon="rocket" data-label="Deep">
-                                <span class="model-dropdown__item-icon"><i data-lucide="rocket" class="lucide"></i></span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Deep Reasoning</div>
-                                    <div class="model-dropdown__item-desc">Coordinated reasoning — Pro</div>
-                                </div>
-                                <span class="model-dropdown__item-badge pro">Pro</span>
-                            </div>
-                            <div class="thinking-mode-option model-dropdown__item" data-mode="multi-thinking" data-icon="layers" data-label="Multi-Think">
+                            <div class="thinking-mode-option model-dropdown__item" data-mode="multi-thinking" data-icon="layers" data-label="4-Agents">
                                 <span class="model-dropdown__item-icon"><i data-lucide="layers" class="lucide"></i></span>
                                 <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Multi-Thinking</div>
-                                    <div class="model-dropdown__item-desc">Đa mô hình suy luận song song</div>
+                                    <div class="model-dropdown__item-name">4-Agents</div>
+                                    <div class="model-dropdown__item-desc">4 agents tham gia trả lời</div>
                                 </div>
                                 <span class="model-dropdown__item-badge pro">Pro</span>
                             </div>
@@ -265,7 +668,7 @@ try {
 
             <div class="topbar__right">
                 <!-- Primary actions -->
-                <button class="topbar__btn" id="splitViewBtn" title="Split view"><i data-lucide="columns-2" class="lucide"></i></button>
+                <!-- <button class="topbar__btn" id="splitViewBtn" title="Split view"><i data-lucide="columns-2" class="lucide"></i></button> -->
                 <button class="topbar__btn" id="imageGenV2Btn" title="AI Image (Multi-provider)" style="color: var(--accent);"><i data-lucide="sparkles" class="lucide"></i></button>
                 <button class="topbar__btn" id="videoGenBtn" title="Video Sora2" style="color: var(--warning, #f59e0b);"><i data-lucide="video" class="lucide"></i></button>
                 <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
@@ -388,6 +791,26 @@ try {
                                             <span class="tools-grid__icon"><i data-lucide="github" class="lucide"></i></span>
                                             <span class="tools-grid__label">GitHub</span>
                                         </button>
+                                        <button class="tools-grid__item" id="saucenaoBtn" title="SauceNAO Reverse Image Search">
+                                            <span class="tools-grid__icon"><i data-lucide="scan-search" class="lucide"></i></span>
+                                            <span class="tools-grid__label">SauceNAO</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="googleLensBtn" title="Google Lens — Reverse Image (SerpAPI)">
+                                            <span class="tools-grid__icon"><i data-lucide="camera" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Lens</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="serpapiBingBtn" title="Bing Search (SerpAPI)">
+                                            <span class="tools-grid__icon"><i data-lucide="globe" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Bing</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="serpapiBaiduBtn" title="Baidu Search (SerpAPI)">
+                                            <span class="tools-grid__icon"><i data-lucide="search-code" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Baidu</span>
+                                        </button>
+                                        <button class="tools-grid__item" id="serpapiImagesBtn" title="Google Images Search (SerpAPI)">
+                                            <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
+                                            <span class="tools-grid__label">Img Search</span>
+                                        </button>
                                         <button class="tools-grid__item" id="configAgentBtn" title="Config Agent">
                                             <span class="tools-grid__icon"><i data-lucide="settings" class="lucide"></i></span>
                                             <span class="tools-grid__label">Agent</span>
@@ -408,7 +831,7 @@ try {
                                 </div>
                             </div>
 
-                            <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,image/*" multiple class="hidden">
+                            <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,.md,.ts,.tsx,.jsx,.xml,.yaml,.yml,.log,.sql,.sh,.bat,image/*,audio/*,video/*" multiple class="hidden">
                         </div>
 
                         <!-- File staging area -->
@@ -431,16 +854,10 @@ try {
                         </button>
                     </div>
 
-                    <!-- Context selector row -->
-                    <div class="context-selector">
-                        <span>Mode:</span>
+                    <!-- Context is now unified — hidden select for backward compatibility -->
+                    <div class="context-selector" style="display:none;">
                         <select id="contextSelect">
-                            <option value="casual" data-lang-key="controls.mode.casual">💬 Casual Chat</option>
-                            <option value="programming" data-lang-key="controls.mode.programming">💻 Programming</option>
-                            <option value="creative">🎨 Creative</option>
-                            <option value="research">🔬 Research</option>
-                            <option value="psychological" data-lang-key="controls.mode.psychological">🧘 Psychology</option>
-                            <option value="lifestyle" data-lang-key="controls.mode.lifestyle">🌟 Lifestyle</option>
+                            <option value="casual" selected>💬 Universal</option>
                         </select>
                     </div>
                 </div>
@@ -1084,12 +1501,11 @@ try {
                 <!-- Settings Grid -->
                 <div class="vg-settings-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
-                        <label class="form-label">📐 Resolution</label>
+                        <label class="form-label">📐 Aspect Ratio</label>
                         <select id="vgResolution" class="form-select" style="width: 100%;">
-                            <option value="1280x720" selected>1280×720 (Landscape)</option>
-                            <option value="720x1280">720×1280 (Portrait)</option>
-                            <option value="1792x1024">1792×1024 (Wide)</option>
-                            <option value="1024x1792">1024×1792 (Tall)</option>
+                            <option value="1280x720" selected>16:9 Landscape</option>
+                            <option value="720x1280">9:16 Portrait</option>
+                            <option value="1080x1920">1:1 Square</option>
                         </select>
                     </div>
                     <div>
@@ -1097,14 +1513,14 @@ try {
                         <select id="vgDuration" class="form-select" style="width: 100%;">
                             <option value="4">4 seconds</option>
                             <option value="8" selected>8 seconds</option>
-                            <option value="12">12 seconds</option>
+                            <!-- <option value="12">12 seconds</option> -->
                         </select>
                     </div>
                     <div>
                         <label class="form-label">🤖 Model</label>
                         <select id="vgModel" class="form-select" style="width: 100%;">
                             <option value="sora-2" selected>Sora 2 ($0.10/s)</option>
-                            <option value="sora-2-pro">Sora 2 Pro ($0.30/s)</option>
+                            <!-- <option value="sora-2-pro">Sora 2 Pro ($0.30/s)</option> -->
                         </select>
                     </div>
                 </div>
@@ -1343,7 +1759,8 @@ try {
     // ════════════════════════════════════════════════════════════
     // THINKING MODE
     // ════════════════════════════════════════════════════════════
-    let currentThinkingMode = localStorage.getItem('thinkingMode') || 'instant';
+    const _savedMode = localStorage.getItem('thinkingMode');
+    let currentThinkingMode = (_savedMode === 'instant' || _savedMode === 'multi-thinking') ? _savedMode : 'instant';
 
     function initThinkingMode() {
         const btn = document.getElementById('thinkingModeBtn');
@@ -1408,12 +1825,13 @@ try {
     }
 
     window.getThinkingMode = () => currentThinkingMode;
-    window.isDeepThinking = () => currentThinkingMode === 'thinking' || currentThinkingMode === 'deep';
+    window.isDeepThinking = () => currentThinkingMode === 'multi-thinking';
+    window.selectThinkingMode = selectThinkingMode;
 
     // ════════════════════════════════════════════════════════════
     // TOOLS MENU
     // ════════════════════════════════════════════════════════════
-    let activeTools = new Set(['image-generation', 'img2img']);
+    let activeTools = new Set();
 
     function initToolsMenu() {
         const btn = document.getElementById('toolsMenuBtn');
@@ -1429,11 +1847,6 @@ try {
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         setupToolItemClicks();
-        // Default to image-focused tools while still allowing users to toggle others.
-        ['imageGenToolBtn', 'img2imgToolBtn'].forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('active');
-        });
         updateActiveToolsDisplay();
     }
 
@@ -1447,7 +1860,12 @@ try {
             { id: 'img2imgToolBtn', tool: 'img2img' },
             { id: 'googleSearchBtn', tool: 'google-search' },
             { id: 'githubBtn', tool: 'github' },
+            { id: 'saucenaoBtn', tool: 'saucenao' },
             { id: 'deepResearchToolBtn', tool: 'deep-research' },
+            { id: 'googleLensBtn', tool: 'serpapi-reverse-image' },
+            { id: 'serpapiBingBtn', tool: 'serpapi-bing' },
+            { id: 'serpapiBaiduBtn', tool: 'serpapi-baidu' },
+            { id: 'serpapiImagesBtn', tool: 'serpapi-images' },
         ];
         toolBindings.forEach(({ id, tool }) => {
             const el = document.getElementById(id);
@@ -1461,15 +1879,11 @@ try {
                         gsBtn.classList.add('active');
                     }
                     if (typeof selectThinkingMode === 'function') {
-                        selectThinkingMode('multi-thinking', 'layers', 'Multi-Think');
+                        selectThinkingMode('multi-thinking', 'layers', '4-Agents');
                     }
                 }
             });
         });
-
-        const up = document.getElementById('uploadFilesBtn');
-        const fi = document.getElementById('fileInput');
-        if (up && fi) up.addEventListener('click', () => { closeToolsMenu(); fi.click(); });
 
         const br = document.getElementById('branchConversationBtn');
         if (br) br.addEventListener('click', () => { closeToolsMenu(); createBranchConversation(); });
@@ -1493,7 +1907,9 @@ try {
         if (activeTools.size === 0) return;
         const icons = {
             'image-generation': '🎨', 'img2img': '🖼️',
-            'google-search': '🔍', 'github': '📦', 'deep-research': '🔬'
+            'google-search': '🔍', 'github': '📦', 'deep-research': '🔬',
+            'saucenao': '�', 'serpapi-reverse-image': '📸',
+            'serpapi-bing': '🅱️', 'serpapi-baidu': '🀄', 'serpapi-images': '�🖼️'
         };
         activeTools.forEach(tool => {
             const badge = document.createElement('span');

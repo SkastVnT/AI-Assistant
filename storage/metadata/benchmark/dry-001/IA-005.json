@@ -1,0 +1,53 @@
+{
+  "run_id": "dry-001",
+  "case_id": "IA-005",
+  "timestamp": "2026-04-09T10:31:13.609268+00:00",
+  "stack_version": "65f0f58",
+  "instruction": "Change the dress color from blue to red, keep everything else",
+  "mode": "semantic_edit",
+  "references": [],
+  "category": "instruction_adherence",
+  "difficulty": "medium",
+  "models_used": [],
+  "stages_executed": [],
+  "stage_timings_ms": {},
+  "total_latency_ms": 0.0,
+  "total_cost_usd": 0.0,
+  "execution_locations": {},
+  "correction_rounds": 0,
+  "scores": {
+    "instruction_adherence": 0.72,
+    "semantic_edit_accuracy": 0.72,
+    "identity_consistency": 0.72
+  },
+  "thresholds": {
+    "instruction_adherence": 0.7,
+    "semantic_edit_accuracy": 0.7,
+    "identity_consistency": 0.8,
+    "multi_ref_quality": 0.6,
+    "detail_handling": 0.7,
+    "text_rendering": 0.5,
+    "multi_turn_stability": 0.7,
+    "correction_success": 0.6
+  },
+  "passed_dimensions": [
+    "instruction_adherence",
+    "semantic_edit_accuracy"
+  ],
+  "failed_dimensions": [
+    "identity_consistency"
+  ],
+  "overall_score": 0.7200000000000001,
+  "case_passed": false,
+  "judge_model": "dry-run-stub",
+  "judge_reasoning": {
+    "instruction_adherence": "Stub score for medium difficulty",
+    "semantic_edit_accuracy": "Stub score for medium difficulty",
+    "identity_consistency": "Stub score for medium difficulty"
+  },
+  "output_image_path": "",
+  "intermediate_images": [],
+  "prompt_lineage": [],
+  "experiment_id": "",
+  "comparison_notes": ""
+}

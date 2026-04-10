@@ -1,8 +1,10 @@
 """
 Thinking Generator - Generates live reasoning/thinking steps for AI responses.
 
-Provides real-time thinking display similar to Gemini/ChatGPT/Grok "thinking"
-feature with structured headings and detailed reasoning descriptions.
+Supports:
+1. Real AI reasoning via <think>...</think> tags parsed from model output
+2. Native reasoning_content from models like DeepSeek R1 (via REASONING_PREFIX)
+3. Fallback template steps for models without reasoning capability
 """
 import re
 import logging
@@ -13,6 +15,80 @@ logger = logging.getLogger(__name__)
 
 # Special prefix for reasoning content from models (Grok, DeepSeek R1, etc.)
 REASONING_PREFIX = '\x02REASON\x03'
+
+
+class ThinkTagParser:
+    """
+    Streaming parser for <think>...</think> tags in AI output.
+    
+    Feeds chunks of text and yields (is_thinking, text) tuples.
+    Handles tags split across multiple chunks via buffering.
+    """
+    
+    # Max length of partial tag we need to buffer
+    _MAX_TAG_LEN = len('</think>')  # 8 chars
+    
+    def __init__(self):
+        self.buffer = ''
+        self.in_think = False
+    
+    def feed(self, chunk: str) -> List[Tuple[bool, str]]:
+        """
+        Feed a streaming chunk. Returns list of (is_thinking, text) tuples.
+        
+        Args:
+            chunk: New text from the stream
+        Returns:
+            List of (is_thinking, text) — is_thinking=True for reasoning content
+        """
+        self.buffer += chunk
+        results = []
+        
+        while self.buffer:
+            if self.in_think:
+                # Looking for </think>
+                end_idx = self.buffer.find('</think>')
+                if end_idx != -1:
+                    thinking_text = self.buffer[:end_idx]
+                    if thinking_text:
+                        results.append((True, thinking_text))
+                    self.buffer = self.buffer[end_idx + len('</think>'):]
+                    self.in_think = False
+                else:
+                    # Emit all but potentially partial tag at the end
+                    safe_end = max(0, len(self.buffer) - self._MAX_TAG_LEN)
+                    if safe_end > 0:
+                        results.append((True, self.buffer[:safe_end]))
+                        self.buffer = self.buffer[safe_end:]
+                    break  # Wait for more data
+            else:
+                # Looking for <think>
+                start_idx = self.buffer.find('<think>')
+                if start_idx != -1:
+                    prefix = self.buffer[:start_idx]
+                    if prefix.strip():
+                        results.append((False, prefix))
+                    self.buffer = self.buffer[start_idx + len('<think>'):]
+                    self.in_think = True
+                else:
+                    # Emit all but potentially partial tag at the end
+                    safe_end = max(0, len(self.buffer) - self._MAX_TAG_LEN)
+                    if safe_end > 0:
+                        text = self.buffer[:safe_end]
+                        if text.strip():
+                            results.append((False, text))
+                        self.buffer = self.buffer[safe_end:]
+                    break  # Wait for more data
+        
+        return results
+    
+    def flush(self) -> List[Tuple[bool, str]]:
+        """Flush remaining buffer at end of stream."""
+        results = []
+        if self.buffer.strip():
+            results.append((self.in_think, self.buffer))
+        self.buffer = ''
+        return results
 
 
 @dataclass

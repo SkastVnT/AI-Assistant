@@ -486,3 +486,93 @@ def legacy_upload_image_to_db():
         logger.error(f"Gallery upload-to-db failed: {e}")
         return jsonify({'error': 'Failed to upload to database'}), 500
 
+
+# ============================================================================
+# FILE TEXT EXTRACTION & TITLE GENERATION
+# ============================================================================
+
+@legacy_bp.route('/api/extract-file-text', methods=['POST'])
+def extract_file_text():
+    """Extract readable text from a base64-encoded file (PDF, DOCX, XLSX, image, etc.)."""
+    data = request.get_json(silent=True) or {}
+    file_b64 = data.get('file_b64', '')
+    filename = str(data.get('filename', 'file')).strip()
+
+    if not file_b64 or not filename:
+        return jsonify({'success': False, 'error': 'file_b64 and filename required'}), 400
+
+    # Strip data URL prefix if present
+    if ',' in file_b64:
+        file_b64 = file_b64.split(',', 1)[1]
+
+    try:
+        file_bytes = base64.b64decode(file_b64)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid base64: {e}'}), 400
+
+    try:
+        import sys
+        chatbot_dir = str(Path(__file__).resolve().parent.parent.parent)
+        if chatbot_dir not in sys.path:
+            sys.path.insert(0, chatbot_dir)
+        from src.ocr_integration import extract_file_content
+        success, text = extract_file_content(file_bytes, filename)
+    except Exception as e:
+        logger.error(f'[extract-file-text] OCR error: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    if success and text and text.strip():
+        return jsonify({'success': True, 'text': text.strip(), 'filename': filename})
+    return jsonify({'success': False, 'text': '', 'error': 'Could not extract text from file'})
+
+
+@legacy_bp.route('/api/generate-title', methods=['POST'])
+def generate_title():
+    """Generate a concise conversation title using Ollama qwen2.5:0.5b."""
+    import requests as _req
+
+    data = request.get_json(silent=True) or {}
+    raw_message = data.get('message', '')
+    if not isinstance(raw_message, str):
+        raw_message = ''
+    user_message = raw_message.strip()[:200]
+    language = str(data.get('language', 'vi')).strip()
+
+    if not user_message:
+        return jsonify({'error': 'message is required'}), 400
+
+    if language == 'en':
+        prompt = (
+            'Generate a concise 3-5 word English title for this conversation. '
+            'Return ONLY the title text, no quotes, no explanation:\n'
+            f'"{user_message}"'
+        )
+    else:
+        prompt = (
+            'Tạo tiêu đề ngắn gọn 3-7 từ tiếng Việt cho cuộc trò chuyện này. '
+            'Chỉ trả về tiêu đề, không giải thích, không ngoặc kép:\n'
+            f'"{user_message}"'
+        )
+
+    try:
+        resp = _req.post(
+            'http://localhost:11434/api/generate',
+            json={
+                'model': 'qwen2.5:0.5b',
+                'prompt': prompt,
+                'stream': False,
+                'options': {'temperature': 0.7, 'num_predict': 20}
+            },
+            timeout=10
+        )
+        resp.raise_for_status()
+        title = resp.json().get('response', '').strip().replace('"', '').replace("'", '').strip()
+        if title:
+            return jsonify({'title': title})
+    except Exception as e:
+        logger.warning(f'[generate-title] Ollama unavailable: {e}')
+
+    # Fallback: truncate the raw message
+    fallback = user_message[:40] + ('...' if len(user_message) > 40 else '')
+    return jsonify({'title': fallback})
+

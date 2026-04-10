@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: #0d0d0d; color: #ececec; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #212121 inset !important; -webkit-text-fill-color: #ececec !important; }
+        @keyframes floatOrb { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-40px) scale(1.1)} 66%{transform:translate(-20px,20px) scale(0.9)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .orb { position:fixed; border-radius:50%; filter:blur(90px); opacity:.12; pointer-events:none; animation:floatOrb 20s ease-in-out infinite; }
+        .orb-1 { width:400px;height:400px;background:#7c6cf0;top:-10%;left:-5%; }
+        .orb-2 { width:300px;height:300px;background:#ab7df6;bottom:-10%;right:-5%;animation-delay:-7s; }
+        .orb-3 { width:250px;height:250px;background:#3498db;top:50%;left:50%;animation-delay:-14s;opacity:.07; }
+        .card { animation:fadeUp .4s ease-out; position:relative;z-index:1;width:100%;max-width:420px;padding:20px; }
+        .card-inner { background:#171717;border:1px solid #3a3a3a;border-radius:18px;padding:36px 32px 28px;box-shadow:0 20px 60px rgba(0,0,0,.45); }
+        .gradient-bg { background:linear-gradient(135deg,#7c6cf0,#ab7df6); }
+        .inp-wrap { position:relative;display:flex;align-items:center;background:#212121;border:1px solid #3a3a3a;border-radius:12px;transition:border-color .2s,box-shadow .2s; }
+        .inp-wrap:focus-within { border-color:#7c6cf0;box-shadow:0 0 0 3px rgba(124,108,240,.15); }
+        .inp-wrap .ico { position:absolute;left:12px;width:16px;height:16px;color:#8e8e8e;pointer-events:none; }
+        .inp-wrap input { width:100%;padding:11px 12px 11px 38px;background:transparent;border:none;color:#ececec;font-size:14px;font-family:inherit;outline:none; }
+        .inp-wrap input::placeholder { color:#8e8e8e; }
+        .inp-wrap input[type="password"], .inp-wrap input.has-eye { padding-right:38px; }
+        .eye-btn { position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#8e8e8e;padding:4px;display:flex;transition:color .15s; }
+        .eye-btn:hover { color:#b4b4b4; }
+        .tabs { display:flex;background:#212121;border-radius:11px;padding:3px;margin-bottom:22px;gap:3px; }
+        .tab-btn { flex:1;padding:8px;border:none;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;border-radius:9px;transition:all .2s; }
+        .tab-btn.active { background:#171717;color:#ececec;box-shadow:0 1px 4px rgba(0,0,0,.4); }
+        .tab-btn.inactive { background:transparent;color:#8e8e8e; }
+        .panel { display:none; }
+        .panel.active { display:block;animation:fadeUp .28s ease-out; }
+        .alert { display:none;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px; }
+        .alert.show { display:flex; }
+        .alert.err { background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.28);color:#e74c3c; }
+        .alert.ok  { background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.28);color:#2ecc71; }
+        .submit-btn { width:100%;padding:11px;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:4px; }
+        .submit-btn:hover { opacity:.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,108,240,.4); }
+        .submit-btn:active { transform:translateY(0); }
+        .submit-btn:disabled { opacity:.5;cursor:not-allowed;transform:none; }
+        .submit-btn .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none; }
+        .submit-btn.loading .spinner { display:block; }
+        .submit-btn.loading .btn-lbl { display:none; }
+        .pw-bar { height:3px;border-radius:2px;background:#3a3a3a;overflow:hidden;margin-top:5px; }
+        .pw-fill { height:100%;width:0;transition:width .3s,background .3s;border-radius:2px; }
+        .form-row { margin-bottom:14px; }
+        label.lbl { display:block;font-size:12px;font-weight:500;color:#b4b4b4;margin-bottom:5px; }
+        label.lbl span { color:#8e8e8e; }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="card">
+        <div class="card-inner">
+            <!-- Header -->
+            <div style="text-align:center;margin-bottom:26px">
+                <div class="gradient-bg" style="width:58px;height:58px;border-radius:15px;margin:0 auto 13px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(124,108,240,.3)">
+                    <i data-lucide="bot" style="width:28px;height:28px;color:#fff"></i>
+                </div>
+                <h1 style="font-size:21px;font-weight:700;margin:0 0 3px">AI Assistant</h1>
+                <p style="color:#8e8e8e;font-size:13px;margin:0">SKAST — Private AI Platform</p>
+            </div>
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Đăng nhập</button>
+                <button class="tab-btn inactive" id="tabRegister" onclick="switchTab('register')">Tạo tài khoản</button>
+            </div>
+            <!-- LOGIN -->
+            <div id="panelLogin" class="panel active">
+                <div id="loginAlert" class="alert err">
+                    <i data-lucide="alert-circle" style="width:15px;height:15px;flex-shrink:0"></i>
+                    <span id="loginAlertText"></span>
+                </div>
+                <form id="loginForm" autocomplete="on">
+                    <div class="form-row">
+                        <label class="lbl">Tên đăng nhập</label>
+                        <div class="inp-wrap">
+                            <i data-lucide="user" class="ico"></i>
+                            <input type="text" id="loginUsername" name="username" placeholder="username" autocomplete="username" required>
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom:18px">
+                        <label class="lbl">Mật khẩu</label>
+                        <div class="inp-wrap">
+                            <i data-lucide="lock" class="ico"></i>
+                            <input type="password" id="loginPassword" name="password" class="has-eye" placeholder="••••••••" autocomplete="current-password" required>
+                            <button type="button" class="eye-btn" onclick="togglePw('loginPassword','eyeLogin')" tabindex="-1"><i data-lucide="eye" id="eyeLogin"></i></button>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn gradient-bg" id="loginBtn">
+                        <div class="spinner"></div><span class="btn-lbl">Đăng nhập</span>
+                    </button>
+                </form>
+            </div>
+            <!-- REGISTER -->
+            <div id="panelRegister" class="panel">
+                <div id="regAlert" class="alert err">
+                    <i data-lucide="alert-circle" style="width:15px;height:15px;flex-shrink:0"></i>
+                    <span id="regAlertText"></span>
+                </div>
+                <div id="regOk" class="alert ok">
+                    <i data-lucide="check-circle" style="width:15px;height:15px;flex-shrink:0"></i>
+                    <span id="regOkText"></span>
+                </div>
+                <form id="registerForm" autocomplete="off">
+                    <div class="form-row">
+                        <label class="lbl">Tên đăng nhập <span>(chữ, số, _)</span></label>
+                        <div class="inp-wrap"><i data-lucide="user" class="ico"></i><input type="text" id="regUsername" placeholder="vd: nguyen_van_a" autocomplete="off" required></div>
+                    </div>
+                    <div class="form-row">
+                        <label class="lbl">Tên hiển thị</label>
+                        <div class="inp-wrap"><i data-lucide="smile" class="ico"></i><input type="text" id="regDisplayName" placeholder="Tên của bạn"></div>
+                    </div>
+                    <div class="form-row">
+                        <label class="lbl">Email <span>(không bắt buộc)</span></label>
+                        <div class="inp-wrap"><i data-lucide="mail" class="ico"></i><input type="email" id="regEmail" placeholder="email@example.com"></div>
+                    </div>
+                    <div class="form-row" style="margin-bottom:18px">
+                        <label class="lbl">Mật khẩu <span>(ít nhất 6 ký tự)</span></label>
+                        <div class="inp-wrap">
+                            <i data-lucide="lock" class="ico"></i>
+                            <input type="password" id="regPassword" class="has-eye" placeholder="••••••••" autocomplete="new-password" required oninput="checkStrength(this.value)">
+                            <button type="button" class="eye-btn" onclick="togglePw('regPassword','eyeReg')" tabindex="-1"><i data-lucide="eye" id="eyeReg"></i></button>
+                        </div>
+                        <div class="pw-bar"><div class="pw-fill" id="pwBar"></div></div>
+                    </div>
+                    <button type="submit" class="submit-btn gradient-bg" id="regBtn">
+                        <div class="spinner"></div><span class="btn-lbl">Tạo tài khoản</span>
+                    </button>
+                </form>
+            </div>
+            <!-- Footer -->
+            <div style="text-align:center;margin-top:20px">
+                <p style="font-size:12px;color:#8e8e8e">Quên mật khẩu? Liên hệ admin để reset.</p>
+                <p style="font-size:11px;color:#5a5a5a;margin-top:4px">&copy; 2024–2026 SKAST</p>
+            </div>
+        </div>
+    </div>
+<script>
+    lucide.createIcons();
+    // Hide register tab if registration is disabled
+    fetch('/api/features').then(r => r.json()).then(flags => {
+        if (flags.registration === false) {
+            document.getElementById('tabRegister').style.display = 'none';
+        }
+    }).catch(() => {});
+    function switchTab(tab) {
+        var isLogin = tab === 'login';
+        document.getElementById('panelLogin').classList.toggle('active', isLogin);
+        document.getElementById('panelRegister').classList.toggle('active', !isLogin);
+        document.getElementById('tabLogin').className = 'tab-btn ' + (isLogin ? 'active' : 'inactive');
+        document.getElementById('tabRegister').className = 'tab-btn ' + (isLogin ? 'inactive' : 'active');
+        ['loginAlert','regAlert','regOk'].forEach(function(id){ document.getElementById(id).classList.remove('show'); });
+    }
+    function togglePw(inputId, iconId) {
+        var inp = document.getElementById(inputId);
+        var show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        document.getElementById(iconId).setAttribute('data-lucide', show ? 'eye-off' : 'eye');
+        lucide.createIcons();
+    }
+    function checkStrength(val) {
+        var score = 0;
+        if (val.length >= 6) score++;
+        if (val.length >= 10) score++;
+        if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^a-zA-Z0-9]/.test(val)) score++;
+        var bar = document.getElementById('pwBar');
+        bar.style.width = (score / 5 * 100) + '%';
+        bar.style.background = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#27ae60'][Math.max(0, score - 1)];
+    }
+    function setAlert(id, msg, type) {
+        var el = document.getElementById(id);
+        el.className = 'alert ' + (type || 'err') + ' show';
+        var sp = el.querySelector('span');
+        if (sp) sp.textContent = msg;
+        lucide.createIcons();
+    }
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        document.getElementById('loginAlert').classList.remove('show');
+        var btn = document.getElementById('loginBtn');
+        btn.classList.add('loading'); btn.disabled = true;
+        try {
+            var res = await fetch('/api/auth/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('loginUsername').value.trim(),
+                    password: document.getElementById('loginPassword').value
+                })
+            });
+            var data = await res.json();
+            if (data.success) { window.location.href = data.redirect || '/'; }
+            else { setAlert('loginAlert', data.message || 'Đăng nhập thất bại', 'err'); }
+        } catch(err) { setAlert('loginAlert', 'Lỗi kết nối server', 'err'); }
+        finally { btn.classList.remove('loading'); btn.disabled = false; }
+    });
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        document.getElementById('regAlert').classList.remove('show');
+        document.getElementById('regOk').classList.remove('show');
+        var btn = document.getElementById('regBtn');
+        btn.classList.add('loading'); btn.disabled = true;
+        try {
+            var res = await fetch('/api/auth/register', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('regUsername').value.trim(),
+                    display_name: document.getElementById('regDisplayName').value.trim(),
+                    email: document.getElementById('regEmail').value.trim(),
+                    password: document.getElementById('regPassword').value
+                })
+            });
+            var data = await res.json();
+            if (data.success) {
+                setAlert('regOk', data.message, 'ok');
+                document.getElementById('registerForm').reset();
+                document.getElementById('pwBar').style.width = '0';
+                setTimeout(function(){ switchTab('login'); }, 2200);
+            } else { setAlert('regAlert', data.message || 'Đăng ký thất bại', 'err'); }
+        } catch(err) { setAlert('regAlert', 'Lỗi kết nối server', 'err'); }
+        finally { btn.classList.remove('loading'); btn.disabled = false; }
+    });
+</script>
+</body>
+</html>

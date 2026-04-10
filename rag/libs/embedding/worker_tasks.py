@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.core.providers.base import EmbeddingProvider
 from libs.embedding.indexer import IndexResult, IndexingService
+from libs.embedding.indexer import IndexingService, IndexResult
 from libs.embedding.service import EmbeddingService
 
 logger = logging.getLogger("rag.embedding.worker")

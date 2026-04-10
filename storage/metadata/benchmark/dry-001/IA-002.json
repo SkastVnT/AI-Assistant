@@ -1,0 +1,49 @@
+{
+  "run_id": "dry-001",
+  "case_id": "IA-002",
+  "timestamp": "2026-04-09T10:31:13.607262+00:00",
+  "stack_version": "65f0f58",
+  "instruction": "A Vietnamese girl with long black hair sitting in a Saigon café, drinking iced coffee, afternoon light",
+  "mode": "t2i",
+  "references": [],
+  "category": "instruction_adherence",
+  "difficulty": "medium",
+  "models_used": [],
+  "stages_executed": [],
+  "stage_timings_ms": {},
+  "total_latency_ms": 0.0,
+  "total_cost_usd": 0.0,
+  "execution_locations": {},
+  "correction_rounds": 0,
+  "scores": {
+    "instruction_adherence": 0.72,
+    "detail_handling": 0.72
+  },
+  "thresholds": {
+    "instruction_adherence": 0.7,
+    "semantic_edit_accuracy": 0.7,
+    "identity_consistency": 0.8,
+    "multi_ref_quality": 0.6,
+    "detail_handling": 0.7,
+    "text_rendering": 0.5,
+    "multi_turn_stability": 0.7,
+    "correction_success": 0.6
+  },
+  "passed_dimensions": [
+    "instruction_adherence",
+    "detail_handling"
+  ],
+  "failed_dimensions": [],
+  "overall_score": 0.72,
+  "case_passed": true,
+  "judge_model": "dry-run-stub",
+  "judge_reasoning": {
+    "instruction_adherence": "Stub score for medium difficulty",
+    "detail_handling": "Stub score for medium difficulty"
+  },
+  "output_image_path": "",
+  "intermediate_images": [],
+  "prompt_lineage": [],
+  "experiment_id": "",
+  "comparison_notes": ""
+}

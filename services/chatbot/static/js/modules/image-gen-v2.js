@@ -302,6 +302,112 @@ export class ImageGenV2 {
     }
 
     /**
+     * Streaming version of generateFromChat.
+     * Uses SSE to show real-time status (thinking, provider switching, etc.)
+     * 
+     * @param {string} message - User prompt
+     * @param {string} conversationId - Session ID
+     * @param {AbortSignal} [abortSignal] - Optional abort signal
+     * @param {Object} callbacks - Event callbacks:
+     *   onStatus({step, phase, ...})
+     *   onProviderTry({provider, priority, attempt, total_providers})
+     *   onProviderFail({provider, error, attempt})
+     *   onProviderSuccess({provider, model, latency_ms})
+     *   onResult({success, provider, model, images_url, ...})
+     *   onSaved({images: [{url, image_id, local_path}]})
+     *   onError({error})
+     * @returns {Promise<Object>} Final result data
+     */
+    async generateFromChatStream(message, conversationId, abortSignal = null, callbacks = {}, options = {}) {
+        this.conversationId = conversationId || this.conversationId;
+
+        try {
+            const resp = await fetch('/api/image-gen/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: message,
+                    quality: options.quality || 'auto',
+                    provider: options.provider || undefined,
+                    enhance: true,
+                    conversation_id: this.conversationId,
+                    num_images: 1,
+                }),
+                signal: abortSignal,
+            });
+
+            if (!resp.ok) {
+                const errText = await resp.text();
+                return { success: false, error: `HTTP ${resp.status}: ${errText}` };
+            }
+
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let finalResult = null;
+            let savedData = null;
+            let currentEvent = 'message';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete line
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        currentEvent = line.slice(7).trim();
+                    } else if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            switch (currentEvent) {
+                                case 'status':
+                                    if (callbacks.onStatus) callbacks.onStatus(data);
+                                    break;
+                                case 'provider_try':
+                                    if (callbacks.onProviderTry) callbacks.onProviderTry(data);
+                                    break;
+                                case 'provider_fail':
+                                    if (callbacks.onProviderFail) callbacks.onProviderFail(data);
+                                    break;
+                                case 'provider_success':
+                                    if (callbacks.onProviderSuccess) callbacks.onProviderSuccess(data);
+                                    break;
+                                case 'result':
+                                    finalResult = data;
+                                    if (callbacks.onResult) callbacks.onResult(data);
+                                    break;
+                                case 'saved':
+                                    savedData = data;
+                                    if (callbacks.onSaved) callbacks.onSaved(data);
+                                    break;
+                                case 'error':
+                                    if (callbacks.onError) callbacks.onError(data);
+                                    return { success: false, error: data.error };
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    } else if (line === '') {
+                        // Empty line = end of SSE message, reset event type
+                        currentEvent = 'message';
+                    }
+                }
+            }
+
+            // Merge saved image info into result
+            if (finalResult && savedData) {
+                finalResult.images = savedData.images;
+            }
+            return finalResult || { success: false, error: 'No result received' };
+        } catch (e) {
+            if (e.name === 'AbortError') throw e;
+            return { success: false, error: e.message };
+        }
+    }
+
+    /**
      * Detect if a message is an image generation request.
      * Enhanced detection with better accuracy — avoids false positives.
      */

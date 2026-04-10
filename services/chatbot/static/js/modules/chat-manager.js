@@ -200,9 +200,29 @@ export class ChatManager {
     handleQuotaExceeded() {
         console.error('[STORAGE] Quota exceeded! Auto-cleanup starting...');
         
-        // Keep only the 3 most recent sessions (more aggressive cleanup)
+        // Step 1: Strip base64 images from all sessions (biggest space saver)
+        for (const id of Object.keys(this.chatSessions)) {
+            const s = this.chatSessions[id];
+            if (s.messages) {
+                s.messages = s.messages.map(msg => {
+                    if (typeof msg === 'string' && msg.includes('data:image')) {
+                        return msg.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g, '[image removed to save space]');
+                    }
+                    return msg;
+                });
+            }
+        }
+
+        // Step 2: Try saving after image strip
+        try {
+            localStorage.setItem('chatSessions', JSON.stringify(this.chatSessions));
+            console.log('[STORAGE] ✅ Saved after stripping images');
+            return true;
+        } catch (_) { /* still too large, continue */ }
+
+        // Step 3: Keep only the 3 most recent sessions
         const sortedIds = Object.keys(this.chatSessions).sort((a, b) => 
-            this.chatSessions[b].updatedAt - this.chatSessions[a].updatedAt
+            (this.chatSessions[b].updatedAt || 0) - (this.chatSessions[a].updatedAt || 0)
         );
         
         const idsToKeep = sortedIds.slice(0, 3);
@@ -225,9 +245,25 @@ export class ChatManager {
             }
             return true;
         } catch (e2) {
-            console.error('[STORAGE] Still failed after cleanup:', e2);
-            alert('❌ Không thể lưu chat.\n\nVui lòng:\n1. Export chat quan trọng\n2. Xóa bớt chat cũ\n3. Hoặc clear localStorage');
-            return false;
+            // Step 4: Nuclear option — keep only current session
+            console.error('[STORAGE] Still failed, keeping only current session');
+            const current = this.chatSessions[this.currentChatId];
+            this.chatSessions = {};
+            if (current) {
+                // Trim to last 50 messages
+                if (current.messages && current.messages.length > 50) {
+                    current.messages = current.messages.slice(-50);
+                }
+                this.chatSessions[this.currentChatId] = current;
+            }
+            try {
+                localStorage.setItem('chatSessions', JSON.stringify(this.chatSessions));
+                console.log('[STORAGE] ✅ Emergency save — kept only current session');
+                return true;
+            } catch (e3) {
+                console.error('[STORAGE] Complete failure:', e3);
+                return false;
+            }
         }
     }
 

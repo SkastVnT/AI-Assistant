@@ -151,7 +151,8 @@ class CleanupManager:
                 logger.warning("MongoDB not available")
                 return {"status": "skipped"}
             
-            db = client['ai_assistant']
+            _db_name = os.getenv('MONGODB_DB_NAME', 'chatbot_db')
+            db = client[_db_name]
             
             # Ensure indexes
             IndexManager.ensure_indexes(db)

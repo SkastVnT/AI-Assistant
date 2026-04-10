@@ -7,7 +7,7 @@ addict==2.4.0
 aenum==3.1.16
 aiofiles==24.1.0
 aiohappyeyeballs==2.6.1
-aiohttp==3.13.3
+aiohttp==3.13.4
 aiohttp_socks==0.11.0
 aiosignal==1.4.0
 albucore==0.0.24
@@ -230,7 +230,7 @@ notebook_shim==0.2.4
 numba==0.63.1
 numpy==1.26.4
 omegaconf==2.3.0
-onnx==1.21.0rc1
+onnx==1.21.0
 onnxruntime==1.23.2
 onnxruntime-gpu==1.23.2
 open_clip_torch==3.2.0

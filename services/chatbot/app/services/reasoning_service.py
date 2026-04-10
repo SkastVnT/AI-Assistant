@@ -15,7 +15,7 @@ Workflow:
 
 import asyncio
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Callable, Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 import time
 import json
@@ -45,6 +45,22 @@ class CoordinatedReasoningResult:
     trajectories: List[ReasoningTrajectory] = field(default_factory=list)
 
 
+def _extract_token_count(tokens) -> int:
+    """Safely extract total token count from tokens value (int or dict)."""
+    if isinstance(tokens, dict):
+        return sum(v for v in tokens.values() if isinstance(v, (int, float)))
+    if isinstance(tokens, (int, float)):
+        return int(tokens)
+    return 0
+
+
+# Model fallback chains — ordered by preference
+MODEL_FALLBACK_CHAINS = {
+    'exploration': ['deepseek', 'grok', 'openai'],
+    'synthesis':   ['grok', 'deepseek', 'openai'],
+}
+
+
 class ReasoningService:
     """
     Coordinated Reasoning Service
@@ -53,6 +69,7 @@ class ReasoningService:
     - Parallel exploration of reasoning paths
     - Message compaction between rounds
     - Final synthesis of best answer
+    - Model fallback retry on failure
     """
     
     # Complexity indicators for auto-detection
@@ -150,13 +167,62 @@ class ReasoningService:
             return decided_mode == 'deep'
         return False
     
+    def _call_with_fallback(
+        self,
+        prompt: str,
+        context: str,
+        chain_key: str = 'exploration',
+        deep_thinking: bool = True,
+        token_callback=None,
+    ) -> Dict[str, Any]:
+        """
+        Call AI service with automatic model fallback on failure.
+        If token_callback is provided, streams tokens via chat_stream_callback.
+        """
+        chain = MODEL_FALLBACK_CHAINS.get(chain_key, ['deepseek', 'grok', 'openai'])
+        last_error = None
+
+        for model_name in chain:
+            model_cfg = self.ai_service.models.get(model_name)
+            if not model_cfg or not model_cfg.get('available'):
+                continue
+
+            try:
+                if token_callback and hasattr(self.ai_service, 'chat_stream_callback'):
+                    result = self.ai_service.chat_stream_callback(
+                        message=prompt,
+                        model=model_name,
+                        context=context,
+                        deep_thinking=deep_thinking,
+                        token_callback=token_callback,
+                    )
+                else:
+                    result = self.ai_service.chat(
+                        message=prompt,
+                        model=model_name,
+                        context=context,
+                        deep_thinking=deep_thinking,
+                    )
+                return result
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"[Reasoning] Model '{model_name}' failed, "
+                    f"trying next fallback: {e}"
+                )
+
+        raise RuntimeError(
+            f"All models in '{chain_key}' chain failed. Last error: {last_error}"
+        )
+
     async def _generate_trajectory(
         self,
         message: str,
         context: str,
         round_number: int,
         trajectory_id: int,
-        previous_insights: str = ""
+        previous_insights: str = "",
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> ReasoningTrajectory:
         """
         Generate a single reasoning trajectory
@@ -173,19 +239,33 @@ class ReasoningService:
             message, round_number, trajectory_id, previous_insights
         )
         
+        _cb = progress_callback or (lambda msg: None)
+        
         try:
-            # Call AI service (if available)
             if self.ai_service:
-                result = self.ai_service.chat(
-                    message=exploration_prompt,
-                    model='deepseek',  # Use cheaper model for exploration
-                    context=context,
-                    deep_thinking=True
+                # Header for this trajectory in the thinking display
+                header = f"\n\n**🔍 Hướng suy luận {trajectory_id+1} (vòng {round_number+1})**\n"
+                _cb(header)
+
+                # Stream tokens live into the thinking display
+                streaming_buf = []
+                _tid = f"r{round_number}_t{trajectory_id}"
+                def _on_token(token_text: str):
+                    streaming_buf.append(token_text)
+                    _cb({"type": "token", "tid": _tid, "text": token_text})
+
+                result = await asyncio.to_thread(
+                    self._call_with_fallback,
+                    exploration_prompt,
+                    context,
+                    'exploration',
+                    True,          # deep_thinking
+                    _on_token,     # token_callback → streams each token via _cb
                 )
-                content = result.get('text', '')
-                tokens = result.get('tokens', 0)
+                content = result.get('text', '') or ''.join(streaming_buf)
+                tokens = _extract_token_count(result.get('tokens', 0))
+                _cb(f"\n✅ *Hoàn thành — {tokens} tokens*\n")
             else:
-                # Fallback for testing
                 content = f"[Trajectory {trajectory_id}] Reasoning about: {message[:100]}..."
                 tokens = 0
                 
@@ -198,6 +278,7 @@ class ReasoningService:
             )
         except Exception as e:
             logger.error(f"[Reasoning] Trajectory generation failed: {e}")
+            _cb(f"\n❌ Trajectory {trajectory_id+1} lỗi: {e}\n")
             return ReasoningTrajectory(
                 id=f"r{round_number}_t{trajectory_id}",
                 content=f"Error: {str(e)}",
@@ -304,7 +385,8 @@ Káº¿t thÃºc vá»›i [CONCLUSION] tÃ³m táº¯t káº¿t luáº­n chÃ�
         message: str,
         context: str,
         round_number: int,
-        previous_insights: str
+        previous_insights: str,
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> Tuple[List[ReasoningTrajectory], str]:
         """
         Run a single round of coordinated reasoning
@@ -314,16 +396,18 @@ Káº¿t thÃºc vá»›i [CONCLUSION] tÃ³m táº¯t káº¿t luáº­n chÃ�
         """
         logger.info(f"[Reasoning] Starting round {round_number + 1}")
         
-        # Generate multiple trajectories in parallel
+        # Generate multiple trajectories in parallel (truly parallel via to_thread)
         tasks = []
         for i in range(self.max_trajectories_per_round):
             tasks.append(
                 self._generate_trajectory(
-                    message, context, round_number, i, previous_insights
+                    message, context, round_number, i, previous_insights,
+                    progress_callback=progress_callback,
                 )
             )
         
-        # Wait for all trajectories
+        # Wait for all trajectories (runs in parallel via asyncio.to_thread)
+        _cb = progress_callback or (lambda msg: None)
         trajectories = await asyncio.gather(*tasks)
         
         # Compact trajectories into insights
@@ -338,7 +422,8 @@ Káº¿t thÃºc vá»›i [CONCLUSION] tÃ³m táº¯t káº¿t luáº­n chÃ�
         message: str,
         all_trajectories: List[ReasoningTrajectory],
         final_insights: str,
-        context: str
+        context: str,
+        progress_callback=None,
     ) -> str:
         """
         Synthesize final answer from all reasoning trajectories
@@ -353,26 +438,32 @@ CÃ¡c insights Ä‘Ã£ thu tháº­p:
 HÃ£y Ä‘Æ°a ra cÃ¢u tráº£ lá»i toÃ n diá»‡n, chÃ­nh xÃ¡c vÃ  dá»… hiá»ƒu.
 Æ¯u tiÃªn cÃ¡c Ä‘iá»ƒm cÃ³ Ä‘á»™ tin cáº­y cao nháº¥t tá»« quÃ¡ trÃ¬nh suy luáº­n."""
 
+        _cb = progress_callback or (lambda msg: None)
         try:
             if self.ai_service:
-                result = self.ai_service.chat(
-                    message=synthesis_prompt,
-                    model='grok',  # Use better model for final synthesis
+                _cb("\n\n**✨ Đang tổng hợp câu trả lời...**\n")
+                def _on_synth_token(tok):
+                    _cb({"type": "token", "tid": "synthesis", "text": tok})
+                result = self._call_with_fallback(
+                    prompt=synthesis_prompt,
                     context=context,
-                    deep_thinking=True
+                    chain_key='synthesis',
+                    token_callback=_on_synth_token,
                 )
-                return result.get('text', 'KhÃ´ng thá»ƒ tá»•ng há»£p cÃ¢u tráº£ lá»i.')
+                return result.get('text', 'Không thể tổng hợp câu trả lời.')
             else:
                 return f"[Synthesized] Answer based on {len(all_trajectories)} trajectories"
         except Exception as e:
-            logger.error(f"[Reasoning] Synthesis failed: {e}")
-            return f"Lá»—i tá»•ng há»£p: {str(e)}"
+            logger.error(f"[Reasoning] Synthesis failed (all models): {e}")
+            return f"Lỗi tổng hợp: {str(e)}"
     
     async def coordinate_reasoning(
         self,
         message: str,
         context: str = 'casual',
-        max_rounds: Optional[int] = None
+        max_rounds: Optional[int] = None,
+        images: Optional[List[str]] = None,
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> CoordinatedReasoningResult:
         """
         Main entry point for coordinated reasoning
@@ -397,12 +488,47 @@ HÃ£y Ä‘Æ°a ra cÃ¢u tráº£ lá»i toÃ n diá»‡n, chÃ­nh xÃ¡
         current_insights = ""
         thinking_parts = []
         
+        _cb = progress_callback or (lambda msg: None)
         logger.info(f"[Reasoning] Starting coordinated reasoning with {rounds} rounds")
+        _cb(f"🚀 Bắt đầu suy luận đa chiều ({rounds} vòng)")
+
+        # ── Image analysis pre-step (when images are attached) ────
+        if images:
+            _cb("🖼️ Đang phân tích ảnh đính kèm...")
+            thinking_parts.append("### 🖼️ Phân tích ảnh")
+            try:
+                from core.tools import reverse_image_search
+                ris = reverse_image_search(image_data_url=images[0])
+                if ris.get("sources") or ris.get("similar"):
+                    img_ctx_parts = []
+                    if ris.get("knowledge"):
+                        img_ctx_parts.append(f"Knowledge: {ris['knowledge']}")
+                    for s in ris.get("sources", [])[:6]:
+                        sim = f" ({s['similarity']:.0f}%)" if s.get("similarity") else ""
+                        author = f" by {s['author']}" if s.get("author") else ""
+                        img_ctx_parts.append(f"- [{s['source_engine']}]{sim}{author}: {s['title']} → {s['url']}")
+                    for s in ris.get("similar", [])[:4]:
+                        img_ctx_parts.append(f"- [similar|{s['source_engine']}]: {s['title']} → {s['url']}")
+                    current_insights = "### Reverse Image Search Results\n" + "\n".join(img_ctx_parts)
+                    thinking_parts.append(f"Tìm thấy {len(ris.get('sources', []))} nguồn, {len(ris.get('similar', []))} ảnh tương tự")
+                    thinking_parts.append(f"**Image context:**\n{current_insights}\n")
+                    logger.info(f"[Reasoning] Image pre-analysis: {len(ris.get('sources', []))} sources found")
+                    _cb(f"✅ Tìm thấy {len(ris.get('sources', []))} nguồn, {len(ris.get('similar', []))} ảnh tương tự")
+                else:
+                    thinking_parts.append("Không tìm thấy nguồn ảnh qua reverse image search")
+                    _cb("⚠️ Không tìm thấy nguồn ảnh")
+            except Exception as e:
+                logger.warning(f"[Reasoning] Image pre-analysis failed: {e}")
+                thinking_parts.append(f"Lỗi phân tích ảnh: {e}")
+                _cb(f"⚠️ Lỗi phân tích ảnh: {e}")
         
         # Run multiple rounds
         for round_num in range(rounds):
+            _cb(f"🔄 Vòng {round_num + 1}/{rounds} — Khám phá {self.max_trajectories_per_round} hướng suy luận...")
+            
             trajectories, compacted = await self._run_round(
-                message, context, round_num, current_insights
+                message, context, round_num, current_insights,
+                progress_callback=_cb,
             )
             
             all_trajectories.extend(trajectories)
@@ -413,17 +539,22 @@ HÃ£y Ä‘Æ°a ra cÃ¢u tráº£ lá»i toÃ n diá»‡n, chÃ­nh xÃ¡
             thinking_parts.append(f"ÄÃ£ khÃ¡m phÃ¡ {len(trajectories)} hÆ°á»›ng suy luáº­n")
             thinking_parts.append(f"**Insights:**\n{compacted}\n")
             
+            _cb(f"📋 Vòng {round_num + 1} hoàn thành — {len(trajectories)} trajectories")
+            
             # Early exit if high confidence reached
             avg_confidence = sum(t.confidence for t in trajectories) / len(trajectories)
             if avg_confidence > 0.85:
                 logger.info(f"[Reasoning] High confidence ({avg_confidence:.2f}), stopping early")
+                _cb(f"🎯 Độ tin cậy cao ({avg_confidence:.0%}), kết thúc sớm")
                 break
         
         # Synthesize final answer
-        thinking_parts.append("### âœ¨ Tá»•ng há»£p cÃ¢u tráº£ lá»i")
+        thinking_parts.append("### ✨ Tổng hợp câu trả lời")
         final_answer = self._synthesize_final_answer(
-            message, all_trajectories, current_insights, context
+            message, all_trajectories, current_insights, context,
+            progress_callback=_cb,
         )
+        _cb("\n✅ Hoàn thành tổng hợp\n")
         
         reasoning_time = time.time() - start_time
         total_tokens = sum(t.tokens_used for t in all_trajectories)
@@ -444,7 +575,9 @@ HÃ£y Ä‘Æ°a ra cÃ¢u tráº£ lá»i toÃ n diá»‡n, chÃ­nh xÃ¡
         self,
         message: str,
         context: str = 'casual',
-        max_rounds: Optional[int] = None
+        max_rounds: Optional[int] = None,
+        images: Optional[List[str]] = None,
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> CoordinatedReasoningResult:
         """
         Synchronous wrapper for coordinated reasoning
@@ -452,7 +585,11 @@ HÃ£y Ä‘Æ°a ra cÃ¢u tráº£ lá»i toÃ n diá»‡n, chÃ­nh xÃ¡
         loop = asyncio.new_event_loop()
         try:
             return loop.run_until_complete(
-                self.coordinate_reasoning(message, context, max_rounds)
+                self.coordinate_reasoning(
+                    message, context, max_rounds,
+                    images=images,
+                    progress_callback=progress_callback,
+                )
             )
         finally:
             loop.close()

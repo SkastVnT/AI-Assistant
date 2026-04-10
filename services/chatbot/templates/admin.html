@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg-primary: #0d0d0d; --bg-secondary: #171717; --bg-tertiary: #212121;
+            --bg-hover: #2a2a2a; --bg-active: #343434;
+            --border-primary: #3a3a3a; --border-secondary: #2a2a2a; --border-focus: #7c6cf0;
+            --text-primary: #ececec; --text-secondary: #b4b4b4; --text-tertiary: #8e8e8e;
+            --accent: #7c6cf0; --accent-hover: #9488f4;
+            --accent-gradient: linear-gradient(135deg, #7c6cf0 0%, #ab7df6 100%);
+            --success: #2ecc71; --warning: #f1c40f; --error: #e74c3c; --info: #3498db;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+            --sidebar-w: 240px;
+        }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        a { color: var(--accent); text-decoration: none; }
+        /* Layout */
+        .admin-layout { display: flex; min-height: 100vh; }
+        /* Sidebar */
+        .admin-sidebar {
+            width: var(--sidebar-w); background: var(--bg-secondary); border-right: 1px solid var(--border-primary);
+            display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; z-index: 50;
+            overflow-y: auto;
+        }
+        .admin-sidebar__header {
+            padding: 20px 16px; border-bottom: 1px solid var(--border-primary);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .admin-sidebar__logo {
+            width: 36px; height: 36px; border-radius: 10px; background: var(--accent-gradient);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .admin-sidebar__logo .lucide { width: 20px; height: 20px; color: #fff; }
+        .admin-sidebar__title { font-size: 15px; font-weight: 700; }
+        .admin-sidebar__subtitle { font-size: 11px; color: var(--text-tertiary); }
+        .admin-nav { flex: 1; padding: 12px 8px; }
+        .admin-nav__item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm);
+            color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer;
+            transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
+        }
+        .admin-nav__item:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .admin-nav__item.active { background: var(--accent); color: #fff; }
+        .admin-nav__item .lucide { width: 18px; height: 18px; flex-shrink: 0; }
+        .admin-nav__divider { height: 1px; background: var(--border-primary); margin: 8px 12px; }
+        .admin-sidebar__footer {
+            padding: 12px 16px; border-top: 1px solid var(--border-primary); font-size: 12px;
+        }
+        .admin-sidebar__user { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .admin-sidebar__avatar {
+            width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gradient);
+            display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff;
+        }
+        .admin-sidebar__links { display: flex; gap: 12px; }
+        .admin-sidebar__link { color: var(--text-tertiary); font-size: 12px; cursor: pointer; }
+        .admin-sidebar__link:hover { color: var(--accent); }
+        /* Content */
+        .admin-content { margin-left: var(--sidebar-w); flex: 1; padding: 24px 32px; min-height: 100vh; }
+        .admin-content__header { margin-bottom: 24px; }
+        .admin-content__title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .admin-content__desc { font-size: 13px; color: var(--text-tertiary); }
+        /* Cards */
+        .stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md);
+            padding: 20px; transition: border-color 0.2s;
+        }
+        .stat-card:hover { border-color: var(--accent); }
+        .stat-card__label { font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .stat-card__label .lucide { width: 14px; height: 14px; }
+        .stat-card__value { font-size: 28px; font-weight: 700; }
+        .stat-card__sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+        /* Table */
+        .data-table-wrap {
+            background: var(--bg-secondary); border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md); overflow: hidden;
+        }
+        .data-table-toolbar {
+            display: flex; align-items: center; gap: 12px; padding: 16px;
+            border-bottom: 1px solid var(--border-primary); flex-wrap: wrap;
+        }
+        .search-input {
+            flex: 1; min-width: 200px; padding: 8px 12px 8px 36px; background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary); border-radius: var(--radius-sm);
+            color: var(--text-primary); font-size: 13px; font-family: var(--font-sans); outline: none;
+        }
+        .search-input:focus { border-color: var(--border-focus); }
+        .search-wrap { position: relative; flex: 1; min-width: 200px; }
+        .search-wrap .lucide { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-tertiary); pointer-events: none; }
+        .filter-select {
+            padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-primary);
+            border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;
+            font-family: var(--font-sans); outline: none; cursor: pointer;
+        }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th {
+            padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary);
+            background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary);
+        }
+        .data-table td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border-secondary); }
+        .data-table tr:hover td { background: var(--bg-hover); }
+        .data-table tr { cursor: pointer; transition: background 0.1s; }
+        .badge {
+            display: inline-flex; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600;
+        }
+        .badge--admin { background: rgba(124,108,240,0.15); color: var(--accent); }
+        .badge--user { background: rgba(52,152,219,0.15); color: var(--info); }
+        .badge--active { background: rgba(46,204,113,0.15); color: var(--success); }
+        .badge--inactive { background: rgba(231,76,60,0.15); color: var(--error); }
+        /* Pagination */
+        .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+        .pagination__info { font-size: 12px; color: var(--text-tertiary); }
+        .pagination__btns { display: flex; gap: 4px; }
+        .pagination__btn {
+            padding: 6px 12px; border: 1px solid var(--border-primary); border-radius: 6px;
+            background: var(--bg-tertiary); color: var(--text-secondary); font-size: 12px;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .pagination__btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .pagination__btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pagination__btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        /* Modal / Drawer */
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; }
+        .drawer-overlay.open { display: block; }
+        .drawer {
+            position: fixed; top: 0; right: -600px; width: 600px; max-width: 90vw; height: 100vh;
+            background: var(--bg-secondary); border-left: 1px solid var(--border-primary);
+            z-index: 101; transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .drawer.open { right: 0; }
+        .drawer__header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid var(--border-primary);
+        }
+        .drawer__title { font-size: 16px; font-weight: 600; }
+        .drawer__close {
+            background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px;
+            border-radius: 6px; display: flex;
+        }
+        .drawer__close:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .drawer__body { flex: 1; overflow-y: auto; padding: 20px; }
+        /* Chat viewer */
+        .chat-message { margin-bottom: 16px; display: flex; gap: 12px; }
+        .chat-message__avatar {
+            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .chat-message--user .chat-message__avatar { background: var(--bg-active); }
+        .chat-message--assistant .chat-message__avatar { background: var(--accent-gradient); color: #fff; }
+        .chat-message__content {
+            flex: 1; background: var(--bg-tertiary); border-radius: var(--radius-sm); padding: 12px 16px;
+            font-size: 13px; line-height: 1.6; overflow-wrap: break-word;
+        }
+        .chat-message__content pre { background: var(--bg-primary); border-radius: 8px; padding: 12px; overflow-x: auto; margin: 8px 0; }
+        .chat-message__content code { font-family: var(--font-mono); font-size: 12px; }
+        .chat-message__content img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+        .chat-message__meta { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+        /* Image gallery */
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+        .image-card {
+            background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm);
+            overflow: hidden; cursor: pointer; transition: all 0.2s;
+        }
+        .image-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .image-card img { width: 100%; height: 160px; object-fit: cover; }
+        .image-card__info { padding: 8px 10px; }
+        .image-card__title { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .image-card__sub { font-size: 11px; color: var(--text-tertiary); }
+        /* Image lightbox */
+        .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; display: none; align-items: center; justify-content: center; }
+        .lightbox.open { display: flex; }
+        .lightbox img { max-width: 90%; max-height: 90vh; border-radius: 8px; }
+        .lightbox__close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #fff; cursor: pointer; font-size: 24px; }
+        /* Sections hidden by default */
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+        /* Btn */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: none;
+            border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer;
+            font-family: var(--font-sans); transition: all 0.15s;
+        }
+        .btn--primary { background: var(--accent-gradient); color: #fff; }
+        .btn--primary:hover { opacity: 0.9; }
+        .btn--ghost { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary); }
+        .btn--ghost:hover { border-color: var(--accent); color: var(--text-primary); }
+        .btn--danger { background: rgba(231,76,60,0.15); color: var(--error); }
+        .btn--sm { padding: 6px 10px; font-size: 12px; }
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-tertiary); }
+        .empty-state .lucide { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+        .empty-state p { font-size: 14px; }
+        /* Responsive */
+        .mobile-toggle { display: none; }
+        @media (max-width: 768px) {
+            .admin-sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .admin-sidebar.open { transform: translateX(0); }
+            .admin-content { margin-left: 0; padding: 16px; }
+            .mobile-toggle { display: flex; }
+            .drawer { width: 100vw; }
+        }
+        /* Payment badges */
+        .badge--pending  { background:rgba(241,196,15,.15);color:#f1c40f; }
+        .badge--approved { background:rgba(46,204,113,.15);color:#2ecc71; }
+        .badge--rejected { background:rgba(231,76,60,.15);color:#e74c3c; }
+        .quota-bar { height:6px;border-radius:3px;background:#3a3a3a;overflow:hidden;min-width:60px; }
+        .quota-fill { height:100%;border-radius:3px;background:linear-gradient(90deg,#7c6cf0,#ab7df6);transition:width .3s; }
+        .quota-fill.danger { background:linear-gradient(90deg,#e74c3c,#c0392b); }
+        /* Loading */
+        .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 40px; }
+        .loading-spinner::after {
+            content: ''; width: 32px; height: 32px; border: 3px solid var(--border-primary);
+            border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Toast */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px;
+            padding: 12px 16px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease;
+        }
+        .toast--success { border-color: var(--success); }
+        .toast--error { border-color: var(--error); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        /* Modal dialog */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); width: 420px; max-width: 90vw; padding: 24px; }
+        .modal__title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+        .modal .form-group { margin-bottom: 14px; }
+        .modal .form-group label { display: block; font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px; }
+        .modal .form-group input, .modal .form-group select {
+            width: 100%; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-primary);
+            border-radius: 6px; color: var(--text-primary); font-size: 13px; font-family: var(--font-sans); outline: none;
+        }
+        .modal .form-group input:focus, .modal .form-group select:focus { border-color: var(--border-focus); }
+        .modal__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="admin-layout">
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="admin-sidebar__header">
+                <div class="admin-sidebar__logo"><i data-lucide="shield-check"></i></div>
+                <div>
+                    <div class="admin-sidebar__title">Admin Panel</div>
+                    <div class="admin-sidebar__subtitle">AI Assistant</div>
+                </div>
+            </div>
+            <nav class="admin-nav">
+                <button class="admin-nav__item active" data-section="dashboard">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </button>
+                <button class="admin-nav__item" data-section="users">
+                    <i data-lucide="users"></i> Quản lý User
+                </button>
+                <div class="admin-nav__divider"></div>
+                <button class="admin-nav__item" data-section="sessions">
+                    <i data-lucide="message-square"></i> Chat Sessions
+                </button>
+                <button class="admin-nav__item" data-section="images">
+                    <i data-lucide="image"></i> Hình ảnh
+                </button>
+                <button class="admin-nav__item" data-section="memory">
+                    <i data-lucide="brain"></i> AI Memory
+                </button>
+                <button class="admin-nav__item" data-section="logs">
+                    <i data-lucide="activity"></i> Lịch sử tương tác
+                </button>
+                <div class="admin-nav__divider"></div>
+                <button class="admin-nav__item" data-section="payments" id="navPayments">
+                    <i data-lucide="credit-card"></i> Thanh toán
+                    <span id="paymentBadge" style="margin-left:auto;background:#e74c3c;color:#fff;border-radius:9999px;font-size:10px;font-weight:700;padding:1px 6px;display:none">0</span>
+                </button>
+            </nav>
+            <div class="admin-sidebar__footer">
+                <div class="admin-sidebar__user">
+                    <div class="admin-sidebar__avatar" id="adminAvatar">A</div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 500;" id="adminName">Admin</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary);">Administrator</div>
+                    </div>
+                </div>
+                <div class="admin-sidebar__links">
+                    <a href="/" class="admin-sidebar__link">← Về Chatbot</a>
+                    <a href="/logout" class="admin-sidebar__link">Đăng xuất</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="admin-content">
+            <!-- Mobile toggle -->
+            <button class="btn btn--ghost mobile-toggle" id="mobileToggle" style="margin-bottom:12px;">
+                <i data-lucide="menu"></i> Menu
+            </button>
+
+            <!-- ═══ Dashboard ═══ -->
+            <section class="admin-section active" id="sec-dashboard">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">Dashboard</h1>
+                    <p class="admin-content__desc">Tổng quan hệ thống AI Assistant</p>
+                </div>
+                <div class="stat-cards" id="statCards">
+                    <div class="stat-card">
+                        <div class="stat-card__label"><i data-lucide="users"></i> Users</div>
+                        <div class="stat-card__value" id="statUsers">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label"><i data-lucide="message-square"></i> Sessions</div>
+                        <div class="stat-card__value" id="statSessions">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label"><i data-lucide="messages-square"></i> Messages</div>
+                        <div class="stat-card__value" id="statMessages">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label"><i data-lucide="image"></i> Images</div>
+                        <div class="stat-card__value" id="statImages">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label"><i data-lucide="brain"></i> Memories</div>
+                        <div class="stat-card__value" id="statMemories">—</div>
+                    </div>
+                </div>
+                <div class="data-table-wrap">
+                    <div class="data-table-toolbar">
+                        <strong style="font-size: 14px;">Hoạt động gần đây</strong>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Hành động</th><th>Thời gian</th></tr></thead>
+                        <tbody id="recentActivity"><tr><td colspan="3" style="text-align:center;color:var(--text-tertiary);">Đang tải...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ═══ Users ═══ -->
+            <section class="admin-section" id="sec-users">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">Quản lý User</h1>
+                    <p class="admin-content__desc">Tạo, chỉnh sửa và quản lý tài khoản người dùng</p>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <button class="btn btn--primary" id="addUserBtn"><i data-lucide="user-plus" style="width:16px;height:16px;"></i> Thêm User</button>
+                </div>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Username</th><th>Hiển thị</th><th>Role</th><th>Ảnh quota</th><th>Video</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th>Hành động</th></tr></thead>
+                        <tbody id="usersTableBody"><tr><td colspan="8"><div class="loading-spinner"></div></td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ═══ Sessions ═══ -->
+            <section class="admin-section" id="sec-sessions">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">Chat Sessions</h1>
+                    <p class="admin-content__desc">Xem tất cả cuộc trò chuyện của mọi user</p>
+                </div>
+                <div class="data-table-wrap">
+                    <div class="data-table-toolbar">
+                        <div class="search-wrap">
+                            <i data-lucide="search"></i>
+                            <input type="text" class="search-input" id="sessionSearch" placeholder="Tìm kiếm theo tiêu đề, user...">
+                        </div>
+                        <select class="filter-select" id="sessionUserFilter">
+                            <option value="">Tất cả user</option>
+                        </select>
+                        <select class="filter-select" id="sessionModelFilter">
+                            <option value="">Tất cả model</option>
+                            <option value="grok">Grok</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>Tiêu đề</th><th>User</th><th>Model</th><th>Tin nhắn</th><th>Tạo lúc</th><th>Cập nhật</th></tr></thead>
+                        <tbody id="sessionsTableBody"><tr><td colspan="6"><div class="loading-spinner"></div></td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="sessionsPagination"></div>
+                </div>
+            </section>
+
+            <!-- ═══ Images ═══ -->
+            <section class="admin-section" id="sec-images">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">Hình ảnh</h1>
+                    <p class="admin-content__desc">Gallery tất cả hình ảnh được tạo và upload</p>
+                </div>
+                <div class="data-table-toolbar" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); margin-bottom: 16px;">
+                    <div class="search-wrap">
+                        <i data-lucide="search"></i>
+                        <input type="text" class="search-input" id="imageSearch" placeholder="Tìm kiếm hình ảnh...">
+                    </div>
+                    <select class="filter-select" id="imageUserFilter">
+                        <option value="">Tất cả user</option>
+                    </select>
+                </div>
+                <div class="image-grid" id="imageGrid">
+                    <div class="loading-spinner" style="grid-column: 1/-1;"></div>
+                </div>
+                <div class="pagination" id="imagesPagination" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); margin-top: 16px;"></div>
+            </section>
+
+            <!-- ═══ Memory ═══ -->
+            <section class="admin-section" id="sec-memory">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">AI Memory & Learning</h1>
+                    <p class="admin-content__desc">Dữ liệu học tập và bộ nhớ AI</p>
+                </div>
+                <div class="data-table-wrap">
+                    <div class="data-table-toolbar">
+                        <div class="search-wrap">
+                            <i data-lucide="search"></i>
+                            <input type="text" class="search-input" id="memorySearch" placeholder="Tìm kiếm memory...">
+                        </div>
+                        <select class="filter-select" id="memoryUserFilter">
+                            <option value="">Tất cả user</option>
+                        </select>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>Nội dung</th><th>User</th><th>Tags</th><th>Importance</th><th>Tạo lúc</th></tr></thead>
+                        <tbody id="memoryTableBody"><tr><td colspan="5"><div class="loading-spinner"></div></td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="memoryPagination"></div>
+                </div>
+            </section>
+
+            <!-- ═══ Payments ═══ -->
+            <section class="admin-section" id="sec-payments">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">Yêu cầu thanh toán</h1>
+                    <p class="admin-content__desc">Phê duyệt mở khóa video và các yêu cầu thanh toán</p>
+                </div>
+                <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select class="filter-select" id="paymentStatusFilter" onchange="loadPayments()">
+                        <option value="pending">Đang chờ</option>
+                        <option value="approved">Đã duyệt</option>
+                        <option value="rejected">Đã từ chối</option>
+                        <option value="">Tất cả</option>
+                    </select>
+                    <button class="btn btn--ghost" onclick="loadPayments()"><i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Làm mới</button>
+                </div>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Loại</th><th>Ghi chú</th><th>Trạng thái</th><th>Ngày gửi</th><th>Hành động</th></tr></thead>
+                        <tbody id="paymentsTableBody"><tr><td colspan="6"><div class="loading-spinner"></div></td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ═══ Logs ═══ -->
+            <section class="admin-section" id="sec-logs">
+                <div class="admin-content__header">
+                    <h1 class="admin-content__title">Lịch sử tương tác</h1>
+                    <p class="admin-content__desc">Toàn bộ log tương tác của hệ thống</p>
+                </div>
+                <div class="data-table-wrap">
+                    <div class="data-table-toolbar">
+                        <div class="search-wrap">
+                            <i data-lucide="search"></i>
+                            <input type="text" class="search-input" id="logSearch" placeholder="Tìm kiếm log...">
+                        </div>
+                        <select class="filter-select" id="logUserFilter">
+                            <option value="">Tất cả user</option>
+                        </select>
+                        <select class="filter-select" id="logEventFilter">
+                            <option value="">Tất cả event</option>
+                            <option value="input">Input</option>
+                            <option value="output">Output</option>
+                        </select>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>Event</th><th>User</th><th>Model</th><th>Nội dung</th><th>Thời gian</th></tr></thead>
+                        <tbody id="logsTableBody"><tr><td colspan="5"><div class="loading-spinner"></div></td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="logsPagination"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Chat Drawer -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="chatDrawer">
+        <div class="drawer__header">
+            <div class="drawer__title" id="drawerTitle">Chi tiết cuộc trò chuyện</div>
+            <button class="drawer__close" id="drawerClose"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+        </div>
+        <div class="drawer__body" id="drawerBody"></div>
+    </div>
+
+    <!-- Image Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox__close" id="lightboxClose"><i data-lucide="x" style="width:28px;height:28px;"></i></button>
+        <img id="lightboxImg" src="" alt="">
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal-overlay" id="createUserModal">
+        <div class="modal">
+            <div class="modal__title">Thêm User mới</div>
+            <form id="createUserForm">
+                <div class="form-group"><label>Username</label><input type="text" id="newUsername" required></div>
+                <div class="form-group"><label>Tên hiển thị</label><input type="text" id="newDisplayName"></div>
+                <div class="form-group"><label>Mật khẩu</label><input type="password" id="newPassword" required></div>
+                <div class="form-group"><label>Role</label><select id="newRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
+                <div class="modal__actions">
+                    <button type="button" class="btn btn--ghost" id="cancelCreateUser">Hủy</button>
+                    <button type="submit" class="btn btn--primary">Tạo User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+    /* ═══════════════════════════════════════════════════════════════
+       Admin Dashboard Application
+       ═══════════════════════════════════════════════════════════════ */
+    lucide.createIcons();
+
+    const API = {
+        async get(url) {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (res.status === 401) { window.location.href = '/login'; return null; }
+            if (res.status === 403) { showToast('Không có quyền truy cập', 'error'); return null; }
+            return res.json();
+        },
+        async post(url, body) {
+            const res = await fetch(url, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify(body),
+            });
+            if (res.status === 401) { window.location.href = '/login'; return null; }
+            return res.json();
+        }
+    };
+
+    function showToast(msg, type = 'success') {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast toast--${type}`;
+        t.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" style="width:16px;height:16px;color:var(--${type});flex-shrink:0;"></i> ${escapeHtml(msg)}`;
+        c.appendChild(t);
+        lucide.createIcons({ nodes: [t] });
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function formatDate(d) {
+        if (!d) return '—';
+        const dt = new Date(d);
+        return dt.toLocaleDateString('vi-VN') + ' ' + dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function truncate(s, n = 60) {
+        if (!s) return '—';
+        return s.length > n ? s.substring(0, n) + '...' : s;
+    }
+
+    /* ── Navigation ── */
+    const navItems = document.querySelectorAll('.admin-nav__item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            navItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            const sec = document.getElementById('sec-' + item.dataset.section);
+            if (sec) sec.classList.add('active');
+            // Load data
+            loadSection(item.dataset.section);
+        });
+    });
+
+    document.getElementById('mobileToggle')?.addEventListener('click', () => {
+        document.getElementById('adminSidebar').classList.toggle('open');
+    });
+
+    /* ── Drawer ── */
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const chatDrawer = document.getElementById('chatDrawer');
+    function openDrawer(title, html) {
+        document.getElementById('drawerTitle').textContent = title;
+        document.getElementById('drawerBody').innerHTML = html;
+        drawerOverlay.classList.add('open');
+        chatDrawer.classList.add('open');
+        hljs.highlightAll();
+        lucide.createIcons({ nodes: [document.getElementById('drawerBody')] });
+    }
+    function closeDrawer() { drawerOverlay.classList.remove('open'); chatDrawer.classList.remove('open'); }
+    drawerOverlay.addEventListener('click', closeDrawer);
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+    /* ── Lightbox ── */
+    const lightbox = document.getElementById('lightbox');
+    function openLightbox(src) { document.getElementById('lightboxImg').src = src; lightbox.classList.add('open'); }
+    lightbox.addEventListener('click', () => lightbox.classList.remove('open'));
+    document.getElementById('lightboxClose').addEventListener('click', () => lightbox.classList.remove('open'));
+
+    /* ── Create User Modal ── */
+    document.getElementById('addUserBtn').addEventListener('click', () => document.getElementById('createUserModal').classList.add('open'));
+    document.getElementById('cancelCreateUser').addEventListener('click', () => document.getElementById('createUserModal').classList.remove('open'));
+    document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = await API.post('/api/admin/users', {
+            username: document.getElementById('newUsername').value.trim(),
+            password: document.getElementById('newPassword').value,
+            display_name: document.getElementById('newDisplayName').value.trim() || undefined,
+            role: document.getElementById('newRole').value,
+        });
+        if (data?.success) {
+            showToast('Tạo user thành công');
+            document.getElementById('createUserModal').classList.remove('open');
+            document.getElementById('createUserForm').reset();
+            loadUsers();
+        } else {
+            showToast(data?.message || 'Lỗi tạo user', 'error');
+        }
+    });
+
+    /* ── Data loading ── */
+    let allUsers = [];
+    let currentPage = { sessions: 1, images: 1, memory: 1, logs: 1 };
+    const PER_PAGE = 20;
+
+    function loadSection(section) {
+        switch (section) {
+            case 'dashboard': loadDashboard(); break;
+            case 'users': loadUsers(); break;
+            case 'sessions': loadSessions(); break;
+            case 'images': loadImages(); break;
+            case 'memory': loadMemory(); break;
+            case 'logs': loadLogs(); break;
+            case 'payments': loadPayments(); break;
+        }
+    }
+
+    async function loadDashboard() {
+        const data = await API.get('/api/admin/stats');
+        if (!data) return;
+        document.getElementById('statUsers').textContent = data.users ?? '—';
+        document.getElementById('statSessions').textContent = data.conversations ?? '—';
+        document.getElementById('statMessages').textContent = data.messages ?? '—';
+        document.getElementById('statImages').textContent = data.images ?? '—';
+        document.getElementById('statMemories').textContent = data.memories ?? '—';
+
+        // Recent activity
+        const tbody = document.getElementById('recentActivity');
+        if (data.recent_conversations?.length) {
+            tbody.innerHTML = data.recent_conversations.map(c => `
+                <tr onclick="viewSession('${c._id}')">
+                    <td>${escapeHtml(c.user_id || 'anonymous')}</td>
+                    <td>${escapeHtml(c.title || 'Untitled')}</td>
+                    <td>${formatDate(c.updated_at || c.created_at)}</td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-tertiary);">Chưa có dữ liệu</td></tr>';
+        }
+    }
+
+    async function loadUsers() {
+        const data = await API.get('/api/admin/users');
+        if (!data) return;
+        allUsers = data.users || [];
+        populateUserFilters(allUsers);
+        const tbody = document.getElementById('usersTableBody');
+        if (!allUsers.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>Chưa có user nào</p></td></tr>'; return; }
+        tbody.innerHTML = allUsers.map(u => {
+            const used = u.image_quota_used || 0;
+            const limit = u.image_quota_limit_override || 5;
+            const pct = Math.min(100, Math.round(used / limit * 100));
+            const danger = pct >= 80;
+            const isAdmin = u.role === 'admin';
+            return `<tr>
+                <td><strong>${escapeHtml(u.username)}</strong></td>
+                <td>${escapeHtml(u.display_name || '—')}</td>
+                <td><span class="badge badge--${isAdmin ? 'admin' : 'user'}">${u.role}</span></td>
+                <td style="min-width:100px;">
+                    ${isAdmin ? '<span style="color:#8e8e8e;font-size:12px">∞</span>' : `
+                    <div style="font-size:11px;color:#b4b4b4;margin-bottom:3px">${used}/${limit}</div>
+                    <div class="quota-bar"><div class="quota-fill${danger?' danger':''}" style="width:${pct}%"></div></div>
+                    <button class="btn btn--ghost btn--sm" style="margin-top:4px;font-size:11px" onclick="resetQuota('${u.username}')">Reset</button>
+                    `}
+                </td>
+                <td>
+                    ${isAdmin ? '<span style="color:#8e8e8e;font-size:12px">∞</span>' : `
+                    <span class="badge badge--${u.video_unlocked ? 'approved' : 'inactive'}" style="margin-bottom:4px;display:inline-block">${u.video_unlocked ? 'Mở' : 'Khoá'}</span><br>
+                    <button class="btn btn--ghost btn--sm" style="font-size:11px" onclick="toggleVideo('${u.username}', ${!u.video_unlocked})">${u.video_unlocked ? 'Khoá lại' : 'Mở khoá'}</button>
+                    `}
+                </td>
+                <td><span class="badge badge--${u.is_active !== false ? 'active' : 'inactive'}">${u.is_active !== false ? 'Active' : 'Disabled'}</span></td>
+                <td>${formatDate(u.last_login)}</td>
+                <td style="white-space:nowrap">
+                    ${u.role !== 'admin' ? `<button class="btn btn--ghost btn--sm" onclick="toggleUser('${u.username}', ${u.is_active === false})">${u.is_active === false ? 'Enable' : 'Disable'}</button>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function populateUserFilters(users) {
+        const filters = ['sessionUserFilter', 'imageUserFilter', 'memoryUserFilter', 'logUserFilter'];
+        const usernames = [...new Set(users.map(u => u.username))];
+        filters.forEach(id => {
+            const sel = document.getElementById(id);
+            const current = sel.value;
+            sel.innerHTML = '<option value="">Tất cả user</option>' + usernames.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+            sel.value = current;
+        });
+    }
+
+    async function toggleUser(username, activate) {
+        const data = await API.post(`/api/admin/users/${username}/toggle`, { active: activate });
+        if (data?.success) { showToast(`User ${activate ? 'enabled' : 'disabled'}`); loadUsers(); }
+        else showToast(data?.message || 'Lỗi', 'error');
+    }
+
+    async function loadSessions(page = 1) {
+        currentPage.sessions = page;
+        const search = document.getElementById('sessionSearch').value;
+        const user = document.getElementById('sessionUserFilter').value;
+        const model = document.getElementById('sessionModelFilter').value;
+        const params = new URLSearchParams({ page, per_page: PER_PAGE });
+        if (search) params.set('search', search);
+        if (user) params.set('user_id', user);
+        if (model) params.set('model', model);
+        const data = await API.get('/api/admin/sessions?' + params);
+        if (!data) return;
+        const tbody = document.getElementById('sessionsTableBody');
+        if (!data.conversations?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);">Không tìm thấy session nào</td></tr>'; return; }
+        tbody.innerHTML = data.conversations.map(c => `
+            <tr onclick="viewSession('${c._id}')">
+                <td><strong>${escapeHtml(c.title || 'Untitled')}</strong></td>
+                <td>${escapeHtml(c.user_id || 'anonymous')}</td>
+                <td><span class="badge badge--user">${escapeHtml(c.model || '—')}</span></td>
+                <td>${c.total_messages ?? 0}</td>
+                <td>${formatDate(c.created_at)}</td>
+                <td>${formatDate(c.updated_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('sessionsPagination', data.total || 0, page, PER_PAGE, (p) => loadSessions(p));
+    }
+
+    async function viewSession(id) {
+        const data = await API.get(`/api/admin/sessions/${id}`);
+        if (!data) return;
+        let html = `<div style="margin-bottom:16px;font-size:12px;color:var(--text-tertiary);">
+            User: <strong>${escapeHtml(data.user_id||'anonymous')}</strong> · Model: <strong>${escapeHtml(data.model||'—')}</strong> · Messages: ${data.messages?.length || 0}
+        </div>`;
+        if (data.messages?.length) {
+            html += data.messages.map(m => {
+                const isUser = m.role === 'user';
+                const avatar = isUser ? '👤' : '🤖';
+                const contentHtml = DOMPurify.sanitize(marked.parse(m.content || ''));
+                // Check for images
+                let imagesHtml = '';
+                if (m.images?.length) {
+                    imagesHtml = m.images.map(img => {
+                        const src = img.cloud_url || img.url || '';
+                        return src ? `<img src="${src}" style="max-width:200px;cursor:pointer;border-radius:8px;margin:4px;" onclick="openLightbox('${src}')" loading="lazy">` : '';
+                    }).join('');
+                }
+                return `<div class="chat-message chat-message--${m.role}">
+                    <div class="chat-message__avatar">${avatar}</div>
+                    <div>
+                        <div class="chat-message__content">${contentHtml}${imagesHtml}</div>
+                        <div class="chat-message__meta">${formatDate(m.created_at)} ${m.metadata?.model ? '· ' + m.metadata.model : ''}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            html += '<div class="empty-state"><p>Không có tin nhắn</p></div>';
+        }
+        openDrawer(data.title || 'Chat Session', html);
+    }
+
+    async function loadImages(page = 1) {
+        currentPage.images = page;
+        const search = document.getElementById('imageSearch').value;
+        const user = document.getElementById('imageUserFilter').value;
+        const params = new URLSearchParams({ page, per_page: 24 });
+        if (search) params.set('search', search);
+        if (user) params.set('user_id', user);
+        const data = await API.get('/api/admin/images?' + params);
+        if (!data) return;
+        const grid = document.getElementById('imageGrid');
+        if (!data.images?.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i data-lucide="image-off"></i><p>Không tìm thấy hình ảnh</p></div>'; lucide.createIcons({ nodes: [grid] }); return; }
+        grid.innerHTML = data.images.map(img => {
+            const src = img.cloud_url || img.url || '';
+            const thumb = src || '/static/css/placeholder.svg';
+            return `<div class="image-card" onclick="openLightbox('${src}')">
+                <img src="${thumb}" alt="${escapeHtml(img.caption || '')}" loading="lazy" onerror="this.style.display='none'">
+                <div class="image-card__info">
+                    <div class="image-card__title">${escapeHtml(img.caption || img.name || 'Image')}</div>
+                    <div class="image-card__sub">${escapeHtml(img.user_id || 'anonymous')} · ${formatDate(img.created_at)}</div>
+                </div>
+            </div>`;
+        }).join('');
+        renderPagination('imagesPagination', data.total || 0, page, 24, (p) => loadImages(p));
+    }
+
+    async function loadMemory(page = 1) {
+        currentPage.memory = page;
+        const search = document.getElementById('memorySearch').value;
+        const user = document.getElementById('memoryUserFilter').value;
+        const params = new URLSearchParams({ page, per_page: PER_PAGE });
+        if (search) params.set('search', search);
+        if (user) params.set('user_id', user);
+        const data = await API.get('/api/admin/memory?' + params);
+        if (!data) return;
+        const tbody = document.getElementById('memoryTableBody');
+        if (!data.memories?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-tertiary);">Không có memory</td></tr>'; return; }
+        tbody.innerHTML = data.memories.map(m => `
+            <tr>
+                <td style="max-width:300px;">${escapeHtml(truncate(m.content || m.question || '', 80))}</td>
+                <td>${escapeHtml(m.user_id || 'anonymous')}</td>
+                <td>${(m.tags || []).map(t => `<span class="badge badge--user" style="margin:1px;">${escapeHtml(t)}</span>`).join(' ') || '—'}</td>
+                <td>${m.importance ?? '—'}</td>
+                <td>${formatDate(m.created_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('memoryPagination', data.total || 0, page, PER_PAGE, (p) => loadMemory(p));
+    }
+
+    async function loadLogs(page = 1) {
+        currentPage.logs = page;
+        const search = document.getElementById('logSearch').value;
+        const user = document.getElementById('logUserFilter').value;
+        const event = document.getElementById('logEventFilter').value;
+        const params = new URLSearchParams({ page, per_page: PER_PAGE });
+        if (search) params.set('search', search);
+        if (user) params.set('user_id', user);
+        if (event) params.set('event', event);
+        const data = await API.get('/api/admin/logs?' + params);
+        if (!data) return;
+        const tbody = document.getElementById('logsTableBody');
+        if (!data.logs?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-tertiary);">Không có log</td></tr>'; return; }
+        tbody.innerHTML = data.logs.map(l => `
+            <tr>
+                <td><span class="badge badge--${l.event === 'input' ? 'user' : 'active'}">${l.event || '—'}</span></td>
+                <td>${escapeHtml(l.session_id || l.user_id || 'anonymous')}</td>
+                <td>${escapeHtml(l.model || '—')}</td>
+                <td style="max-width:300px;">${escapeHtml(truncate(l.message || l.response || '', 80))}</td>
+                <td>${formatDate(l.timestamp)}</td>
+            </tr>
+        `).join('');
+        renderPagination('logsPagination', data.total || 0, page, PER_PAGE, (p) => loadLogs(p));
+    }
+
+    function renderPagination(containerId, total, current, perPage, onClick) {
+        const container = document.getElementById(containerId);
+        const totalPages = Math.ceil(total / perPage);
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+        let html = `<div class="pagination__info">Trang ${current}/${totalPages} (${total} kết quả)</div><div class="pagination__btns">`;
+        html += `<button class="pagination__btn" ${current <= 1 ? 'disabled' : ''} onclick="void(0)">‹</button>`;
+        for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
+            html += `<button class="pagination__btn ${i === current ? 'active' : ''}" onclick="void(0)">${i}</button>`;
+        }
+        html += `<button class="pagination__btn" ${current >= totalPages ? 'disabled' : ''} onclick="void(0)">›</button></div>`;
+        container.innerHTML = html;
+        container.querySelectorAll('.pagination__btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.textContent.trim();
+                if (text === '‹') onClick(current - 1);
+                else if (text === '›') onClick(current + 1);
+                else onClick(parseInt(text));
+            });
+        });
+    }
+
+    /* ── Debounced search ── */
+    function debounce(fn, ms = 400) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+    document.getElementById('sessionSearch').addEventListener('input', debounce(() => loadSessions(1)));
+    document.getElementById('sessionUserFilter').addEventListener('change', () => loadSessions(1));
+    document.getElementById('sessionModelFilter').addEventListener('change', () => loadSessions(1));
+    document.getElementById('imageSearch').addEventListener('input', debounce(() => loadImages(1)));
+    document.getElementById('imageUserFilter').addEventListener('change', () => loadImages(1));
+    document.getElementById('memorySearch').addEventListener('input', debounce(() => loadMemory(1)));
+    document.getElementById('memoryUserFilter').addEventListener('change', () => loadMemory(1));
+    document.getElementById('logSearch').addEventListener('input', debounce(() => loadLogs(1)));
+    document.getElementById('logUserFilter').addEventListener('change', () => loadLogs(1));
+    document.getElementById('logEventFilter').addEventListener('change', () => loadLogs(1));
+
+    /* ── Quota & Video helpers ── */
+    async function resetQuota(username) {
+        if (!confirm(`Reset quota ảnh của "${username}"?`)) return;
+        const data = await API.post(`/api/admin/users/${username}/quota/reset`, {});
+        if (data?.success) { showToast('Đã reset quota'); loadUsers(); }
+        else showToast(data?.message || 'Lỗi', 'error');
+    }
+
+    async function toggleVideo(username, unlock) {
+        const endpoint = unlock ? 'unlock' : 'lock';
+        const data = await API.post(`/api/admin/users/${username}/video/${endpoint}`, {});
+        if (data?.success) { showToast(`Video ${unlock ? 'đã mở khóa' : 'đã khóa lại'}`); loadUsers(); }
+        else showToast(data?.message || 'Lỗi', 'error');
+    }
+
+    /* ── Payments ── */
+    async function loadPayments() {
+        const status = document.getElementById('paymentStatusFilter')?.value ?? 'pending';
+        const params = new URLSearchParams();
+        if (status) params.set('status', status);
+        const data = await API.get('/api/admin/payments?' + params);
+        if (!data) return;
+        const requests = data.requests || [];
+        const tbody = document.getElementById('paymentsTableBody');
+        if (!requests.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:32px">Không có yêu cầu thanh toán nào</td></tr>';
+            return;
+        }
+        tbody.innerHTML = requests.map(r => {
+            const typeLabel = r.type === 'video_unlock' ? '🎬 Mở khóa Video' : r.type;
+            const isPending = r.status === 'pending';
+            return `<tr>
+                <td><strong>${escapeHtml(r.username)}</strong></td>
+                <td>${escapeHtml(typeLabel)}</td>
+                <td style="max-width:200px;color:var(--text-secondary)">${escapeHtml(r.note || '—')}</td>
+                <td><span class="badge badge--${r.status}">${r.status}</span></td>
+                <td>${formatDate(r.created_at)}</td>
+                <td style="white-space:nowrap">
+                    ${isPending ? `
+                    <button class="btn btn--primary btn--sm" onclick="approvePayment('${r._id}')">
+                        <i data-lucide="check" style="width:12px;height:12px"></i> Duyệt
+                    </button>
+                    <button class="btn btn--danger btn--sm" style="margin-left:4px" onclick="rejectPayment('${r._id}')">
+                        <i data-lucide="x" style="width:12px;height:12px"></i> Từ chối
+                    </button>` : `<span style="color:var(--text-tertiary);font-size:12px">${formatDate(r.reviewed_at)} · ${escapeHtml(r.reviewed_by || '')}</span>`}
+                </td>
+            </tr>`;
+        }).join('');
+        lucide.createIcons({ nodes: [tbody] });
+        // Update badge count for pending
+        const pendingCount = requests.filter(r => r.status === 'pending').length;
+        updatePaymentBadge(pendingCount);
+    }
+
+    async function approvePayment(requestId) {
+        const data = await API.post(`/api/admin/payments/${requestId}/approve`, {});
+        if (data?.success) { showToast('Đã phê duyệt — video đã mở khóa cho user'); loadPayments(); }
+        else showToast(data?.message || 'Lỗi', 'error');
+    }
+
+    async function rejectPayment(requestId) {
+        const reason = prompt('Lý do từ chối (không bắt buộc):') ?? '';
+        const data = await API.post(`/api/admin/payments/${requestId}/reject`, { reason });
+        if (data?.success) { showToast('Đã từ chối yêu cầu'); loadPayments(); }
+        else showToast(data?.message || 'Lỗi', 'error');
+    }
+
+    async function loadPendingCount() {
+        const data = await API.get('/api/admin/payments?status=pending');
+        if (data?.requests) updatePaymentBadge(data.requests.length);
+    }
+
+    function updatePaymentBadge(count) {
+        const badge = document.getElementById('paymentBadge');
+        if (!badge) return;
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+
+    /* ── Init ── */
+    (async function init() {
+        // Set admin info
+        const adminName = document.cookie.split(';').find(c => c.trim().startsWith('display_name='))?.split('=')?.[1];
+        if (adminName) {
+            document.getElementById('adminName').textContent = decodeURIComponent(adminName);
+            document.getElementById('adminAvatar').textContent = decodeURIComponent(adminName)[0].toUpperCase();
+        }
+        loadDashboard();
+        const usersData = await API.get('/api/admin/users');
+        if (usersData) { allUsers = usersData.users || []; populateUserFilters(allUsers); }
+        loadPendingCount();  // show badge on sidebar
+    })();
+    </script>
+</body>
+</html>

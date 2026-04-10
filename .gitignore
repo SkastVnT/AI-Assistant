@@ -17,6 +17,8 @@ MANIFEST
 private/
 **.*/knowledge_base/
 ./knowledge_base/
+/webui_csv/
+**/S.png
 
 # ============================================
 # VIRTUAL ENVIRONMENT
@@ -111,6 +113,7 @@ temp/
 *.tmp
 *.bak
 *.backup
+**/.github/copilot
 
 # ============================================
 # OS
@@ -226,6 +229,8 @@ resources/templates/temp/
 **/cache/
 !services/chatbot/database/cache/
 !services/chatbot/database/cache/**
+!services/chatbot/src/rag/cache/
+!services/chatbot/src/rag/cache/**
 **/tmp/
 **/temp/
 **/test_output/
@@ -238,6 +243,8 @@ resources/templates/temp/
 local_data/
 data/connections/
 data/knowledge_base/
+storage/
+**.**/storage/
 
 # ============================================
 # RUNTIME FILES (Generated at runtime)

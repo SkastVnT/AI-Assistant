@@ -38,7 +38,7 @@ def get_or_create_conversation(user_id, model='grok', title=None):
     
     try:
         # Try to get recent active conversation
-        conversations = ConversationDB.get_conversations(user_id=user_id, limit=1)
+        conversations = ConversationDB.get_user_conversations(user_id=user_id, include_archived=False, limit=1)
         if conversations:
             return conversations[0]
         

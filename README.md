@@ -1,13 +1,13 @@
 # AI-Assistant
 
-Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (đa mô hình, voice, OCR, RAG, video generation), stable diffusion, edit image (ComfyUI), mcp server.
+Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (đa mô hình, voice, OCR, RAG, web search, image gen, video generation), stable diffusion, edit image (ComfyUI), mcp server.
 
 ## Tổng quan
 
-- **Kiến trúc**: Python microservices — Chatbot chạy **FastAPI** (uvicorn), các service khác dùng Flask.
+- **Kiến trúc**: Python microservices — Chatbot chạy **Flask** (mặc định, cổng 5000); FastAPI mode tùy chọn qua `USE_FASTAPI=true`.
 - **Chạy cục bộ** bằng script (`menu.bat` / `menu.sh`) hoặc Docker Compose.
 - **Cấu hình chung** qua file `.env` trong `app/config/` – tải bởi `services/shared_env.py`.
-- **Chatbot** tích hợp voice transcription (Whisper API), OCR (Vision APIs), và tạo video AI (Sora 2).
+- **Chatbot** tích hợp voice transcription (Whisper API), OCR (Vision APIs), web search đa engine (SerpAPI), reverse image search, tạo ảnh AI (fal.ai, BFL/FLUX), và tạo video AI (Sora 2).
 
 ## Dịch vụ đang hoạt động
 
@@ -23,13 +23,43 @@ Nền tảng microservices tích hợp nhiều dịch vụ AI: chatbot (đa mô 
 | Tính năng | Mô tả |
 | --- | --- |
 | Đa mô hình | Grok, OpenAI, DeepSeek, Gemini, Qwen, Local |
+| Thinking Modes | Instant (nhanh), Think (chuỗi suy nghĩ), Deep Think (DeepSeek R1), Multi-Think (4-Agents) |
 | Voice (STT) | Whisper API — transcribe audio sang text |
 | OCR | Vision API — đọc nội dung ảnh/PDF |
 | RAG | MongoDB Atlas — lưu & tìm kiếm memory theo ngữ nghĩa |
+| **Web Search** | **SerpAPI** (Google, Bing, Baidu) + Google CSE fallback — tự động khi cần |
+| **Reverse Image** | **Google Lens** → Google Reverse Image → Yandex Images (cascade tự động) |
+| **SauceNAO** | Tìm nguồn gốc ảnh anime/illustration qua SauceNAO API |
+| **Image Search** | SerpAPI google_images — tìm kiếm ảnh theo query |
+| **Image Gen** | fal.ai (FLUX) + BFL/Black Forest Labs — tạo ảnh AI chất lượng cao |
 | Image Storage | ImgBB + MongoDB + Firebase RTDB cho ảnh được tạo bởi AI |
 | **Video AI** | **OpenAI Sora 2** — tạo video từ text (4/8/12s, 720p/1080p) |
 | Streaming | Server-Sent Events (SSE) |
 | Swagger UI | Tài liệu API tự động tại `/docs` |
+
+### Thinking Modes
+
+| Mode | Mô tả |
+| --- | --- |
+| `instant` | Trả lời ngay, không reasoning (mặc định) |
+| `think` | Chuỗi suy nghĩ nội tại trước khi trả lời |
+| `deep-think` | DeepSeek R1 extended reasoning |
+| `multi-thinking` | 4 Agents phối hợp: Analyst + Creative + Critic + Synthesizer |
+
+### Search Tools UI
+
+Các nút công cụ có sẵn trong chat UI:
+
+| Nút | Tool | Mô tả |
+| --- | --- | --- |
+| 🔍 Web Search | `google-search` | SerpAPI Google (tự động fallback Google CSE) |
+| Lens | `serpapi-reverse-image` | Google Lens → Reverse Image → Yandex cascade |
+| Bing | `serpapi-bing` | SerpAPI Bing search |
+| Baidu | `serpapi-baidu` | SerpAPI Baidu search |
+| Img Search | `serpapi-images` | SerpAPI Google Images |
+| SauceNAO | `saucenao` | Tìm nguồn gốc ảnh anime |
+
+Web search cũng **tự động kích hoạt** khi câu hỏi chứa từ khóa thời gian thực (giá vàng, thời tiết, tin tức, v.v.).
 
 ### API Video (Sora 2)
 
@@ -58,7 +88,19 @@ menu.bat
 ./menu.sh
 ```
 
-### 2) Chạy Chatbot (FastAPI mode)
+### 2) Chạy Chatbot (Flask mode — mặc định)
+
+```bash
+# Windows
+cd services\chatbot
+python chatbot_main.py
+
+# Linux/Mac
+cd services/chatbot
+python chatbot_main.py
+```
+
+### 2b) Chạy Chatbot (FastAPI mode — tùy chọn)
 
 ```bash
 # Windows
@@ -126,6 +168,19 @@ env=dev
 Biến thường dùng thêm cho chatbot:
 
 ```env
+# Image Generation (fal.ai + BFL/FLUX)
+FAL_API_KEY=                        # fal.ai — FLUX.1, FLUX Pro, Recraft, Ideogram
+BFL_API_KEY=                        # Black Forest Labs — FLUX Pro raw
+
+# Web Search
+SERPAPI_API_KEY=                    # SerpAPI — Google, Bing, Baidu, Lens, Images
+GOOGLE_SEARCH_API_KEY_1=            # Google CSE key 1 (fallback)
+GOOGLE_SEARCH_API_KEY_2=            # Google CSE key 2 (fallback)
+GOOGLE_CSE_ID=                      # Google Custom Search Engine ID (fallback)
+
+# Reverse Image Search
+SAUCENAO_API_KEY=                   # SauceNAO — tìm nguồn gốc ảnh anime
+
 # Chọn database đích cho chat + image storage
 MONGODB_DB_NAME=chatbot_db
 
@@ -163,10 +218,18 @@ app/
   ComfyUI/         # ComfyUI + extra model paths
 services/
   shared_env.py         # Bộ tải env dùng chung
-  chatbot/              # Multi-model AI Chatbot (FastAPI)
-    fastapi_app/        #   App factory, routers, models, dependencies
+  chatbot/              # Multi-model AI Chatbot (Flask, FastAPI optional)
+    chatbot_main.py     #   Entry point Flask — endpoint /chat
+    run.py              #   Entry point FastAPI (USE_FASTAPI=true)
+    routes/
+      stream.py         #   Flask SSE endpoint /chat/stream (primary)
+      main.py           #   Các route phụ
+    core/
+      config.py         #   Load tất cả API keys từ .env
+      tools.py          #   Tool functions: web search, image search, SauceNAO, SerpAPI
+    fastapi_app/        #   App factory, routers, models (FastAPI optional)
     src/                #   Core logic: chatbot, video_generation, OCR, STT
-    core/               #   Provider routing, image/chat storage, MongoDB/Firebase/Drive helpers
+    templates/          #   Chat UI (index.html)
   stable-diffusion/     # Image generation (SDXL)
   edit-image/           # ComfyUI-based image editing
   mcp-server/           # Model Context Protocol server

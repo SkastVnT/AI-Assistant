@@ -390,6 +390,21 @@ def generate_image():
             sd_client = get_sd_client()
             use_comfyui = False
         
+        # -- Quota check --
+        _username = session.get('username', '')
+        _quota_db = None
+        if _username:
+            try:
+                from core.user_auth import check_image_quota
+                from core.extensions import get_db as _get_quota_db
+                _quota_db = _get_quota_db()
+                _allowed, _reason = check_image_quota(_quota_db, _username)
+                if not _allowed:
+                    return jsonify({'error': _reason, 'quota_exceeded': True}), 403
+            except Exception as _qe:
+                import logging; logging.getLogger(__name__).warning(f'[sd] quota check: {_qe}')
+        # -----------------------------------------------------------------
+
         data = request.json
         prompt = data.get('prompt', '')
         

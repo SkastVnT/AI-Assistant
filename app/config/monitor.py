@@ -4,7 +4,6 @@ Hiển thị real-time stats về API usage
 """
 from flask import Blueprint, jsonify, make_response
 
-<<<<<<< HEAD
 # Import utilities
 _config_dir = Path(__file__).parent
 _app_dir = _config_dir.parent
@@ -20,7 +19,6 @@ except ModuleNotFoundError:
     # Fallback when another `config` package shadows app/config on sys.path.
     from rate_limiter import get_rate_limit_stats
     from response_cache import get_all_cache_stats
-=======
 # Import utilities (prefer package-relative imports, fallback to stubs)
 try:
     from .rate_limiter import get_rate_limit_stats
@@ -31,7 +29,6 @@ except Exception:
 
     def get_all_cache_stats():
         return {"enabled": False, "error": "response_cache module unavailable"}
->>>>>>> 0352e6260db5b6fee5ca5f8a237ac0d3e9dd6a9e
 
 # Blueprint
 monitor_bp = Blueprint('monitor', __name__)

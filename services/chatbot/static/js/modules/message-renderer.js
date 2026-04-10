@@ -2,6 +2,7 @@
  * Message Renderer Module
  * Handles message rendering, markdown parsing, code highlighting
  */
+import { csvPreview } from './csv-preview.js';
 
 export class MessageRenderer {
     constructor() {
@@ -42,8 +43,107 @@ export class MessageRenderer {
         };
 
         this.messageHistory = new Map(); // Store message edit history
+        this.features = this._resolveFeatureFlags();
+        this._quotedContext = null; // Selected text for reply context
         this.initMarked();
         this.bindGlobalEditDelegation();
+        if (this.features.selectAndReply) {
+            this._initSelectAndReply();
+        }
+    }
+
+    _resolveFeatureFlags() {
+        const defaults = {
+            tokenGauge: true,
+            collapsibleThinking: true,
+            suggestionChips: true,
+            selectAndReply: true,
+            codeCopy: true,
+        };
+        const cfg = (typeof window !== 'undefined' && window.__CHAT_FEATURES && typeof window.__CHAT_FEATURES === 'object')
+            ? window.__CHAT_FEATURES
+            : {};
+        return { ...defaults, ...cfg };
+    }
+
+    _getThinkingStore() {
+        try {
+            return JSON.parse(localStorage.getItem('thinkingStateByRequest') || '{}');
+        } catch {
+            return {};
+        }
+    }
+
+    _saveThinkingStore(store) {
+        try {
+            localStorage.setItem('thinkingStateByRequest', JSON.stringify(store));
+        } catch {
+            // Ignore storage errors (quota/private mode)
+        }
+    }
+
+    _getThinkingState(requestId) {
+        const store = this._getThinkingStore();
+        return store[requestId] || { outerOpen: true, trajectories: {} };
+    }
+
+    _updateThinkingState(requestId, updater) {
+        if (!requestId) return;
+        const store = this._getThinkingStore();
+        const prev = store[requestId] || { outerOpen: true, trajectories: {} };
+        const next = updater(prev) || prev;
+        store[requestId] = next;
+        this._saveThinkingStore(store);
+    }
+
+    _setReasoningBlockExpanded(block, expanded) {
+        block.classList.toggle('thinking-step--expanded', expanded);
+        block.classList.toggle('thinking-step--collapsed', !expanded);
+        const icon = block.querySelector('.thinking-reasoning__toggle');
+        if (icon) icon.textContent = expanded ? '▼' : '▶';
+    }
+
+    _setAllReasoningBlocks(container, expanded) {
+        container.querySelectorAll('.thinking-step--reasoning').forEach(block => {
+            this._setReasoningBlockExpanded(block, expanded);
+        });
+    }
+
+    _ensureThinkingControls(container) {
+        if (container.querySelector('.thinking-reasoning-actions')) return;
+        const content = container.querySelector('.thinking-content');
+        const steps = container.querySelector('.thinking-steps');
+        if (!content || !steps) return;
+
+        const actions = document.createElement('div');
+        actions.className = 'thinking-reasoning-actions';
+        actions.innerHTML = `
+            <button type="button" class="thinking-reasoning-btn" data-action="expand-all">Expand all</button>
+            <button type="button" class="thinking-reasoning-btn" data-action="collapse-all">Collapse all</button>
+        `;
+
+        actions.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const requestId = container.dataset.requestId || '';
+            const expandAll = btn.dataset.action === 'expand-all';
+            this._setAllReasoningBlocks(container, expandAll);
+            if (requestId) {
+                this._updateThinkingState(requestId, prev => {
+                    const trajectories = { ...prev.trajectories };
+                    container.querySelectorAll('.thinking-step--reasoning').forEach(block => {
+                        const tid = block.dataset.tid || '_default';
+                        trajectories[tid] = expandAll;
+                    });
+                    return { ...prev, trajectories };
+                });
+            }
+        });
+
+        content.insertBefore(actions, steps);
     }
 
     bindGlobalEditDelegation() {
@@ -66,6 +166,115 @@ export class MessageRenderer {
     }
 
     /**
+     * Initialize select-and-reply: floating "Reply" button on text selection in assistant messages,
+     * quote preview above input, quoted text sent as priority context.
+     */
+    _initSelectAndReply() {
+        // Floating reply button (created once, reused)
+        this._replyPopup = document.createElement('div');
+        this._replyPopup.className = 'select-reply-popup';
+        this._replyPopup.innerHTML = '<button class="select-reply-btn"><i data-lucide="reply" class="lucide" style="width:14px;height:14px"></i> Trả lời đoạn này</button>';
+        this._replyPopup.style.display = 'none';
+        document.body.appendChild(this._replyPopup);
+
+        // Click handler for the reply button
+        this._replyPopup.querySelector('.select-reply-btn').addEventListener('mousedown', (e) => {
+            e.preventDefault(); // prevent losing selection
+            const sel = window.getSelection();
+            const text = sel ? sel.toString().trim() : '';
+            if (text) {
+                this.setQuotedContext(text);
+            }
+            this._replyPopup.style.display = 'none';
+        });
+
+        // On mouseup anywhere — show/hide the floating button
+        document.addEventListener('mouseup', (e) => {
+            // Delay to allow selection to finalize
+            setTimeout(() => {
+                const sel = window.getSelection();
+                const text = sel ? sel.toString().trim() : '';
+                if (!text || text.length < 5) {
+                    this._replyPopup.style.display = 'none';
+                    return;
+                }
+                // Only show for selections inside assistant messages
+                const anchorNode = sel.anchorNode;
+                const msgEl = anchorNode?.nodeType === 3
+                    ? anchorNode.parentElement?.closest('.message.assistant')
+                    : anchorNode?.closest?.('.message.assistant');
+                if (!msgEl) {
+                    this._replyPopup.style.display = 'none';
+                    return;
+                }
+                // Position near the selection
+                const range = sel.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                this._replyPopup.style.display = 'flex';
+                this._replyPopup.style.top = `${rect.top + window.scrollY - 40}px`;
+                this._replyPopup.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
+                if (window.lucide) lucide.createIcons({ nodes: [this._replyPopup] });
+            }, 10);
+        });
+
+        // Hide on any click outside
+        document.addEventListener('mousedown', (e) => {
+            if (!this._replyPopup.contains(e.target)) {
+                this._replyPopup.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Set quoted context for the next message. Shows a quote preview above the input.
+     * @param {string} text - the selected text
+     */
+    setQuotedContext(text) {
+        this._quotedContext = text;
+        // Show quote preview
+        let preview = document.getElementById('quotePreview');
+        if (!preview) {
+            const inputContainer = document.querySelector('.input-area__container');
+            if (!inputContainer) return;
+            preview = document.createElement('div');
+            preview.id = 'quotePreview';
+            preview.className = 'quote-preview';
+            inputContainer.insertBefore(preview, inputContainer.firstChild);
+        }
+        const truncated = text.length > 200 ? text.substring(0, 200) + '…' : text;
+        preview.innerHTML = `<div class="quote-preview__bar"></div>
+            <div class="quote-preview__text">${this._escapeHtml(truncated)}</div>
+            <button class="quote-preview__close" title="Remove quote">&times;</button>`;
+        preview.style.display = 'flex';
+        preview.querySelector('.quote-preview__close').onclick = () => this.clearQuotedContext();
+        // Focus input
+        const input = document.getElementById('messageInput');
+        if (input) input.focus();
+    }
+
+    /**
+     * Get and clear the quoted context (called when sending a message).
+     * @returns {string|null}
+     */
+    consumeQuotedContext() {
+        const ctx = this._quotedContext;
+        this.clearQuotedContext();
+        return ctx;
+    }
+
+    clearQuotedContext() {
+        this._quotedContext = null;
+        const preview = document.getElementById('quotePreview');
+        if (preview) preview.style.display = 'none';
+    }
+
+    _escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    /**
      * Initialize marked.js configuration
      */
     initMarked() {
@@ -84,6 +293,53 @@ export class MessageRenderer {
                 }
             });
         }
+    }
+
+    /**
+     * Add copy header to code blocks (language label + copy button)
+     * @param {HTMLElement} container - element containing <pre><code> blocks
+     */
+    enhanceCodeBlocks(container) {
+        if (!this.features.codeCopy) return;
+        container.querySelectorAll('pre').forEach(pre => {
+            if (pre.querySelector('.code-header')) return; // already enhanced
+            const codeEl = pre.querySelector('code');
+            if (!codeEl) return;
+
+            // Detect language from hljs class (e.g. "hljs language-python")
+            const langClass = [...(codeEl.classList || [])].find(c => c.startsWith('language-'));
+            const lang = langClass ? langClass.replace('language-', '') : '';
+
+            const header = document.createElement('div');
+            header.className = 'code-header';
+
+            const langLabel = document.createElement('span');
+            langLabel.className = 'code-lang';
+            langLabel.textContent = lang || 'code';
+            header.appendChild(langLabel);
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                const text = codeEl.textContent || '';
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+                }).catch(() => {
+                    // Fallback
+                    const ta = document.createElement('textarea');
+                    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy'); document.body.removeChild(ta);
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+                });
+            };
+            header.appendChild(copyBtn);
+            pre.insertBefore(header, pre.firstChild);
+        });
     }
 
     /**
@@ -145,15 +401,10 @@ export class MessageRenderer {
                         hljs.highlightElement(block);
                     });
                 }
+                this.enhanceCodeBlocks(textDiv);
                 
-                // Add copy button for tables
-                textDiv.querySelectorAll('table').forEach((table) => {
-                    const copyBtn = document.createElement('button');
-                    copyBtn.className = 'copy-table-btn';
-                    copyBtn.textContent = '📋 Copy bảng';
-                    copyBtn.onclick = () => this.copyTableToClipboard(table, copyBtn);
-                    table.parentNode.insertBefore(copyBtn, table.nextSibling);
-                });
+                // Enhance tables with interactive viewer
+                this.enhanceMarkdownTables(textDiv);
             } else {
                 textDiv.textContent = content;
             }
@@ -287,6 +538,13 @@ export class MessageRenderer {
         
         contentDiv.appendChild(filesGrid);
         
+        // Render inline table preview for files with tableData
+        const tableFiles = files.filter(f => f.tableData && f.tableData.headers && f.tableData.headers.length > 0);
+        tableFiles.forEach(file => {
+            const previewContainer = this._buildInlineTablePreview(file.tableData, file.name);
+            contentDiv.appendChild(previewContainer);
+        });
+        
         // Add timestamp
         const timestampDiv = document.createElement('div');
         timestampDiv.className = 'message-timestamp';
@@ -308,6 +566,7 @@ export class MessageRenderer {
         if (type.startsWith('image/')) return '🖼️';
         if (type.startsWith('video/')) return '🎥';
         if (type.startsWith('audio/')) return '🎵';
+        if (name.endsWith('.csv') || name.endsWith('.tsv')) return '📊';
         if (type === 'application/pdf') return '📕';
         if (type === 'application/msword' || type.includes('wordprocessing')) return '📘';
         if (type.includes('spreadsheet') || name.endsWith('.xlsx')) return '📊';
@@ -329,6 +588,143 @@ export class MessageRenderer {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    /**
+     * Build an inline table preview (compact, first N rows) for chat messages
+     */
+    _buildInlineTablePreview(tableData, filename, maxRows = 10) {
+        const { headers, rows } = tableData;
+        const container = document.createElement('div');
+        container.className = 'inline-table-preview';
+
+        // Header bar
+        const headerBar = document.createElement('div');
+        headerBar.className = 'inline-table-header';
+        headerBar.innerHTML = `
+            <span class="inline-table-title">📊 ${this.escapeHtml(filename)}</span>
+            <span class="inline-table-stats">${rows.length} hàng · ${headers.length} cột</span>
+        `;
+        container.appendChild(headerBar);
+
+        // Table
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'inline-table-wrap';
+        const table = document.createElement('table');
+        table.className = 'inline-table';
+
+        // Thead
+        const thead = document.createElement('thead');
+        thead.innerHTML = `<tr>${headers.map(h => `<th>${this.escapeHtml(h)}</th>`).join('')}</tr>`;
+        table.appendChild(thead);
+
+        // Tbody — show first maxRows
+        const displayRows = rows.slice(0, maxRows);
+        const tbody = document.createElement('tbody');
+        tbody.innerHTML = displayRows.map(row =>
+            `<tr>${headers.map(h => {
+                const val = row[h] ?? '';
+                const str = String(val);
+                const display = str.length > 60 ? str.substring(0, 60) + '…' : str;
+                return `<td>${this.escapeHtml(display)}</td>`;
+            }).join('')}</tr>`
+        ).join('');
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+        container.appendChild(tableWrap);
+
+        // Footer with "view full" button if there are more rows
+        if (rows.length > maxRows) {
+            const footer = document.createElement('div');
+            footer.className = 'inline-table-footer';
+            footer.innerHTML = `<span class="inline-table-truncated">Hiển thị ${maxRows}/${rows.length} hàng</span>`;
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'inline-table-view-btn';
+            viewBtn.textContent = '📋 Xem đầy đủ bảng';
+            viewBtn.addEventListener('click', () => {
+                csvPreview.show(tableData, filename);
+            });
+            footer.appendChild(viewBtn);
+            container.appendChild(footer);
+        }
+
+        return container;
+    }
+
+    /**
+     * Enhance HTML tables from markdown rendering with interactive features.
+     * Parses table DOM into {headers, rows} and wraps with toolbar.
+     * Call this on a container after markdown has been rendered.
+     */
+    enhanceMarkdownTables(container) {
+        const tables = container.querySelectorAll('table');
+        tables.forEach(table => {
+            // Skip if already enhanced
+            if (table.dataset.enhanced) return;
+            table.dataset.enhanced = 'true';
+
+            // Parse HTML table into structured data
+            const headers = [];
+            const rows = [];
+            const thElements = table.querySelectorAll('thead th');
+            thElements.forEach(th => headers.push(th.textContent.trim()));
+
+            // If no thead, try first row
+            if (headers.length === 0) {
+                const firstRow = table.querySelector('tr');
+                if (firstRow) {
+                    firstRow.querySelectorAll('th, td').forEach(cell => headers.push(cell.textContent.trim()));
+                }
+            }
+
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = {};
+                tr.querySelectorAll('td').forEach((td, i) => {
+                    row[headers[i] || `Col ${i + 1}`] = td.textContent.trim();
+                });
+                rows.push(row);
+            });
+
+            // Wrap table in a styled container
+            const wrapper = document.createElement('div');
+            wrapper.className = 'enhanced-table-container';
+
+            // Toolbar
+            const toolbar = document.createElement('div');
+            toolbar.className = 'enhanced-table-toolbar';
+            toolbar.innerHTML = `<span class="enhanced-table-info">${rows.length} hàng · ${headers.length} cột</span>`;
+
+            // Copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'enhanced-table-btn';
+            copyBtn.textContent = '📋 Copy';
+            copyBtn.addEventListener('click', () => this.copyTableToClipboard(table, copyBtn));
+            toolbar.appendChild(copyBtn);
+
+            // Expand button — open in full viewer
+            if (headers.length > 0 && rows.length > 0) {
+                const expandBtn = document.createElement('button');
+                expandBtn.className = 'enhanced-table-btn';
+                expandBtn.textContent = '🔍 Xem đầy đủ';
+                expandBtn.addEventListener('click', () => {
+                    csvPreview.show({ headers, rows }, 'Bảng từ AI');
+                });
+                toolbar.appendChild(expandBtn);
+            }
+
+            // Insert wrapper
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(toolbar);
+
+            // Add horizontal scroll wrapper for the table
+            const scrollWrap = document.createElement('div');
+            scrollWrap.className = 'enhanced-table-scroll';
+            wrapper.appendChild(scrollWrap);
+            scrollWrap.appendChild(table);
+
+            // Add enhanced styling class to the table itself
+            table.classList.add('enhanced-table');
+        });
     }
 
     /**
@@ -423,13 +819,17 @@ export class MessageRenderer {
             }
         }
         
-        // Toggle functionality
-        let collapsed = false;
+        // Toggle functionality — read state from DOM to stay in sync with finalizeThinking()
         header.addEventListener('click', () => {
-            collapsed = !collapsed;
-            content.classList.toggle('thinking-content--open', !collapsed);
-            content.classList.toggle('thinking-content--collapsed', collapsed);
-            toggle.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+            const isCurrentlyOpen = content.classList.contains('thinking-content--open');
+            content.classList.toggle('thinking-content--open', !isCurrentlyOpen);
+            content.classList.toggle('thinking-content--collapsed', isCurrentlyOpen);
+            toggle.style.transform = isCurrentlyOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+
+            const requestId = container.dataset.requestId || '';
+            if (requestId) {
+                this._updateThinkingState(requestId, prev => ({ ...prev, outerOpen: !isCurrentlyOpen }));
+            }
         });
         
         container.appendChild(header);
@@ -444,25 +844,34 @@ export class MessageRenderer {
      * @param {HTMLElement} container - thinking container
      * @param {string} stepText - step text content (may contain **bold** markers)
      * @param {boolean} isReasoningChunk - if true, append to existing reasoning block
+     * @param {string|null} trajectoryId - trajectory identifier for per-block routing
      */
-    addThinkingStep(container, stepText, isReasoningChunk = false) {
+    addThinkingStep(container, stepText, isReasoningChunk = false, trajectoryId = null) {
         const stepsContainer = container.querySelector('.thinking-steps');
         if (!stepsContainer) return;
         
         if (isReasoningChunk) {
-            // Accumulate into existing reasoning block
-            let reasoningBlock = stepsContainer.querySelector('.thinking-step--reasoning');
+            // Route token to the correct per-trajectory reasoning block
+            const tid = trajectoryId || '_default';
+            const selector = `.thinking-step--reasoning[data-tid="${tid}"]`;
+            let reasoningBlock = stepsContainer.querySelector(selector);
             if (!reasoningBlock) {
                 reasoningBlock = document.createElement('div');
                 reasoningBlock.className = 'thinking-step thinking-step--active thinking-step--reasoning';
+                reasoningBlock.dataset.tid = tid;
                 reasoningBlock.textContent = '';
                 stepsContainer.appendChild(reasoningBlock);
             }
             reasoningBlock.textContent += stepText;
         } else {
-            // Mark previous step as done
+            // Mark previous non-reasoning steps as done
             const prevSteps = stepsContainer.querySelectorAll('.thinking-step--active:not(.thinking-step--reasoning)');
             prevSteps.forEach(s => {
+                s.classList.remove('thinking-step--active');
+                s.classList.add('thinking-step--done');
+            });
+            // Also mark active reasoning blocks as done (trajectory finished)
+            stepsContainer.querySelectorAll('.thinking-step--reasoning.thinking-step--active').forEach(s => {
                 s.classList.remove('thinking-step--active');
                 s.classList.add('thinking-step--done');
             });
@@ -532,17 +941,99 @@ export class MessageRenderer {
             s.classList.remove('thinking-step--active');
             s.classList.add('thinking-step--done');
         });
+
+        if (!this.features.collapsibleThinking) {
+            return;
+        }
+
+        const requestId = data.request_id || container.dataset.requestId || '';
+        if (requestId) {
+            container.dataset.requestId = requestId;
+        }
         
-        // Auto-collapse after a short delay to show the response
-        setTimeout(() => {
-            const content = container.querySelector('.thinking-content');
-            const toggle = container.querySelector('.thinking-toggle-arrow');
-            if (content) {
-                content.classList.remove('thinking-content--open');
-                content.classList.add('thinking-content--collapsed');
+        // Convert each reasoning block into collapsible sections
+        container.querySelectorAll('.thinking-step--reasoning').forEach(block => {
+            const tid = block.dataset.tid || '';
+            const rawText = block.textContent;
+            if (!rawText.trim()) return;
+
+            // Parse tid format "r0_t1" → round 1, trajectory 2
+            const tidMatch = tid.match(/^r(\d+)_t(\d+)$/);
+            const roundNum = tidMatch ? parseInt(tidMatch[1]) + 1 : '?';
+            const trajNum = tidMatch ? parseInt(tidMatch[2]) + 1 : '?';
+
+            // Build header
+            const header = document.createElement('div');
+            header.className = 'thinking-reasoning__header';
+            header.innerHTML = `<span class="thinking-reasoning__label">🔍 Hướng ${trajNum} (vòng ${roundNum})</span><span class="thinking-reasoning__toggle">▶</span>`;
+
+            // Render content as markdown
+            const body = document.createElement('div');
+            body.className = 'thinking-reasoning__body';
+            if (typeof marked !== 'undefined') {
+                const rendered = marked.parse(rawText);
+                body.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rendered) : rendered;
+            } else {
+                body.textContent = rawText;
             }
-            if (toggle) toggle.style.transform = 'rotate(-90deg)';
-        }, 1500);
+
+            // Replace block inner content
+            block.textContent = '';
+            block.classList.add('thinking-step--collapsed');
+            block.appendChild(header);
+            block.appendChild(body);
+
+            // Toggle on header click
+            header.addEventListener('click', () => {
+                const isCollapsed = block.classList.toggle('thinking-step--collapsed');
+                block.classList.toggle('thinking-step--expanded', !isCollapsed);
+                header.querySelector('.thinking-reasoning__toggle').textContent = isCollapsed ? '▶' : '▼';
+
+                const reqId = container.dataset.requestId || '';
+                if (reqId) {
+                    const tidKey = block.dataset.tid || '_default';
+                    this._updateThinkingState(reqId, prev => ({
+                        ...prev,
+                        trajectories: {
+                            ...prev.trajectories,
+                            [tidKey]: !isCollapsed,
+                        },
+                    }));
+                }
+            });
+        });
+        
+        // After finalization: hide non-reasoning steps (noise) and keep section open
+        // so the collapsed trajectory 2-line previews remain visible.
+        container.querySelectorAll('.thinking-step--done:not(.thinking-step--reasoning)').forEach(s => {
+            s.style.display = 'none';
+        });
+
+        // Update the outer toggle state so clicking the header correctly collapses/expands
+        const content = container.querySelector('.thinking-content');
+        const toggle = container.querySelector('.thinking-toggle-arrow');
+        if (content) {
+            // Keep the thinking section open with compact trajectory previews
+            content.classList.add('thinking-content--open');
+            content.classList.remove('thinking-content--collapsed');
+        }
+        if (toggle) toggle.style.transform = 'rotate(0deg)';
+
+        this._ensureThinkingControls(container);
+
+        const persisted = requestId ? this._getThinkingState(requestId) : { outerOpen: true, trajectories: {} };
+        const outerOpen = persisted.outerOpen !== false;
+        if (content) {
+            content.classList.toggle('thinking-content--open', outerOpen);
+            content.classList.toggle('thinking-content--collapsed', !outerOpen);
+        }
+        if (toggle) toggle.style.transform = outerOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+
+        container.querySelectorAll('.thinking-step--reasoning').forEach(block => {
+            const tid = block.dataset.tid || '_default';
+            const expanded = persisted.trajectories?.[tid] === true;
+            this._setReasoningBlockExpanded(block, expanded);
+        });
     }
     
     /**
@@ -638,6 +1129,58 @@ export class MessageRenderer {
     }
 
     /**
+     * Add response stats badge after action buttons
+     * Shows: elapsed time · model name · token count · speed label
+     */
+    addResponseStats(contentDiv, stats = {}) {
+        const { elapsed, model, tokens, maxTokens, speedLabel, thinkingMode } = stats;
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'response-stats';
+
+        // ── Token circle gauge ──
+        if (this.features.tokenGauge && tokens && maxTokens) {
+            const pct = Math.min(tokens / maxTokens, 1);
+            const r = 11, stroke = 2.5;
+            const circ = 2 * Math.PI * r;
+            const dashOffset = circ * (1 - pct);
+            const color = pct > 0.9 ? '#ef4444' : pct > 0.7 ? '#f59e0b' : '#10b981';
+
+            const gauge = document.createElement('div');
+            gauge.className = 'token-gauge';
+            gauge.innerHTML = `<svg width="28" height="28" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="${r}" fill="none" stroke="var(--border-color, #333)" stroke-width="${stroke}" opacity="0.25"/>
+                <circle cx="14" cy="14" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+                    stroke-dasharray="${circ}" stroke-dashoffset="${dashOffset}"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"
+                    style="transition: stroke-dashoffset 0.6s ease"/>
+            </svg>`;
+            gauge.title = `Tokens: ${tokens} / ${maxTokens} (${Math.round(pct * 100)}%)`;
+            statsDiv.appendChild(gauge);
+        }
+
+        // ── Text info ──
+        const textSpan = document.createElement('span');
+        const parts = [];
+        if (elapsed != null) parts.push(`${elapsed < 10 ? elapsed.toFixed(1) : Math.round(elapsed)}s`);
+        if (model) parts.push(model);
+        if (tokens && maxTokens) {
+            parts.push(`${tokens}/${maxTokens}`);
+        } else if (tokens) {
+            parts.push(`${tokens} tokens`);
+        }
+        if (speedLabel) parts.push(speedLabel);
+        textSpan.textContent = parts.join(' · ');
+        statsDiv.appendChild(textSpan);
+
+        // Tooltip
+        if (elapsed != null) {
+            statsDiv.title = `Response time: ${elapsed.toFixed(3)}s | Tokens: ${tokens || '?'} / ${maxTokens || '?'} | Mode: ${thinkingMode || 'instant'}`;
+        }
+
+        contentDiv.appendChild(statsDiv);
+    }
+
+    /**
      * Open Edit Chat tool
      */
     showEditChatTool(messageDiv, originalContent) {
@@ -684,6 +1227,11 @@ export class MessageRenderer {
      * Regenerate response
      */
     regenerateResponse(messageDiv) {
+        // ── Image generation: detect and redirect ──
+        if (messageDiv.dataset.igv2IsImage === 'true') {
+            return this.regenerateImageResponse(messageDiv);
+        }
+
         // Find the user message before this assistant message
         let prevMessage = messageDiv.previousElementSibling;
         while (prevMessage && !prevMessage.classList.contains('user')) {
@@ -814,7 +1362,219 @@ export class MessageRenderer {
             }
         });
     }
-    
+
+    /**
+     * Regenerate image response — re-runs image generation with same provider.
+     * Local (ComfyUI): unlimited retries, always uses 'free' quality.
+     * API (Cloud): max 1 retry, uses 'auto' quality.
+     */
+    async regenerateImageResponse(messageDiv) {
+        const provider = messageDiv.dataset.igv2Provider || 'local';
+        const userPrompt = messageDiv.dataset.igv2Prompt || '';
+        const regenCount = parseInt(messageDiv.dataset.igv2RegenCount || '0', 10);
+        const conversationId = messageDiv.dataset.igv2ConversationId || '';
+
+        if (!userPrompt || !window.chatApp) return;
+
+        // API provider: limit to 1 retry
+        if (provider === 'api' && regenCount >= 1) {
+            alert('API chỉ cho phép thử lại 1 lần. Hãy dùng LOCAL để tạo không giới hạn.');
+            return;
+        }
+
+        // Find user message for version tracking
+        let prevMessage = messageDiv.previousElementSibling;
+        while (prevMessage && !prevMessage.classList.contains('user')) {
+            prevMessage = prevMessage.previousElementSibling;
+        }
+
+        const chatContainer = messageDiv.parentElement;
+        if (!chatContainer) return;
+
+        // Store current version
+        const currentResponse = messageDiv.querySelector('.message-text')?.innerHTML || '';
+        const messageId = prevMessage
+            ? (prevMessage.dataset.messageId || `msg_${Date.now()}_${Math.random()}`)
+            : `msg_${Date.now()}_${Math.random()}`;
+        if (prevMessage) prevMessage.dataset.messageId = messageId;
+
+        if (!this.messageHistory.has(messageId)) {
+            this.messageHistory.set(messageId, []);
+            this.addMessageVersion(messageId, userPrompt, currentResponse, new Date().toISOString());
+        }
+
+        // Remove status/thinking containers that follow the image message
+        let nextEl = messageDiv.nextElementSibling;
+        while (nextEl && nextEl.classList.contains('assistant') && !nextEl.querySelector('.message-text:not(:empty)')) {
+            const toRemove = nextEl;
+            nextEl = nextEl.nextElementSibling;
+            toRemove.remove();
+        }
+
+        // Also remove any igv2-stream-status that precedes the image message
+        let prevEl = messageDiv.previousElementSibling;
+        while (prevEl && prevEl.classList.contains('assistant') && prevEl.querySelector('.igv2-stream-status')) {
+            const toRemove = prevEl;
+            prevEl = prevEl.previousElementSibling;
+            toRemove.remove();
+        }
+
+        // Remove current assistant image message
+        messageDiv.remove();
+
+        // Build streaming status container
+        const imageGenOptions = provider === 'local'
+            ? { quality: 'free', provider: 'comfyui' }
+            : { quality: 'auto' };
+
+        const statusContainer = document.createElement('div');
+        statusContainer.className = 'message assistant';
+        statusContainer.innerHTML = `
+            <div class="message__avatar">🎨</div>
+            <div class="message__body">
+                <div class="message-content">
+                    <div class="igv2-stream-status">
+                        <div class="igv2-stream-header">
+                            <span class="igv2-stream-icon spinning">⚙️</span>
+                            <span class="igv2-stream-title">Image Regeneration</span>
+                        </div>
+                        <div class="igv2-stream-steps"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatContainer.appendChild(statusContainer);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        const stepsContainer = statusContainer.querySelector('.igv2-stream-steps');
+        const headerIcon = statusContainer.querySelector('.igv2-stream-icon');
+
+        const addStep = (icon, text, className = '') => {
+            const step = document.createElement('div');
+            step.className = `igv2-stream-step ${className}`;
+            step.innerHTML = `<span class="igv2-step-icon">${icon}</span><span class="igv2-step-text">${text}</span>`;
+            stepsContainer.appendChild(step);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return step;
+        };
+        const updateStep = (stepEl, icon, text, className = '') => {
+            if (!stepEl) return;
+            stepEl.className = `igv2-stream-step ${className}`;
+            stepEl.innerHTML = `<span class="igv2-step-icon">${icon}</span><span class="igv2-step-text">${text}</span>`;
+        };
+
+        window.chatApp.currentAbortController = new AbortController();
+        let providerStep = null;
+
+        try {
+            const result = await window.chatApp.imageGenV2.generateFromChatStream(
+                userPrompt, conversationId, window.chatApp.currentAbortController.signal,
+                {
+                    onStatus: (data) => {
+                        if (data.phase === 'enhance') {
+                            addStep(data.enhanced_prompt ? '✨' : '✨', data.enhanced_prompt ? 'Prompt enhanced' : data.step, data.enhanced_prompt ? 'done' : 'active');
+                        } else if (data.phase === 'select') {
+                            addStep(data.providers ? '📡' : '🔍', data.providers ? `Providers: ${data.providers.join(', ')}` : data.step, data.providers ? 'done' : 'active');
+                        } else {
+                            addStep('⚙️', data.step, 'active');
+                        }
+                    },
+                    onProviderTry: (data) => {
+                        providerStep = addStep('🔄', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
+                    },
+                    onProviderFail: (data) => {
+                        updateStep(providerStep, '❌', `${data.provider} failed: ${data.error}`, 'fail');
+                        providerStep = null;
+                    },
+                    onProviderSuccess: (data) => {
+                        updateStep(providerStep, '✅', `${data.provider} / ${data.model} — ${Math.round(data.latency_ms)}ms`, 'done');
+                        headerIcon.textContent = '✅';
+                        headerIcon.classList.remove('spinning');
+                    },
+                    onError: (data) => {
+                        addStep('❌', data.error, 'fail');
+                        headerIcon.textContent = '❌';
+                        headerIcon.classList.remove('spinning');
+                    },
+                },
+                imageGenOptions,
+            );
+
+            const formValues = window.chatApp.uiUtils.getFormValues();
+            const timestamp = window.chatApp.uiUtils.formatTimestamp(new Date());
+
+            if (result.success) {
+                let imgSrc = '';
+                let imageId = '';
+                if (result.images?.length > 0 && result.images[0].url) {
+                    imgSrc = result.images[0].url;
+                    imageId = result.images[0].image_id || '';
+                } else if (result.images_url?.length > 0) {
+                    imgSrc = result.images_url[0];
+                }
+
+                const meta = `🎨 **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
+                const enhanced = result.prompt_used ? `\n📝 ${result.prompt_used.substring(0, 150)}` : '';
+                const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const promptEsc = esc(result.prompt_used || userPrompt);
+                const imgSrcAttr = esc(imgSrc);
+                const imageIdAttr = esc(imageId);
+                const overlayButtons = `
+                    <div class="igv2-img-overlay">
+                        <button type="button" class="igv2-img-btn" title="Tải ảnh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">⬇</button>
+                        <button type="button" class="igv2-img-btn" title="Thông tin" data-igv2-action="info" data-image-id="${imageIdAttr}">ℹ</button>
+                        ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="Lưu & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">☁</button>` : ''}
+                    </div>`;
+
+                const content = `<div class="igv2-chat-image" data-image-id="${imageIdAttr}" data-prompt="${promptEsc}">${overlayButtons}<img src="${imgSrc}" alt="Generated" data-igv2-open="${imgSrcAttr}"><div class="igv2-chat-meta">${meta}${enhanced}</div></div>`;
+
+                const newMsgDiv = this.addMessage(chatContainer, content, false, formValues.model, formValues.context, timestamp);
+
+                // Carry forward image gen metadata
+                newMsgDiv.dataset.igv2Provider = provider;
+                newMsgDiv.dataset.igv2Prompt = userPrompt;
+                newMsgDiv.dataset.igv2RegenCount = String(regenCount + 1);
+                newMsgDiv.dataset.igv2ConversationId = conversationId;
+                newMsgDiv.dataset.igv2IsImage = 'true';
+
+                // Save version
+                this.addMessageVersion(messageId, userPrompt, content, new Date().toISOString());
+
+                // Make images clickable
+                setTimeout(() => {
+                    if (window.chatApp?.messageRenderer) {
+                        window.chatApp.messageRenderer.makeImagesClickable((img) => window.chatApp.openImagePreview(img));
+                    }
+                }, 100);
+            } else {
+                const errContent = `❌ Không thể tạo ảnh: ${result.error}`;
+                const newMsgDiv = this.addMessage(chatContainer, errContent, false, formValues.model, formValues.context, timestamp);
+                newMsgDiv.dataset.igv2Provider = provider;
+                newMsgDiv.dataset.igv2Prompt = userPrompt;
+                newMsgDiv.dataset.igv2RegenCount = String(regenCount + 1);
+                newMsgDiv.dataset.igv2ConversationId = conversationId;
+                newMsgDiv.dataset.igv2IsImage = 'true';
+
+                this.addMessageVersion(messageId, userPrompt, errContent, new Date().toISOString());
+            }
+
+            // Update version indicator on user message
+            if (prevMessage) {
+                const history = this.getMessageHistory(messageId);
+                prevMessage.dataset.currentVersion = (history.length - 1).toString();
+                this.updateVersionIndicator(prevMessage);
+            }
+
+            // Save session
+            if (window.chatApp) window.chatApp.saveCurrentSession(true);
+        } catch (error) {
+            console.error('[RegenImage] Error:', error);
+            headerIcon.textContent = '❌';
+            headerIcon.classList.remove('spinning');
+            addStep('❌', error.message || 'Unknown error', 'fail');
+        }
+    }
+
     /**
      * Show more options menu
      */

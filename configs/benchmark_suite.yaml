@@ -1,0 +1,688 @@
+# ═══════════════════════════════════════════════════════════════════
+# benchmark_suite.yaml — Evaluation test cases for Nano Banana-like system
+# ═══════════════════════════════════════════════════════════════════
+#
+# Each test case specifies:
+#   id            — unique test identifier
+#   category      — one of the 8 evaluation dimensions
+#   difficulty    — easy | medium | hard
+#   instruction   — natural-language user input
+#   setup         — what images/refs are pre-loaded
+#   expected      — what a passing result looks like
+#   dimensions    — which eval dimensions to score
+#   pass_rule     — "all" (every dimension must pass) or "weighted"
+#   notes         — edge cases, known difficulties
+
+# ─── Dimension reference ──────────────────────────────────────────
+# 1. instruction_adherence     — did the output match what the user asked?
+# 2. semantic_edit_accuracy    — were edits semantically correct (not just noise)?
+# 3. identity_consistency      — are faces/characters preserved across edits?
+# 4. multi_ref_quality         — how well are multiple references combined?
+# 5. detail_handling           — are eyes/hands/accessories correct?
+# 6. text_rendering            — is text in the image legible and accurate?
+# 7. multi_turn_stability      — does the image stay coherent across turns?
+# 8. correction_success        — did the correction loop fix failures?
+
+# ═══════════════════════════════════════════════════════════════════
+#  CATEGORY 1: INSTRUCTION ADHERENCE (IA)
+# ═══════════════════════════════════════════════════════════════════
+
+test_cases:
+
+  # ── IA: Basic T2I ─────────────────────────────────────────────────
+
+  - id: IA-001
+    category: instruction_adherence
+    difficulty: easy
+    instruction: "A red sports car parked in front of a white mansion at sunset"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [red car, mansion, sunset lighting]
+      must_not_contain: [people in foreground, night scene]
+    dimensions: [instruction_adherence, detail_handling]
+    pass_rule: all
+
+  - id: IA-002
+    category: instruction_adherence
+    difficulty: medium
+    instruction: "A Vietnamese girl with long black hair sitting in a Saigon café, drinking iced coffee, afternoon light"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [girl, black hair, café setting, iced coffee, warm light]
+      must_not_contain: [Western café, blonde hair]
+    dimensions: [instruction_adherence, detail_handling]
+    pass_rule: all
+
+  - id: IA-003
+    category: instruction_adherence
+    difficulty: hard
+    instruction: "Cô gái tóc hồng mặc áo dài trắng đứng giữa cánh đồng lúa vàng, hoàng hôn, ánh nắng xiên"
+    setup:
+      mode: t2i
+      references: []
+      language: vi
+    expected:
+      must_contain: [pink hair, white ao dai, golden rice field, sunset, side lighting]
+      must_not_contain: [modern city, dark scene]
+    dimensions: [instruction_adherence, detail_handling]
+    pass_rule: all
+    notes: "Vietnamese input — tests translation layer + cultural accuracy"
+
+  - id: IA-004
+    category: instruction_adherence
+    difficulty: hard
+    instruction: "An astronaut riding a horse on the surface of Mars, Earth visible in the sky, photorealistic"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [astronaut, horse, Mars surface, Earth in sky]
+      must_not_contain: [moon, indoor scene]
+    dimensions: [instruction_adherence]
+    pass_rule: all
+    notes: "Compositional challenge — multiple subjects + unusual combination"
+
+  # ── IA: Edit mode ────────────────────────────────────────────────
+
+  - id: IA-005
+    category: instruction_adherence
+    difficulty: medium
+    instruction: "Change the dress color from blue to red, keep everything else"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/woman_blue_dress.png"
+      references: []
+    expected:
+      must_contain: [red dress]
+      must_preserve: [face, background, pose, hair]
+    dimensions: [instruction_adherence, semantic_edit_accuracy, identity_consistency]
+    pass_rule: all
+
+  - id: IA-006
+    category: instruction_adherence
+    difficulty: hard
+    instruction: "Remove the sunglasses but keep the same facial expression"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/person_with_sunglasses.png"
+      references: []
+    expected:
+      must_contain: [visible eyes, same expression]
+      must_preserve: [identity, hair, clothing, background]
+    dimensions: [instruction_adherence, semantic_edit_accuracy, identity_consistency, detail_handling]
+    pass_rule: all
+    notes: "Requires generating plausible eyes — high difficulty"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 2: SEMANTIC EDIT ACCURACY (SE)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: SE-001
+    category: semantic_edit_accuracy
+    difficulty: easy
+    instruction: "Make it nighttime"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/daytime_street.png"
+      references: []
+    expected:
+      must_contain: [dark sky, artificial lights, night atmosphere]
+      must_preserve: [buildings, street layout, parked cars]
+    dimensions: [semantic_edit_accuracy, instruction_adherence]
+    pass_rule: all
+
+  - id: SE-002
+    category: semantic_edit_accuracy
+    difficulty: medium
+    instruction: "Add falling cherry blossom petals and make the lighting more golden"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/park_scene.png"
+      references: []
+    expected:
+      must_contain: [cherry blossom petals, golden warm light]
+      must_preserve: [park layout, trees, people if any]
+    dimensions: [semantic_edit_accuracy, instruction_adherence, detail_handling]
+    pass_rule: all
+
+  - id: SE-003
+    category: semantic_edit_accuracy
+    difficulty: hard
+    instruction: "Change the season from summer to winter — add snow on the ground and bare trees"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/summer_garden.png"
+      references: []
+    expected:
+      must_contain: [snow, bare branches, winter atmosphere]
+      must_preserve: [house structure, fence, overall composition]
+    dimensions: [semantic_edit_accuracy, instruction_adherence]
+    pass_rule: all
+    notes: "Large-scope semantic edit — tests preservation of structure"
+
+  - id: SE-004
+    category: semantic_edit_accuracy
+    difficulty: hard
+    instruction: "Replace the cat on the sofa with a small golden retriever puppy, same pose"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/cat_on_sofa.png"
+      references: []
+    expected:
+      must_contain: [golden retriever puppy, sofa, similar pose]
+      must_preserve: [sofa, background, lighting]
+    dimensions: [semantic_edit_accuracy, instruction_adherence, detail_handling]
+    pass_rule: all
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 3: IDENTITY CONSISTENCY (IC)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: IC-001
+    category: identity_consistency
+    difficulty: medium
+    instruction: "Put this person in a business suit in an office"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/casual_person.png"
+      references:
+        - role: face
+          image: "sample/casual_person.png"
+    expected:
+      must_contain: [business suit, office background]
+      must_preserve: [face identity, facial features, skin tone]
+    dimensions: [identity_consistency, instruction_adherence]
+    pass_rule: all
+
+  - id: IC-002
+    category: identity_consistency
+    difficulty: hard
+    instruction: "Same person, now wearing a traditional Japanese kimono, standing in a Kyoto garden"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/modern_person.png"
+      references:
+        - role: face
+          image: "sample/modern_person.png"
+    expected:
+      must_contain: [kimono, Japanese garden, same person]
+      must_preserve: [face identity exactly, hair color, facial structure]
+    dimensions: [identity_consistency, instruction_adherence, detail_handling]
+    pass_rule: all
+    notes: "Complete outfit + background change while preserving exact identity"
+
+  - id: IC-003
+    category: identity_consistency
+    difficulty: hard
+    instruction: "Age this person by 30 years but keep them recognizable"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/young_person.png"
+      references:
+        - role: face
+          image: "sample/young_person.png"
+    expected:
+      must_contain: [aging signs, wrinkles, gray hair suggests]
+      must_preserve: [recognizable identity, facial bone structure, ethnicity]
+    dimensions: [identity_consistency, semantic_edit_accuracy]
+    pass_rule: all
+    notes: "Paradox test — change appearance while preserving identity"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 4: MULTI-REFERENCE QUALITY (MR)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: MR-001
+    category: multi_ref_quality
+    difficulty: medium
+    instruction: "Person from photo A wearing the outfit from photo B, in the location from photo C"
+    setup:
+      mode: multi_ref
+      references:
+        - role: face
+          image: "sample/person_a.png"
+        - role: outfit
+          image: "sample/outfit_b.png"
+        - role: background
+          image: "sample/location_c.png"
+    expected:
+      must_contain: [person_a face, outfit_b clothing, location_c background]
+      must_preserve: [face identity from ref_0, outfit details from ref_1]
+    dimensions: [multi_ref_quality, identity_consistency, instruction_adherence]
+    pass_rule: all
+
+  - id: MR-002
+    category: multi_ref_quality
+    difficulty: hard
+    instruction: "Combine: face from A, hairstyle from B, dress from C, standing in a snowy forest"
+    setup:
+      mode: multi_ref
+      references:
+        - role: face
+          image: "sample/face_ref.png"
+        - role: style
+          image: "sample/hair_ref.png"
+          note: "Use hairstyle only"
+        - role: outfit
+          image: "sample/dress_ref.png"
+    expected:
+      must_contain: [correct face, correct hairstyle, correct dress, snowy forest]
+      must_preserve: [face identity from ref_0]
+    dimensions: [multi_ref_quality, identity_consistency, instruction_adherence]
+    pass_rule: all
+    notes: "4-way composition — the hardest multi-ref scenario"
+
+  - id: MR-003
+    category: multi_ref_quality
+    difficulty: hard
+    instruction: "Group photo: person A and person B sitting together at a café table"
+    setup:
+      mode: multi_ref
+      references:
+        - role: face
+          image: "sample/person_a.png"
+        - role: face
+          image: "sample/person_b.png"
+        - role: background
+          image: "sample/cafe_interior.png"
+    expected:
+      must_contain: [two distinct people, café table, both identities]
+      must_preserve: [person_a identity, person_b identity, distinct]
+    dimensions: [multi_ref_quality, identity_consistency]
+    pass_rule: all
+    notes: "Two-face composition — identity bleeding is the main failure mode"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 5: DETAIL HANDLING (DH)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: DH-001
+    category: detail_handling
+    difficulty: medium
+    instruction: "A person playing guitar — focus on correct hand positioning"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [guitar, correct hand on fretboard, correct strumming hand]
+      must_not_contain: [extra fingers, merged fingers, floating hand]
+    dimensions: [detail_handling, instruction_adherence]
+    pass_rule: all
+    notes: "Hands on instrument — classic diffusion failure case"
+
+  - id: DH-002
+    category: detail_handling
+    difficulty: hard
+    instruction: "Close-up portrait with detailed eyes — heterochromia: left eye blue, right eye green"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [blue left eye, green right eye, detailed iris texture]
+      must_not_contain: [same color both eyes, blurry irises]
+    dimensions: [detail_handling, instruction_adherence]
+    pass_rule: all
+    notes: "Asymmetric eye detail — tests fine-grained control"
+
+  - id: DH-003
+    category: detail_handling
+    difficulty: hard
+    instruction: "A woman wearing an intricate silver necklace with a small emerald pendant, close-up"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [silver necklace, emerald pendant, intricate detail]
+      must_not_contain: [blob jewelry, missing pendant, wrong gem color]
+    dimensions: [detail_handling, instruction_adherence]
+    pass_rule: all
+    notes: "Small accessory detail — tests refinement pipeline"
+
+  - id: DH-004
+    category: detail_handling
+    difficulty: hard
+    instruction: "Fix the hands in this image — the person should have exactly 5 fingers on each hand"
+    setup:
+      mode: semantic_edit
+      source_image: "sample/bad_hands.png"
+      references: []
+    expected:
+      must_contain: [correct 5 fingers each hand, natural hand anatomy]
+      must_preserve: [everything except hands]
+    dimensions: [detail_handling, correction_success]
+    pass_rule: all
+    notes: "Correction test — requires ADetailer/Fill pipeline"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 6: TEXT RENDERING (TR)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: TR-001
+    category: text_rendering
+    difficulty: easy
+    instruction: "A coffee shop sign that reads 'OPEN' in bold white letters"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: ["sign reading OPEN", legible white text]
+      must_not_contain: [garbled text, misspelled]
+    dimensions: [text_rendering, instruction_adherence]
+    pass_rule: all
+
+  - id: TR-002
+    category: text_rendering
+    difficulty: medium
+    instruction: "A birthday cake with 'Happy Birthday Sarah!' written in pink icing"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: [cake, "Happy Birthday Sarah! text", pink icing]
+      must_not_contain: [misspelled name, illegible text]
+    dimensions: [text_rendering, instruction_adherence, detail_handling]
+    pass_rule: all
+    notes: "Multi-word text with proper name — common failure"
+
+  - id: TR-003
+    category: text_rendering
+    difficulty: hard
+    instruction: "A storefront with bilingual sign: 'PHỞ 24' in Vietnamese on top, 'Best Pho in Town' in English below"
+    setup:
+      mode: t2i
+      references: []
+    expected:
+      must_contain: ["PHO 24 text with diacritics", English subtitle]
+      must_not_contain: [missing diacritics, garbled characters]
+    dimensions: [text_rendering, instruction_adherence]
+    pass_rule: all
+    notes: "Vietnamese diacritics — extremely hard for most models"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 7: MULTI-TURN STABILITY (MT)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: MT-001
+    category: multi_turn_stability
+    difficulty: medium
+    turns:
+      - instruction: "Generate a portrait of a woman with curly red hair"
+      - instruction: "Now change the background to a beach"
+      - instruction: "Add sunglasses"
+    setup:
+      mode: multi_turn
+      references: []
+    expected:
+      after_turn_1: [woman, curly red hair]
+      after_turn_2: [same woman, same hair, beach background]
+      after_turn_3: [same woman, same hair, beach, sunglasses]
+      must_preserve_across_turns: [face identity, hair color and style]
+    dimensions: [multi_turn_stability, identity_consistency]
+    pass_rule: all
+    notes: "3-turn progressive edit — identity must not drift"
+
+  - id: MT-002
+    category: multi_turn_stability
+    difficulty: hard
+    turns:
+      - instruction: "A cyberpunk warrior woman with neon blue armor"
+      - instruction: "Change armor color to gold"
+      - instruction: "Put her in a medieval castle instead"
+      - instruction: "Add a dragon flying in the background"
+      - instruction: "Make it nighttime with moonlight"
+    setup:
+      mode: multi_turn
+      references: []
+    expected:
+      after_each_turn: "Same character identity maintained"
+      final: [warrior woman, gold armor, medieval castle, dragon, night, moonlight]
+      must_preserve_across_turns: [character face, character body proportions]
+    dimensions: [multi_turn_stability, identity_consistency, instruction_adherence]
+    pass_rule: all
+    notes: "5-turn deep edit — maximum drift risk"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  CATEGORY 8: CORRECTION SUCCESS (CS)
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: CS-001
+    category: correction_success
+    difficulty: medium
+    instruction: "Generate a person reading a book — then evaluate and auto-correct any hand issues"
+    setup:
+      mode: t2i_with_correction
+      references: []
+      force_correction: true
+    expected:
+      after_correction: [correct hands, proper finger count, natural grip on book]
+      before_vs_after: "Measurable improvement in detail_handling score"
+    dimensions: [correction_success, detail_handling]
+    pass_rule: all
+    notes: "Tests the eval→correct→re-eval loop end-to-end"
+
+  - id: CS-002
+    category: correction_success
+    difficulty: hard
+    instruction: "Generate a group of 3 people — auto-fix any face/identity issues after first pass"
+    setup:
+      mode: t2i_with_correction
+      references: []
+      force_correction: true
+    expected:
+      after_correction: [3 distinct faces, no face merging, proper anatomy]
+      before_vs_after: "Improvement in identity_consistency and detail_handling"
+    dimensions: [correction_success, identity_consistency, detail_handling]
+    pass_rule: all
+    notes: "Multi-face correction — requires targeted ADetailer per face"
+
+  - id: CS-003
+    category: correction_success
+    difficulty: hard
+    instruction: "Add text 'WELCOME HOME' to this image — correct any text rendering issues"
+    setup:
+      mode: semantic_edit_with_correction
+      source_image: "sample/house_front.png"
+      force_correction: true
+    expected:
+      after_correction: ["legible WELCOME HOME text", correct spelling]
+      before_vs_after: "Text becomes legible after correction"
+    dimensions: [correction_success, text_rendering]
+    pass_rule: all
+    notes: "Text correction loop — may require model escalation to GPT-Image-1"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SCORING RUBRIC
+# ═══════════════════════════════════════════════════════════════════
+#
+# Each dimension is scored on a 0.0–1.0 continuous scale by the judge model.
+# The rubric below maps score ranges to qualitative labels.
+
+scoring_rubric:
+
+  instruction_adherence:
+    description: "Does the output match what the user asked for?"
+    weight: 1.0
+    threshold: 0.70
+    scale:
+      0.0-0.2: "Completely wrong — unrelated output"
+      0.2-0.4: "Partially related but major elements missing or wrong"
+      0.4-0.6: "Core subject present but significant deviations"
+      0.6-0.7: "Mostly correct, minor mismatches remain"
+      0.7-0.8: "Good — all major elements present, minor issues only"
+      0.8-0.9: "Very good — closely matches instruction"
+      0.9-1.0: "Excellent — faithful reproduction of user intent"
+
+  semantic_edit_accuracy:
+    description: "Were the requested edits applied correctly without unintended changes?"
+    weight: 1.0
+    threshold: 0.70
+    scale:
+      0.0-0.2: "Edit failed — image unchanged or destroyed"
+      0.2-0.4: "Edit applied but wrong area or wrong effect"
+      0.4-0.6: "Edit partially applied, some unintended changes"
+      0.6-0.7: "Edit correct but minor artifacts or bleed-through"
+      0.7-0.8: "Edit clean, small unintended area changes"
+      0.8-0.9: "Edit precise, minimal artifacts"
+      0.9-1.0: "Perfect surgical edit — only requested area changed"
+
+  identity_consistency:
+    description: "Are faces and character identity preserved correctly?"
+    weight: 1.2
+    threshold: 0.80
+    scale:
+      0.0-0.2: "Different person entirely"
+      0.2-0.4: "Same general type but clearly different individual"
+      0.4-0.6: "Resemblance but noticeable drift in features"
+      0.6-0.7: "Same person, but visible differences in key features"
+      0.7-0.8: "Same person, minor inconsistencies (lighting, angle artifacts)"
+      0.8-0.9: "Strongly consistent — would pass casual recognition"
+      0.9-1.0: "Perfect match — identical identity, natural variation only"
+    notes: "Higher weight (1.2) and threshold (0.80) — identity is critical"
+
+  multi_ref_quality:
+    description: "How well are multiple reference images combined?"
+    weight: 1.0
+    threshold: 0.60
+    scale:
+      0.0-0.2: "References ignored or garbled"
+      0.2-0.4: "Only one reference used, others ignored"
+      0.4-0.6: "Multiple references visible but awkward combination"
+      0.6-0.7: "Reasonable composition, some elements not properly integrated"
+      0.7-0.8: "Good integration, minor blending artifacts"
+      0.8-0.9: "Seamless — each reference contributes its assigned role"
+      0.9-1.0: "Perfect — indistinguishable from a real composite"
+    notes: "Lower threshold (0.60) — multi-ref is inherently harder"
+
+  detail_handling:
+    description: "Are fine details (eyes, hands, accessories) rendered correctly?"
+    weight: 0.9
+    threshold: 0.70
+    scale:
+      0.0-0.2: "Severe defects — melted fingers, misplaced eyes"
+      0.2-0.4: "Major anatomical errors — extra fingers, asymmetric eyes"
+      0.4-0.6: "Noticeable issues — slightly wrong finger count, blurry details"
+      0.6-0.7: "Mostly correct, minor stiffness or blur"
+      0.7-0.8: "Good — natural anatomy, minor imperfections"
+      0.8-0.9: "Very good — detailed and accurate"
+      0.9-1.0: "Excellent — photo-grade anatomical accuracy"
+
+  text_rendering:
+    description: "Is text in the image legible and accurately spelled?"
+    weight: 0.7
+    threshold: 0.50
+    scale:
+      0.0-0.2: "No text visible or completely garbled"
+      0.2-0.4: "Some letter shapes but unreadable"
+      0.4-0.5: "Text partially legible but misspelled or missing characters"
+      0.5-0.7: "Text readable with effort, minor spelling issues"
+      0.7-0.8: "Text legible and mostly correct"
+      0.8-0.9: "Clear text, correct spelling, good placement"
+      0.9-1.0: "Perfect — crisp, correctly spelled, well-integrated"
+    notes: "Lower weight (0.7) and threshold (0.50) — text is the hardest dimension"
+
+  multi_turn_stability:
+    description: "Does the image stay coherent and consistent across multiple turns?"
+    weight: 1.0
+    threshold: 0.70
+    scale:
+      0.0-0.2: "Image completely different after each turn"
+      0.2-0.4: "Major drift — character/style changes significantly"
+      0.4-0.6: "Noticeable drift — features shifting but recognizable"
+      0.6-0.7: "Minor drift — mainly lighting or minor detail changes"
+      0.7-0.8: "Stable — only requested changes applied"
+      0.8-0.9: "Very stable — clean edit chain with no drift"
+      0.9-1.0: "Perfect — each turn only changes what was asked"
+
+  correction_success:
+    description: "Did the correction loop successfully fix evaluation failures?"
+    weight: 0.8
+    threshold: 0.60
+    scale:
+      0.0-0.2: "Correction made things worse"
+      0.2-0.4: "Correction attempted but no visible improvement"
+      0.4-0.6: "Partial improvement — some issues fixed, others remain"
+      0.6-0.7: "Meaningful improvement — most issues addressed"
+      0.7-0.8: "Good correction — nearly all issues resolved"
+      0.8-0.9: "Strong correction — all issues fixed, minor artifacts"
+      0.9-1.0: "Perfect correction — issue fully resolved, clean result"
+    notes: "Lower weight (0.8) — correction is a safety net, not the primary output"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PASS/FAIL RULES
+# ═══════════════════════════════════════════════════════════════════
+
+pass_fail:
+  # A single test case passes if ALL evaluated dimensions meet their thresholds.
+  case_pass_rule: "all_dimensions_pass"
+
+  # Overall suite pass: ≥ this fraction of cases must pass per category
+  category_pass_rate: 0.70
+
+  # "Nano Banana-like" label requires ≥ this overall pass rate
+  nano_banana_threshold: 0.80
+
+  # Critical failures — ANY of these failing is a hard fail for the suite
+  critical_dimensions:
+    - instruction_adherence
+    - identity_consistency
+
+  # Non-blocking — failures here are logged but don't block the suite
+  non_blocking_dimensions:
+    - text_rendering
+    - correction_success
+
+  # Minimum test cases per category for valid benchmark
+  min_cases_per_category: 2
+
+
+# ═══════════════════════════════════════════════════════════════════
+# RECORDING TEMPLATE
+# ═══════════════════════════════════════════════════════════════════
+#
+# Each benchmark run produces a JSON record per test case.
+# Template for storage/metadata/benchmark/<run_id>/<case_id>.json
+
+recording_template:
+  run_id: "{auto}"
+  case_id: "{test_case_id}"
+  timestamp: "{iso8601}"
+  stack_version: "{git_sha}"
+
+  # Input
+  instruction: "{from_test_case}"
+  mode: "{from_test_case}"
+  references: "{from_test_case}"
+
+  # Execution
+  models_used: []
+  stages_executed: []
+  stage_timings_ms: {}
+  total_latency_ms: 0
+  total_cost_usd: 0.0
+  execution_locations: {}
+  correction_rounds: 0
+
+  # Evaluation
+  scores: {}
+  thresholds: {}
+  passed_dimensions: []
+  failed_dimensions: []
+  overall_score: 0.0
+  case_passed: false
+  judge_model: ""
+  judge_reasoning: {}
+
+  # Artifacts
+  output_image_path: ""
+  intermediate_images: []
+  prompt_lineage: []
+
+  # Comparison
+  experiment_id: ""
+  comparison_notes: ""

@@ -30,6 +30,7 @@ from libs.core.repositories_sql import (
     SqlDocumentVersionRepository,
 )
 from libs.embedding.service import EmbedResult, EmbeddingService
+from libs.embedding.service import EmbeddingService, EmbedResult
 
 logger = logging.getLogger("rag.embedding.indexer")
 

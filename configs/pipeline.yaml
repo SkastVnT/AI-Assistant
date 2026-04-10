@@ -1,0 +1,272 @@
+# ═══════════════════════════════════════════════════════════════════
+# pipeline.yaml — Pipeline stage configuration
+# ═══════════════════════════════════════════════════════════════════
+#
+# Controls timeouts, evaluation thresholds, correction limits,
+# storage paths, and deployment topology.
+
+# ── Stage timeouts (milliseconds) ─────────────────────────────────
+stages:
+  normalize:
+    timeout_ms: 5000
+    location: local         # Always runs locally (CPU-only)
+
+  constrain:
+    timeout_ms: 10000
+    location: local         # LLM call for constraint extraction
+
+  load_refs:
+    timeout_ms: 15000
+    location: local         # Download + cache references
+
+  generate:
+    timeout_ms: 120000      # 2 min — remote model may queue
+    location: auto          # Decided by capability_router
+
+  compose:
+    timeout_ms: 120000
+    location: api           # FLUX.2 multi-ref via BFL/fal API
+
+  refine:
+    timeout_ms: 30000       # Per-round timeout
+    location: local         # ADetailer / Fill runs locally first
+    fallback_location: api  # Escalate to API if local insufficient
+
+  evaluate:
+    timeout_ms: 30000
+    location: api           # LLM-as-judge (vision model)
+
+  correct:
+    timeout_ms: 120000
+    location: auto          # Depends on correction strategy
+
+  finalize:
+    timeout_ms: 10000
+    location: local         # Write metadata + save images
+
+# ── Evaluation dimensions + thresholds (§13) ──────────────────────
+evaluation:
+  dimensions:
+    instruction_adherence:
+      weight: 1.0
+      threshold: 0.70
+    semantic_edit_accuracy:
+      weight: 1.0
+      threshold: 0.70
+    identity_consistency:
+      weight: 1.2           # Higher weight — identity matters most
+      threshold: 0.80
+    multi_ref_quality:
+      weight: 1.0
+      threshold: 0.60
+    detail_handling:
+      weight: 0.9
+      threshold: 0.70
+    text_rendering:
+      weight: 0.7           # Not all jobs render text
+      threshold: 0.50
+    multi_turn_stability:
+      weight: 1.0
+      threshold: 0.70
+    correction_success:
+      weight: 0.8
+      threshold: 0.60
+
+  # Judge model preference (tried in order)
+  judge_models:
+    - "qwen2.5-vl-72b"     # VPS — best multimodal judge
+    - "gpt-4o"              # API fallback
+    - "gpt-4o-mini"         # Cheap fallback
+
+# ── Correction loop ───────────────────────────────────────────────
+correction:
+  max_rounds: 2
+  budget_usd: 0.15          # Max spend on correction per job
+  strategies:
+    - semantic               # Re-run semantic editor
+    - fill                   # Mask-based inpaint
+    - composite              # Multi-strategy
+  escalation:
+    # If local refinement fails → escalate to remote
+    local_fail_threshold: 1  # After 1 failed local round, go remote
+
+# ── Refinement defaults ──────────────────────────────────────────
+refinement:
+  auto_detect: true          # ADetailer auto-detection
+  detail_level: high
+  max_rounds: 2
+  budget_usd: 0.10
+  priority_order:
+    - face
+    - hands
+    - eyes
+    - text
+    - accessories
+    - background
+
+# ── Storage paths ─────────────────────────────────────────────────
+storage:
+  base_dir: "storage"
+  prompts_dir: "storage/prompts"
+  references_dir: "storage/references"
+  intermediate_dir: "storage/intermediate"
+  outputs_dir: "storage/outputs"
+  metadata_dir: "storage/metadata"
+
+  # Retention
+  keep_intermediate_days: 7
+  keep_outputs_days: 90
+  keep_metadata_days: 365
+  max_local_gb: 10.0
+
+# ── Deployment topology ──────────────────────────────────────────
+deployment:
+
+  local:
+    gpu_vram_gb: 12
+    max_concurrent_jobs: 1
+    comfyui_ports:
+      primary: 8188        # Root ComfyUI
+      edit: 8100            # services/edit-image ComfyUI
+    roles:
+      - orchestration       # Pipeline controller always runs locally
+      - preview             # Quick preview via flux-schnell / SDXL
+      - refinement          # ADetailer + IP-Adapter
+      - inpaint_light       # Small region fill (< 512x512 mask)
+      - testing             # All unit/integration tests
+      - metadata            # Job logging, experiment tracking
+
+  vps:
+    # Minimum usable: 24GB VRAM (Qwen fp8 + overhead)
+    # Recommended:    48GB VRAM (Qwen bf16 + batch headroom)
+    min_vram_gb: 24
+    recommended_vram_gb: 48
+    roles:
+      - semantic_edit       # Qwen-Image-Edit primary inference
+      - evaluation_judge    # Qwen2.5-VL as 8-dim scorer
+      - batch_inference     # Heavy multi-turn editing
+      - correction_remote   # When local correction fails
+    serving:
+      engine: vllm
+      models:
+        - "Qwen/Qwen-Image-Edit-2511"
+        - "Qwen/Qwen2.5-VL-72B-Instruct"  # Judge model
+      max_batch_size: 4
+      gpu_memory_utilization: 0.90
+
+  api:
+    # Third-party APIs — always available as fallback
+    roles:
+      - generation          # FLUX.2 via fal/BFL
+      - multi_ref           # FLUX.2 pro/max multi-reference
+      - inpaint_api         # FLUX Fill, StepFun Fill
+      - fallback_edit       # Kontext, Step1X-Edit, Nano-Banana
+      - text_rendering      # GPT-Image-1 for text-heavy images
+
+  # ── GPU tier mapping ────────────────────────────────────────────
+  gpu_tiers:
+    minimum:
+      vram_gb: 24
+      provider: "any (vast.ai, runpod, lambda)"
+      cost_estimate: "$0.25-0.40/hr"
+      models_supported:
+        - "Qwen-Image-Edit fp8 (~22GB)"
+      limitations:
+        - "No simultaneous judge + editor"
+        - "No batch inference"
+        - "Must swap models for evaluation"
+
+    recommended:
+      vram_gb: 48
+      provider: "A6000 (runpod), A100-40GB x2, or single A100-80GB"
+      cost_estimate: "$0.80-1.60/hr"
+      models_supported:
+        - "Qwen-Image-Edit bf16 (40GB)"
+        - "Qwen2.5-VL-72B fp8 (judge, ~40GB) — time-shared"
+      limitations:
+        - "Judge and editor cannot run simultaneously on 48GB"
+        - "Batch size limited to 2-4"
+
+    ideal:
+      vram_gb: 80
+      provider: "A100-80GB or H100"
+      cost_estimate: "$1.50-3.00/hr"
+      models_supported:
+        - "Qwen-Image-Edit bf16 (40GB)"
+        - "Qwen2.5-VL-72B fp8 (40GB, colocated)"
+      limitations:
+        - "Cost"
+
+# ── Job flow rules ────────────────────────────────────────────────
+job_flow:
+  # How jobs move between local ↔ remote
+  rules:
+    - stage: normalize
+      always: local
+
+    - stage: constrain
+      always: local
+      notes: "LLM call uses lightweight model or API"
+
+    - stage: load_refs
+      always: local
+      notes: "Download to storage/references/, cache locally"
+
+    - stage: generate
+      decision: capability_router
+      prefer: vps               # Qwen for edits, API for t2i
+      fallback: api
+      notes: "VPS for semantic_edit; API (fal/BFL) for t2i/multi_ref"
+
+    - stage: compose
+      decision: capability_router
+      prefer: api               # FLUX.2 via BFL
+      fallback: api
+      notes: "Multi-ref composition always via API (BFL/fal)"
+
+    - stage: refine
+      prefer: local             # ADetailer, IP-Adapter
+      escalate_to: api          # FLUX Fill if local not enough
+      escalation_trigger: "eval_score < threshold after local round"
+
+    - stage: evaluate
+      prefer: vps               # Qwen2.5-VL judge
+      fallback: api             # GPT-4o fallback
+      notes: "Vision LLM scores 8 dimensions"
+
+    - stage: correct
+      decision: correction_strategy
+      notes: "semantic → VPS, fill → API, composite → VPS+local"
+
+    - stage: finalize
+      always: local
+      notes: "Write metadata JSON, save images, update experiment log"
+
+# ── File sync between local and remote ────────────────────────────
+file_sync:
+  # References: uploaded to VPS on demand (not pre-synced)
+  references:
+    strategy: on_demand_upload
+    protocol: http_multipart
+    max_size_mb: 20
+    cache_on_vps: true
+    ttl_minutes: 60
+
+  # Intermediate images: pulled from remote after each stage
+  intermediate:
+    strategy: pull_after_stage
+    protocol: http_download
+    save_local: true
+    format: png
+
+  # Metadata: always written locally, optionally pushed to VPS
+  metadata:
+    strategy: local_primary
+    push_to_remote: false
+    format: json
+
+  # Final outputs: saved locally, optionally uploaded to cloud storage
+  outputs:
+    strategy: local_primary
+    cloud_backup: false         # Enable via output_targets.save_cloud
+    format: png

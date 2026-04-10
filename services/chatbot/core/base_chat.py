@@ -35,12 +35,13 @@ class ModelConfig:
     api_key: str = ""
     base_url: str = ""
     model_id: str = ""
-    max_tokens: int = 1000
-    max_tokens_deep: int = 2000
+    max_tokens: int = 2000
+    max_tokens_deep: int = 4096
     temperature: float = 0.7
     temperature_deep: float = 0.5
     timeout: int = 60
     supports_streaming: bool = True
+    supports_vision: bool = False
     fallback_model: Optional[str] = None
 
 
@@ -55,6 +56,7 @@ class ChatContext:
     history: Optional[List[Dict]] = None
     memories: Optional[List[Dict]] = None
     conversation_history: List[Dict] = field(default_factory=list)
+    images: Optional[List[str]] = None  # base64 data-URLs for vision models
 
 
 @dataclass
@@ -223,7 +225,21 @@ class BaseModelChat(ABC):
             system_prompt = prompts.get(ctx.context, prompts.get('casual', ''))
         
         if ctx.deep_thinking:
-            system_prompt += "\n\nIMPORTANT: Think step-by-step with detailed reasoning."
+            system_prompt += (
+                "\n\n=== DEEP THINKING MODE ==="
+                "\nBefore answering, you MUST reason through the problem step by step inside <think>...</think> tags."
+                "\nYour thinking should be detailed, analytical, and show your actual reasoning process — "
+                "consider multiple angles, evaluate options, identify key insights, and work through the logic."
+                "\nWrite your thinking in the same language as the user's message."
+                "\nAfter </think>, provide your final polished answer."
+                "\n\nExample format:"
+                "\n<think>"
+                "\nLet me analyze this step by step..."
+                "\n[Your detailed reasoning here]"
+                "\n</think>"
+                "\n\n[Your final answer here]"
+                "\n=== END DEEP THINKING MODE ==="
+            )
         
         if ctx.memories:
             system_prompt += "\n\n=== KNOWLEDGE BASE ===\n"
@@ -253,7 +269,21 @@ class BaseModelChat(ABC):
                 if 'assistant' in hist:
                     messages.append({"role": "assistant", "content": hist['assistant']})
         
-        messages.append({"role": "user", "content": ctx.message})
+        # Build user content — multimodal if images are attached
+        if ctx.images:
+            user_content = []
+            # Add text part first
+            if ctx.message:
+                user_content.append({"type": "text", "text": ctx.message})
+            # Add each image as an image_url part
+            for img_data_url in ctx.images:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": img_data_url, "detail": "auto"}
+                })
+            messages.append({"role": "user", "content": user_content})
+        else:
+            messages.append({"role": "user", "content": ctx.message})
         return messages
     
     def chat(self, ctx: ChatContext, prompts_getter: Callable, stream: bool = False) -> ChatResponse:

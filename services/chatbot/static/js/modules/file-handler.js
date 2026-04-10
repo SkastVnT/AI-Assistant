@@ -3,6 +3,8 @@
  * Handles file uploads, paste events, and file management
  */
 
+import { csvPreview } from './csv-preview.js';
+
 export class FileHandler {
     constructor() {
         this.uploadedFiles = []; // Temporary storage for current upload
@@ -18,43 +20,18 @@ export class FileHandler {
             return;
         }
 
-        console.log('[FileHandler] Setting up file input listener');
-        console.log('[FileHandler] Element:', fileInput);
-        console.log('[FileHandler] Element ID:', fileInput.id);
-        console.log('[FileHandler] Element tag:', fileInput.tagName);
-        console.log('[FileHandler] Element type:', fileInput.type);
-        
-        // Remove any existing listeners first
-        const oldInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(oldInput, fileInput);
-        
-        // Add new listener with addEventListener (more reliable)
-        oldInput.addEventListener('change', function(event) {
-            console.log('[FileHandler] ===== FILE INPUT CHANGED =====');
-            console.log('[FileHandler] Event:', event);
-            console.log('[FileHandler] Target:', event.target);
-            console.log('[FileHandler] Files:', event.target.files);
-            console.log('[FileHandler] Files count:', event.target.files.length);
-            
+        // Add change listener directly (no clone needed)
+        fileInput.addEventListener('change', function(event) {
             if (event.target.files && event.target.files.length > 0) {
                 const newFiles = Array.from(event.target.files);
-                console.log('[FileHandler] New files array:', newFiles);
-                
                 if (onFilesChange) {
-                    console.log('[FileHandler] Calling onFilesChange callback with', newFiles.length, 'files');
                     onFilesChange(newFiles);
-                } else {
-                    console.error('[FileHandler] No onFilesChange callback provided!');
                 }
-            } else {
-                console.warn('[FileHandler] No files selected');
             }
         });
         
-        console.log('[FileHandler] File input listener setup complete');
-        
-        // Return the new element reference
-        return oldInput;
+        // Return the same element reference
+        return fileInput;
     }
 
     /**
@@ -253,15 +230,35 @@ export class FileHandler {
                 // For images, compress heavily to reduce storage
                 const base64 = await this.readFileAsBase64(file);
                 console.log('[FileHandler] Image read, compressing...');
-                fileData.content = await this.compressImage(base64, 0.3); // Aggressive compression
+                fileData.content = await this.compressImage(base64, 0.6); // Balanced quality for AI vision
                 fileData.preview = fileData.content;
                 console.log('[FileHandler] Image compressed successfully');
+            } else if (file.name.endsWith('.csv') || file.name.endsWith('.tsv')) {
+                console.log('[FileHandler] Processing as tabular file...');
+                // For CSV/TSV: read as text, parse into table for inline preview,
+                // and keep raw text so AI can also read the content.
+                fileData.content = await this.readFileAsText(file);
+                fileData.tableData = csvPreview.parse(fileData.content, file.name);
+                console.log(`[FileHandler] Table parsed: ${fileData.tableData.rows.length} rows, ${fileData.tableData.headers.length} cols`);
             } else if (file.type.startsWith('text/') || 
                        file.type === 'application/json' ||
                        file.name.endsWith('.py') || 
                        file.name.endsWith('.js') || 
+                       file.name.endsWith('.ts') || 
+                       file.name.endsWith('.tsx') || 
+                       file.name.endsWith('.jsx') || 
                        file.name.endsWith('.html') || 
-                       file.name.endsWith('.css')) {
+                       file.name.endsWith('.css') ||
+                       file.name.endsWith('.md') ||
+                       file.name.endsWith('.xml') ||
+                       file.name.endsWith('.yaml') ||
+                       file.name.endsWith('.yml') ||
+                       file.name.endsWith('.sql') ||
+                       file.name.endsWith('.sh') ||
+                       file.name.endsWith('.bat') ||
+                       file.name.endsWith('.log') ||
+                       file.name.endsWith('.env') ||
+                       file.name.endsWith('.txt')) {
                 console.log('[FileHandler] Processing as text file...');
                 // For text files, store as text
                 fileData.content = await this.readFileAsText(file);
@@ -269,12 +266,32 @@ export class FileHandler {
             } else if (file.type === 'application/pdf' || 
                        file.type === 'application/msword' || 
                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                       file.name.endsWith('.docx') ||
+                       file.name.endsWith('.doc') ||
                        file.name.endsWith('.xlsx') ||
-                       file.name.endsWith('.csv')) {
-                console.log('[FileHandler] Processing as document...');
-                // For documents, store base64 and let backend handle
-                fileData.content = await this.readFileAsBase64(file);
-                console.log('[FileHandler] Document read successfully');
+                       file.name.endsWith('.xls')) {
+                console.log('[FileHandler] Processing as document — extracting text via backend...');
+                const base64 = await this.readFileAsBase64(file);
+                try {
+                    const resp = await fetch('/api/extract-file-text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ file_b64: base64, filename: file.name })
+                    });
+                    const result = await resp.json();
+                    if (result.success && result.text) {
+                        fileData.content = result.text;
+                        fileData.extractedByOCR = true;
+                        console.log('[FileHandler] Document text extracted successfully');
+                    } else {
+                        // Fallback: store note so AI knows a file was attached
+                        fileData.content = `[Document: ${file.name} — text extraction failed: ${result.error || 'unknown error'}]`;
+                        console.warn('[FileHandler] Extraction failed:', result.error);
+                    }
+                } catch (e) {
+                    fileData.content = `[Document: ${file.name} — could not extract text]`;
+                    console.warn('[FileHandler] Extraction request error:', e);
+                }
             } else {
                 console.log('[FileHandler] Unknown file type, reading as base64...');
                 // Unknown types, try base64
@@ -355,26 +372,30 @@ export class FileHandler {
         container.innerHTML = this.currentSessionFiles.map((file, index) => {
             const icon = this.getFileIcon(file.type, file.name);
             const sizeFormatted = this.formatFileSize(file.size);
-            
+            const isTable = !!file.tableData;
+
+            const metaText = isTable
+                ? `${file.tableData.rows.length} hàng · ${file.tableData.headers.length} cột`
+                : sizeFormatted;
+
+            const iconOrPreview = file.preview
+                ? `<div class="file-attachment-preview"><img src="${file.preview}" alt="${this.escapeHtml(file.name)}"></div>`
+                : isTable
+                    ? `<div class="file-attachment-icon file-attachment-icon--table">📊</div>`
+                    : `<div class="file-attachment-icon">${icon}</div>`;
+
             return `
-                <div class="file-attachment-card" data-index="${index}">
-                    ${file.preview ? `
-                        <div class="file-attachment-preview">
-                            <img src="${file.preview}" alt="${this.escapeHtml(file.name)}">
-                        </div>
-                    ` : `
-                        <div class="file-attachment-icon">
-                            ${icon}
-                        </div>
-                    `}
+                <div class="file-attachment-card${isTable ? ' file-attachment-card--table' : ''}" data-index="${index}" title="${isTable ? 'Nhấn để xem bảng' : this.escapeHtml(file.name)}">
+                    ${iconOrPreview}
                     <div class="file-attachment-info">
                         <div class="file-attachment-name" title="${this.escapeHtml(file.name)}">
                             ${this.escapeHtml(file.name)}
                         </div>
                         <div class="file-attachment-meta">
-                            ${sizeFormatted}
+                            ${metaText}
                         </div>
                     </div>
+                    ${isTable ? '<span class="file-table-badge">Xem bảng</span>' : ''}
                     <button class="file-attachment-remove" data-index="${index}" title="Xóa file">
                         ✕
                     </button>
@@ -429,7 +450,10 @@ export class FileHandler {
      */
     previewFile(index) {
         const file = this.currentSessionFiles[index];
-        if (file.preview) {
+        if (file.tableData) {
+            // Open interactive table viewer
+            csvPreview.show(file.tableData, file.name);
+        } else if (file.preview) {
             // Open image preview modal if exists
             if (window.openImagePreview) {
                 const img = new Image();
@@ -438,7 +462,7 @@ export class FileHandler {
             }
         } else if (file.content && !file.content.startsWith('data:')) {
             // Show text content in a modal or console
-            console.log('File content:', file.content.substring(0, 500) + '...');
+            console.log('[FileHandler] File content:', file.content.substring(0, 500) + '...');
         }
     }
 

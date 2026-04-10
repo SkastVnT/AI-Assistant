@@ -118,7 +118,13 @@ export class APIService {
             mcp_selected_files: window.mcpController ? window.mcpController.getSelectedFilePaths() : [],
             language: language,
             custom_prompt: params.customPrompt || '',
+            tools: params.tools || [],
         };
+
+        // Include images for vision models (base64 data URLs)
+        if (params.images && params.images.length > 0) {
+            body.images = params.images;
+        }
 
         const response = await fetch('/chat/stream', {
             method: 'POST',
@@ -169,6 +175,9 @@ export class APIService {
                                 case 'complete':
                                     result = data;
                                     if (callbacks.onComplete) callbacks.onComplete(data);
+                                    break;
+                                case 'suggestions':
+                                    if (callbacks.onSuggestions) callbacks.onSuggestions(data);
                                     break;
                                 case 'error':
                                     if (callbacks.onError) callbacks.onError(data);

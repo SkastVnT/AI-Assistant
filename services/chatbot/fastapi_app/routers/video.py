@@ -13,6 +13,13 @@ from core.extensions import logger
 router = APIRouter()
 
 
+def _ensure_aspect_ratio(result: dict) -> dict:
+    """Backfill aspect_ratio from size for response consistency."""
+    from src.video_generation import ensure_aspect_ratio_field
+
+    return ensure_aspect_ratio_field(result)
+
+
 @router.post("/generate", response_model=VideoStatusResponse)
 async def generate_video(body: VideoGenerateRequest):
     """
@@ -32,7 +39,9 @@ async def generate_video(body: VideoGenerateRequest):
             seconds=body.seconds.value,
             model=body.model.value,
         )
-        return VideoStatusResponse(**result)
+        return VideoStatusResponse(**_ensure_aspect_ratio(result))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     except Exception as e:
@@ -55,7 +64,9 @@ async def generate_video_sync(body: VideoGenerateRequest):
             seconds=body.seconds.value,
             model=body.model.value,
         )
-        return VideoStatusResponse(**result)
+        return VideoStatusResponse(**_ensure_aspect_ratio(result))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     except Exception as e:
@@ -73,7 +84,7 @@ async def video_status(video_id: str):
         from src.video_generation import poll_video
 
         job = poll_video(video_id)
-        return VideoStatusResponse(**job)
+        return VideoStatusResponse(**_ensure_aspect_ratio(job))
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     except Exception as e:
@@ -108,4 +119,5 @@ async def list_videos(limit: int = 20):
     """List recent video generation jobs from local metadata."""
     from src.video_generation import list_jobs
 
-    return {"videos": list_jobs(limit=min(limit, 100))}
+    jobs = [_ensure_aspect_ratio(j) for j in list_jobs(limit=min(limit, 100))]
+    return {"videos": jobs}

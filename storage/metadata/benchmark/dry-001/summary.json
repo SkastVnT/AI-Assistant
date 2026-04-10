@@ -1,0 +1,163 @@
+{
+  "run_id": "dry-001",
+  "timestamp": "2026-04-09T10:31:13.664817+00:00",
+  "stack_version": "65f0f58",
+  "total_cases": 28,
+  "passed_cases": 8,
+  "failed_cases": 20,
+  "overall_pass_rate": 0.2857142857142857,
+  "overall_avg_score": 0.6539285714285713,
+  "categories": {
+    "instruction_adherence": {
+      "category": "instruction_adherence",
+      "total_cases": 6,
+      "passed_cases": 2,
+      "failed_cases": 4,
+      "pass_rate": 0.3333333333333333,
+      "avg_score": 0.6716666666666667,
+      "min_score": 0.58,
+      "max_score": 0.85,
+      "category_passed": false,
+      "failed_case_ids": [
+        "IA-003",
+        "IA-004",
+        "IA-005",
+        "IA-006"
+      ]
+    },
+    "semantic_edit_accuracy": {
+      "category": "semantic_edit_accuracy",
+      "total_cases": 4,
+      "passed_cases": 2,
+      "failed_cases": 2,
+      "pass_rate": 0.5,
+      "avg_score": 0.6825,
+      "min_score": 0.58,
+      "max_score": 0.85,
+      "category_passed": false,
+      "failed_case_ids": [
+        "SE-003",
+        "SE-004"
+      ]
+    },
+    "identity_consistency": {
+      "category": "identity_consistency",
+      "total_cases": 3,
+      "passed_cases": 0,
+      "failed_cases": 3,
+      "pass_rate": 0.0,
+      "avg_score": 0.6266666666666666,
+      "min_score": 0.58,
+      "max_score": 0.72,
+      "category_passed": false,
+      "failed_case_ids": [
+        "IC-001",
+        "IC-002",
+        "IC-003"
+      ]
+    },
+    "multi_ref_quality": {
+      "category": "multi_ref_quality",
+      "total_cases": 3,
+      "passed_cases": 0,
+      "failed_cases": 3,
+      "pass_rate": 0.0,
+      "avg_score": 0.6266666666666666,
+      "min_score": 0.58,
+      "max_score": 0.7200000000000001,
+      "category_passed": false,
+      "failed_case_ids": [
+        "MR-001",
+        "MR-002",
+        "MR-003"
+      ]
+    },
+    "detail_handling": {
+      "category": "detail_handling",
+      "total_cases": 4,
+      "passed_cases": 1,
+      "failed_cases": 3,
+      "pass_rate": 0.25,
+      "avg_score": 0.615,
+      "min_score": 0.58,
+      "max_score": 0.72,
+      "category_passed": false,
+      "failed_case_ids": [
+        "DH-002",
+        "DH-003",
+        "DH-004"
+      ]
+    },
+    "text_rendering": {
+      "category": "text_rendering",
+      "total_cases": 3,
+      "passed_cases": 2,
+      "failed_cases": 1,
+      "pass_rate": 0.6666666666666666,
+      "avg_score": 0.7166666666666667,
+      "min_score": 0.58,
+      "max_score": 0.85,
+      "category_passed": false,
+      "failed_case_ids": [
+        "TR-003"
+      ]
+    },
+    "multi_turn_stability": {
+      "category": "multi_turn_stability",
+      "total_cases": 2,
+      "passed_cases": 0,
+      "failed_cases": 2,
+      "pass_rate": 0.0,
+      "avg_score": 0.6499999999999999,
+      "min_score": 0.58,
+      "max_score": 0.72,
+      "category_passed": false,
+      "failed_case_ids": [
+        "MT-001",
+        "MT-002"
+      ]
+    },
+    "correction_success": {
+      "category": "correction_success",
+      "total_cases": 3,
+      "passed_cases": 1,
+      "failed_cases": 2,
+      "pass_rate": 0.3333333333333333,
+      "avg_score": 0.6266666666666666,
+      "min_score": 0.58,
+      "max_score": 0.72,
+      "category_passed": false,
+      "failed_case_ids": [
+        "CS-002",
+        "CS-003"
+      ]
+    }
+  },
+  "nano_banana_qualified": false,
+  "critical_failures": [
+    "IA-003:instruction_adherence",
+    "IA-004:instruction_adherence",
+    "IA-005:identity_consistency",
+    "IA-006:instruction_adherence",
+    "IA-006:identity_consistency",
+    "SE-003:instruction_adherence",
+    "SE-004:instruction_adherence",
+    "IC-001:identity_consistency",
+    "IC-002:identity_consistency",
+    "IC-002:instruction_adherence",
+    "IC-003:identity_consistency",
+    "MR-001:identity_consistency",
+    "MR-002:identity_consistency",
+    "MR-002:instruction_adherence",
+    "MR-003:identity_consistency",
+    "DH-002:instruction_adherence",
+    "DH-003:instruction_adherence",
+    "TR-003:instruction_adherence",
+    "MT-001:identity_consistency",
+    "MT-002:identity_consistency",
+    "MT-002:instruction_adherence",
+    "CS-002:identity_consistency"
+  ],
+  "total_cost_usd": 0.0,
+  "total_latency_ms": 0.0
+}

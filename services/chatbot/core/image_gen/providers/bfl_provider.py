@@ -44,13 +44,15 @@ class BFLProvider(BaseImageProvider):
     def __init__(self, api_key: str = "", **kwargs):
         super().__init__(api_key=api_key, **kwargs)
         self.default_model = kwargs.get("default_model", "flux1-dev")
+        # Try api.bfl.ai (new domain) first; fall back to api.bfl.ml
+        bfl_base = kwargs.get("base_url", "https://api.bfl.ai/v1")
         self._http = httpx.Client(
-            base_url="https://api.bfl.ml/v1",
+            base_url=bfl_base,
             headers={
                 "X-Key": api_key,
                 "Content-Type": "application/json",
             },
-            timeout=120.0,
+            timeout=httpx.Timeout(connect=8.0, read=120.0, write=30.0, pool=5.0),
         )
 
     @property

@@ -159,7 +159,88 @@ class AIService:
             return self._chat_gemini(message, model_config, system_prompt, history, images)
         else:
             raise ValueError(f"Unknown provider: {provider}")
-    
+
+    def chat_stream_callback(
+        self,
+        message: str,
+        model: str = 'deepseek',
+        context: str = 'casual',
+        deep_thinking: bool = True,
+        language: str = 'vi',
+        history: Optional[List[Dict]] = None,
+        token_callback=None,
+    ) -> Dict[str, Any]:
+        """
+        Stream chat response token-by-token, calling token_callback for each chunk.
+        Returns final dict with 'text' and 'tokens' when complete.
+
+        token_callback(text: str) is called for each streamed token.
+        Falls back to non-streaming chat() if streaming fails.
+        """
+        model_config = self.models.get(model)
+        if not model_config or not model_config.get('available'):
+            model = self._get_fallback_model()
+            model_config = self.models.get(model)
+            if not model_config:
+                raise ValueError("No AI models available")
+
+        provider = model_config['provider']
+        system_prompt = self._build_system_prompt(
+            context=context, language=language,
+            custom_prompt=None, deep_thinking=deep_thinking, memories=None
+        )
+
+        # Only OpenAI-compatible providers support streaming here
+        if provider in ('openai', 'deepseek', 'xai'):
+            if provider == 'openai':
+                client = openai.OpenAI(api_key=self.openai_key)
+            elif provider == 'deepseek':
+                client = openai.OpenAI(api_key=self.deepseek_key, base_url=model_config['base_url'])
+            else:  # xai
+                client = openai.OpenAI(api_key=self.grok_key, base_url=model_config['base_url'])
+
+            messages = [{"role": "system", "content": system_prompt}]
+            if history:
+                for h in (history or [])[-5:]:
+                    messages.append({"role": h.get('role', 'user'), "content": h.get('content', '')})
+            messages.append({"role": "user", "content": message})
+
+            try:
+                stream = client.chat.completions.create(
+                    model=model_config['model_id'],
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=4096,
+                    stream=True,
+                )
+                full_text = ""
+                input_tokens = 0
+                output_tokens = 0
+                for chunk in stream:
+                    delta = chunk.choices[0].delta if chunk.choices else None
+                    if delta and delta.content:
+                        full_text += delta.content
+                        if token_callback:
+                            token_callback(delta.content)
+                    # Capture usage if present
+                    if hasattr(chunk, 'usage') and chunk.usage:
+                        input_tokens = getattr(chunk.usage, 'prompt_tokens', 0) or 0
+                        output_tokens = getattr(chunk.usage, 'completion_tokens', 0) or 0
+                if output_tokens == 0:
+                    output_tokens = max(1, int(len(full_text) * 0.75))
+                return {
+                    'text': full_text,
+                    'tokens': {'input': input_tokens, 'output': output_tokens},
+                }
+            except Exception as e:
+                logger.warning(f"[AIService] Streaming failed for {model}, falling back: {e}")
+                return self.chat(message=message, model=model, context=context,
+                                 deep_thinking=deep_thinking, language=language, history=history)
+        else:
+            # Non-streaming fallback for other providers
+            return self.chat(message=message, model=model, context=context,
+                             deep_thinking=deep_thinking, language=language, history=history)
+
     def _build_system_prompt(
         self,
         context: str,
@@ -216,7 +297,7 @@ class AIService:
                 model=config['model_id'],
                 messages=messages,
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=4096
             )
             
             return {
@@ -257,7 +338,7 @@ class AIService:
                 model=config['model_id'],
                 messages=messages,
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=4096
             )
             
             return {
@@ -298,7 +379,7 @@ class AIService:
                 model=config['model_id'],
                 messages=messages,
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=4096
             )
             
             return {

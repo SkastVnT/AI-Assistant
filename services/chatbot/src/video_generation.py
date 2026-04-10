@@ -29,6 +29,53 @@ VIDEO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 VALID_SECONDS: set[str] = {"4", "8", "12"}
 VALID_SIZES: set[str] = {"720x1280", "1280x720", "1024x1792", "1792x1024"}
 
+# Map user-facing aspect-ratio values to Sora 2 API sizes
+ASPECT_RATIO_MAP: dict[str, str] = {
+    "1280x720": "1280x720",       # 16:9 landscape
+    "720x1280": "720x1280",       # 9:16 portrait
+    "1080x1920": "1280x720",      # 1:1 square → use landscape, post-crop later
+    "1792x1024": "1792x1024",     # legacy wide
+    "1024x1792": "1024x1792",     # legacy tall
+}
+
+# Pretty labels for display
+ASPECT_LABELS: dict[str, str] = {
+    "1280x720": "16:9",
+    "720x1280": "9:16",
+    "1080x1920": "1:1",
+    "1792x1024": "16:9 Wide",
+    "1024x1792": "9:16 Tall",
+}
+
+
+def ensure_aspect_ratio_field(job: dict[str, Any]) -> dict[str, Any]:
+    """Ensure video metadata has aspect_ratio populated from size when missing."""
+    if job.get("aspect_ratio"):
+        return job
+    size = (job.get("size") or "").lower()
+    if size:
+        job["aspect_ratio"] = ASPECT_LABELS.get(size, size)
+    return job
+
+
+def _resolve_aspect_ratio(size: str) -> tuple[str, str]:
+    """Validate and normalize requested size/aspect into API size + display label."""
+    normalized = (size or "").strip().lower()
+
+    # User-facing aspect values from UI
+    if normalized in ASPECT_RATIO_MAP:
+        api_size = ASPECT_RATIO_MAP[normalized]
+        if api_size not in VALID_SIZES:
+            raise ValueError(f"Mapped API size is invalid: {api_size}")
+        return api_size, ASPECT_LABELS.get(normalized, api_size)
+
+    # Backward-compatible direct API sizes
+    if normalized in VALID_SIZES:
+        return normalized, ASPECT_LABELS.get(normalized, normalized)
+
+    allowed = sorted(set(ASPECT_RATIO_MAP.keys()) | VALID_SIZES)
+    raise ValueError(f"Unsupported video size/aspect ratio '{size}'. Allowed: {', '.join(allowed)}")
+
 
 def _get_client() -> OpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
@@ -154,8 +201,7 @@ def generate_video(
     The job may still be in_progress — use poll_video() to wait for completion.
     """
     sec = str(seconds) if str(seconds) in VALID_SECONDS else _snap_seconds(int(seconds))
-    if size not in VALID_SIZES:
-        size = "1280x720"
+    api_size, display_label = _resolve_aspect_ratio(size)
 
     # Consolidate single image_path into the list
     imgs = list(image_paths or [])
@@ -165,22 +211,23 @@ def generate_video(
 
     logger.info(
         f"[Sora2] Submitting — prompt={prompt[:80]!r}, "
-        f"size={size}, seconds={sec}, model={model}, images={len(imgs)}"
+        f"size={api_size} ({display_label}), seconds={sec}, model={model}, images={len(imgs)}"
     )
 
     client = _get_client()
-    create_kwargs: dict[str, Any] = dict(prompt=prompt, model=model, seconds=sec, size=size)
+    create_kwargs: dict[str, Any] = dict(prompt=prompt, model=model, seconds=sec, size=api_size)
     temp_collage: Path | None = None
     if len(imgs) == 1:
-        temp_collage = _build_single_reference(imgs[0], size)
+        temp_collage = _build_single_reference(imgs[0], api_size)
         create_kwargs["input_reference"] = temp_collage
     elif len(imgs) > 1:
-        temp_collage = _build_reference_collage(imgs, size)
+        temp_collage = _build_reference_collage(imgs, api_size)
         create_kwargs["input_reference"] = temp_collage
 
     video = client.videos.create(**create_kwargs)
 
     job = _video_to_dict(video)
+    job["aspect_ratio"] = display_label
     if imgs:
         job["source_images"] = [str(p) for p in imgs]
     if temp_collage:
@@ -205,8 +252,7 @@ def generate_video_sync(
 ) -> dict[str, Any]:
     """Submit and block until the video is completed or failed."""
     sec = str(seconds) if str(seconds) in VALID_SECONDS else _snap_seconds(int(seconds))
-    if size not in VALID_SIZES:
-        size = "1280x720"
+    api_size, display_label = _resolve_aspect_ratio(size)
 
     imgs = list(image_paths or [])
     if image_path and not imgs:
@@ -215,22 +261,23 @@ def generate_video_sync(
 
     logger.info(
         f"[Sora2] Generating (blocking) — prompt={prompt[:80]!r}, "
-        f"size={size}, seconds={sec}, model={model}, images={len(imgs)}"
+        f"size={api_size} ({display_label}), seconds={sec}, model={model}, images={len(imgs)}"
     )
 
     client = _get_client()
-    create_kwargs: dict[str, Any] = dict(prompt=prompt, model=model, seconds=sec, size=size)
+    create_kwargs: dict[str, Any] = dict(prompt=prompt, model=model, seconds=sec, size=api_size)
     temp_collage: Path | None = None
     if len(imgs) == 1:
-        temp_collage = _build_single_reference(imgs[0], size)
+        temp_collage = _build_single_reference(imgs[0], api_size)
         create_kwargs["input_reference"] = temp_collage
     elif len(imgs) > 1:
-        temp_collage = _build_reference_collage(imgs, size)
+        temp_collage = _build_reference_collage(imgs, api_size)
         create_kwargs["input_reference"] = temp_collage
 
     video = client.videos.create_and_poll(**create_kwargs)
 
     job = _video_to_dict(video)
+    job["aspect_ratio"] = display_label
     if imgs:
         job["source_images"] = [str(p) for p in imgs]
     if temp_collage:
@@ -249,6 +296,15 @@ def poll_video(video_id: str) -> dict[str, Any]:
     client = _get_client()
     video = client.videos.retrieve(video_id)
     job = _video_to_dict(video)
+    # Preserve user-facing aspect ratio and source metadata if it already exists.
+    prev = get_job_status(video_id)
+    if prev:
+        if prev.get("aspect_ratio"):
+            job["aspect_ratio"] = prev["aspect_ratio"]
+        if prev.get("source_images"):
+            job["source_images"] = prev["source_images"]
+        if prev.get("input_reference_mode"):
+            job["input_reference_mode"] = prev["input_reference_mode"]
     _save_meta(job)
     return job
 
@@ -341,7 +397,8 @@ def list_jobs(limit: int = 20) -> list[dict[str, Any]]:
         reverse=True,
     )[:limit]:
         try:
-            jobs.append(json.loads(p.read_text("utf-8")))
+            job = json.loads(p.read_text("utf-8"))
+            jobs.append(ensure_aspect_ratio_field(job))
         except Exception:
             pass
     return jobs
@@ -353,11 +410,13 @@ def _video_to_dict(video) -> dict[str, Any]:
     """Convert an openai.types.Video object to a plain dict."""
     cost_per_sec = 0.30 if "pro" in (video.model or "") else 0.10
     secs_int = int(video.seconds) if video.seconds else 0
+    size = video.size
     return {
         "id": video.id,
         "status": video.status,
         "prompt": video.prompt,
-        "size": video.size,
+        "size": size,
+        "aspect_ratio": ASPECT_LABELS.get((size or "").lower(), size),
         "seconds": video.seconds,
         "model": video.model,
         "progress": video.progress,

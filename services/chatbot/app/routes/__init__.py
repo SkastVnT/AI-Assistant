@@ -51,6 +51,8 @@ def _register_original_blueprints(app: Flask) -> None:
     logger = logging.getLogger(__name__)
     
     blueprint_imports = [
+        ('routes.user_auth', 'user_auth_bp', None),
+        ('routes.admin', 'admin_bp', None),
         ('routes.images', 'images_bp', None),
         ('routes.stream', 'stream_bp', None),
         ('routes.memory', 'memory_bp', '/memory'),
@@ -60,6 +62,7 @@ def _register_original_blueprints(app: Flask) -> None:
         ('routes.models', 'models_bp', None),
         ('routes.async_routes', 'async_bp', None),
         ('routes.mcp', 'mcp_bp', '/api/mcp'),
+        ('routes.qr_payment', 'qr_bp', None),
     ]
     
     for module_name, bp_attr, url_prefix in blueprint_imports:

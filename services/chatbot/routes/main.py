@@ -9,7 +9,7 @@ import time
 import threading
 from datetime import datetime
 from pathlib import Path
-from flask import Blueprint, request, jsonify, session, render_template
+from flask import Blueprint, request, jsonify, session, render_template, redirect
 import logging
 
 # Setup path
@@ -22,6 +22,7 @@ from core.extensions import MONGODB_ENABLED, logger
 from core.chatbot import get_chatbot
 from core.tools import google_search_tool, github_search_tool
 from core.private_logger import log_chat, log_interaction
+from app.middleware.auth import require_login
 
 # Check MCP availability
 MCP_AVAILABLE = False
@@ -94,6 +95,7 @@ def _log_chat_event(event: str, data: dict) -> None:
 
 
 @main_bp.route('/')
+@require_login
 def index():
     """Home page - Original beautiful UI with full SDXL support"""
     if 'session_id' not in session:
@@ -102,6 +104,7 @@ def index():
 
 
 @main_bp.route('/new')
+@require_login
 def index_new():
     """New Tailwind version (experimental)"""
     if 'session_id' not in session:
@@ -110,6 +113,7 @@ def index_new():
 
 
 @main_bp.route('/chat', methods=['POST'])
+@require_login
 def chat():
     """Chat endpoint - handles both JSON and FormData (with files)"""
     try:
@@ -150,6 +154,42 @@ def chat():
             
             # Handle uploaded files
             files = request.files.getlist('files')
+            
+            # Process uploaded files: extract text content and inject into message
+            if files:
+                file_parts = []
+                for f in files:
+                    try:
+                        fname = f.filename or 'unknown'
+                        content_type = f.content_type or ''
+                        raw = f.read()
+                        # Skip empty files
+                        if not raw:
+                            continue
+                        # Cap at 10MB per file to prevent OOM
+                        if len(raw) > 10 * 1024 * 1024:
+                            file_parts.append(f"**{fname}**: (file too large, skipped)")
+                            continue
+                        # Text-like files: decode and inject content
+                        if (content_type.startswith('text/') or
+                                content_type == 'application/json' or
+                                fname.endswith(('.py', '.js', '.html', '.css', '.csv', '.md', '.txt', '.json'))):
+                            text = raw.decode('utf-8', errors='replace')
+                            # Truncate very long text
+                            if len(text) > 30000:
+                                text = text[:30000] + '\n...(truncated)'
+                            file_parts.append(f"**File: {fname}**\n```\n{text}\n```")
+                        else:
+                            # Binary/image files: note metadata only (images handled client-side via base64)
+                            size_kb = len(raw) / 1024
+                            file_parts.append(f"**File: {fname}** ({content_type}, {size_kb:.0f} KB)")
+                    except Exception as fe:
+                        logger.warning(f"[CHAT] Error processing file {f.filename}: {fe}")
+                
+                if file_parts:
+                    file_context = "📎 **Uploaded Files:**\n\n" + "\n\n---\n\n".join(file_parts) + "\n\n---\n\n"
+                    message = file_context + message
+                    logger.info(f"[CHAT] Injected {len(file_parts)} file(s) into message")
         else:
             # JSON request
             data = request.json
@@ -425,7 +465,40 @@ def generate_title():
     return jsonify({'title': fallback})
 
 
-def _handle_image_generation_tool(chatbot, message, model):
+@main_bp.route('/api/extract-file-text', methods=['POST'])
+def extract_file_text():
+    """Extract readable text from a base64-encoded file (PDF, DOCX, XLSX, image, etc.)."""
+    import base64 as _b64
+
+    data = request.get_json(silent=True) or {}
+    file_b64 = data.get('file_b64', '')
+    filename = str(data.get('filename', 'file')).strip()
+
+    if not file_b64 or not filename:
+        return jsonify({'success': False, 'error': 'file_b64 and filename required'}), 400
+
+    # Strip data URL prefix if present (e.g. "data:application/pdf;base64,...")
+    if ',' in file_b64:
+        file_b64 = file_b64.split(',', 1)[1]
+
+    try:
+        file_bytes = _b64.b64decode(file_b64)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid base64: {e}'}), 400
+
+    try:
+        from src.ocr_integration import extract_file_content
+        success, text = extract_file_content(file_bytes, filename)
+    except Exception as e:
+        logger.error(f'[extract-file-text] OCR error: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    if success and text and text.strip():
+        return jsonify({'success': True, 'text': text.strip(), 'filename': filename})
+    return jsonify({'success': False, 'text': '', 'error': 'Could not extract text from file'})
+
+
+
     """Handle AI-powered image generation tool"""
     import json
     import re

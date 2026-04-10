@@ -719,17 +719,9 @@ export class UIUtils {
      * Get form values
      */
     getFormValues() {
-        // Get thinking mode from the new selector
+        // Get thinking mode from the new selector (instant or multi-thinking)
         const thinkingMode = window.getThinkingMode ? window.getThinkingMode() : 'instant';
-        let deepThinking = false;
-        
-        // Determine if deep thinking should be enabled based on mode
-        if (thinkingMode === 'thinking' || thinkingMode === 'deep') {
-            deepThinking = true;
-        } else if (thinkingMode === 'auto') {
-            // Auto mode: let coordinatedReasoning decide later
-            deepThinking = 'auto';
-        }
+        const deepThinking = thinkingMode === 'multi-thinking';
         
         return {
             model: this.elements.modelSelect?.value || 'grok',
