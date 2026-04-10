@@ -481,6 +481,7 @@ class TestStreamRAGIntegration:
         if chunks is None:
             chunks = ["Hello", " world"]
         bot.chat_stream.return_value = iter(chunks)
+        bot.registry = None  # prevent MagicMock auto-attr from polluting _max_tokens
         return bot
 
     def test_stream_rag_enabled_emits_rag_context_event(self, stream_client):
