@@ -616,34 +616,6 @@ class ComfyUIProvider(BaseImageProvider):
         has_loras = bool(req.lora_models)
 
         try:
-            # ── Route to appropriate workflow ────────────────────────────
-            if has_loras or req.preset_id:
-                # New workflow builder path — supports LoRA chains
-                workflow = self._build_lora_workflow(req, seed, checkpoint, vae_name)
-            elif req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
-                workflow = _img2img_workflow(
-                    prompt=req.prompt, width=req.width, height=req.height,
-                    steps=req.steps, guidance=req.guidance, seed=seed,
-                    strength=req.strength, image_b64=req.source_image_b64,
-                    checkpoint=checkpoint,
-                )
-            elif self.sdxl_checkpoint and self.sdxl_checkpoint.strip():
-                workflow = _flux_sdxl_upscale_workflow(
-                    prompt=req.prompt, width=req.width, height=req.height,
-                    steps=req.steps, guidance=req.guidance, seed=seed,
-                    flux_checkpoint=checkpoint,
-                    sdxl_checkpoint=self.sdxl_checkpoint,
-                    sdxl_steps=self.sdxl_steps,
-                    sdxl_denoise=self.sdxl_denoise,
-                    sdxl_guidance=self.sdxl_guidance,
-                    upscale_factor=self.upscale_factor,
-                )
-            else:
-                workflow = _flux_txt2img_workflow(
-                    prompt=req.prompt, width=req.width, height=req.height,
-                    steps=req.steps, guidance=req.guidance, seed=seed,
-                    checkpoint=checkpoint,
-                )
             checkpoint, profile = self._select_model(req)
             model_type = profile["type"]
             native_w, native_h = _pick_resolution(profile, req.width, req.height)
