@@ -326,7 +326,8 @@ for _s in [
 ]:
     _ensure_stub(_s)
 
-import os as _os, sys as _sys, types as _types
+import sys as _sys, types as _types
+from pathlib import Path as _Path
 
 # Provide attrs referenced at import time by rag.py and rag_helpers.py.
 #
@@ -339,9 +340,7 @@ import os as _os, sys as _sys, types as _types
 #   a) is the real imported package (has __path__) – leave it untouched, or
 #   b) has __path__ pointing at the real src/rag/ directory so that
 #      sub-packages remain importable even via the lightweight stub.
-_rag_real_path = _os.path.realpath(
-    _os.path.join(_os.path.dirname(__file__), "..", "src", "rag")
-)
+_rag_real_path = str((_Path(__file__).parent.parent / "src" / "rag").resolve())
 _existing = _sys.modules.get("src.rag")
 if _existing is None or not hasattr(_existing, "__path__"):
     # Create (or replace) the stub and give it a proper __path__ so that
