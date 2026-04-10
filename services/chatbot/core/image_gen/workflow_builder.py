@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from .providers.base import ImageRequest, ImageMode, LoraSpec
+from .providers.base import ImageRequest, LoraSpec
 
 logger = logging.getLogger(__name__)
 
