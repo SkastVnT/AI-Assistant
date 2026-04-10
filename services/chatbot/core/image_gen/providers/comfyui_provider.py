@@ -612,71 +612,83 @@ class ComfyUIProvider(BaseImageProvider):
         client_id = str(uuid.uuid4())[:8]
         seed = req.seed if req.seed is not None else int(time.time()) % (2**32)
         vae_name = req.vae_name
+        has_loras = bool(req.lora_models)
+
+        # Profile-based variables (only populated in the profile routing branch)
+        model_type: str = "unknown"
+        native_w: int = req.width
+        native_h: int = req.height
+        upscale_to = None
+        vae = None
+        loras: list = []
 
         try:
-            checkpoint, profile = self._select_model(req)
-            model_type = profile["type"]
-            native_w, native_h = _pick_resolution(profile, req.width, req.height)
-
-            vae = profile.get("vae")
-            if vae and self._available_vaes and vae not in self._available_vaes:
-                vae = None
-
-            loras = self._resolve_loras(model_type, _classify_style(req.prompt, req.style_preset))
-            negative = NEGATIVE_SDXL if model_type.startswith("sdxl") else NEGATIVE_SD15
-
-            upscale_to = None
-            if self._enable_hires and model_type == "sd15":
-                target_w, target_h = req.width, req.height
-                if target_w > native_w or target_h > native_h:
-                    upscale_to = (
-                        min(target_w, int(native_w * self._upscale_factor)),
-                        min(target_h, int(native_h * self._upscale_factor)),
-                    )
-
-            logger.info(
-                f"[ComfyUI] Generating: ckpt={checkpoint}, "
-                f"res={native_w}x{native_h}, steps={profile['steps']}, "
-                f"cfg={profile['cfg']}, sampler={profile['sampler']}, "
-                f"clip_skip={profile.get('clip_skip', 1)}, "
-                f"vae={'ext' if vae else 'built-in'}, "
-                f"loras={[l[0] for l in loras]}, "
-                f"hires={'latent→' + str(upscale_to) if upscale_to else 'none'}"
-            )
-
-            if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
-                workflow = _build_img2img_workflow(
-                    prompt=req.prompt, negative=negative,
-                    steps=profile["steps"], cfg=profile["cfg"],
-                    seed=seed,
-                    sampler=profile["sampler"], scheduler=profile["scheduler"],
-                    strength=req.strength,
-                    image_b64=req.source_image_b64,
-                    checkpoint=checkpoint, vae=vae,
-                )
+            # ── Route to appropriate workflow ────────────────────────────
+            if has_loras or req.preset_id:
+                # New workflow builder path — supports LoRA chains
+                workflow = self._build_lora_workflow(req, seed, checkpoint, vae_name)
             else:
-                workflow = _build_txt2img_workflow(
-                    prompt=req.prompt, negative=negative,
-                    width=native_w, height=native_h,
-                    steps=profile["steps"], cfg=profile["cfg"],
-                    seed=seed,
-                    sampler=profile["sampler"], scheduler=profile["scheduler"],
-                    checkpoint=checkpoint, vae=vae,
-                    loras=loras, upscale_to=upscale_to,
-                    clip_skip=profile.get("clip_skip", 1),
-                    model_type=model_type,
+                checkpoint, profile = self._select_model(req)
+                model_type = profile["type"]
+                native_w, native_h = _pick_resolution(profile, req.width, req.height)
+
+                vae = profile.get("vae")
+                if vae and self._available_vaes and vae not in self._available_vaes:
+                    vae = None
+
+                loras = self._resolve_loras(model_type, _classify_style(req.prompt, req.style_preset))
+                negative = NEGATIVE_SDXL if model_type.startswith("sdxl") else NEGATIVE_SD15
+
+                if self._enable_hires and model_type == "sd15":
+                    target_w, target_h = req.width, req.height
+                    if target_w > native_w or target_h > native_h:
+                        upscale_to = (
+                            min(target_w, int(native_w * self._upscale_factor)),
+                            min(target_h, int(native_h * self._upscale_factor)),
+                        )
+
+                logger.info(
+                    f"[ComfyUI] Generating: ckpt={checkpoint}, "
+                    f"res={native_w}x{native_h}, steps={profile['steps']}, "
+                    f"cfg={profile['cfg']}, sampler={profile['sampler']}, "
+                    f"clip_skip={profile.get('clip_skip', 1)}, "
+                    f"vae={'ext' if vae else 'built-in'}, "
+                    f"loras={[l[0] for l in loras]}, "
+                    f"hires={'latent\u2192' + str(upscale_to) if upscale_to else 'none'}"
                 )
+
+                if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
+                    workflow = _build_img2img_workflow(
+                        prompt=req.prompt, negative=negative,
+                        steps=profile["steps"], cfg=profile["cfg"],
+                        seed=seed,
+                        sampler=profile["sampler"], scheduler=profile["scheduler"],
+                        strength=req.strength,
+                        image_b64=req.source_image_b64,
+                        checkpoint=checkpoint, vae=vae,
+                    )
+                else:
+                    workflow = _build_txt2img_workflow(
+                        prompt=req.prompt, negative=negative,
+                        width=native_w, height=native_h,
+                        steps=profile["steps"], cfg=profile["cfg"],
+                        seed=seed,
+                        sampler=profile["sampler"], scheduler=profile["scheduler"],
+                        checkpoint=checkpoint, vae=vae,
+                        loras=loras, upscale_to=upscale_to,
+                        clip_skip=profile.get("clip_skip", 1),
+                        model_type=model_type,
+                    )
 
             resp = self._http.post("/prompt", json={
                 "prompt": workflow,
                 "client_id": client_id,
             })
             if resp.status_code != 200:
-                body = resp.text[:500]
-                logger.error(f"[ComfyUI] Queue failed ({resp.status_code}): {body}")
+                logger.error("[ComfyUI] Queue failed (%d): %s", resp.status_code, resp.text[:500])
                 return ImageResult(
                     success=False,
-                    error=f"ComfyUI rejected workflow ({resp.status_code}): {body}",
+                    error=f"ComfyUI rejected workflow (status {resp.status_code})",
                     provider=self.name,
                 )
             prompt_id = resp.json()["prompt_id"]
@@ -688,16 +700,12 @@ class ComfyUIProvider(BaseImageProvider):
             model_desc = f"comfyui/{checkpoint}"
             if lora_names:
                 model_desc += "+" + "+".join(lora_names)
-            elif self.sdxl_checkpoint and req.mode != ImageMode.IMAGE_TO_IMAGE:
-                model_desc += f"+{self.sdxl_checkpoint}"
 
             return ImageResult(
                 success=True,
                 images_b64=images_b64,
                 provider=self.name,
                 model=model_desc,
-                model=f"comfyui/{checkpoint}",
-                model=f"comfyui/{checkpoint}",
                 prompt_used=req.prompt,
                 latency_ms=latency,
                 cost_usd=0.0,
@@ -709,13 +717,16 @@ class ComfyUIProvider(BaseImageProvider):
                     "model_type": model_type,
                     "resolution": f"{native_w}x{native_h}",
                     "upscaled_to": f"{upscale_to[0]}x{upscale_to[1]}" if upscale_to else None,
-                    "loras": [l[0] for l in loras],
+                    "loras": (
+                        [{"name": l.name, "weight": l.weight} for l in req.lora_models]
+                        if req.lora_models else [l[0] for l in loras]
+                    ),
                 },
             )
 
         except Exception as e:
-            logger.error(f"[ComfyUI] Error: {e}", exc_info=True)
-            return ImageResult(success=False, error=str(e), provider=self.name)
+            logger.error("[ComfyUI] Error during generation", exc_info=True)
+            return ImageResult(success=False, error="Image generation failed", provider=self.name)
 
     def _build_lora_workflow(
         self, req: ImageRequest, seed: int, checkpoint: str, vae_name: str | None,
