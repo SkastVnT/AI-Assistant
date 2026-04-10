@@ -657,7 +657,7 @@ class ComfyUIProvider(BaseImageProvider):
                     f"clip_skip={profile.get('clip_skip', 1)}, "
                     f"vae={'ext' if vae else 'built-in'}, "
                     f"loras={[l[0] for l in loras]}, "
-                    f"hires={'latent\u2192' + str(upscale_to) if upscale_to else 'none'}"
+                    f"hires={'latent→' + str(upscale_to) if upscale_to else 'none'}"
                 )
 
                 if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
