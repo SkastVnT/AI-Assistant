@@ -1,0 +1,28 @@
+{
+  "style2paints": {
+    "description": "Colorization tool integration — Style2Paints",
+    "beta": {
+      "path": "D:\\style2paints45beta1214B",
+      "executable": "D:\\style2paints45beta1214B\\style2paints.exe",
+      "type": "electron_app",
+      "model_weights": [
+        "D:\\style2paints45beta1214B\\assets\\nets\\head.net",
+        "D:\\style2paints45beta1214B\\assets\\nets\\neck.net",
+        "D:\\style2paints45beta1214B\\assets\\nets\\render_head.net",
+        "D:\\style2paints45beta1214B\\assets\\nets\\render_neck.net"
+      ],
+      "total_weight_size_mb": 1570,
+      "runtime": "tensorflow_1x_bundled",
+      "notes": "Standalone Electron app with bundled TF runtime and CUDA libs"
+    },
+    "master": {
+      "path": "D:\\style2paints-master",
+      "server_entry": "D:\\style2paints-master\\V3\\server\\server.py",
+      "config_file": "D:\\style2paints-master\\V3\\server\\config.py",
+      "type": "python_server",
+      "notes": "V3 Python server — requires separate model weights download"
+    },
+    "fallback_order": ["beta", "master"],
+    "integration_mode": "external_launcher"
+  }
+}

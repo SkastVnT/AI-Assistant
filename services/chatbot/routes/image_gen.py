@@ -20,7 +20,7 @@ import logging
 import base64
 import time as _time
 from functools import wraps
-from flask import Blueprint, request, jsonify, session, send_file
+from flask import Blueprint, request, jsonify, session, send_file, Response
 from io import BytesIO
 
 from core.image_gen import (
@@ -168,6 +168,21 @@ def generate_image():
         guidance: float       â€” Guidance/CFG scale (default: 3.5)
         conversation_id: str  â€” For session tracking
     """
+    # -- Quota check --
+    _username = session.get('username', '')
+    _quota_db = None
+    if _username:
+        try:
+            from core.user_auth import check_image_quota
+            from core.extensions import get_db as _get_quota_db
+            _quota_db = _get_quota_db()
+            _allowed, _reason = check_image_quota(_quota_db, _username)
+            if not _allowed:
+                return jsonify({'error': _reason, 'quota_exceeded': True}), 403
+        except Exception as _qe:
+            logger.warning(f'[image_gen] quota check failed: {_qe}')
+    # -----------------------------------------------------------------
+
     data = request.get_json(force=True, silent=True) or {}
     prompt = data.get("prompt", "").strip()
 
@@ -198,6 +213,14 @@ def generate_image():
         model_name=data.get("model"),
         enhance_prompt=data.get("enhance", True),
         context=context,
+        lora_models=data.get("loras"),
+        vae_name=data.get("vae"),
+        checkpoint=data.get("checkpoint"),
+        preset_id=data.get("preset_id"),
+        hires_fix=data.get("hires_fix", False),
+        hires_scale=float(data.get("hires_scale", 1.5)),
+        hires_denoise=float(data.get("hires_denoise", 0.45)),
+        hires_steps=int(data.get("hires_steps", 15)),
     )
 
     if not result.success:
@@ -208,6 +231,16 @@ def generate_image():
         }), 500
 
     # Save to storage
+    # -- Increment quota after successful generation --
+    if _username and _quota_db is not None:
+        try:
+            from core.user_auth import increment_image_quota
+            _count = len(result.images_b64) + len(result.images_url)
+            increment_image_quota(_quota_db, _username, max(1, _count))
+        except Exception:
+            pass
+    # -----------------------------------------------------------------
+
     saved_images = []
     for img_b64 in result.images_b64:
         saved = storage.save(
@@ -275,7 +308,177 @@ def generate_image():
         "latency_ms": round(result.latency_ms, 1),
         "cost_usd": round(result.cost_usd, 4),
         "style": data.get("style"),
+        "auto_detected_characters": result.metadata.get("auto_detected_characters"),
+        "auto_loras": result.metadata.get("auto_loras"),
     })
+
+
+
+# -- Streaming generation endpoint -----------------------------------------
+
+@image_gen_bp.route("/api/image-gen/stream", methods=["POST"])
+def generate_image_stream():
+    """
+    Stream image generation with real-time status updates via SSE.
+
+    Same body as /api/image-gen/generate but returns SSE stream with events:
+        - status:           Progress updates (enhancing prompt, selecting provider...)
+        - provider_try:     About to try a provider
+        - provider_fail:    Provider failed, will try next
+        - provider_success: Provider succeeded
+        - result:           Final result with image data
+        - saved:            Saved image info (URLs, IDs)
+        - error:            Fatal error
+    """
+    import json as _json
+
+    data = request.get_json(force=True, silent=True) or {}
+    prompt = data.get("prompt", "").strip()
+
+    if not prompt:
+        def _err_empty():
+            yield "event: error\ndata: " + _json.dumps({"error": "prompt is required"}) + "\n\n"
+        return Response(_err_empty(), mimetype='text/event-stream', status=400)
+
+    # Rate & validation
+    rate_err = _rate_check()
+    if rate_err:
+        def _err_rate():
+            yield "event: error\ndata: " + _json.dumps({"error": rate_err}) + "\n\n"
+        return Response(_err_rate(), mimetype='text/event-stream', status=429)
+    val_err = _validate(data)
+    if val_err:
+        def _err_val():
+            yield "event: error\ndata: " + _json.dumps({"error": val_err}) + "\n\n"
+        return Response(_err_val(), mimetype='text/event-stream', status=400)
+
+    router = _get_router()
+    sessions = _get_sessions()
+    storage = _get_storage()
+
+    conversation_id = data.get("conversation_id", session.get("conversation_id", ""))
+    img_session = sessions.get_or_create(conversation_id)
+    context = img_session.get_context_for_enhancement() if img_session.history else None
+
+    def _stream():
+        try:
+            final_result = None
+            for evt in router.generate_stream(
+                prompt=prompt,
+                quality=data.get("quality", QualityMode.AUTO),
+                style=data.get("style"),
+                width=data.get("width", 1024),
+                height=data.get("height", 1024),
+                steps=data.get("steps", 28),
+                guidance=data.get("guidance", 3.5),
+                seed=data.get("seed"),
+                num_images=data.get("num_images", 1),
+                provider_name=data.get("provider"),
+                model_name=data.get("model"),
+                enhance_prompt=data.get("enhance", True),
+                context=context,
+            ):
+                event_type = evt["event"]
+                event_data = evt["data"]
+                yield "event: " + event_type + "\ndata: " + _json.dumps(event_data) + "\n\n"
+
+                if event_type == "result":
+                    final_result = event_data
+                elif event_type == "error":
+                    return
+
+            # Post-process: save images
+            if final_result and final_result.get("success"):
+                saved_images = []
+                for img_b64 in final_result.get("images_b64", []):
+                    saved = storage.save(
+                        image_b64=img_b64,
+                        prompt=prompt,
+                        provider=final_result["provider"],
+                        model=final_result["model"],
+                        conversation_id=conversation_id,
+                        metadata=final_result.get("metadata", {}),
+                    )
+                    saved_images.append(saved)
+                    _save_to_gallery(saved, prompt, final_result["provider"],
+                                     final_result["model"], conversation_id)
+
+                for img_url in final_result.get("images_url", []):
+                    saved = storage.save(
+                        image_url=img_url,
+                        prompt=prompt,
+                        provider=final_result["provider"],
+                        model=final_result["model"],
+                        conversation_id=conversation_id,
+                        metadata=final_result.get("metadata", {}),
+                    )
+                    saved_images.append(saved)
+                    _save_to_gallery(saved, prompt, final_result["provider"],
+                                     final_result["model"], conversation_id)
+
+                # Update session
+                from core.image_gen.providers.base import ImageResult as _ImageResult
+                result_obj = _ImageResult(
+                    success=True,
+                    provider=final_result["provider"],
+                    model=final_result["model"],
+                    images_url=final_result.get("images_url", []),
+                    images_b64=final_result.get("images_b64", []),
+                    prompt_used=final_result.get("prompt_used", prompt),
+                    cost_usd=final_result.get("cost_usd", 0),
+                    latency_ms=final_result.get("latency_ms", 0),
+                    metadata=final_result.get("metadata", {}),
+                )
+                img_session.add_generation(
+                    user_prompt=prompt,
+                    enhanced_prompt=final_result.get("prompt_used", prompt),
+                    result=result_obj,
+                )
+                if data.get("style"):
+                    img_session.active_style = data["style"]
+
+                if final_result.get("cost_usd", 0) > 0:
+                    _log_cost('generate', final_result["provider"],
+                              final_result["model"], final_result["cost_usd"])
+
+                # Send saved image info as final event
+                images_out = [
+                    {"url": s.get("url", ""), "image_id": s.get("image_id", ""), "local_path": s.get("local_path", "")}
+                    for s in saved_images if not s.get("error")
+                ]
+                yield "event: saved\ndata: " + _json.dumps({"images": images_out}) + "\n\n"
+
+                for s in saved_images:
+                    if not s.get("error"):
+                        log_image_generation(
+                            prompt=prompt, provider=final_result["provider"],
+                            model=final_result["model"],
+                            image_url=s.get("url", ""),
+                            image_path=s.get("local_path", ""),
+                            session_id=conversation_id, mode="txt2img",
+                            extra={
+                                "prompt_used": final_result.get("prompt_used"),
+                                "cost_usd": final_result.get("cost_usd"),
+                                "latency_ms": final_result.get("latency_ms"),
+                                "style": data.get("style"),
+                            },
+                        )
+
+        except GeneratorExit:
+            logger.info("[ImageGen SSE] Client disconnected")
+        except Exception as e:
+            logger.error(f"[ImageGen SSE] Error: {e}")
+            yield "event: error\ndata: " + _json.dumps({"error": str(e)}) + "\n\n"
+
+    return Response(
+        _stream(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+        },
+    )
 
 
 # â”€â”€ Edit existing image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -547,3 +750,99 @@ def _log_cost(gen_type: str, provider: str, model: str, cost_usd: float):
 def _get_cost_summary() -> dict:
     total = sum(c["cost_usd"] for c in _cost_log_v2)
     return {"total_usd": round(total, 4), "count": len(_cost_log_v2), "recent": _cost_log_v2[-10:]}
+
+
+# ── LoRA & workflow preset endpoints ─────────────────────────────────────
+
+@image_gen_bp.route("/api/image-gen/loras", methods=["GET"])
+def list_loras():
+    """
+    List available LoRA models.
+    Returns both the catalog (known presets) and live LoRAs from ComfyUI.
+    """
+    try:
+        from config.model_presets import LORA_CATALOG
+    except ImportError:
+        LORA_CATALOG = {}
+
+    # Live LoRAs from ComfyUI
+    router = _get_router()
+    live_loras = router.get_available_loras()
+
+    catalog = [
+        {"key": k, "file": v["file"], "category": v.get("category", ""),
+         "trigger": v.get("trigger", []), "base": v.get("base", "")}
+        for k, v in LORA_CATALOG.items()
+    ]
+
+    return jsonify({
+        "catalog": catalog,
+        "live": live_loras,
+        "total_catalog": len(catalog),
+        "total_live": len(live_loras),
+    })
+
+
+@image_gen_bp.route("/api/image-gen/workflow-presets", methods=["GET"])
+def list_workflow_presets():
+    """List all workflow presets (checkpoint + LoRA combos)."""
+    try:
+        from config.model_presets import get_all_workflow_presets
+        presets = get_all_workflow_presets()
+    except ImportError:
+        presets = {}
+    return jsonify({"presets": presets})
+
+
+@image_gen_bp.route("/api/image-gen/workflow-presets/<preset_id>", methods=["GET"])
+def get_workflow_preset_detail(preset_id: str):
+    """Get details for a specific workflow preset."""
+    try:
+        from config.model_presets import get_workflow_preset, resolve_loras_for_preset
+        preset = get_workflow_preset(preset_id)
+        if not preset:
+            return jsonify({"error": f"Preset '{preset_id}' not found"}), 404
+        loras = resolve_loras_for_preset(preset_id)
+        return jsonify({"preset": {"id": preset_id, **preset}, "resolved_loras": loras})
+    except ImportError:
+        return jsonify({"error": "Presets not available"}), 500
+
+
+# ── Character detection endpoints ────────────────────────────────────────
+
+@image_gen_bp.route("/api/image-gen/detect-characters", methods=["POST"])
+def detect_characters():
+    """
+    Detect character names in a prompt and return suggested LoRAs.
+    
+    Body (JSON):
+        prompt: str — The text to scan for character names
+    
+    Returns:
+        detected: bool
+        characters: [{key, name, lora_file, weight, trigger_words, franchise, base}]
+        suggested_checkpoint: str | null
+        suggested_preset_id: str | null
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    prompt = data.get("prompt", "").strip()
+    if not prompt:
+        return jsonify({"error": "prompt is required"}), 400
+
+    router = _get_router()
+    result = router.detect_characters(prompt)
+    return jsonify(result)
+
+
+@image_gen_bp.route("/api/image-gen/characters", methods=["GET"])
+def list_characters():
+    """
+    List all characters the system can auto-detect.
+    Returns their aliases, franchise, and LoRA info.
+    """
+    router = _get_router()
+    characters = router.get_detectable_characters()
+    return jsonify({
+        "characters": characters,
+        "total": len(characters),
+    })

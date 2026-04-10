@@ -19,6 +19,13 @@ from .router import ImageGenerationRouter, QualityMode
 from .session import ImageSession, SessionManager
 from .storage import ImageStorage
 from .enhancer import PromptEnhancer, STYLE_PRESETS, create_enhancer
+<<<<<<< HEAD
+from .providers.base import LoraSpec
+from .character_detector import CharacterDetector, CharacterMatch, DetectionResult
+=======
+from .intent import ImageIntent, IntentResult, detect_intent
+from .orchestrator import ImageOrchestrator, OrchestratorResult
+>>>>>>> 0352e6260db5b6fee5ca5f8a237ac0d3e9dd6a9e
 
 __all__ = [
     "ImageGenerationRouter",
@@ -29,4 +36,17 @@ __all__ = [
     "PromptEnhancer",
     "STYLE_PRESETS",
     "create_enhancer",
+<<<<<<< HEAD
+    "LoraSpec",
+    "CharacterDetector",
+    "CharacterMatch",
+    "DetectionResult",
+=======
+    # New orchestration layer
+    "ImageIntent",
+    "IntentResult",
+    "detect_intent",
+    "ImageOrchestrator",
+    "OrchestratorResult",
+>>>>>>> 0352e6260db5b6fee5ca5f8a237ac0d3e9dd6a9e
 ]

@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import os
 import time
+import random
 import logging
-from typing import Optional
+from typing import Optional, Generator
 from dataclasses import dataclass, field
 
 from .providers.base import (
     BaseImageProvider, ImageRequest, ImageResult,
-    ImageMode, ProviderTier,
+    ImageMode, ProviderTier, LoraSpec,
 )
 from .providers import (
     FalProvider, ReplicateProvider, BFLProvider,
@@ -24,6 +25,7 @@ from .providers import (
 from .providers.fal_provider import FAL_COST
 from .providers.replicate_provider import REPLICATE_COST
 from .enhancer import PromptEnhancer, create_enhancer, STYLE_PRESETS
+from .character_detector import CharacterDetector
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +62,12 @@ class ImageGenerationRouter:
     def __init__(self):
         self._providers: dict[str, ProviderConfig] = {}
         self._enhancer: Optional[PromptEnhancer] = None
+        self._character_detector: Optional[CharacterDetector] = None
         self._total_cost: float = 0.0
         self._total_generations: int = 0
         self._init_providers()
         self._init_enhancer()
+        self._init_character_detector()
 
     def _init_providers(self):
         """Initialize all available providers from environment."""
@@ -87,8 +91,9 @@ class ImageGenerationRouter:
         # Black Forest Labs
         bfl_key = os.getenv("BFL_API_KEY", "")
         if bfl_key:
+            bfl_base = os.getenv("BFL_BASE_URL", "https://api.bfl.ai/v1")
             self._providers["bfl"] = ProviderConfig(
-                provider=BFLProvider(api_key=bfl_key),
+                provider=BFLProvider(api_key=bfl_key, base_url=bfl_base),
                 priority=85,
             )
 
@@ -100,16 +105,22 @@ class ImageGenerationRouter:
                 priority=70,
             )
 
-        # ComfyUI (local) â€” always available as fallback
-        comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
-        self._providers["comfyui"] = ProviderConfig(
-            provider=ComfyUIProvider(
-                base_url=comfyui_url,
-                sdxl_checkpoint=os.getenv("COMFYUI_SDXL_CHECKPOINT", "sd_xl_base_1.0.safetensors"),
-                upscale_factor=float(os.getenv("COMFYUI_UPSCALE_FACTOR", "1.5")),
-            ),
-            priority=10,  # lowest priority unless explicitly requested
-        )
+        # ComfyUI (local) — register only when local services are enabled
+        skip_comfyui = False
+        try:
+            from app.services.image_orchestrator.runtime_profile import get_runtime_profile
+            skip_comfyui = get_runtime_profile().skip_comfyui_provider
+        except Exception:
+            pass  # runtime_profile not available → fall back to old behaviour
+
+        if skip_comfyui:
+            logger.info("[ImageRouter] Skipping ComfyUI provider (local services disabled)")
+        else:
+            comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
+            self._providers["comfyui"] = ProviderConfig(
+                provider=ComfyUIProvider(base_url=comfyui_url),
+                priority=10,  # lowest priority unless explicitly requested
+            )
 
         # Together.ai (free tier available)
         together_key = os.getenv("TOGETHER_API_KEY", "")
@@ -138,6 +149,15 @@ class ImageGenerationRouter:
         except Exception as e:
             logger.warning(f"[ImageRouter] Enhancer init failed: {e}")
 
+    def _init_character_detector(self):
+        """Initialize character detector from LoRA catalog."""
+        try:
+            from config.model_presets import LORA_CATALOG
+            self._character_detector = CharacterDetector(LORA_CATALOG)
+            logger.info("[ImageRouter] Character detector initialized")
+        except Exception as e:
+            logger.warning(f"[ImageRouter] Character detector init failed: {e}")
+
     # â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def generate(
@@ -159,6 +179,14 @@ class ImageGenerationRouter:
         model_name: Optional[str] = None,
         enhance_prompt: bool = True,
         context: Optional[str] = None,
+        lora_models: Optional[list[dict]] = None,
+        vae_name: Optional[str] = None,
+        checkpoint: Optional[str] = None,
+        preset_id: Optional[str] = None,
+        hires_fix: bool = False,
+        hires_scale: float = 1.5,
+        hires_denoise: float = 0.45,
+        hires_steps: int = 15,
     ) -> ImageResult:
         """
         Generate image(s) with automatic provider selection.
@@ -176,7 +204,86 @@ class ImageGenerationRouter:
             model_name: Force specific model
             enhance_prompt: Whether to use LLM prompt enhancement
             context: Additional context for prompt enhancement
+            lora_models: List of LoRA dicts [{"name": "file.safetensors", "weight": 0.8}]
+            vae_name: Explicit VAE override filename
+            checkpoint: Explicit checkpoint override
+            preset_id: Workflow preset ID (resolves checkpoint + LoRAs + settings)
+            hires_fix: Enable two-pass hi-res fix
+            hires_scale: Upscale factor for hi-res fix
+            hires_denoise: Denoise strength for hi-res fix pass 2
+            hires_steps: Steps for hi-res fix pass 2
         """
+
+        # 0. Resolve workflow preset (applies defaults that can be overridden)
+        resolved_loras: list[LoraSpec] = []
+        resolved_checkpoint = checkpoint
+        resolved_neg = ""
+        if preset_id:
+            resolved_checkpoint, resolved_loras, preset_settings = self._resolve_preset(
+                preset_id, checkpoint, lora_models,
+            )
+            if preset_settings:
+                steps = preset_settings.get("steps", steps)
+                guidance = preset_settings.get("cfg_scale", guidance)
+                width = preset_settings.get("width", width)
+                height = preset_settings.get("height", height)
+                resolved_neg = preset_settings.get("negative_prompt", "")
+                if preset_settings.get("hires_fix"):
+                    hires_fix = True
+                    hires_scale = preset_settings.get("hires_scale", hires_scale)
+                    hires_denoise = preset_settings.get("hires_denoise", hires_denoise)
+                    hires_steps = preset_settings.get("hires_steps", hires_steps)
+        elif lora_models:
+            resolved_loras = [
+                LoraSpec(
+                    name=l.get("name", ""),
+                    weight=float(l.get("weight", 0.8)),
+                    clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
+                    trigger_words=l.get("trigger_words", []),
+                )
+                for l in lora_models if l.get("name")
+            ]
+
+        # 0b. Auto-detect characters in prompt → inject LoRAs automatically
+        #     Only when no explicit LoRAs / preset were provided.
+        auto_detected = False
+        if not resolved_loras and not preset_id and self._character_detector:
+            detection = self._character_detector.detect(prompt)
+            if detection.has_characters:
+                auto_detected = True
+                resolved_loras = [
+                    LoraSpec(
+                        name=c.lora_file,
+                        weight=c.weight,
+                        clip_weight=c.weight,
+                        trigger_words=c.trigger_words,
+                    )
+                    for c in detection.characters
+                ]
+                if not resolved_checkpoint and detection.suggested_checkpoint:
+                    resolved_checkpoint = detection.suggested_checkpoint
+                # If a preset exists for the exact character, use its settings
+                if detection.suggested_preset_id and not preset_id:
+                    _, _, preset_settings = self._resolve_preset(
+                        detection.suggested_preset_id, resolved_checkpoint, None,
+                    )
+                    if preset_settings:
+                        steps = preset_settings.get("steps", steps)
+                        guidance = preset_settings.get("cfg_scale", guidance)
+                        width = preset_settings.get("width", width)
+                        height = preset_settings.get("height", height)
+                        resolved_neg = preset_settings.get("negative_prompt", resolved_neg)
+                logger.info(
+                    f"[ImageRouter] Auto-detected characters: "
+                    f"{[c.display_name for c in detection.characters]} → "
+                    f"LoRAs: {[l.name for l in resolved_loras]}"
+                )
+
+        # When LoRAs are specified (explicit or auto-detected), force ComfyUI
+        # (local) since cloud providers don't support custom LoRAs.
+        if resolved_loras and not provider_name:
+            provider_name = "comfyui"
+            quality = QualityMode.FREE
 
         # 1. Determine mode
         img_mode = self._resolve_mode(mode, source_image_b64, mask_b64)
@@ -194,6 +301,7 @@ class ImageGenerationRouter:
         resolved_model = self._resolve_requested_model(model_name)
         req = ImageRequest(
             prompt=enhanced_prompt,
+            negative_prompt=resolved_neg,
             mode=img_mode,
             source_image_b64=source_image_b64,
             mask_b64=mask_b64,
@@ -205,7 +313,21 @@ class ImageGenerationRouter:
             seed=seed,
             style_preset=style,
             num_images=num_images,
-            extra={"model": resolved_model} if resolved_model else {},
+            lora_models=resolved_loras,
+            vae_name=vae_name,
+            checkpoint=resolved_checkpoint,
+            preset_id=preset_id,
+            extra={
+                "model": resolved_model,
+                "hires_fix": hires_fix,
+                "hires_scale": hires_scale,
+                "hires_denoise": hires_denoise,
+                "hires_steps": hires_steps,
+            } if resolved_model or hires_fix else (
+                {"hires_fix": True, "hires_scale": hires_scale,
+                 "hires_denoise": hires_denoise, "hires_steps": hires_steps}
+                if hires_fix else {}
+            ),
         )
 
         # 4. Select provider(s)
@@ -241,6 +363,11 @@ class ImageGenerationRouter:
                     result.metadata["original_prompt"] = prompt
                     result.metadata["enhanced"] = enhance_prompt
                     result.metadata["style"] = style
+                    if auto_detected:
+                        result.metadata["auto_detected_characters"] = [
+                            c.display_name for c in detection.characters
+                        ]
+                        result.metadata["auto_loras"] = [l.name for l in resolved_loras]
                     if resolved_model:
                         result.metadata["requested_model"] = resolved_model
                     return result
@@ -256,6 +383,182 @@ class ImageGenerationRouter:
             error=f"All providers failed. Last error: {last_error}",
             prompt_used=enhanced_prompt,
         )
+
+    def generate_stream(
+        self,
+        prompt: str,
+        mode: str = "auto",
+        quality: str = QualityMode.AUTO,
+        style: Optional[str] = None,
+        width: int = 1024,
+        height: int = 1024,
+        source_image_b64: Optional[str] = None,
+        mask_b64: Optional[str] = None,
+        strength: float = 0.75,
+        steps: int = 28,
+        guidance: float = 3.5,
+        seed: Optional[int] = None,
+        num_images: int = 1,
+        provider_name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        enhance_prompt: bool = True,
+        context: Optional[str] = None,
+    ) -> Generator[dict, None, None]:
+        """
+        Generate image(s) with streaming status updates.
+        
+        Yields dicts with 'event' and 'data' keys:
+          - {"event": "status", "data": {"step": "...", "phase": "...", ...}}
+          - {"event": "provider_try", "data": {"provider": "...", "priority": N, ...}}
+          - {"event": "provider_fail", "data": {"provider": "...", "error": "..."}}
+          - {"event": "provider_success", "data": {"provider": "...", "model": "..."}}
+          - {"event": "result", "data": {<ImageResult fields>}}
+          - {"event": "error", "data": {"error": "..."}}
+        """
+        start_time = time.time()
+
+        # 1. Resolve mode
+        yield {"event": "status", "data": {"step": "Analyzing request...", "phase": "init"}}
+        img_mode = self._resolve_mode(mode, source_image_b64, mask_b64)
+        mode_labels = {
+            ImageMode.TEXT_TO_IMAGE: "Text → Image",
+            ImageMode.IMAGE_TO_IMAGE: "Image → Image",
+            ImageMode.INPAINT: "Inpainting",
+        }
+        yield {"event": "status", "data": {
+            "step": f"Mode: {mode_labels.get(img_mode, str(img_mode))}",
+            "phase": "init",
+        }}
+
+        # 2. Enhance prompt
+        enhanced_prompt = prompt
+        if enhance_prompt and self._enhancer:
+            yield {"event": "status", "data": {
+                "step": "Enhancing prompt with AI...",
+                "phase": "enhance",
+            }}
+            try:
+                enhanced_prompt = self._enhancer.enhance(prompt, style_preset=style, context=context)
+                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'")
+                yield {"event": "status", "data": {
+                    "step": f"Prompt enhanced",
+                    "phase": "enhance",
+                    "enhanced_prompt": enhanced_prompt,
+                }}
+            except Exception as e:
+                logger.warning(f"[ImageRouter] Enhance failed: {e}")
+                yield {"event": "status", "data": {
+                    "step": "Prompt enhancement skipped",
+                    "phase": "enhance",
+                }}
+
+        # 3. Build request
+        resolved_model = self._resolve_requested_model(model_name)
+        req = ImageRequest(
+            prompt=enhanced_prompt,
+            mode=img_mode,
+            source_image_b64=source_image_b64,
+            mask_b64=mask_b64,
+            strength=strength,
+            width=width,
+            height=height,
+            steps=steps,
+            guidance=guidance,
+            seed=seed,
+            style_preset=style,
+            num_images=num_images,
+            extra={"model": resolved_model} if resolved_model else {},
+        )
+
+        # 4. Select providers
+        yield {"event": "status", "data": {
+            "step": "Selecting providers...",
+            "phase": "select",
+        }}
+        providers = self._select_providers(quality, img_mode, provider_name)
+
+        if resolved_model and resolved_model.startswith("nano-banana"):
+            providers = [cfg for cfg in providers if cfg.provider.name in {"fal", "replicate"}]
+
+        if not providers:
+            error_msg = ("Nano Banana requires fal.ai or Replicate API key."
+                         if resolved_model and resolved_model.startswith("nano-banana")
+                         else "No image providers available. Add API keys for fal.ai, Replicate, or BFL.")
+            yield {"event": "error", "data": {"error": error_msg, "prompt_used": enhanced_prompt}}
+            return
+
+        provider_names = [cfg.provider.name for cfg in providers]
+        yield {"event": "status", "data": {
+            "step": f"Available providers: {', '.join(provider_names)}",
+            "phase": "select",
+            "providers": provider_names,
+        }}
+
+        # 5. Try providers with fallback (streaming status)
+        last_error = ""
+        attempt = 0
+        for prov_config in providers:
+            prov = prov_config.provider
+            attempt += 1
+            yield {"event": "provider_try", "data": {
+                "provider": prov.name,
+                "priority": prov_config.priority,
+                "attempt": attempt,
+                "total_providers": len(providers),
+            }}
+
+            try:
+                result = prov.generate(req)
+                if result.success:
+                    result.prompt_used = enhanced_prompt
+                    self._total_cost += result.cost_usd
+                    self._total_generations += 1
+                    result.metadata["original_prompt"] = prompt
+                    result.metadata["enhanced"] = enhance_prompt
+                    result.metadata["style"] = style
+                    if resolved_model:
+                        result.metadata["requested_model"] = resolved_model
+
+                    latency = round((time.time() - start_time) * 1000, 1)
+                    yield {"event": "provider_success", "data": {
+                        "provider": result.provider,
+                        "model": result.model,
+                        "latency_ms": latency,
+                    }}
+                    yield {"event": "result", "data": {
+                        "success": True,
+                        "provider": result.provider,
+                        "model": result.model,
+                        "images_b64": result.images_b64,
+                        "images_url": result.images_url,
+                        "prompt_used": enhanced_prompt,
+                        "original_prompt": prompt,
+                        "latency_ms": latency,
+                        "cost_usd": result.cost_usd,
+                        "metadata": result.metadata,
+                    }}
+                    return
+                else:
+                    last_error = result.error or "Unknown error"
+                    logger.warning(f"[ImageRouter] {prov.name} failed: {last_error}")
+                    yield {"event": "provider_fail", "data": {
+                        "provider": prov.name,
+                        "error": last_error,
+                        "attempt": attempt,
+                    }}
+            except Exception as e:
+                last_error = str(e)
+                logger.error(f"[ImageRouter] {prov.name} exception: {e}")
+                yield {"event": "provider_fail", "data": {
+                    "provider": prov.name,
+                    "error": last_error,
+                    "attempt": attempt,
+                }}
+
+        yield {"event": "error", "data": {
+            "error": f"All providers failed. Last error: {last_error}",
+            "prompt_used": enhanced_prompt,
+        }}
 
     def get_available_providers(self) -> list[dict]:
         """Return info about all configured providers."""
@@ -408,8 +711,146 @@ class ImageGenerationRouter:
             # Sort by cost
             candidates.sort(key=lambda c: c.provider.cost_per_image)
         else:
-            # Auto: sort by priority (configured ranking)
-            candidates.sort(key=lambda c: c.priority, reverse=True)
+            # Auto: randomize among top-tier providers to distribute cost
+            # Group by priority tier (within 15 points = same tier)
+            if candidates:
+                max_pri = max(c.priority for c in candidates)
+                top_tier = [c for c in candidates if c.priority >= max_pri - 15]
+                rest = [c for c in candidates if c.priority < max_pri - 15]
+                random.shuffle(top_tier)
+                rest.sort(key=lambda c: c.priority, reverse=True)
+                candidates = top_tier + rest
+
+        # ── Hybrid mode: promote healthy local providers when profile is "full" ──
+        try:
+            from app.services.image_orchestrator.runtime_profile import get_runtime_profile
+            profile = get_runtime_profile()
+            if profile.prefer_local_when_healthy and quality in (
+                QualityMode.AUTO, QualityMode.FREE, QualityMode.CHEAP,
+            ):
+                local = [c for c in candidates if c.provider.tier == ProviderTier.LOCAL]
+                remote = [c for c in candidates if c.provider.tier != ProviderTier.LOCAL]
+                if local:
+                    local_names = [c.provider.name for c in local]
+                    remote_names = [c.provider.name for c in remote]
+                    logger.info(
+                        f"[ImageRouter] HYBRID decision: local {local_names} healthy "
+                        f"→ promoted first (free, 0 latency). "
+                        f"Fallback chain: {remote_names}"
+                    )
+                    candidates = local + remote
+                else:
+                    remote_names = [c.provider.name for c in remote]
+                    logger.info(
+                        f"[ImageRouter] HYBRID decision: no healthy local provider "
+                        f"→ using remote providers {remote_names}"
+                    )
+            else:
+                names = [c.provider.name for c in candidates]
+                logger.info(
+                    f"[ImageRouter] Provider order (quality={quality}): {names}"
+                )
+        except Exception:
+            pass
 
         return candidates
 
+    def _resolve_preset(
+        self,
+        preset_id: str,
+        checkpoint_override: Optional[str],
+        lora_override: Optional[list[dict]],
+    ) -> tuple[Optional[str], list[LoraSpec], dict]:
+        """
+        Resolve a workflow preset into checkpoint, LoRA specs, and settings.
+        User-supplied overrides take priority over preset defaults.
+        """
+        try:
+            from config.model_presets import (
+                get_workflow_preset, resolve_loras_for_preset, get_lora_by_key,
+            )
+        except ImportError:
+            logger.warning("[ImageRouter] model_presets import failed — preset ignored")
+            return checkpoint_override, [], {}
+
+        preset = get_workflow_preset(preset_id)
+        if not preset:
+            logger.warning(f"[ImageRouter] Unknown preset: {preset_id}")
+            return checkpoint_override, [], {}
+
+        # Checkpoint: override > preset
+        ckpt = checkpoint_override or preset.get("checkpoint")
+
+        # LoRAs: override > preset defaults
+        lora_specs: list[LoraSpec] = []
+        if lora_override:
+            for l in lora_override:
+                lora_specs.append(LoraSpec(
+                    name=l.get("name", ""),
+                    weight=float(l.get("weight", 0.8)),
+                    clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
+                    trigger_words=l.get("trigger_words", []),
+                ))
+        else:
+            resolved = resolve_loras_for_preset(preset_id)
+            for r in resolved:
+                lora_specs.append(LoraSpec(
+                    name=r["file"],
+                    weight=r["weight"],
+                    clip_weight=r["weight"],
+                    trigger_words=r.get("trigger", []),
+                ))
+
+        # Gather other settings
+        settings = {
+            k: preset[k] for k in (
+                "steps", "cfg_scale", "width", "height",
+                "negative_prompt", "sampler",
+                "hires_fix", "hires_scale", "hires_denoise", "hires_steps",
+            ) if k in preset
+        }
+
+        logger.info(
+            f"[ImageRouter] Preset '{preset_id}': ckpt={ckpt}, "
+            f"loras={[l.name for l in lora_specs]}, settings={list(settings.keys())}"
+        )
+        return ckpt, lora_specs, settings
+
+    def get_available_loras(self) -> list[str]:
+        """Query ComfyUI for available LoRA files."""
+        comfyui = self._providers.get("comfyui")
+        if comfyui and hasattr(comfyui.provider, "get_loras"):
+            return comfyui.provider.get_loras()
+        return []
+
+    def detect_characters(self, prompt: str) -> dict:
+        """
+        Public API: detect characters in a prompt.
+        Returns dict with detected characters and suggested LoRAs.
+        """
+        if not self._character_detector:
+            return {"characters": [], "detected": False}
+        result = self._character_detector.detect(prompt)
+        return {
+            "detected": result.has_characters,
+            "characters": [
+                {
+                    "key": c.key,
+                    "name": c.display_name,
+                    "lora_file": c.lora_file,
+                    "weight": c.weight,
+                    "trigger_words": c.trigger_words,
+                    "franchise": c.franchise,
+                    "base": c.base,
+                }
+                for c in result.characters
+            ],
+            "suggested_checkpoint": result.suggested_checkpoint,
+            "suggested_preset_id": result.suggested_preset_id,
+        }
+
+    def get_detectable_characters(self) -> list[dict]:
+        """List all characters the detector can recognize."""
+        if not self._character_detector:
+            return []
+        return self._character_detector.get_all_characters()

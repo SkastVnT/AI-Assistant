@@ -24,6 +24,15 @@ class ProviderTier(str, enum.Enum):
 
 
 @dataclass
+class LoraSpec:
+    """Specification for a single LoRA to apply."""
+    name:            str                         # filename e.g. "Firefly-1024-v1.safetensors"
+    weight:          float              = 0.8    # strength_model
+    clip_weight:     float              = 0.8    # strength_clip (defaults to weight if not set)
+    trigger_words:   list[str]          = field(default_factory=list)  # words to inject into prompt
+
+
+@dataclass
 class ImageRequest:
     prompt:          str
     negative_prompt: str                = ""
@@ -38,6 +47,10 @@ class ImageRequest:
     seed:            Optional[int]      = None
     style_preset:    Optional[str]      = None   # "photorealistic", "anime", etc.
     num_images:      int                = 1
+    lora_models:     list[LoraSpec]     = field(default_factory=list)
+    vae_name:        Optional[str]      = None   # explicit VAE override
+    checkpoint:      Optional[str]      = None   # explicit checkpoint override
+    preset_id:       Optional[str]      = None   # workflow preset (e.g. "anime_character")
     extra:           dict               = field(default_factory=dict)
 
 

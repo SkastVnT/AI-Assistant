@@ -1,9 +1,234 @@
 ﻿"""
 Model Presets Configuration
-Defines presets for different image generation styles
+Defines presets for different image generation styles,
+LoRA combinations, and workflow recipes.
 """
 
-# Model presets for different styles
+# ─── LoRA Catalog ────────────────────────────────────────────────────────
+# Each entry maps a short key to its filename and metadata.
+# Paths are resolved by ComfyUI via extra_model_paths.yaml.
+
+LORA_CATALOG = {
+    # ── Character LoRAs (Honkai Star Rail) ───────────────────────────────
+    "firefly":        {"file": "Firefly-1024-v1.safetensors",           "trigger": ["firefly"],           "category": "character", "base": "sdxl"},
+    "kafka":          {"file": "kafka-v2-naivae-final-6ep.safetensors", "trigger": ["kafka"],             "category": "character", "base": "sdxl"},
+    "jingliu":        {"file": "JingliuV4-09.safetensors",              "trigger": ["jingliu"],           "category": "character", "base": "sdxl"},
+    "seele":          {"file": "Seele.safetensors",                     "trigger": ["seele"],             "category": "character", "base": "sd15"},
+    "clara":          {"file": "Clara.safetensors",                     "trigger": ["clara"],             "category": "character", "base": "sd15"},
+    "march7th":       {"file": "March 7th.safetensors",                 "trigger": ["march 7th"],         "category": "character", "base": "sd15"},
+    "bronya":         {"file": "Bronya Rand.safetensors",               "trigger": ["bronya rand"],       "category": "character", "base": "sd15"},
+    "trailblazer":    {"file": "TrailblazerHonkaiStarRail4.safetensors","trigger": ["trailblazer"],       "category": "character", "base": "sd15"},
+
+    # ── Character LoRAs (Genshin Impact) ─────────────────────────────────
+    "nahida":         {"file": "Nahida3.safetensors",                   "trigger": ["nahida"],            "category": "character", "base": "sd15"},
+    "furina":         {"file": "furina-lora-nochekaiser.safetensors",   "trigger": ["furina"],            "category": "character", "base": "sdxl"},
+    "eula":           {"file": "Eula-1.0.safetensors",                  "trigger": ["eula"],              "category": "character", "base": "sd15"},
+    "raiden":         {"file": "raiden shogun_LoRA.safetensors",        "trigger": ["raiden shogun"],     "category": "character", "base": "sd15"},
+    "yae_miko":       {"file": "yaemiko1.safetensors",                  "trigger": ["yae miko"],          "category": "character", "base": "sd15"},
+
+    # ── Character LoRAs (Other) ──────────────────────────────────────────
+    "tatsumaki":      {"file": "tatsumaki.safetensors",                 "trigger": ["tatsumaki"],         "category": "character", "base": "sd15"},
+    "atri":           {"file": "atri.safetensors",                      "trigger": ["atri"],              "category": "character", "base": "sd15"},
+
+    # ── Style LoRAs ──────────────────────────────────────────────────────
+    "outline":        {"file": "SIC_outline_v1.01.safetensors",         "trigger": [],                    "category": "style",     "base": "sdxl"},
+    "dilation_tape":  {"file": "dilationTapeLora-05.safetensors",       "trigger": [],                    "category": "style",     "base": "sd15"},
+
+    # ── Anatomy / Quality LoRAs ──────────────────────────────────────────
+    "detail_tweaker": {"file": "add_detail.safetensors",                "trigger": [],                    "category": "anatomy",   "base": "sd15"},
+
+    # ── Custom trained ───────────────────────────────────────────────────
+    "maki_custom":    {"file": "maki_lora.safetensors",                 "trigger": ["maki"],              "category": "character", "base": "sd15"},
+}
+
+
+# ─── Workflow Presets ────────────────────────────────────────────────────
+# Pre-configured combos of checkpoint + LoRAs + settings.
+# Users pick a preset_id and get optimized generation settings.
+
+WORKFLOW_PRESETS = {
+    # ── Anime character generation (SDXL) ────────────────────────────────
+    "anime_character_xl": {
+        "name": "Anime Character (XL)",
+        "description": "Anime characters with SDXL — high quality, supports character LoRAs",
+        "checkpoint": "animagine-xl-3.1.safetensors",
+        "default_loras": [],
+        "negative_prompt": "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, watermark, text, signature",
+        "cfg_scale": 7.0,
+        "steps": 25,
+        "sampler": "euler_ancestral",
+        "width": 1024,
+        "height": 1024,
+        "category": "anime",
+        "hires_fix": False,
+    },
+    "anime_character_15": {
+        "name": "Anime Character (Classic)",
+        "description": "Anime characters with SD 1.5 — compatible with most character LoRAs",
+        "checkpoint": "counterfeit_v30.safetensors",
+        "default_loras": [],
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, blurry",
+        "cfg_scale": 7.0,
+        "steps": 28,
+        "sampler": "euler_ancestral",
+        "width": 512,
+        "height": 768,
+        "category": "anime",
+        "hires_fix": True,
+        "hires_scale": 1.5,
+        "hires_denoise": 0.45,
+        "hires_steps": 15,
+    },
+    "anime_hsr_jingliu": {
+        "name": "Jingliu (HSR)",
+        "description": "Jingliu from Honkai Star Rail — optimized preset",
+        "checkpoint": "animagine-xl-3.1.safetensors",
+        "default_loras": [
+            {"key": "jingliu", "weight": 0.85},
+        ],
+        "negative_prompt": "bad quality, worst quality, low quality, blurry, deformed, ugly, bad anatomy, watermark, text",
+        "cfg_scale": 7.0,
+        "steps": 28,
+        "sampler": "euler_ancestral",
+        "width": 1024,
+        "height": 1024,
+        "category": "anime",
+        "hires_fix": False,
+    },
+    "anime_hsr_firefly": {
+        "name": "Firefly (HSR)",
+        "description": "Firefly from Honkai Star Rail — character preset",
+        "checkpoint": "animagine-xl-3.1.safetensors",
+        "default_loras": [
+            {"key": "firefly", "weight": 0.85},
+        ],
+        "negative_prompt": "bad quality, worst quality, low quality, blurry, deformed, ugly, bad anatomy, watermark, text",
+        "cfg_scale": 7.0,
+        "steps": 28,
+        "sampler": "euler_ancestral",
+        "width": 1024,
+        "height": 1024,
+        "category": "anime",
+        "hires_fix": False,
+    },
+    "anime_genshin_furina": {
+        "name": "Furina (Genshin)",
+        "description": "Furina from Genshin Impact — character preset",
+        "checkpoint": "animagine-xl-3.1.safetensors",
+        "default_loras": [
+            {"key": "furina", "weight": 0.8},
+        ],
+        "negative_prompt": "bad quality, worst quality, low quality, blurry, deformed, ugly, bad anatomy, watermark, text",
+        "cfg_scale": 7.0,
+        "steps": 28,
+        "sampler": "euler_ancestral",
+        "width": 1024,
+        "height": 1024,
+        "category": "anime",
+        "hires_fix": False,
+    },
+
+    # ── Realistic presets ────────────────────────────────────────────────
+    "realistic_portrait": {
+        "name": "Realistic Portrait",
+        "description": "Photorealistic portraits — SDXL Lightning fast",
+        "checkpoint": "realvisxlV50_v50LightningBakedvae.safetensors",
+        "default_loras": [],
+        "negative_prompt": "cartoon, anime, illustration, drawing, painting, sketch, bad quality, worst quality, blurry, distorted, deformed, ugly, bad anatomy, watermark, signature",
+        "cfg_scale": 2.0,
+        "steps": 6,
+        "sampler": "euler",
+        "width": 1024,
+        "height": 1024,
+        "category": "realistic",
+        "hires_fix": False,
+    },
+    "realistic_pro": {
+        "name": "Realistic Pro",
+        "description": "Professional photorealistic — slower but higher quality",
+        "checkpoint": "juggernautXL_v9.safetensors",
+        "default_loras": [],
+        "negative_prompt": "cartoon, anime, illustration, drawing, painting, bad quality, worst quality, blurry, distorted, deformed, ugly, bad anatomy, extra limbs, watermark, signature, text",
+        "cfg_scale": 4.5,
+        "steps": 25,
+        "sampler": "dpmpp_2m_sde",
+        "width": 1024,
+        "height": 1344,
+        "category": "realistic",
+        "hires_fix": False,
+    },
+
+    # ── Fantasy / artistic ───────────────────────────────────────────────
+    "fantasy_anime": {
+        "name": "Fantasy Anime",
+        "description": "Fantasy anime art — great for environments and characters",
+        "checkpoint": "dreamshaper_xl.safetensors",
+        "default_loras": [],
+        "negative_prompt": "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, watermark, signature",
+        "cfg_scale": 6.5,
+        "steps": 20,
+        "sampler": "dpmpp_2m",
+        "width": 1024,
+        "height": 1024,
+        "category": "anime",
+        "hires_fix": False,
+    },
+}
+
+
+def get_lora_by_key(key: str) -> dict | None:
+    """Look up a LoRA entry from the catalog."""
+    return LORA_CATALOG.get(key)
+
+
+def resolve_loras_for_preset(preset_id: str) -> list[dict]:
+    """
+    Return resolved LoRA specs for a workflow preset.
+    Each entry: {"file": "...", "weight": 0.8, "trigger": [...]}
+    """
+    preset = WORKFLOW_PRESETS.get(preset_id, {})
+    result = []
+    for lora_ref in preset.get("default_loras", []):
+        key = lora_ref.get("key", "")
+        weight = lora_ref.get("weight", 0.8)
+        entry = LORA_CATALOG.get(key)
+        if entry:
+            result.append({
+                "file": entry["file"],
+                "weight": weight,
+                "trigger": entry.get("trigger", []),
+            })
+    return result
+
+
+def get_workflow_preset(preset_id: str) -> dict | None:
+    """Get a workflow preset by ID."""
+    return WORKFLOW_PRESETS.get(preset_id)
+
+
+def get_workflow_presets_by_category(category: str) -> list[dict]:
+    """Get all workflow presets for a category."""
+    return [
+        {"id": k, **v}
+        for k, v in WORKFLOW_PRESETS.items()
+        if v.get("category") == category
+    ]
+
+
+def get_all_workflow_presets() -> dict:
+    """Get all workflow presets grouped by category."""
+    cats = {}
+    for pid, preset in WORKFLOW_PRESETS.items():
+        cat = preset.get("category", "other")
+        if cat not in cats:
+            cats[cat] = []
+        cats[cat].append({"id": pid, **preset})
+    return cats
+
+
+# ─── Legacy Model Presets (backward-compatible) ─────────────────────────
+# These are used by the old UI and stable_diffusion.py routes.
+
 MODEL_PRESETS = {
     # === ANIME STYLES ===
     "anime_xl": {
