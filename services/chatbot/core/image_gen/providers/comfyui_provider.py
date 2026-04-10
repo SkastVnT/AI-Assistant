@@ -622,12 +622,16 @@ class ComfyUIProvider(BaseImageProvider):
         loras: list = []
 
         try:
+            checkpoint, profile = self._select_model(req)
+            vae_name = profile.get("vae")
+            if vae_name and self._available_vaes and vae_name not in self._available_vaes:
+                vae_name = None
+
             # ── Route to appropriate workflow ────────────────────────────
             if has_loras or req.preset_id:
                 # New workflow builder path — supports LoRA chains
                 workflow = self._build_lora_workflow(req, seed, checkpoint, vae_name)
             else:
-                checkpoint, profile = self._select_model(req)
                 model_type = profile["type"]
                 native_w, native_h = _pick_resolution(profile, req.width, req.height)
 
