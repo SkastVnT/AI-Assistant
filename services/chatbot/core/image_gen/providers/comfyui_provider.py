@@ -706,7 +706,6 @@ class ComfyUIProvider(BaseImageProvider):
                 metadata={
                     "prompt_id": prompt_id,
                     "seed": seed,
-                    "loras": [{"name": l.name, "weight": l.weight} for l in req.lora_models] if req.lora_models else [],
                     "checkpoint": checkpoint,
                     "vae": vae_name or "auto",
                     "preset_id": req.preset_id,
