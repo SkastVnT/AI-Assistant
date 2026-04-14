@@ -5,8 +5,20 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add parent directory to path and pre-cache the src package so that
+# sys.modules['src'] always resolves to services/chatbot/src/ regardless
+# of any later sys.path manipulation by extensions.py or other modules.
+_CHATBOT_DIR = Path(__file__).parent.parent.resolve()
+if str(_CHATBOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_CHATBOT_DIR))
+else:
+    sys.path.remove(str(_CHATBOT_DIR))
+    sys.path.insert(0, str(_CHATBOT_DIR))
+
+# Pre-import src to cache the correct package in sys.modules before any
+# other import can displace it (core/__init__.py manipulates sys.path).
+import src  # noqa: E402
+
 
 @pytest.fixture
 def app():

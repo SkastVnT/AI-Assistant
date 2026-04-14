@@ -4,10 +4,7 @@ Hiển thị real-time stats về API usage
 """
 import sys
 from pathlib import Path
-<<<<<<< HEAD
-=======
 
->>>>>>> f53809f28d5edd8caadbb4e56aceb05ee80ec2ea
 from flask import Blueprint, jsonify, make_response
 
 # Import utilities
