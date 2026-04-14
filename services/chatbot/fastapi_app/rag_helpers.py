@@ -49,6 +49,8 @@ async def retrieve_rag_context(
         return RAGResult(
             message=message,
             custom_prompt=custom_prompt,
+            citations=None,
+            chunk_count=0,
         )
 
     orchestrator = RAGOrchestrator()
