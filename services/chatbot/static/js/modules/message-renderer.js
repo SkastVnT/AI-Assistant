@@ -112,10 +112,20 @@ export class MessageRenderer {
         header.className = 'thinking-reasoning__header';
 
         const tidMatch = tid.match(/^r(\d+)_t(\d+)$/);
-        const label = tidMatch
-            ? `🔍 Direction ${parseInt(tidMatch[2]) + 1} (round ${parseInt(tidMatch[1]) + 1})`
+        const labelText = tidMatch
+            ? `🔍 Direction ${parseInt(tidMatch[2], 10) + 1} (round ${parseInt(tidMatch[1], 10) + 1})`
             : '🔍 Reasoning';
-        header.innerHTML = `<span class="thinking-reasoning__label">${label}</span><span class="thinking-reasoning__toggle">▶</span>`;
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'thinking-reasoning__label';
+        labelSpan.textContent = labelText;
+
+        const toggleSpan = document.createElement('span');
+        toggleSpan.className = 'thinking-reasoning__toggle';
+        toggleSpan.textContent = '▶';
+
+        header.appendChild(labelSpan);
+        header.appendChild(toggleSpan);
 
         const body = document.createElement('div');
         body.className = 'thinking-reasoning__body';
