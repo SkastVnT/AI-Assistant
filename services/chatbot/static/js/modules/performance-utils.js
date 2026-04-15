@@ -1,5 +1,9 @@
 /**
  * Frontend Performance Optimizations
+ *
+ * STATUS: DEAD CODE — not imported by any module or template.
+ * Kept for reference. Do not import without auditing for bundle size impact.
+ *
  * - Lazy loading
  * - Code splitting
  * - Virtual scrolling

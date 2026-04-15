@@ -66,7 +66,6 @@ export class ImageGenV2 {
         const modal = document.getElementById('imageGenV2Modal');
         if (modal) {
             modal.classList.add('active', 'open');
-            modal.style.display = 'flex';
             this.init();
         }
     }
@@ -74,8 +73,7 @@ export class ImageGenV2 {
     closeModal() {
         const modal = document.getElementById('imageGenV2Modal');
         if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
+            modal.classList.remove('active', 'open');
         }
     }
 

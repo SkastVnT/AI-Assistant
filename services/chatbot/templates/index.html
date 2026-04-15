@@ -141,12 +141,11 @@ try {
                     </div>
                 </div>
                 <!-- Video unlock button -->
-                <button id="videoUnlockBtn" onclick="openVideoUnlockModal()" style="
+                <button id="videoUnlockBtn" data-action="modal:open-qr" class="hover-bg-accent-soft" style="
                     display:none;width:100%;padding:7px 10px;border:1px solid rgba(241,196,15,.35);
                     border-radius:9px;background:rgba(241,196,15,.08);color:#f1c40f;
                     font-size:12px;font-weight:500;font-family:var(--font-sans);cursor:pointer;
-                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;"
-                    onmouseover="this.style.background='rgba(241,196,15,.14)'" onmouseout="this.style.background='rgba(241,196,15,.08)'">
+                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;">
                     <i data-lucide="lock" style="width:13px;height:13px;"></i>
                     <span>Mở khóa tính năng Video</span>
                 </button>
@@ -159,7 +158,7 @@ try {
             <div style="position:relative; margin-top:4px; border-top: 1px solid var(--border-primary); padding-top:6px;">
                 <!-- User dropdown panel -->
                 <div id="userDropdown" style="
-                    display:none; position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
+                    position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
                     background:var(--bg-secondary); border:1px solid var(--border-primary);
                     border-radius:12px; box-shadow:0 -8px 32px rgba(0,0,0,0.45); overflow:hidden; z-index:200;">
                     <!-- Header -->
@@ -182,30 +181,26 @@ try {
                     </div>
                     <!-- Menu items -->
                     <div style="padding:6px;">
-                        <a href="/admin" id="dropAdminLink" style="display:{% if session.get('user_role') == 'admin' %}flex{% else %}none{% endif %};align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                        <a href="/admin" id="dropAdminLink" class="hover-bg-tertiary" style="display:{% if session.get('user_role') == 'admin' %}flex{% else %}none{% endif %};align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;">
                             <i data-lucide="shield" style="width:15px;height:15px;flex-shrink:0;"></i>
                             <span>Admin Panel</span>
                         </a>
-                        <button onclick="openEditProfile()" style="
+                        <button data-action="user:open-profile" class="hover-bg-tertiary" style="
                             width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
                             color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
-                            font-family:var(--font-sans);transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                            font-family:var(--font-sans);transition:background 0.15s;">
                             <i data-lucide="user-pen" style="width:15px;height:15px;flex-shrink:0;"></i>
                             <span>Chỉnh sửa hồ sơ</span>
                         </button>
-                        <button onclick="openChangePassword()" style="
+                        <button data-action="user:open-password" class="hover-bg-tertiary" style="
                             width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
                             color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
-                            font-family:var(--font-sans);transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                            font-family:var(--font-sans);transition:background 0.15s;">
                             <i data-lucide="key-round" style="width:15px;height:15px;flex-shrink:0;"></i>
                             <span>Đổi mật khẩu</span>
                         </button>
-                        <a href="/logout" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
-                           onmouseover="this.style.background='rgba(231,76,60,0.08)'" onmouseout="this.style.background='transparent'"
-                           onclick="try{localStorage.removeItem('ai_session');}catch(e){}">  
+                        <a href="/logout" class="hover-bg-danger-soft" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
+                           data-action="user:logout">
                             <i data-lucide="log-out" style="width:15px;height:15px;flex-shrink:0;"></i>
                             <span>Đăng xuất</span>
                         </a>
@@ -213,11 +208,10 @@ try {
                 </div>
 
                 <!-- Trigger row -->
-                <button id="userTrigger" onclick="toggleUserDropdown()" style="
+                <button id="userTrigger" data-action="user:toggle-dropdown" class="hover-bg-tertiary" style="
                     width:100%;display:flex;align-items:center;gap:10px;padding:6px 10px;
                     background:transparent;border:none;cursor:pointer;border-radius:10px;
-                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);"
-                    onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="if(!document.getElementById('userDropdown').style.display||document.getElementById('userDropdown').style.display==='none')this.style.background='transparent'">
+                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);">
                     <div id="userAvatar" style="
                         width:30px;height:30px;border-radius:50%;background:var(--accent-gradient);
                         display:flex;align-items:center;justify-content:center;
@@ -231,10 +225,10 @@ try {
             </div>
 
             <!-- QR Payment Modal -->
-            <div id="qrPayModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeVideoUnlockModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
+            <div id="qrPayModal" class="inline-modal">
+                <div data-action="modal:close-qr" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
                 <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:18px;padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);text-align:center;">
-                    <button onclick="closeVideoUnlockModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='none'">
+                    <button data-action="modal:close-qr" class="hover-bg-tertiary" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;">
                         <i data-lucide="x" style="width:18px;height:18px;"></i>
                     </button>
                     <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎬 Mở khóa Video</div>
@@ -253,11 +247,10 @@ try {
                         <div><span style="color:var(--text-tertiary)">Nội dung:</span> <strong id="qrDesc">—</strong></div>
                     </div>
                     <div id="qrRequestAlert" style="display:none;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
-                    <button onclick="submitVideoUnlockRequest()" id="qrSubmitBtn" style="
+                    <button data-action="modal:submit-qr" id="qrSubmitBtn" class="hover-opacity-down" style="
                         width:100%;padding:11px;border:none;border-radius:12px;background:var(--accent-gradient);
                         color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
-                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;"
-                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;">
                         <i data-lucide="send" style="width:16px;height:16px;"></i>
                         <span id="qrSubmitLbl">Đã chuyển khoản — Gửi yêu cầu</span>
                     </button>
@@ -266,8 +259,8 @@ try {
             </div>
 
             <!-- Change Password Modal -->
-            <div id="changePwModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeChangePassword()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+            <div id="changePwModal" class="inline-modal">
+                <div data-action="modal:close-password" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
                 <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:360px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
                     <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
                         <i data-lucide="key-round" style="width:18px;height:18px;color:var(--accent);"></i> Đổi mật khẩu
@@ -283,39 +276,38 @@ try {
                         <input type="password" id="cpwNew" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="Ít nhất 6 ký tự">
                     </div>
                     <div style="display:flex;gap:8px;">
-                        <button onclick="closeChangePassword()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
-                        <button onclick="submitChangePw()" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Xác nhận</button>
+                        <button data-action="modal:close-password" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
+                        <button data-action="modal:submit-password" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Xác nhận</button>
                     </div>
                 </div>
             </div>
 
             <!-- Edit Profile Modal -->
-            <div id="editProfileModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeEditProfile()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+            <div id="editProfileModal" class="inline-modal">
+                <div data-action="modal:close-profile" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
                 <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:390px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
                     <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
                         <i data-lucide="user-pen" style="width:18px;height:18px;color:var(--accent);"></i> Chỉnh sửa hồ sơ
                     </h3>
                     <!-- Avatar picker -->
                     <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;gap:10px;">
-                        <div id="epAvatarPreview" onclick="document.getElementById('epAvatarInput').click()" title="Nhấn để thay đổi ảnh" style="
+                        <div id="epAvatarPreview" data-action="profile:trigger-avatar" title="Nhấn để thay đổi ảnh" style="
                             width:80px;height:80px;border-radius:50%;background:var(--accent-gradient);
                             display:flex;align-items:center;justify-content:center;
                             font-size:28px;font-weight:700;color:#fff;cursor:pointer;
                             overflow:hidden;position:relative;border:2px solid var(--border-primary);flex-shrink:0;">
                             <span id="epAvatarInitial" style="position:relative;z-index:1;">U</span>
                             <img id="epAvatarImg" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
-                            <div id="epAvatarHover" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2;"
-                                 onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+                            <div id="epAvatarHover" class="hover-opacity-reveal" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:2;">
                                 <i data-lucide="camera" style="width:22px;height:22px;color:#fff;"></i>
                             </div>
                         </div>
-                        <input type="file" id="epAvatarInput" accept="image/*" style="display:none;" onchange="handleEpAvatarFile(event)">
+                        <input type="file" id="epAvatarInput" accept="image/*" style="display:none;" data-action="profile:avatar-file">
                         <div style="display:flex;gap:6px;">
-                            <button onclick="document.getElementById('epAvatarInput').click()" style="font-size:11px;padding:5px 11px;border:1px solid var(--border-primary);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;">
+                            <button data-action="profile:trigger-avatar" style="font-size:11px;padding:5px 11px;border:1px solid var(--border-primary);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;">
                                 <i data-lucide="upload" style="width:11px;height:11px;"></i> Tải ảnh lên
                             </button>
-                            <button id="epClearAvatarBtn" onclick="clearEpAvatar()" style="display:none;font-size:11px;padding:5px 11px;border:1px solid rgba(231,76,60,0.3);border-radius:8px;background:transparent;color:#e74c3c;cursor:pointer;font-family:var(--font-sans);">
+                            <button id="epClearAvatarBtn" data-action="profile:clear-avatar" style="display:none;font-size:11px;padding:5px 11px;border:1px solid rgba(231,76,60,0.3);border-radius:8px;background:transparent;color:#e74c3c;cursor:pointer;font-family:var(--font-sans);">
                                 Xóa ảnh
                             </button>
                         </div>
@@ -333,8 +325,8 @@ try {
                     <div id="epError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
                     <div id="epSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
                     <div style="display:flex;gap:8px;">
-                        <button onclick="closeEditProfile()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
-                        <button onclick="submitEditProfile()" id="epSaveBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Lưu thay đổi</button>
+                        <button data-action="modal:close-profile" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
+                        <button data-action="modal:submit-profile" id="epSaveBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Lưu thay đổi</button>
                     </div>
                 </div>
             </div>
@@ -482,7 +474,7 @@ try {
             /* ── QR Modal ── */
             function openVideoUnlockModal() {
                 const m = document.getElementById('qrPayModal');
-                m.style.display = 'flex';
+                m.classList.add('open');
                 document.getElementById('qrImg').style.display = 'none';
                 document.getElementById('qrLoading').style.display = 'block';
                 document.getElementById('qrRequestAlert').style.display = 'none';
@@ -508,7 +500,7 @@ try {
             }
 
             function closeVideoUnlockModal() {
-                document.getElementById('qrPayModal').style.display = 'none';
+                document.getElementById('qrPayModal').classList.remove('open');
             }
 
             async function submitVideoUnlockRequest() {
@@ -553,7 +545,7 @@ try {
                 _dropOpen = !_dropOpen;
                 const dd = document.getElementById('userDropdown');
                 const chevron = document.getElementById('userChevron');
-                dd.style.display = _dropOpen ? 'block' : 'none';
+                dd.classList.toggle('open', _dropOpen);
                 chevron.style.transform = _dropOpen ? 'rotate(180deg)' : '';
                 document.getElementById('userTrigger').style.background = _dropOpen ? 'var(--bg-tertiary)' : '';
                 lucide.createIcons();
@@ -562,7 +554,7 @@ try {
             document.addEventListener('click', function(e) {
                 if(_dropOpen && !document.getElementById('userTrigger').contains(e.target) && !document.getElementById('userDropdown').contains(e.target)) {
                     _dropOpen = false;
-                    document.getElementById('userDropdown').style.display = 'none';
+                    document.getElementById('userDropdown').classList.remove('open');
                     document.getElementById('userChevron').style.transform = '';
                     document.getElementById('userTrigger').style.background = '';
                 }
@@ -571,7 +563,7 @@ try {
             function openChangePassword() {
                 toggleUserDropdown();
                 const m = document.getElementById('changePwModal');
-                m.style.display = 'flex';
+                m.classList.add('open');
                 document.getElementById('cpwCurrent').value = '';
                 document.getElementById('cpwNew').value = '';
                 document.getElementById('cpwError').style.display = 'none';
@@ -580,7 +572,7 @@ try {
                 setTimeout(() => document.getElementById('cpwCurrent').focus(), 100);
             }
             function closeChangePassword() {
-                document.getElementById('changePwModal').style.display = 'none';
+                document.getElementById('changePwModal').classList.remove('open');
             }
             async function submitChangePw() {
                 const btn = document.getElementById('cpwBtn');
@@ -610,7 +602,7 @@ try {
                 // Close dropdown first
                 if (_dropOpen) toggleUserDropdown();
                 const m = document.getElementById('editProfileModal');
-                m.style.display = 'flex';
+                m.classList.add('open');
                 document.getElementById('epError').style.display = 'none';
                 document.getElementById('epSuccess').style.display = 'none';
                 _epAvatarData = null;
@@ -641,7 +633,7 @@ try {
             }
 
             function closeEditProfile() {
-                document.getElementById('editProfileModal').style.display = 'none';
+                document.getElementById('editProfileModal').classList.remove('open');
                 document.getElementById('epAvatarInput').value = '';
             }
 
@@ -763,14 +755,14 @@ try {
 
                 <!-- Model Selector -->
                 <div class="topbar__model-selector" id="modelSelectorContainer">
-                    <button class="topbar__model-btn open" id="modelSelectorBtn">
+                    <button class="topbar__model-btn" id="modelSelectorBtn">
                         <span id="modelSelectorLabel">Grok-3</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 9l6 6 6-6"></path>
                         </svg>
                     </button>
 
-                    <div class="model-dropdown open" id="modelDropdown">
+                    <div class="model-dropdown" id="modelDropdown">
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Premium</div>
                             <div class="model-dropdown__item active" data-model="grok">
@@ -1799,13 +1791,13 @@ try {
     </div>
 
     <!-- Generated image overlay -->
-    <div id="generatedImageContainer" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 250; display: none; align-items: center; justify-content: center;" onclick="closeGeneratedImageOverlay(event)">
-        <div onclick="event.stopPropagation()" style="position: relative; max-width: 90%; max-height: 90%;">
-            <button style="position: absolute; top: -12px; right: -12px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-primary); cursor: pointer; font-size: 16px;" onclick="closeGeneratedImageOverlay()">&times;</button>
+    <div id="generatedImageContainer" data-action="overlay:close">
+        <div data-action-stop style="position: relative; max-width: 90%; max-height: 90%;">
+            <button style="position: absolute; top: -12px; right: -12px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-primary); cursor: pointer; font-size: 16px;" data-action="overlay:close-btn">&times;</button>
             <img id="generatedImage" style="max-width: 100%; max-height: 80vh; border-radius: var(--radius-md);" alt="Generated">
             <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
-                <button class="btn btn--primary btn--sm" onclick="shareImageToImgBB()">🔗 Share</button>
-                <button class="btn btn--secondary btn--sm" onclick="downloadGeneratedImage()">📥 Download</button>
+                <button class="btn btn--primary btn--sm" data-action="overlay:share">🔗 Share</button>
+                <button class="btn btn--secondary btn--sm" data-action="overlay:download">📥 Download</button>
             </div>
         </div>
     </div>
@@ -1937,12 +1929,12 @@ try {
 <!-- ═══ Image Preview (Discord‑style) ═══ -->
 <div class="image-preview-overlay" id="imagePreviewModal">
     <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
-        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()">📥</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)">🔍-</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)">🔍+</button>
-        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()">⟲</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:download">📥</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:zoom" data-zoom-delta="-0.2">🔍-</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:zoom" data-zoom-delta="0.2">🔍+</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:reset-zoom">⟲</button>
     </div>
-    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" onclick="closeImagePreview()">&times;</span>
+    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" data-action="preview:close">&times;</span>
     <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%; border-radius: var(--radius-md);">
     <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
 </div>
@@ -1952,7 +1944,7 @@ try {
     <div class="modal-panel" style="max-width: 700px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title" data-lang-key="history.title"><i data-lucide="history" class="lucide"></i> Edit History</h2>
-            <button class="modal-panel__close" onclick="closeHistoryModal()">&times;</button>
+            <button class="modal-panel__close" data-action="modal:close-history">&times;</button>
         </div>
         <div class="modal-panel__body">
             <div id="historyContent" style="max-height: 60vh; overflow-y: auto;"></div>
@@ -1966,8 +1958,8 @@ try {
         <div class="modal-panel__header">
             <h2 class="modal-panel__title">🖼️ Image Gallery</h2>
             <div style="display: flex; gap: 8px;">
-                <button class="btn btn--sm btn--ghost" onclick="refreshGallery()">🔄</button>
-                <button class="modal-panel__close" onclick="closeGallery()">&times;</button>
+                <button class="btn btn--sm btn--ghost" data-action="gallery:refresh">🔄</button>
+                <button class="modal-panel__close" data-action="gallery:close">&times;</button>
             </div>
         </div>
         <div id="galleryStats" style="padding: 12px 24px; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-secondary);">Loading...</div>
@@ -1980,7 +1972,7 @@ try {
     <div class="modal-panel gallery-info-modal">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title">ℹ️ Image Information</h2>
-            <button class="modal-panel__close" onclick="closeGalleryInfo()">&times;</button>
+            <button class="modal-panel__close" data-action="gallery:close-info">&times;</button>
         </div>
         <div class="modal-panel__body gallery-info-modal__body" id="galleryInfoBody">
             Loading...
@@ -1993,7 +1985,7 @@ try {
     <div class="modal-panel" style="max-width: 640px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="settings-2" class="lucide"></i> Config Agent</h2>
-            <button class="modal-panel__close" onclick="closeConfigAgentModal()">&times;</button>
+            <button class="modal-panel__close" data-action="config:close">&times;</button>
         </div>
         <div class="modal-panel__body">
             <!-- Enable toggle -->
@@ -2003,7 +1995,7 @@ try {
                     <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">Use custom config instead of defaults</div>
                 </div>
                 <label style="position: relative; display: inline-flex; cursor: pointer;">
-                    <input type="checkbox" id="configAgentEnabled" onchange="toggleConfigAgent()" style="width: 44px; height: 24px; accent-color: var(--accent);">
+                    <input type="checkbox" id="configAgentEnabled" data-action="config:toggle" style="width: 44px; height: 24px; accent-color: var(--accent);">
                 </label>
             </div>
 
@@ -2023,16 +2015,16 @@ try {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div>
                         <label class="form-label">🌡️ Temperature <span id="tempValue" style="color: var(--accent);">0.7</span></label>
-                        <input type="range" id="configTemperature" min="0" max="2" step="0.1" value="0.7" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('tempValue').textContent = this.value">
+                        <input type="range" id="configTemperature" min="0" max="2" step="0.1" value="0.7" style="width: 100%; accent-color: var(--accent);" data-mirror-to="tempValue">
                     </div>
                     <div>
                         <label class="form-label">🎯 Top-P <span id="topPValue" style="color: var(--accent);">0.9</span></label>
-                        <input type="range" id="configTopP" min="0.1" max="1" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('topPValue').textContent = this.value">
+                        <input type="range" id="configTopP" min="0.1" max="1" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent);" data-mirror-to="topPValue">
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
                     <label class="form-label">📝 Token Limit <span id="tokenLimitValue" style="color: var(--accent);">4096</span></label>
-                    <input type="range" id="configTokenLimit" min="500" max="65535" step="500" value="4096" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('tokenLimitValue').textContent = this.value">
+                    <input type="range" id="configTokenLimit" min="500" max="65535" step="500" value="4096" style="width: 100%; accent-color: var(--accent);" data-mirror-to="tokenLimitValue">
                 </div>
                 <div style="margin-bottom: 16px; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); border: 1px solid rgba(124,108,240,0.2);">
                     <label class="form-label">🧪 Thinking Budget</label>
@@ -2057,8 +2049,8 @@ try {
             </div>
         </div>
         <div class="modal-panel__footer">
-            <button onclick="resetConfigAgent()" class="btn btn--ghost">🔄 Reset</button>
-            <button onclick="saveConfigAgent()" class="btn btn--primary">💾 Save Config</button>
+            <button data-action="config:reset" class="btn btn--ghost">🔄 Reset</button>
+            <button data-action="config:save" class="btn btn--primary">💾 Save Config</button>
         </div>
     </div>
 </div>

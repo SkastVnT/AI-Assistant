@@ -1341,6 +1341,7 @@ export class MessageRenderer {
             const historyVersions = this.getMessageHistory(messageId);
             if (historyVersions.length > 0) {
                 historyVersions[historyVersions.length - 1].assistantResponse = responseContent;
+                historyVersions[historyVersions.length - 1].assistantContent = responseContent;  // data-first: raw API response
                 
                 // Save to chatManager
                 if (window.chatManager) {
@@ -1349,6 +1350,7 @@ export class MessageRenderer {
                         const versions = session.messageVersions[messageId];
                         if (versions.length > 0) {
                             versions[versions.length - 1].assistantResponse = responseContent;
+                            versions[versions.length - 1].assistantContent = responseContent;  // data-first: raw API response
                             window.chatManager.saveSessions();
                         }
                     }
@@ -2058,16 +2060,22 @@ export class MessageRenderer {
     }
 
     /**
-     * Add message version to history
+     * Add message version to history.
+     * @param {string}  messageId
+     * @param {string}  userContent        - User message text (plain)
+     * @param {string}  assistantResponse  - Rendered HTML cache
+     * @param {string}  timestamp          - ISO timestamp
+     * @param {string|null} assistantContent - Raw API response (null for DOM-captured versions)
      */
-    addMessageVersion(messageId, userContent, assistantResponse, timestamp) {
+    addMessageVersion(messageId, userContent, assistantResponse, timestamp, assistantContent = null) {
         if (!this.messageHistory.has(messageId)) {
             this.messageHistory.set(messageId, []);
         }
         
         this.messageHistory.get(messageId).push({
             userContent: userContent,
-            assistantResponse: assistantResponse,
+            assistantContent: assistantContent,   // raw API response — null for DOM-captured versions
+            assistantResponse: assistantResponse,  // HTML cache / legacy field
             timestamp: timestamp
         });
     }
@@ -2370,7 +2378,7 @@ export class MessageRenderer {
             if (window.resetPreviewZoom) window.resetPreviewZoom();
             previewImg.src = imgElement.src;
             previewImg.dataset.downloadUrl = imgElement.src;
-            modal.classList.add('active');
+            modal.classList.add('open');
             document.body.style.overflow = 'hidden';
             
             if (previewInfo) {
@@ -2390,7 +2398,7 @@ export class MessageRenderer {
     closeImagePreview() {
         const modal = document.getElementById('imagePreviewModal');
         if (modal) {
-            modal.classList.remove('active');
+            modal.classList.remove('open');
             document.body.style.overflow = '';
         }
     }

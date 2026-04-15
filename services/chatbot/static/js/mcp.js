@@ -10,6 +10,10 @@ class MCPController {
         this.files = [];
         this.selectedFiles = [];
         this.ocrContexts = [];
+        // Unified source state (previously split across ChatBotApp.mcpContext)
+        this.localFolders = [];   // webkitdirectory folders with content
+        this.urls = [];           // fetched URLs with content
+        this.uploads = [];        // uploaded files with content
         this.initializeUI();
         this.setupEventListeners();
     }
@@ -88,6 +92,9 @@ class MCPController {
                 this.closeSidebar();
             });
         }
+
+        // Set up source tabs (folder picker, URL fetch, file upload)
+        this.setupSourceTabs();
     }
     
     closeSidebar() {
@@ -130,6 +137,13 @@ class MCPController {
                     const tab = document.getElementById(id);
                     if (tab) tab.disabled = false;
                 });
+                // Enable URL and upload inputs
+                const urlInput = document.getElementById('mcpUrlInput');
+                const fetchUrlBtn = document.getElementById('mcpFetchUrlBtn');
+                const uploadBtn = document.getElementById('mcpUploadBtn');
+                if (urlInput) urlInput.disabled = false;
+                if (fetchUrlBtn) fetchUrlBtn.disabled = false;
+                if (uploadBtn) uploadBtn.disabled = false;
             } else {
                 throw new Error(result.error || 'Failed to enable MCP');
             }
@@ -160,10 +174,27 @@ class MCPController {
             this.files = [];
             this.selectedFiles = [];
             this.ocrContexts = [];
+            this.localFolders = [];
+            this.urls = [];
+            this.uploads = [];
             this.folderList.style.display = 'none';
             this.folderList.innerHTML = '';
             this.fileList.innerHTML = '<div class="mcp-empty-state"><p>📂 Chưa chọn folder</p><p style="font-size: 11px; color: #888;">Bật MCP và chọn folder để xem files</p></div>';
             this.updateSelectedFiles();
+            // Disable URL and upload inputs
+            const urlInput = document.getElementById('mcpUrlInput');
+            const fetchUrlBtn = document.getElementById('mcpFetchUrlBtn');
+            const uploadBtn = document.getElementById('mcpUploadBtn');
+            if (urlInput) urlInput.disabled = true;
+            if (fetchUrlBtn) fetchUrlBtn.disabled = true;
+            if (uploadBtn) uploadBtn.disabled = true;
+            // Clear URL and upload lists
+            const urlList = document.getElementById('mcpUrlList');
+            const uploadList = document.getElementById('mcpUploadList');
+            if (urlList) urlList.innerHTML = '';
+            if (uploadList) uploadList.innerHTML = '';
+            this.updateIndicator();
+            this.updateFileListDisplay();
             this.showNotification('MCP đã tắt', 'info');
         } catch (error) {
             console.error('MCP disable error:', error);
@@ -597,6 +628,291 @@ class MCPController {
             console.log(`[MCP ${type.toUpperCase()}]: ${message}`);
             alert(message);
         }
+    }
+
+    // ─── Source Tabs: folder picker, URL fetch, file upload ───────────
+
+    setupSourceTabs() {
+        const tabs = document.querySelectorAll('#mcpTabFolder, #mcpTabUrl, #mcpTabUpload');
+        const folderSource = document.getElementById('mcpFolderSource');
+        const urlSource = document.getElementById('mcpUrlSource');
+        const uploadSource = document.getElementById('mcpUploadSource');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                if (tab.disabled) return;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const source = tab.dataset.source;
+                if (folderSource) folderSource.style.display = source === 'folder' ? 'block' : 'none';
+                if (urlSource) urlSource.style.display = source === 'url' ? 'block' : 'none';
+                if (uploadSource) uploadSource.style.display = source === 'upload' ? 'block' : 'none';
+            });
+        });
+
+        this._setupLocalFolderPicker();
+        this._setupUrlFetch();
+        this._setupFileUpload();
+    }
+
+    _setupLocalFolderPicker() {
+        const folderInput = document.getElementById('mcpFolderInput');
+        const folderListEl = document.getElementById('mcpFolderList');
+        if (!this.selectBtn || !folderInput) return;
+
+        folderInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files.length) return;
+
+            const firstPath = files[0].webkitRelativePath || files[0].name;
+            const folderName = firstPath.split('/')[0];
+
+            this.selectBtn.innerHTML = '⏳ Đang tải...';
+            this.selectBtn.disabled = true;
+
+            try {
+                const folderData = { name: folderName, files: [], content: '' };
+                const textExtensions = ['.txt', '.md', '.py', '.js', '.ts', '.json', '.html', '.css', '.yaml', '.yml', '.xml', '.csv', '.sql', '.sh', '.bat'];
+
+                for (const file of files) {
+                    const ext = '.' + file.name.split('.').pop().toLowerCase();
+                    if (textExtensions.includes(ext) && file.size < 100000) {
+                        try {
+                            const content = await file.text();
+                            folderData.files.push({
+                                path: file.webkitRelativePath,
+                                name: file.name,
+                                content: content.substring(0, 5000)
+                            });
+                        } catch (err) {
+                            console.log(`[MCP] Skip unreadable file: ${file.name}`);
+                        }
+                    }
+                }
+
+                folderData.content = folderData.files.map(f =>
+                    `--- ${f.path} ---\n${f.content}`
+                ).join('\n\n');
+
+                this.localFolders.push(folderData);
+
+                if (folderListEl) {
+                    folderListEl.style.display = 'block';
+                    const tag = document.createElement('div');
+                    tag.className = 'mcp-folder-tag';
+                    tag.innerHTML = `📁 ${this._escapeHtml(folderName)} (${folderData.files.length} files) <button class="mcp-remove-btn" data-type="folder" data-name="${this._escapeHtml(folderName)}">×</button>`;
+                    tag.querySelector('button').addEventListener('click', () => {
+                        this.localFolders = this.localFolders.filter(f => f.name !== folderName);
+                        tag.remove();
+                        if (folderListEl.children.length === 0) folderListEl.style.display = 'none';
+                        this.updateIndicator();
+                    });
+                    folderListEl.appendChild(tag);
+                }
+
+                this.updateFileListDisplay();
+                this.updateIndicator();
+            } catch (error) {
+                console.error('[MCP] Folder read error:', error);
+                alert('Lỗi đọc folder');
+            } finally {
+                this.selectBtn.innerHTML = '📁 <span>Select Folder</span>';
+                this.selectBtn.disabled = false;
+                folderInput.value = '';
+            }
+        });
+    }
+
+    _setupUrlFetch() {
+        const fetchUrlBtn = document.getElementById('mcpFetchUrlBtn');
+        const urlInput = document.getElementById('mcpUrlInput');
+        if (!fetchUrlBtn || !urlInput) return;
+
+        fetchUrlBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            fetchUrlBtn.disabled = true;
+            fetchUrlBtn.innerHTML = '⏳...';
+
+            try {
+                const response = await fetch('/api/mcp/fetch-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    this.urls.push({ url, title: data.title, content: data.content });
+
+                    const urlList = document.getElementById('mcpUrlList');
+                    if (urlList) {
+                        const tag = document.createElement('div');
+                        tag.className = 'mcp-folder-tag';
+                        const hostname = new URL(url.startsWith('http') ? url : 'https://' + url).hostname;
+                        tag.innerHTML = `🌐 ${this._escapeHtml(hostname)} <button class="mcp-remove-btn">×</button>`;
+                        tag.querySelector('button').addEventListener('click', () => {
+                            this.urls = this.urls.filter(u => u.url !== url);
+                            tag.remove();
+                            this.updateIndicator();
+                        });
+                        urlList.appendChild(tag);
+                    }
+                    urlInput.value = '';
+                    this.updateIndicator();
+                } else {
+                    alert('Lỗi fetch URL: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('[MCP] URL fetch error:', error);
+                alert('Lỗi kết nối');
+            } finally {
+                fetchUrlBtn.disabled = false;
+                fetchUrlBtn.innerHTML = '🔍 Fetch';
+            }
+        });
+    }
+
+    _setupFileUpload() {
+        const uploadBtn = document.getElementById('mcpUploadBtn');
+        const fileUpload = document.getElementById('mcpFileUpload');
+        if (!uploadBtn || !fileUpload) return;
+
+        uploadBtn.addEventListener('click', () => fileUpload.click());
+
+        fileUpload.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files.length) return;
+
+            const uploadList = document.getElementById('mcpUploadList');
+            uploadBtn.innerHTML = '⏳ Đang xử lý...';
+            uploadBtn.disabled = true;
+
+            for (const file of files) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch('/api/mcp/upload-file', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.uploads.push({ filename: file.name, content: data.content });
+
+                        if (uploadList) {
+                            const tag = document.createElement('div');
+                            tag.className = 'mcp-folder-tag';
+                            tag.innerHTML = `📄 ${this._escapeHtml(file.name)} <button class="mcp-remove-btn">×</button>`;
+                            tag.querySelector('button').addEventListener('click', () => {
+                                this.uploads = this.uploads.filter(u => u.filename !== file.name);
+                                tag.remove();
+                                this.updateIndicator();
+                            });
+                            uploadList.appendChild(tag);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[MCP] Upload error for ${file.name}:`, error);
+                }
+            }
+
+            uploadBtn.innerHTML = '📤 <span>Upload Files (OCR)</span>';
+            uploadBtn.disabled = false;
+            fileUpload.value = '';
+            this.updateIndicator();
+        });
+    }
+
+    // ─── Unified context (single source of truth) ────────────────────
+
+    /**
+     * Get the full MCP context string for injection into chat messages.
+     * Combines all sources: local folders, URLs, uploads, and OCR.
+     */
+    getFullContextString() {
+        if (!this.enabled) return '';
+
+        const parts = [];
+
+        this.localFolders.forEach(folder => {
+            parts.push(`[Folder: ${folder.name}]\n${folder.content}`);
+        });
+
+        this.urls.forEach(url => {
+            parts.push(`[URL: ${url.title}]\n${url.content}`);
+        });
+
+        this.uploads.forEach(upload => {
+            parts.push(`[File: ${upload.filename}]\n${upload.content}`);
+        });
+
+        const ocrStr = this.getOcrContextString();
+        if (ocrStr) {
+            parts.push(ocrStr);
+        }
+
+        return parts.join('\n\n---\n\n');
+    }
+
+    /**
+     * Update the MCP indicator badge showing total context count.
+     */
+    updateIndicator() {
+        const count = this.localFolders.length + this.urls.length + this.uploads.length + this.selectedFiles.length;
+        const badge = document.getElementById('selectedFileCount');
+        const selectedFilesEl = document.getElementById('mcpSelectedFiles');
+
+        if (badge) badge.textContent = count;
+        if (selectedFilesEl) {
+            selectedFilesEl.style.display = count > 0 ? 'block' : 'none';
+        }
+    }
+
+    /**
+     * Render the unified file browser showing all MCP sources.
+     */
+    updateFileListDisplay() {
+        const fileListEl = document.getElementById('mcpFileList');
+        if (!fileListEl) return;
+
+        const allFiles = [];
+
+        this.localFolders.forEach(folder => {
+            folder.files.forEach(file => {
+                allFiles.push({ type: 'folder', icon: '📄', name: file.path });
+            });
+        });
+
+        this.urls.forEach(url => {
+            allFiles.push({ type: 'url', icon: '🌐', name: url.title || url.url });
+        });
+
+        this.uploads.forEach(upload => {
+            allFiles.push({ type: 'upload', icon: '📎', name: upload.filename });
+        });
+
+        if (allFiles.length === 0) {
+            fileListEl.innerHTML = `<div class="mcp-empty-state">
+                <p>📂</p>
+                <p style="font-size: 13px; font-weight: 600; color: #667eea;">No context loaded</p>
+                <p style="font-size: 11px; color: #888;">Enable MCP and select a source</p>
+            </div>`;
+            return;
+        }
+
+        fileListEl.innerHTML = allFiles.map(f =>
+            `<div class="mcp-file-item">${f.icon} ${f.name}</div>`
+        ).join('');
+    }
+
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
     }
 
     isEnabled() {

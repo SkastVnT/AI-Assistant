@@ -1581,7 +1581,7 @@ Prompt:`;
         const img = document.getElementById('generatedImage');
         if (container && img) {
             img.src = 'data:image/png;base64,' + b64;
-            container.style.display = 'flex';
+            container.classList.add('open');
             this.currentGeneratedImage = { image: b64, type };
         }
     }

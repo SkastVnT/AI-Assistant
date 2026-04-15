@@ -3,13 +3,17 @@
  * Handles chat sessions, storage management, and conversation history
  */
 
+import { MESSAGE_SCHEMA_VERSION, isStructuredSession, legacyHtmlToStructured } from './message-model.js';
+
 export class ChatSession {
     constructor(id) {
         this.id = id;
         // Get default title based on current language
         const lang = localStorage.getItem('chatbot_language') || 'vi';
         this.title = lang === 'vi' ? 'Cuộc trò chuyện mới' : 'New conversation';
-        this.messages = [];
+        this.messages = [];                // Legacy HTML string array (kept for backward compat)
+        this.structuredMessages = [];      // Structured message objects (source of truth for new sessions)
+        this.schemaVersion = MESSAGE_SCHEMA_VERSION;
         this.attachedFiles = []; // Store uploaded files for this chat session
         this.messageVersions = {}; // Store message edit versions: { messageId: [{content, response, timestamp}] }
         this.conversationBranches = {}; // Branch snapshots: { messageId: { versionIndex: [messageHTML, ...] } }
@@ -57,6 +61,10 @@ export class ChatManager {
                     if (!this.chatSessions[id].attachedFiles) this.chatSessions[id].attachedFiles = [];
                     if (!this.chatSessions[id].messageVersions) this.chatSessions[id].messageVersions = {};
                     if (!this.chatSessions[id].conversationBranches) this.chatSessions[id].conversationBranches = {};
+                    // Ensure structuredMessages exists (backward compat for pre-schema sessions)
+                    if (!Array.isArray(this.chatSessions[id].structuredMessages)) {
+                        this.chatSessions[id].structuredMessages = [];
+                    }
                 });
                 console.log('[ChatManager] Loaded', Object.keys(this.chatSessions).length, 'sessions from localStorage');
             } catch (e) {
@@ -480,9 +488,14 @@ export class ChatManager {
     }
     
     /**
-     * Save message version to current session
+     * Save message version to current session.
+     * @param {string}  messageId
+     * @param {string}  userContent        - User message text (plain)
+     * @param {string}  assistantResponse  - Rendered HTML cache (backward compat / fast restore)
+     * @param {string}  timestamp          - ISO timestamp
+     * @param {string|null} assistantContent - Raw API response (null for DOM-captured versions)
      */
-    saveMessageVersion(messageId, userContent, assistantResponse, timestamp) {
+    saveMessageVersion(messageId, userContent, assistantResponse, timestamp, assistantContent = null) {
         const session = this.getCurrentSession();
         if (!session) return;
         
@@ -496,7 +509,8 @@ export class ChatManager {
         
         session.messageVersions[messageId].push({
             userContent: userContent,
-            assistantResponse: assistantResponse,
+            assistantContent: assistantContent,   // raw API response — null for DOM-captured versions
+            assistantResponse: assistantResponse,  // HTML cache / legacy field
             timestamp: timestamp
         });
 
@@ -566,6 +580,14 @@ export class ChatManager {
         // Copy attached files
         session.attachedFiles = source.attachedFiles ? JSON.parse(JSON.stringify(source.attachedFiles)) : [];
 
+        // Copy structured messages if present
+        if (isStructuredSession(source)) {
+            session.structuredMessages = JSON.parse(JSON.stringify(
+                source.structuredMessages.slice(0, upToIndex + 1)
+            ));
+            session.schemaVersion = source.schemaVersion || MESSAGE_SCHEMA_VERSION;
+        }
+
         const lang = localStorage.getItem('chatbot_language') || 'vi';
         session.title = (lang === 'vi' ? '🔀 Nhánh: ' : '🔀 Fork: ') + (source.title || 'Untitled');
         session.createdAt = new Date();
@@ -579,15 +601,45 @@ export class ChatManager {
     }
 
     /**
-     * Update current session
+     * Update current session with messages.
+     * Accepts legacy HTML array and/or structured message array.
+     *
+     * @param {string[]} messages            - Legacy HTML string array
+     * @param {boolean}  updateTimestamp      - Whether to bump updatedAt
+     * @param {Object[]} [structuredMessages] - Structured message objects (optional)
      */
-    updateCurrentSession(messages, updateTimestamp = false) {
+    updateCurrentSession(messages, updateTimestamp = false, structuredMessages = null) {
         if (this.currentChatId && this.chatSessions[this.currentChatId]) {
             this.chatSessions[this.currentChatId].messages = messages;
+            if (structuredMessages !== null) {
+                this.chatSessions[this.currentChatId].structuredMessages = structuredMessages;
+                this.chatSessions[this.currentChatId].schemaVersion = MESSAGE_SCHEMA_VERSION;
+            }
             // Only update timestamp when explicitly requested (e.g., new message sent)
             if (updateTimestamp) {
                 this.chatSessions[this.currentChatId].updatedAt = new Date();
             }
         }
+    }
+
+    /**
+     * Get structured messages for the current session.
+     * If the session only has legacy HTML, migrate on-the-fly.
+     * @returns {Object[]} Array of structured message objects
+     */
+    getStructuredMessages() {
+        const session = this.getCurrentSession();
+        if (!session) return [];
+
+        if (isStructuredSession(session)) {
+            return session.structuredMessages;
+        }
+
+        // Lazy migration: convert legacy HTML to structured (read-only, no persist)
+        if (Array.isArray(session.messages) && session.messages.length > 0) {
+            return session.messages.map((html, i) => legacyHtmlToStructured(html, i));
+        }
+
+        return [];
     }
 }

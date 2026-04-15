@@ -28,7 +28,6 @@ export class VideoGen {
         const modal = document.getElementById('videoGenModal');
         if (modal) {
             modal.classList.add('active', 'open');
-            modal.style.display = 'flex';
             this._updateCostEstimate();
             this._bindCostListeners();
             this._setupDragDrop();
@@ -38,8 +37,7 @@ export class VideoGen {
     closeModal() {
         const modal = document.getElementById('videoGenModal');
         if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
+            modal.classList.remove('active', 'open');
         }
         this._stopPolling();
     }
