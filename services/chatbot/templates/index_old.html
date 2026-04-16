@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -34,7 +34,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-    <!-- DOMPurify — sanitize HTML to prevent XSS -->
+    <!-- DOMPurify ΓÇö sanitize HTML to prevent XSS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous"></script>
 
     <!-- PDF export -->
@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}">
 
-    <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
+    <!-- Tailwind Play CDN ΓÇö preflight disabled to avoid overriding existing styles -->
     <script>
       tailwind = { config: { corePlugins: { preflight: false } } };
     </script>
@@ -92,7 +92,7 @@ try {
     <!-- Sidebar overlay (mobile) -->
     <div class="sidebar-overlay hidden" id="sidebarOverlay"></div>
 
-    <!-- ═══ Sidebar ═══ -->
+    <!-- ΓòÉΓòÉΓòÉ Sidebar ΓòÉΓòÉΓòÉ -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar__header">
             <button class="sidebar__new-chat" id="newChatBtn" title="New chat">
@@ -104,8 +104,8 @@ try {
         </div>
 
         <div class="sidebar__chats-header">
-            <span class="sidebar__chats-label">Cuộc trò chuyện</span>
-            <button class="sidebar__refresh-btn" id="chatRefreshBtn" title="Làm mới danh sách">
+            <span class="sidebar__chats-label">Cuß╗Öc tr├▓ chuyß╗çn</span>
+            <button class="sidebar__refresh-btn" id="chatRefreshBtn" title="L├ám mß╗¢i danh s├ích">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                     <path d="M21 3v5h-5"/>
@@ -132,7 +132,7 @@ try {
                 <div id="imageQuotaWrap" style="margin-bottom:6px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
                         <span style="font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px;">
-                            <i data-lucide="image" style="width:11px;height:11px;"></i> Ảnh đã tạo
+                            <i data-lucide="image" style="width:11px;height:11px;"></i> ß║ónh ─æ├ú tß║ío
                         </span>
                         <span id="quotaText" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0/5</span>
                     </div>
@@ -141,17 +141,16 @@ try {
                     </div>
                 </div>
                 <!-- Video unlock button -->
-                <button id="videoUnlockBtn" onclick="openVideoUnlockModal()" style="
+                <button id="videoUnlockBtn" data-action="modal:open-qr" class="hover-bg-accent-soft" style="
                     display:none;width:100%;padding:7px 10px;border:1px solid rgba(241,196,15,.35);
                     border-radius:9px;background:rgba(241,196,15,.08);color:#f1c40f;
                     font-size:12px;font-weight:500;font-family:var(--font-sans);cursor:pointer;
-                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;"
-                    onmouseover="this.style.background='rgba(241,196,15,.14)'" onmouseout="this.style.background='rgba(241,196,15,.08)'">
+                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;">
                     <i data-lucide="lock" style="width:13px;height:13px;"></i>
-                    <span>Mở khóa tính năng Video</span>
+                    <span>Mß╗ƒ kh├│a t├¡nh n─âng Video</span>
                 </button>
                 <div id="videoUnlockedMsg" style="display:none;width:100%;padding:6px 10px;border:1px solid rgba(46,204,113,.3);border-radius:9px;background:rgba(46,204,113,.08);color:#2ecc71;font-size:11px;font-weight:500;text-align:center;margin-bottom:4px;">
-                    ✓ Video đã được mở khóa
+                    Γ£ô Video ─æ├ú ─æ╞░ß╗úc mß╗ƒ kh├│a
                 </div>
             </div>
 
@@ -159,7 +158,7 @@ try {
             <div style="position:relative; margin-top:4px; border-top: 1px solid var(--border-primary); padding-top:6px;">
                 <!-- User dropdown panel -->
                 <div id="userDropdown" style="
-                    display:none; position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
+                    position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
                     background:var(--bg-secondary); border:1px solid var(--border-primary);
                     border-radius:12px; box-shadow:0 -8px 32px rgba(0,0,0,0.45); overflow:hidden; z-index:200;">
                     <!-- Header -->
@@ -182,165 +181,158 @@ try {
                     </div>
                     <!-- Menu items -->
                     <div style="padding:6px;">
-                        <a href="/admin" id="dropAdminLink" style="display:{% if session.get('user_role') == 'admin' %}flex{% else %}none{% endif %};align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                        <a href="/admin" id="dropAdminLink" class="hover-bg-tertiary" style="display:{% if session.get('user_role') == 'admin' %}flex{% else %}none{% endif %};align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;">
                             <i data-lucide="shield" style="width:15px;height:15px;flex-shrink:0;"></i>
                             <span>Admin Panel</span>
                         </a>
-                        <button onclick="openEditProfile()" style="
+                        <button data-action="user:open-profile" class="hover-bg-tertiary" style="
                             width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
                             color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
-                            font-family:var(--font-sans);transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                            font-family:var(--font-sans);transition:background 0.15s;">
                             <i data-lucide="user-pen" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Chỉnh sửa hồ sơ</span>
+                            <span>Chß╗ënh sß╗¡a hß╗ô s╞í</span>
                         </button>
-                        <button onclick="openChangePassword()" style="
+                        <button data-action="user:open-password" class="hover-bg-tertiary" style="
                             width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
                             color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
-                            font-family:var(--font-sans);transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                            font-family:var(--font-sans);transition:background 0.15s;">
                             <i data-lucide="key-round" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Đổi mật khẩu</span>
+                            <span>─Éß╗òi mß║¡t khß║⌐u</span>
                         </button>
-                        <a href="/logout" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
-                           onmouseover="this.style.background='rgba(231,76,60,0.08)'" onmouseout="this.style.background='transparent'"
-                           onclick="try{localStorage.removeItem('ai_session');}catch(e){}">  
+                        <a href="/logout" class="hover-bg-danger-soft" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
+                           data-action="user:logout">
                             <i data-lucide="log-out" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Đăng xuất</span>
+                            <span>─É─âng xuß║Ñt</span>
                         </a>
                     </div>
                 </div>
 
                 <!-- Trigger row -->
-                <button id="userTrigger" onclick="toggleUserDropdown()" style="
+                <button id="userTrigger" data-action="user:toggle-dropdown" class="hover-bg-tertiary" style="
                     width:100%;display:flex;align-items:center;gap:10px;padding:6px 10px;
                     background:transparent;border:none;cursor:pointer;border-radius:10px;
-                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);"
-                    onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="if(!document.getElementById('userDropdown').style.display||document.getElementById('userDropdown').style.display==='none')this.style.background='transparent'">
+                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);">
                     <div id="userAvatar" style="
                         width:30px;height:30px;border-radius:50%;background:var(--accent-gradient);
                         display:flex;align-items:center;justify-content:center;
                         font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
                     <div style="min-width:0;flex:1;">
                         <div id="userName" style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
-                        <div id="userRoleLabel" style="font-size:10px;color:var(--text-tertiary);">{% if session.get('user_role') == 'admin' %}⭐ admin{% else %}member{% endif %}</div>
+                        <div id="userRoleLabel" style="font-size:10px;color:var(--text-tertiary);">{% if session.get('user_role') == 'admin' %}Γ¡É admin{% else %}member{% endif %}</div>
                     </div>
                     <i data-lucide="chevrons-up-down" id="userChevron" style="width:14px;height:14px;color:var(--text-tertiary);flex-shrink:0;transition:transform 0.2s;"></i>
                 </button>
             </div>
 
             <!-- QR Payment Modal -->
-            <div id="qrPayModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeVideoUnlockModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
+            <div id="qrPayModal" class="inline-modal">
+                <div data-action="modal:close-qr" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
                 <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:18px;padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);text-align:center;">
-                    <button onclick="closeVideoUnlockModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='none'">
+                    <button data-action="modal:close-qr" class="hover-bg-tertiary" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;">
                         <i data-lucide="x" style="width:18px;height:18px;"></i>
                     </button>
-                    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎬 Mở khóa Video</div>
-                    <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:18px;">Quét mã QR để chuyển khoản và gửi yêu cầu mở khóa</p>
+                    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">≡ƒÄ¼ Mß╗ƒ kh├│a Video</div>
+                    <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:18px;">Qu├⌐t m├ú QR ─æß╗â chuyß╗ân khoß║ún v├á gß╗¡i y├¬u cß║ºu mß╗ƒ kh├│a</p>
                     <!-- QR Image -->
                     <div id="qrImgWrap" style="margin:0 auto 16px;width:220px;height:220px;background:var(--bg-tertiary);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-                        <div id="qrLoading" style="font-size:12px;color:var(--text-tertiary);">Đang tải…</div>
+                        <div id="qrLoading" style="font-size:12px;color:var(--text-tertiary);">─Éang tß║úiΓÇª</div>
                         <img id="qrImg" src="" alt="QR" style="display:none;width:100%;height:100%;object-fit:contain;">
                     </div>
                     <!-- Bank info -->
                     <div id="qrBankInfo" style="background:var(--bg-tertiary);border-radius:10px;padding:12px 16px;text-align:left;margin-bottom:16px;font-size:12px;line-height:1.9;">
-                        <div><span style="color:var(--text-tertiary)">Ngân hàng:</span> <strong id="qrBankName">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Số TK:</span> <strong id="qrAccountNo">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Chủ TK:</span> <strong id="qrAccountName">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Số tiền:</span> <strong id="qrAmount" style="color:#f1c40f;">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Nội dung:</span> <strong id="qrDesc">—</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Ng├ón h├áng:</span> <strong id="qrBankName">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Sß╗æ TK:</span> <strong id="qrAccountNo">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Chß╗º TK:</span> <strong id="qrAccountName">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Sß╗æ tiß╗ün:</span> <strong id="qrAmount" style="color:#f1c40f;">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Nß╗Öi dung:</span> <strong id="qrDesc">ΓÇö</strong></div>
                     </div>
                     <div id="qrRequestAlert" style="display:none;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
-                    <button onclick="submitVideoUnlockRequest()" id="qrSubmitBtn" style="
+                    <button data-action="modal:submit-qr" id="qrSubmitBtn" class="hover-opacity-down" style="
                         width:100%;padding:11px;border:none;border-radius:12px;background:var(--accent-gradient);
                         color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
-                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;"
-                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;">
                         <i data-lucide="send" style="width:16px;height:16px;"></i>
-                        <span id="qrSubmitLbl">Đã chuyển khoản — Gửi yêu cầu</span>
+                        <span id="qrSubmitLbl">─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu</span>
                     </button>
-                    <p style="font-size:11px;color:var(--text-tertiary);margin-top:10px;">Sau khi admin xác nhận, tính năng Video sẽ được mở khóa.</p>
+                    <p style="font-size:11px;color:var(--text-tertiary);margin-top:10px;">Sau khi admin x├íc nhß║¡n, t├¡nh n─âng Video sß║╜ ─æ╞░ß╗úc mß╗ƒ kh├│a.</p>
                 </div>
             </div>
 
             <!-- Change Password Modal -->
-            <div id="changePwModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeChangePassword()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+            <div id="changePwModal" class="inline-modal">
+                <div data-action="modal:close-password" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
                 <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:360px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
                     <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="key-round" style="width:18px;height:18px;color:var(--accent);"></i> Đổi mật khẩu
+                        <i data-lucide="key-round" style="width:18px;height:18px;color:var(--accent);"></i> ─Éß╗òi mß║¡t khß║⌐u
                     </h3>
                     <div id="cpwError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
                     <div id="cpwSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
                     <div style="margin-bottom:14px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mật khẩu hiện tại</label>
-                        <input type="password" id="cpwCurrent" class="form-input" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="••••••••">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mß║¡t khß║⌐u hiß╗çn tß║íi</label>
+                        <input type="password" id="cpwCurrent" class="form-input" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó">
                     </div>
                     <div style="margin-bottom:20px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mật khẩu mới</label>
-                        <input type="password" id="cpwNew" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="Ít nhất 6 ký tự">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mß║¡t khß║⌐u mß╗¢i</label>
+                        <input type="password" id="cpwNew" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="├ìt nhß║Ñt 6 k├╜ tß╗▒">
                     </div>
                     <div style="display:flex;gap:8px;">
-                        <button onclick="closeChangePassword()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
-                        <button onclick="submitChangePw()" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Xác nhận</button>
+                        <button data-action="modal:close-password" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hß╗ºy</button>
+                        <button data-action="modal:submit-password" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">X├íc nhß║¡n</button>
                     </div>
                 </div>
             </div>
 
             <!-- Edit Profile Modal -->
-            <div id="editProfileModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeEditProfile()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+            <div id="editProfileModal" class="inline-modal">
+                <div data-action="modal:close-profile" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
                 <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:390px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
                     <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="user-pen" style="width:18px;height:18px;color:var(--accent);"></i> Chỉnh sửa hồ sơ
+                        <i data-lucide="user-pen" style="width:18px;height:18px;color:var(--accent);"></i> Chß╗ënh sß╗¡a hß╗ô s╞í
                     </h3>
                     <!-- Avatar picker -->
                     <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;gap:10px;">
-                        <div id="epAvatarPreview" onclick="document.getElementById('epAvatarInput').click()" title="Nhấn để thay đổi ảnh" style="
+                        <div id="epAvatarPreview" data-action="profile:trigger-avatar" title="Nhß║Ñn ─æß╗â thay ─æß╗òi ß║únh" style="
                             width:80px;height:80px;border-radius:50%;background:var(--accent-gradient);
                             display:flex;align-items:center;justify-content:center;
                             font-size:28px;font-weight:700;color:#fff;cursor:pointer;
                             overflow:hidden;position:relative;border:2px solid var(--border-primary);flex-shrink:0;">
                             <span id="epAvatarInitial" style="position:relative;z-index:1;">U</span>
                             <img id="epAvatarImg" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
-                            <div id="epAvatarHover" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2;"
-                                 onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+                            <div id="epAvatarHover" class="hover-opacity-reveal" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:2;">
                                 <i data-lucide="camera" style="width:22px;height:22px;color:#fff;"></i>
                             </div>
                         </div>
-                        <input type="file" id="epAvatarInput" accept="image/*" style="display:none;" onchange="handleEpAvatarFile(event)">
+                        <input type="file" id="epAvatarInput" accept="image/*" style="display:none;" data-action="profile:avatar-file">
                         <div style="display:flex;gap:6px;">
-                            <button onclick="document.getElementById('epAvatarInput').click()" style="font-size:11px;padding:5px 11px;border:1px solid var(--border-primary);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;">
-                                <i data-lucide="upload" style="width:11px;height:11px;"></i> Tải ảnh lên
+                            <button data-action="profile:trigger-avatar" style="font-size:11px;padding:5px 11px;border:1px solid var(--border-primary);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;">
+                                <i data-lucide="upload" style="width:11px;height:11px;"></i> Tß║úi ß║únh l├¬n
                             </button>
-                            <button id="epClearAvatarBtn" onclick="clearEpAvatar()" style="display:none;font-size:11px;padding:5px 11px;border:1px solid rgba(231,76,60,0.3);border-radius:8px;background:transparent;color:#e74c3c;cursor:pointer;font-family:var(--font-sans);">
-                                Xóa ảnh
+                            <button id="epClearAvatarBtn" data-action="profile:clear-avatar" style="display:none;font-size:11px;padding:5px 11px;border:1px solid rgba(231,76,60,0.3);border-radius:8px;background:transparent;color:#e74c3c;cursor:pointer;font-family:var(--font-sans);">
+                                X├│a ß║únh
                             </button>
                         </div>
                     </div>
                     <!-- Display name -->
                     <div style="margin-bottom:14px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Tên hiển thị</label>
-                        <input type="text" id="epDisplayName" maxlength="50" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;box-sizing:border-box;" placeholder="Nhập tên hiển thị...">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">T├¬n hiß╗ân thß╗ï</label>
+                        <input type="text" id="epDisplayName" maxlength="50" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;box-sizing:border-box;" placeholder="Nhß║¡p t├¬n hiß╗ân thß╗ï...">
                     </div>
                     <!-- Bio -->
                     <div style="margin-bottom:20px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Giới thiệu <span style="color:var(--text-tertiary)">(tuỳ chọn, tối đa 200 ký tự)</span></label>
-                        <textarea id="epBio" maxlength="200" rows="2" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);outline:none;resize:none;box-sizing:border-box;" placeholder="Một vài dòng giới thiệu bản thân..."></textarea>
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Giß╗¢i thiß╗çu <span style="color:var(--text-tertiary)">(tuß╗│ chß╗ìn, tß╗æi ─æa 200 k├╜ tß╗▒)</span></label>
+                        <textarea id="epBio" maxlength="200" rows="2" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);outline:none;resize:none;box-sizing:border-box;" placeholder="Mß╗Öt v├ái d├▓ng giß╗¢i thiß╗çu bß║ún th├ón..."></textarea>
                     </div>
                     <div id="epError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
                     <div id="epSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
                     <div style="display:flex;gap:8px;">
-                        <button onclick="closeEditProfile()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
-                        <button onclick="submitEditProfile()" id="epSaveBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Lưu thay đổi</button>
+                        <button data-action="modal:close-profile" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hß╗ºy</button>
+                        <button data-action="modal:submit-profile" id="epSaveBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">L╞░u thay ─æß╗òi</button>
                     </div>
                 </div>
             </div>
 
             <script>
-            // Avatar color palette — global so profile edit can reuse
+            // Avatar color palette ΓÇö global so profile edit can reuse
             const AVATAR_COLORS = ['#7c6cf0','#ab7df6','#3498db','#e74c3c','#2ecc71','#e67e22','#1abc9c','#9b59b6'];
             function strColor(str) {
                 let h = 0;
@@ -378,7 +370,7 @@ try {
                         // Trigger row
                         _applyAvatarToEl(document.getElementById('userAvatar'), _currentUser);
                         document.getElementById('userName').textContent = _currentUser.display_name;
-                        document.getElementById('userRoleLabel').textContent = u.role === 'admin' ? '⭐ admin' : 'member';
+                        document.getElementById('userRoleLabel').textContent = u.role === 'admin' ? 'Γ¡É admin' : 'member';
 
                         // Dropdown header
                         _applyAvatarToEl(document.getElementById('dropAvatar'), _currentUser);
@@ -400,7 +392,7 @@ try {
 
             let _dropOpen = false;
 
-            /* ── Quota bar ── */
+            /* ΓöÇΓöÇ Quota bar ΓöÇΓöÇ */
             function loadQuotaBar() {
                 // First check if features are enabled at all
                 fetch('/api/features').then(r => r.json()).then(flags => {
@@ -409,7 +401,7 @@ try {
                     const paymentOn = flags.payment !== false;
 
                     if (!quotaOn && !videoOn) {
-                        // Both off — hide entirely
+                        // Both off ΓÇö hide entirely
                         document.getElementById('quotaSection').style.display = 'none';
                         return;
                     }
@@ -441,7 +433,7 @@ try {
                                 document.getElementById('videoUnlockBtn').style.display = 'flex';
                                 document.getElementById('videoUnlockedMsg').style.display = 'none';
                             } else {
-                                // Video on but no payment required — hide button
+                                // Video on but no payment required ΓÇö hide button
                                 document.getElementById('videoUnlockBtn').style.display = 'none';
                                 document.getElementById('videoUnlockedMsg').style.display = 'none';
                             }
@@ -479,15 +471,15 @@ try {
                 }).catch(() => {});
             }
 
-            /* ── QR Modal ── */
+            /* ΓöÇΓöÇ QR Modal ΓöÇΓöÇ */
             function openVideoUnlockModal() {
                 const m = document.getElementById('qrPayModal');
-                m.style.display = 'flex';
+                m.classList.add('open');
                 document.getElementById('qrImg').style.display = 'none';
                 document.getElementById('qrLoading').style.display = 'block';
                 document.getElementById('qrRequestAlert').style.display = 'none';
                 document.getElementById('qrSubmitBtn').disabled = false;
-                document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
+                document.getElementById('qrSubmitLbl').textContent = '─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu';
                 lucide.createIcons({ nodes: [m] });
                 // Fetch QR
                 fetch('/api/payment/qr', {
@@ -499,28 +491,28 @@ try {
                         document.getElementById('qrImg').style.display = 'block';
                     }
                     document.getElementById('qrLoading').style.display = 'none';
-                    document.getElementById('qrBankName').textContent = d.bank_name || '—';
-                    document.getElementById('qrAccountNo').textContent = d.account_no || '—';
-                    document.getElementById('qrAccountName').textContent = d.account_name || '—';
-                    document.getElementById('qrAmount').textContent = d.amount ? d.amount.toLocaleString('vi-VN') + ' đ' : '—';
-                    document.getElementById('qrDesc').textContent = d.description || '—';
-                }).catch(() => { document.getElementById('qrLoading').textContent = 'Không tải được QR code'; });
+                    document.getElementById('qrBankName').textContent = d.bank_name || 'ΓÇö';
+                    document.getElementById('qrAccountNo').textContent = d.account_no || 'ΓÇö';
+                    document.getElementById('qrAccountName').textContent = d.account_name || 'ΓÇö';
+                    document.getElementById('qrAmount').textContent = d.amount ? d.amount.toLocaleString('vi-VN') + ' ─æ' : 'ΓÇö';
+                    document.getElementById('qrDesc').textContent = d.description || 'ΓÇö';
+                }).catch(() => { document.getElementById('qrLoading').textContent = 'Kh├┤ng tß║úi ─æ╞░ß╗úc QR code'; });
             }
 
             function closeVideoUnlockModal() {
-                document.getElementById('qrPayModal').style.display = 'none';
+                document.getElementById('qrPayModal').classList.remove('open');
             }
 
             async function submitVideoUnlockRequest() {
                 const btn = document.getElementById('qrSubmitBtn');
                 const alertEl = document.getElementById('qrRequestAlert');
                 btn.disabled = true;
-                document.getElementById('qrSubmitLbl').textContent = 'Đang gửi…';
+                document.getElementById('qrSubmitLbl').textContent = '─Éang gß╗¡iΓÇª';
                 alertEl.style.display = 'none';
                 try {
                     const res = await fetch('/api/auth/request-video-unlock', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({note: 'Yêu cầu mở khóa Video qua QR'})
+                        body: JSON.stringify({note: 'Y├¬u cß║ºu mß╗ƒ kh├│a Video qua QR'})
                     });
                     const data = await res.json();
                     alertEl.style.display = 'block';
@@ -528,24 +520,24 @@ try {
                         alertEl.style.background = 'rgba(46,204,113,.12)';
                         alertEl.style.border = '1px solid rgba(46,204,113,.3)';
                         alertEl.style.color = '#2ecc71';
-                        alertEl.textContent = data.message || 'Yêu cầu đã được gửi. Vui lòng chờ admin xác nhận.';
+                        alertEl.textContent = data.message || 'Y├¬u cß║ºu ─æ├ú ─æ╞░ß╗úc gß╗¡i. Vui l├▓ng chß╗¥ admin x├íc nhß║¡n.';
                         document.getElementById('qrSubmitBtn').style.display = 'none';
                     } else {
                         alertEl.style.background = 'rgba(231,76,60,.12)';
                         alertEl.style.border = '1px solid rgba(231,76,60,.3)';
                         alertEl.style.color = '#e74c3c';
-                        alertEl.textContent = data.message || 'Lỗi gửi yêu cầu';
+                        alertEl.textContent = data.message || 'Lß╗ùi gß╗¡i y├¬u cß║ºu';
                         btn.disabled = false;
-                        document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
+                        document.getElementById('qrSubmitLbl').textContent = '─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu';
                     }
                 } catch(e) {
                     alertEl.style.display = 'block';
                     alertEl.style.background = 'rgba(231,76,60,.12)';
                     alertEl.style.border = '1px solid rgba(231,76,60,.3)';
                     alertEl.style.color = '#e74c3c';
-                    alertEl.textContent = 'Lỗi kết nối server';
+                    alertEl.textContent = 'Lß╗ùi kß║┐t nß╗æi server';
                     btn.disabled = false;
-                    document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
+                    document.getElementById('qrSubmitLbl').textContent = '─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu';
                 }
             }
 
@@ -553,7 +545,7 @@ try {
                 _dropOpen = !_dropOpen;
                 const dd = document.getElementById('userDropdown');
                 const chevron = document.getElementById('userChevron');
-                dd.style.display = _dropOpen ? 'block' : 'none';
+                dd.classList.toggle('open', _dropOpen);
                 chevron.style.transform = _dropOpen ? 'rotate(180deg)' : '';
                 document.getElementById('userTrigger').style.background = _dropOpen ? 'var(--bg-tertiary)' : '';
                 lucide.createIcons();
@@ -562,7 +554,7 @@ try {
             document.addEventListener('click', function(e) {
                 if(_dropOpen && !document.getElementById('userTrigger').contains(e.target) && !document.getElementById('userDropdown').contains(e.target)) {
                     _dropOpen = false;
-                    document.getElementById('userDropdown').style.display = 'none';
+                    document.getElementById('userDropdown').classList.remove('open');
                     document.getElementById('userChevron').style.transform = '';
                     document.getElementById('userTrigger').style.background = '';
                 }
@@ -571,7 +563,7 @@ try {
             function openChangePassword() {
                 toggleUserDropdown();
                 const m = document.getElementById('changePwModal');
-                m.style.display = 'flex';
+                m.classList.add('open');
                 document.getElementById('cpwCurrent').value = '';
                 document.getElementById('cpwNew').value = '';
                 document.getElementById('cpwError').style.display = 'none';
@@ -580,7 +572,7 @@ try {
                 setTimeout(() => document.getElementById('cpwCurrent').focus(), 100);
             }
             function closeChangePassword() {
-                document.getElementById('changePwModal').style.display = 'none';
+                document.getElementById('changePwModal').classList.remove('open');
             }
             async function submitChangePw() {
                 const btn = document.getElementById('cpwBtn');
@@ -589,7 +581,7 @@ try {
                 errEl.style.display = 'none'; okEl.style.display = 'none';
                 const current = document.getElementById('cpwCurrent').value;
                 const newpw = document.getElementById('cpwNew').value;
-                if(!current || !newpw) { errEl.textContent='Vui lòng điền đầy đủ'; errEl.style.display='block'; return; }
+                if(!current || !newpw) { errEl.textContent='Vui l├▓ng ─æiß╗ün ─æß║ºy ─æß╗º'; errEl.style.display='block'; return; }
                 btn.disabled = true; btn.textContent = '...';
                 try {
                     const res = await fetch('/api/auth/change-password', {
@@ -599,18 +591,18 @@ try {
                     const data = await res.json();
                     if(data.success) { okEl.textContent = data.message; okEl.style.display='block'; setTimeout(closeChangePassword, 1800); }
                     else { errEl.textContent = data.message; errEl.style.display='block'; }
-                } catch { errEl.textContent='Lỗi kết nối'; errEl.style.display='block'; }
-                finally { btn.disabled=false; btn.textContent='Xác nhận'; }
+                } catch { errEl.textContent='Lß╗ùi kß║┐t nß╗æi'; errEl.style.display='block'; }
+                finally { btn.disabled=false; btn.textContent='X├íc nhß║¡n'; }
             }
 
-            /* ── Edit Profile ── */
-            let _epAvatarData = null;  // null=unchanged, ''=clear, 'data:…'=new image
+            /* ΓöÇΓöÇ Edit Profile ΓöÇΓöÇ */
+            let _epAvatarData = null;  // null=unchanged, ''=clear, 'data:ΓÇª'=new image
 
             function openEditProfile() {
                 // Close dropdown first
                 if (_dropOpen) toggleUserDropdown();
                 const m = document.getElementById('editProfileModal');
-                m.style.display = 'flex';
+                m.classList.add('open');
                 document.getElementById('epError').style.display = 'none';
                 document.getElementById('epSuccess').style.display = 'none';
                 _epAvatarData = null;
@@ -641,7 +633,7 @@ try {
             }
 
             function closeEditProfile() {
-                document.getElementById('editProfileModal').style.display = 'none';
+                document.getElementById('editProfileModal').classList.remove('open');
                 document.getElementById('epAvatarInput').value = '';
             }
 
@@ -649,7 +641,7 @@ try {
                 const file = e.target.files[0];
                 if (!file) return;
                 if (file.size > 5 * 1024 * 1024) {
-                    document.getElementById('epError').textContent = 'Ảnh quá lớn (tối đa 5MB)';
+                    document.getElementById('epError').textContent = 'ß║ónh qu├í lß╗¢n (tß╗æi ─æa 5MB)';
                     document.getElementById('epError').style.display = 'block';
                     return;
                 }
@@ -658,7 +650,7 @@ try {
                 reader.onload = function(ev) {
                     const raw = new Image();
                     raw.onload = function() {
-                        // Crop to square 220×220 JPEG
+                        // Crop to square 220├ù220 JPEG
                         const canvas = document.createElement('canvas');
                         canvas.width = 220; canvas.height = 220;
                         const ctx = canvas.getContext('2d');
@@ -700,7 +692,7 @@ try {
                 const bio = document.getElementById('epBio').value.trim();
 
                 if (!displayName) {
-                    errEl.textContent = 'Tên hiển thị không được để trống';
+                    errEl.textContent = 'T├¬n hiß╗ân thß╗ï kh├┤ng ─æ╞░ß╗úc ─æß╗â trß╗æng';
                     errEl.style.display = 'block';
                     return;
                 }
@@ -708,7 +700,7 @@ try {
                 const payload = { display_name: displayName, bio };
                 if (_epAvatarData !== null) payload.avatar_data = _epAvatarData;
 
-                btn.disabled = true; btn.textContent = 'Đang lưu...';
+                btn.disabled = true; btn.textContent = '─Éang l╞░u...';
                 try {
                     const res = await fetch('/api/auth/update-profile', {
                         method: 'POST',
@@ -717,7 +709,7 @@ try {
                     });
                     const data = await res.json();
                     if (data.success) {
-                        okEl.textContent = 'Đã cập nhật hồ sơ!';
+                        okEl.textContent = '─É├ú cß║¡p nhß║¡t hß╗ô s╞í!';
                         okEl.style.display = 'block';
                         // Update global cache
                         const u = data.user;
@@ -733,21 +725,21 @@ try {
                         _applyAvatarToEl(document.getElementById('dropAvatar'), _currentUser);
                         setTimeout(closeEditProfile, 1600);
                     } else {
-                        errEl.textContent = data.message || 'Lỗi cập nhật';
+                        errEl.textContent = data.message || 'Lß╗ùi cß║¡p nhß║¡t';
                         errEl.style.display = 'block';
                     }
                 } catch(e) {
-                    errEl.textContent = 'Lỗi kết nối server';
+                    errEl.textContent = 'Lß╗ùi kß║┐t nß╗æi server';
                     errEl.style.display = 'block';
                 } finally {
-                    btn.disabled = false; btn.textContent = 'Lưu thay đổi';
+                    btn.disabled = false; btn.textContent = 'L╞░u thay ─æß╗òi';
                 }
             }
             </script>
         </div>
     </aside>
 
-    <!-- ═══ Main ═══ -->
+    <!-- ΓòÉΓòÉΓòÉ Main ΓòÉΓòÉΓòÉ -->
     <div class="main">
 
         <!-- Top Bar -->
@@ -763,29 +755,29 @@ try {
 
                 <!-- Model Selector -->
                 <div class="topbar__model-selector" id="modelSelectorContainer">
-                    <button class="topbar__model-btn open" id="modelSelectorBtn">
+                    <button class="topbar__model-btn" id="modelSelectorBtn">
                         <span id="modelSelectorLabel">Grok-3</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 9l6 6 6-6"></path>
                         </svg>
                     </button>
 
-                    <div class="model-dropdown open" id="modelDropdown">
+                    <div class="model-dropdown" id="modelDropdown">
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Premium</div>
                             <div class="model-dropdown__item active" data-model="grok">
-                                <span class="model-dropdown__item-icon">🤖</span>
+                                <span class="model-dropdown__item-icon">≡ƒñû</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Grok-3</div>
-                                    <div class="model-dropdown__item-desc">xAI — 131K context</div>
+                                    <div class="model-dropdown__item-desc">xAI ΓÇö 131K context</div>
                                 </div>
                                 <span class="model-dropdown__item-badge pro">Default</span>
                             </div>
                             <div class="model-dropdown__item" data-model="deepseek-reasoner">
-                                <span class="model-dropdown__item-icon">🧪</span>
+                                <span class="model-dropdown__item-icon">≡ƒº¬</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">DeepSeek R1</div>
-                                    <div class="model-dropdown__item-desc">Reasoning model — 64K</div>
+                                    <div class="model-dropdown__item-desc">Reasoning model ΓÇö 64K</div>
                                 </div>
                                 <span class="model-dropdown__item-badge pro">Pro</span>
                             </div>
@@ -794,17 +786,17 @@ try {
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Standard</div>
                             <div class="model-dropdown__item" data-model="openai">
-                                <span class="model-dropdown__item-icon">🧠</span>
+                                <span class="model-dropdown__item-icon">≡ƒºá</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">GPT-4o-mini</div>
-                                    <div class="model-dropdown__item-desc">OpenAI — 128K context</div>
+                                    <div class="model-dropdown__item-desc">OpenAI ΓÇö 128K context</div>
                                 </div>
                             </div>
                             <div class="model-dropdown__item" data-model="deepseek">
-                                <span class="model-dropdown__item-icon">🔍</span>
+                                <span class="model-dropdown__item-icon">≡ƒöì</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">DeepSeek Chat</div>
-                                    <div class="model-dropdown__item-desc">DeepSeek — 64K context</div>
+                                    <div class="model-dropdown__item-desc">DeepSeek ΓÇö 64K context</div>
                                 </div>
                             </div>
                         </div>
@@ -812,23 +804,23 @@ try {
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Free</div>
                             <div class="model-dropdown__item" data-model="gemini">
-                                <span class="model-dropdown__item-icon">💎</span>
+                                <span class="model-dropdown__item-icon">≡ƒÆÄ</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Gemini 2.0 Flash</div>
-                                    <div class="model-dropdown__item-desc">Google — 1M context</div>
+                                    <div class="model-dropdown__item-desc">Google ΓÇö 1M context</div>
                                 </div>
                                 <span class="model-dropdown__item-badge free">Free</span>
                             </div>
                             <div class="model-dropdown__item" data-model="step-flash">
-                                <span class="model-dropdown__item-icon">⚡</span>
+                                <span class="model-dropdown__item-icon">ΓÜí</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Step-3.5 Flash</div>
-                                    <div class="model-dropdown__item-desc">StepFun via OpenRouter — 128K</div>
+                                    <div class="model-dropdown__item-desc">StepFun via OpenRouter ΓÇö 128K</div>
                                 </div>
                                 <span class="model-dropdown__item-badge free">Free</span>
                             </div>
                             <div class="model-dropdown__item" data-model="bloomvn">
-                                <span class="model-dropdown__item-icon">🌸</span>
+                                <span class="model-dropdown__item-icon">≡ƒî╕</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">BloomVN-8B</div>
                                     <div class="model-dropdown__item-desc">Vietnamese optimized</div>
@@ -840,14 +832,14 @@ try {
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Other</div>
                             <div class="model-dropdown__item" data-model="qwen">
-                                <span class="model-dropdown__item-icon">🌙</span>
+                                <span class="model-dropdown__item-icon">≡ƒîÖ</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Qwen Turbo</div>
                                     <div class="model-dropdown__item-desc">Alibaba Cloud</div>
                                 </div>
                             </div>
                             <div class="model-dropdown__item" data-model="stepfun">
-                                <span class="model-dropdown__item-icon">🚀</span>
+                                <span class="model-dropdown__item-icon">≡ƒÜÇ</span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">StepFun Direct</div>
                                     <div class="model-dropdown__item-desc">step-2-16k</div>
@@ -873,7 +865,7 @@ try {
 
             <div class="topbar__center">
                 <!-- GitHub branding -->
-                <a href="https://github.com/SkastVnT" target="_blank" class="topbar__brand" title="GitHub — SKAST">
+                <a href="https://github.com/SkastVnT" target="_blank" class="topbar__brand" title="GitHub ΓÇö SKAST">
                     <i data-lucide="github" class="lucide brand-icon"></i>
                     <span class="brand-name">SKAST</span>
                 </a>
@@ -891,14 +883,14 @@ try {
                                 <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg></span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Instant</div>
-                                    <div class="model-dropdown__item-desc">Trả lời tức thời</div>
+                                    <div class="model-dropdown__item-desc">Trß║ú lß╗¥i tß╗⌐c thß╗¥i</div>
                                 </div>
                             </div>
                             <div class="thinking-mode-option model-dropdown__item active" data-mode="multi-thinking" data-icon="layers" data-label="4-Agents">
                                 <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" class="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg></span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">4-Agents</div>
-                                    <div class="model-dropdown__item-desc">4 agents tham gia trả lời</div>
+                                    <div class="model-dropdown__item-desc">4 agents tham gia trß║ú lß╗¥i</div>
                                 </div>
                                 <span class="model-dropdown__item-badge pro">Pro</span>
                             </div>
@@ -920,7 +912,7 @@ try {
                                 <span class="model-dropdown__item-icon"><i data-lucide="circle-off" class="lucide"></i></span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">None</div>
-                                    <div class="model-dropdown__item-desc">No skill — default behavior</div>
+                                    <div class="model-dropdown__item-desc">No skill ΓÇö default behavior</div>
                                 </div>
                             </div>
                         </div>
@@ -963,21 +955,21 @@ try {
                     <h1 class="welcome__title" data-lang-key="app.title">AI Assistant</h1>
                     <p class="welcome__subtitle" data-lang-key="app.subtitle">Chat, code, create images, and solve problems with AI</p>
                     <div class="welcome__suggestions" id="welcomeSuggestions">
-                        <button class="welcome__suggestion" data-message="Giải thích cách hoạt động của AI một cách đơn giản">
-                            <div class="welcome__suggestion-title"><i data-lucide="lightbulb" class="lucide lucide-sm"></i> Giải thích</div>
-                            Cách hoạt động của AI đơn giản
+                        <button class="welcome__suggestion" data-message="Giß║úi th├¡ch c├ích hoß║ít ─æß╗Öng cß╗ºa AI mß╗Öt c├ích ─æ╞ín giß║ún">
+                            <div class="welcome__suggestion-title"><i data-lucide="lightbulb" class="lucide lucide-sm"></i> Giß║úi th├¡ch</div>
+                            C├ích hoß║ít ─æß╗Öng cß╗ºa AI ─æ╞ín giß║ún
                         </button>
-                        <button class="welcome__suggestion" data-message="Viết một function Python để sort mảng bằng quicksort">
-                            <div class="welcome__suggestion-title"><i data-lucide="code-2" class="lucide lucide-sm"></i> Viết code</div>
+                        <button class="welcome__suggestion" data-message="Viß║┐t mß╗Öt function Python ─æß╗â sort mß║úng bß║▒ng quicksort">
+                            <div class="welcome__suggestion-title"><i data-lucide="code-2" class="lucide lucide-sm"></i> Viß║┐t code</div>
                             Python quicksort implementation
                         </button>
-                        <button class="welcome__suggestion" data-message="Tạo ảnh anime một cô gái ngồi bên cửa sổ, ánh hoàng hôn, chi tiết cao">
-                            <div class="welcome__suggestion-title"><i data-lucide="image" class="lucide lucide-sm"></i> Tạo ảnh</div>
+                        <button class="welcome__suggestion" data-message="Tß║ío ß║únh anime mß╗Öt c├┤ g├íi ngß╗ôi b├¬n cß╗¡a sß╗ò, ├ính ho├áng h├┤n, chi tiß║┐t cao">
+                            <div class="welcome__suggestion-title"><i data-lucide="image" class="lucide lucide-sm"></i> Tß║ío ß║únh</div>
                             Anime girl at sunset window
                         </button>
-                        <button class="welcome__suggestion" data-message="Cho tôi 5 tips tăng năng suất làm việc hiệu quả">
-                            <div class="welcome__suggestion-title"><i data-lucide="trending-up" class="lucide lucide-sm"></i> Tư vấn</div>
-                            5 tips tăng năng suất
+                        <button class="welcome__suggestion" data-message="Cho t├┤i 5 tips t─âng n─âng suß║Ñt l├ám viß╗çc hiß╗çu quß║ú">
+                            <div class="welcome__suggestion-title"><i data-lucide="trending-up" class="lucide lucide-sm"></i> T╞░ vß║Ñn</div>
+                            5 tips t─âng n─âng suß║Ñt
                         </button>
                     </div>
                 </div>
@@ -1018,7 +1010,7 @@ try {
             <div class="adv-settings" id="advSettingsPanel" aria-hidden="true">
                 <div class="adv-settings__header">
                     <span class="adv-settings__title">Advanced Model Settings</span>
-                    <button class="adv-settings__reset" id="advSettingsReset" title="Reset to defaults">↺ Reset</button>
+                    <button class="adv-settings__reset" id="advSettingsReset" title="Reset to defaults">Γå║ Reset</button>
                 </div>
                 <div class="adv-settings__grid">
                     <!-- Temperature -->
@@ -1118,7 +1110,7 @@ try {
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
                                         <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="imageGenToolBtn" title="Tạo hình ảnh">
+                                            <button class="tools-grid__item" id="imageGenToolBtn" title="Tß║ío h├¼nh ß║únh">
                                                 <span class="tools-grid__icon"><i data-lucide="sparkles" class="lucide"></i></span>
                                                 <span class="tools-grid__label">Image Gen</span>
                                             </button>
@@ -1126,7 +1118,7 @@ try {
                                                 <span class="tools-grid__icon"><i data-lucide="scan-eye" class="lucide"></i></span>
                                                 <span class="tools-grid__label">Img2Img</span>
                                             </button>
-                                            <button class="tools-grid__item" id="googleLensBtn" title="Google Lens — Reverse Image (SerpAPI)">
+                                            <button class="tools-grid__item" id="googleLensBtn" title="Google Lens ΓÇö Reverse Image (SerpAPI)">
                                                 <span class="tools-grid__icon"><i data-lucide="camera" class="lucide"></i></span>
                                                 <span class="tools-grid__label">Lens</span>
                                             </button>
@@ -1141,7 +1133,7 @@ try {
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="brain" class="lucide lucide-sm"></i> Reasoning</div>
                                         <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
+                                            <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research ΓÇö 4-Agent Council">
                                                 <span class="tools-grid__icon"><i data-lucide="telescope" class="lucide"></i></span>
                                                 <span class="tools-grid__label">Deep Research</span>
                                             </button>
@@ -1219,10 +1211,10 @@ try {
                         </button>
                     </div>
 
-                    <!-- Context is now unified — hidden select for backward compatibility -->
+                    <!-- Context is now unified ΓÇö hidden select for backward compatibility -->
                     <div class="context-selector" style="display:none;">
                         <select id="contextSelect">
-                            <option value="casual" selected>💬 Universal</option>
+                            <option value="casual" selected>≡ƒÆ¼ Universal</option>
                         </select>
                     </div>
                 </div>
@@ -1240,22 +1232,22 @@ try {
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" id="mcpEnabledCheck" style="width: 16px; height: 16px; accent-color: var(--accent);">
-                    <label for="mcpEnabledCheck" style="font-weight: 600; font-size: 14px;" data-lang-key="mcp.enable">🔗 MCP Context</label>
+                    <label for="mcpEnabledCheck" style="font-weight: 600; font-size: 14px;" data-lang-key="mcp.enable">≡ƒöù MCP Context</label>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span id="mcpStatus" style="font-size: 12px; color: var(--text-tertiary);"><span data-lang-key="mcp.status.disabled">⚪ Off</span></span>
-                    <button id="mcpCloseBtn" style="background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 16px;">✕</button>
+                    <span id="mcpStatus" style="font-size: 12px; color: var(--text-tertiary);"><span data-lang-key="mcp.status.disabled">ΓÜ¬ Off</span></span>
+                    <button id="mcpCloseBtn" style="background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 16px;">Γ£ò</button>
                 </div>
             </div>
 
             <div class="mcp-source-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
-                <button class="btn btn--sm btn--secondary active" id="mcpTabFolder" data-source="folder" disabled>📁 Folder</button>
-                <button class="btn btn--sm btn--ghost" id="mcpTabUrl" data-source="url" disabled>🌐 URL</button>
-                <button class="btn btn--sm btn--ghost" id="mcpTabUpload" data-source="upload" disabled>📤 Upload</button>
+                <button class="btn btn--sm btn--secondary active" id="mcpTabFolder" data-source="folder" disabled>≡ƒôü Folder</button>
+                <button class="btn btn--sm btn--ghost" id="mcpTabUrl" data-source="url" disabled>≡ƒîÉ URL</button>
+                <button class="btn btn--sm btn--ghost" id="mcpTabUpload" data-source="upload" disabled>≡ƒôñ Upload</button>
             </div>
 
             <div id="mcpFolderSource">
-                <button class="btn btn--secondary" id="mcpSelectFolderBtn" style="width: 100%;" disabled>📁 Select Folder</button>
+                <button class="btn btn--secondary" id="mcpSelectFolderBtn" style="width: 100%;" disabled>≡ƒôü Select Folder</button>
                 <input type="file" id="mcpFolderInput" webkitdirectory directory multiple class="hidden">
                 <div id="mcpFolderList" class="hidden" style="margin-top: 12px;"></div>
             </div>
@@ -1263,13 +1255,13 @@ try {
             <div id="mcpUrlSource" class="hidden">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="mcpUrlInput" placeholder="https://example.com/..." class="form-input" style="flex: 1;" disabled>
-                    <button class="btn btn--secondary btn--sm" id="mcpFetchUrlBtn" disabled>🔍 Fetch</button>
+                    <button class="btn btn--secondary btn--sm" id="mcpFetchUrlBtn" disabled>≡ƒöì Fetch</button>
                 </div>
                 <div id="mcpUrlList" style="margin-top: 12px;"></div>
             </div>
 
             <div id="mcpUploadSource" class="hidden">
-                <button class="btn btn--secondary" id="mcpUploadBtn" style="width: 100%;" disabled>📤 Upload Files</button>
+                <button class="btn btn--secondary" id="mcpUploadBtn" style="width: 100%;" disabled>≡ƒôñ Upload Files</button>
                 <input type="file" id="mcpFileUpload" multiple accept="image/*,.pdf,.txt,.md,.py,.js,.json" class="hidden">
                 <div id="mcpUploadList" style="margin-top: 12px;"></div>
             </div>
@@ -1277,11 +1269,11 @@ try {
 
         <div id="mcpFileBrowser" style="flex: 1; overflow-y: auto; padding: 0 16px;">
             <div style="margin-bottom: 12px;">
-                <input type="text" id="mcpFileSearch" placeholder="🔍 Search files..." class="form-input" disabled>
+                <input type="text" id="mcpFileSearch" placeholder="≡ƒöì Search files..." class="form-input" disabled>
             </div>
             <div id="mcpFileList">
                 <div style="text-align: center; padding: 40px 0; color: var(--text-tertiary);">
-                    <p style="font-size: 24px;">📂</p>
+                    <p style="font-size: 24px;">≡ƒôé</p>
                     <p style="font-size: 13px; font-weight: 600; color: var(--accent);">No context loaded</p>
                     <p style="font-size: 11px;">Enable MCP and select a source</p>
                 </div>
@@ -1290,15 +1282,15 @@ try {
 
         <div id="mcpSelectedFiles" class="hidden" style="padding: 12px 16px; border-top: 1px solid var(--border-secondary);">
             <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--accent); display: flex; align-items: center; gap: 8px;">
-                📌 Selected Context
+                ≡ƒôî Selected Context
                 <span class="badge badge--accent" id="selectedFileCount">0</span>
             </div>
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <button class="btn btn--sm btn--secondary" id="mcpOcrBtn" title="OCR selected files" style="flex: 1;">
-                    🔎 OCR qua MCP
+                    ≡ƒöÄ OCR qua MCP
                 </button>
                 <button class="btn btn--sm btn--ghost" id="mcpWarmCacheBtn" title="Warm memory cache" style="flex: 1;">
-                    🔥 Warm Cache
+                    ≡ƒöÑ Warm Cache
                 </button>
             </div>
             <div id="selectedFileList"></div>
@@ -1306,7 +1298,7 @@ try {
     </div>
 </div>
 
-<!-- ═══ Image Generation V2 Modal ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Image Generation V2 Modal ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="imageGenV2Modal">
     <div class="modal-panel" style="max-width: 720px;">
         <div class="modal-panel__header">
@@ -1315,96 +1307,96 @@ try {
         </div>
         <div class="modal-panel__body" style="padding: 0;">
             <div id="igv2Status" style="padding: 8px 24px; font-size: 13px; color: var(--text-tertiary);">
-                Ready — 8 providers available
+                Ready ΓÇö 8 providers available
             </div>
             <div class="igv2-tabs" style="display: flex; gap: 4px; padding: 0 24px 12px;">
-                <button class="btn btn--sm btn--primary igv2-tab-btn active" data-tab="generate" onclick="window.imageGenV2?.switchTab('generate')">✨ Generate</button>
-                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="edit" onclick="window.imageGenV2?.switchTab('edit')">✏️ Edit</button>
-                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="gallery" onclick="window.imageGenV2?.switchTab('gallery'); window.imageGenV2?.loadGallery()">🖼️ Gallery</button>
-                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="stats" onclick="window.imageGenV2?.switchTab('stats'); window.imageGenV2?.loadStats()">📊 Stats</button>
+                <button class="btn btn--sm btn--primary igv2-tab-btn active" data-tab="generate" onclick="window.imageGenV2?.switchTab('generate')">Γ£¿ Generate</button>
+                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="edit" onclick="window.imageGenV2?.switchTab('edit')">Γ£Å∩╕Å Edit</button>
+                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="gallery" onclick="window.imageGenV2?.switchTab('gallery'); window.imageGenV2?.loadGallery()">≡ƒû╝∩╕Å Gallery</button>
+                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="stats" onclick="window.imageGenV2?.switchTab('stats'); window.imageGenV2?.loadStats()">≡ƒôè Stats</button>
             </div>
 
             <!-- Generate Tab -->
             <div class="igv2-tab-panel" id="igv2-generate" style="display: block; padding: 0 24px 24px;">
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📝 Prompt</label>
-                    <textarea id="igv2Prompt" class="form-input" rows="3" style="resize: vertical;" placeholder="Mô tả ảnh bạn muốn..."></textarea>
+                    <label class="form-label">≡ƒô¥ Prompt</label>
+                    <textarea id="igv2Prompt" class="form-input" rows="3" style="resize: vertical;" placeholder="M├┤ tß║ú ß║únh bß║ín muß╗æn..."></textarea>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">🎨 Style</label>
+                    <label class="form-label">≡ƒÄ¿ Style</label>
                     <select id="igv2Style" class="form-select" style="width: 100%;"><option value="">None (auto)</option></select>
                     <div id="igv2StyleGrid" style="margin-top: 8px;"></div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
-                        <label class="form-label">⚡ Quality</label>
+                        <label class="form-label">ΓÜí Quality</label>
                         <select id="igv2Quality" class="form-select" style="width: 100%;">
-                            <option value="auto">🤖 Auto</option>
-                            <option value="quality">💎 Quality</option>
-                            <option value="fast">⚡ Fast</option>
-                            <option value="cheap">💰 Cheap</option>
-                            <option value="free">🆓 Free (Local)</option>
+                            <option value="auto">≡ƒñû Auto</option>
+                            <option value="quality">≡ƒÆÄ Quality</option>
+                            <option value="fast">ΓÜí Fast</option>
+                            <option value="cheap">≡ƒÆ░ Cheap</option>
+                            <option value="free">≡ƒåô Free (Local)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">🔧 Provider</label>
-                        <select id="igv2Provider" class="form-select" style="width: 100%;"><option value="">🤖 Auto</option></select>
+                        <label class="form-label">≡ƒöº Provider</label>
+                        <select id="igv2Provider" class="form-select" style="width: 100%;"><option value="">≡ƒñû Auto</option></select>
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
-                        <label class="form-label">📐 Width</label>
+                        <label class="form-label">≡ƒôÉ Width</label>
                         <select id="igv2Width" class="form-select" style="width: 100%;">
                             <option value="512">512</option><option value="768">768</option>
                             <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option>
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">📐 Height</label>
+                        <label class="form-label">≡ƒôÉ Height</label>
                         <select id="igv2Height" class="form-select" style="width: 100%;">
                             <option value="512">512</option><option value="768">768</option>
                             <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option>
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">🔢 Steps</label>
+                        <label class="form-label">≡ƒöó Steps</label>
                         <input id="igv2Steps" class="form-input" type="number" value="28" min="1" max="100">
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                     <div>
-                        <label class="form-label">🎯 Guidance</label>
+                        <label class="form-label">≡ƒÄ» Guidance</label>
                         <input id="igv2Guidance" class="form-input" type="number" value="3.5" min="1" max="20" step="0.5">
                     </div>
                     <div style="display: flex; align-items: flex-end; padding-bottom: 8px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-secondary);">
                             <input type="checkbox" id="igv2Enhance" checked style="accent-color: var(--accent);">
-                            🤖 AI Enhance Prompt
+                            ≡ƒñû AI Enhance Prompt
                         </label>
                     </div>
                 </div>
-                <button id="igv2GenerateBtn" class="btn btn--primary btn--lg" style="width: 100%;" onclick="window.imageGenV2?.generate()">🎨 Generate Image</button>
+                <button id="igv2GenerateBtn" class="btn btn--primary btn--lg" style="width: 100%;" onclick="window.imageGenV2?.generate()">≡ƒÄ¿ Generate Image</button>
                 <div id="igv2Result" style="margin-top: 16px;"></div>
             </div>
 
             <!-- Edit Tab -->
             <div class="igv2-tab-panel" id="igv2-edit" style="display: none; padding: 0 24px 24px;">
-                <p style="color: var(--text-tertiary); font-size: 13px; margin-bottom: 12px;">✏️ Edit generated images — describe changes you want.</p>
+                <p style="color: var(--text-tertiary); font-size: 13px; margin-bottom: 12px;">Γ£Å∩╕Å Edit generated images ΓÇö describe changes you want.</p>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">✏️ Edit Instruction</label>
-                    <textarea id="igv2EditPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="VD: thêm cầu vồng, đổi nền..."></textarea>
+                    <label class="form-label">Γ£Å∩╕Å Edit Instruction</label>
+                    <textarea id="igv2EditPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="VD: th├¬m cß║ºu vß╗ông, ─æß╗òi nß╗ün..."></textarea>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                     <div>
-                        <label class="form-label">💪 Edit Strength</label>
+                        <label class="form-label">≡ƒÆ¬ Edit Strength</label>
                         <input id="igv2EditStrength" class="form-input" type="number" value="0.75" min="0.1" max="1.0" step="0.05">
                     </div>
                     <div>
-                        <label class="form-label">🔧 Provider</label>
-                        <select id="igv2EditProvider" class="form-select" style="width: 100%;"><option value="">🤖 Auto</option></select>
+                        <label class="form-label">≡ƒöº Provider</label>
+                        <select id="igv2EditProvider" class="form-select" style="width: 100%;"><option value="">≡ƒñû Auto</option></select>
                     </div>
                 </div>
-                <button id="igv2EditBtn" class="btn btn--primary btn--lg" style="width: 100%; background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: transparent;" onclick="window.imageGenV2?.editImage()">✏️ Edit Image</button>
+                <button id="igv2EditBtn" class="btn btn--primary btn--lg" style="width: 100%; background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: transparent;" onclick="window.imageGenV2?.editImage()">Γ£Å∩╕Å Edit Image</button>
                 <div id="igv2EditResult" style="margin-top: 16px;"></div>
             </div>
 
@@ -1421,7 +1413,7 @@ try {
     </div>
 </div>
 
-<!-- ═══ Image Gen V1 Modal (ComfyUI) ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Image Gen V1 Modal (ComfyUI) ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="imageGenModal">
     <div class="modal-panel" style="max-width: 800px;">
         <div class="modal-panel__header">
@@ -1435,7 +1427,7 @@ try {
 
             <!-- Style selector -->
             <div style="margin-bottom: 16px;">
-                <label class="form-label">🎨 Quick Style</label>
+                <label class="form-label">≡ƒÄ¿ Quick Style</label>
                 <div class="style-buttons" id="styleButtons" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
                     <button class="btn btn--sm btn--primary style-btn active" onclick="selectStyle('anime_xl')" data-style="anime_xl">Anime XL</button>
                     <button class="btn btn--sm btn--secondary style-btn" onclick="selectStyle('realistic_xl')" data-style="realistic_xl">Realistic</button>
@@ -1447,12 +1439,12 @@ try {
 
             <!-- Tabs -->
             <div style="display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;">
-                <button class="btn btn--sm btn--primary tab-btn active" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">✍️ Text2Img</button>
-                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('img2img')" data-lang-key="imageGen.tab.img2img">🖼️ Img2Img</button>
-                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('inpaint')">🎭 Inpaint</button>
-                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('controlnet')">🕹️ ControlNet</button>
-                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('upscale')">🔍 Upscale</button>
-                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('batch')">🎲 Batch</button>
+                <button class="btn btn--sm btn--primary tab-btn active" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">Γ£ì∩╕Å Text2Img</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('img2img')" data-lang-key="imageGen.tab.img2img">≡ƒû╝∩╕Å Img2Img</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('inpaint')">≡ƒÄ¡ Inpaint</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('controlnet')">≡ƒò╣∩╕Å ControlNet</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('upscale')">≡ƒöì Upscale</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('batch')">≡ƒÄ▓ Batch</button>
             </div>
 
             <!-- Model -->
@@ -1466,8 +1458,8 @@ try {
                 <div style="margin-bottom: 12px;">
                     <label class="form-label" data-lang-key="imageGen.prompt">Prompt</label>
                     <div style="display: flex; gap: 6px; margin-bottom: 4px;">
-                        <button onclick="randomPrompt()" class="btn btn--sm btn--ghost" data-lang-key="imageGen.random">🎲 Random</button>
-                        <button onclick="showPromptHistory()" class="btn btn--sm btn--ghost">📜 History</button>
+                        <button onclick="randomPrompt()" class="btn btn--sm btn--ghost" data-lang-key="imageGen.random">≡ƒÄ▓ Random</button>
+                        <button onclick="showPromptHistory()" class="btn btn--sm btn--ghost">≡ƒô£ History</button>
                     </div>
                     <textarea id="imagePrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="1girl, beautiful, cherry blossoms, masterpiece" list="promptHistoryList"></textarea>
                     <div id="promptHistoryDropdown" style="display: none; position: absolute; z-index: 10; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); max-height: 150px; overflow-y: auto; width: 100%; box-shadow: var(--shadow-lg);"></div>
@@ -1475,9 +1467,9 @@ try {
                 <div style="margin-bottom: 12px;">
                     <label class="form-label" data-lang-key="imageGen.negativePrompt">Negative Prompt</label>
                     <div style="display: flex; gap: 6px; margin-bottom: 4px;">
-                        <button onclick="randomNegativePrompt()" class="btn btn--sm btn--ghost" data-lang-key="imageGen.random">🎲 Random</button>
+                        <button onclick="randomNegativePrompt()" class="btn btn--sm btn--ghost" data-lang-key="imageGen.random">≡ƒÄ▓ Random</button>
                         <select id="negativePresetSelect" class="form-select" style="flex: 1; font-size: 12px;" onchange="applyNegativePreset(this.value)">
-                            <option value="">📋 Preset...</option>
+                            <option value="">≡ƒôï Preset...</option>
                         </select>
                     </div>
                     <textarea id="negativePrompt" class="form-input" rows="2" style="resize: vertical;" placeholder="bad quality, blurry"></textarea>
@@ -1525,25 +1517,25 @@ try {
                     </label>
                 </div>
                 <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
-                    <label class="form-label" data-lang-key="imageGen.lora">🎨 LoRA Models (Optional)</label>
+                    <label class="form-label" data-lang-key="imageGen.lora">≡ƒÄ¿ LoRA Models (Optional)</label>
                     <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="addLoraBtn" class="btn btn--sm btn--ghost" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">➕ Add Lora</button>
+                        <button type="button" id="addLoraBtn" class="btn btn--sm btn--ghost" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">Γ₧ò Add Lora</button>
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">🔧 VAE</label>
+                    <label class="form-label">≡ƒöº VAE</label>
                     <select id="vaeSelect" class="form-select" style="width: 100%;"><option value="">Automatic</option></select>
                 </div>
-                <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImageBtn" onclick="generateImage()">🎨 Generate</button>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImageBtn" onclick="generateImage()">≡ƒÄ¿ Generate</button>
             </div>
 
             <!-- Img2Img -->
             <div id="img2imgTab" class="tab-content" style="display: none;">
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📤 Source Image</label>
+                    <label class="form-label">≡ƒôñ Source Image</label>
                     <div id="uploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 40px; text-align: center; cursor: pointer; transition: all var(--transition);" onclick="document.getElementById('sourceImage').click()">
                         <div id="uploadPlaceholder">
-                            <span style="font-size: 40px;">📷</span>
+                            <span style="font-size: 40px;">≡ƒô╖</span>
                             <p style="margin-top: 8px; color: var(--text-tertiary);">Click or drag & drop</p>
                         </div>
                         <img id="sourceImagePreview" style="display: none; max-width: 100%; max-height: 250px; border-radius: var(--radius-sm);">
@@ -1551,10 +1543,10 @@ try {
                     <input type="file" id="sourceImage" accept="image/*" class="hidden" onchange="handleSourceImageUpload(event)">
                 </div>
                 <div id="featureExtractionSection" style="display: none; margin-bottom: 16px;">
-                    <button class="btn btn--secondary" onclick="extractFeatures()" style="width: 100%; margin-bottom: 12px;">🔬 Extract Features</button>
+                    <button class="btn btn--secondary" onclick="extractFeatures()" style="width: 100%; margin-bottom: 12px;">≡ƒö¼ Extract Features</button>
                     <div id="extractedTags" style="display: none;">
                         <div id="tagsList" style="max-height: 300px; overflow-y: auto;"></div>
-                        <button id="autoGeneratePromptBtn" class="btn btn--primary" onclick="autoGeneratePromptFromTags()" style="display: none; width: 100%; margin-top: 12px;">🤖 Auto-generate prompt</button>
+                        <button id="autoGeneratePromptBtn" class="btn btn--primary" onclick="autoGeneratePromptFromTags()" style="display: none; width: 100%; margin-top: 12px;">≡ƒñû Auto-generate prompt</button>
                     </div>
                 </div>
                 <div style="margin-bottom: 12px;">
@@ -1604,34 +1596,34 @@ try {
                     <input type="number" id="img2imgSeed" class="form-input" value="-1">
                 </div>
                 <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
-                    <label class="form-label">🎨 LoRA</label>
+                    <label class="form-label">≡ƒÄ¿ LoRA</label>
                     <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        <button type="button" class="btn btn--sm btn--ghost" onclick="addImg2imgLoraSelection()">➕ Add Lora</button>
+                        <button type="button" class="btn btn--sm btn--ghost" onclick="addImg2imgLoraSelection()">Γ₧ò Add Lora</button>
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">🔧 VAE</label>
+                    <label class="form-label">≡ƒöº VAE</label>
                     <select id="img2imgVaeSelect" class="form-select" style="width: 100%;"><option value="">Automatic</option></select>
                 </div>
-                <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>🎨 Generate from image</button>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>≡ƒÄ¿ Generate from image</button>
             </div>
 
             <!-- Inpaint Tab -->
             <div id="inpaintTab" class="tab-content" style="display: none;">
-                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">🎭 Edit specific areas of an image. Paint white over areas to regenerate.</p>
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒÄ¡ Edit specific areas of an image. Paint white over areas to regenerate.</p>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📤 Source Image</label>
+                    <label class="form-label">≡ƒôñ Source Image</label>
                     <div id="inpaintUploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('inpaintSourceInput').click()">
-                        <span style="font-size: 32px;">🖼️</span>
+                        <span style="font-size: 32px;">≡ƒû╝∩╕Å</span>
                         <p style="margin-top: 6px; color: var(--text-tertiary); font-size: 13px;">Upload image to inpaint</p>
                     </div>
                     <input type="file" id="inpaintSourceInput" accept="image/*" class="hidden" onchange="handleInpaintSourceUpload(event)">
                     <img id="inpaintPreview" style="display: none; max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 8px;">
                 </div>
                 <div id="inpaintCanvasWrapper" style="display: none; margin-bottom: 16px;">
-                    <label class="form-label">🖌️ Paint Mask <span style="font-size:11px; color: var(--text-tertiary);">(white = edit area)</span></label>
+                    <label class="form-label">≡ƒûî∩╕Å Paint Mask <span style="font-size:11px; color: var(--text-tertiary);">(white = edit area)</span></label>
                     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                        <button class="btn btn--sm btn--ghost" onclick="clearInpaintMask()">🗑️ Clear</button>
+                        <button class="btn btn--sm btn--ghost" onclick="clearInpaintMask()">≡ƒùæ∩╕Å Clear</button>
                         <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;">Brush:
                             <input type="range" id="inpaintBrushSize" min="5" max="80" value="30" style="width: 80px;">
                         </label>
@@ -1656,16 +1648,16 @@ try {
                         <input type="number" id="inpaintSteps" class="form-input" value="30" min="1" max="150">
                     </div>
                 </div>
-                <button class="btn btn--primary btn--lg" style="width: 100%;" id="inpaintBtn" onclick="generateInpaint()" disabled>🎭 Inpaint</button>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="inpaintBtn" onclick="generateInpaint()" disabled>≡ƒÄ¡ Inpaint</button>
             </div>
 
             <!-- ControlNet Tab -->
             <div id="controlnetTab" class="tab-content" style="display: none;">
-                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">🕹️ Guide image generation with a control image (pose, edges, depth map).</p>
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒò╣∩╕Å Guide image generation with a control image (pose, edges, depth map).</p>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📤 Control Image</label>
+                    <label class="form-label">≡ƒôñ Control Image</label>
                     <div id="controlnetUploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('controlnetSourceInput').click()">
-                        <span style="font-size: 32px;">🕹️</span>
+                        <span style="font-size: 32px;">≡ƒò╣∩╕Å</span>
                         <p style="margin-top: 6px; color: var(--text-tertiary); font-size: 13px;">Upload control image</p>
                     </div>
                     <input type="file" id="controlnetSourceInput" accept="image/*" class="hidden" onchange="handleControlnetSourceUpload(event)">
@@ -1712,16 +1704,16 @@ try {
                         <select id="controlnetHeight" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option></select>
                     </div>
                 </div>
-                <button class="btn btn--primary btn--lg" style="width: 100%;" id="controlnetBtn" onclick="generateControlNet()" disabled>🕹️ Generate with ControlNet</button>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="controlnetBtn" onclick="generateControlNet()" disabled>≡ƒò╣∩╕Å Generate with ControlNet</button>
             </div>
 
             <!-- Upscale Tab -->
             <div id="upscaleTab" class="tab-content" style="display: none;">
-                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">🔍 Upscale images to higher resolution with AI enhancement.</p>
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒöì Upscale images to higher resolution with AI enhancement.</p>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📤 Image to Upscale</label>
+                    <label class="form-label">≡ƒôñ Image to Upscale</label>
                     <div id="upscaleUploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('upscaleSourceInput').click()">
-                        <span style="font-size: 32px;">🔍</span>
+                        <span style="font-size: 32px;">≡ƒöì</span>
                         <p style="margin-top: 6px; color: var(--text-tertiary); font-size: 13px;">Upload image to upscale</p>
                     </div>
                     <input type="file" id="upscaleSourceInput" accept="image/*" class="hidden" onchange="handleUpscaleSourceUpload(event)">
@@ -1746,12 +1738,12 @@ try {
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; margin-bottom: 16px;">
                     <input type="checkbox" id="upscaleRestoreFaces" style="accent-color: var(--accent);"> Restore Faces (CodeFormer)
                 </label>
-                <button class="btn btn--primary btn--lg" style="width: 100%;" id="upscaleBtn" onclick="generateUpscale()" disabled>🔍 Upscale</button>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="upscaleBtn" onclick="generateUpscale()" disabled>≡ƒöì Upscale</button>
             </div>
 
             <!-- Batch Tab -->
             <div id="batchTab" class="tab-content" style="display: none;">
-                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">🎲 Generate multiple variations with different seeds.</p>
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒÄ▓ Generate multiple variations with different seeds.</p>
                 <div style="margin-bottom: 12px;">
                     <label class="form-label">Prompt</label>
                     <textarea id="batchPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="1girl, beautiful, cherry blossoms, masterpiece"></textarea>
@@ -1789,7 +1781,7 @@ try {
                         <input type="number" id="batchCfgScale" class="form-input" value="7" min="1" max="30" step="0.5">
                     </div>
                 </div>
-                <button class="btn btn--primary btn--lg" style="width: 100%;" id="batchBtn" onclick="generateBatch()">🎲 Generate Variations</button>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="batchBtn" onclick="generateBatch()">≡ƒÄ▓ Generate Variations</button>
                 <div id="batchResults" style="display: none; margin-top: 16px;">
                     <label class="form-label">Results</label>
                     <div id="batchGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;"></div>
@@ -1799,23 +1791,23 @@ try {
     </div>
 
     <!-- Generated image overlay -->
-    <div id="generatedImageContainer" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 250; display: none; align-items: center; justify-content: center;" onclick="closeGeneratedImageOverlay(event)">
-        <div onclick="event.stopPropagation()" style="position: relative; max-width: 90%; max-height: 90%;">
-            <button style="position: absolute; top: -12px; right: -12px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-primary); cursor: pointer; font-size: 16px;" onclick="closeGeneratedImageOverlay()">&times;</button>
+    <div id="generatedImageContainer" data-action="overlay:close">
+        <div data-action-stop style="position: relative; max-width: 90%; max-height: 90%;">
+            <button style="position: absolute; top: -12px; right: -12px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-primary); cursor: pointer; font-size: 16px;" data-action="overlay:close-btn">&times;</button>
             <img id="generatedImage" style="max-width: 100%; max-height: 80vh; border-radius: var(--radius-md);" alt="Generated">
             <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
-                <button class="btn btn--primary btn--sm" onclick="shareImageToImgBB()">🔗 Share</button>
-                <button class="btn btn--secondary btn--sm" onclick="downloadGeneratedImage()">📥 Download</button>
+                <button class="btn btn--primary btn--sm" data-action="overlay:share">≡ƒöù Share</button>
+                <button class="btn btn--secondary btn--sm" data-action="overlay:download">≡ƒôÑ Download</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ═══ Video Generation Modal (Sora 2) ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Video Generation Modal (Sora 2) ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="videoGenModal">
     <div class="modal-panel" style="max-width: 680px;">
         <div class="modal-panel__header">
-            <h2 class="modal-panel__title"><i data-lucide="video" class="lucide"></i> Video Generation — Sora 2</h2>
+            <h2 class="modal-panel__title"><i data-lucide="video" class="lucide"></i> Video Generation ΓÇö Sora 2</h2>
             <button class="modal-panel__close" onclick="window.videoGen?.closeModal()">&times;</button>
         </div>
         <div class="modal-panel__body" style="padding: 0;">
@@ -1823,22 +1815,22 @@ try {
 
             <!-- Tabs -->
             <div style="display: flex; gap: 4px; padding: 0 24px 12px;">
-                <button class="btn btn--sm btn--primary vg-tab-btn active" data-tab="generate" onclick="window.videoGen?.switchTab('generate')">🎬 Generate</button>
-                <button class="btn btn--sm btn--ghost vg-tab-btn" data-tab="jobs" onclick="window.videoGen?.switchTab('jobs'); window.videoGen?.loadJobs()">📋 Jobs</button>
+                <button class="btn btn--sm btn--primary vg-tab-btn active" data-tab="generate" onclick="window.videoGen?.switchTab('generate')">≡ƒÄ¼ Generate</button>
+                <button class="btn btn--sm btn--ghost vg-tab-btn" data-tab="jobs" onclick="window.videoGen?.switchTab('jobs'); window.videoGen?.loadJobs()">≡ƒôï Jobs</button>
             </div>
 
-            <!-- ═══ Generate Tab ═══ -->
+            <!-- ΓòÉΓòÉΓòÉ Generate Tab ΓòÉΓòÉΓòÉ -->
             <div class="vg-tab-panel" id="vg-generate" style="display: block; padding: 0 24px 24px;">
                 <!-- Mode Toggle: Text-to-Video / Image-to-Video -->
                 <div style="display: flex; gap: 4px; margin-bottom: 16px; padding: 4px; background: var(--bg-tertiary); border-radius: var(--radius-sm);">
-                    <button class="btn btn--sm btn--primary vg-mode-btn" data-mode="text" onclick="window.videoGen?.switchMode('text')" style="flex: 1;">📝 Text to Video</button>
-                    <button class="btn btn--sm btn--ghost vg-mode-btn" data-mode="image" onclick="window.videoGen?.switchMode('image')" style="flex: 1;">🖼️ Image to Video</button>
+                    <button class="btn btn--sm btn--primary vg-mode-btn" data-mode="text" onclick="window.videoGen?.switchMode('text')" style="flex: 1;">≡ƒô¥ Text to Video</button>
+                    <button class="btn btn--sm btn--ghost vg-mode-btn" data-mode="image" onclick="window.videoGen?.switchMode('image')" style="flex: 1;">≡ƒû╝∩╕Å Image to Video</button>
                 </div>
 
-                <!-- ── Image Upload Zone (hidden by default, max 5 images) ── -->
+                <!-- ΓöÇΓöÇ Image Upload Zone (hidden by default, max 5 images) ΓöÇΓöÇ -->
                 <div id="vgImageUploadZone" style="display: none; margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label class="form-label" style="margin: 0;">🖼️ Reference Images</label>
+                        <label class="form-label" style="margin: 0;">≡ƒû╝∩╕Å Reference Images</label>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span id="vgImageCounter" style="font-size: 12px; color: var(--text-tertiary);">0/5 images</span>
                             <button class="btn btn--sm btn--ghost" onclick="window.videoGen?.clearAllImages()" style="font-size: 11px; padding: 2px 8px;">Clear All</button>
@@ -1847,9 +1839,9 @@ try {
                     <div id="vgDropZone" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg-tertiary); min-height: 80px;"
                          onclick="document.getElementById('vgImageInput').click()">
                         <div id="vgDropContent">
-                            <div style="font-size: 28px; margin-bottom: 6px;">📤</div>
+                            <div style="font-size: 28px; margin-bottom: 6px;">≡ƒôñ</div>
                             <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Drop images here or click to browse</div>
-                            <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px;">PNG, JPG, WebP — Max 20 MB each — Up to 5 images</div>
+                            <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px;">PNG, JPG, WebP ΓÇö Max 20 MB each ΓÇö Up to 5 images</div>
                         </div>
                     </div>
                     <!-- Image preview grid -->
@@ -1859,14 +1851,14 @@ try {
 
                 <!-- Prompt -->
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📝 Prompt</label>
+                    <label class="form-label">≡ƒô¥ Prompt</label>
                     <textarea id="vgPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="Describe the video you want to create..."></textarea>
                 </div>
 
                 <!-- Settings Grid -->
                 <div class="vg-settings-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
-                        <label class="form-label">📐 Aspect Ratio</label>
+                        <label class="form-label">≡ƒôÉ Aspect Ratio</label>
                         <select id="vgResolution" class="form-select" style="width: 100%;">
                             <option value="1280x720" selected>16:9 Landscape</option>
                             <option value="720x1280">9:16 Portrait</option>
@@ -1874,7 +1866,7 @@ try {
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">⏱️ Duration</label>
+                        <label class="form-label">ΓÅ▒∩╕Å Duration</label>
                         <select id="vgDuration" class="form-select" style="width: 100%;">
                             <option value="4">4 seconds</option>
                             <option value="8" selected>8 seconds</option>
@@ -1882,7 +1874,7 @@ try {
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">🤖 Model</label>
+                        <label class="form-label">≡ƒñû Model</label>
                         <select id="vgModel" class="form-select" style="width: 100%;">
                             <option value="sora-2" selected>Sora 2 ($0.10/s)</option>
                             <!-- <option value="sora-2-pro">Sora 2 Pro ($0.30/s)</option> -->
@@ -1892,16 +1884,16 @@ try {
 
                 <!-- Cost Estimate -->
                 <div id="vgCostEstimate" style="margin-bottom: 16px; padding: 8px 12px; background: var(--bg-tertiary); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary);">
-                    💰 Estimated cost: <strong>$0.80</strong> (8s × $0.10/s)
+                    ≡ƒÆ░ Estimated cost: <strong>$0.80</strong> (8s ├ù $0.10/s)
                 </div>
 
                 <!-- Generate Button -->
-                <button id="vgGenerateBtn" class="btn btn--primary btn--lg" style="width: 100%;" onclick="window.videoGen?.generate()">🎬 Generate Video</button>
+                <button id="vgGenerateBtn" class="btn btn--primary btn--lg" style="width: 100%;" onclick="window.videoGen?.generate()">≡ƒÄ¼ Generate Video</button>
 
                 <!-- Active Job Progress -->
                 <div id="vgProgress" style="display: none; margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-primary);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-weight: 600; font-size: 14px;">🎥 <span id="vgProgressLabel">Generating...</span></span>
+                        <span style="font-weight: 600; font-size: 14px;">≡ƒÄÑ <span id="vgProgressLabel">Generating...</span></span>
                         <span id="vgProgressPct" style="font-size: 13px; color: var(--accent);"></span>
                     </div>
                     <div style="width: 100%; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;">
@@ -1911,20 +1903,20 @@ try {
                 </div>
 
                 <!-- Cancel / Stop Button -->
-                <button id="vgCancelBtn" class="btn btn--lg" style="display: none; width: 100%; margin-top: 10px; background: var(--error, #ef4444); color: white; border: none; font-weight: 600;" onclick="window.videoGen?.cancelJob()">⛔ Stop / Cancel Job</button>
+                <button id="vgCancelBtn" class="btn btn--lg" style="display: none; width: 100%; margin-top: 10px; background: var(--error, #ef4444); color: white; border: none; font-weight: 600;" onclick="window.videoGen?.cancelJob()">Γ¢ö Stop / Cancel Job</button>
 
                 <!-- Result -->
                 <div id="vgResult" style="display: none; margin-top: 16px;">
                     <video id="vgVideo" controls style="width: 100%; border-radius: var(--radius-md); background: #000;"></video>
                     <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
-                        <button class="btn btn--primary btn--sm" onclick="window.videoGen?.downloadCurrent()">📥 Download (Full Quality)</button>
-                        <button class="btn btn--secondary btn--sm" onclick="window.videoGen?.generateAnother()">🔄 New Video</button>
+                        <button class="btn btn--primary btn--sm" onclick="window.videoGen?.downloadCurrent()">≡ƒôÑ Download (Full Quality)</button>
+                        <button class="btn btn--secondary btn--sm" onclick="window.videoGen?.generateAnother()">≡ƒöä New Video</button>
                     </div>
                     <div id="vgResultMeta" style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary); text-align: center;"></div>
                 </div>
             </div>
 
-            <!-- ═══ Jobs Tab ═══ -->
+            <!-- ΓòÉΓòÉΓòÉ Jobs Tab ΓòÉΓòÉΓòÉ -->
             <div class="vg-tab-panel" id="vg-jobs" style="display: none; padding: 0 24px 24px;">
                 <div id="vgJobsList" class="vg-jobs-list">
                     <p style="color: var(--text-tertiary); text-align: center; padding: 24px;">Loading jobs...</p>
@@ -1934,25 +1926,25 @@ try {
     </div>
 </div>
 
-<!-- ═══ Image Preview (Discord‑style) ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Image Preview (DiscordΓÇæstyle) ΓòÉΓòÉΓòÉ -->
 <div class="image-preview-overlay" id="imagePreviewModal">
     <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
-        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()">📥</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)">🔍-</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)">🔍+</button>
-        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()">⟲</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:download">≡ƒôÑ</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:zoom" data-zoom-delta="-0.2">≡ƒöì-</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:zoom" data-zoom-delta="0.2">≡ƒöì+</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:reset-zoom">Γƒ▓</button>
     </div>
-    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" onclick="closeImagePreview()">&times;</span>
+    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" data-action="preview:close">&times;</span>
     <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%; border-radius: var(--radius-md);">
     <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
 </div>
 
-<!-- ═══ Edit History Modal ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Edit History Modal ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="historyModal">
     <div class="modal-panel" style="max-width: 700px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title" data-lang-key="history.title"><i data-lucide="history" class="lucide"></i> Edit History</h2>
-            <button class="modal-panel__close" onclick="closeHistoryModal()">&times;</button>
+            <button class="modal-panel__close" data-action="modal:close-history">&times;</button>
         </div>
         <div class="modal-panel__body">
             <div id="historyContent" style="max-height: 60vh; overflow-y: auto;"></div>
@@ -1960,14 +1952,14 @@ try {
     </div>
 </div>
 
-<!-- ═══ Gallery Modal ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Gallery Modal ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="galleryModal">
     <div class="modal-panel" style="max-width: 900px;">
         <div class="modal-panel__header">
-            <h2 class="modal-panel__title">🖼️ Image Gallery</h2>
+            <h2 class="modal-panel__title">≡ƒû╝∩╕Å Image Gallery</h2>
             <div style="display: flex; gap: 8px;">
-                <button class="btn btn--sm btn--ghost" onclick="refreshGallery()">🔄</button>
-                <button class="modal-panel__close" onclick="closeGallery()">&times;</button>
+                <button class="btn btn--sm btn--ghost" data-action="gallery:refresh">≡ƒöä</button>
+                <button class="modal-panel__close" data-action="gallery:close">&times;</button>
             </div>
         </div>
         <div id="galleryStats" style="padding: 12px 24px; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-secondary);">Loading...</div>
@@ -1975,12 +1967,12 @@ try {
     </div>
 </div>
 
-<!-- ═══ Gallery Image Info Modal ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Gallery Image Info Modal ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="galleryInfoModal">
     <div class="modal-panel gallery-info-modal">
         <div class="modal-panel__header">
-            <h2 class="modal-panel__title">ℹ️ Image Information</h2>
-            <button class="modal-panel__close" onclick="closeGalleryInfo()">&times;</button>
+            <h2 class="modal-panel__title">Γä╣∩╕Å Image Information</h2>
+            <button class="modal-panel__close" data-action="gallery:close-info">&times;</button>
         </div>
         <div class="modal-panel__body gallery-info-modal__body" id="galleryInfoBody">
             Loading...
@@ -1988,68 +1980,68 @@ try {
     </div>
 </div>
 
-<!-- ═══ Config Agent Modal ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Config Agent Modal ΓòÉΓòÉΓòÉ -->
 <div class="modal-overlay" id="configAgentModal">
     <div class="modal-panel" style="max-width: 640px;">
         <div class="modal-panel__header">
             <h2 class="modal-panel__title"><i data-lucide="settings-2" class="lucide"></i> Config Agent</h2>
-            <button class="modal-panel__close" onclick="closeConfigAgentModal()">&times;</button>
+            <button class="modal-panel__close" data-action="config:close">&times;</button>
         </div>
         <div class="modal-panel__body">
             <!-- Enable toggle -->
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); margin-bottom: 20px;">
                 <div>
-                    <div style="font-weight: 600; font-size: 14px;">🔥 Enable Config Agent</div>
+                    <div style="font-weight: 600; font-size: 14px;">≡ƒöÑ Enable Config Agent</div>
                     <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">Use custom config instead of defaults</div>
                 </div>
                 <label style="position: relative; display: inline-flex; cursor: pointer;">
-                    <input type="checkbox" id="configAgentEnabled" onchange="toggleConfigAgent()" style="width: 44px; height: 24px; accent-color: var(--accent);">
+                    <input type="checkbox" id="configAgentEnabled" data-action="config:toggle" style="width: 44px; height: 24px; accent-color: var(--accent);">
                 </label>
             </div>
 
             <div id="configAgentFields" style="opacity: 0.5; pointer-events: none; transition: all 0.2s;">
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">🧠 System Prompt</label>
+                    <label class="form-label">≡ƒºá System Prompt</label>
                     <textarea id="configSystemPrompt" class="form-input" rows="3" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="You are an expert..."></textarea>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">💉 Injection Prompt</label>
+                    <label class="form-label">≡ƒÆë Injection Prompt</label>
                     <textarea id="configInjectionPrompt" class="form-input" rows="2" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="Always respond in..."></textarea>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📚 Context Prompt</label>
+                    <label class="form-label">≡ƒôÜ Context Prompt</label>
                     <textarea id="configContextPrompt" class="form-input" rows="2" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="Project uses Python..."></textarea>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div>
-                        <label class="form-label">🌡️ Temperature <span id="tempValue" style="color: var(--accent);">0.7</span></label>
-                        <input type="range" id="configTemperature" min="0" max="2" step="0.1" value="0.7" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('tempValue').textContent = this.value">
+                        <label class="form-label">≡ƒîí∩╕Å Temperature <span id="tempValue" style="color: var(--accent);">0.7</span></label>
+                        <input type="range" id="configTemperature" min="0" max="2" step="0.1" value="0.7" style="width: 100%; accent-color: var(--accent);" data-mirror-to="tempValue">
                     </div>
                     <div>
-                        <label class="form-label">🎯 Top-P <span id="topPValue" style="color: var(--accent);">0.9</span></label>
-                        <input type="range" id="configTopP" min="0.1" max="1" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('topPValue').textContent = this.value">
+                        <label class="form-label">≡ƒÄ» Top-P <span id="topPValue" style="color: var(--accent);">0.9</span></label>
+                        <input type="range" id="configTopP" min="0.1" max="1" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent);" data-mirror-to="topPValue">
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label class="form-label">📝 Token Limit <span id="tokenLimitValue" style="color: var(--accent);">4096</span></label>
-                    <input type="range" id="configTokenLimit" min="500" max="65535" step="500" value="4096" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('tokenLimitValue').textContent = this.value">
+                    <label class="form-label">≡ƒô¥ Token Limit <span id="tokenLimitValue" style="color: var(--accent);">4096</span></label>
+                    <input type="range" id="configTokenLimit" min="500" max="65535" step="500" value="4096" style="width: 100%; accent-color: var(--accent);" data-mirror-to="tokenLimitValue">
                 </div>
                 <div style="margin-bottom: 16px; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); border: 1px solid rgba(124,108,240,0.2);">
-                    <label class="form-label">🧪 Thinking Budget</label>
+                    <label class="form-label">≡ƒº¬ Thinking Budget</label>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">
                         <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
                             <input type="radio" name="thinkingBudget" value="off" checked class="sr-only">
-                            <span style="font-size: 20px;">⚡</span>
+                            <span style="font-size: 20px;">ΓÜí</span>
                             <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">Off</span>
                         </label>
                         <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
                             <input type="radio" name="thinkingBudget" value="on" class="sr-only">
-                            <span style="font-size: 20px;">🔮</span>
+                            <span style="font-size: 20px;">≡ƒö«</span>
                             <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">On</span>
                         </label>
                         <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
                             <input type="radio" name="thinkingBudget" value="advanced" class="sr-only">
-                            <span style="font-size: 20px;">🚀</span>
+                            <span style="font-size: 20px;">≡ƒÜÇ</span>
                             <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">Advanced</span>
                         </label>
                     </div>
@@ -2057,8 +2049,8 @@ try {
             </div>
         </div>
         <div class="modal-panel__footer">
-            <button onclick="resetConfigAgent()" class="btn btn--ghost">🔄 Reset</button>
-            <button onclick="saveConfigAgent()" class="btn btn--primary">💾 Save Config</button>
+            <button data-action="config:reset" class="btn btn--ghost">≡ƒöä Reset</button>
+            <button data-action="config:save" class="btn btn--primary">≡ƒÆ╛ Save Config</button>
         </div>
     </div>
 </div>
@@ -2068,14 +2060,14 @@ try {
     <button id="clearBtn"></button>
 </div>
 
-<!-- ═══ Scripts ═══ -->
+<!-- ΓòÉΓòÉΓòÉ Scripts ΓòÉΓòÉΓòÉ -->
 <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/mcp.js') }}"></script>
 
 <script>
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // MODEL SELECTOR (dropdown)
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     (function() {
         const btn = document.getElementById('modelSelectorBtn');
         const dropdown = document.getElementById('modelDropdown');
@@ -2121,9 +2113,9 @@ try {
         });
     })();
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // THINKING MODE
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     const _savedMode = localStorage.getItem('thinkingMode');
     let currentThinkingMode = (_savedMode === 'instant' || _savedMode === 'multi-thinking') ? _savedMode : 'multi-thinking';
 
@@ -2193,12 +2185,12 @@ try {
     window.isDeepThinking = () => currentThinkingMode === 'multi-thinking';
     window.selectThinkingMode = selectThinkingMode;
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // TOOLS MENU
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     let activeTools = new Set();
 
-    // Map tool name → button element ID (shared by setupToolItemClicks + removeTool)
+    // Map tool name ΓåÆ button element ID (shared by setupToolItemClicks + removeTool)
     const toolBtnMap = {
         'image-generation':    'imageGenToolBtn',
         'img2img':             'img2imgToolBtn',
@@ -2234,7 +2226,7 @@ try {
         const configBtn = document.getElementById('configAgentBtn');
         if (configBtn) configBtn.addEventListener('click', () => { closeToolsMenu(); openConfigAgentModal(); });
 
-        // All toggle-able tools — derived from toolBtnMap for DRY
+        // All toggle-able tools ΓÇö derived from toolBtnMap for DRY
         Object.entries(toolBtnMap).forEach(([tool, id]) => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('click', () => {
@@ -2274,16 +2266,16 @@ try {
         display.innerHTML = '';
         if (activeTools.size === 0) return;
         const icons = {
-            'image-generation': '🎨', 'img2img': '🖼️',
-            'google-search': '🔍', 'github': '📦', 'deep-research': '🔬',
-            'saucenao': '🔎', 'serpapi-reverse-image': '📸',
-            'serpapi-bing': '🅱️', 'serpapi-baidu': '🀄', 'serpapi-images': '🖼️',
-            'last30days-research': '📊'
+            'image-generation': '≡ƒÄ¿', 'img2img': '≡ƒû╝∩╕Å',
+            'google-search': '≡ƒöì', 'github': '≡ƒôª', 'deep-research': '≡ƒö¼',
+            'saucenao': '≡ƒöÄ', 'serpapi-reverse-image': '≡ƒô╕',
+            'serpapi-bing': '≡ƒà▒∩╕Å', 'serpapi-baidu': '≡ƒÇä', 'serpapi-images': '≡ƒû╝∩╕Å',
+            'last30days-research': '≡ƒôè'
         };
         activeTools.forEach(tool => {
             const badge = document.createElement('span');
             badge.className = 'active-tool-badge';
-            badge.innerHTML = `${icons[tool] || '🔧'} ${tool} <button onclick="removeTool('${tool}')">&times;</button>`;
+            badge.innerHTML = `${icons[tool] || '≡ƒöº'} ${tool} <button onclick="removeTool('${tool}')">&times;</button>`;
             display.appendChild(badge);
         });
     }
@@ -2305,21 +2297,21 @@ try {
         if (d) d.classList.remove('open');
     }
 
-    // ════════════════════════════════════════════════════════════
-    // TOOL STATUS BAR — shows what tools are running during SSE
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // TOOL STATUS BAR ΓÇö shows what tools are running during SSE
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     const toolStatusMessages = {
-        'google-search': '🔍 Searching the web…',
-        'serpapi-bing': '🔍 Searching Bing…',
-        'serpapi-baidu': '🔍 Searching Baidu…',
-        'serpapi-images': '🖼️ Searching images…',
-        'serpapi-reverse-image': '📸 Reverse image search…',
-        'saucenao': '🔎 Searching SauceNAO…',
-        'github': '📦 Searching GitHub…',
-        'image-generation': '🎨 Generating image…',
-        'img2img': '🖼️ Running Img2Img…',
-        'deep-research': '🔬 Deep research in progress…',
-        'last30days-research': '📊 Social media research…',
+        'google-search': '≡ƒöì Searching the webΓÇª',
+        'serpapi-bing': '≡ƒöì Searching BingΓÇª',
+        'serpapi-baidu': '≡ƒöì Searching BaiduΓÇª',
+        'serpapi-images': '≡ƒû╝∩╕Å Searching imagesΓÇª',
+        'serpapi-reverse-image': '≡ƒô╕ Reverse image searchΓÇª',
+        'saucenao': '≡ƒöÄ Searching SauceNAOΓÇª',
+        'github': '≡ƒôª Searching GitHubΓÇª',
+        'image-generation': '≡ƒÄ¿ Generating imageΓÇª',
+        'img2img': '≡ƒû╝∩╕Å Running Img2ImgΓÇª',
+        'deep-research': '≡ƒö¼ Deep research in progressΓÇª',
+        'last30days-research': '≡ƒôè Social media researchΓÇª',
     };
 
     window.showToolStatus = function() {
@@ -2338,9 +2330,9 @@ try {
         if (bar) { bar.innerHTML = ''; bar.style.display = 'none'; }
     };
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // SKILL SELECTOR
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     let skillManager = null;
 
     async function initSkillSelector() {
@@ -2355,16 +2347,16 @@ try {
         }
     }
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // BRANCH CONVERSATION
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     function createBranchConversation() {
         if (!window.chatManager) return;
         const cur = window.chatManager.getCurrentSession();
         if (!cur || !cur.messages || cur.messages.length === 0) return;
 
         const branchId = 'branch_' + Date.now();
-        const title = `🌿 ${(cur.title || 'Chat').substring(0, 20)}…`;
+        const title = `≡ƒî┐ ${(cur.title || 'Chat').substring(0, 20)}ΓÇª`;
         window.chatManager.chatSessions[branchId] = {
             id: branchId, title: title, messages: [...cur.messages],
             parentId: cur.id, branchPoint: cur.messages.length, createdAt: Date.now(),
@@ -2376,13 +2368,13 @@ try {
         if (window.chatApp) window.chatApp.loadCurrentChat();
     }
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // COORDINATED REASONING
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     window.coordinatedReasoning = {
         estimateComplexity(msg) {
-            const pats = [/giải thích|explain|why|tại sao/i, /so sánh|compare/i, /phân tích|analyze/i,
-                /code|programming|bug|error|lỗi/i, /math|toán|calculate/i, /step by step|từng bước/i];
+            const pats = [/giß║úi th├¡ch|explain|why|tß║íi sao/i, /so s├ính|compare/i, /ph├ón t├¡ch|analyze/i,
+                /code|programming|bug|error|lß╗ùi/i, /math|to├ín|calculate/i, /step by step|tß╗½ng b╞░ß╗¢c/i];
             let c = 0;
             pats.forEach(p => { if (p.test(msg)) c++; });
             if (msg.length > 200) c++;
@@ -2396,9 +2388,9 @@ try {
         }
     };
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // CONFIG AGENT
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     const defaultAgentConfig = {
         enabled: false, systemPrompt: '', injectionPrompt: '', contextPrompt: '',
         temperature: 0.7, topP: 0.9, tokenLimit: 4096, thinkingBudget: 'off'
@@ -2462,9 +2454,9 @@ try {
         openConfigAgentModal();
     }
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // STYLE PRESETS (for V1 Image Gen)
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     const stylePresets = {
         anime_xl: { name: "Anime XL", description: "High quality anime art (SDXL)", model: "animagine-xl-3.1.safetensors", negative_prompt: "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, watermark, text, signature", cfg_scale: 7.0, steps: 25, width: 1024, height: 1024 },
         realistic_xl: { name: "Realistic Fast", description: "Photorealistic Lightning (SDXL)", model: "realvisxlV50_v50LightningBakedvae.safetensors", negative_prompt: "cartoon, anime, illustration, drawing, painting, sketch, bad quality, blurry, distorted, deformed, ugly, watermark, signature", cfg_scale: 2.0, steps: 6, width: 1024, height: 1024 },
@@ -2489,9 +2481,9 @@ try {
     window.getCurrentStyle = () => currentStyle;
     window.getStylePreset = (id) => stylePresets[id || currentStyle];
 
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     // INIT
-    // ════════════════════════════════════════════════════════════
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
     document.addEventListener('DOMContentLoaded', () => {
         initThinkingMode();
         initToolsMenu();
@@ -2605,7 +2597,7 @@ try {
 <div class="thinking-side-panel" id="thinkingSidePanel" aria-hidden="true">
     <div class="thinking-side-panel__header">
         <div class="thinking-side-panel__title-wrap">
-            <span class="thinking-side-panel__brain">🧠</span>
+            <span class="thinking-side-panel__brain">≡ƒºá</span>
             <span class="thinking-side-panel__title" id="thinkingPanelTitle">Thinking...</span>
         </div>
         <button class="thinking-side-panel__close" id="thinkingPanelClose" title="Close panel">
@@ -2681,9 +2673,9 @@ window.ThinkingPanel = (function() {
                 var tid = step.tid || '_default';
                 var tidMatch = tid.match(/^r(\d+)_t(\d+)$/);
                 var label = tidMatch
-                    ? ('🔍 Direction ' + (parseInt(tidMatch[2]) + 1) + ' (round ' + (parseInt(tidMatch[1]) + 1) + ')')
-                    : '🔍 Reasoning';
-                el.innerHTML = '<div class="tsp-reasoning__header"><span class="tsp-reasoning__label">' + label + '</span><span class="tsp-reasoning__toggle">▶</span></div><div class="tsp-reasoning__body"></div>';
+                    ? ('≡ƒöì Direction ' + (parseInt(tidMatch[2]) + 1) + ' (round ' + (parseInt(tidMatch[1]) + 1) + ')')
+                    : '≡ƒöì Reasoning';
+                el.innerHTML = '<div class="tsp-reasoning__header"><span class="tsp-reasoning__label">' + label + '</span><span class="tsp-reasoning__toggle">Γû╢</span></div><div class="tsp-reasoning__body"></div>';
                 var body = el.querySelector('.tsp-reasoning__body');
                 if (typeof marked !== 'undefined') {
                     var rendered = marked.parse(step.text);
@@ -2696,7 +2688,7 @@ window.ThinkingPanel = (function() {
                     element.querySelector('.tsp-reasoning__header').addEventListener('click', function() {
                         expanded = !expanded;
                         element.classList.toggle('tsp-reasoning--expanded', expanded);
-                        element.querySelector('.tsp-reasoning__toggle').textContent = expanded ? '▼' : '▶';
+                        element.querySelector('.tsp-reasoning__toggle').textContent = expanded ? 'Γû╝' : 'Γû╢';
                     });
                 })(el);
             } else {
