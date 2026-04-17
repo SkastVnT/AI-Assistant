@@ -11,8 +11,13 @@ import logging
 
 # Setup path
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
+ROOT_DIR = CHATBOT_DIR.parent.parent.resolve()
+APP_DIR = ROOT_DIR / 'app'
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
+# Add app/ so that `from config.firebase_config import ...` resolves
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
 
 from core.extensions import logger
 
@@ -135,15 +140,17 @@ def get_user():
 
 @auth_bp.route('/login')
 def login_page():
-    """Render login page with Firebase Auth"""
+    """Render login page — try Firebase, fall back to standard login.html."""
     try:
         from config.firebase_config import get_firebase_config
         config = get_firebase_config()
-        
         return render_template_string(LOGIN_TEMPLATE, firebase_config=config)
-    except Exception as e:
-        logger.error(f"[Auth] Login page error: {e}")
-        return "Error loading login page", 500
+    except Exception:
+        # Firebase config unavailable — serve standard login template
+        from flask import session as _session, redirect as _redirect, render_template as _rt
+        if _session.get('authenticated'):
+            return _redirect('/')
+        return _rt('login.html')
 
 
 # Login page template with Firebase Auth

@@ -55,6 +55,40 @@
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
+<!-- JS ERROR OVERLAY — remove after debugging -->
+<div id="__jsDebugOverlay" style="display:none;position:fixed;bottom:12px;right:12px;z-index:99999;max-width:480px;background:#1e1e2e;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;box-shadow:0 4px 24px rgba(0,0,0,.6)">
+  <strong>⚠ JS Error:</strong><br><span id="__jsDebugMsg"></span>
+</div>
+<script>
+window.addEventListener('error', function(e) {
+  var d = document.getElementById('__jsDebugOverlay');
+  var m = document.getElementById('__jsDebugMsg');
+  if (d && m) {
+    m.textContent = (e.message || '') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
+    d.style.display = 'block';
+  }
+});
+window.addEventListener('unhandledrejection', function(e) {
+  var d = document.getElementById('__jsDebugOverlay');
+  var m = document.getElementById('__jsDebugMsg');
+  if (d && m) {
+    var prev = m.textContent;
+    m.textContent = prev + (prev ? '\n' : '') + 'Unhandled promise: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+    d.style.display = 'block';
+  }
+});
+// Check init after 3 seconds
+setTimeout(function() {
+  if (!window.chatApp) {
+    var d = document.getElementById('__jsDebugOverlay');
+    var m = document.getElementById('__jsDebugMsg');
+    if (d && m) {
+      m.textContent = (m.textContent ? m.textContent + '\n' : '') + 'window.chatApp NOT INITIALIZED after 3s';
+      d.style.display = 'block';
+    }
+  }
+}, 3000);
+</script>
 <!-- Sidebar visibility reset: one-time fix for stuck sidebar -->
 <script>
 try {
@@ -2069,8 +2103,8 @@ try {
 </div>
 
 <!-- ═══ Scripts ═══ -->
-<script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script src="{{ url_for('static', filename='js/mcp.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260417"></script>
+<script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
 
 <script>
     // ════════════════════════════════════════════════════════════
