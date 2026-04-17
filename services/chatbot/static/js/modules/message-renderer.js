@@ -959,6 +959,7 @@ export class MessageRenderer {
     }
 
 
+    /**
      * API-compatible replacement for the old inline thinking block.
      */
     createThinkingSection(thinkingProcess, isLoading = false) {

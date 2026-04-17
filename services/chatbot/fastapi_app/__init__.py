@@ -122,7 +122,21 @@ def create_app() -> FastAPI:
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
         if templates:
-            return templates.TemplateResponse("index.html", {"request": request})
+            import json as _json
+            _firebase_config = _json.dumps({
+                "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+                "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+                "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+                "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+                "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+                "appId": os.getenv("FIREBASE_APP_ID", ""),
+                "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", ""),
+            })
+            return templates.TemplateResponse("index.html", {
+                "request": request,
+                "session": request.session,
+                "firebase_config": _firebase_config,
+            })
         return HTMLResponse("<h1>AI Chatbot (FastAPI)</h1><p>Templates directory not found.</p>")
 
     @app.get("/login", response_class=HTMLResponse)

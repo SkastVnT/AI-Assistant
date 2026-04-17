@@ -89,6 +89,31 @@ setTimeout(function() {
   }
 }, 3000);
 </script>
+<!-- CLICK DEBUG NOTICE — remove after debugging -->
+<div id="__clickToast" style="display:none;position:fixed;bottom:60px;right:12px;z-index:99999;background:#1e1e2e;color:#a6e3a1;border:1px solid #a6e3a1;border-radius:6px;padding:8px 14px;font-family:monospace;font-size:11px;pointer-events:none;max-width:320px;word-break:break-all;box-shadow:0 2px 12px rgba(0,0,0,.5)"></div>
+<script>
+(function() {
+  var toast = null;
+  var timer = null;
+  function showClickNotice(msg) {
+    if (!toast) toast = document.getElementById('__clickToast');
+    if (!toast) return;
+    clearTimeout(timer);
+    toast.textContent = '🖱 ' + msg;
+    toast.style.display = 'block';
+    timer = setTimeout(function() { toast.style.display = 'none'; }, 1800);
+  }
+  window.__showClickNotice = showClickNotice;
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    var tag = el.tagName.toLowerCase();
+    var id = el.id ? '#' + el.id : '';
+    var cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '';
+    var action = el.dataset && el.dataset.action ? '[data-action="' + el.dataset.action + '"]' : '';
+    showClickNotice((id || cls || action || tag).substring(0, 80));
+  }, true);
+})();
+</script>
 <!-- Sidebar visibility reset: one-time fix for stuck sidebar -->
 <script>
 try {
@@ -797,14 +822,14 @@ try {
 
                 <!-- Model Selector -->
                 <div class="topbar__model-selector" id="modelSelectorContainer">
-                    <button class="topbar__model-btn open" id="modelSelectorBtn">
+                    <button class="topbar__model-btn" id="modelSelectorBtn">
                         <span id="modelSelectorLabel">Grok-3</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 9l6 6 6-6"></path>
                         </svg>
                     </button>
 
-                    <div class="model-dropdown open" id="modelDropdown">
+                    <div class="model-dropdown" id="modelDropdown">
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Premium</div>
                             <div class="model-dropdown__item active" data-model="grok">
@@ -2565,56 +2590,70 @@ try {
     import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
     const firebaseConfig = {{ firebase_config | safe }};
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getFirestore(app);
-    window.firebaseDb = db;
 
-    let firebaseUserId = localStorage.getItem('firebase-user-id');
-    if (!firebaseUserId) {
-        firebaseUserId = 'web_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('firebase-user-id', firebaseUserId);
-    }
-    window.firebaseUserId = firebaseUserId;
-
-    window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
+    // Guard: skip init if required fields are missing (avoids crashing when Firebase isn't configured)
+    if (!firebaseConfig || !firebaseConfig.projectId || !firebaseConfig.apiKey) {
+        console.warn('[Firebase] Config incomplete — analytics/logging disabled.');
+        window.logChatToFirebase = async () => null;
+        window.logImageToFirebase = async () => null;
+    } else {
         try {
-            const docRef = await addDoc(collection(db, 'conversations'), {
-                userId: firebaseUserId, platform: 'web', model, userMessage, assistantResponse, imageUrls,
-                timestamp: serverTimestamp(), userAgent: navigator.userAgent.substring(0, 200)
-            });
-            return docRef.id;
-        } catch (e) { return null; }
-    };
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+            const db = getFirestore(app);
+            window.firebaseDb = db;
 
-    window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
-        try {
-            const docRef = await addDoc(collection(db, 'generated_images'), {
-                userId: firebaseUserId, platform: 'web', type: 'image_generation',
-                prompt, negativePrompt: negativePrompt || '', imageUrl, cloudUrl: cloudUrl,
-                timestamp: serverTimestamp()
-            });
-            return docRef.id;
-        } catch (e) { return null; }
-    };
+            let firebaseUserId = localStorage.getItem('firebase-user-id');
+            if (!firebaseUserId) {
+                firebaseUserId = 'web_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('firebase-user-id', firebaseUserId);
+            }
+            window.firebaseUserId = firebaseUserId;
 
-    window.saveUserProfile = async function(profileData = {}) {
-        try {
-            await setDoc(doc(db, 'users', firebaseUserId), {
-                ...profileData, lastActive: serverTimestamp(), platform: 'web'
-            }, { merge: true });
-        } catch (e) {}
-    };
+            window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
+                try {
+                    const docRef = await addDoc(collection(db, 'conversations'), {
+                        userId: firebaseUserId, platform: 'web', model, userMessage, assistantResponse, imageUrls,
+                        timestamp: serverTimestamp(), userAgent: navigator.userAgent.substring(0, 200)
+                    });
+                    return docRef.id;
+                } catch (e) { return null; }
+            };
 
-    (async () => {
-        try {
-            await addDoc(collection(db, 'page_views'), {
-                userId: firebaseUserId, page: '/chatbot', platform: 'web',
-                timestamp: serverTimestamp(), referrer: document.referrer || 'direct'
-            });
-            await window.saveUserProfile({});
-        } catch (e) {}
-    })();
+            window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
+                try {
+                    const docRef = await addDoc(collection(db, 'generated_images'), {
+                        userId: firebaseUserId, platform: 'web', type: 'image_generation',
+                        prompt, negativePrompt: negativePrompt || '', imageUrl, cloudUrl: cloudUrl,
+                        timestamp: serverTimestamp()
+                    });
+                    return docRef.id;
+                } catch (e) { return null; }
+            };
+
+            window.saveUserProfile = async function(profileData = {}) {
+                try {
+                    await setDoc(doc(db, 'users', firebaseUserId), {
+                        ...profileData, lastActive: serverTimestamp(), platform: 'web'
+                    }, { merge: true });
+                } catch (e) {}
+            };
+
+            (async () => {
+                try {
+                    await addDoc(collection(db, 'page_views'), {
+                        userId: firebaseUserId, page: '/chatbot', platform: 'web',
+                        timestamp: serverTimestamp(), referrer: document.referrer || 'direct'
+                    });
+                    await window.saveUserProfile({});
+                } catch (e) {}
+            })();
+        } catch (e) {
+            console.warn('[Firebase] Init failed:', e.message);
+            window.logChatToFirebase = async () => null;
+            window.logImageToFirebase = async () => null;
+        }
+    } // end else (firebase configured)
 </script>
 
 <!-- Initialize Lucide Icons -->

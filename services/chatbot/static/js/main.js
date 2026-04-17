@@ -1542,15 +1542,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const keep = new Set(sorted.slice(0, 5));
             sorted.forEach(id => { if (!keep.has(id)) delete app.chatManager.chatSessions[id]; });
             app.chatManager.saveSessions();
-            app.uiUtils.renderChatList(app.chatManager.chatSessions, app.currentSession, app.switchChat.bind(app), app.deleteChat.bind(app));
+            app.uiUtils.renderChatList(app.chatManager.chatSessions, app.chatManager.currentChatId, (chatId) => app.handleSwitchChat(chatId), (chatId) => app.handleDeleteChat(chatId), (fromId, toId, pos) => app.handleReorderChat(fromId, toId, pos), (chatId) => app.handleTogglePin(chatId));
             app.uiUtils.updateStorageDisplay(app.chatManager.chatSessions);
         },
     });
 
     // Export wrappers (keep temporarily ΓÇö used by history modal buttons)
-    window.downloadChatAsPDF = () => app.exportHandler.downloadChatAsPDF(app.currentSession, app.chatManager.sessions);
-    window.downloadChatAsJSON = () => app.exportHandler.downloadChatAsJSON(app.currentSession, app.chatManager.sessions);
-    window.downloadChatAsText = () => app.exportHandler.downloadChatAsText(app.currentSession, app.chatManager.sessions);
+    window.downloadChatAsPDF = () => app.exportHandler.downloadChatAsPDF(app.chatManager.currentChatId, app.chatManager.chatSessions);
+    window.downloadChatAsJSON = () => app.exportHandler.downloadChatAsJSON(app.chatManager.currentChatId, app.chatManager.chatSessions);
+    window.downloadChatAsText = () => app.exportHandler.downloadChatAsText(app.chatManager.currentChatId, app.chatManager.chatSessions);
 
     // Expose app for debugging
     window.chatApp = app;
