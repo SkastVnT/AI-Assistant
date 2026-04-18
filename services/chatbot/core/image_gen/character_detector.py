@@ -22,11 +22,12 @@ class CharacterMatch:
     """A detected character with its LoRA info."""
     key: str                          # catalog key e.g. "firefly"
     display_name: str                 # human name e.g. "Firefly"
-    lora_file: str                    # e.g. "Firefly-1024-v1.safetensors"
+    lora_file: str                    # e.g. "Firefly-1024-v1.safetensors", "" if none
     weight: float = 0.85
     trigger_words: list[str] = field(default_factory=list)
     base: str = "sdxl"                # "sdxl" or "sd15"
     franchise: str = ""               # "hsr", "genshin", "opm", etc.
+    traits: list[str] = field(default_factory=list)  # canonical appearance tags
 
 
 @dataclass
@@ -41,6 +42,18 @@ class DetectionResult:
     def has_characters(self) -> bool:
         return len(self.characters) > 0
 
+    @property
+    def trait_tags(self) -> list[str]:
+        """Flat deduplicated canonical appearance tags from all detected characters."""
+        seen: set[str] = set()
+        out: list[str] = []
+        for c in self.characters:
+            for t in c.traits:
+                if t not in seen:
+                    seen.add(t)
+                    out.append(t)
+        return out
+
 
 # ─── Character Alias Table ───────────────────────────────────────────────
 # Maps every known alias (Vietnamese, English, short-form, full name,
@@ -49,6 +62,9 @@ class DetectionResult:
 
 CHARACTER_ALIASES: dict[str, list[str]] = {
     # ── Honkai Star Rail ─────────────────────────────────────────────────
+    "sparkle": [
+        "sparkle", "bạch lộ", "백로",
+    ],
     "firefly": [
         "firefly", "fire fly", "hotaru", "đom đóm",
         "sam", "SAM",  # her other identity
@@ -107,10 +123,64 @@ CHARACTER_ALIASES: dict[str, list[str]] = {
     "maki_custom": [
         "maki",
     ],
+
+    # ── NSFW LoRAs — keyword-triggered (Illustrious XL base) ─────────────
+    "xray_ilxl": [
+        "xray", "x-ray", "x ray", "xuyên thấu", "nội soi",
+        "see-through body", "transparent body",
+    ],
+    "speculum_ilxl": [
+        "speculum", "mỏ vịt",
+    ],
+    "speculum_insertion_ilxl": [
+        "speculum insertion",
+    ],
+    "vibrator_clit_ilxl": [
+        "vibrator on clitoris",
+    ],
+    "vibrator_panties_ilxl": [
+        "vibrator under panties", "vibrator panties",
+    ],
+    "spread_anal_il": [
+        "spread pussy", "extreme spread", "anal spread",
+    ],
+    "cameltoe_ilxl": [
+        "cameltoe", "camel toe",
+    ],
+
+    # ── NSFW LoRAs — keyword-triggered (SDXL base) ───────────────────────
+    "xray_window": [
+        "x-ray window", "xray window",
+    ],
+    "xray_creampie": [
+        "xray creampie", "x-ray creampie",
+    ],
+    "xray_cum": [
+        "cum inflation", "xray inflation",
+    ],
+    "tape_gape": [
+        "tape gape",
+    ],
+    "tape_spread": [
+        "tape spread",
+    ],
+    "vibrator_thigh": [
+        "vibrator thighhighs", "vibrator thigh highs",
+    ],
+    "vibrator_underwear": [
+        "vibrator in underwear",
+    ],
+    "cervix": [
+        "cervix view", "cervix",
+    ],
+    "armpit_hair": [
+        "armpit hair", "hairy armpit",
+    ],
 }
 
 # ── Franchise metadata (for checkpoint selection) ────────────────────────
 CHARACTER_FRANCHISE: dict[str, str] = {
+    "sparkle": "hsr",
     "firefly": "hsr", "kafka": "hsr", "jingliu": "hsr",
     "seele": "hsr", "clara": "hsr", "march7th": "hsr",
     "bronya": "hsr", "trailblazer": "hsr",
@@ -131,10 +201,39 @@ CHARACTER_WEIGHTS: dict[str, float] = {
 }
 DEFAULT_WEIGHT = 0.85
 
+# ── Canonical appearance tags per character ───────────────────────────────
+# These are injected as hard tags into the prompt BEFORE enhancement so the
+# LLM does not need to know or guess the character's appearance.
+# Format: Danbooru-style tags (appearance only, NOT outfit or scene).
+CHARACTER_TRAITS: dict[str, list[str]] = {
+    # ── Honkai Star Rail ─────────────────────────────────────────────────
+    "sparkle":     ["black hair", "long hair", "wavy hair", "purple eyes", "flower-shaped pupils", "hair ornament", "multicolored hair"],
+    "firefly":     ["grey hair", "short hair", "green eyes"],
+    "kafka":       ["purple hair", "long hair", "purple eyes"],
+    "jingliu":     ["white hair", "long hair", "blue eyes"],
+    "seele":       ["purple hair", "long hair", "twin braids", "blue eyes"],
+    "clara":       ["pink hair", "long hair", "blue eyes", "hair ribbon"],
+    "march7th":    ["pink hair", "medium hair", "blue eyes", "hair clip"],
+    "bronya":      ["silver hair", "long hair", "blue eyes", "hair ornament"],
+    "trailblazer": ["black hair", "short hair", "brown eyes"],
+
+    # ── Genshin Impact ───────────────────────────────────────────────────
+    "nahida":      ["green hair", "short hair", "green eyes", "small stature", "ahoge"],
+    "furina":      ["light blue hair", "white hair streaks", "medium hair", "blue eyes", "ahoge"],
+    "eula":        ["blonde hair", "long hair", "blue eyes"],
+    "raiden":      ["purple hair", "long hair", "purple eyes"],
+    "yae_miko":    ["pink hair", "long hair", "fox ears", "fox tail", "purple eyes"],
+
+    # ── Other ────────────────────────────────────────────────────────────
+    "tatsumaki":   ["green hair", "short hair", "green eyes", "small stature"],
+    "atri":        ["light blue hair", "twintails", "blue eyes"],
+}
+
 # ── Best checkpoint per base model ───────────────────────────────────────
 BEST_CHECKPOINTS = {
-    "sdxl": "animagine-xl-3.1.safetensors",
-    "sd15": "counterfeit_v30.safetensors",
+    "sdxl":  "noobaiXLVpred_v11.safetensors",           # NoobAI V-Pred — default SDXL anime
+    "ilxl":  "ChenkinNoob-XL-V0.2.safetensors",         # NoobAI/Illustrious XL — best for ILXL LoRAs
+    "sd15":  "abyssorangemix3AOM3_aom3a1b.safetensors",  # SD 1.5
 }
 
 # ── Preset mapping for known characters ──────────────────────────────────
@@ -165,11 +264,13 @@ class CharacterDetector:
         """
         Build sorted regex patterns from CHARACTER_ALIASES.
         Longer aliases first → avoids 'march' matching before 'march 7th'.
+        Includes characters that have known traits even if they have no LoRA.
         """
         patterns = []
+        # Include characters in catalog OR characters with known traits
+        recognisable = set(self._catalog.keys()) | set(CHARACTER_TRAITS.keys())
         for key, aliases in CHARACTER_ALIASES.items():
-            # Only include characters that exist in the catalog
-            if key not in self._catalog:
+            if key not in recognisable:
                 continue
             # Sort aliases: longest first
             sorted_aliases = sorted(aliases, key=len, reverse=True)
@@ -202,15 +303,16 @@ class CharacterDetector:
         # Build CharacterMatch list
         characters: list[CharacterMatch] = []
         for key in found_keys:
-            entry = self._catalog[key]
+            entry = self._catalog.get(key)  # may be None if trait-only
             characters.append(CharacterMatch(
                 key=key,
                 display_name=self._display_name(key),
-                lora_file=entry["file"],
-                weight=CHARACTER_WEIGHTS.get(key, DEFAULT_WEIGHT),
-                trigger_words=entry.get("trigger", []),
-                base=entry.get("base", "sdxl"),
+                lora_file=entry["file"] if entry else "",
+                weight=CHARACTER_WEIGHTS.get(key, DEFAULT_WEIGHT) if entry else 0.0,
+                trigger_words=entry.get("trigger", []) if entry else [],
+                base=entry.get("base", "sdxl") if entry else "sdxl",
                 franchise=CHARACTER_FRANCHISE.get(key, ""),
+                traits=CHARACTER_TRAITS.get(key, []),
             ))
 
         # Pick checkpoint based on detected characters' base model
@@ -235,18 +337,19 @@ class CharacterDetector:
 
     def _select_checkpoint(self, characters: list[CharacterMatch]) -> str:
         """
-        Pick the best checkpoint for the set of detected characters.
-        If all are SDXL → use SDXL checkpoint.
-        If any are SD1.5 → use SD1.5 checkpoint (LoRA compatibility).
-        If mixed → prefer SDXL (SD1.5 LoRAs are often adapted).
+        Pick the best checkpoint for the set of detected characters/LoRAs.
+        Priority: ilxl > sdxl > sd15 for mixed sets.
         """
         bases = {c.base for c in characters}
-        if bases == {"sdxl"}:
-            return BEST_CHECKPOINTS["sdxl"]
+        if bases == {"ilxl"}:
+            return BEST_CHECKPOINTS["ilxl"]
         elif bases == {"sd15"}:
             return BEST_CHECKPOINTS["sd15"]
+        elif "ilxl" in bases:
+            # If any LoRA is ILXL, use Illustrious checkpoint (better compatibility)
+            return BEST_CHECKPOINTS["ilxl"]
         else:
-            # Mixed: prefer SDXL — most modern LoRAs have SDXL versions
+            # sdxl or mixed sdxl+sd15 → use SDXL
             return BEST_CHECKPOINTS["sdxl"]
 
     @staticmethod

@@ -31,6 +31,14 @@ def build_txt2img_workflow(
     seed: int,
     checkpoint: str,
     vae_name: Optional[str] = None,
+    *,
+    sampler: str = "euler_ancestral",
+    scheduler: str = "normal",
+    steps: Optional[int] = None,
+    cfg: Optional[float] = None,
+    clip_skip: int = 1,
+    quality_prefix: str = "",
+    negative_prompt: Optional[str] = None,
 ) -> dict:
     """
     Build a txt2img workflow with optional LoRA chain and VAE override.
@@ -65,8 +73,19 @@ def build_txt2img_workflow(
         }
         vae_out = [vae_id, 0]
 
+    # ── 3b. Optional CLIP skip (needed for SD1.5 anime models) ──────────
+    if clip_skip > 1:
+        clipskip_id = nc.next()
+        workflow[clipskip_id] = {
+            "class_type": "CLIPSetLastLayer",
+            "inputs": {"stop_at_clip_layer": -clip_skip, "clip": clip_out},
+        }
+        clip_out = [clipskip_id, 0]
+
     # ── 4. Prompt encoding ──────────────────────────────────────────────
     prompt_text = _build_prompt_with_triggers(req.prompt, req.lora_models)
+    if quality_prefix and not prompt_text.lower().startswith(("masterpiece", "best quality")):
+        prompt_text = quality_prefix + prompt_text
 
     pos_id = nc.next()
     workflow[pos_id] = {
@@ -74,12 +93,14 @@ def build_txt2img_workflow(
         "inputs": {"text": prompt_text, "clip": clip_out},
     }
     neg_id = nc.next()
+    eff_neg = negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
     workflow[neg_id] = {
         "class_type": "CLIPTextEncode",
-        "inputs": {"text": req.negative_prompt or "", "clip": clip_out},
+        "inputs": {"text": eff_neg, "clip": clip_out},
     }
 
     # ── 5. Empty latent ─────────────────────────────────────────────────
+
     latent_id = nc.next()
     workflow[latent_id] = {
         "class_type": "EmptyLatentImage",
@@ -87,15 +108,17 @@ def build_txt2img_workflow(
     }
 
     # ── 6. KSampler ─────────────────────────────────────────────────────
+    eff_steps = steps if steps is not None else req.steps
+    eff_cfg = cfg if cfg is not None else req.guidance
     sampler_id = nc.next()
     workflow[sampler_id] = {
         "class_type": "KSampler",
         "inputs": {
             "seed": seed,
-            "steps": req.steps,
-            "cfg": req.guidance,
-            "sampler_name": "euler_ancestral",
-            "scheduler": "normal",
+            "steps": eff_steps,
+            "cfg": eff_cfg,
+            "sampler_name": sampler,
+            "scheduler": scheduler,
             "denoise": 1.0,
             "model": model_out,
             "positive": [pos_id, 0],
@@ -125,6 +148,14 @@ def build_img2img_workflow(
     checkpoint: str,
     image_name: str,
     vae_name: Optional[str] = None,
+    *,
+    sampler: str = "euler_ancestral",
+    scheduler: str = "normal",
+    steps: Optional[int] = None,
+    cfg: Optional[float] = None,
+    clip_skip: int = 1,
+    quality_prefix: str = "",
+    negative_prompt: Optional[str] = None,
 ) -> dict:
     """
     Build an img2img workflow with optional LoRA chain and VAE override.
@@ -185,29 +216,44 @@ def build_img2img_workflow(
         "inputs": {"pixels": [scale_id, 0], "vae": vae_out},
     }
 
+    # ── Optional CLIP skip ───────────────────────────────────────────────
+    if clip_skip > 1:
+        clipskip_id = nc.next()
+        workflow[clipskip_id] = {
+            "class_type": "CLIPSetLastLayer",
+            "inputs": {"stop_at_clip_layer": -clip_skip, "clip": clip_out},
+        }
+        clip_out = [clipskip_id, 0]
+
     # ── Prompts ─────────────────────────────────────────────────────────
     prompt_text = _build_prompt_with_triggers(req.prompt, req.lora_models)
+    if quality_prefix and not prompt_text.lower().startswith(("masterpiece", "best quality")):
+        prompt_text = quality_prefix + prompt_text
+
     pos_id = nc.next()
     workflow[pos_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": prompt_text, "clip": clip_out},
     }
     neg_id = nc.next()
+    eff_neg = negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
     workflow[neg_id] = {
         "class_type": "CLIPTextEncode",
-        "inputs": {"text": req.negative_prompt or "", "clip": clip_out},
+        "inputs": {"text": eff_neg, "clip": clip_out},
     }
 
     # ── KSampler ────────────────────────────────────────────────────────
+    eff_steps = steps if steps is not None else req.steps
+    eff_cfg = cfg if cfg is not None else req.guidance
     sampler_id = nc.next()
     workflow[sampler_id] = {
         "class_type": "KSampler",
         "inputs": {
             "seed": seed,
-            "steps": req.steps,
-            "cfg": req.guidance,
-            "sampler_name": "euler_ancestral",
-            "scheduler": "normal",
+            "steps": eff_steps,
+            "cfg": eff_cfg,
+            "sampler_name": sampler,
+            "scheduler": scheduler,
             "denoise": req.strength,
             "model": model_out,
             "positive": [pos_id, 0],
@@ -239,6 +285,14 @@ def build_hires_fix_workflow(
     hires_scale: float = 1.5,
     hires_denoise: float = 0.45,
     hires_steps: int = 15,
+    *,
+    sampler: str = "euler_ancestral",
+    scheduler: str = "normal",
+    steps: Optional[int] = None,
+    cfg: Optional[float] = None,
+    clip_skip: int = 1,
+    quality_prefix: str = "",
+    negative_prompt: Optional[str] = None,
 ) -> dict:
     """
     Two-pass hi-res fix workflow:
@@ -274,20 +328,35 @@ def build_hires_fix_workflow(
         }
         vae_out = [vae_id, 0]
 
+    # ── Optional CLIP skip ───────────────────────────────────────────────
+    if clip_skip > 1:
+        clipskip_id = nc.next()
+        workflow[clipskip_id] = {
+            "class_type": "CLIPSetLastLayer",
+            "inputs": {"stop_at_clip_layer": -clip_skip, "clip": clip_out},
+        }
+        clip_out = [clipskip_id, 0]
+
     # ── Prompts ─────────────────────────────────────────────────────────
     prompt_text = _build_prompt_with_triggers(req.prompt, req.lora_models)
+    if quality_prefix and not prompt_text.lower().startswith(("masterpiece", "best quality")):
+        prompt_text = quality_prefix + prompt_text
+
     pos_id = nc.next()
     workflow[pos_id] = {
         "class_type": "CLIPTextEncode",
         "inputs": {"text": prompt_text, "clip": clip_out},
     }
     neg_id = nc.next()
+    eff_neg = negative_prompt if negative_prompt is not None else (req.negative_prompt or "")
     workflow[neg_id] = {
         "class_type": "CLIPTextEncode",
-        "inputs": {"text": req.negative_prompt or "", "clip": clip_out},
+        "inputs": {"text": eff_neg, "clip": clip_out},
     }
 
     # ── Pass 1: Base generation ─────────────────────────────────────────
+    eff_steps = steps if steps is not None else req.steps
+    eff_cfg = cfg if cfg is not None else req.guidance
     latent_id = nc.next()
     workflow[latent_id] = {
         "class_type": "EmptyLatentImage",
@@ -298,10 +367,10 @@ def build_hires_fix_workflow(
         "class_type": "KSampler",
         "inputs": {
             "seed": seed,
-            "steps": req.steps,
-            "cfg": req.guidance,
-            "sampler_name": "euler_ancestral",
-            "scheduler": "normal",
+            "steps": eff_steps,
+            "cfg": eff_cfg,
+            "sampler_name": sampler,
+            "scheduler": scheduler,
             "denoise": 1.0,
             "model": model_out,
             "positive": [pos_id, 0],
@@ -344,9 +413,9 @@ def build_hires_fix_workflow(
         "inputs": {
             "seed": seed,
             "steps": hires_steps,
-            "cfg": req.guidance,
-            "sampler_name": "euler_ancestral",
-            "scheduler": "normal",
+            "cfg": eff_cfg,
+            "sampler_name": sampler,
+            "scheduler": scheduler,
             "denoise": hires_denoise,
             "model": model_out,
             "positive": [pos_id, 0],

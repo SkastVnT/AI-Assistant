@@ -178,8 +178,9 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
     );
     app.uiUtils.clearInput();
 
-    // ── Provider choice dialog (LOCAL / API / CANCEL) ──
-    const providerChoice = await showProviderChoiceDialog(elements);
+    // ── Provider choice dialog (LOCAL / API / CANCEL) + options ──
+    const dialogResult = await showProviderChoiceDialog(elements);
+    const providerChoice = dialogResult.choice;
 
     if (providerChoice === 'cancel') {
         app.messageRenderer.addMessage(
@@ -193,9 +194,18 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         return;
     }
 
-    const imageGenOptions = providerChoice === 'local'
-        ? { quality: 'free', provider: 'comfyui' }
-        : { quality: 'auto' };
+    const imageGenOptions = {
+        ...(providerChoice === 'local'
+            ? { quality: 'free', provider: 'comfyui', presetId: 'lora_bulk_auto_chat' }
+            : { quality: 'auto' }),
+        steps: dialogResult.steps,
+        width: dialogResult.width,
+        height: dialogResult.height,
+        guidance: dialogResult.guidance,
+        negativePrompt: dialogResult.negativePrompt || undefined,
+    };
+    // If user provided a prompt override, use it instead of the original message
+    const effectiveMessage = dialogResult.promptOverride || message;
     console.log('[App] Provider choice:', providerChoice, imageGenOptions);
 
     // ── Streaming status UI ──
@@ -206,11 +216,21 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
 
     let providerStep = null;
     const result = await app.imageGenV2.generateFromChatStream(
-        message, conversationId, app.currentAbortController.signal,
+        effectiveMessage, conversationId, app.currentAbortController.signal,
         {
             onStatus: (data) => {
                 if (data.phase === 'enhance') {
-                    data.enhanced_prompt ? addStep('✨', 'Prompt enhanced', 'done') : addStep('✨', data.step, 'active');
+                    if (data.enhanced_prompt) {
+                        addStep('✨', 'Prompt enhanced', 'done');
+                        const pSnip = data.enhanced_prompt.length > 100 ? data.enhanced_prompt.slice(0, 100) + '…' : data.enhanced_prompt;
+                        addStep('📝', pSnip, 'done snippet');
+                        if (imageGenOptions.negativePrompt) {
+                            const nSnip = imageGenOptions.negativePrompt.length > 100 ? imageGenOptions.negativePrompt.slice(0, 100) + '…' : imageGenOptions.negativePrompt;
+                            addStep('🚫', nSnip, 'done snippet');
+                        }
+                    } else {
+                        addStep('✨', data.step, 'active');
+                    }
                 } else if (data.phase === 'select') {
                     data.providers ? addStep('📡', `Providers: ${data.providers.join(', ')}`, 'done') : addStep('🔍', data.step, 'active');
                 } else {
@@ -239,12 +259,12 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
     );
 
     // ── Display result ──
-    displayImageGenResult(app, { result, providerChoice, message, formValues, elements, conversationId });
+    displayImageGenResult(app, { result, providerChoice, message, formValues, elements, conversationId, imageGenOptions });
     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
     await app.saveCurrentSession(true);
 }
 
-/** 30-second provider choice dialog (LOCAL / API / CANCEL) */
+/** 30-second provider choice dialog (LOCAL / API / CANCEL) + advanced options */
 function showProviderChoiceDialog(elements) {
     return new Promise((resolve) => {
         const TIMEOUT_SECONDS = 30;
@@ -277,6 +297,44 @@ function showProviderChoiceDialog(elements) {
                                 <span class="igv2-choice-btn-desc">Không tạo ảnh</span>
                             </button>
                         </div>
+
+                        <div class="igv2-choice-options">
+                            <div class="igv2-choice-option-group igv2-choice-option-full">
+                                <span class="igv2-choice-option-label">✏️ Prompt</span>
+                                <textarea class="igv2-choice-textarea" data-field="prompt" rows="2" placeholder="Thêm / ghi đè prompt (để trống = dùng prompt gốc)"></textarea>
+                            </div>
+                            <div class="igv2-choice-option-group igv2-choice-option-full">
+                                <span class="igv2-choice-option-label">🚫 Negative</span>
+                                <textarea class="igv2-choice-textarea" data-field="negative" rows="2" placeholder="Những gì KHÔNG muốn xuất hiện trong ảnh"></textarea>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">🔧 Steps</span>
+                                <div class="igv2-choice-chips" data-option="steps">
+                                    <button class="igv2-choice-chip" data-value="20">20</button>
+                                    <button class="igv2-choice-chip selected" data-value="30">30</button>
+                                    <button class="igv2-choice-chip" data-value="40">40</button>
+                                </div>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">📐 Kích thước</span>
+                                <div class="igv2-choice-chips" data-option="size">
+                                    <button class="igv2-choice-chip" data-value="9:16" data-w="1152" data-h="2048">9:16</button>
+                                    <button class="igv2-choice-chip selected" data-value="1:1" data-w="1024" data-h="1024">1:1</button>
+                                    <button class="igv2-choice-chip" data-value="16:9" data-w="2048" data-h="1152">16:9</button>
+                                </div>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">🎛️ Guidance</span>
+                                <div class="igv2-choice-chips" data-option="guidance">
+                                    <button class="igv2-choice-chip" data-value="3">3</button>
+                                    <button class="igv2-choice-chip selected" data-value="5">5</button>
+                                    <button class="igv2-choice-chip" data-value="7">7</button>
+                                    <button class="igv2-choice-chip" data-value="10">10</button>
+                                    <button class="igv2-choice-chip" data-value="15">15</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="igv2-choice-progress">
                             <div class="igv2-choice-progress-bar"></div>
                         </div>
@@ -287,22 +345,59 @@ function showProviderChoiceDialog(elements) {
         elements.chatContainer.appendChild(choiceContainer);
         elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
+        // ── Chip selection logic ──
+        choiceContainer.querySelectorAll('.igv2-choice-chips').forEach(group => {
+            group.querySelectorAll('.igv2-choice-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    group.querySelectorAll('.igv2-choice-chip').forEach(c => c.classList.remove('selected'));
+                    chip.classList.add('selected');
+                });
+            });
+        });
+
+        // ── Pause/resume countdown when user focuses a textarea ──
+        let paused = false;
+        choiceContainer.querySelectorAll('.igv2-choice-textarea').forEach(ta => {
+            ta.addEventListener('focus', () => { paused = true; });
+            ta.addEventListener('blur', () => { paused = false; });
+        });
+
         const timerEl = choiceContainer.querySelector('.igv2-choice-timer');
         const progressBar = choiceContainer.querySelector('.igv2-choice-progress-bar');
         let remaining = TIMEOUT_SECONDS;
         let resolved = false;
 
+        const getSelectedOptions = () => {
+            const stepsChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="steps"] .igv2-choice-chip.selected');
+            const sizeChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="size"] .igv2-choice-chip.selected');
+            const guidanceChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="guidance"] .igv2-choice-chip.selected');
+            const promptOverride = choiceContainer.querySelector('.igv2-choice-textarea[data-field="prompt"]')?.value.trim() || '';
+            const negativePrompt = choiceContainer.querySelector('.igv2-choice-textarea[data-field="negative"]')?.value.trim() || '';
+            return {
+                steps: stepsChip ? parseInt(stepsChip.dataset.value, 10) : 30,
+                width: sizeChip ? parseInt(sizeChip.dataset.w, 10) : 1024,
+                height: sizeChip ? parseInt(sizeChip.dataset.h, 10) : 1024,
+                sizeLabel: sizeChip ? sizeChip.textContent.trim() : '1:1',
+                guidance: guidanceChip ? parseFloat(guidanceChip.dataset.value) : 5,
+                promptOverride,
+                negativePrompt,
+            };
+        };
+
         const finalize = (choice) => {
             if (resolved) return;
             resolved = true;
             clearInterval(countdownInterval);
+            const opts = getSelectedOptions();
             choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
                 btn.disabled = true;
                 if (btn.dataset.choice === choice) btn.classList.add('selected');
                 else btn.classList.add('dimmed');
             });
+            choiceContainer.querySelectorAll('.igv2-choice-chip').forEach(c => { c.disabled = true; });
+            choiceContainer.querySelectorAll('.igv2-choice-textarea').forEach(ta => { ta.disabled = true; });
             timerEl.textContent = choice === 'cancel' ? 'Đã hủy' : choice === 'local' ? 'LOCAL' : 'API';
-            resolve(choice);
+            resolve({ choice, ...opts });
         };
 
         choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
@@ -310,6 +405,7 @@ function showProviderChoiceDialog(elements) {
         });
 
         const countdownInterval = setInterval(() => {
+            if (paused) return;
             remaining--;
             if (timerEl) timerEl.textContent = `${remaining}s`;
             if (progressBar) progressBar.style.width = `${(remaining / TIMEOUT_SECONDS) * 100}%`;
@@ -361,8 +457,129 @@ function createImageStreamStatus(elements) {
     return { statusContainer, addStep, updateStep, headerIcon };
 }
 
+/** Build collapsible post-generation quick-edit panel */
+function createPostGenOptionsPanel(chatContainer, msgDiv, imageGenOptions) {
+    const steps = imageGenOptions?.steps ?? 30;
+    const width = imageGenOptions?.width ?? 1024;
+    const height = imageGenOptions?.height ?? 1024;
+    const guidance = imageGenOptions?.guidance ?? 5;
+    const negativePrompt = imageGenOptions?.negativePrompt ?? '';
+    const promptOverride = '';
+
+    const sizeMap = [
+        { label: '9:16', w: 1152, h: 2048 },
+        { label: '1:1', w: 1024, h: 1024 },
+        { label: '16:9', w: 2048, h: 1152 },
+        // { label: '9:16 4K', w: 2160, h: 3840 },
+        // { label: '1:1 4K', w: 3840, h: 3840 },
+        // { label: '16:9 4K', w: 3840, h: 2160 },
+    ];
+    const stepVals = [20, 30, 40];
+    const guidanceVals = [3, 5, 7, 10, 15];
+
+    const chipHtml = (values, active, group, isSize) => values.map(v => {
+        const val = isSize ? v.label : v;
+        const sel = isSize ? (v.w === width && v.h === height) : (Number(v) === Number(active));
+        const extra = isSize ? ` data-w="${v.w}" data-h="${v.h}"` : '';
+        return `<button class="igv2-choice-chip${sel ? ' selected' : ''}" data-value="${val}"${extra}>${val}</button>`;
+    }).join('');
+
+    const panelEl = document.createElement('div');
+    panelEl.className = 'message assistant igv2-postgen-wrap';
+    panelEl.innerHTML = `
+        <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+        <div class="message__body">
+            <div class="message-content">
+                <div class="igv2-postgen-panel">
+                    <button type="button" class="igv2-postgen-toggle">
+                        <span class="igv2-postgen-toggle-icon">⚙️</span>
+                        <span>Chỉnh sửa & Tạo lại</span>
+                        <span class="igv2-postgen-arrow">▸</span>
+                    </button>
+                    <div class="igv2-postgen-body" style="display:none;">
+                        <div class="igv2-choice-options">
+                            <div class="igv2-choice-option-group igv2-choice-option-full">
+                                <span class="igv2-choice-option-label">✏️ Prompt mới</span>
+                                <textarea class="igv2-choice-textarea" data-field="prompt" rows="2" placeholder="Ghi đè prompt (để trống = dùng prompt gốc)">${htmlAttrEsc(promptOverride)}</textarea>
+                            </div>
+                            <div class="igv2-choice-option-group igv2-choice-option-full">
+                                <span class="igv2-choice-option-label">🚫 Negative</span>
+                                <textarea class="igv2-choice-textarea" data-field="negative" rows="2" placeholder="Những gì KHÔNG muốn xuất hiện">${htmlAttrEsc(negativePrompt)}</textarea>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">🔧 Steps</span>
+                                <div class="igv2-choice-chips" data-option="steps">${chipHtml(stepVals, steps, 'steps')}</div>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">📐 Kích thước</span>
+                                <div class="igv2-choice-chips" data-option="size">${chipHtml(sizeMap, null, 'size', true)}</div>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">🎛️ Guidance</span>
+                                <div class="igv2-choice-chips" data-option="guidance">${chipHtml(guidanceVals, guidance, 'guidance')}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="igv2-postgen-regen-btn">🔄 Tạo lại với tùy chọn mới</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    chatContainer.appendChild(panelEl);
+
+    // Toggle collapse
+    const toggleBtn = panelEl.querySelector('.igv2-postgen-toggle');
+    const body = panelEl.querySelector('.igv2-postgen-body');
+    const arrow = panelEl.querySelector('.igv2-postgen-arrow');
+    toggleBtn.addEventListener('click', () => {
+        const open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : 'block';
+        arrow.textContent = open ? '▸' : '▾';
+    });
+
+    // Chip selection
+    panelEl.querySelectorAll('.igv2-choice-chips').forEach(group => {
+        group.querySelectorAll('.igv2-choice-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                group.querySelectorAll('.igv2-choice-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+            });
+        });
+    });
+
+    // Regenerate button
+    panelEl.querySelector('.igv2-postgen-regen-btn').addEventListener('click', () => {
+        if (!msgDiv || !window.chatApp?.messageRenderer) return;
+        // Read new values from panel
+        const stepsChip = panelEl.querySelector('.igv2-choice-chips[data-option="steps"] .igv2-choice-chip.selected');
+        const sizeChip = panelEl.querySelector('.igv2-choice-chips[data-option="size"] .igv2-choice-chip.selected');
+        const guidanceChip = panelEl.querySelector('.igv2-choice-chips[data-option="guidance"] .igv2-choice-chip.selected');
+        const newPrompt = panelEl.querySelector('.igv2-choice-textarea[data-field="prompt"]')?.value.trim() || '';
+        const newNeg = panelEl.querySelector('.igv2-choice-textarea[data-field="negative"]')?.value.trim() || '';
+
+        // Update dataset on the image message before triggering regen
+        if (stepsChip) msgDiv.dataset.igv2Steps = stepsChip.dataset.value;
+        if (sizeChip) {
+            msgDiv.dataset.igv2Width = sizeChip.dataset.w;
+            msgDiv.dataset.igv2Height = sizeChip.dataset.h;
+        }
+        if (guidanceChip) msgDiv.dataset.igv2Guidance = guidanceChip.dataset.value;
+        msgDiv.dataset.igv2NegativePrompt = newNeg;
+        if (newPrompt) msgDiv.dataset.igv2Prompt = newPrompt;
+
+        // Remove this panel, then trigger regenerate
+        panelEl.remove();
+        window.chatApp.messageRenderer.regenerateImageResponse(msgDiv);
+    });
+
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+// Expose for use in message-renderer.js (regenerate flow)
+window._createPostGenOptionsPanel = createPostGenOptionsPanel;
+
 /** Display image gen result (success or error) + multi-thinking analysis */
-function displayImageGenResult(app, { result, providerChoice, message, formValues, elements, conversationId }) {
+function displayImageGenResult(app, { result, providerChoice, message, formValues, elements, conversationId, imageGenOptions }) {
     if (result.success) {
         let imgSrc = '';
         let imageId = '';
@@ -399,6 +616,17 @@ function displayImageGenResult(app, { result, providerChoice, message, formValue
             lastAssistantMsg.dataset.igv2RegenCount = '0';
             lastAssistantMsg.dataset.igv2ConversationId = conversationId;
             lastAssistantMsg.dataset.igv2IsImage = 'true';
+            lastAssistantMsg.dataset.igv2Steps = String(imageGenOptions?.steps ?? 30);
+            lastAssistantMsg.dataset.igv2Width = String(imageGenOptions?.width ?? 1024);
+            lastAssistantMsg.dataset.igv2Height = String(imageGenOptions?.height ?? 1024);
+            lastAssistantMsg.dataset.igv2Guidance = String(imageGenOptions?.guidance ?? 5);
+            lastAssistantMsg.dataset.igv2NegativePrompt = imageGenOptions?.negativePrompt ?? '';
+        }
+
+        // Post-gen quick-edit panel
+        const lastAssistantMsgForPanel = elements.chatContainer.querySelector('.message.assistant:last-child');
+        if (lastAssistantMsgForPanel) {
+            createPostGenOptionsPanel(elements.chatContainer, lastAssistantMsgForPanel, imageGenOptions);
         }
 
         // Multi-thinking analysis when multi-thinking mode
@@ -419,6 +647,17 @@ function displayImageGenResult(app, { result, providerChoice, message, formValue
             lastErrMsg.dataset.igv2RegenCount = '0';
             lastErrMsg.dataset.igv2ConversationId = conversationId;
             lastErrMsg.dataset.igv2IsImage = 'true';
+            lastErrMsg.dataset.igv2Steps = String(imageGenOptions?.steps ?? 30);
+            lastErrMsg.dataset.igv2Width = String(imageGenOptions?.width ?? 1024);
+            lastErrMsg.dataset.igv2Height = String(imageGenOptions?.height ?? 1024);
+            lastErrMsg.dataset.igv2Guidance = String(imageGenOptions?.guidance ?? 5);
+            lastErrMsg.dataset.igv2NegativePrompt = imageGenOptions?.negativePrompt ?? '';
+        }
+
+        // Post-gen quick-edit panel (error case — user can tweak and retry)
+        const lastErrMsgForPanel = elements.chatContainer.querySelector('.message.assistant:last-child');
+        if (lastErrMsgForPanel) {
+            createPostGenOptionsPanel(elements.chatContainer, lastErrMsgForPanel, imageGenOptions);
         }
     }
 }

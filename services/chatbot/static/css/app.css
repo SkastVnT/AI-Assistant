@@ -5045,6 +5045,103 @@ body.light-mode .message__content pre {
   color: #ff6b6b;
   border-color: color-mix(in srgb, #ff4444 30%, transparent);
 }
+
+/* ── Sidebar select button ───────────────────────────────────────────────── */
+.sidebar__select-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.sidebar__select-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.sidebar__select-btn.active {
+  background: rgba(124, 138, 255, 0.15);
+  color: var(--accent, #7c8aff);
+}
+
+/* ── Select toolbar ──────────────────────────────────────────────────────── */
+.sidebar__select-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-secondary, #1a1a2e);
+  border-bottom: 1px solid var(--border-color, #2d2d44);
+  gap: 8px;
+  animation: fadeIn 0.15s ease;
+}
+.sidebar__select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.sidebar__select-checkbox,
+.sidebar__chat-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent, #7c8aff);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sidebar__select-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sidebar__select-action-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.sidebar__select-delete-btn {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+.sidebar__select-delete-btn:hover:not(:disabled) {
+  background: rgba(255, 68, 68, 0.12);
+  border-color: rgba(255, 68, 68, 0.5);
+  color: #ff4444;
+}
+.sidebar__select-delete-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Select mode chat items ──────────────────────────────────────────────── */
+.sidebar__chat-item.select-mode {
+  cursor: default;
+  padding-left: 10px;
+}
+.sidebar__chat-item.select-mode:hover {
+  background: var(--bg-hover);
+}
+.sidebar__chat-item.selected {
+  background: rgba(124, 138, 255, 0.1);
+  border-color: rgba(124, 138, 255, 0.25);
+}
 .storage__label {
   display: none; /* redundant with storage-text, hide it */
 }
@@ -5390,6 +5487,20 @@ body.light-mode .message__content pre {
   color: #ff6b6b;
   font-size: 11.5px;
 }
+.igv2-stream-step.snippet {
+  padding: 2px 6px 2px 26px;
+  margin-top: -3px;
+}
+.igv2-stream-step.snippet .igv2-step-icon {
+  font-size: 11px;
+  opacity: 0.6;
+}
+.igv2-stream-step.snippet .igv2-step-text {
+  font-size: 11px;
+  opacity: 0.65;
+  font-style: italic;
+  color: var(--text-secondary, #b0b0c8);
+}
 
 /* ── igv2 provider choice dialog ──────────────────────────────────────── */
 .igv2-provider-choice {
@@ -5513,6 +5624,156 @@ body.light-mode .message__content pre {
   background: linear-gradient(90deg, var(--accent, #7c8aff), #a78bfa);
   border-radius: 2px;
   transition: width 1s linear;
+}
+
+/* ── igv2 choice options (steps, size) ───────────────────────────────── */
+.igv2-choice-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #2d2d44);
+}
+.igv2-choice-option-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.igv2-choice-option-group.igv2-choice-option-full {
+  flex-direction: column;
+  align-items: stretch;
+}
+.igv2-choice-option-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #b0b0c8);
+  min-width: 72px;
+  white-space: nowrap;
+}
+.igv2-choice-option-full .igv2-choice-option-label {
+  min-width: unset;
+  margin-bottom: 2px;
+}
+.igv2-choice-textarea {
+  width: 100%;
+  background: var(--bg-primary, #111122);
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-primary, #e0e0e0);
+  resize: vertical;
+  min-height: 36px;
+  max-height: 100px;
+  font-family: inherit;
+  line-height: 1.4;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.igv2-choice-textarea:focus {
+  outline: none;
+  border-color: var(--accent, #7c8aff);
+  box-shadow: 0 0 0 2px rgba(124, 138, 255, 0.15);
+}
+.igv2-choice-textarea:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.igv2-choice-textarea::placeholder {
+  color: var(--text-tertiary, #6a6a8a);
+  font-size: 11px;
+}
+.igv2-choice-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.igv2-choice-chip {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-primary, #e0e0e0);
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.3;
+}
+.igv2-choice-chip:hover:not(:disabled) {
+  border-color: var(--accent, #7c8aff);
+  background: rgba(124, 138, 255, 0.1);
+}
+.igv2-choice-chip.selected {
+  border-color: var(--accent, #7c8aff);
+  background: rgba(124, 138, 255, 0.18);
+  color: var(--accent, #7c8aff);
+  box-shadow: 0 0 6px rgba(124, 138, 255, 0.2);
+}
+.igv2-choice-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* ─── Post-gen quick-edit panel ────────────────────────────── */
+.igv2-postgen-wrap {
+  margin-top: -4px;
+}
+.igv2-postgen-panel {
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-secondary, #1a1a2e);
+}
+.igv2-postgen-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #b0b0c8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.igv2-postgen-toggle:hover {
+  background: rgba(124, 138, 255, 0.06);
+}
+.igv2-postgen-toggle-icon {
+  font-size: 14px;
+}
+.igv2-postgen-arrow {
+  margin-left: auto;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+.igv2-postgen-body {
+  padding: 6px 14px 14px;
+  border-top: 1px solid var(--border-color, #2d2d44);
+}
+.igv2-postgen-regen-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #7c8aff 0%, #6366f1 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.igv2-postgen-regen-btn:hover {
+  opacity: 0.9;
+}
+.igv2-postgen-regen-btn:active {
+  transform: scale(0.98);
 }
 
 /* Import Inter font */

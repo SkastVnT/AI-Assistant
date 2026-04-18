@@ -45,6 +45,7 @@ from fastapi_app.routers import (
     image_gen,
     mcp,
     main_extras,
+    stable_diffusion,
 )
 
 logger = logging.getLogger("chatbot.fastapi")
@@ -119,6 +120,12 @@ def create_app() -> FastAPI:
         templates.env.globals['url_for'] = _url_for
 
     # --- Page routes ---
+    @app.post("/", include_in_schema=False)
+    async def root_post_probe():
+        """Silently absorb POST / probes from tools like Open WebUI, LM Studio, etc."""
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"status": "ok"})
+
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
         if templates:
@@ -155,6 +162,11 @@ def create_app() -> FastAPI:
         if ico.exists():
             return FileResponse(str(ico))
         return HTMLResponse("", status_code=204)
+
+    @app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+    async def chrome_devtools_json():
+        """Silence Chrome DevTools automatic probe — return empty JSON 200."""
+        return {}
 
     # --- Auth endpoints ---
     @app.get("/logout")
@@ -346,6 +358,7 @@ def create_app() -> FastAPI:
     app.include_router(image_gen.router, tags=["Image Generation"])
     app.include_router(mcp.router)
     app.include_router(main_extras.router)
+    app.include_router(stable_diffusion.router, tags=["Stable Diffusion"])
 
     # --- Root health check ---
     @app.get("/health")

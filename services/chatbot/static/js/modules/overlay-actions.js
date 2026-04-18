@@ -130,6 +130,8 @@ export function initLightbox(messageRenderer) {
 
     // Keep openImagePreview global — called dynamically from rendered messages
     window.openImagePreview = openImagePreview;
+    window.closeImagePreview = closeImagePreview;
+    window.downloadPreviewImage = downloadPreviewImage;
 
     // Image preview zoom state
     let currentZoom = 1.0;
@@ -152,6 +154,7 @@ export function initLightbox(messageRenderer) {
 
     // Keep resetPreviewZoom global — called from gallery viewGalleryImage
     window.resetPreviewZoom = resetPreviewZoom;
+    window.zoomPreviewImage = zoomPreviewImage;
 
     // Pinch-to-zoom on mobile for lightbox
     const wrap = document.getElementById('lightboxImageWrap');

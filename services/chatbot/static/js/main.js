@@ -1543,7 +1543,17 @@ document.addEventListener('DOMContentLoaded', () => {
             sorted.forEach(id => { if (!keep.has(id)) delete app.chatManager.chatSessions[id]; });
             app.chatManager.saveSessions();
             app.uiUtils.renderChatList(app.chatManager.chatSessions, app.chatManager.currentChatId, (chatId) => app.handleSwitchChat(chatId), (chatId) => app.handleDeleteChat(chatId), (fromId, toId, pos) => app.handleReorderChat(fromId, toId, pos), (chatId) => app.handleTogglePin(chatId));
-            app.uiUtils.updateStorageDisplay(app.chatManager.chatSessions);
+            app.uiUtils.updateStorageDisplay(app.chatManager.getStorageInfo());
+        },
+        'storage:select-mode': () => {
+            app.uiUtils.toggleSelectMode();
+        },
+        'storage:delete-selected': () => {
+            const count = app.uiUtils._selectedIds?.size || 0;
+            if (count === 0) return;
+            if (!confirm(`Xóa ${count} cuộc trò chuyện đã chọn?`)) return;
+            app.uiUtils.deleteSelectedChats();
+            app.uiUtils.updateStorageDisplay(app.chatManager.getStorageInfo());
         },
     });
 
@@ -1551,6 +1561,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadChatAsPDF = () => app.exportHandler.downloadChatAsPDF(app.chatManager.currentChatId, app.chatManager.chatSessions);
     window.downloadChatAsJSON = () => app.exportHandler.downloadChatAsJSON(app.chatManager.currentChatId, app.chatManager.chatSessions);
     window.downloadChatAsText = () => app.exportHandler.downloadChatAsText(app.chatManager.currentChatId, app.chatManager.chatSessions);
+
+    // Gallery wrappers (used by inline onclick in template)
+    window.refreshGallery = () => refreshGallery();
+    window.closeGallery = () => closeGallery();
+    window.closeGalleryInfo = () => closeGalleryInfo();
 
     // Expose app for debugging
     window.chatApp = app;

@@ -79,12 +79,19 @@ export class ChatManager {
             console.log('[ChatManager] No sessions found, creating new chat');
             this.newChat();
         } else {
-            // Load the most recent chat
-            const sortedIds = Object.keys(this.chatSessions).sort((a, b) => 
-                this.chatSessions[b].updatedAt - this.chatSessions[a].updatedAt
-            );
-            this.currentChatId = sortedIds[0];
-            console.log('[ChatManager] Loaded most recent chat:', this.currentChatId);
+            // Restore last active chat (persisted across F5/reload)
+            const lastActive = localStorage.getItem('lastActiveChatId');
+            if (lastActive && this.chatSessions[lastActive]) {
+                this.currentChatId = lastActive;
+                console.log('[ChatManager] Restored last active chat:', this.currentChatId);
+            } else {
+                // Fall back to most recently updated
+                const sortedIds = Object.keys(this.chatSessions).sort((a, b) =>
+                    this.chatSessions[b].updatedAt - this.chatSessions[a].updatedAt
+                );
+                this.currentChatId = sortedIds[0];
+                console.log('[ChatManager] Loaded most recent chat:', this.currentChatId);
+            }
         }
     }
 
@@ -338,6 +345,7 @@ export class ChatManager {
         this.chatSessions[id] = session;
         this.currentChatId = id;
         this.chatHistory = [];
+        localStorage.setItem('lastActiveChatId', id);
         this.saveSessions();
         return id;
     }
@@ -349,6 +357,7 @@ export class ChatManager {
         if (chatId === this.currentChatId) return false;
         
         this.currentChatId = chatId;
+        localStorage.setItem('lastActiveChatId', chatId);
         return true;
     }
 
@@ -367,6 +376,14 @@ export class ChatManager {
         // If deleting current chat, switch to the next available one (or none)
         if (chatId === this.currentChatId) {
             this.currentChatId = remainingIds.length > 0 ? remainingIds[0] : null;
+        }
+        // Keep persisted lastActiveChatId in sync
+        if (localStorage.getItem('lastActiveChatId') === chatId) {
+            if (this.currentChatId) {
+                localStorage.setItem('lastActiveChatId', this.currentChatId);
+            } else {
+                localStorage.removeItem('lastActiveChatId');
+            }
         }
 
         // Persist deletion immediately so it cannot reappear after refresh

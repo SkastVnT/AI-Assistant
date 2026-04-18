@@ -39,6 +39,32 @@ LORA_CATALOG = {
 
     # ── Custom trained ───────────────────────────────────────────────────
     "maki_custom":    {"file": "maki_lora.safetensors",                 "trigger": ["maki"],              "category": "character", "base": "sd15"},
+
+    # ── NSFW LoRAs — Illustrious XL base (compatible with ChenkinNoob-XL) ──
+    # These LoRAs are confirmed ILXL/Illustrious — use ChenkinNoob-XL-V0.2.safetensors
+    "xray_ilxl":              {"file": "x-ray_ilxl_v1.safetensors",                                              "trigger": ["xray view", "x-ray view", "internal view", "see through body"],  "category": "nsfw", "base": "ilxl"},
+    "speculum_ilxl":          {"file": "speculum_illustrious_V1.0.safetensors",                                   "trigger": ["speculum"],                                                       "category": "nsfw", "base": "ilxl"},
+    "speculum_insertion_ilxl":{"file": "LoraILXL10_speculum_insertion_v1.safetensors",                            "trigger": ["speculum insertion"],                                             "category": "nsfw", "base": "ilxl"},
+    "vibrator_clit_ilxl":     {"file": "LoraILXL10_vibrator_on_clitoris_v1.safetensors",                         "trigger": ["vibrator on clitoris"],                                           "category": "nsfw", "base": "ilxl"},
+    "vibrator_panties_ilxl":  {"file": "vibrator-under-panties-illustriousxl-lora-nochekaiser.safetensors",       "trigger": ["vibrator under panties", "vibrator panties"],                    "category": "nsfw", "base": "ilxl"},
+    "spread_anal_il":         {"file": "ExtremeSpreadPussyAnal_Anime_IL_V1.safetensors",                          "trigger": ["spread pussy", "extreme spread"],                                 "category": "nsfw", "base": "ilxl"},
+    "ifl_il":                 {"file": "IFL_v1.0_IL.safetensors",                                                 "trigger": [],                                                                 "category": "nsfw", "base": "ilxl"},
+    "cameltoe_ilxl":          {"file": "Cameltoe_THICK_-_Anime-000009.safetensors",                               "trigger": ["cameltoe", "camel toe"],                                          "category": "nsfw", "base": "ilxl"},
+    "eyes_ilxl":              {"file": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",                "trigger": [],                                                                 "category": "quality", "base": "ilxl"},
+
+    # ── NSFW LoRAs — likely SDXL/anime base (ambiguous, attempt with ChenkinNoob) ──
+    "xray_v2":                {"file": "xray2.5.safetensors",                                                     "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
+    "xray_window":            {"file": "Johns_X-Ray_Window_LORA.safetensors",                                     "trigger": ["x-ray window", "xray window"],                                    "category": "nsfw", "base": "sdxl"},
+    "xray_creampie":          {"file": "X-ray_creampie_high.safetensors",                                         "trigger": ["xray creampie", "x-ray creampie"],                                "category": "nsfw", "base": "sdxl"},
+    "xray_cum":               {"file": "X-ray_cum_inflation.safetensors",                                         "trigger": ["cum inflation", "xray inflation"],                                "category": "nsfw", "base": "sdxl"},
+    "tape_gape":              {"file": "TapeGape-000037.safetensors",                                             "trigger": ["tape gape"],                                                      "category": "nsfw", "base": "sdxl"},
+    "tape_spread":            {"file": "Tape_Spread-000023.safetensors",                                          "trigger": ["tape spread"],                                                    "category": "nsfw", "base": "sdxl"},
+    "vibrator_thigh":         {"file": "vibrator_in_thighhighs.safetensors",                                      "trigger": ["vibrator thighhighs", "vibrator thigh highs"],                   "category": "nsfw", "base": "sdxl"},
+    "vibrator_underwear":     {"file": "Vibrator in underwear and legs spread.safetensors",                       "trigger": ["vibrator in underwear"],                                          "category": "nsfw", "base": "sdxl"},
+    "cervix":                 {"file": "cervix.safetensors",                                                      "trigger": ["cervix view", "cervix"],                                          "category": "nsfw", "base": "sdxl"},
+    "armpit_hair":            {"file": "my_girls_armpit_hair_anime_style.safetensors",                            "trigger": ["armpit hair", "hairy armpit"],                                    "category": "nsfw", "base": "sdxl"},
+    "expressive_h":           {"file": "Expressive_H-000001.safetensors",                                         "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
+    "dasv3":                  {"file": "DASV3.safetensors",                                                       "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
 }
 
 
@@ -47,6 +73,48 @@ LORA_CATALOG = {
 # Users pick a preset_id and get optimized generation settings.
 
 WORKFLOW_PRESETS = {
+    # ── Local ComfyUI bulk LoRA (auto live list) ──────────────────────────
+    "lora_bulk_auto_chat": {
+        "name": "Local LoRA Bulk (Auto)",
+        "description": "ComfyUI local preset for chat flow: auto-attach a batch of available LoRAs without manual filename selection.",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
+        "default_loras": [],
+        "use_live_loras": True,
+        "live_lora_limit": 2,
+        "live_lora_weight": 0.55,
+        "live_lora_include_keywords": [
+            "il", "ilxl", "illustrious", "xl", "xray", "x-ray", "eye", "speculum",
+            "vibrator", "tape", "cervix", "cameltoe", "armpit", "uncensored", "das", "dskb",
+        ],
+        "live_lora_exclude_keywords": ["pony", "flux"],
+        "negative_prompt": "worst quality, low quality, blurry, bad anatomy, watermark, text, signature",
+        "cfg_scale": 6.0,
+        "steps": 26,
+        "sampler": "euler_ancestral",
+        "width": 832,
+        "height": 1216,
+        "category": "anime",
+        "hires_fix": False,
+    },
+
+    # ── NSFW Illustrious XL preset (ChenkinNoob + ILXL LoRAs) ───────────
+    "anime_nsfw_ilxl": {
+        "name": "NSFW Illustrious XL",
+        "description": "NSFW anime generation using ChenkinNoob-XL (NoobAI/Illustrious base). "
+                       "Compatible with ILXL LoRAs. Pass lora_models: [{name: 'xray_ilxl', weight: 0.8}] etc.",
+        "checkpoint": "ChenkinNoob-XL-V0.2.safetensors",
+        "default_loras": [],
+        "negative_prompt": "worst quality, low quality, blurry, bad anatomy, bad hands, watermark, text, signature, "
+                           "deformed, ugly, poorly drawn",
+        "cfg_scale": 5.0,
+        "steps": 28,
+        "sampler": "euler_ancestral",
+        "width": 832,
+        "height": 1216,
+        "category": "nsfw",
+        "hires_fix": False,
+    },
+
     # ── Anime character generation (SDXL) ────────────────────────────────
     "anime_character_xl": {
         "name": "Anime Character (XL)",

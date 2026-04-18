@@ -435,6 +435,53 @@ def get_gallery():
             
             images.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             source = 'local'
+
+        # ── Additional source: AI-generated image URLs from assistant messages ──
+        # (cloud-hosted images, e.g. ImgBB, that never landed in generated_images collection)
+        try:
+            from config.mongodb_config import get_db as _get_mongo_db
+            import re as _re
+            _url_pat = _re.compile(
+                r'https?://\S+\.(?:png|jpg|jpeg|gif|webp)(?:\?\S*)?',
+                _re.IGNORECASE,
+            )
+            _db = _get_mongo_db()
+            if _db is not None:
+                msg_query: dict = {'role': 'assistant', 'content': {'$regex': r'https?://', '$options': 'i'}}
+                existing_urls = {img.get('cloud_url') or img.get('url') or img.get('path') for img in images}
+                for msg in _db.messages.find(msg_query).sort('created_at', -1).limit(500):
+                    content = msg.get('content', '')
+                    for url in _url_pat.findall(content):
+                        if url in existing_urls:
+                            continue
+                        # Skip tiny icons / avatars
+                        if any(skip in url for skip in ('/favicon', '/icon', '/logo', '/avatar')):
+                            continue
+                        existing_urls.add(url)
+                        created = msg.get('created_at', '')
+                        if hasattr(created, 'isoformat'):
+                            created = created.isoformat()
+                        images.append({
+                            'filename': url.split('/')[-1].split('?')[0],
+                            'url': url,
+                            'path': url,
+                            'cloud_url': url,
+                            'drive_url': None,
+                            'share_url': url,
+                            'local_path': '',
+                            'created_at': created,
+                            'created': created,
+                            'prompt': (content[:80] + '...') if len(content) > 80 else content,
+                            'creator': 'assistant',
+                            'db_status': {'mongodb': True, 'firebase': False},
+                            'metadata': {'source': 'message'},
+                        })
+            source = source or 'messages'
+        except Exception as msg_err:
+            logger.debug(f"[Gallery] Message scan skipped: {msg_err}")
+
+        # Sort all sources by created_at descending
+        images.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         
         # Paginate
         total = len(images)

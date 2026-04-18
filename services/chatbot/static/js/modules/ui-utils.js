@@ -375,6 +375,10 @@ export class UIUtils {
         // Store callbacks for context menu
         this._chatCallbacks = { onSwitchChat, onDeleteChat, onTogglePin };
         this._chatSessions = chatSessions;
+
+        // Ensure select state is initialized
+        if (!this._selectedIds) this._selectedIds = new Set();
+        const selectMode = !!this._selectMode;
         
         // Use ChatManager's sorted order if available, otherwise fallback
         let sortedChats;
@@ -397,11 +401,12 @@ export class UIUtils {
                 ? firstMsg.replace(/<[^>]*>/g, '').substring(0, 50) + '...'
                 : 'No messages';
             const msgCount = messages.length;
+            const isChecked = this._selectedIds.has(id);
             
             return `
-                <div class="sidebar__chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}" 
-                     data-chat-id="${id}" draggable="true">
-                    <span class="drag-handle" title="Drag to reorder">⠿</span>
+                <div class="sidebar__chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${selectMode ? 'select-mode' : ''} ${isChecked ? 'selected' : ''}" 
+                     data-chat-id="${id}" draggable="${selectMode ? 'false' : 'true'}">
+                    ${selectMode ? `<input type="checkbox" class="sidebar__chat-checkbox" data-chat-id="${id}" ${isChecked ? 'checked' : ''}>` : '<span class="drag-handle" title="Drag to reorder">⠿</span>'}
                     <div class="sidebar__chat-info">
                         <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
                         <div class="sidebar__chat-preview">${this.escapeHtml(preview)}</div>
@@ -440,10 +445,35 @@ export class UIUtils {
         this.elements.chatList.querySelectorAll('.sidebar__chat-item').forEach(item => {
             const chatId = item.dataset.chatId;
             item.addEventListener('click', (e) => {
+                if (this._selectMode) {
+                    // In select mode: toggle checkbox on row click (unless checkbox itself was clicked)
+                    if (!e.target.closest('.sidebar__chat-checkbox')) {
+                        const cb = item.querySelector('.sidebar__chat-checkbox');
+                        if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+                    }
+                    return;
+                }
                 if (!e.target.closest('.sidebar__chat-menu-btn')) {
                     onSwitchChat(chatId);
                     if (this.isMobile()) this.closeSidebar();
                 }
+            });
+        });
+
+        // Checkbox change listeners (select mode)
+        this.elements.chatList.querySelectorAll('.sidebar__chat-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const id = cb.dataset.chatId;
+                const item = cb.closest('.sidebar__chat-item');
+                if (cb.checked) {
+                    this._selectedIds.add(id);
+                    item?.classList.add('selected');
+                } else {
+                    this._selectedIds.delete(id);
+                    item?.classList.remove('selected');
+                }
+                this._updateSelectToolbar();
             });
         });
 
@@ -456,11 +486,89 @@ export class UIUtils {
         });
 
         // ─── Drag & Drop ───
-        try {
-            this._setupChatDragDrop(onReorder);
-        } catch (e) {
-            console.error('[DEBUG] _setupChatDragDrop failed:', e);
+        if (!selectMode) {
+            try {
+                this._setupChatDragDrop(onReorder);
+            } catch (e) {
+                console.error('[DEBUG] _setupChatDragDrop failed:', e);
+            }
         }
+    }
+
+    /** Toggle select mode on/off */
+    toggleSelectMode() {
+        this._selectMode = !this._selectMode;
+        this._selectedIds = new Set();
+
+        const toolbar = document.getElementById('chatSelectToolbar');
+        const selectBtn = document.getElementById('chatSelectBtn');
+        if (toolbar) toolbar.style.display = this._selectMode ? 'flex' : 'none';
+        if (selectBtn) selectBtn.classList.toggle('active', this._selectMode);
+
+        // Rerender with/without checkboxes
+        if (this._chatCallbacks && this._chatSessions) {
+            const { onSwitchChat, onDeleteChat, onTogglePin } = this._chatCallbacks;
+            this.renderChatList(
+                this._chatSessions,
+                window.chatManager?.currentChatId,
+                onSwitchChat, onDeleteChat,
+                () => {}, onTogglePin
+            );
+        }
+        this._updateSelectToolbar();
+
+        // Wire Select All
+        const selectAll = document.getElementById('chatSelectAll');
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.onchange = () => {
+                const checked = selectAll.checked;
+                this.elements.chatList.querySelectorAll('.sidebar__chat-checkbox').forEach(cb => {
+                    cb.checked = checked;
+                    const id = cb.dataset.chatId;
+                    const item = cb.closest('.sidebar__chat-item');
+                    if (checked) { this._selectedIds.add(id); item?.classList.add('selected'); }
+                    else { this._selectedIds.delete(id); item?.classList.remove('selected'); }
+                });
+                this._updateSelectToolbar();
+            };
+        }
+    }
+
+    /** Update delete button count + disabled state */
+    _updateSelectToolbar() {
+        const n = this._selectedIds ? this._selectedIds.size : 0;
+        const deleteBtn = document.getElementById('chatDeleteSelectedBtn');
+        const countEl = document.getElementById('chatDeleteSelectedCount');
+        const selectAll = document.getElementById('chatSelectAll');
+
+        if (deleteBtn) deleteBtn.disabled = n === 0;
+        if (countEl) countEl.textContent = n > 0 ? `Xóa (${n})` : 'Xóa';
+
+        // Sync select-all indeterminate state
+        const total = this.elements.chatList?.querySelectorAll('.sidebar__chat-checkbox').length || 0;
+        if (selectAll) {
+            selectAll.checked = total > 0 && n === total;
+            selectAll.indeterminate = n > 0 && n < total;
+        }
+    }
+
+    /** Delete all selected chats */
+    deleteSelectedChats() {
+        if (!this._selectedIds || this._selectedIds.size === 0) return;
+        const ids = Array.from(this._selectedIds);
+        const currentId = window.chatManager?.currentChatId;
+        ids.forEach(id => {
+            if (this._chatCallbacks?.onDeleteChat) {
+                this._chatCallbacks.onDeleteChat(id);
+            }
+        });
+        this._selectMode = false;
+        this._selectedIds = new Set();
+        const toolbar = document.getElementById('chatSelectToolbar');
+        const selectBtn = document.getElementById('chatSelectBtn');
+        if (toolbar) toolbar.style.display = 'none';
+        if (selectBtn) selectBtn.classList.remove('active');
     }
 
     /**

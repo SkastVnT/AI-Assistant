@@ -1445,9 +1445,14 @@ export class MessageRenderer {
         messageDiv.remove();
 
         // Build streaming status container
-        const imageGenOptions = provider === 'local'
-            ? { quality: 'free', provider: 'comfyui' }
-            : { quality: 'auto' };
+        const imageGenOptions = {
+            ...(provider === 'local' ? { quality: 'free', provider: 'comfyui' } : { quality: 'auto' }),
+            steps: parseInt(messageDiv.dataset.igv2Steps || '30', 10),
+            width: parseInt(messageDiv.dataset.igv2Width || '1024', 10),
+            height: parseInt(messageDiv.dataset.igv2Height || '1024', 10),
+            guidance: parseFloat(messageDiv.dataset.igv2Guidance || '5'),
+            negativePrompt: messageDiv.dataset.igv2NegativePrompt || undefined,
+        };
 
         const statusContainer = document.createElement('div');
         statusContainer.className = 'message assistant';
@@ -1494,7 +1499,17 @@ export class MessageRenderer {
                 {
                     onStatus: (data) => {
                         if (data.phase === 'enhance') {
-                            addStep(data.enhanced_prompt ? '✨' : '✨', data.enhanced_prompt ? 'Prompt enhanced' : data.step, data.enhanced_prompt ? 'done' : 'active');
+                            if (data.enhanced_prompt) {
+                                addStep('✨', 'Prompt enhanced', 'done');
+                                const pSnip = data.enhanced_prompt.length > 100 ? data.enhanced_prompt.slice(0, 100) + '…' : data.enhanced_prompt;
+                                addStep('📝', pSnip, 'done snippet');
+                                if (imageGenOptions.negativePrompt) {
+                                    const nSnip = imageGenOptions.negativePrompt.length > 100 ? imageGenOptions.negativePrompt.slice(0, 100) + '…' : imageGenOptions.negativePrompt;
+                                    addStep('🚫', nSnip, 'done snippet');
+                                }
+                            } else {
+                                addStep('✨', data.step, 'active');
+                            }
                         } else if (data.phase === 'select') {
                             addStep(data.providers ? '📡' : '🔍', data.providers ? `Providers: ${data.providers.join(', ')}` : data.step, data.providers ? 'done' : 'active');
                         } else {
@@ -1558,6 +1573,11 @@ export class MessageRenderer {
                 newMsgDiv.dataset.igv2RegenCount = String(regenCount + 1);
                 newMsgDiv.dataset.igv2ConversationId = conversationId;
                 newMsgDiv.dataset.igv2IsImage = 'true';
+                newMsgDiv.dataset.igv2Steps = String(imageGenOptions.steps);
+                newMsgDiv.dataset.igv2Width = String(imageGenOptions.width);
+                newMsgDiv.dataset.igv2Height = String(imageGenOptions.height);
+                newMsgDiv.dataset.igv2Guidance = String(imageGenOptions.guidance);
+                newMsgDiv.dataset.igv2NegativePrompt = imageGenOptions.negativePrompt || '';
 
                 // Save version
                 this.addMessageVersion(messageId, userPrompt, content, new Date().toISOString());
@@ -1568,6 +1588,11 @@ export class MessageRenderer {
                         window.chatApp.messageRenderer.makeImagesClickable((img) => window.chatApp.openImagePreview(img));
                     }
                 }, 100);
+
+                // Post-gen quick-edit panel
+                if (window._createPostGenOptionsPanel) {
+                    window._createPostGenOptionsPanel(chatContainer, newMsgDiv, imageGenOptions);
+                }
             } else {
                 const errContent = `❌ Không thể tạo ảnh: ${result.error}`;
                 const newMsgDiv = this.addMessage(chatContainer, errContent, false, formValues.model, formValues.context, timestamp);
@@ -1576,8 +1601,18 @@ export class MessageRenderer {
                 newMsgDiv.dataset.igv2RegenCount = String(regenCount + 1);
                 newMsgDiv.dataset.igv2ConversationId = conversationId;
                 newMsgDiv.dataset.igv2IsImage = 'true';
+                newMsgDiv.dataset.igv2Steps = String(imageGenOptions.steps);
+                newMsgDiv.dataset.igv2Width = String(imageGenOptions.width);
+                newMsgDiv.dataset.igv2Height = String(imageGenOptions.height);
+                newMsgDiv.dataset.igv2Guidance = String(imageGenOptions.guidance);
+                newMsgDiv.dataset.igv2NegativePrompt = imageGenOptions.negativePrompt || '';
 
                 this.addMessageVersion(messageId, userPrompt, errContent, new Date().toISOString());
+
+                // Post-gen quick-edit panel (error — user can tweak and retry)
+                if (window._createPostGenOptionsPanel) {
+                    window._createPostGenOptionsPanel(chatContainer, newMsgDiv, imageGenOptions);
+                }
             }
 
             // Update version indicator on user message

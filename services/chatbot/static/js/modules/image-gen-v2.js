@@ -17,6 +17,7 @@ export class ImageGenV2 {
         this.apiService = apiService;
         this.providers = [];
         this.styles = [];
+        this.workflowPresets = [];
         this.isGenerating = false;
         this.currentImage = null;
         this.conversationId = '';
@@ -31,8 +32,9 @@ export class ImageGenV2 {
             await Promise.all([
                 this.loadProviders(),
                 this.loadStyles(),
+                this.loadWorkflowPresets(),
             ]);
-            console.log('[ImageGenV2] Initialized with', this.providers.length, 'providers,', this.styles.length, 'styles');
+            console.log('[ImageGenV2] Initialized with', this.providers.length, 'providers,', this.styles.length, 'styles,', this.workflowPresets.length, 'presets');
         } catch (e) {
             console.warn('[ImageGenV2] Init partial:', e);
         }
@@ -57,6 +59,20 @@ export class ImageGenV2 {
             this._renderStyleGrid();
         } catch (e) {
             console.warn('[ImageGenV2] Failed to load styles:', e);
+        }
+    }
+
+    async loadWorkflowPresets() {
+        try {
+            const resp = await fetch('/api/image-gen/workflow-presets');
+            const data = await resp.json();
+            const grouped = data.presets || {};
+            this.workflowPresets = Object.values(grouped).flat();
+            this._renderWorkflowPresetSelect();
+        } catch (e) {
+            console.warn('[ImageGenV2] Failed to load workflow presets:', e);
+            this.workflowPresets = [];
+            this._renderWorkflowPresetSelect();
         }
     }
 
@@ -114,11 +130,13 @@ export class ImageGenV2 {
             const quality = document.getElementById('igv2Quality')?.value || 'auto';
             const style = document.getElementById('igv2Style')?.value || '';
             const provider = document.getElementById('igv2Provider')?.value || '';
+            const presetId = document.getElementById('igv2WorkflowPreset')?.value || '';
             const width = parseInt(document.getElementById('igv2Width')?.value || '1024');
             const height = parseInt(document.getElementById('igv2Height')?.value || '1024');
             const enhance = document.getElementById('igv2Enhance')?.checked !== false;
             const steps = parseInt(document.getElementById('igv2Steps')?.value || '28');
             const guidance = parseFloat(document.getElementById('igv2Guidance')?.value || '3.5');
+            const effectivePresetId = presetId || (provider === 'comfyui' ? 'lora_bulk_auto_chat' : '');
 
             if (statusEl) statusEl.textContent = '🎨 Đang tạo ảnh...';
 
@@ -132,6 +150,7 @@ export class ImageGenV2 {
                     width,
                     height,
                     provider: provider || null,
+                    preset_id: effectivePresetId || null,
                     enhance,
                     steps,
                     guidance,
@@ -327,9 +346,15 @@ export class ImageGenV2 {
                     prompt: message,
                     quality: options.quality || 'auto',
                     provider: options.provider || undefined,
+                    preset_id: options.presetId || undefined,
                     enhance: true,
                     conversation_id: this.conversationId,
                     num_images: 1,
+                    steps: options.steps || undefined,
+                    width: options.width || undefined,
+                    height: options.height || undefined,
+                    guidance: options.guidance || undefined,
+                    negative_prompt: options.negativePrompt || undefined,
                 }),
                 signal: abortSignal,
             });
@@ -553,6 +578,24 @@ export class ImageGenV2 {
                     ${this._styleIcon(s.name)} ${s.name}
                 </button>
             `).join('');
+        }
+    }
+
+    _renderWorkflowPresetSelect() {
+        const select = document.getElementById('igv2WorkflowPreset');
+        if (!select) return;
+
+        const options = ['<option value="">None (auto)</option>'];
+
+        this.workflowPresets.forEach((p) => {
+            if (!p || !p.id || !p.name) return;
+            options.push(`<option value="${p.id}">${p.name}</option>`);
+        });
+
+        select.innerHTML = options.join('');
+
+        if ([...select.options].some((opt) => opt.value === 'lora_bulk_auto_chat')) {
+            select.value = 'lora_bulk_auto_chat';
         }
     }
 

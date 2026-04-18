@@ -105,22 +105,12 @@ class ImageGenerationRouter:
                 priority=70,
             )
 
-        # ComfyUI (local) — register only when local services are enabled
-        skip_comfyui = False
-        try:
-            from app.services.image_orchestrator.runtime_profile import get_runtime_profile
-            skip_comfyui = get_runtime_profile().skip_comfyui_provider
-        except Exception:
-            pass  # runtime_profile not available → fall back to old behaviour
-
-        if skip_comfyui:
-            logger.info("[ImageRouter] Skipping ComfyUI provider (local services disabled)")
-        else:
-            comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
-            self._providers["comfyui"] = ProviderConfig(
-                provider=ComfyUIProvider(base_url=comfyui_url),
-                priority=10,  # lowest priority unless explicitly requested
-            )
+        # ComfyUI (local) — register when local GPU services are available
+        comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
+        self._providers["comfyui"] = ProviderConfig(
+            provider=ComfyUIProvider(base_url=comfyui_url),
+            priority=10,  # lowest priority unless explicitly requested or FREE mode
+        )
 
         # Together.ai (free tier available)
         together_key = os.getenv("TOGETHER_API_KEY", "")
@@ -244,13 +234,14 @@ class ImageGenerationRouter:
                 for l in lora_models if l.get("name")
             ]
 
-        # 0b. Auto-detect characters in prompt → inject LoRAs automatically
-        #     Only when no explicit LoRAs / preset were provided.
+        # 0b. Auto-detect characters → pick ComfyUI with character LoRA only
+        #     (no extra quality LoRA stacking — checkpoint handles that)
         auto_detected = False
         if not resolved_loras and not preset_id and self._character_detector:
             detection = self._character_detector.detect(prompt)
             if detection.has_characters:
                 auto_detected = True
+                # Only add LoRA specs for characters that have a LoRA file
                 resolved_loras = [
                     LoraSpec(
                         name=c.lora_file,
@@ -259,28 +250,25 @@ class ImageGenerationRouter:
                         trigger_words=c.trigger_words,
                     )
                     for c in detection.characters
+                    if c.lora_file  # skip trait-only characters
                 ]
                 if not resolved_checkpoint and detection.suggested_checkpoint:
                     resolved_checkpoint = detection.suggested_checkpoint
-                # If a preset exists for the exact character, use its settings
-                if detection.suggested_preset_id and not preset_id:
-                    _, _, preset_settings = self._resolve_preset(
-                        detection.suggested_preset_id, resolved_checkpoint, None,
-                    )
-                    if preset_settings:
-                        steps = preset_settings.get("steps", steps)
-                        guidance = preset_settings.get("cfg_scale", guidance)
-                        width = preset_settings.get("width", width)
-                        height = preset_settings.get("height", height)
-                        resolved_neg = preset_settings.get("negative_prompt", resolved_neg)
                 logger.info(
                     f"[ImageRouter] Auto-detected characters: "
                     f"{[c.display_name for c in detection.characters]} → "
-                    f"LoRAs: {[l.name for l in resolved_loras]}"
+                    f"LoRAs: {[l.name for l in resolved_loras]}, "
+                    f"traits: {detection.trait_tags}"
                 )
+                # Inject canonical trait tags as enhancer context so appearance
+                # is based on the character database, not LLM knowledge
+                if detection.trait_tags and not context:
+                    context = (
+                        f"Mandatory appearance tags — include these verbatim for the character: "
+                        f"{', '.join(detection.trait_tags)}"
+                    )
 
-        # When LoRAs are specified (explicit or auto-detected), force ComfyUI
-        # (local) since cloud providers don't support custom LoRAs.
+        # When LoRAs are specified, force ComfyUI (cloud providers don't support LoRAs)
         if resolved_loras and not provider_name:
             provider_name = "comfyui"
             quality = QualityMode.FREE
@@ -292,8 +280,11 @@ class ImageGenerationRouter:
         enhanced_prompt = prompt
         if enhance_prompt and self._enhancer:
             try:
-                enhanced_prompt = self._enhancer.enhance(prompt, style_preset=style, context=context)
-                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' â†’ '{enhanced_prompt[:80]}...'")
+                enhanced_prompt = self._enhancer.enhance(
+                    prompt, style_preset=style, context=context,
+                    provider_hint=provider_name or "",
+                )
+                logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'")
             except Exception as e:
                 logger.warning(f"[ImageRouter] Enhance failed: {e}")
 
@@ -403,6 +394,15 @@ class ImageGenerationRouter:
         model_name: Optional[str] = None,
         enhance_prompt: bool = True,
         context: Optional[str] = None,
+        negative_prompt: str = "",
+        lora_models: Optional[list[dict]] = None,
+        vae_name: Optional[str] = None,
+        checkpoint: Optional[str] = None,
+        preset_id: Optional[str] = None,
+        hires_fix: bool = False,
+        hires_scale: float = 1.5,
+        hires_denoise: float = 0.45,
+        hires_steps: int = 15,
     ) -> Generator[dict, None, None]:
         """
         Generate image(s) with streaming status updates.
@@ -438,7 +438,10 @@ class ImageGenerationRouter:
                 "phase": "enhance",
             }}
             try:
-                enhanced_prompt = self._enhancer.enhance(prompt, style_preset=style, context=context)
+                enhanced_prompt = self._enhancer.enhance(
+                    prompt, style_preset=style, context=context,
+                    provider_hint=provider_name or "",
+                )
                 logger.info(f"[ImageRouter] Enhanced: '{prompt[:50]}...' → '{enhanced_prompt[:80]}...'")
                 yield {"event": "status", "data": {
                     "step": f"Prompt enhanced",
@@ -452,10 +455,46 @@ class ImageGenerationRouter:
                     "phase": "enhance",
                 }}
 
-        # 3. Build request
+        # 3. Resolve workflow preset / loras for streaming flow
+        resolved_loras: list[LoraSpec] = []
+        resolved_checkpoint = checkpoint
+        resolved_neg = negative_prompt or ""
+        if preset_id:
+            resolved_checkpoint, resolved_loras, preset_settings = self._resolve_preset(
+                preset_id, checkpoint, lora_models,
+            )
+            if preset_settings:
+                steps = preset_settings.get("steps", steps)
+                guidance = preset_settings.get("cfg_scale", guidance)
+                width = preset_settings.get("width", width)
+                height = preset_settings.get("height", height)
+                if not resolved_neg:
+                    resolved_neg = preset_settings.get("negative_prompt", "")
+                if preset_settings.get("hires_fix"):
+                    hires_fix = True
+                    hires_scale = preset_settings.get("hires_scale", hires_scale)
+                    hires_denoise = preset_settings.get("hires_denoise", hires_denoise)
+                    hires_steps = preset_settings.get("hires_steps", hires_steps)
+        elif lora_models:
+            resolved_loras = [
+                LoraSpec(
+                    name=l.get("name", ""),
+                    weight=float(l.get("weight", 0.8)),
+                    clip_weight=float(l.get("clip_weight", l.get("weight", 0.8))),
+                    trigger_words=l.get("trigger_words", []),
+                )
+                for l in lora_models if l.get("name")
+            ]
+
+        if resolved_loras and not provider_name:
+            provider_name = "comfyui"
+            quality = QualityMode.FREE
+
+        # 4. Build request
         resolved_model = self._resolve_requested_model(model_name)
         req = ImageRequest(
             prompt=enhanced_prompt,
+            negative_prompt=resolved_neg,
             mode=img_mode,
             source_image_b64=source_image_b64,
             mask_b64=mask_b64,
@@ -467,10 +506,20 @@ class ImageGenerationRouter:
             seed=seed,
             style_preset=style,
             num_images=num_images,
-            extra={"model": resolved_model} if resolved_model else {},
+            lora_models=resolved_loras,
+            vae_name=vae_name,
+            checkpoint=resolved_checkpoint,
+            preset_id=preset_id,
+            extra={
+                **({"model": resolved_model} if resolved_model else {}),
+                "hires_fix": hires_fix,
+                "hires_scale": hires_scale,
+                "hires_denoise": hires_denoise,
+                "hires_steps": hires_steps,
+            },
         )
 
-        # 4. Select providers
+        # 5. Select providers
         yield {"event": "status", "data": {
             "step": "Selecting providers...",
             "phase": "select",
@@ -494,7 +543,7 @@ class ImageGenerationRouter:
             "providers": provider_names,
         }}
 
-        # 5. Try providers with fallback (streaming status)
+        # 6. Try providers with fallback (streaming status)
         last_error = ""
         attempt = 0
         for prov_config in providers:
@@ -793,14 +842,48 @@ class ImageGenerationRouter:
                     trigger_words=l.get("trigger_words", []),
                 ))
         else:
-            resolved = resolve_loras_for_preset(preset_id)
-            for r in resolved:
-                lora_specs.append(LoraSpec(
-                    name=r["file"],
-                    weight=r["weight"],
-                    clip_weight=r["weight"],
-                    trigger_words=r.get("trigger", []),
-                ))
+            if preset.get("use_live_loras"):
+                live_weight = float(preset.get("live_lora_weight", 0.55))
+                live_limit = int(preset.get("live_lora_limit", 8))
+                all_live_loras = self.get_available_loras()
+                preferred = [
+                    n for n in all_live_loras
+                    if str(n).startswith("imported_lora_chatbot/")
+                ]
+                include_keywords = [
+                    str(k).lower() for k in preset.get("live_lora_include_keywords", [])
+                ]
+                exclude_keywords = [
+                    str(k).lower() for k in preset.get("live_lora_exclude_keywords", [])
+                ]
+
+                candidate_pool = preferred or all_live_loras
+                filtered: list[str] = []
+                for n in candidate_pool:
+                    name_lower = str(n).lower()
+                    if include_keywords and not any(k in name_lower for k in include_keywords):
+                        continue
+                    if exclude_keywords and any(k in name_lower for k in exclude_keywords):
+                        continue
+                    filtered.append(n)
+
+                live_loras = (filtered or candidate_pool)[:max(0, live_limit)]
+                for name in live_loras:
+                    lora_specs.append(LoraSpec(
+                        name=name,
+                        weight=live_weight,
+                        clip_weight=live_weight,
+                        trigger_words=[],
+                    ))
+            else:
+                resolved = resolve_loras_for_preset(preset_id)
+                for r in resolved:
+                    lora_specs.append(LoraSpec(
+                        name=r["file"],
+                        weight=r["weight"],
+                        clip_weight=r["weight"],
+                        trigger_words=r.get("trigger", []),
+                    ))
 
         # Gather other settings
         settings = {

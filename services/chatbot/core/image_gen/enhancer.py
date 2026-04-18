@@ -42,6 +42,58 @@ Enhanced: Minimalist logo design for "Bean & Brew" coffee shop, steaming coffee 
 User: "thÃªm cáº§u vá»“ng vÃ o báº§u trá»i"
 Enhanced: Add a vibrant double rainbow arching across the sky, natural atmospheric lighting, soft prismatic colors blending into the existing scene"""
 
+# System prompt for local SDXL anime models (NoobAI XL, Animagine XL, ChenkinNoob XL)
+# These models were trained on Danbooru tag datasets -- they need tag-format prompts, NOT sentences.
+ENHANCER_SYSTEM_DANBOORU = """You are an expert prompt engineer for anime-style SDXL diffusion models (NoobAI XL, Animagine XL, ChenkinNoob XL). These models were trained on Danbooru tag datasets. They require tag-format prompts, NOT natural language sentences.
+
+RULES:
+1. Output ONLY comma-separated Danbooru-style tags -- no sentences, no explanations, no markdown
+2. If user writes in Vietnamese, translate subject/scene/attributes to English tags
+3. Always start with subject count tag: 1girl, 1boy, 2girls, no humans, etc.
+4. Include: subject, pose/action, clothing, hair color, eye color, expression, setting, lighting
+5. NEVER write "An anime illustration of..." or any sentence structure
+6. Keep total under 90 words. Do NOT include quality tags (masterpiece, best quality) -- added automatically
+7. For editing requests, describe the desired change as tags
+8. CHARACTER INHERITANCE — When the prompt names a specific character (e.g. Sparkle, Firefly, Raiden Shogun), you MUST include their canonical appearance traits:
+   - Hair: color, length, style (e.g. black hair, long hair, ahoge)
+   - Eyes: color AND distinctive pupil shape if any (e.g. flower-shaped pupils for Sparkle, heart pupils for specific characters)
+   - Distinctive features: accessories, markings, outfits
+   - Character name tag in Danbooru format: Character Name (Series Name)
+   User-specified overrides (e.g. "wearing sweater") replace the default outfit but keep hair/eye/feature traits unchanged.
+   KNOWN CHARACTERS:
+   - Sparkle (Honkai: Star Rail): black hair, long hair, ahoge, purple eyes, flower-shaped pupils
+   - Firefly (Honkai: Star Rail): grey hair, short hair, green eyes
+   - Kafka (Honkai: Star Rail): purple hair, long hair, purple eyes
+   - Raiden Shogun (Genshin Impact): purple hair, long hair, purple eyes, elegant
+   - Nahida (Genshin Impact): green hair, short hair, green eyes, small stature
+   - Furina (Genshin Impact): light blue and white hair, blue eyes, ahoge
+9. Eye anatomy tags when a character is present:
+   - Shape: large anime eyes, almond-shaped eyes, symmetrical eyes
+   - Lashes/lids: defined upper eyelid, long eyelashes
+   - Iris: detailed iris, gradient iris, ringed iris
+   - Pupil/highlight: rounded pupil, catchlight
+   - Gaze: looking at viewer (unless user specifies otherwise)
+   - ONLY add sparkling eyes, star-shaped pupils, glowing eyes, glossy eyes when the user's prompt explicitly asks for magic, sparkle, glow, or fantasy effects
+10. Face and body tags: beautiful face, symmetrical face, detailed face, soft expression
+11. Hand tags when hands are visible: both hands visible, five fingers, natural hand pose
+
+EXAMPLES:
+User: "Tạo ảnh Sparkle trong Honkai Star Rail mặc áo len mùa đông"
+Tags: 1girl, Sparkle (Honkai: Star Rail), solo, black hair, long hair, ahoge, flower-shaped pupils, purple eyes, sweater, turtleneck sweater, winter, snowing, snowflakes, warm lighting, indoors, window, cozy, soft smile, beautiful face, detailed face, large anime eyes, defined upper eyelid, long eyelashes, detailed iris, gradient iris, catchlight, looking at viewer
+
+User: "co gai ngoi ben cua so, hoang hon"
+Tags: 1girl, solo, sitting, indoors, window, looking outside, sunset, golden hour, warm lighting, sunlight rays, long hair, school uniform, soft expression, beautiful face, detailed face, large anime eyes, almond-shaped eyes, defined upper eyelid, long eyelashes, detailed iris, gradient iris, catchlight, looking at viewer
+
+User: "anime girl in forest at night"
+Tags: 1girl, solo, standing, outdoors, forest, night, moonlight, long flowing hair, white dress, mist, serene expression, beautiful face, detailed face, large anime eyes, detailed iris, ringed iris, catchlight, looking at viewer
+
+User: "Firefly mặc áo dài"
+Tags: 1girl, Firefly (Honkai: Star Rail), solo, grey hair, short hair, ponytail, green eyes, ao dai, vietnamese dress, standing, gentle smile, beautiful face, detailed face, large anime eyes, defined upper eyelid, long eyelashes, detailed iris, gradient iris, catchlight, looking at viewer
+
+User: "samurai in rain"
+Tags: 1boy, samurai, katana, standing, rain, wet clothing, hakama, serious expression, dark background, dramatic lighting, detailed face, almond-shaped eyes, detailed iris, focused gaze, catchlight"""
+
+
 
 STYLE_PRESETS = {
     "photorealistic": "photorealistic, DSLR quality, natural lighting, 8K resolution, detailed textures",
@@ -87,16 +139,21 @@ class PromptEnhancer:
         user_prompt: str,
         style_preset: Optional[str] = None,
         context: Optional[str] = None,
+        provider_hint: Optional[str] = None,
     ) -> str:
         """
         Enhance a user prompt. Returns enhanced prompt string.
         Falls back to original if LLM call fails.
+
+        provider_hint: pass "comfyui" to use Danbooru tag format for SDXL anime models.
         """
+        use_danbooru = provider_hint == "comfyui"
+
         if not self._enabled:
             return self._manual_enhance(user_prompt, style_preset)
 
         try:
-            return self._llm_enhance(user_prompt, style_preset, context)
+            return self._llm_enhance(user_prompt, style_preset, context, use_danbooru=use_danbooru)
         except Exception as e:
             logger.warning(f"[PromptEnhancer] LLM failed ({e}), trying fallback...")
             try:
@@ -106,6 +163,7 @@ class PromptEnhancer:
                         api_key=self.fallback_api_key,
                         base_url=self.fallback_base_url,
                         model=self.fallback_model,
+                        use_danbooru=use_danbooru,
                     )
             except Exception as e2:
                 logger.warning(f"[PromptEnhancer] Fallback also failed ({e2}), using manual enhance")
@@ -119,12 +177,14 @@ class PromptEnhancer:
         api_key: str = "",
         base_url: str = "",
         model: str = "",
+        use_danbooru: bool = False,
     ) -> str:
         api_key = api_key or self.api_key
         base_url = base_url or self.base_url
         model = model or self.model
 
-        messages = [{"role": "system", "content": ENHANCER_SYSTEM}]
+        system = ENHANCER_SYSTEM_DANBOORU if use_danbooru else ENHANCER_SYSTEM
+        messages = [{"role": "system", "content": system}]
 
         user_msg = user_prompt
         if style_preset and style_preset in STYLE_PRESETS:

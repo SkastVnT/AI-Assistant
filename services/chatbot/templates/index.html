@@ -164,14 +164,44 @@ try {
 
         <div class="sidebar__chats-header">
             <span class="sidebar__chats-label">Cuộc trò chuyện</span>
-            <button class="sidebar__refresh-btn" id="chatRefreshBtn" title="Làm mới danh sách">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                    <path d="M21 3v5h-5"/>
-                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                    <path d="M8 16H3v5"/>
-                </svg>
-            </button>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button class="sidebar__select-btn" id="chatSelectBtn" data-action="storage:select-mode" title="Chọn để xóa">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                        <rect x="3" y="5" width="16" height="14" rx="2"/>
+                        <path d="M7 12l3 3 7-7"/>
+                    </svg>
+                </button>
+                <button class="sidebar__refresh-btn" id="chatRefreshBtn" title="Làm mới danh sách">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 16H3v5"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Select mode toolbar (hidden by default) -->
+        <div class="sidebar__select-toolbar" id="chatSelectToolbar" style="display:none;">
+            <label class="sidebar__select-all-label">
+                <input type="checkbox" id="chatSelectAll" class="sidebar__select-checkbox">
+                <span>Chọn tất cả</span>
+            </label>
+            <div style="display:flex;gap:4px;">
+                <button class="sidebar__select-action-btn sidebar__select-delete-btn" id="chatDeleteSelectedBtn" data-action="storage:delete-selected" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                        <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    </svg>
+                    <span id="chatDeleteSelectedCount">Xóa</span>
+                </button>
+                <button class="sidebar__select-action-btn" data-action="storage:select-mode" title="Hủy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <div class="sidebar__chats" id="chatList">
@@ -1021,24 +1051,7 @@ try {
                     <div class="welcome__logo"><i data-lucide="bot" class="lucide lucide-xl" style="width:64px;height:64px;stroke-width:1.5;"></i></div>
                     <h1 class="welcome__title" data-lang-key="app.title">AI Assistant</h1>
                     <p class="welcome__subtitle" data-lang-key="app.subtitle">Chat, code, create images, and solve problems with AI</p>
-                    <div class="welcome__suggestions" id="welcomeSuggestions">
-                        <button class="welcome__suggestion" data-message="Giải thích cách hoạt động của AI một cách đơn giản">
-                            <div class="welcome__suggestion-title"><i data-lucide="lightbulb" class="lucide lucide-sm"></i> Giải thích</div>
-                            Cách hoạt động của AI đơn giản
-                        </button>
-                        <button class="welcome__suggestion" data-message="Viết một function Python để sort mảng bằng quicksort">
-                            <div class="welcome__suggestion-title"><i data-lucide="code-2" class="lucide lucide-sm"></i> Viết code</div>
-                            Python quicksort implementation
-                        </button>
-                        <button class="welcome__suggestion" data-message="Tạo ảnh anime một cô gái ngồi bên cửa sổ, ánh hoàng hôn, chi tiết cao">
-                            <div class="welcome__suggestion-title"><i data-lucide="image" class="lucide lucide-sm"></i> Tạo ảnh</div>
-                            Anime girl at sunset window
-                        </button>
-                        <button class="welcome__suggestion" data-message="Cho tôi 5 tips tăng năng suất làm việc hiệu quả">
-                            <div class="welcome__suggestion-title"><i data-lucide="trending-up" class="lucide lucide-sm"></i> Tư vấn</div>
-                            5 tips tăng năng suất
-                        </button>
-                    </div>
+                    <div class="welcome__suggestions" id="welcomeSuggestions"></div>
                 </div>
             </div>
         </div>
@@ -1394,6 +1407,12 @@ try {
                     <select id="igv2Style" class="form-select" style="width: 100%;"><option value="">None (auto)</option></select>
                     <div id="igv2StyleGrid" style="margin-top: 8px;"></div>
                 </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">🧩 Workflow Preset</label>
+                    <select id="igv2WorkflowPreset" class="form-select" style="width: 100%;">
+                        <option value="">None (auto)</option>
+                    </select>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
                         <label class="form-label">⚡ Quality</label>
@@ -1545,15 +1564,21 @@ try {
                     <div>
                         <label class="form-label" data-lang-key="imageGen.width">Width</label>
                         <select id="imageWidth" class="form-select" style="width: 100%;">
-                            <option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option>
-                            <option value="1280">1280</option><option value="1440">1440</option><option value="1920">1920</option>
+                            <option value="512" selected>512</option><option value="768">768</option>
+                            <option value="832">832</option><option value="1024">1024</option>
+                            <option value="1216">1216</option><option value="1280">1280</option>
+                            <option value="1440">1440</option><option value="1920">1920</option>
+                            <option value="2048">2048</option>
                         </select>
                     </div>
                     <div>
                         <label class="form-label" data-lang-key="imageGen.height">Height</label>
                         <select id="imageHeight" class="form-select" style="width: 100%;">
-                            <option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option>
-                            <option value="1280">1280</option><option value="1440">1440</option><option value="1920">1920</option>
+                            <option value="512" selected>512</option><option value="768">768</option>
+                            <option value="832">832</option><option value="1024">1024</option>
+                            <option value="1216">1216</option><option value="1280">1280</option>
+                            <option value="1440">1440</option><option value="1920">1920</option>
+                            <option value="2048">2048</option>
                         </select>
                     </div>
                 </div>
@@ -1585,13 +1610,17 @@ try {
                 </div>
                 <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
                     <label class="form-label" data-lang-key="imageGen.lora">🎨 LoRA Models (Optional)</label>
-                    <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="addLoraBtn" class="btn btn--sm btn--ghost" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">➕ Add Lora</button>
+                    <div id="loraSelectionContainer" style="max-height: 200px; overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-tertiary);">
+                        <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">Loading LoRAs...</p>
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
                     <label class="form-label">🔧 VAE</label>
-                    <select id="vaeSelect" class="form-select" style="width: 100%;"><option value="">Automatic</option></select>
+                    <div id="vaeSelectionContainer" style="max-height: 160px; overflow-y: auto; margin-top: 4px; display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-tertiary);">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="vaeChoice" value="" checked style="accent-color: var(--accent);"> Automatic
+                        </label>
+                    </div>
                 </div>
                 <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImageBtn" onclick="generateImage()">🎨 Generate</button>
             </div>
@@ -1627,11 +1656,11 @@ try {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div>
                         <label class="form-label">Width</label>
-                        <select id="img2imgWidth" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768" selected>768</option><option value="1024">1024</option></select>
+                        <select id="img2imgWidth" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768" selected>768</option><option value="832">832</option><option value="1024">1024</option><option value="1216">1216</option><option value="1280">1280</option><option value="1440">1440</option><option value="2048">2048</option></select>
                     </div>
                     <div>
                         <label class="form-label">Height</label>
-                        <select id="img2imgHeight" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768" selected>768</option><option value="1024">1024</option></select>
+                        <select id="img2imgHeight" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768" selected>768</option><option value="832">832</option><option value="1024">1024</option><option value="1216">1216</option><option value="1280">1280</option><option value="1440">1440</option><option value="2048">2048</option></select>
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
@@ -1664,13 +1693,17 @@ try {
                 </div>
                 <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
                     <label class="form-label">🎨 LoRA</label>
-                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                        <button type="button" class="btn btn--sm btn--ghost" onclick="addImg2imgLoraSelection()">➕ Add Lora</button>
+                    <div id="img2imgLoraSelectionContainer" style="max-height: 200px; overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-tertiary);">
+                        <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">Loading LoRAs...</p>
                     </div>
                 </div>
                 <div style="margin-bottom: 16px;">
                     <label class="form-label">🔧 VAE</label>
-                    <select id="img2imgVaeSelect" class="form-select" style="width: 100%;"><option value="">Automatic</option></select>
+                    <div id="img2imgVaeSelectionContainer" style="max-height: 160px; overflow-y: auto; margin-top: 4px; display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-tertiary);">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="img2imgVaeChoice" value="" checked style="accent-color: var(--accent);"> Automatic
+                        </label>
+                    </div>
                 </div>
                 <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>🎨 Generate from image</button>
             </div>
@@ -1764,11 +1797,11 @@ try {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div>
                         <label class="form-label">Width</label>
-                        <select id="controlnetWidth" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option></select>
+                        <select id="controlnetWidth" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="832">832</option><option value="1024">1024</option><option value="1216">1216</option><option value="1280">1280</option><option value="2048">2048</option></select>
                     </div>
                     <div>
                         <label class="form-label">Height</label>
-                        <select id="controlnetHeight" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option></select>
+                        <select id="controlnetHeight" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="832">832</option><option value="1024">1024</option><option value="1216">1216</option><option value="1280">1280</option><option value="2048">2048</option></select>
                     </div>
                 </div>
                 <button class="btn btn--primary btn--lg" style="width: 100%;" id="controlnetBtn" onclick="generateControlNet()" disabled>🕹️ Generate with ControlNet</button>
@@ -2557,18 +2590,241 @@ try {
         initSkillSelector();
         selectStyle('anime_xl');
 
-        // Welcome suggestions
-        document.querySelectorAll('.welcome__suggestion').forEach(s => {
-            s.addEventListener('click', () => {
-                const msg = s.dataset.message;
-                const input = document.getElementById('messageInput');
-                if (input && msg) {
-                    input.value = msg;
-                    input.focus();
-                    input.dispatchEvent(new Event('input'));
+        // Welcome suggestions — random pool, 4 picked each load
+        (function initWelcomeSuggestions() {
+            const POOL = [
+                // ── Giải thích ──────────────────────────────────────────
+                { icon: 'lightbulb', label: 'Giải thích', text: 'AI hoạt động thế nào?', msg: 'Giải thích cách hoạt động của AI một cách đơn giản' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Blockchain là gì?', msg: 'Giải thích blockchain và ứng dụng thực tế của nó' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Quantum computing là gì?', msg: 'Giải thích quantum computing theo cách dễ hiểu nhất' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Tại sao trời xanh?', msg: 'Giải thích tại sao bầu trời có màu xanh theo khoa học' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Cách hoạt động của LLM', msg: 'Giải thích cách hoạt động của mô hình ngôn ngữ lớn (LLM) như GPT' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'DNA và protein', msg: 'Giải thích đơn giản DNA mã hóa thành protein như thế nào' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Tại sao máy bay bay được?', msg: 'Giải thích nguyên lý khí động học giúp máy bay bay được' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Internet hoạt động thế nào?', msg: 'Giải thích cách Internet hoạt động từ đầu đến cuối' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Tại sao ngủ mơ?', msg: 'Giải thích khoa học tại sao chúng ta mơ khi ngủ' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Sóng điện từ là gì?', msg: 'Giải thích sóng điện từ và các ứng dụng thực tế' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Tại sao nước đóng băng ở 0°C?', msg: 'Giải thích ở mức phân tử tại sao nước đóng băng ở 0 độ C' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'GPT vs Gemini khác nhau gì?', msg: 'So sánh GPT và Gemini: kiến trúc, điểm mạnh và yếu' },
+                { icon: 'lightbulb', label: 'Giải thích', text: 'Tại sao mặt trời không tắt?', msg: 'Giải thích phản ứng hạt nhân giúp mặt trời duy trì nhiệt lượng' },
+
+                // ── Viết code / Debug ────────────────────────────────────
+                { icon: 'code-2', label: 'Viết code', text: 'Python quicksort', msg: 'Viết một function Python để sort mảng bằng quicksort' },
+                { icon: 'code-2', label: 'Viết code', text: 'REST API với FastAPI', msg: 'Tạo một REST API đơn giản với FastAPI và Python' },
+                { icon: 'code-2', label: 'Viết code', text: 'React todo app', msg: 'Viết một todo app đơn giản bằng React hooks' },
+                { icon: 'code-2', label: 'Viết code', text: 'SQL query tối ưu', msg: 'Viết câu SQL query để lấy top 10 sản phẩm bán chạy nhất' },
+                { icon: 'code-2', label: 'Debug code', text: 'Fix lỗi Python async', msg: 'Giải thích và fix lỗi thường gặp khi dùng async/await trong Python' },
+                { icon: 'code-2', label: 'Viết code', text: 'Web scraper Python', msg: 'Viết script Python để scrape dữ liệu từ một trang web bằng BeautifulSoup' },
+                { icon: 'code-2', label: 'Viết code', text: 'Login form với React', msg: 'Tạo login form với React, validation và error handling' },
+                { icon: 'code-2', label: 'Viết code', text: 'Gửi email bằng Python', msg: 'Viết code Python để gửi email tự động qua SMTP' },
+                { icon: 'code-2', label: 'Debug code', text: 'TypeError là gì?', msg: 'Giải thích các loại lỗi TypeError phổ biến trong JavaScript và cách fix' },
+                { icon: 'code-2', label: 'Viết code', text: 'Pagination trong SQL', msg: 'Viết SQL query hỗ trợ pagination với LIMIT và OFFSET' },
+                { icon: 'code-2', label: 'Viết code', text: 'Docker Compose cơ bản', msg: 'Viết file docker-compose.yml cho app Python + PostgreSQL' },
+                { icon: 'code-2', label: 'Viết code', text: 'Infinite scroll React', msg: 'Implement infinite scroll trong React bằng IntersectionObserver' },
+                { icon: 'code-2', label: 'Viết code', text: 'Regex tìm email', msg: 'Viết regex Python để validate và tìm địa chỉ email trong văn bản' },
+                { icon: 'code-2', label: 'Viết code', text: 'Debounce function JS', msg: 'Giải thích và viết hàm debounce trong JavaScript' },
+                { icon: 'code-2', label: 'Viết code', text: 'Binary search', msg: 'Viết thuật toán binary search bằng Python với giải thích từng bước' },
+                { icon: 'code-2', label: 'Viết code', text: 'JWT authentication', msg: 'Implement JWT authentication với FastAPI và Python' },
+                { icon: 'code-2', label: 'Viết code', text: 'Drag and drop HTML', msg: 'Tạo drag-and-drop list đơn giản thuần JavaScript không dùng thư viện' },
+                { icon: 'code-2', label: 'Viết code', text: 'Chatbot đơn giản Python', msg: 'Viết chatbot đơn giản bằng Python sử dụng API OpenAI' },
+                { icon: 'code-2', label: 'Debug code', text: 'CORS error là gì?', msg: 'Giải thích CORS error và cách fix trong FastAPI/Express' },
+                { icon: 'code-2', label: 'Viết code', text: 'Animation CSS thuần', msg: 'Viết animation CSS cho button hover và loading spinner' },
+                { icon: 'code-2', label: 'Viết code', text: 'Rate limiter middleware', msg: 'Implement rate limiter middleware cho Express.js' },
+                { icon: 'code-2', label: 'Viết code', text: 'File upload API', msg: 'Viết API upload file ảnh với FastAPI, validate type và size' },
+
+                // ── Tạo ảnh ──────────────────────────────────────────────
+                { icon: 'image', label: 'Tạo ảnh', text: 'Anime girl tại hoàng hôn', msg: 'Tạo ảnh anime một cô gái ngồi bên cửa sổ, ánh hoàng hôn, chi tiết cao' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cảnh rừng fantasy', msg: 'Tạo ảnh cảnh rừng fantasy với ánh sáng thần tiên, phong cách anime' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Thành phố cyberpunk đêm', msg: 'Tạo ảnh thành phố cyberpunk về đêm, mưa, ánh đèn neon, phong cách anime' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái mùa đông', msg: 'Tạo ảnh anime cô gái mặc áo len, mùa đông, tuyết rơi, ấm áp' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Samurai dưới trăng', msg: 'Tạo ảnh anime samurai đứng dưới ánh trăng, hoa anh đào rơi' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái bên biển', msg: 'Tạo ảnh anime cô gái đứng trên bãi biển lúc bình minh, gió thổi tóc' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Phù thủy trong rừng', msg: 'Tạo ảnh anime một phù thủy trẻ trong rừng đêm với ánh phép thuật' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Thành phố cổ đại Nhật', msg: 'Tạo ảnh phong cách anime đường phố cổ Nhật Bản mùa hoa anh đào' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Không gian vũ trụ anime', msg: 'Tạo ảnh anime cô gái nhìn ra cửa sổ tàu vũ trụ, thiên hà đẹp phía sau' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái trong thư viện', msg: 'Tạo ảnh anime cô gái đang đọc sách trong thư viện cổ, ánh nến ấm áp' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Anime chibi dễ thương', msg: 'Tạo ảnh chibi anime dễ thương, màu sắc pastel, phong cách cute' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Làng quê mùa hè', msg: 'Tạo ảnh phong cảnh làng quê Nhật Bản mùa hè, cánh đồng lúa, bầu trời xanh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái với mèo', msg: 'Tạo ảnh anime cô gái ngồi ở quán café, con mèo trên đùi, buổi chiều ấm' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Ninja trong bóng tối', msg: 'Tạo ảnh anime ninja đứng trên mái nhà đêm tối, thành phố bên dưới' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cảnh tuyết rơi đêm', msg: 'Tạo ảnh anime cảnh đêm tuyết rơi nhẹ, đường phố vắng, đèn đường ấm áp' },
+                // ── Tạo ảnh — Cô gái anime (50 mẫu mở rộng) ──────────
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc hồng sakura', msg: 'Tạo ảnh anime cô gái tóc hồng dài ngồi dưới cây sakura, cánh hoa rơi nhẹ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái mặc đồng phục học sinh', msg: 'Tạo ảnh anime cô gái mặc đồng phục học sinh đứng dưới mưa, cầm ô trong suốt' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái phép thuật ánh sáng', msg: 'Tạo ảnh anime magical girl với phép thuật ánh sáng vàng, váy rườm rà, đôi mắt phát sáng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái quán trà cổ Nhật', msg: 'Tạo ảnh anime cô gái mặc kimono rót trà trong quán trà cổ điển Nhật Bản' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái mèo catgirl', msg: 'Tạo ảnh anime catgirl dễ thương, tai mèo, đuôi mèo, mắt to ngây thơ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái chiến binh fantasy', msg: 'Tạo ảnh anime cô gái chiến binh mặc giáp bạc, kiếm lớn, đứng trên vách đá' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc bạch kim', msg: 'Tạo ảnh anime cô gái tóc bạch kim dài, mắt tím, áo trắng bay trong gió' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái dưới ánh đèn đường', msg: 'Tạo ảnh anime cô gái đứng dưới đèn đường mùa thu, lá rơi xung quanh, buổi tối lạnh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái thám tử áo trench', msg: 'Tạo ảnh anime cô gái thám tử mặc áo trench coat, đứng trong mưa thành phố đêm' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái elf rừng xanh', msg: 'Tạo ảnh anime cô gái elf tai nhọn, áo lá cây, giữa khu rừng xanh huyền bí' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc đen mắt đỏ gothic', msg: 'Tạo ảnh anime cô gái gothic tóc đen dài, mắt đỏ, váy đen ren, lâu đài tối' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái nhạc sĩ violin', msg: 'Tạo ảnh anime cô gái chơi violin trên sân thượng dưới ánh trăng tròn' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái idol sân khấu', msg: 'Tạo ảnh anime idol cô gái trên sân khấu, ánh đèn concert, confetti rơi' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái dưới biển', msg: 'Tạo ảnh anime cô gái dưới đáy biển sâu, ánh sáng xanh lam, cá nhiều màu bơi xung quanh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc xanh băng giá', msg: 'Tạo ảnh anime cô gái tóc xanh băng lạnh, áo trắng, cảnh tuyết nguyên sơ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái phù thủy mũ cao', msg: 'Tạo ảnh anime cô gái phù thủy mũ cao, áo đen, cầm gậy phép thuật, trăng sau lưng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc đỏ lửa', msg: 'Tạo ảnh anime cô gái tóc đỏ rực, mắt hổ phách, đứng giữa cánh đồng hoa hướng dương' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái mặc yukata lễ hội', msg: 'Tạo ảnh anime cô gái mặc yukata hoa cúc tại lễ hội mùa hè, pháo hoa đêm' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái ngủ trong hoa', msg: 'Tạo ảnh anime cô gái ngủ giữa đồng hoa lavender tím, bướm bay xung quanh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái cyberpunk neon', msg: 'Tạo ảnh anime cô gái phong cách cyberpunk, tóc tím neon, kính AR, đường phố đêm' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc vàng mắt xanh', msg: 'Tạo ảnh anime cô gái tóc vàng dài, mắt xanh dương, váy trắng ở cánh đồng cỏ xanh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái y tá cute', msg: 'Tạo ảnh anime cô gái y tá đồng phục trắng, dễ thương, nụ cười ấm áp' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái vũ công ballet', msg: 'Tạo ảnh anime cô gái múa ballet trên sân khấu nhỏ, ánh đèn spot, váy tutu' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái đọc sách trên cây', msg: 'Tạo ảnh anime cô gái ngồi trên cành cây lớn đọc sách, ánh nắng chiều xuyên qua lá' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc bím twin-tail', msg: 'Tạo ảnh anime cô gái twin-tail tóc đen, đồng phục thủy thủ, vui vẻ dưới nắng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái bên cửa sổ mưa', msg: 'Tạo ảnh anime cô gái ngồi bên cửa sổ nhìn mưa rơi, ly cà phê bốc khói, buồn nhẹ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái thần rừng', msg: 'Tạo ảnh anime cô gái thần rừng, tóc lá cây, mắt xanh lá, ngồi trên gốc cây cổ thụ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái robot mecha', msg: 'Tạo ảnh anime cô gái mặc giáp mecha robot trắng bạc, cảnh chiến trường tương lai' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái mặc áo lụa cung đình', msg: 'Tạo ảnh anime cô gái mặc áo lụa cung đình Trung Hoa, đứng trong vườn hoa đào' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái cưỡi rồng', msg: 'Tạo ảnh anime cô gái tóc bạch kim cưỡi rồng trắng bay trên mây, bầu trời hoàng hôn' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tắm suối hot spring', msg: 'Tạo ảnh anime cô gái trong onsen lộ thiên mùa đông, tuyết rơi nhẹ, mặt đỏ hồng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tiên nữ cánh bướm', msg: 'Tạo ảnh anime tiên nữ nhỏ xinh, cánh bướm phát sáng, ngồi trên bông hoa khổng lồ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc trắng mắt vàng', msg: 'Tạo ảnh anime cô gái tóc trắng dài, mắt vàng hổ phách, áo đen giữa cánh đồng tuyết' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái stargazer', msg: 'Tạo ảnh anime cô gái nằm trên cỏ nhìn bầu trời đầy sao, dải ngân hà rõ nét' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái quán cà phê maid', msg: 'Tạo ảnh anime cô gái maid café dễ thương, tạp dề ren, mang khay bánh, mỉm cười' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc tím bên hồ', msg: 'Tạo ảnh anime cô gái tóc tím ngắn ngồi bên hồ kính, phản chiếu bầu trời xanh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái archer cung thủ', msg: 'Tạo ảnh anime cô gái cung thủ mặc áo lữ hành, giương cung trong rừng lá vàng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái bếp núc waifu', msg: 'Tạo ảnh anime cô gái đeo tạp dề hoa, đang nấu ăn trong bếp sáng đẹp, mỉm cười' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc dài bay gió', msg: 'Tạo ảnh anime cô gái tóc đen dài bay trong gió trên đỉnh đồi, váy trắng, bầu trời xanh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái nữ thần biển cả', msg: 'Tạo ảnh anime nữ thần biển cả, tóc xanh lam, vảy cá, ngồi trên đá giữa biển' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái mặc áo dài Việt Nam', msg: 'Tạo ảnh anime cô gái mặc áo dài trắng Việt Nam, nón lá, đứng bên hồ sen' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái bắn súng action', msg: 'Tạo ảnh anime cô gái tóc bạch kim cầm súng, tư thế chiến đấu, background khói lửa' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái angel thiên thần', msg: 'Tạo ảnh anime thiên thần cô gái, cánh trắng lớn, áo trắng, hào quang vàng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái cafe buổi sáng', msg: 'Tạo ảnh anime cô gái ngồi uống cà phê buổi sáng sớm, ánh nắng vàng, cảnh phố nhỏ' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái tóc hai màu split-dye', msg: 'Tạo ảnh anime cô gái tóc nửa trắng nửa đen, mắt dị màu, phong cách bí ẩn' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái chạy trên đường ray', msg: 'Tạo ảnh anime cô gái chạy trên đường ray hiu quạnh, cánh đồng xanh hai bên, hoàng hôn' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái lolita gothic trắng', msg: 'Tạo ảnh anime cô gái lolita váy trắng ren, dù nhỏ trắng, vườn hoa hồng trắng' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái thủy sư đội trưởng', msg: 'Tạo ảnh anime cô gái thủy thủ đội trưởng, áo vest trắng, mũ đội trưởng, trên tàu chiến' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái thức đêm lập trình', msg: 'Tạo ảnh anime cô gái hacker coder thức đêm, ánh màn hình xanh, hoodie, mì tôm bên cạnh' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái fox girl kitsune', msg: 'Tạo ảnh anime kitsune cô gái, 9 đuôi cáo trắng, kimono đỏ, đứng trong đền Torii' },
+                { icon: 'image', label: 'Tạo ảnh', text: 'Cô gái bên pháo hoa', msg: 'Tạo ảnh anime cô gái mặc yukata nhìn pháo hoa đêm lễ hội, mắt lấp lánh phản chiếu' },
+
+                // ── Tư vấn / Tips ──────────────────────────────────────
+                { icon: 'trending-up', label: 'Tư vấn', text: '5 tips tăng năng suất', msg: 'Cho tôi 5 tips tăng năng suất làm việc hiệu quả' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Lộ trình học lập trình', msg: 'Tư vấn lộ trình học lập trình từ zero cho người mới bắt đầu' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Học tiếng Anh 6 tháng', msg: 'Tư vấn cách học tiếng Anh hiệu quả trong 6 tháng' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Quản lý thời gian', msg: 'Gợi ý các phương pháp quản lý thời gian hiệu quả như Pomodoro, GTD' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Cách học một kỹ năng mới', msg: 'Phương pháp học một kỹ năng mới nhanh nhất trong 30 ngày' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Xây dựng thói quen tốt', msg: 'Cách xây dựng thói quen tốt và duy trì lâu dài theo khoa học' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Tư duy tài chính cơ bản', msg: 'Các nguyên tắc tài chính cá nhân cơ bản cho người trẻ' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Chuẩn bị phỏng vấn kỹ thuật', msg: 'Hướng dẫn chuẩn bị phỏng vấn kỹ thuật cho vị trí developer' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Làm thế nào để nghỉ ngơi hiệu quả?', msg: 'Cách nghỉ ngơi và phục hồi năng lượng hiệu quả sau ngày dài làm việc' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Overcome procrastination', msg: 'Các kỹ thuật thực tế để vượt qua tình trạng trì hoãn công việc' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Học toán cho lập trình', msg: 'Các mảng toán học quan trọng cần biết để học Machine Learning' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Tự học Data Science', msg: 'Lộ trình tự học Data Science trong 6 tháng với tài nguyên miễn phí' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Cân bằng công việc và cuộc sống', msg: 'Cách cân bằng giữa công việc và cuộc sống cá nhân khi làm remote' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Portfolio developer', msg: 'Cách xây dựng portfolio developer ấn tượng khi chưa có kinh nghiệm' },
+                { icon: 'trending-up', label: 'Tư vấn', text: 'Đọc sách hiệu quả', msg: 'Kỹ thuật đọc sách nhanh và ghi nhớ tốt hơn' },
+
+                // ── Sáng tạo / Viết lách ──────────────────────────────
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Truyện ngắn du hành thời gian', msg: 'Viết một truyện ngắn về cô gái nhặt được chiếc đồng hồ du hành thời gian' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Thơ về Hà Nội mùa thu', msg: 'Viết một bài thơ ngắn về Hà Nội vào mùa thu lá vàng' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: '5 ý tưởng startup AI', msg: 'Cho tôi 5 ý tưởng startup sáng tạo trong lĩnh vực AI và EdTech' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Email marketing hấp dẫn', msg: 'Viết email marketing cho sản phẩm ứng dụng productivity' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Kịch bản phim ngắn', msg: 'Viết kịch bản phim ngắn 5 phút về tình bạn giữa người và robot' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Slogan cho thương hiệu', msg: 'Tạo 10 slogan sáng tạo cho thương hiệu cà phê Việt Nam' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Bài rap về lập trình', msg: 'Viết một đoạn rap vui về cuộc sống của lập trình viên' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Truyện kinh dị ngắn', msg: 'Viết một truyện kinh dị ngắn, không gian 1 phòng, không có yếu tố siêu nhiên' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Thư gửi bản thân tương lai', msg: 'Viết một bức thư gửi cho bản thân mình 10 năm sau' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Mô tả nhân vật game', msg: 'Viết mô tả chi tiết cho nhân vật boss trong game nhập vai fantasy' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Caption Instagram hay', msg: 'Viết 5 caption Instagram sáng tạo cho ảnh du lịch biển' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Bài hát về mùa hè', msg: 'Viết lời bài hát về mùa hè ở Đà Nẵng, phong cách indie' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Ý tưởng trò chơi nhập vai', msg: 'Brainstorm ý tưởng cho một trò chơi nhập vai indie 2D phong cách pixel art' },
+                { icon: 'pen-line', label: 'Sáng tạo', text: 'Kịch bản podcast', msg: 'Viết kịch bản tập podcast 10 phút về chủ đề sức khỏe tâm thần' },
+
+                // ── Phân tích / So sánh ──────────────────────────────
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'Remote vs văn phòng', msg: 'Phân tích ưu và nhược điểm của làm việc remote so với văn phòng' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'Python vs JavaScript', msg: 'So sánh Python và JavaScript: nên học cái nào trước?' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'React vs Vue vs Angular', msg: 'So sánh React, Vue và Angular: framework nào phù hợp cho dự án nhỏ?' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'SQL vs NoSQL', msg: 'Khi nào dùng SQL, khi nào dùng NoSQL? So sánh thực tế' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'GPT-4o vs Claude vs Gemini', msg: 'So sánh GPT-4o, Claude 3 và Gemini về khả năng và ứng dụng thực tế' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'Freelance vs đi làm công ty', msg: 'Phân tích freelance so với làm việc tại công ty cho developer' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'Học ĐH vs tự học IT', msg: 'So sánh học đại học IT và tự học để đi làm lập trình' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'MacOS vs Windows cho dev', msg: 'MacOS hay Windows tốt hơn cho lập trình viên? Phân tích thực tế' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'Startup vs big tech', msg: 'Nên làm ở startup hay big tech? Phân tích cho developer mới ra trường' },
+                { icon: 'bar-chart-2', label: 'Phân tích', text: 'Backend vs Frontend vs Full-stack', msg: 'So sánh Backend, Frontend và Full-stack developer: nên theo hướng nào?' },
+
+                // ── Tìm kiếm / Xu hướng ──────────────────────────────
+                { icon: 'search', label: 'Tìm kiếm', text: 'Xu hướng AI 2025', msg: 'Tóm tắt các xu hướng AI nổi bật nhất trong năm 2025' },
+                { icon: 'search', label: 'Tìm kiếm', text: 'Công nghệ hot nhất 2025', msg: 'Các công nghệ lập trình hot nhất cần học trong 2025' },
+                { icon: 'search', label: 'Tìm kiếm', text: 'Jobs AI tốt nhất', msg: 'Các vị trí công việc liên quan đến AI đang có nhu cầu cao nhất' },
+                { icon: 'search', label: 'Tìm kiếm', text: 'Framework mới nhất 2025', msg: 'Các framework và thư viện web mới đáng chú ý nhất trong 2025' },
+                { icon: 'search', label: 'Tìm kiếm', text: 'Sự kiện tech nổi bật', msg: 'Tóm tắt các sự kiện công nghệ nổi bật nhất gần đây' },
+                { icon: 'search', label: 'Tìm kiếm', text: 'Open source hot nhất', msg: 'Các dự án open source nổi bật nhất trên GitHub hiện tại' },
+                { icon: 'search', label: 'Tìm kiếm', text: 'Học AI ở đâu miễn phí?', msg: 'Các khóa học AI và Machine Learning miễn phí tốt nhất hiện nay' },
+
+                // ── Hỏi đáp thực tế ─────────────────────────────────
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Cách fix lỗi pip install', msg: 'Các lỗi thường gặp khi dùng pip install Python và cách fix' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Git rebase vs merge khác gì?', msg: 'Giải thích sự khác nhau giữa git rebase và git merge, khi nào dùng cái nào' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Cách tối ưu RAM máy tính', msg: 'Cách tối ưu RAM và tăng tốc máy tính Windows hiệu quả' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Cách học Git nhanh', msg: 'Hướng dẫn học Git từ đầu cho người mới, các lệnh quan trọng nhất' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'SSH là gì?', msg: 'Giải thích SSH, cách tạo key và dùng SSH để kết nối server' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'API key bảo mật thế nào?', msg: 'Cách bảo mật API key đúng cách, không để lộ trên code' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Học toán cho AI cần gì?', msg: 'Các kiến thức toán học cần thiết để học AI và Machine Learning' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Hosting web miễn phí?', msg: 'Các dịch vụ hosting web miễn phí tốt nhất cho project cá nhân' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Cài Python trên Windows', msg: 'Hướng dẫn cài Python, pip và virtual environment trên Windows' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'VS Code extension tốt nhất', msg: 'Top 10 VS Code extensions hữu ích nhất cho lập trình viên' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'CI/CD là gì?', msg: 'Giải thích CI/CD pipeline và cách setup GitHub Actions cho dự án' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'Cách viết commit tốt', msg: 'Quy ước viết git commit message chuẩn, rõ ràng và chuyên nghiệp' },
+                { icon: 'help-circle', label: 'Hỏi đáp', text: 'TypeScript có cần học không?', msg: 'Tại sao nên học TypeScript thay vì JavaScript thuần? Lợi ích thực tế' },
+
+                // ── Cuộc sống / Lifestyle ────────────────────────────
+                { icon: 'coffee', label: 'Lifestyle', text: 'Ăn gì tốt cho não?', msg: 'Các loại thực phẩm tốt nhất cho não bộ và trí nhớ' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Tập thể dục không cần gym', msg: 'Bài tập thể dục hiệu quả tại nhà không cần dụng cụ' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Ngủ ít mà không mệt', msg: 'Cách tối ưu giấc ngủ để ngủ ít nhưng vẫn đủ năng lượng' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Giảm căng thẳng hiệu quả', msg: 'Kỹ thuật giảm stress và lo âu hiệu quả được khoa học chứng minh' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Thói quen buổi sáng', msg: 'Morning routine hiệu quả cho người muốn tăng năng suất cả ngày' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Tập trung khi làm việc', msg: 'Cách tập trung sâu và tránh bị phân tâm khi làm việc tại nhà' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Mắt khỏe khi nhìn màn hình', msg: 'Cách bảo vệ mắt khi phải nhìn màn hình máy tính nhiều giờ mỗi ngày' },
+                { icon: 'coffee', label: 'Lifestyle', text: 'Ghi chú hiệu quả', msg: 'Phương pháp ghi chú hiệu quả nhất khi học hoặc làm việc' },
+
+                // ── Vui / Thú vị ─────────────────────────────────────
+                { icon: 'sparkles', label: 'Thú vị', text: 'Sự kiện kỳ lạ trong lịch sử', msg: 'Kể cho tôi nghe 3 sự kiện kỳ lạ nhất trong lịch sử loài người' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Bí mật của vũ trụ', msg: 'Những bí ẩn lớn nhất của vũ trụ mà khoa học chưa giải thích được' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Sinh vật kỳ lạ nhất', msg: 'Những sinh vật kỳ lạ và độc đáo nhất trên Trái Đất' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Công nghệ tương lai 2050', msg: 'Dự đoán công nghệ nào sẽ thay đổi thế giới vào năm 2050' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Easter eggs trong phần mềm', msg: 'Những easter egg thú vị nổi tiếng nhất được giấu trong phần mềm và game' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Nghịch lý thú vị', msg: 'Giải thích một số nghịch lý nổi tiếng trong triết học và toán học' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Ngôn ngữ lập trình kỳ lạ', msg: 'Các ngôn ngữ lập trình kỳ lạ và thú vị nhất từng được tạo ra' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Sự thật thú vị về não người', msg: '5 sự thật thú vị và ít người biết về não người' },
+                { icon: 'sparkles', label: 'Thú vị', text: 'Dự án công nghệ thất bại', msg: 'Những dự án công nghệ từng rất hứa hẹn nhưng cuối cùng thất bại' },
+            ];
+
+            function shuffle(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
                 }
+                return arr;
+            }
+
+            const container = document.getElementById('welcomeSuggestions');
+            if (!container) return;
+
+            const picked = shuffle([...POOL]).slice(0, 4);
+            container.innerHTML = picked.map(s => `
+                <button class="welcome__suggestion" data-message="${s.msg.replace(/"/g, '&quot;')}">
+                    <div class="welcome__suggestion-title"><i data-lucide="${s.icon}" class="lucide lucide-sm"></i> ${s.label}</div>
+                    ${s.text}
+                </button>
+            `).join('');
+
+            if (window.lucide) lucide.createIcons();
+
+            container.querySelectorAll('.welcome__suggestion').forEach(s => {
+                s.addEventListener('click', () => {
+                    const msg = s.dataset.message;
+                    const input = document.getElementById('messageInput');
+                    if (input && msg) {
+                        input.value = msg;
+                        input.focus();
+                        input.dispatchEvent(new Event('input'));
+                    }
+                });
             });
-        });
+        })();
 
         // Sidebar toggle restore (handled by initSidebarState in ui-utils.js)
 

@@ -218,23 +218,26 @@ export class ImageGeneration {
     }
 
     /**
-     * Populate LoRA list
+     * Populate LoRA checkbox lists in both Text2Img and Img2Img tabs
      */
     populateLoraList() {
-        const containers = document.querySelectorAll('#loraList, #img2imgLoraList');
+        const containers = document.querySelectorAll('#loraSelectionContainer, #img2imgLoraSelectionContainer');
         containers.forEach(container => {
-            if (container && this.loras.length > 0) {
+            if (!container) return;
+            if (this.loras.length > 0) {
                 container.innerHTML = this.loras.map(lora => {
                     const name = this._itemName(lora);
+                    const safeId = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+                    const uniqueId = `lora-${container.id}-${safeId}`;
                     return `
-                    <div class="lora-item">
-                        <input type="checkbox" id="lora-${name}" value="${name}">
-                        <label for="lora-${name}">${name}</label>
-                    </div>`;
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; padding: 2px 0;">
+                        <input type="checkbox" value="${this._escapeAttr(name)}" style="accent-color: var(--accent);">
+                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this._escapeAttr(name)}">${this._escapeHtml(name)}</span>
+                    </label>`;
                 }).join('');
-                
-                // Auto-select recommended LoRAs
                 this.autoSelectRecommendedLoras(container);
+            } else {
+                container.innerHTML = '<p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">No LoRAs found</p>';
             }
         });
     }
@@ -243,66 +246,99 @@ export class ImageGeneration {
      * Auto-select recommended LoRA models
      */
     autoSelectRecommendedLoras(container) {
-        // Define recommended LoRA patterns (case-insensitive)
-        const recommendedPatterns = [
+        // Tier 1 — Anime style & character detail (always prefer these)
+        const tier1Patterns = [
+            /anime/i,
+            /illustri/i,
+            /illustration/i,
+            /manga/i,
+            /2d.*style/i,
+            /style.*2d/i,
+            /add[_\-\s]*detail/i,
+            /detail[_\-\s]*(?:enhancer|booster|plus)/i,
+            /more[_\-\s]*detail/i,
+            /character[_\-\s]*detail/i,
+            /face[_\-\s]*detail/i,
+            /skin[_\-\s]*detail/i,
+            /eye[_\-\s]*detail/i,
+            /expressive/i,
+            /pony.*xl/i,
+            /xl.*pony/i,
+        ];
+
+        // Tier 2 — General quality / enhancement (fallback)
+        const tier2Patterns = [
             /detail/i,
             /quality/i,
             /enhance/i,
-            /add.*detail/i,
-            /realistic/i,
-            /improvement/i
+            /improve/i,
         ];
-        
+
         let selectedCount = 0;
-        const maxAutoSelect = 2; // Auto-select max 2 LoRAs
-        
-        container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            if (selectedCount >= maxAutoSelect) return;
-            
-            const loraName = checkbox.value;
-            const shouldSelect = recommendedPatterns.some(pattern => pattern.test(loraName));
-            
-            if (shouldSelect) {
+        const maxAutoSelect = 3;
+
+        const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+
+        // Pass 1: tier 1 — anime / character detail
+        for (const checkbox of checkboxes) {
+            if (selectedCount >= maxAutoSelect) break;
+            if (tier1Patterns.some(p => p.test(checkbox.value))) {
                 checkbox.checked = true;
                 selectedCount++;
-                console.log(`[Auto-Select] Selected LoRA: ${loraName}`);
+                console.log(`[Auto-Select LoRA T1] ${checkbox.value}`);
             }
-        });
-        
-        // If no recommended LoRAs found, select the first one
-        if (selectedCount === 0 && this.loras.length > 0) {
-            const firstCheckbox = container.querySelector('input[type="checkbox"]');
-            if (firstCheckbox) {
-                firstCheckbox.checked = true;
-                console.log(`[Auto-Select] Selected first LoRA: ${firstCheckbox.value}`);
+        }
+
+        // Pass 2: tier 2 — general quality (only if still under limit)
+        for (const checkbox of checkboxes) {
+            if (selectedCount >= maxAutoSelect) break;
+            if (!checkbox.checked && tier2Patterns.some(p => p.test(checkbox.value))) {
+                checkbox.checked = true;
+                selectedCount++;
+                console.log(`[Auto-Select LoRA T2] ${checkbox.value}`);
             }
+        }
+
+        // Fallback: select the first LoRA if nothing matched
+        if (selectedCount === 0 && checkboxes.length > 0) {
+            checkboxes[0].checked = true;
+            console.log(`[Auto-Select LoRA fallback] ${checkboxes[0].value}`);
         }
     }
 
     /**
-     * Populate VAE select dropdown
+     * Populate VAE radio button lists
      */
     populateVaeSelect() {
-        const selects = document.querySelectorAll('#vaeSelect, #img2imgVaeSelect');
-        selects.forEach(select => {
-            if (select && this.vaes.length > 0) {
-                select.innerHTML = '<option value="">Default</option>' +
-                    this.vaes.map(vae => {
-                        const name = this._itemName(vae);
-                        return `<option value="${name}">${name}</option>`;
-                    }).join('');
-                
+        const mappings = [
+            { containerId: 'vaeSelectionContainer', radioName: 'vaeChoice' },
+            { containerId: 'img2imgVaeSelectionContainer', radioName: 'img2imgVaeChoice' },
+        ];
+        mappings.forEach(({ containerId, radioName }) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (this.vaes.length > 0) {
+                let html = `<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; padding: 2px 0;">
+                        <input type="radio" name="${radioName}" value="" checked style="accent-color: var(--accent);"> Automatic
+                    </label>`;
+                html += this.vaes.map(vae => {
+                    const name = this._itemName(vae);
+                    return `<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; padding: 2px 0;">
+                        <input type="radio" name="${radioName}" value="${this._escapeAttr(name)}" style="accent-color: var(--accent);">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this._escapeAttr(name)}">${this._escapeHtml(name)}</span>
+                    </label>`;
+                }).join('');
+                container.innerHTML = html;
                 // Auto-select recommended VAE
-                this.autoSelectRecommendedVae(select);
+                this.autoSelectRecommendedVae(container, radioName);
             }
         });
     }
     
     /**
-     * Auto-select recommended VAE
+     * Auto-select recommended VAE (radio button version)
      */
-    autoSelectRecommendedVae(select) {
-        // Define recommended VAE patterns (case-insensitive)
+    autoSelectRecommendedVae(container, radioName) {
         const recommendedPatterns = [
             /anime.*vae/i,
             /anything.*vae/i,
@@ -311,22 +347,18 @@ export class ImageGeneration {
             /orangemix/i
         ];
         
-        // Try to find and select a recommended VAE
-        for (let i = 0; i < select.options.length; i++) {
-            const option = select.options[i];
-            const vaeName = option.value;
-            
-            if (vaeName && recommendedPatterns.some(pattern => pattern.test(vaeName))) {
-                select.selectedIndex = i;
-                console.log(`[Auto-Select] Selected VAE: ${vaeName}`);
+        const radios = container.querySelectorAll(`input[name="${radioName}"]`);
+        for (const radio of radios) {
+            if (radio.value && recommendedPatterns.some(p => p.test(radio.value))) {
+                radio.checked = true;
+                console.log(`[Auto-Select] Selected VAE: ${radio.value}`);
                 return;
             }
         }
-        
-        // If no recommended VAE found but VAEs exist, select the first non-default one
-        if (this.vaes.length > 0 && select.options.length > 1) {
-            select.selectedIndex = 1; // Select first VAE (skip "Default" option)
-            console.log(`[Auto-Select] Selected first VAE: ${select.options[1].value}`);
+        // If no recommended VAE found, select first non-default
+        if (this.vaes.length > 0 && radios.length > 1) {
+            radios[1].checked = true;
+            console.log(`[Auto-Select] Selected first VAE: ${radios[1].value}`);
         }
     }
 
@@ -362,20 +394,21 @@ export class ImageGeneration {
         }
 
         // ── Best VAE ──
-        const vaeSelect = document.getElementById('img2imgVaeSelect');
-        if (vaeSelect && vaeSelect.options.length > 1) {
+        const img2imgVaeContainer = document.getElementById('img2imgVaeSelectionContainer');
+        if (img2imgVaeContainer) {
             const vaePriority = [
                 /kl-f8-anime/i,
                 /orangemix\.vae/i,
                 /anime.*vae/i,
                 /vae.*ft.*mse/i,
             ];
+            const radios = img2imgVaeContainer.querySelectorAll('input[name="img2imgVaeChoice"]');
             let picked = false;
             for (const pattern of vaePriority) {
-                for (let i = 0; i < vaeSelect.options.length; i++) {
-                    if (pattern.test(vaeSelect.options[i].value)) {
-                        vaeSelect.selectedIndex = i;
-                        console.log(`[Auto-Pick] VAE: ${vaeSelect.options[i].value}`);
+                for (const radio of radios) {
+                    if (radio.value && pattern.test(radio.value)) {
+                        radio.checked = true;
+                        console.log(`[Auto-Pick] VAE: ${radio.value}`);
                         picked = true;
                         break;
                     }
@@ -450,33 +483,26 @@ export class ImageGeneration {
     }
 
     /**
-     * Get selected LoRAs from dynamic rows (loraSelectionContainer) or checkbox list (loraList)
+     * Get selected LoRAs from checkbox list
      */
     getSelectedLoras(containerId = 'loraSelectionContainer') {
         const container = document.getElementById(containerId);
         if (!container) return [];
 
         const selectedLoras = [];
-
-        // Dynamic rows: each row has a .lora-select and optional .lora-weight
-        container.querySelectorAll('.lora-select').forEach(sel => {
-            if (sel.value) {
-                const weightEl = sel.closest('div')?.querySelector('.lora-weight');
-                selectedLoras.push({
-                    name: sel.value,
-                    weight: weightEl ? parseFloat(weightEl.value) || 1.0 : 1.0
-                });
-            }
+        container.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+            selectedLoras.push({ name: checkbox.value, weight: 1.0 });
         });
 
-        // Fallback: checkbox list (legacy loraList)
-        if (selectedLoras.length === 0) {
-            container.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-                selectedLoras.push({ name: checkbox.value, weight: 1.0 });
-            });
-        }
-
         return selectedLoras;
+    }
+
+    /**
+     * Get selected VAE from radio buttons
+     */
+    getSelectedVae(radioName = 'vaeChoice') {
+        const checked = document.querySelector(`input[name="${radioName}"]:checked`);
+        return checked ? checked.value : '';
     }
 
     /**
@@ -497,7 +523,7 @@ export class ImageGeneration {
                     seed: -1,
                     batch_size: 1,
                     lora_models: this.getSelectedLoras('loraSelectionContainer'),
-                    vae: document.getElementById('vaeSelect')?.value || ''
+                    vae: this.getSelectedVae('vaeChoice')
                 };
             }
             
@@ -543,7 +569,7 @@ export class ImageGeneration {
                     sampler_name: document.getElementById('img2imgSampler')?.value || 'euler',
                     seed: parseInt(document.getElementById('img2imgSeed')?.value) || -1,
                     lora_models: this.getSelectedLoras('img2imgLoraSelectionContainer'),
-                    vae: document.getElementById('img2imgVaeSelect')?.value || ''
+                    vae: this.getSelectedVae('img2imgVaeChoice')
                 };
             }
             
@@ -611,7 +637,7 @@ export class ImageGeneration {
                 height: document.getElementById('img2imgHeight')?.value || document.getElementById('imageHeight')?.value || 'N/A',
                 denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
                 lora_models: this.getSelectedLoras('loraSelectionContainer').concat(this.getSelectedLoras('img2imgLoraSelectionContainer')).map(l => l.name).join(', ') || 'None',
-                vae: document.getElementById('img2imgVaeSelect')?.value || document.getElementById('vaeSelect')?.value || 'Auto',
+                vae: this.getSelectedVae('img2imgVaeChoice') || this.getSelectedVae('vaeChoice') || 'Auto',
                 seed: document.getElementById('img2imgSeed')?.value || document.getElementById('imageSeed')?.value || '-1'
             };
             
@@ -956,7 +982,7 @@ Prompt:`;
                 size: `${document.getElementById('img2imgWidth')?.value || document.getElementById('imageWidth')?.value}x${document.getElementById('img2imgHeight')?.value || document.getElementById('imageHeight')?.value}`,
                 denoising_strength: document.getElementById('denoisingStrength')?.value || 'N/A',
                 lora_models: this.getSelectedLoras('loraSelectionContainer').concat(this.getSelectedLoras('img2imgLoraSelectionContainer')).map(l => l.name).join(', ') || 'None',
-                vae: document.getElementById('img2imgVaeSelect')?.value || document.getElementById('vaeSelect')?.value || 'Auto',
+                vae: this.getSelectedVae('img2imgVaeChoice') || this.getSelectedVae('vaeChoice') || 'Auto',
                 seed: document.getElementById('img2imgSeed')?.value || document.getElementById('imageSeed')?.value || '-1'
             };
             
@@ -1590,5 +1616,9 @@ Prompt:`;
         const div = document.createElement('div');
         div.textContent = text || '';
         return div.innerHTML;
+    }
+
+    _escapeAttr(text) {
+        return (text || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 }

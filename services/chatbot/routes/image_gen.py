@@ -35,7 +35,7 @@ image_gen_bp = Blueprint("image_gen", __name__)
 
 # â”€â”€ Validation & rate limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _MAX_PROMPT = 2000
-_MAX_DIM = 2048
+_MAX_DIM = 3840
 _MIN_DIM = 64
 _MAX_STEPS = 150
 _RATE_WINDOW = 60
@@ -377,6 +377,15 @@ def generate_image_stream():
                 model_name=data.get("model"),
                 enhance_prompt=data.get("enhance", True),
                 context=context,
+                negative_prompt=data.get("negative_prompt", ""),
+                lora_models=data.get("loras"),
+                vae_name=data.get("vae"),
+                checkpoint=data.get("checkpoint"),
+                preset_id=data.get("preset_id"),
+                hires_fix=data.get("hires_fix", False),
+                hires_scale=float(data.get("hires_scale", 1.5)),
+                hires_denoise=float(data.get("hires_denoise", 0.45)),
+                hires_steps=int(data.get("hires_steps", 15)),
             ):
                 event_type = evt["event"]
                 event_data = evt["data"]

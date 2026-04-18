@@ -100,6 +100,41 @@ MODEL_PROFILES: dict[str, dict] = {
         "vae": None,
         "clip_skip": 1,
     },
+    # -- SDXL anime (downloaded via download_anime_models.ps1) -------------
+    "animagine-xl-4.0-opt.safetensors": {
+        "type": "sdxl", "style": "anime", "priority": 90,
+        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "steps": 28, "cfg": 6.0,
+        "sampler": "euler_ancestral", "scheduler": "karras",
+        "vae": "sdxl_vae.safetensors",
+        "clip_skip": 2,
+    },
+    "noobaiXLVpred_v11.safetensors": {
+        "type": "sdxl", "style": "anime", "priority": 98,
+        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "steps": 28, "cfg": 5.0,
+        "sampler": "euler_ancestral", "scheduler": "karras",
+        "vae": "sdxl_vae.safetensors",
+        "clip_skip": 2,
+    },
+    "ChenkinNoob-XL-V0.2.safetensors": {
+        "type": "sdxl", "style": "anime", "priority": 85,
+        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "steps": 28, "cfg": 5.0,
+        "sampler": "euler_ancestral", "scheduler": "karras",
+        "vae": "sdxl_vae.safetensors",
+        "clip_skip": 2,
+    },
+    # Kohaku XL Delta rev1 — Illustrious-based, ultra-clean anime, vivid colors
+    # Best for portrait/character art; soft shading, high detail iris
+    "kohakuXLDelta_rev1.safetensors": {
+        "type": "sdxl", "style": "anime", "priority": 97,
+        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "steps": 28, "cfg": 5.5,
+        "sampler": "euler_ancestral", "scheduler": "karras",
+        "vae": "sdxl_vae.safetensors",
+        "clip_skip": 2,
+    },
 }
 
 # Quality negative prompts per model type
@@ -115,9 +150,15 @@ NEGATIVE_SD15 = (
 
 NEGATIVE_SDXL = (
     "(worst quality:1.4), (low quality:1.4), lowres, blurry, jpeg artifacts, "
-    "bad anatomy, bad proportions, bad hands, missing fingers, extra fingers, "
-    "fused fingers, poorly drawn hands, poorly drawn face, deformed, "
-    "long neck, ugly, watermark, text, error, 3d, render"
+    "bad anatomy, (bad hands:1.3), (missing fingers:1.3), (extra fingers:1.4), "
+    "(six fingers:1.4), (extra digits:1.3), fewer digits, (fused fingers:1.3), "
+    "malformed hands, poorly drawn hands, "
+    "poorly drawn face, asymmetrical face, "
+    "(deformed iris:1.4), (deformed pupils:1.4), (asymmetrical eyes:1.3), "
+    "(poorly drawn eyes:1.3), (bad eyes:1.3), (simple eyes:1.3), (flat eyes:1.2), "
+    "cross-eyed, extra pupils, empty eyes, blurry eyes, mismatched eyes, "
+    "extra arms, extra legs, twisted body, clumped hair, fused hair, "
+    "deformed, ugly, cropped, watermark, username, signature, text, error"
 )
 
 # LoRAs that boost detail quality — ordered by priority (first found is used)
@@ -137,16 +178,71 @@ EYE_LORAS_SD15 = [
 
 DETAIL_LORAS_SDXL = [
     ("add-detail-xl.safetensors", 0.35),
-    ("anime_detailer_xl.safetensors", 0.3),
+    ("anime_detailer_xl.safetensors", 0.35),
+    # downloaded via download_anime_models.ps1 (LoRAs/anime-quality/)
+    ("anime-quality/anime_detailer_xl.safetensors", 0.35),
+    # iris/lash line detail — adds fine linework; keep low to avoid over-sharpening
+    ("anime-quality/extremely detailed.safetensors", 0.2),
+    # pupil texture, catchlight, iris ring — very subtle; stack last
+    ("anime-quality/micro details, fine details, detailed.safetensors", 0.15),
 ]
 EYE_LORAS_SDXL = [
+    # General-purpose eye quality LoRAs (no forced pose/trigger)
+    ("Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", 0.45),
+    # eye_check_by_hand is a Pony concept LoRA (trigger: eyecheck, hand on forehead)
+    # — NOT suitable for auto-stacking; use only when user explicitly requests it
+    # Generic SDXL eye LoRAs (fallback)
     ("PerfectEyesXL.safetensors", 0.3),
     ("detailed_eyes_xl.safetensors", 0.25),
     ("perfect_eyes_xl.safetensors", 0.25),
 ]
+
+# 5-slot quality LoRA stack for SDXL auto-resolution (Path B, no user LoRAs).
+# Each slot tries candidates in order; first found is used. One per slot → 5 max.
+QUALITY_STACK_SDXL: list[list[tuple[str, float]]] = [
+    # Slot 1: Eye / iris quality (general-purpose, no forced pose)
+    [
+        ("Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors", 0.30),
+        ("anime-quality/huge anime eyes.safetensors", 0.25),
+    ],
+    # Slot 2: Portrait framing + gaze anchor
+    [
+        ("anime-quality/headshot.safetensors", 0.22),
+        ("anime-quality/looking at viewer.safetensors", 0.22),
+    ],
+    # Slot 3: Fine detail (iris texture, linework)
+    [
+        ("anime-quality/micro details, fine details, detailed.safetensors", 0.18),
+        ("anime-quality/extremely detailed.safetensors", 0.18),
+    ],
+    # Slot 4: Anatomy / pose (hands, body proportion)
+    [
+        ("anime-quality/dynamic anatomy.safetensors", 0.40),
+        ("anime-quality/striking a confident pose.safetensors", 0.30),
+    ],
+    # Slot 5: Hair strand definition
+    [
+        ("anime-quality/messy hair.safetensors", 0.25),
+    ],
+]
 STYLE_LORAS_SDXL = [
-    ("anime_nouveau_xl.safetensors", 0.25),
-    ("pvc_style_animagine_xl_4.safetensors", 0.2),
+    ("anime_nouveau_xl.safetensors", 0.3),
+    ("pvc_style_animagine_xl_4.safetensors", 0.25),
+    # downloaded via download_anime_models.ps1
+    ("anime-quality/style_enhancer_xl.safetensors", 0.4),
+]
+ANATOMY_LORAS_SDXL = [
+    # downloaded via download_anime_models.ps1
+    ("anime-quality/dynamic anatomy.safetensors", 0.5),
+    ("anime-quality/striking a confident pose.safetensors", 0.4),
+]
+PORTRAIT_LORAS_SDXL = [
+    # downloaded via download_anime_models.ps1 — face framing / portrait detail
+    ("anime-quality/headshot.safetensors", 0.35),
+]
+HAIR_LORAS_SDXL = [
+    # downloaded via download_anime_models.ps1 — adds hair softness / strand definition
+    ("anime-quality/messy hair.safetensors", 0.3),
 ]
 
 # Keywords for style classification
@@ -178,6 +274,10 @@ def _classify_style(prompt: str, style_preset: str | None) -> str:
 
 
 def _pick_resolution(profile: dict, req_w: int, req_h: int) -> tuple[int, int]:
+    # If user explicitly set non-default dimensions, honour them (align to 8 for latent space).
+    if req_w != 1024 or req_h != 1024:
+        return (req_w // 8 * 8, req_h // 8 * 8)
+    # Fall back to profile presets based on aspect ratio.
     ratio = req_w / max(req_h, 1)
     if ratio > 1.15:
         return profile["res_landscape"]
@@ -209,9 +309,21 @@ def _build_txt2img_workflow(
         node_id += 1
         return str(node_id)
 
-    # -- Quality tag prefix for SD1.5 anime models
+    # -- Quality tag prefix for anime models (SD1.5 and SDXL/Illustrious)
     if model_type == "sd15":
         quality_prefix = "masterpiece, best quality, highly detailed, "
+        if not prompt.lower().startswith(("masterpiece", "best quality")):
+            prompt = quality_prefix + prompt
+    elif model_type in ("sdxl", "ilxl"):
+        quality_prefix = (
+            "masterpiece, best quality, very aesthetic, absurdres, "
+            "beautiful face, symmetrical face, detailed face, "
+            "large anime eyes, almond-shaped eyes, symmetrical eyes, "
+            "defined upper eyelid, long eyelashes, "
+            "(detailed iris:1.2), gradient iris, ringed iris, "
+            "(rounded pupil:1.1), (catchlight:1.1), "
+            "natural hand pose, five fingers, "
+        )
         if not prompt.lower().startswith(("masterpiece", "best quality")):
             prompt = quality_prefix + prompt
 
@@ -466,6 +578,7 @@ class ComfyUIProvider(BaseImageProvider):
         self._available_ckpts: list[str] | None = None
         self._available_vaes: list[str] | None = None
         self._available_loras: list[str] | None = None
+        self._available_controlnets: list[str] | None = None
 
         self._force_checkpoint: str = kwargs.get("checkpoint", os.getenv("COMFYUI_CHECKPOINT", ""))
         self._upscale_factor: float = float(kwargs.get("upscale_factor", os.getenv("COMFYUI_UPSCALE_FACTOR", "1.5")))
@@ -521,9 +634,23 @@ class ComfyUIProvider(BaseImageProvider):
         except Exception:
             pass
 
+        try:
+            r = self._http.get("/object_info/ControlNetLoader", timeout=5.0)
+            if r.status_code == 200:
+                self._available_controlnets = (
+                    r.json()
+                    .get("ControlNetLoader", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("control_net_name", [[]])[0]
+                )
+        except Exception:
+            self._available_controlnets = []
+
         logger.info(
             f"[ComfyUI] Discovered: {len(self._available_ckpts)} checkpoints, "
-            f"{len(self._available_vaes)} VAEs, {len(self._available_loras)} LoRAs"
+            f"{len(self._available_vaes)} VAEs, {len(self._available_loras)} LoRAs, "
+            f"{len(self._available_controlnets or [])} ControlNets"
         )
 
     def _select_model(self, req: ImageRequest) -> tuple[str, dict]:
@@ -570,20 +697,40 @@ class ComfyUIProvider(BaseImageProvider):
         return pool[0]
 
     def _resolve_loras(self, model_type: str, style: str = "anime") -> list[tuple[str, float]]:
-        """Select best available LoRAs per category (detail + anatomy + eyes + style)."""
+        """Select LoRAs for generation.
+        
+        SDXL anime checkpoints (Animagine XL 4.0, NoobAI XL, etc.) are already
+        trained for high-quality anime output. We stack quality LoRAs
+        (eye detail + anatomy/pose + hair) to fill gaps the checkpoint misses.
+        
+        Only SD1.5 models benefit from a single detail LoRA.
+        """
         if not self._enable_loras or not self._available_loras:
             return []
 
         is_xl = model_type.startswith("sdxl")
 
-        # Pick one LoRA from each category (first available wins)
-        categories: list[list[tuple[str, float]]] = []
+        # SDXL: stack up to 5 quality LoRAs (eye + portrait + detail + anatomy + hair)
+        # Each slot resolves independently; 1 LoRA per slot, 5 max total.
         if is_xl:
-            categories = [DETAIL_LORAS_SDXL, EYE_LORAS_SDXL]
-            if style == "anime":
-                categories.append(STYLE_LORAS_SDXL)
-        else:
-            categories = [DETAIL_LORAS_SD15, ANATOMY_LORAS_SD15, EYE_LORAS_SD15]
+            found: list[tuple[str, float]] = []
+            for slot in QUALITY_STACK_SDXL:
+                for lora_name, strength in slot:
+                    matched = None
+                    if lora_name in self._available_loras:
+                        matched = lora_name
+                    else:
+                        for l in self._available_loras:
+                            if l.endswith("/" + lora_name) or l.endswith("\\" + lora_name):
+                                matched = l
+                                break
+                    if matched:
+                        found.append((matched, strength))
+                        break  # one per slot
+            return found
+
+        # SD1.5: use at most 1 detail LoRA (the most impactful category)
+        categories: list[list[tuple[str, float]]] = [DETAIL_LORAS_SD15]
 
         found: list[tuple[str, float]] = []
         for cat in categories:
@@ -602,8 +749,8 @@ class ComfyUIProvider(BaseImageProvider):
                     found.append((matched, strength))
                     break  # one per category
 
-        # Limit to 3 LoRAs max to avoid VRAM issues
-        return found[:3]
+        # Limit to 1 LoRA for SD1.5 (clean output)
+        return found[:1]
 
     @property
     def is_available(self) -> bool:
@@ -668,10 +815,14 @@ class ComfyUIProvider(BaseImageProvider):
                     f"hires={'latent→' + str(upscale_to) if upscale_to else 'none'}"
                 )
 
+                # Honour user-specified steps / guidance; fall back to profile defaults.
+                eff_steps = req.steps if req.steps != 28 else profile["steps"]
+                eff_cfg = req.guidance if req.guidance != 3.5 else profile["cfg"]
+
                 if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
                     workflow = _build_img2img_workflow(
                         prompt=req.prompt, negative=negative,
-                        steps=profile["steps"], cfg=profile["cfg"],
+                        steps=eff_steps, cfg=eff_cfg,
                         seed=seed,
                         sampler=profile["sampler"], scheduler=profile["scheduler"],
                         strength=req.strength,
@@ -682,7 +833,7 @@ class ComfyUIProvider(BaseImageProvider):
                     workflow = _build_txt2img_workflow(
                         prompt=req.prompt, negative=negative,
                         width=native_w, height=native_h,
-                        steps=profile["steps"], cfg=profile["cfg"],
+                        steps=eff_steps, cfg=eff_cfg,
                         seed=seed,
                         sampler=profile["sampler"], scheduler=profile["scheduler"],
                         checkpoint=checkpoint, vae=vae,
@@ -742,11 +893,65 @@ class ComfyUIProvider(BaseImageProvider):
     def _build_lora_workflow(
         self, req: ImageRequest, seed: int, checkpoint: str, vae_name: str | None,
     ) -> dict:
-        """Select and build the right workflow template via workflow_builder."""
+        """Select and build the right workflow template via workflow_builder.
+
+        Looks up the checkpoint profile to apply proper sampler, scheduler,
+        CFG, steps, clip_skip, quality prefix, and negative prompt — the same
+        quality settings used by the no-LoRA path.
+        """
+        profile = MODEL_PROFILES.get(checkpoint, {})
+        mtype = profile.get("type", "sd15")
+
+        # Sampler / scheduler from profile (animagine/noobai use euler_ancestral/karras)
+        wb_sampler = profile.get("sampler", "euler_ancestral")
+        wb_scheduler = profile.get("scheduler", "normal")
+        wb_clip_skip = profile.get("clip_skip", 1)
+
+        # Use profile steps/cfg only when request still has defaults
+        _DEFAULT_STEPS = 28
+        _DEFAULT_CFG = 3.5
+        wb_steps = req.steps if req.steps != _DEFAULT_STEPS else profile.get("steps", req.steps)
+        wb_cfg = req.guidance if req.guidance != _DEFAULT_CFG else profile.get("cfg", 7.0 if mtype == "sd15" else 5.0)
+
+        # Quality prefix and negative prompt per model family
+        if mtype == "sd15":
+            quality_prefix = "masterpiece, best quality, highly detailed, "
+            neg = req.negative_prompt if req.negative_prompt else NEGATIVE_SD15
+        elif mtype.startswith("sdxl") or mtype == "ilxl":
+            quality_prefix = (
+                "masterpiece, best quality, very aesthetic, absurdres, "
+                "beautiful face, symmetrical face, detailed face, "
+                "large anime eyes, almond-shaped eyes, symmetrical eyes, "
+                "defined upper eyelid, long eyelashes, "
+                "(detailed iris:1.2), gradient iris, ringed iris, "
+                "(rounded pupil:1.1), (catchlight:1.1), "
+                "natural hand pose, five fingers, "
+            )
+            neg = req.negative_prompt if req.negative_prompt else NEGATIVE_SDXL
+        else:
+            quality_prefix = "masterpiece, best quality, "
+            neg = req.negative_prompt if req.negative_prompt else NEGATIVE_SD15
+
+        # Shared kwargs for all builders
+        builder_kwargs = dict(
+            sampler=wb_sampler,
+            scheduler=wb_scheduler,
+            steps=wb_steps,
+            cfg=wb_cfg,
+            clip_skip=wb_clip_skip,
+            quality_prefix=quality_prefix,
+            negative_prompt=neg,
+        )
+
+        logger.info(
+            f"[ComfyUI/LoRA] ckpt={checkpoint} type={mtype} "
+            f"sampler={wb_sampler}/{wb_scheduler} steps={wb_steps} cfg={wb_cfg} "
+            f"clip_skip={wb_clip_skip}"
+        )
+
         use_hires = req.extra.get("hires_fix", False)
 
         if req.mode == ImageMode.IMAGE_TO_IMAGE and req.source_image_b64:
-            # Upload source image first
             import base64 as _b64
             img_data = req.source_image_b64
             if "," in img_data:
@@ -758,16 +963,17 @@ class ComfyUIProvider(BaseImageProvider):
             )
             upload_resp.raise_for_status()
             image_name = upload_resp.json().get("name", "input.png")
-            return build_img2img_workflow(req, seed, checkpoint, image_name, vae_name)
+            return build_img2img_workflow(req, seed, checkpoint, image_name, vae_name, **builder_kwargs)
         elif use_hires:
             return build_hires_fix_workflow(
                 req, seed, checkpoint, vae_name,
                 hires_scale=float(req.extra.get("hires_scale", 1.5)),
                 hires_denoise=float(req.extra.get("hires_denoise", 0.45)),
                 hires_steps=int(req.extra.get("hires_steps", 15)),
+                **builder_kwargs,
             )
         else:
-            return build_txt2img_workflow(req, seed, checkpoint, vae_name)
+            return build_txt2img_workflow(req, seed, checkpoint, vae_name, **builder_kwargs)
 
     def get_loras(self) -> list[str]:
         """List available LoRA models from ComfyUI."""
