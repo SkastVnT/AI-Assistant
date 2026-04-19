@@ -7,7 +7,7 @@ param(
     [switch]$DryRun
 )
 
-$ApiKey    = "aac46d81619df057bb514b8598802501"
+$ApiKey    = 
 $TargetDir = Join-Path $PSScriptRoot "..\..\ComfyUI\models\loras"
 $TargetDir = [System.IO.Path]::GetFullPath($TargetDir)
 

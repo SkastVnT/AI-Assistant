@@ -3,7 +3,7 @@
 # Downloads 11 lingerie LoRA models from CivitAI into ComfyUI/models/loras/
 # Usage: .\app\scripts\download_lingerie_loras.ps1
 
-$API_KEY = "aac46d81619df057bb514b8598802501"
+
 $DEST = Join-Path $PSScriptRoot "..\..\ComfyUI\models\loras"
 
 New-Item -ItemType Directory -Force -Path $DEST | Out-Null
