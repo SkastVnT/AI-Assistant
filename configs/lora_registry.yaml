@@ -1,0 +1,2072 @@
+# ── LoRA Registry — Complete inventory of all available LoRAs ─────
+#
+# Categories:
+#   quality      — General quality/style enhancement
+#   eyes         — Eye detail and effects (including bloodshot, rolling, empty eyes)
+#   face         — Face detail and expression effects
+#   drunk_sleep  — Drunk and sleep expressions
+#   drool        — Drool / saliva effects
+#   body         — Body detail and pose effects
+#   clothing     — Clothing-related effects
+#   nsfw_effect  — NSFW-specific visual effects
+#   xray         — X-ray / see-through effects
+#   uncensor     — Censorship removal
+#   character    — Character-specific LoRAs (Genshin, HSR, Arknights, LoL, etc.)
+#
+# Locations:
+#   comfyui  — ComfyUI/models/loras/
+#   lora_dir — LORA/ (root-level, may need copying to ComfyUI)
+#
+# Each LoRA has recommended strength ranges. Actual strength
+# should be adjusted based on context:
+#   - Detection inpaint passes: use lower end (0.3-0.5)
+#   - Full image generation: use higher end (0.5-0.8)
+#   - Stacking multiple LoRAs: reduce each by ~30%
+
+# ── Quality / Style Enhancement ──────────────────────────────────
+
+quality:
+- name: "Anime_artistic_2.safetensors"
+  location: comfyui
+  description: "General anime quality boost (Illustrious-compatible)"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.55
+  recommended_clip: 0.45
+  compatible_models: ["illustrious", "noobai", "waifu"]
+  tags: ["quality", "detail", "shading"]
+
+- name: "Anime_artistic_v3_illustrious.safetensors"
+  location: comfyui
+  description: "v3 quality boost for Illustrious"
+  strength_model_range: [0.30, 0.60]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.50
+  recommended_clip: 0.40
+  compatible_models: ["illustrious"]
+  tags: ["quality", "detail"]
+
+- name: "Anime_Enhancer_V4_XL.safetensors"
+  location: comfyui
+  description: "XL anime enhancement (higher quality shading and detail)"
+  strength_model_range: [0.25, 0.55]
+  strength_clip_range: [0.20, 0.45]
+  recommended_model: 0.40
+  recommended_clip: 0.35
+  compatible_models: ["sdxl", "illustrious"]
+  tags: ["quality", "enhancer"]
+
+- name: "HueSpark1llust.safetensors"
+  location: comfyui
+  description: "Color vibrancy and hue enhancement"
+  strength_model_range: [0.20, 0.45]
+  strength_clip_range: [0.15, 0.35]
+  recommended_model: 0.35
+  recommended_clip: 0.25
+  compatible_models: ["illustrious"]
+  tags: ["color", "vibrancy"]
+
+- name: "HS_LightColor_Illustrious.safetensors"
+  location: comfyui
+  description: "Light and color enhancement for Illustrious"
+  strength_model_range: [0.20, 0.45]
+  strength_clip_range: [0.15, 0.35]
+  recommended_model: 0.30
+  recommended_clip: 0.25
+  compatible_models: ["illustrious"]
+  tags: ["lighting", "color"]
+
+- name: "Expressive_H-000001.safetensors"
+  location: comfyui
+  description: "Expressive face/body animation style"
+  strength_model_range: [0.25, 0.55]
+  strength_clip_range: [0.20, 0.45]
+  recommended_model: 0.40
+  recommended_clip: 0.35
+  tags: ["expression", "style"]
+
+- name: "DASV3.safetensors"
+  location: comfyui
+  description: "DAS quality enhancer v3"
+  strength_model_range: [0.25, 0.50]
+  strength_clip_range: [0.20, 0.40]
+  recommended_model: 0.35
+  recommended_clip: 0.30
+  tags: ["quality"]
+
+- name: "IFL_v1.0_IL.safetensors"
+  location: comfyui
+  description: "Style enhancement for Illustrious"
+  strength_model_range: [0.25, 0.50]
+  strength_clip_range: [0.20, 0.40]
+  recommended_model: 0.35
+  recommended_clip: 0.30
+  compatible_models: ["illustrious"]
+  tags: ["style"]
+
+- name: "PONYXL_STYLE_Gagala_ownwaifu.safetensors"
+  location: comfyui
+  description: "PonyXL art style (Gagala)"
+  strength_model_range: [0.30, 0.60]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  compatible_models: ["ponyxl"]
+  tags: ["style", "ponyxl"]
+
+- name: "Anime_Enhancer_flux_by_n0utis.safetensors"
+  location: comfyui
+  description: "Anime enhancer for FLUX models"
+  strength_model_range: [0.30, 0.60]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  compatible_models: ["flux"]
+  tags: ["quality", "flux"]
+
+- name: "dskbSPu.safetensors"
+  location: comfyui
+  description: "General style/quality"
+  strength_model_range: [0.25, 0.50]
+  strength_clip_range: [0.20, 0.40]
+  recommended_model: 0.35
+  recommended_clip: 0.30
+  tags: ["quality"]
+
+- name: "ppfs.safetensors"
+  location: comfyui
+  description: "General enhancement"
+  strength_model_range: [0.25, 0.50]
+  strength_clip_range: [0.20, 0.40]
+  recommended_model: 0.35
+  recommended_clip: 0.30
+  tags: ["quality"]
+
+- name: "shihundredconceptspecialV1ill.safetensors"
+  location: comfyui
+  description: "Special concept LoRA for Illustrious"
+  strength_model_range: [0.25, 0.55]
+  strength_clip_range: [0.20, 0.45]
+  recommended_model: 0.40
+  recommended_clip: 0.35
+  compatible_models: ["illustrious"]
+  tags: ["concept", "style"]
+
+- name: "add_micro_details_v6.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1377820
+  description: "Add Micro Details concept — fine texture, pores, skin details. v6.0. 1.6M+ downloads."
+  strength_model_range: [0.20, 0.50]
+  strength_clip_range: [0.15, 0.40]
+  recommended_model: 0.50
+  recommended_clip: 0.30
+  compatible_models: ["illustrious", "pony", "noobai", "flux"]
+  tags: ["quality", "detail", "micro", "texture"]
+  trigger_words: ["addmicrodetails"]
+  notes: "Use 0.2~0.3 for photorealistic images"
+
+# ── Eye Effects ──────────────────────────────────────────────────
+
+eyes:
+- name: "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors"
+  location: comfyui
+  description: "Perfect anime eye detail and clarity"
+  strength_model_range: [0.30, 0.55]
+  strength_clip_range: [0.25, 0.45]
+  recommended_model: 0.45
+  recommended_clip: 0.35
+  compatible_models: ["illustrious"]
+  tags: ["eyes", "detail"]
+  detection_regions: ["full_eyes", "eyes"]
+
+- name: "eye_check_by_hand.safetensors"
+  location: comfyui
+  description: "Eye symmetry and hand-checked detail"
+  strength_model_range: [0.20, 0.45]
+  strength_clip_range: [0.15, 0.35]
+  recommended_model: 0.35
+  recommended_clip: 0.25
+  tags: ["eyes", "symmetry"]
+  detection_regions: ["full_eyes", "eyes"]
+
+- name: "Doll_Eyes_XL__Eye_Contacts-000004.safetensors"
+  location: lora_dir
+  description: "Doll eyes / colored contact lens effect"
+  strength_model_range: [0.25, 0.55]
+  strength_clip_range: [0.20, 0.45]
+  recommended_model: 0.40
+  recommended_clip: 0.35
+  tags: ["eyes", "effect", "contacts"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["doll eyes", "colored contacts", "contact lenses"]
+
+- name: "bloodshot_eyes_v1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1839798
+  description: "Bloodshot / red eyes effect (Illustrious)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 0.90
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["eyes", "effect", "bloodshot"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["bloodshot eyes"]
+
+- name: "bloodshot_eyes_v2.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1970882
+  description: "Bloodshot eyes V2 — improved version (Illustrious)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 0.90
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["eyes", "effect", "bloodshot"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["bloodshot eyes"]
+
+- name: "rolling_eyes_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 158012
+  description: "Rolling back eyes effect (SD1.5)"
+  strength_model_range: [1.00, 1.40]
+  strength_clip_range: [0.80, 1.10]
+  recommended_model: 1.20
+  recommended_clip: 0.90
+  compatible_models: ["sd15"]
+  tags: ["eyes", "effect", "rolling"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["ROLLING EYES"]
+
+- name: "sleepy_eyes_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 140423
+  description: "Sleepy / half-closed droopy eyes (SD1.5). Trigger optional."
+  strength_model_range: [1.00, 1.50]
+  strength_clip_range: [0.80, 1.20]
+  recommended_model: 1.20
+  recommended_clip: 0.90
+  compatible_models: ["sd15"]
+  tags: ["eyes", "effect", "sleepy"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["sleepy"]
+  notes: "Trigger 'sleepy' is optional — effect activates without it"
+
+- name: "sleeping_eyes_open_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1297732
+  description: "Sleeping with eyes open / Unconscious effect (Illustrious)"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["eyes", "effect", "unconscious", "empty"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["0utc0ld"]
+  keywords: ["unconscious", "empty eyes", "wide-eyed", "looking away", "saliva", "drooling"]
+
+- name: "empty_eyes_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 472484
+  description: "Empty / lifeless / dead eyes (Pony)"
+  strength_model_range: [0.80, 1.10]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["pony"]
+  tags: ["eyes", "effect", "empty", "hypnosis"]
+  detection_regions: ["full_eyes", "eyes"]
+  trigger_words: ["empty eyes"]
+
+- name: "empty_eyes_utsurome_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 8275
+  description: "Empty Eyes / Utsurome — hypnosis, dead eyes (SD1.5). No trigger needed."
+  strength_model_range: [0.50, 1.00]
+  strength_clip_range: [0.40, 0.85]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["eyes", "effect", "empty", "hypnosis"]
+  detection_regions: ["full_eyes", "eyes"]
+  notes: "No trigger word needed — effect activates passively"
+
+- name: "empty_eyes_diffuser_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 91611
+  description: "Empty Eyes Highlighting Diffuser — removes eye highlights and pupils (SD1.5)"
+  strength_model_range: [0.40, 0.90]
+  strength_clip_range: [0.35, 0.75]
+  recommended_model: 0.65
+  recommended_clip: 0.55
+  compatible_models: ["sd15"]
+  tags: ["eyes", "effect", "empty", "diffuser"]
+  detection_regions: ["full_eyes", "eyes"]
+  notes: "No trigger needed — removes eye highlights passively"
+
+# ── Face Effects ─────────────────────────────────────────────────
+
+face:
+- name: "Pig_Nose_Multi_IL_v1.0-000007.safetensors"
+  location: lora_dir
+  description: "豚鼻 Pig Nose/Pushing Nose Up Multi-Concept (Illustrious XL) — 4 concepts"
+  strength_model_range: [0.60, 0.90]
+  strength_clip_range: [0.55, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["face", "nose", "effect", "humiliation"]
+  detection_regions: ["face"]
+  civitai_source: "https://civitai.com/models/1359398?modelVersionId=1535720"
+  trigger_words_by_concept:
+    self_pig_nose:
+      words: "self p1g nose, pushing nose up, finger on own nose, hand up, nostrils"
+      description: "自分で豚鼻 — push own nose with own finger"
+    pov_forced_pig_nose:
+      words: "forced p1g nose front, pushing nose up, finger on another's nose, pov hand, covering one eye, nostrils"
+      description: "主観豚鼻 — POV forced pig nose from front"
+    forced_pig_nose_back:
+      words: "forced p1g nose back, pushing nose up, finger on another's nose, covering forehead, nostrils, male head out
+        of frame"
+      description: "後ろから豚鼻 — forced pig nose from behind"
+    taped_pig_nose:
+      words: "taped p1g nose, tape on nose, pushing nose up, nostrils"
+      description: "テープで豚鼻 — taped pig nose"
+
+- name: "mouthpull_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 154510
+  description: "Mouth pull — finger in own mouth open (SD1.5)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["sd15"]
+  tags: ["face", "mouth", "pull", "expression"]
+  detection_regions: ["face"]
+  trigger_words: ["mouth_pull", "open_mouth", "finger_in_own_mouth", "fangs", "tongue", "tongue_out"]
+
+- name: "mouth_wider_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1143396
+  description: "Mouth wider anime style (Illustrious) — exaggerated wide open mouth"
+  strength_model_range: [0.80, 1.10]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["face", "mouth", "expression"]
+  detection_regions: ["face"]
+  trigger_words: ["mouthwider"]
+  notes: "Add 'clench teeth' to close mouth; add 'tongue' for half-open"
+
+- name: "mouth_pull_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 954895
+  description: "Pulling another's mouth open — finger in another's mouth (Pony)"
+  strength_model_range: [0.70, 0.80]
+  strength_clip_range: [0.60, 0.70]
+  recommended_model: 0.75
+  recommended_clip: 0.65
+  compatible_models: ["pony"]
+  tags: ["face", "mouth", "pull", "expression"]
+  detection_regions: ["face"]
+  trigger_words: ["open mouth", "finger in another's mouth", "mouth pull"]
+
+- name: "akanbe_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 486043
+  description: "Akanbe pose — tongue out with eyelid pull gesture (Pony XL)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["pony"]
+  tags: ["face", "expression", "akanbe", "tongue"]
+  detection_regions: ["face"]
+  trigger_words: ["akanbe", "tongue out", "eyelid pull", "finger to eyelid"]
+
+- name: "double_cheek_pull_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1388307
+  description: "Double cheek pull — both cheeks pinched simultaneously (Illustrious). Author: nochekaiser881."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["face", "expression", "cheek", "pull"]
+  detection_regions: ["face"]
+  trigger_words: ["double cheek pull", "blush", "smile", "open mouth", "one eye closed", "teeth", "grin", "pinching", "cheek
+      pinching"]
+
+- name: "ohogao_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 322121
+  description: "Ohogao face expression — puckered trembling lips (Illustrious + Pony). 422K+ downloads."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious", "pony"]
+  tags: ["face", "expression", "ohogao"]
+  detection_regions: ["face"]
+  trigger_words: ["ohogao", "puckered lips", "trembling", "tearing up", "v-shaped eyebrows", "rolling eyes", "open mouth tongue
+      out", "tongue up"]
+  notes: "Author: Magochi. 422K+ downloads."
+
+- name: "better_crying_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 174836
+  description: "Better crying / tears effect (SD1.5)"
+  strength_model_range: [0.50, 0.80]
+  strength_clip_range: [0.40, 0.70]
+  recommended_model: 0.65
+  recommended_clip: 0.55
+  compatible_models: ["sd15"]
+  tags: ["face", "expression", "crying", "tears"]
+  detection_regions: ["face"]
+  trigger_words: ["CRY TEAR"]
+
+- name: "pearly_mouthpull_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2405459
+  description: "Pearly Mouthpull — finger pulling mouth open with drool (Illustrious)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["face", "mouth", "pull", "drool", "expression"]
+  detection_regions: ["face"]
+  trigger_words: ["mouthpull", "tongue out", "drooling"]
+
+- name: "uneven_ahegao_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 215444
+  description: "Uneven Ahegao — one eye half-closed ahegao expression (SD1.5)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["sd15"]
+  tags: ["face", "expression", "ahegao"]
+  detection_regions: ["face"]
+  trigger_words: ["ahehalf", "tongue out", "saliva", "drooling", "trembling", "constricted pupils"]
+
+# ── Drunk / Sleep Expressions ──────────────────────────────────────
+
+drunk_sleep:
+- name: "drunk_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1323366
+  description: "Drunk expression concept (Pony)"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["face", "expression", "drunk"]
+  detection_regions: ["face"]
+  trigger_words: ["Dr1nk", "blush", "drunk bubbles", "squeans", "alcohol"]
+
+- name: "drunk_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 549243
+  description: "Drunk expression concept (Illustrious)"
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["face", "expression", "drunk"]
+  detection_regions: ["face"]
+  trigger_words: ["Dr1nk", "drunk", "bubbles", "squeans"]
+  keywords: ["blush", "drunk bubbles", "alcohol"]
+
+- name: "drunk_pouting_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1887900
+  description: "Drunk pouting concept (Illustrious). Author: nochekaiser881."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["face", "expression", "drunk", "pout"]
+  detection_regions: ["face"]
+  trigger_words: ["drunk pouting", "solo", "looking at viewer", "blush", ":t", "pout", "whiskey", "half-closed eyes"]
+
+- name: "drunk_bar_stool_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1461180
+  description: "Drunk asleep on bar stool pose (Pony + Illustrious)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["pony", "illustrious"]
+  tags: ["pose", "expression", "drunk", "sleeping"]
+  trigger_words: ["drunk", "stool position", "sleeping", "drooling", "bar", "alcohol", "bottle"]
+
+- name: "drunk_and_sleep_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1927838
+  description: "Drunk & sleep — passed out drunk lying down (Illustrious). CLIP SKIP 2."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  clip_skip: 2
+  tags: ["pose", "expression", "drunk", "sleeping"]
+  trigger_words: ["drunk_sleep"]
+  keywords: ["drunk", "closed eyes", "sleepy", "sleeping", "lying", "on back", "mouth drool", "saliva trail"]
+
+- name: "angel_sleep_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 64238
+  description: "Angel SleePeace — peaceful sleeping concept (SD1.5)"
+  strength_model_range: [0.40, 1.00]
+  strength_clip_range: [0.35, 0.85]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  tags: ["pose", "expression", "sleeping"]
+  trigger_words: ["sleepeace"]
+  notes: "Use 0.4~0.7 for happy face variant; 0.8~1.0 for peaceful sleep"
+
+- name: "sleep_peek_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1920246
+  description: "[Concept] Sleep Peek — sleeping girl clothes/skirt lifted (Pony)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["pony"]
+  tags: ["pose", "sleeping", "nsfw"]
+  trigger_words: ["Sleep_Peek", "closed eyes", "sleeping", "clothes lift", "skirt lift", "panty pull"]
+
+# ── Drool / Saliva Effects ─────────────────────────────────────────
+
+drool:
+- name: "drool_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1190775
+  description: "Drool / saliva effect (Illustrious). IMPORTANT: trigger is Dr00l (zero not letter O)."
+  strength_model_range: [0.80, 1.20]
+  strength_clip_range: [0.70, 1.00]
+  recommended_model: 1.00
+  recommended_clip: 0.85
+  compatible_models: ["illustrious"]
+  tags: ["face", "drool", "saliva", "effect"]
+  detection_regions: ["face"]
+  trigger_words: ["Dr00l"]
+  keywords: ["drooling", "saliva", "drool"]
+  notes: "CRITICAL: trigger is Dr00l (zero, not the letter O)"
+
+- name: "drooling_on_sleep_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 14228
+  description: "Drooling while sleeping anime effect (SD1.5)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["sd15"]
+  tags: ["face", "drool", "saliva", "sleeping"]
+  detection_regions: ["face"]
+  trigger_words: ["drooling", "saliva", "sleep"]
+
+- name: "ball_gag_drooling_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1895630
+  description: "Ball gag with drooling / saliva effect (Illustrious)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["face", "drool", "saliva", "gag", "nsfw"]
+  detection_regions: ["face"]
+  trigger_words: ["ball_gag_drooling", "wiffle gag", "saliva"]
+
+- name: "drool_bottle_concept_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2123267
+  description: "Drooling saliva spit into a bottle concept (Illustrious)"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["face", "drool", "saliva", "concept"]
+  detection_regions: ["face"]
+  trigger_words: ["SbtlingSP"]
+
+# ── Body / Pose Effects ──────────────────────────────────────────
+
+body:
+- name: "my_girls_armpit_hair_anime_style.safetensors"
+  location: comfyui
+  description: "Armpit hair detail for anime style"
+  strength_model_range: [0.30, 0.60]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  tags: ["body", "armpit", "hair"]
+  detection_regions: ["armpit"]
+  trigger_words: ["armpit hair"]
+
+- name: "test20620illustrious20from20behind.QnNV.safetensors"
+  location: comfyui
+  description: "From-behind pose enhancement"
+  strength_model_range: [0.30, 0.55]
+  strength_clip_range: [0.25, 0.45]
+  recommended_model: 0.40
+  recommended_clip: 0.35
+  compatible_models: ["illustrious"]
+  tags: ["pose", "from_behind"]
+  trigger_words: ["from behind"]
+
+- name: "dynamic_poses_ponyxl.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 438059
+  description: "Dynamic Poses slider — extreme angles and foreshortening (Pony + Illustrious). 4.2M+ downloads."
+  strength_model_range: [2.00, 3.00]
+  strength_clip_range: [1.50, 2.50]
+  recommended_model: 2.50
+  recommended_clip: 2.00
+  compatible_models: ["pony", "illustrious"]
+  tags: ["pose", "dynamic", "foreshortening"]
+  trigger_words: ["dynamic pose", "foreshortening", "extreme perspective"]
+  notes: "Slider LoRA — requires HIGH strength (2.5). Normal range 2.0~3.0."
+
+- name: "legs_up_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 14247
+  description: "Murky's Legs Up LoRA — legs raised up pose (SD1.5)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["sd15"]
+  tags: ["pose", "legs"]
+  trigger_words: ["legsupms", "legsupsexms"]
+
+- name: "legs_together_up_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 17657
+  description: "Legs Together UP pose (SD1.5)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["sd15"]
+  tags: ["pose", "legs"]
+  trigger_words: ["legs together", "legs up"]
+  notes: "Trigger in file is embed-style — use 'legs together, legs up' as keywords"
+
+- name: "jack_o_challenge_pose_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 10353
+  description: "Jack-O Challenge Pose — top-down bottom-up spread legs (SD1.5). ~1MB."
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["sd15"]
+  tags: ["pose", "legs", "spread"]
+  trigger_words: ["jack-o' challenge", "flexible", "spread legs", "top-down bottom-up"]
+
+- name: "feet_pose_anime.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 18738
+  description: "Feet pose anime — foot focus / feet-forward poses"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  tags: ["pose", "feet"]
+  trigger_words: ["feet", "soles", "foot focus"]
+  notes: "Base model: Other (mixed). No specific trigger required — use foot-related keywords."
+
+# ── Clothing Effects ─────────────────────────────────────────────
+
+clothing:
+- name: "Cameltoe_THICK_-_Anime-000009.safetensors"
+  location: comfyui
+  description: "Cameltoe detail through clothing"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.30, 0.55]
+  recommended_model: 0.50
+  recommended_clip: 0.45
+  tags: ["clothing", "cameltoe"]
+  detection_regions: ["underwear", "swimsuit", "leotard"]
+  trigger_words: ["cameltoe"]
+
+- name: "vibrator_in_thighhighs.safetensors"
+  location: comfyui
+  description: "Vibrator hidden in thigh-high stockings"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  tags: ["clothing", "thighhigh", "vibrator"]
+  detection_regions: ["thighhigh"]
+  trigger_words: ["vibrator in thighhighs", "vibrator in stockings"]
+
+- name: "Vibrator in underwear and legs spread.safetensors"
+  location: comfyui
+  description: "Vibrator in underwear with spread legs"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  tags: ["clothing", "underwear", "vibrator"]
+  detection_regions: ["underwear"]
+  trigger_words: ["vibrator in underwear"]
+
+- name: "vibrator-under-panties-illustriousxl-lora-nochekaiser.safetensors"
+  location: comfyui
+  description: "Vibrator under panties (Illustrious XL)"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "underwear", "vibrator"]
+  detection_regions: ["underwear"]
+  trigger_words: ["vibrator under panties"]
+
+- name: "vibrator-under-panties-ponyxl-lora-nochekaiser.safetensors"
+  location: comfyui
+  description: "Vibrator under panties (PonyXL)"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  compatible_models: ["ponyxl"]
+  tags: ["clothing", "underwear", "vibrator"]
+  detection_regions: ["underwear"]
+  trigger_words: ["vibrator under panties"]
+
+- name: "virgin_killer_sweater_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 10185
+  description: "Virgin Killer Sweater — backless ribbed sweater (Illustrious)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "sweater", "backless"]
+  trigger_words: ["virgin killer sweater"]
+
+- name: "virgin_destroyer_sweater_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 18933
+  description: "Virgin Destroyer Sweater — low-cut revealing front sweater (Illustrious)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "sweater", "nsfw"]
+  trigger_words: ["virgin destroyer sweater"]
+
+- name: "slingshot_swimsuit_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 7957
+  description: "Slingshot Swimsuit — minimal string swimsuit (Illustrious + Pony + SD1.5)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious", "pony", "sd15"]
+  tags: ["clothing", "swimsuit", "nsfw"]
+  trigger_words: ["slingshot swimsuit"]
+
+- name: "better_legwear_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 12945
+  description: "Better Legwears — improved stockings, pantyhose, tights (SD1.5)"
+  strength_model_range: [0.50, 0.90]
+  strength_clip_range: [0.40, 0.80]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["sd15"]
+  tags: ["clothing", "legwear", "pantyhose", "stockings"]
+  trigger_words: ["legs", "pantyhose"]
+  notes: "HTTP 500 on initial fetch but API returned data. Also supports: wet clothes, public tattoo"
+
+- name: "hentai_comic_fullcolor_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 585589
+  description: "Hentai Comic Random Generator FULL COLOR — comic panel style (Illustrious + Pony + XL)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious", "pony"]
+  tags: ["style", "comic", "manga"]
+  trigger_words: ["hcr_generator", "(comic:1.25)"]
+
+- name: "hentai_comic_hardcore_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 588622
+  description: "Hentai Comic Random Generator HARD CORE — comic panel style explicit (Illustrious + Pony + XL)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious", "pony"]
+  tags: ["style", "comic", "manga", "nsfw"]
+  trigger_words: ["fcomichardcore", "(comic:1.25)"]
+
+  # ── Lingerie LoRAs ─────────────────────────────────────────────
+
+- name: "detailBra-000001.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 94015
+  download_url: "https://civitai.com/api/download/models/100290"
+  description: "Lingerie Helper — fix/add lingerie detail, better color control (SD 1.5). Use LoRA Block Weight 0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1"
+  strength_model_range: [0.50, 0.80]
+  strength_clip_range: [0.50, 0.80]
+  recommended_model: 0.65
+  recommended_clip: 0.65
+  compatible_models: ["sd15"]
+  tags: ["clothing", "lingerie", "detail", "bra"]
+  trigger_words: []
+  notes: "No trigger word required. Must use LoRA Block Weight 0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1 or image will be distorted.
+    Strength < 0.8. Optional: add (smile:0.3) to avoid forced smile."
+
+- name: "sexy lingerie 2_pony_V1.1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 680918
+  download_url: "https://civitai.com/api/download/models/762484"
+  description: "2sexy lingerie — general lingerie set with pasties and see-through (Pony)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 1.0
+  recommended_clip: 0.8
+  compatible_models: ["pony"]
+  tags: ["clothing", "lingerie", "panties", "see-through"]
+  detection_regions: ["underwear", "swimsuit"]
+  trigger_words: ["lingerie", "panties", "pasties", "see-through"]
+
+- name: "AngelLingerieILL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 439147
+  download_url: "https://civitai.com/api/download/models/1254437"
+  description: "Angel Lingerie — criss-cross halter frilly lingerie with blue/white/black options (Illustrious)"
+  strength_model_range: [0.60, 1.00]
+  strength_clip_range: [0.55, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "frills", "bikini"]
+  detection_regions: ["underwear", "swimsuit"]
+  trigger_words: ["lingerie", "bikini", "criss-cross halter", "frills"]
+  notes: "Pony version also available (4ng3ll1ng trigger). Avoid stacking too many LoRAs."
+
+- name: "lingerie 02 - Shizuka Harness (Ill) v1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 886067
+  download_url: "https://civitai.com/api/download/models/1821357"
+  description: "Lingerie 02 Shizuka Harness — strap bondage harness with o-ring collarbone, 3 horizontal breast straps (Illustrious)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "harness", "bondage", "straps"]
+  detection_regions: ["underwear"]
+  trigger_words: ["lingerie02", "skindentation"]
+  notes: "Swap areola_slip → nipples to remove center strap. Pony version also available (lingerie02, harness, areola slip,
+    skindentation)."
+
+- name: "Lingerie 01 - Kanon Leotard Ill v1.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 870236
+  download_url: "https://civitai.com/api/download/models/1470628"
+  description: "Lingerie 01 Kanon Leotard — breastless frilly bondage leotard, gloves, fishnet thighhighs, strappy sandals
+    (Illustrious)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "leotard", "fishnet", "gloves", "bondage"]
+  detection_regions: ["underwear", "leotard"]
+  trigger_words: ["lingerie01", "leotard", "frills", "fishnet thighhighs", "bare shoulders", "elbow gloves"]
+  notes: "Color customizable. Add backless_outfit for back view. Pony version: lingerie01, black leotard. From Bishop eroge
+    Shura no Chikandou."
+
+- name: "HollowSeethroughLingerieILL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1112851
+  download_url: "https://civitai.com/api/download/models/1250522"
+  description: "Hollow See-Through Lingerie — see-through skirt, thighhighs, bare shoulders, bow, black choker (Illustrious)"
+  strength_model_range: [0.65, 1.00]
+  strength_clip_range: [0.55, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "see-through", "thighhighs"]
+  detection_regions: ["underwear"]
+  trigger_words: ["lingerie", "thighhighs", "see-through", "skirt", "bare shoulders", "bow", "black choker"]
+
+- name: "Chitose_Style_Lingerie-000008.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1972110
+  download_url: "https://civitai.com/api/download/models/2232188"
+  description: "Chitose Style Lingerie — crotchless panties, cupless bra (Illustrious)"
+  strength_model_range: [0.65, 1.00]
+  strength_clip_range: [0.55, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "cupless", "crotchless", "nsfw"]
+  detection_regions: ["underwear"]
+  trigger_words: ["lingerie", "crotch-less panties", "cupless bra", "cupless lingerie"]
+
+- name: "GyaruBabydollLingerieILL.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1735976
+  download_url: "https://civitai.com/api/download/models/1964686"
+  description: "Gyaru Babydoll Lingerie — see-through babydoll with animal print, bow, frills, gyaru style (Illustrious)"
+  strength_model_range: [0.65, 1.00]
+  strength_clip_range: [0.55, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "babydoll", "see-through", "gyaru", "frills"]
+  detection_regions: ["underwear"]
+  trigger_words: ["lingerie", "see-through", "panties", "animal print", "bow", "frills"]
+
+- name: "lingerie_miwabe_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 398624
+  download_url: "https://civitai.com/api/download/models/1426134"
+  description: "Lingerie — みわべさくら style, artistic lingerie with strong aesthetic (Illustrious)"
+  strength_model_range: [0.60, 1.00]
+  strength_clip_range: [0.50, 0.90]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "style", "miwabe"]
+  detection_regions: ["underwear"]
+  trigger_words: ["lingerie"]
+  notes: "Pony and SD 1.5 versions also available. Can double as artist style. Strength 0.6–1.0."
+
+- name: "Sexy_Transparent_Lingerie.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1738988
+  download_url: "https://civitai.com/api/download/models/1968047"
+  description: "Sexy Transparent Lingerie — translucent/see-through lingerie and pajama (Illustrious)"
+  strength_model_range: [0.65, 1.00]
+  strength_clip_range: [0.55, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["clothing", "lingerie", "transparent", "pajama", "see-through", "nsfw"]
+  detection_regions: ["underwear"]
+  trigger_words: ["Lingerie", "translucent", "pajama", "transparent", "sexy lingerie"]
+
+- name: "Lingerie 03 - Christmas Eve Detective.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 907644
+  download_url: "https://civitai.com/api/download/models/1015675"
+  description: "Lingerie 03 Christmas Eve Detective (Girl's Frontline VSK-94) — fur-trimmed blue lingerie, harness, thighhighs,
+    white heels (Pony)"
+  strength_model_range: [0.70, 1.20]
+  strength_clip_range: [0.60, 1.00]
+  recommended_model: 1.0
+  recommended_clip: 0.8
+  compatible_models: ["pony"]
+  tags: ["clothing", "lingerie", "christmas", "harness", "girls-frontline"]
+  detection_regions: ["underwear", "swimsuit"]
+  trigger_words: ["lingerie03", "blue bikini", "micro skirt", "blue thighhighs", "fur trim", "white gloves", "skindentation",
+    "heart o-ring", "high heels"]
+  notes: "Cape, hoodie, tail and ears are optional extras. May force blue hair color — use heavier hair weight (1.2) if needed.
+    Strength up to 1.2."
+
+# ── NSFW Effect LoRAs ────────────────────────────────────────────
+
+nsfw_effect:
+- name: "cervix.safetensors"
+  location: comfyui
+  description: "Cervix view effect"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["nsfw", "cervix"]
+  detection_regions: ["genital"]
+  trigger_words: ["cervix"]
+
+- name: "cervixNmode_Illustrious-sv_cumulative_0.8.safetensors"
+  location: comfyui
+  description: "Cervix N-mode for Illustrious (cumulative 0.8)"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.30, 0.55]
+  recommended_model: 0.50
+  recommended_clip: 0.45
+  compatible_models: ["illustrious"]
+  tags: ["nsfw", "cervix"]
+  detection_regions: ["genital"]
+  trigger_words: ["cervix"]
+
+- name: "ExtremeSpreadPussyAnal_Anime_IL_V1.safetensors"
+  location: comfyui
+  description: "Spread pose (Illustrious)"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.30, 0.55]
+  recommended_model: 0.50
+  recommended_clip: 0.45
+  compatible_models: ["illustrious"]
+  tags: ["nsfw", "spread"]
+  detection_regions: ["genital"]
+  trigger_words: ["spread", "spread legs"]
+
+- name: "Hentai_Anime_Pussy_Spread_for_Flux.safetensors"
+  location: comfyui
+  description: "Spread effect for FLUX"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.30, 0.55]
+  recommended_model: 0.50
+  recommended_clip: 0.45
+  compatible_models: ["flux"]
+  tags: ["nsfw", "spread", "flux"]
+  detection_regions: ["genital"]
+  trigger_words: ["spread"]
+
+- name: "LoraILXL10_speculum_insertion_v1.safetensors"
+  location: comfyui
+  description: "Speculum insertion (Illustrious/XL)"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["nsfw", "speculum"]
+  detection_regions: ["genital"]
+  trigger_words: ["speculum"]
+
+- name: "Speculum(B).safetensors"
+  location: comfyui
+  description: "Speculum variant B"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["nsfw", "speculum"]
+  detection_regions: ["genital"]
+  trigger_words: ["speculum"]
+
+- name: "speculum_illustrious_V1.0.safetensors"
+  location: comfyui
+  description: "Speculum for Illustrious v1.0"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  compatible_models: ["illustrious"]
+  tags: ["nsfw", "speculum"]
+  detection_regions: ["genital"]
+  trigger_words: ["speculum"]
+
+- name: "Tape_Spread-000023.safetensors"
+  location: comfyui
+  description: "Tape spread effect"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.30, 0.55]
+  recommended_model: 0.50
+  recommended_clip: 0.45
+  tags: ["nsfw", "tape", "spread"]
+  detection_regions: ["genital"]
+  trigger_words: ["tape spread", "taped"]
+
+- name: "TapeGape-000037.safetensors"
+  location: comfyui
+  description: "Tape gape effect"
+  strength_model_range: [0.35, 0.65]
+  strength_clip_range: [0.30, 0.55]
+  recommended_model: 0.50
+  recommended_clip: 0.45
+  tags: ["nsfw", "tape", "gape"]
+  detection_regions: ["genital"]
+  trigger_words: ["tape gape", "taped open"]
+
+- name: "LoraILXL10_vibrator_on_clitoris_v1.safetensors"
+  location: comfyui
+  description: "Vibrator on clitoris (Illustrious/XL)"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  tags: ["nsfw", "vibrator"]
+  detection_regions: ["genital"]
+  trigger_words: ["vibrator on clitoris"]
+
+- name: "LoraPonyXL60_vibrator_on_clitoris_v1.2.safetensors"
+  location: comfyui
+  description: "Vibrator on clitoris (PonyXL)"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  compatible_models: ["ponyxl"]
+  tags: ["nsfw", "vibrator"]
+  detection_regions: ["genital"]
+  trigger_words: ["vibrator on clitoris"]
+
+- name: "vibrator on nipple_pony_V1.0.safetensors"
+  location: comfyui
+  description: "Vibrator on nipple (PonyXL)"
+  strength_model_range: [0.35, 0.60]
+  strength_clip_range: [0.30, 0.50]
+  recommended_model: 0.45
+  recommended_clip: 0.40
+  compatible_models: ["ponyxl"]
+  tags: ["nsfw", "vibrator", "nipple"]
+  detection_regions: ["nipples"]
+  trigger_words: ["vibrator on nipple"]
+
+- name: "milking_machine_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 8500
+  description: "Milking machine — breast milking device attachment (Illustrious)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["nsfw", "milking", "breast"]
+  detection_regions: ["nipples", "breast"]
+  trigger_words: ["milking machine"]
+
+- name: "lactation_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 9652
+  description: "Lactation / breastfeeding milk effect (Illustrious + Pony + SD1.5)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious", "pony", "sd15"]
+  tags: ["nsfw", "lactation", "breast"]
+  detection_regions: ["nipples", "breast"]
+  trigger_words: ["lactation", "lactation through clothes"]
+
+- name: "female_masturbation_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 17379
+  description: "Female Masturbation — fingering and breast fondling (SD1.5)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["sd15"]
+  tags: ["nsfw", "masturbation", "fingering"]
+  detection_regions: ["genital", "breast"]
+  trigger_words: ["masturbation", "fingering", "female_masturbation", "grabbing_own_breast"]
+
+- name: "bondage_suspension_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 8762
+  description: "Bondage Suspension — rope bondage hanging pose (Illustrious)"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["illustrious"]
+  tags: ["nsfw", "bondage", "pose"]
+  trigger_words: ["suspension", "bondage", "rope"]
+
+# ── X-Ray / See-Through LoRAs ───────────────────────────────────
+
+xray:
+- name: "Johns_X-Ray_Window_LORA.safetensors"
+  location: comfyui
+  description: "X-ray window (see-through) effect"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["xray", "see_through"]
+  trigger_words: ["x-ray", "see through", "x-ray window"]
+
+- name: "x-ray_ilxl_v1.safetensors"
+  location: comfyui
+  description: "X-ray for Illustrious XL v1"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  compatible_models: ["illustrious"]
+  tags: ["xray"]
+  trigger_words: ["x-ray"]
+
+- name: "xray2.5.safetensors"
+  location: comfyui
+  description: "X-ray effect v2.5"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["xray"]
+  trigger_words: ["x-ray"]
+
+- name: "XrayV.safetensors"
+  location: comfyui
+  description: "X-ray variant V"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["xray"]
+  trigger_words: ["x-ray"]
+
+- name: "X-ray_creampie_high.safetensors"
+  location: comfyui
+  description: "X-ray creampie effect (high detail)"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["xray", "nsfw"]
+  trigger_words: ["x-ray", "creampie"]
+
+- name: "X-ray_cum_inflation.safetensors"
+  location: comfyui
+  description: "X-ray cum inflation effect"
+  strength_model_range: [0.40, 0.70]
+  strength_clip_range: [0.35, 0.60]
+  recommended_model: 0.55
+  recommended_clip: 0.50
+  tags: ["xray", "nsfw"]
+  trigger_words: ["x-ray", "inflation"]
+
+# ── Uncensor LoRAs ───────────────────────────────────────────────
+
+uncensor:
+- name: "Uncensored_PonyXL_cpt_v03.safetensors"
+  location: comfyui
+  description: "Removes censorship for PonyXL"
+  strength_model_range: [0.50, 0.80]
+  strength_clip_range: [0.45, 0.70]
+  recommended_model: 0.65
+  recommended_clip: 0.55
+  compatible_models: ["ponyxl"]
+  tags: ["uncensor"]
+  detection_regions: ["censor_bar"]
+  trigger_words: ["uncensored"]
+
+# ── Character LoRAs (Honkai: Star Rail, Azur Lane, etc.) ────────
+
+character:
+- name: "azur_lane_all_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 482588
+  description: "All Characters in Azur Lane (Pony, 200+ chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "azur_lane", "all_in_one", "chenkin"]
+  trigger_words:
+  - all in one
+  notes: "200+ chars. Use charactername_(azur_lane) format. Guide: civitai.com/articles/5480"
+
+  civitai_version_id: 554678
+  civitai_filename: azur_lane_all_v1.safetensors
+  characters:
+  - bremerton
+  - formidable
+  - taihou
+  - sirius
+  - prinz_eugen
+  - belfast
+  - atago
+  - ayanami
+  - le_malin
+  - illustrious
+  - baltimore
+  - kashino
+  - dido
+  - cheshire
+  - shinano
+  - unicorn
+  - st_louis
+  - new_jersey
+  - laffey
+  - enterprise
+  - aegir
+  - zara
+  - implacable
+  - z23
+  - perseus
+  - takao
+  - akagi
+  - bismarck
+  - honolulu
+  - indomitable
+  - tashkent
+  - nagato
+  - kaga
+  - javelin
+  - musashi
+  - noshiro
+  - roon
+  - owari
+  - amagi
+  - unzen
+  - friedrich_der_grosse
+  - shimakaze
+  - yamashiro
+  - helena
+  - richelieu
+  - pola
+  - azuma
+  - essex
+  - shoukaku
+  - bismarck_zwei
+  - clemenceau
+  - yuudachi
+  - hammann
+  - sovetskaya_rossiya
+  - champagne
+  - marco_polo
+  - golden_hind
+  - ark_royal
+- name: "firefly_V3_pony.safetensors"
+  location: local
+  download_required: false
+  description: "Firefly (Honkai: Star Rail) v3.0 Pony — 2000 images, includes Mecha Sam"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["pony"]
+  tags: ["character", "hsr", "firefly"]
+  trigger_words: ["firefly (honkai: star rail)", "1girl", "solo", "dress", "long sleeves", "hair ornament", "black hairband"]
+  notes: "Pony v3.0. Also includes sam_(honkai: star rail) mecha. Recommended: Pony Diffusion V6 XL."
+
+- name: "Huohuo_v1-000010.safetensors"
+  location: local
+  download_required: false
+  civitai_id: 646492
+  description: "Huohuo (Honkai: Star Rail) v1.0 (Pony XL) — fox girl character"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.90
+  recommended_clip: 0.75
+  compatible_models: ["pony"]
+  tags: ["character", "hsr", "huohuo", "fox_girl"]
+  trigger_words: ["huohuodef", "green eyes", "green hair", "long hair", "ahoge", "fox girl", "animal ears", "fox tail"]
+  notes: "Weight 0.9~1.0 for default outfit. 0.7~0.8 for other outfits."
+
+- name: "Huohuo-07.safetensors"
+  location: local
+  download_required: false
+  civitai_id: 201174
+  description: "Huo Huo (Honkai Star Rail) SD1.5 — 20 samples"
+  strength_model_range: [0.70, 1.00]
+  strength_clip_range: [0.60, 0.90]
+  recommended_model: 0.85
+  recommended_clip: 0.75
+  compatible_models: ["sd15"]
+  tags: ["character", "hsr", "huohuo"]
+  trigger_words: ["huohuohsr"]
+
+- name: "HuoHuo-UMCEKO.safetensors"
+  location: local
+  download_required: false
+  civitai_id: 204228
+  description: "Huohuo (Honkai: Star Rail) SD1.5 by UMCEKO"
+  strength_model_range: [0.80, 1.10]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["sd15"]
+  tags: ["character", "hsr", "huohuo"]
+  trigger_words: ["huohuo"]
+
+- name: "ILL NOTE LR stelle-000024.safetensors"
+  location: local
+  download_required: false
+  description: "Stelle (Honkai: Star Rail) Illustrious — grey hair trailblazer"
+  strength_model_range: [0.60, 1.00]
+  strength_clip_range: [0.50, 0.90]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "stelle", "trailblazer"]
+  trigger_words: ["st3ll3g1rl", "bangs", "yellow eyes", "hair between eyes", "grey hair", "long hair"]
+  notes: "Strength 0.6~1.0. Outfit: black jacket, white shirt, black skirt, high heels."
+
+- name: "StelleHSR-Aesthetic.safetensors"
+  location: local
+  download_required: false
+  civitai_id: 775964
+  description: "Stelle - Honkai: Star Rail (Pony) — aesthetic version by aestheticow"
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 0.90
+  recommended_clip: 0.80
+  compatible_models: ["pony"]
+  tags: ["character", "hsr", "stelle", "trailblazer"]
+  trigger_words: ["stelle (honkai: star rail)", "medium hair", "grey hair", "yellow eyes", "stelle def", "black jacket", "black
+      skirt", "thigh strap"]
+  notes: "Weight 0.8~1. Default outfit: jacket, white shirt, black gloves."
+
+- name: "silver_wolf_starrail.safetensors"
+  location: local
+  download_required: false
+  civitai_id: 121599
+  description: "Silver Wolf (Honkai: Star Rail) — CyberHarem v1.5 (SD1.5)"
+  strength_model_range: [0.50, 0.85]
+  strength_clip_range: [0.50, 0.85]
+  recommended_model: 0.75
+  recommended_clip: 0.75
+  compatible_models: ["sd15"]
+  tags: ["character", "hsr", "silver_wolf"]
+  trigger_words: ["silver_wolf_starrail", "grey hair", "long hair", "grey eyes", "bangs", "eyewear on head", "ponytail", "drill
+      hair"]
+  notes: "Weight 0.5~0.85. Embed .pt not needed for WebUI 1.7+."
+
+  # ── Chenkin "All in One" Character Packs ─────────────────────────
+
+- name: "hutao_genshin_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 163219
+  description: "Hu Tao (Genshin Impact) — Pony. By Chenkin."
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "hutao", "chenkin"]
+  trigger_words: ["hu_tao_(genshin_impact)"]
+  keywords: ["brown_hair", "red_eyes", "hat", "long_sleeves", "symbol-shaped_pupils"]
+
+- name: "hutao_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 97336
+  description: "Hu Tao (Genshin Impact) — SD1.5"
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["sd15"]
+  tags: ["character", "genshin", "hutao"]
+  trigger_words: ["pikkyhutao", "1girl"]
+
+- name: "kurumi_date_a_live_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 115839
+  description: "Tokisaki Kurumi / Date a Live — SD1.5. 4 outfits. CLIP SKIP 2."
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["sd15"]
+  clip_skip: 2
+  tags: ["character", "date_a_live", "kurumi"]
+  trigger_words_by_outfit:
+    gothic_red: "aakurumi, long hair, twintails, hairband, heterochromia, medium breasts, cleavage, black choker, red ribbon,
+      bare shoulders, gothic, red dress, red bow, detached sleeves"
+    school_uniform: "bbkurumi, long hair, low twintails, hair over one eye, school uniform, blazer, black jacket, pleated
+      skirt, blue skirt, black pantyhose"
+    gothic_black: "cckurumi, long hair, low twintails, hair flower, hair over one eye, hair bow, gothic, black dress, ribbon"
+    wedding: "ddkurumi, bridal veil, tiara, earrings, hair over one eye, jewelry, necklace, cleavage, bare shoulders, wedding
+      dress, white dress, white gloves, elbow gloves"
+
+- name: "all_chars_hsr_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 434763
+  description: "All Characters Honkai: Star Rail v2.0 (Illustrious, 70+ chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "all_in_one", "chenkin"]
+  trigger_words:
+  - 'charactername_(honkai: star rail)'
+  - herta_(unknowable_domain)
+  - 'fugue (honkai: star rail)'
+  - 'rappa (honkai: star rail)'
+  - 'march 7th (hunt) (honkai: star rail)'
+  notes: "70+ chars (Illustrious-XL v2.0). Special triggers: herta_(unknowable_domain), fugue (honkai: star rail), rappa (honkai:
+    star rail), march 7th (hunt) (honkai: star rail). Standard: charactername_(honkai: star rail)."
+
+  civitai_version_id: 1010462
+  civitai_filename: star_rail_all-000014.safetensors
+  characters:
+  - trailblazer
+  - kafka
+  - stelle
+  - sparkle
+  - march_7th
+  - acheron
+  - firefly
+  - silver_wolf
+  - dan_heng
+  - aventurine
+  - caelus
+  - black_swan
+  - blade
+  - jingliu
+  - dan_heng_imbibitor_lunae
+  - fu_xuan
+  - ruan_mei
+  - himeko
+  - topaz
+  - dr_ratio
+  - tingyun
+  - pom-pom
+  - robin
+  - seele
+  - herta
+  - huohuo
+  - jade
+  - rappa
+  - luocha
+  - qingque
+  - yunli
+  - lingsha
+  - jiaoqiu
+  - argenti
+  - asta
+  - numby
+  - sushang
+  - pela
+  - yanqing
+  - moze
+  - bailu
+  - fugue
+  - hanya
+  - sam
+  - gallagher
+  - misha
+  - xueyi
+  - yingxing
+  - yukong
+  - guinaifen
+  - constance
+  - danfeng
+  - luka
+  - hook
+  - natasha
+  - sunday
+  - boothill
+  - gepard
+  - serval
+  - welt
+- name: "all_chars_arknights_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 462775
+  description: "All Characters Arknights v2.0 (Pony, 150-200 chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "arknights", "all_in_one", "chenkin"]
+  trigger_words:
+  - arknights
+  - all in one
+  notes: "150-200 chars. Use charactername_(arknights) format. Guide: civitai.com/articles/5342"
+
+  civitai_version_id: 637867
+  civitai_filename: arknights_all_v4_0711.safetensors
+- name: "all_chars_lol_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 422180
+  description: "All Characters League of Legends (Pony, 50+ chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "league_of_legends", "all_in_one", "chenkin"]
+  trigger_words:
+  - all in one
+  notes: "50+ chars. Use charactername_(league_of_legends) format."
+
+  civitai_version_id: 470400
+  civitai_filename: league_of_legends_pony.safetensors
+  characters:
+  - ahri
+  - jinx
+  - sona
+  - gwen
+  - lux
+  - caitlyn
+  - vi
+  - soraka
+  - lulu
+  - evelynn
+  - riven
+  - katarina
+  - miss_fortune
+  - kindred
+  - neeko
+  - poppy
+  - briar
+  - sett
+  - annie
+  - ashe
+  - nami
+  - morgana
+  - leona
+  - zoe
+  - janna
+  - seraphine
+  - fiora
+  - kayn
+  - leblanc
+  - diana
+  - kayle
+  - vayne
+  - zeri
+  - thresh
+  - karma
+  - yone
+  - yuumi
+  - senna
+  - cassiopeia
+  - orianna
+  - jayce
+  - rakan
+  - quinn
+  - braum
+  - hwei
+  - camille
+  - yasuo
+  - vex
+  - graves
+  - garen
+  - qiyana
+  - viego
+  - zed
+  - lillia
+  - talon
+  - xayah
+- name: "all_chars_hi3_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 423315
+  description: "All Characters Honkai Impact 3rd v1.0 (Pony). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "honkai_impact", "all_in_one", "chenkin"]
+  trigger_words:
+  - all in one
+  notes: "30+ chars. Use danbooru tag format. Skin variants: kiana_kaslana_(white_comet), bianka_(haxxor_bunny), etc. Guide:
+    civitai.com/articles/5619"
+
+  civitai_version_id: 561561
+  civitai_filename: honkai_impact_3rd_v1.safetensors
+  characters:
+  - kiana_kaslana
+  - raiden_mei
+  - bronya_zaychik
+  - murata_himeko
+  - theresa_apocalypse
+  - fu_hua
+  - yae_sakura
+  - kallen_kaslana
+  - bianka_durandal_ataegina
+  - rita_rossweisse
+  - seele_vollerei
+  - rozaliya_olenyeva
+  - liliya_olenyeva
+  - elysia
+  - mobius
+  - raven
+  - carole_peppers
+  - pardofelis
+  - eden
+  - aponia
+  - griseo
+  - vill-v
+  - li_sushang
+  - senadina
+  - coralie
+  - helia
+  - thelema
+- name: "all_chars_genshin_pony124.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 357976
+  description: "All Characters Genshin Impact v4.0 (Pony, 127 chars). By Chenkin."
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  tags: ["character", "genshin", "all_in_one", "chenkin"]
+  trigger_words:
+  - hina_(genshin_impact)
+  - sethos_(genshin_impact)
+  - raiden_shogun_mitake
+  notes: "127 chars (v4.0). Special triggers for new chars: hina_(genshin_impact), sethos_(genshin_impact), raiden_shogun_mitake.
+    Standard: charactername_(genshin_impact). Clorinde: use weight 0.6~0.8. Guide: civitai.com/articles/4584"
+
+  civitai_version_id: 550532
+  civitai_filename: genshin_v4.safetensors
+- name: "all_chars_genshin_sd15.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 450738
+  description: "All Characters Genshin Impact 100 chars (SD1.5). By Makki_Shizu. CLIP SKIP 2."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["sd15"]
+  clip_skip: 2
+  tags: ["character", "genshin", "sd15", "makki_shizu"]
+  trigger_words:
+  - aether (genshin impact)
+  - lumine (genshin impact)
+  - paimon (genshin impact)
+  - hu tao (genshin impact)
+  - keqing (genshin impact)
+  - ganyu (genshin impact)
+  - raiden shogun
+  - kamisato ayaka
+  - yae miko
+  - nahida (genshin impact)
+  - furina (genshin impact)
+  - arlecchino (genshin impact)
+  notes: "100 chars. SD1.5 (NovelAI1 base). IMPORTANT: use 'charactername (genshin impact)' format — spaces, no underscores.
+    Costume suffix e.g. 'ganyu (twilight blossom) (genshin impact)'. CLIP SKIP 2."
+
+  civitai_version_id: 501862
+  civitai_filename: mki-genshin108-1.5-v3.safetensors
+- name: "all_chars_wuthering_waves_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 796742
+  description: "All Characters Wuthering Waves v0.9 (Pony, 27 chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "wuthering_waves", "all_in_one", "chenkin"]
+  trigger_words:
+  - wuthering waves
+  notes: "27 chars. Use charactername_(wuthering_waves) format, e.g. changli_(wuthering_waves)."
+
+  civitai_version_id: 890954
+  civitai_filename: wuthering_waves_all.safetensors
+  characters:
+  - calcharo
+  - phrolova
+  - changli
+  - yinlin
+  - female_rover
+  - jinhsi
+  - zhezhi
+  - camellya
+  - yangyang
+  - danjin
+  - encore
+  - jiyan
+  - sanhua
+  - scar
+  - taoqi
+  - the_shorekeeper
+  - xiangli_yao
+  - baizhi
+  - male_rover
+  - zapstring
+  - chixia
+  - cloudy
+  - verina
+  - cosmos
+  - jianxin
+  - lingyang
+- name: "all_chars_umamusume_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 530902
+  description: "All Characters Umamusume (Pony, 50~100 chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "umamusume", "all_in_one", "chenkin"]
+  trigger_words:
+  - all in one
+  notes: "50~100 chars. Use character name directly — no 'character:' prefix needed. Guide: civitai.com/articles/5841"
+
+  civitai_version_id: 589974
+  civitai_filename: umamusume_all.safetensors
+- name: "all_chars_idolmaster_cinderella_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 804903
+  description: "All Characters Idolmaster Cinderella Girls (Pony, 250 chars). By Chenkin. Trained 60K images."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "idolmaster", "cinderella", "all_in_one", "chenkin"]
+  trigger_words:
+  - :idolmaster_cinderella
+  notes: "250+ chars (255 folders). Use danbooru tag names directly, e.g. shimamurauzuki, tachibanaarisu. Guide: civitai.com/articles/7719"
+
+  civitai_version_id: 899943
+  civitai_filename: idolmaster_cinderella_all.safetensors
+- name: "all_chars_idolmaster_shinycolors_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 503179
+  description: "All Characters Idolmaster Shiny Colors (Pony). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "idolmaster", "shiny_colors", "all_in_one", "chenkin"]
+  trigger_words:
+  - all in one
+  notes: "Guide: civitai.com/articles/5610. Note: suzuki_hana not covered."
+
+  civitai_version_id: 559278
+  civitai_filename: idolmaster_shiny_colors.safetensors
+- name: "all_chars_bocchi_the_rock_sdxl.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 404014
+  description: "All Characters Bocchi the Rock! (SDXL/Animagine, 6 chars). By Chenkin. NOTE: SDXL not Pony."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 0.90
+  recommended_clip: 0.80
+  compatible_models: ["sdxl"]
+  tags: ["character", "bocchi_the_rock", "all_in_one", "chenkin"]
+  trigger_words:
+  - gotoh_hitori
+  - ijichi_nijika
+  - yamada_ryo
+  - kita_ikuyo
+  - ijichi_seika
+  - pa-san
+  notes: "SDXL base (Animagine XL 3.0), NOT Pony. Inference: Animagine XL 3.1. Weight 0.8~1."
+
+  civitai_version_id: 450477
+  civitai_filename: bocchi_the_rock.safetensors
+- name: "all_chars_fate_stay_night_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 500998
+  description: "All Characters Fate/stay night + FGO (Pony, 200+ chars). By Chenkin."
+  strength_model_range: [0.60, 0.80]
+  strength_clip_range: [0.50, 0.70]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony"]
+  tags: ["character", "fate", "fgo", "all_in_one", "chenkin"]
+  trigger_words:
+  - all in one
+  notes: "200+ chars. Use charactername_(fate) format — NO 'character:' prefix. Guide: civitai.com/articles/5597"
+
+  civitai_version_id: 556880
+  civitai_filename: stay_night_all.safetensors
+  characters:
+  - artoria_pendragon_(fate)
+  - saber_(fate)
+  - cu_chulainn_(fate)
+  - archer_(fate)
+  - medusa_(fate)
+  - gilgamesh_(fate)
+  - mordred_(fate)
+  - jeanne_d'arc_alter_(fate)
+  - nero_claudius_(fate)
+  - medea_(fate)
+  - artoria_pendragon_(lancer)_(fate)
+  - enkidu_(fate)
+  - merlin_(fate)
+  - tamamo_(fate)
+  - mysterious_heroine_x_(fate)
+  - jeanne_d'arc_(fate)
+  - okita_souji_(fate)
+  - ozymandias_(fate)
+  - bedivere_(fate)
+  - euryale_(fate)
+  - florence_nightingale_(fate)
+  - altera_(fate)
+  - edmond_dantes_(fate)
+  - robin_hood_(fate)
+  - nursery_rhyme_(fate)
+  - kiyohime_(fate)
+  - oda_nobunaga_(fate)
+  - hassan_of_serenity_(fate)
+  - arjuna_(fate)
+  - tamamo_cat_(fate)
+  - minamoto_no_raikou_(fate)
+  - elizabeth_bathory_(fate)
+  - shuten_douji_(fate)
+  - jeanne_d'arc_(ruler)_(fate)
+  - bb_(fate)
+  - semiramis_(fate)
+  - ishtar_(fate)
+  - cu_chulainn_alter_(fate)
+  - amakusa_shirou_(fate)
+- name: "all_chars_amphoreus_hsr_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 1866697
+  description: "All Characters Amphoreus HSR v3.6 (Illustrious, 14 chars). By Chenkin. 56MB."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "amphoreus", "all_in_one", "chenkin"]
+  trigger_words:
+  - 'aglaea (honkai: star rail)'
+  - 'anaxa (honkai: star rail)'
+  - 'castorice (honkai: star rail)'
+  - 'cyrene (honkai: star rail)'
+  - 'cipher (honkai: star rail)'
+  - 'cyrene (ripples of past reverie) (honkai: star rail)'
+  - 'dan heng (permansor terrae) (honkai: star rail)'
+  - 'evernight (honkai: star rail)'
+  - 'little ica (honkai: star rail)'
+  - 'mydei (honkai: star rail)'
+  - 'phainon (honkai: star rail)'
+  - 'tribbie (honkai: star rail)'
+  - 'cerydra (honkai: star rail)'
+  - 'hysilens (honkai: star rail)'
+  notes: "v3.6 — 14 chars. Use 'charactername (honkai: star rail)' as trigger. Guide: civitai.com/articles/19804"
+
+  civitai_version_id: 2250685
+  civitai_filename: All_inone_Amphoreus_V3.6.safetensors
+- name: "all_chars_hsr_2025_illustrious.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 2043415
+  description: "2025 All Characters Honkai: Star Rail v1.0 (Illustrious, 80+ chars). By Chenkin."
+  strength_model_range: [0.80, 1.00]
+  strength_clip_range: [0.70, 0.90]
+  recommended_model: 1.00
+  recommended_clip: 0.80
+  compatible_models: ["illustrious"]
+  tags: ["character", "hsr", "all_in_one", "chenkin", "2025"]
+  trigger_words:
+  - 'honkai: star rail'
+  notes: "80+ chars (Illustrious). Recommend NoobAI-XL. Guide: civitai.com/articles/20764"
+
+  # ── Other Character LoRAs ─────────────────────────────────────────
+
+  civitai_version_id: 2312748
+  civitai_filename: Star_Rail_251013.safetensors
+- name: "lewd_elves_pony.safetensors"
+  location: comfyui
+  download_required: true
+  civitai_id: 938888
+  description: "All Characters Youkoso! Sukebe Elf no Mori e / Lewd Elves (Pony, 8 chars). Author: MetalchromeX."
+  strength_model_range: [0.70, 0.90]
+  strength_clip_range: [0.60, 0.80]
+  recommended_model: 0.80
+  recommended_clip: 0.70
+  compatible_models: ["pony"]
+  clip_skip: 1
+  tags: ["character", "lewd_elves", "nsfw", "elf"]
+  trigger_words_by_character:
+    delva: "Delva Celebrian (character), elf, purple hair, long hair, yellow eyes, dark-skinned female, pointy ears, large
+      breasts"
+    elda: "Elda Ballad (character), elf, short hair, blonde hair, pointy ears, green eyes, dark skinned female, large breasts"
+    evelyn: "Evelyn Celebrian (character), elf, pointy ears, white hair, hair ribbons, long hair, dark-skinned female, yellow
+      eyes, large breasts"
+    lucie: "Lucie Menelumia (character), elf, pointy ears, blonde hair, blue eyes, long hair, large breasts"
+    misery: "Misery Stentrem (character), elf, pointy ears, blonde hair, gradient hair, long hair, hair over one eye, purple
+      eyes, huge breasts"
+    nol_big: "Nol big form (character), mature, curvy, elf, pointy ears, red hair, long hair, blunt bangs, green eyes, large
+      breasts"
+    nol_small: "Nol small form (character), petite, elf, pointy ears, red hair, long hair, blunt bangs, twintails, green eyes,
+      small breasts"
+    phyllis: "Phyllis Hagerhelm (character), elf, pointy ears, long hair, grey hair, twintails, red eyes, large breasts"
+  notes: "8 chars (Pony). Highly recommend 'uncensored' keyword. Also try 'pubic tattoo'. CLIP SKIP 1. Also has Illustrious
+    XL version bundled on same page."
+  civitai_version_id: 1051022
+  civitai_filename: All_Characters_from_Youkoso_Sukebe_Elf_no_Mori_e_r1.safetensors
