@@ -4,10 +4,15 @@
 #         .\app\scripts\download_all_characters_loras.ps1 -DryRun
 # =============================================================================
 param(
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$ApiKey = $env:CIVITAI_API_KEY
 )
 
-$ApiKey    = 
+if (-not $ApiKey) {
+    Write-Error "CivitAI API key not set. Export CIVITAI_API_KEY or pass -ApiKey."
+    exit 1
+}
+
 $TargetDir = Join-Path $PSScriptRoot "..\..\ComfyUI\models\loras"
 $TargetDir = [System.IO.Path]::GetFullPath($TargetDir)
 

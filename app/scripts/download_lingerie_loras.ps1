@@ -8,7 +8,13 @@ $DEST = Join-Path $PSScriptRoot "..\..\ComfyUI\models\loras"
 
 New-Item -ItemType Directory -Force -Path $DEST | Out-Null
 
-$headers = @{ Authorization = "Bearer $API_KEY" }
+$ApiKey = $env:CIVITAI_API_KEY
+if (-not $ApiKey) {
+    Write-Error "CivitAI API key not set. Export CIVITAI_API_KEY before running."
+    exit 1
+}
+
+$headers = @{ Authorization = "Bearer $ApiKey" }
 
 $loras = @(
     @{

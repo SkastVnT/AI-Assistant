@@ -279,3 +279,5 @@ services/edit-image/models/
 services/edit-image/venv/
 services/edit-image/.env
 services/edit-image/log/
+
+dry_run_output.txt
