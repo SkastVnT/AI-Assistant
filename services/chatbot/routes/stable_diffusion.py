@@ -464,7 +464,7 @@ def generate_image():
                 base64_images, 'generated', prompt, params
             )
             
-            if MONGODB_ENABLED and saved_filenames:
+            if saved_filenames:
                 _save_image_to_mongodb(saved_filenames, cloud_urls, prompt, params, 'text2img')
         
         response_data = {
@@ -541,7 +541,7 @@ def img2img():
                 base64_images, 'img2img', prompt, params
             )
             
-            if MONGODB_ENABLED and saved_filenames:
+            if saved_filenames:
                 _save_image_to_mongodb(saved_filenames, cloud_urls, prompt, params, 'img2img')
         
         # Private logging
@@ -723,48 +723,50 @@ def _save_images_to_storage(base64_images, prefix, prompt, params):
 
 
 def _save_image_to_mongodb(filenames, cloud_urls, prompt, params, model_type):
-    """Save image info to MongoDB"""
+    """Save canonical generated image records for gallery/admin retrieval."""
     try:
-        user_id = get_user_id_from_session()
-        conversation_id = session.get('conversation_id')
-        
-        if not conversation_id:
-            conversation = ConversationDB.create_conversation(
-                user_id=user_id,
-                model='stable-diffusion',
-                title=f"{model_type}: {prompt[:30]}..."
-            )
-            conversation_id = str(conversation['_id'])
-            session['conversation_id'] = conversation_id
-        
-        images_data = []
+        from core.image_storage import save_to_mongodb, save_to_firebase
+
+        user_id = get_user_id_from_session() or session.get('username', 'anonymous')
+        conversation_id = session.get('conversation_id', '')
+        session_id = session.get('session_id', '')
+
         for idx, filename in enumerate(filenames):
             cloud_url = cloud_urls[idx] if idx < len(cloud_urls) else None
-            images_data.append({
-                'url': f"/static/Storage/Image_Gen/{filename}",
+            local_url = f"/storage/images/{filename}"
+
+            record = {
+                'filename': filename,
+                'url': cloud_url or local_url,
                 'cloud_url': cloud_url,
-                'caption': f"{model_type}: {prompt[:50]}",
-                'generated': True,
-                'service': 'imgbb' if cloud_url else 'local',
-                'mime_type': 'image/png'
-            })
-        
-        save_message_to_db(
-            conversation_id=conversation_id,
-            role='assistant',
-            content=f"âœ… Generated {model_type} with prompt: {prompt}",
-            metadata={
-                'model': f'stable-diffusion-{model_type}',
+                'local_path': local_url,
+                'drive_url': None,
                 'prompt': prompt,
                 'negative_prompt': params.get('negative_prompt', ''),
-                'num_images': len(filenames)
+                'model': params.get('model') or 'stable-diffusion',
+                'sampler': params.get('sampler_name', ''),
+                'steps': params.get('steps'),
+                'cfg_scale': params.get('cfg_scale'),
+                'width': params.get('width'),
+                'height': params.get('height'),
+                'seed': params.get('seed'),
+                'lora_models': params.get('lora_models', []),
+                'denoising_strength': params.get('denoising_strength'),
+                'source': f"stable_diffusion_{model_type}",
+                'creator': user_id,
+                'user_id': user_id,
+                'session_id': session_id,
+                'conversation_id': conversation_id,
+                'created_at': datetime.utcnow().isoformat() + 'Z',
             }
-        )
-        
-        logger.info(f"ðŸ’¾ Saved {model_type} to MongoDB")
+
+            save_to_mongodb(record.copy())
+            save_to_firebase(record.copy())
+
+        logger.info("[SD] Persisted %s %s image(s) to generated_images", len(filenames), model_type)
         
     except Exception as e:
-        logger.error(f"âŒ MongoDB save error: {e}")
+        logger.error(f"[SD] MongoDB save error: {e}")
 
 
 def _generate_with_grok(context, system_prompt, tags):

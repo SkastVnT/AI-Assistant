@@ -80,6 +80,19 @@ class FeatureFlags:
     def qr_enabled(self) -> bool:
         return self._get("payment", "qr_generation", default=True)
 
+    # ─── Image Pipeline V2 ────────────────────────────────────────────────────
+    @property
+    def image_pipeline_v2(self) -> bool:
+        """Enable anime multi-pass pipeline (IMAGE_PIPELINE_V2 env or features.json)."""
+        import os
+        env_flag = os.getenv("IMAGE_PIPELINE_V2", "").lower()
+        if env_flag in ("1", "true", "yes", "on"):
+            return True
+        if env_flag in ("0", "false", "no", "off"):
+            return False
+        # Default True — pipeline is built-in; set IMAGE_PIPELINE_V2=false to disable.
+        return self._get("image_pipeline", "v2_enabled", default=True)
+
 
 # Singleton
 features = FeatureFlags()

@@ -1,0 +1,794 @@
+# ─────────────────────────────────────────────────────────────────────
+# Anime Multi-Pass Pipeline V2 — Configuration
+# ─────────────────────────────────────────────────────────────────────
+# Gated by IMAGE_PIPELINE_V2=true
+# Optimized for 12 GB VRAM systems
+
+# ── VRAM Profile ────────────────────────────────────────────────────
+# Profiles: auto | normalvram | lowvram
+# auto  — reads ANIME_PIPELINE_VRAM_PROFILE env, defaults to normalvram
+# normalvram — 12 GB: SDXL-class, 832×1216, sequential unload, 2x upscale
+# lowvram    — 8 GB: 1024 max, fewer steps, CPU VAE, 1.5x upscale
+
+vram:
+  profile: auto
+
+# ── Model Strategy ──────────────────────────────────────────────────
+
+models:
+  # Stage 3: Base composition — stable, broad, good anatomy
+  composition:
+    checkpoint: "ChenkinNoob-XL-V0.2.safetensors"
+    type: sdxl
+    sampler: dpmpp_2m_sde
+    scheduler: karras
+    steps: 35
+    cfg: 5.5
+    clip_skip: 2
+    vae: null  # Use baked VAE
+
+  # Stage 5: Beauty redraw — best final quality, anime-optimized
+  beauty:
+    checkpoint: "ChenkinNoob-XL-V0.2.safetensors"
+    type: sdxl
+    sampler: dpmpp_2m_sde
+    scheduler: karras
+    steps: 30
+    cfg: 6.5
+    clip_skip: 2
+    vae: null
+    denoise_strength: 0.50  # Higher denoise = more quality enhancement
+
+  # Dedicated final model slot — swappable without changing orchestration.
+  # Defaults to beauty model values when absent. Set a different checkpoint
+  # here to switch the final-pass model in one place.
+  final:
+    checkpoint: "ChenkinNoob-XL-V0.2.safetensors"
+    type: sdxl
+    sampler: euler_ancestral      # euler_a is A1111 name; ComfyUI uses euler_ancestral
+    scheduler: karras
+    steps: 28
+    cfg: 6.0
+    clip_skip: 2
+    vae: null
+    denoise_strength: 0.30
+
+  # Optional LoRA stack applied on composition/cleanup/beauty passes.
+  # NOTE: Anime_Enhancer_flux_by_n0utis.safetensors is Flux-based and should
+  # not be auto-attached to this SDXL pipeline.
+  loras:
+    defaults:
+      - name: "Anime_artistic_2.safetensors"
+        strength: 0.65
+        enabled: true
+      - name: "HueSpark1llust.safetensors"
+        strength: 0.35
+        enabled: true
+
+  # Stage 7: Upscale model
+  upscale:
+    model: "RealESRGAN_x4plus_anime_6B"
+    scale_factor: 2
+    fallback_model: "RealESRGAN_x4plus"
+
+
+# ── Beauty Pass Presets ─────────────────────────────────────────────
+
+beauty_pass:
+  # Preset intensity: subtle | balanced | aggressive
+  strength: balanced
+  # Control layer strength is reduced from structure-lock defaults
+  control_strength_factor: 0.7   # multiply structure-lock strengths by this
+
+
+# ── Resolution Presets (SDXL-safe for 12GB VRAM) ───────────────────
+
+resolutions:
+  portrait:
+    width: 832
+    height: 1216
+  landscape:
+    width: 1216
+    height: 832
+  square:
+    width: 1024
+    height: 1024
+  # For upscale output — do not use as generation resolution
+  max_upscale:
+    width: 2048
+    height: 2048
+
+
+# ── Structure Lock (ControlNet layers) ─────────────────────────────
+
+structure_lock:
+  # Priority order: lineart is primary, depth is secondary, canny optional
+  # NOTE: SD1.5 ControlNet models are architecturally incompatible with SDXL.
+  # Disable lineart/depth until SDXL-native ControlNet models are available.
+  # AnimeLineArtPreprocessor / DepthAnythingV2Preprocessor also require
+  # comfyui_controlnet_aux custom nodes to be installed.
+  layers:
+    - type: lineart_anime
+      preprocessor: "AnimeLineArtPreprocessor"
+      controlnet_model: "control_v11p_sd15_lineart_anime"
+      strength: 0.85
+      start_percent: 0.0
+      end_percent: 0.8
+      priority: 1
+      optional: true
+      enabled: false  # SD1.5 ControlNet incompatible with SDXL; enable when SDXL ControlNet available
+
+    - type: depth
+      preprocessor: "DepthAnythingV2Preprocessor"
+      controlnet_model: "control_v11f1p_sd15_depth"
+      strength: 0.55
+      start_percent: 0.0
+      end_percent: 0.6
+      priority: 2
+      optional: true
+      enabled: false  # SD1.5 ControlNet incompatible with SDXL; enable when SDXL ControlNet available
+
+    - type: canny
+      preprocessor: "CannyEdgePreprocessor"
+      controlnet_model: "control_v11p_sd15_canny"
+      strength: 0.35
+      start_percent: 0.0
+      end_percent: 0.4
+      priority: 3
+      optional: true
+      enabled: false  # disabled by default — enable when hard edges help
+
+  # Max layers to apply simultaneously (VRAM budget)
+  max_simultaneous: 2
+
+
+# ── Vision Analyst ─────────────────────────────────────────────────
+
+vision:
+  # Models to try in order for vision analysis
+  model_priority:
+    - gemini-2.0-flash    # Fast, good, free tier
+    - gpt-4o-mini         # Cheap fallback
+    - gpt-4o              # Best but expensive
+  max_tokens: 500
+  temperature: 0.2
+
+
+# ── Critique ───────────────────────────────────────────────────────
+
+critique:
+  # Quality threshold: 0.0 = always pass, 1.0 = never pass
+  quality_threshold: 0.80
+  max_refine_rounds: 4
+
+  # Dimensions to evaluate (subset of full 8-dim for speed)
+  dimensions:
+    - instruction_adherence
+    - detail_handling
+    - identity_consistency
+
+  # If critique fails after max rounds, still return best attempt
+  return_best_on_fail: true
+
+
+# ── Pipeline Behavior ──────────────────────────────────────────────
+
+pipeline:
+  # Timeout per stage in milliseconds
+  timeouts:
+    vision_analysis: 15000
+    layer_planning: 5000
+    composition_pass: 120000
+    structure_lock: 60000
+    beauty_pass: 120000
+    detection_inpaint: 180000
+    critique: 15000
+    upscale: 60000
+
+  # Whether to save intermediate images to storage/intermediate/
+  save_intermediates: true
+  intermediate_dir: "storage/intermediate"
+
+  # Whether to stream SSE events per stage
+  stream_events: true
+
+  # VRAM management: unload model between passes
+  unload_between_passes: true
+
+
+# ── Prompt Enhancement ─────────────────────────────────────────────
+
+prompts:
+  # Quality tags prepended to all positive prompts
+  quality_prefix: "masterpiece, best quality, very aesthetic, absurdres, highly detailed, vivid colors"
+
+  # Negative prompt base
+  negative_base: >-
+    lowres, bad anatomy, bad hands, text, error, missing fingers,
+    extra digit, fewer digits, cropped, worst quality, low quality,
+    normal quality, jpeg artifacts, signature, watermark, username, blurry,
+    artist name, bad proportions, deformed, disfigured, ugly,
+    monochrome, greyscale, grayscale, sketch, lineart, black_and_white
+
+  # Style-specific negative additions
+  style_negatives:
+    anime: "3d, photorealistic, photo, cgi"
+    realistic: "anime, cartoon, drawing, illustration"
+
+
+# ── Refine Loop ────────────────────────────────────────────────────
+
+refine:
+  # Overall score threshold (0-10) — refine when below this
+  score_threshold: 8.0
+
+  # Max rounds of critique→refine (0 = no refine, just critique)
+  max_rounds: 4
+
+  # Per-round denoise adjustments
+  denoise_step_up: 0.05        # increase when anatomy/hands are bad
+  denoise_step_down: 0.03      # decrease when composition is already good
+  denoise_floor: 0.12          # never go below
+  denoise_ceiling: 0.55        # never go above (would destroy structure)
+
+  # Control strength adjustments
+  control_boost: 0.10          # strengthen when pose/structure drifts
+  control_reduce: 0.05         # weaken when over-constrained (style_drift high)
+
+  # Dimension score thresholds — trigger specific fixes below this
+  dimension_thresholds:
+    anatomy: 6
+    face_symmetry: 7
+    eye_consistency: 7
+    hand_quality: 5
+    clothing_consistency: 6
+    style_drift: 6
+    color_drift: 6
+    background_clutter: 5
+    missing_accessories: 5
+    pose_drift: 6
+
+  # Switch to subtle preset when total accumulated issues exceed this
+  artifact_accumulation_limit: 8
+
+
+# ── Eye Refine Micro-Workflow ─────────────────────────────────────
+
+eye_refine:
+  # After beauty output, critique vision checks face/eyes.
+  # If eye quality is weak, schedule one focused refine round.
+  enabled: true
+
+  # Trigger when eye_consistency_score <= trigger_score (0-10).
+  trigger_score: 8
+
+  # Number of latent micro-steps to run in focused eye refinement.
+  # Valid range: 1..3
+  max_steps: 3
+
+
+# ── Detection Inpaint (ADetailer-style) ──────────────────────────
+# Runs AFTER beauty pass, BEFORE upscale.
+# Uses 27 YOLO detection models to find body regions,
+# creates feathered masks, and inpaints each region with
+# region-specific prompts and LoRAs for maximum detail quality.
+#
+# Requires: ultralytics, Pillow (both in venv-image profile)
+# Detection models: ComfyUI/models/ultralytics/bbox/ and segm/
+#
+# Processing order (Tier 1 → Tier 5):
+#   Tier 1: face, full_eyes, eyes, mouth, hand (core anatomy)
+#   Tier 2: animal_ear, hair, torso, armpit, feet (body detail)
+#   Tier 3: clothes, underwear, thighhigh, swimsuit, leotard (clothing)
+#   Tier 4: text_watermark, censor_bar (cleanup)
+#   Tier 5: breasts, nipples, genital, pubic_area (NSFW)
+
+detection_inpaint:
+  enabled: true
+
+  # ── Tier 1: Core anatomy ─────────────────────────────────────────
+  layers:
+    # 1. Face (segmentation-based — precise, anime-girl specific)
+    - region_type: face
+      model_path: "segm/adetailerAnimeGirlFace_segment.zip"
+      confidence_threshold: 0.35
+      denoise: 0.35
+      padding_ratio: 0.15
+      feather_radius: 24
+      steps: 22
+      cfg: 6.0
+      enabled: true
+      loras:
+        - name: "Anime_artistic_2.safetensors"
+          strength_model: 0.55
+          strength_clip: 0.45
+
+    # 2. Full eyes (both eyes as pair — prevents mismatched irises)
+    - region_type: full_eyes
+      model_path: "bbox/fullEyesDetection_v10.zip"
+      confidence_threshold: 0.30
+      denoise: 0.30
+      padding_ratio: 0.30
+      feather_radius: 16
+      steps: 20
+      cfg: 5.5
+      enabled: true
+      loras:
+        - name: "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors"
+          strength_model: 0.50
+          strength_clip: 0.40
+        - name: "eye_check_by_hand.safetensors"
+          strength_model: 0.35
+          strength_clip: 0.25
+
+    # 3. Individual eye detection (fallback for missed single eyes)
+    - region_type: eyes
+      model_path: "bbox/eyesDetection_v10.zip"
+      confidence_threshold: 0.30
+      denoise: 0.28
+      padding_ratio: 0.25
+      feather_radius: 14
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras:
+        - name: "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors"
+          strength_model: 0.45
+          strength_clip: 0.35
+        - name: "eye_check_by_hand.safetensors"
+          strength_model: 0.35
+          strength_clip: 0.25
+
+    # 4. Mouth detection (yolo11n, 2D optimized)
+    - region_type: mouth
+      model_path: "segm/adetailer2dMouth_v10.pt"
+      confidence_threshold: 0.55
+      denoise: 0.30
+      padding_ratio: 0.20
+      feather_radius: 14
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 5. Hand segmentation (anime-trained, better than generic yolov8n)
+    - region_type: hand
+      model_path: "segm/handDetailer_v2V9c.zip"
+      confidence_threshold: 0.30
+      denoise: 0.38
+      padding_ratio: 0.20
+      feather_radius: 18
+      steps: 22
+      cfg: 6.0
+      enabled: true
+      loras: []
+
+    # 6. Generic face bbox (backup — includes males, disabled by default)
+    - region_type: face_bbox
+      model_path: "bbox/face_yolov8n.pt"
+      confidence_threshold: 0.40
+      denoise: 0.32
+      padding_ratio: 0.15
+      feather_radius: 22
+      steps: 20
+      cfg: 6.0
+      enabled: false
+      loras:
+        - name: "Anime_artistic_2.safetensors"
+          strength_model: 0.55
+          strength_clip: 0.45
+
+    # 7. Generic hand bbox (backup — disabled by default)
+    - region_type: hand_bbox
+      model_path: "bbox/hand_yolov8n.pt"
+      confidence_threshold: 0.35
+      denoise: 0.35
+      padding_ratio: 0.18
+      feather_radius: 16
+      steps: 20
+      cfg: 6.0
+      enabled: false
+      loras: []
+
+    # ── Tier 2: Body detail ──────────────────────────────────────────
+
+    # 8. Animal ear detection (cat/fox/horse ears — kemonomimi)
+    - region_type: animal_ear
+      model_path: "bbox/animalEarDetection_v10.zip"
+      confidence_threshold: 0.35
+      denoise: 0.30
+      padding_ratio: 0.25
+      feather_radius: 16
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 9. Hair detection (anime girl hair, yolo11n)
+    - region_type: hair
+      model_path: "segm/AdetailerAnimeGirlHair_v10.pt"
+      confidence_threshold: 0.40
+      denoise: 0.28
+      padding_ratio: 0.15
+      feather_radius: 20
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 10. Belly/torso/stomach segmentation
+    - region_type: torso
+      model_path: "segm/adetailer2dBellyTorso_v242Lg.zip"
+      confidence_threshold: 0.40
+      denoise: 0.28
+      padding_ratio: 0.15
+      feather_radius: 20
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 11. Armpit detection (yolov8 segmentation)
+    - region_type: armpit
+      model_path: "segm/adetailer2dArmpitYolov8_v10Segmentation.zip"
+      confidence_threshold: 0.60
+      denoise: 0.28
+      padding_ratio: 0.20
+      feather_radius: 14
+      steps: 16
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 12. Feet/soles detection (bbox)
+    - region_type: feet
+      model_path: "bbox/reignyolov8nsolesPt_solesDetectionV10.pt"
+      confidence_threshold: 0.50
+      denoise: 0.32
+      padding_ratio: 0.20
+      feather_radius: 16
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 13. Female body (full body segmentation — disabled, too broad)
+    - region_type: female_body
+      model_path: "segm/femaleBodyDetection_yolo26.pt"
+      confidence_threshold: 0.40
+      denoise: 0.25
+      padding_ratio: 0.10
+      feather_radius: 24
+      steps: 20
+      cfg: 5.5
+      enabled: false
+      loras: []
+
+    # 14. Person female (bbox — disabled, too broad)
+    - region_type: person_female
+      model_path: "bbox/personFemale_v10.pt"
+      confidence_threshold: 0.40
+      denoise: 0.22
+      padding_ratio: 0.08
+      feather_radius: 20
+      steps: 18
+      cfg: 5.5
+      enabled: false
+      loras: []
+
+    # ── Tier 3: Clothing and accessories ─────────────────────────────
+
+    # 15. Clothes (tops — suit, shirt, sweater, bikini, etc.)
+    - region_type: clothes
+      model_path: "segm/clothesDetection_tops.zip"
+      confidence_threshold: 0.45
+      denoise: 0.30
+      padding_ratio: 0.12
+      feather_radius: 18
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 16. Women's underwear (panties segmentation)
+    - region_type: underwear
+      model_path: "segm/womensUnderwear_pantiesSegV3b.pt"
+      confidence_threshold: 0.45
+      denoise: 0.30
+      padding_ratio: 0.15
+      feather_radius: 14
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 17. Thigh high stockings detection
+    - region_type: thighhigh
+      model_path: "bbox/thighhighDetectionFor_thighhighv50.pt"
+      confidence_threshold: 0.50
+      denoise: 0.28
+      padding_ratio: 0.15
+      feather_radius: 16
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 18. One-piece swimsuit (segmentation)
+    - region_type: swimsuit
+      model_path: "segm/adetailer2dOnePieceSwimsuit_v1042.zip"
+      confidence_threshold: 0.45
+      denoise: 0.30
+      padding_ratio: 0.12
+      feather_radius: 16
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 19. Strapless leotard (segmentation)
+    - region_type: leotard
+      model_path: "segm/adetailer2dStrapless_v10Yolo8n.zip"
+      confidence_threshold: 0.45
+      denoise: 0.28
+      padding_ratio: 0.12
+      feather_radius: 16
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # ── Tier 4: Cleanup / post-processing ────────────────────────────
+
+    # 20. Text / speech bubble / watermark removal
+    - region_type: text_watermark
+      model_path: "bbox/adetailerForTextSpeech_v20.zip"
+      confidence_threshold: 0.50
+      denoise: 0.75
+      padding_ratio: 0.10
+      feather_radius: 12
+      steps: 22
+      cfg: 5.0
+      enabled: true
+      loras: []
+
+    # 21. Bar censor removal
+    - region_type: censor_bar
+      model_path: "bbox/barCensorDetection_yolo26.pt"
+      confidence_threshold: 0.40
+      denoise: 0.80
+      padding_ratio: 0.10
+      feather_radius: 10
+      steps: 25
+      cfg: 5.0
+      enabled: true
+      loras: []
+
+    # ── Tier 5: NSFW-specific regions ────────────────────────────────
+
+    # 22. Breast detection (bbox)
+    - region_type: breasts
+      model_path: "bbox/boobaDetection_v11.zip"
+      confidence_threshold: 0.40
+      denoise: 0.30
+      padding_ratio: 0.15
+      feather_radius: 18
+      steps: 20
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 23. Nipple detection (segmentation)
+    - region_type: nipples
+      model_path: "bbox/adetailerNipples_v20Segm.zip"
+      confidence_threshold: 0.40
+      denoise: 0.30
+      padding_ratio: 0.20
+      feather_radius: 12
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 24. Genital region detection
+    - region_type: genital
+      model_path: "bbox/pussyAdetailer_v5SegBboxYolo11s.zip"
+      confidence_threshold: 0.40
+      denoise: 0.32
+      padding_ratio: 0.18
+      feather_radius: 14
+      steps: 20
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 25. Pubic area detection (bbox)
+    - region_type: pubic_area
+      model_path: "bbox/adetailer2dFemalePubic_v10.zip"
+      confidence_threshold: 0.45
+      denoise: 0.28
+      padding_ratio: 0.15
+      feather_radius: 14
+      steps: 18
+      cfg: 5.5
+      enabled: true
+      loras: []
+
+    # 26. Anime NSFW all-in-one (multi-class — disabled, use specific above)
+    - region_type: nsfw_allinone
+      model_path: "bbox/animeNSFWDetection_v50Variant1.zip"
+      confidence_threshold: 0.40
+      denoise: 0.30
+      padding_ratio: 0.15
+      feather_radius: 16
+      steps: 20
+      cfg: 5.5
+      enabled: false
+      loras: []
+
+    # 27. Multi-class adetailer (face/body/nsfw — disabled, overlaps above)
+    - region_type: multiclass
+      model_path: "bbox/adetailers_facef.pt"
+      confidence_threshold: 0.40
+      denoise: 0.30
+      padding_ratio: 0.15
+      feather_radius: 18
+      steps: 20
+      cfg: 5.5
+      enabled: false
+      loras: []
+
+  # Region-specific positive prompt suffixes
+  # (appended to the base beauty prompt for each region)
+  prompts:
+    # Tier 1: Core anatomy
+    face: >-
+      beautiful detailed face, detailed skin texture,
+      perfect eye symmetry, clear iris, sharp eyelashes,
+      detailed eyebrows, smooth facial shading, vivid expression
+    full_eyes: >-
+      ultra detailed eyes, intricate iris texture, clear limbal ring,
+      vivid catchlight, sharp eyelash strands, beautiful anime eyes,
+      balanced eye symmetry, perfect pupils, gleaming eyes, matching iris color
+    eyes: >-
+      ultra detailed eyes, intricate iris texture, clear limbal ring,
+      vivid catchlight, sharp eyelash strands, beautiful anime eyes,
+      balanced eye symmetry, perfect pupils, gleaming eyes
+    mouth: >-
+      detailed mouth, beautiful lips, correct teeth,
+      natural smile, detailed oral anatomy, well-shaped lips
+    hand: >-
+      detailed hands, correct finger count, five fingers,
+      anatomically correct hands, well-drawn hands,
+      detailed fingernails, proper finger proportions
+    # Tier 2: Body detail
+    animal_ear: >-
+      detailed fluffy animal ears, soft fur texture,
+      detailed ear interior, beautiful kemonomimi, realistic fur shading
+    hair: >-
+      detailed hair strands, flowing hair,
+      silky hair texture, individual hair strands visible,
+      beautiful hair highlights, glossy hair shading
+    torso: >-
+      detailed body, smooth skin,
+      detailed torso, proper body anatomy,
+      beautiful midriff, detailed navel
+    armpit: >-
+      detailed armpit, smooth skin, proper arm anatomy,
+      natural skin tone
+    feet: >-
+      detailed feet, correct toes, proper foot anatomy,
+      five toes, well-drawn feet, detailed toenails
+    female_body: >-
+      detailed body, proper anatomy, beautiful figure,
+      smooth skin texture, proper proportions
+    person_female: >-
+      detailed character, proper anatomy, beautiful,
+      well-proportioned figure
+    # Tier 3: Clothing
+    clothes: >-
+      detailed clothing, proper fabric texture,
+      realistic cloth folds, detailed outfit,
+      well-defined seams, fabric shading
+    underwear: >-
+      detailed underwear, proper fabric texture,
+      realistic lingerie, lace detail,
+      fabric pattern, delicate material
+    thighhigh: >-
+      detailed thigh highs, proper fabric texture,
+      realistic stockings, elastic band detail,
+      sheer fabric, proper transparency
+    swimsuit: >-
+      detailed swimsuit, proper fabric texture,
+      realistic material, tight fit, well-defined edges
+    leotard: >-
+      detailed leotard, proper fabric texture,
+      realistic material, strapless design,
+      well-defined edges, fabric tension
+    # Tier 4: Cleanup
+    text_watermark: >-
+      clean background, smooth area, no text,
+      no watermark, no speech bubble,
+      natural background, seamless fill
+    censor_bar: >-
+      clean uncensored area, detailed skin,
+      natural anatomy, smooth texture, seamless skin
+    # Tier 5: NSFW
+    breasts: >-
+      detailed breasts, proper anatomy,
+      smooth skin texture, natural shape
+    nipples: >-
+      detailed nipples, proper anatomy,
+      natural areola, smooth skin
+    genital: >-
+      detailed anatomy, natural skin texture,
+      proper anatomy, smooth skin
+    pubic_area: >-
+      detailed skin texture, natural body, proper anatomy
+
+  # Region-specific negative prompt suffixes
+  negatives:
+    # Tier 1: Core anatomy
+    face: >-
+      blurry face, asymmetrical eyes, deformed face, ugly face,
+      bad anatomy face, extra eyes, missing eyes
+    full_eyes: >-
+      lazy eye, cross-eye, uneven pupils, blurry iris,
+      malformed eyelids, bad eyes, missing eye,
+      heterochromia, different eye colors
+    eyes: >-
+      lazy eye, cross-eye, uneven pupils, blurry iris,
+      malformed eyelids, bad eyes, missing eye
+    mouth: >-
+      blurry mouth, deformed lips, bad teeth,
+      crooked mouth, missing teeth, unnatural smile
+    hand: >-
+      bad hands, extra fingers, missing fingers,
+      fused fingers, deformed hands, mutated hands
+    # Tier 2: Body detail
+    animal_ear: >-
+      blurry ears, deformed ears, flat ears,
+      bad fur, missing ears
+    hair: >-
+      blurry hair, flat hair, bad hair texture,
+      messy unnatural hair, bald patches
+    torso: >-
+      bad anatomy, deformed body, blurry torso, extra limbs
+    armpit: >-
+      blurry skin, deformed arm, bad anatomy
+    feet: >-
+      extra toes, missing toes, deformed feet,
+      bad feet anatomy, six toes
+    female_body: >-
+      bad anatomy, deformed body, extra limbs,
+      missing limbs, unnatural proportions
+    person_female: >-
+      bad anatomy, deformed, extra limbs
+    # Tier 3: Clothing
+    clothes: >-
+      blurry clothing, deformed fabric, flat texture,
+      bad clothing design
+    underwear: >-
+      blurry fabric, deformed underwear, bad texture
+    thighhigh: >-
+      blurry stockings, deformed fabric, bad texture
+    swimsuit: >-
+      blurry fabric, deformed swimsuit, bad texture
+    leotard: >-
+      blurry fabric, deformed leotard, bad texture
+    # Tier 4: Cleanup
+    text_watermark: >-
+      text, watermark, speech bubble, logo, signature,
+      username, copyright, url, timestamp
+    censor_bar: >-
+      censored, mosaic, bar, black bar, white bar,
+      pixelated, blurred region
+    # Tier 5: NSFW
+    breasts: >-
+      deformed breasts, bad anatomy, asymmetrical, unnatural
+    nipples: >-
+      deformed nipples, bad anatomy, unnatural
+    genital: >-
+      deformed anatomy, bad anatomy, unnatural
+    pubic_area: >-
+      deformed, unnatural, bad anatomy

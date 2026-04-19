@@ -194,10 +194,16 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         return;
     }
 
+    // ── LOCAL → open Anime Pipeline modal with prompt pre-filled ──
+    if (providerChoice === 'local') {
+        const effectivePrompt = dialogResult.promptOverride || message;
+        window.animePipeline?.openModalWithPrompt(effectivePrompt);
+        return;
+    }
+
+    // ── API path ─────────────────────────────────────────────────
     const imageGenOptions = {
-        ...(providerChoice === 'local'
-            ? { quality: 'free', provider: 'comfyui', presetId: 'lora_bulk_auto_chat' }
-            : { quality: 'auto' }),
+        quality: 'auto',
         steps: dialogResult.steps,
         width: dialogResult.width,
         height: dialogResult.height,
@@ -677,7 +683,7 @@ async function renderImageThinkingAnalysis(app, { result, providerChoice, messag
         { icon: '🎨', text: `**Provider:** ${result.provider} / ${result.model}` },
         { icon: '⚡', text: `**Hiệu suất:** ${Math.round(result.latency_ms)}ms · Chi phí: $${result.cost_usd}` },
         { icon: '📐', text: `**Đánh giá bố cục:** Ảnh được tạo với kích thước ${result.metadata?.width || '?'}×${result.metadata?.height || '?'}` },
-        { icon: '✨', text: `**Chất lượng:** ${providerChoice === 'local' ? 'ComfyUI local — miễn phí, tùy chỉnh tốt' : 'Cloud API — chất lượng cao, tốc độ nhanh'}` },
+        { icon: '✨', text: `**Chất lượng:** Cloud API — chất lượng cao, tốc độ nhanh` },
         { icon: '✅', text: '**Kết luận:** Ảnh đã được tạo thành công. Bạn có thể yêu cầu chỉnh sửa thêm.' },
     ];
 

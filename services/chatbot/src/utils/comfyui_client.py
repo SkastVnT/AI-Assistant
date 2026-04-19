@@ -33,7 +33,7 @@ class ComfyUIClient:
     
     # Known working models (verified with non-zero file size)
     WORKING_MODELS = [
-        'animagine-xl-3.1.safetensors',
+        'animagine-xl-4.0-opt.safetensors',
         'juggernautXL_v9.safetensors',
         'dreamshaper_xl.safetensors',
         'realvisxlV50_v50LightningBakedvae.safetensors',
@@ -176,7 +176,7 @@ class ComfyUIClient:
             else:
                 model = self.get_current_model()
             if model == "No model loaded":
-                model = "animagine-xl-3.1.safetensors"
+                model = "animagine-xl-4.0-opt.safetensors"
             
             # Random seed if -1
             if seed == -1:
@@ -394,7 +394,7 @@ class ComfyUIClient:
                 # Use known working model
                 model = self.get_current_model()
                 if model == "No model loaded":
-                    model = "animagine-xl-3.1.safetensors"
+                    model = "animagine-xl-4.0-opt.safetensors"
             
             logger.info(f"Using model: {model}")
             

@@ -313,7 +313,7 @@ def delete_image(filename):
 @images_bp.route('/api/gallery', methods=['GET'])
 @images_bp.route('/api/gallery/images', methods=['GET'])  # Alias for frontend compatibility
 def get_gallery():
-    """Get image gallery - MongoDB first, local disk fallback"""
+    """Get image gallery - merge MongoDB and local disk for consistency."""
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 50))
@@ -322,6 +322,12 @@ def get_gallery():
         current_session_id = get_session_id()
         images = []
         source = 'local'
+        has_mongodb_images = False
+        existing_refs = set()
+
+        def _track_ref(value):
+            if value:
+                existing_refs.add(str(value))
         
         # â”€â”€ Try MongoDB first (generated_images collection) â”€â”€
         try:
@@ -385,55 +391,73 @@ def get_gallery():
                             'filename': filename,
                         }
                     })
+                    _track_ref(filename)
+                    _track_ref(display_url)
+                    _track_ref(cloud_url)
+                    _track_ref(local_path)
                 
                 if images:
                     source = 'mongodb'
+                    has_mongodb_images = True
                     logger.info(f"[Gallery] Loaded {len(images)} images from MongoDB")
         except Exception as mongo_err:
             logger.warning(f"[Gallery] MongoDB fetch failed, falling back to local: {mongo_err}")
         
-        # ── Fallback: local disk (flat + date-based subdirs from image_gen_v2) ──
-        if not images:
-            for img_file in IMAGE_STORAGE_DIR.rglob('*.png'):
-                # Support both flat (.json) and date-based subdirs (.meta.json)
-                metadata_file = img_file.with_suffix('.meta.json') if not img_file.with_suffix('.json').exists() else img_file.with_suffix('.json')
-                metadata = {}
-                if metadata_file.exists():
-                    try:
-                        with open(metadata_file, 'r', encoding='utf-8') as f:
-                            metadata = json.load(f)
-                    except:
-                        pass
+        # ── Local disk merge (flat + date-based subdirs from image_gen_v2) ──
+        local_added = 0
+        for img_file in IMAGE_STORAGE_DIR.rglob('*.png'):
+            # Support both flat (.json) and date-based subdirs (.meta.json)
+            metadata_file = img_file.with_suffix('.meta.json') if not img_file.with_suffix('.json').exists() else img_file.with_suffix('.json')
+            metadata = {}
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                except Exception:
+                    metadata = {}
 
-                image_session_id = metadata.get('session_id')
-                if not show_all:
-                    if image_session_id is not None and image_session_id != current_session_id:
-                        continue
+            image_session_id = metadata.get('session_id')
+            if not show_all:
+                if image_session_id is not None and image_session_id != current_session_id:
+                    continue
 
-                # Build a servable URL: image_gen_v2 images served via /api/image-gen/images/<id>
-                image_id = metadata.get('image_id', '')
-                if image_id:
-                    serve_url = f"/api/image-gen/images/{image_id}"
-                else:
-                    serve_url = f"/storage/images/{img_file.name}"
+            # Build a servable URL: image_gen_v2 images served via /api/image-gen/images/<id>
+            image_id = metadata.get('image_id', '')
+            if image_id:
+                serve_url = f"/api/image-gen/images/{image_id}"
+            else:
+                serve_url = f"/storage/images/{img_file.name}"
 
-                images.append({
-                    'filename': img_file.name,
-                    'url': serve_url,
-                    'path': serve_url,
-                    'cloud_url': metadata.get('cloud_url'),
-                    'drive_url': metadata.get('drive_url'),
-                    'share_url': metadata.get('drive_url') or metadata.get('cloud_url') or serve_url,
-                    'local_path': serve_url,
-                    'created_at': metadata.get('created_at', ''),
-                    'created': metadata.get('created_at', ''),
-                    'prompt': metadata.get('prompt', 'No prompt'),
-                    'creator': metadata.get('creator') or metadata.get('session_id') or 'local-session',
-                    'db_status': metadata.get('db_status', {'mongodb': False, 'firebase': False}),
-                    'metadata': metadata.get('metadata', metadata)
-                })
-            
-            images.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+            cloud_url = metadata.get('cloud_url')
+            drive_url = metadata.get('drive_url')
+            dedupe_keys = [img_file.name, serve_url, cloud_url, drive_url]
+            if any(key and str(key) in existing_refs for key in dedupe_keys):
+                continue
+
+            images.append({
+                'filename': img_file.name,
+                'url': serve_url,
+                'path': serve_url,
+                'cloud_url': cloud_url,
+                'drive_url': drive_url,
+                'share_url': drive_url or cloud_url or serve_url,
+                'local_path': serve_url,
+                'created_at': metadata.get('created_at', ''),
+                'created': metadata.get('created_at', ''),
+                'prompt': metadata.get('prompt', 'No prompt'),
+                'creator': metadata.get('creator') or metadata.get('session_id') or 'local-session',
+                'db_status': metadata.get('db_status', {'mongodb': False, 'firebase': False}),
+                'metadata': metadata.get('metadata', metadata)
+            })
+            local_added += 1
+            for key in dedupe_keys:
+                _track_ref(key)
+
+        if has_mongodb_images and local_added:
+            source = 'mongodb+local'
+        elif has_mongodb_images:
+            source = 'mongodb'
+        elif local_added:
             source = 'local'
 
         # ── Additional source: AI-generated image URLs from assistant messages ──

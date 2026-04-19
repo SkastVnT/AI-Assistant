@@ -14,6 +14,7 @@ import time
 import json
 import base64
 import uuid
+import random
 import logging
 import httpx
 
@@ -197,8 +198,8 @@ EYE_LORAS_SDXL = [
     ("perfect_eyes_xl.safetensors", 0.25),
 ]
 
-# 5-slot quality LoRA stack for SDXL auto-resolution (Path B, no user LoRAs).
-# Each slot tries candidates in order; first found is used. One per slot → 5 max.
+# 6-slot quality LoRA stack for SDXL auto-resolution (Path B, no user LoRAs).
+# Each slot tries candidates in order; first found is used. One per slot → 6 max.
 QUALITY_STACK_SDXL: list[list[tuple[str, float]]] = [
     # Slot 1: Eye / iris quality (general-purpose, no forced pose)
     [
@@ -223,6 +224,12 @@ QUALITY_STACK_SDXL: list[list[tuple[str, float]]] = [
     # Slot 5: Hair strand definition
     [
         ("anime-quality/messy hair.safetensors", 0.25),
+    ],
+    # Slot 6: Artistic style enhancement (Illustrious-based LoRAs)
+    # Randomised each call — adds style variety so consecutive gens don't look identical.
+    [
+        ("Anime_artistic_2.safetensors", 0.60),
+        ("HueSpark1llust.safetensors", 0.45),
     ],
 ]
 STYLE_LORAS_SDXL = [
@@ -693,8 +700,14 @@ class ComfyUIProvider(BaseImageProvider):
 
         style_match = [(c, p) for c, p in candidates if p["style"] == style]
         pool = style_match if style_match else candidates
-        pool.sort(key=lambda x: x[1]["priority"], reverse=True)
-        return pool[0]
+
+        # Weighted-random selection: higher-priority models are more likely,
+        # but lower-priority models can be chosen too — avoids same-model output
+        # every generation while still preferring quality models.
+        weights = [p["priority"] for _, p in pool]
+        chosen = random.choices(pool, weights=weights, k=1)[0]
+        logger.debug(f"[ComfyUI] Model pool size={len(pool)}, selected={chosen[0]} (priority={chosen[1]['priority']})")
+        return chosen
 
     def _resolve_loras(self, model_type: str, style: str = "anime") -> list[tuple[str, float]]:
         """Select LoRAs for generation.
@@ -710,12 +723,18 @@ class ComfyUIProvider(BaseImageProvider):
 
         is_xl = model_type.startswith("sdxl")
 
-        # SDXL: stack up to 5 quality LoRAs (eye + portrait + detail + anatomy + hair)
-        # Each slot resolves independently; 1 LoRA per slot, 5 max total.
+        # SDXL: stack up to 6 quality LoRAs (eye + portrait + detail + anatomy + hair + style).
+        # Each slot resolves independently; 1 LoRA per slot, 6 max total.
+        # Slot 6 (style/artistic) is shuffled so both Anime_artistic_2 and HueSpark1llust
+        # get selected in rotation rather than always the same one.
         if is_xl:
             found: list[tuple[str, float]] = []
-            for slot in QUALITY_STACK_SDXL:
-                for lora_name, strength in slot:
+            for i, slot in enumerate(QUALITY_STACK_SDXL):
+                # Randomise order within style slot so variety is applied each call
+                candidates_in_slot = list(slot)
+                if i == len(QUALITY_STACK_SDXL) - 1:  # last slot = style variety slot
+                    random.shuffle(candidates_in_slot)
+                for lora_name, strength in candidates_in_slot:
                     matched = None
                     if lora_name in self._available_loras:
                         matched = lora_name

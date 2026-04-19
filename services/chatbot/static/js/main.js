@@ -12,6 +12,7 @@ import { MemoryManager } from './modules/memory-manager.js';
 import { ImageGeneration } from './modules/image-gen.js';
 import { ImageGenV2 } from './modules/image-gen-v2.js';
 import { VideoGen } from './modules/video-gen.js';
+import { AnimePipeline } from './modules/anime-pipeline.js';
 import { ExportHandler } from './modules/export-handler.js';
 import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
@@ -45,6 +46,7 @@ class ChatBotApp {
         this.imageGen = new ImageGeneration(this.apiService);
         this.imageGenV2 = new ImageGenV2(this.apiService);
         this.videoGen = new VideoGen();
+        this.animePipeline = new AnimePipeline();
         this.exportHandler = new ExportHandler();
         
         // Expose chatManager and chatApp globally
@@ -516,6 +518,15 @@ class ChatBotApp {
         }
         // Expose V2 globally for onclick handlers
         window.imageGenV2 = this.imageGenV2;
+
+        // Anime Pipeline button
+        const apBtn = document.getElementById('animePipelineBtn');
+        if (apBtn) {
+            apBtn.addEventListener('click', () => {
+                this.animePipeline.openModal();
+            });
+        }
+        window.animePipeline = this.animePipeline;
 
         // Video Generation (Sora 2) button
         const videoGenBtn = document.getElementById('videoGenBtn');
@@ -1434,6 +1445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     registerOverlay('historyModal',            { type: 'modal' });
     registerOverlay('configAgentModal',        { type: 'modal' });
     registerOverlay('imageGenV2Modal',         { type: 'modal' });
+    registerOverlay('animePipelineModal',      { type: 'modal' });
     registerOverlay('videoGenModal',           { type: 'modal' });
     registerOverlay('generatedImageContainer', { type: 'modal' });
     registerOverlay('qrPayModal',              { type: 'modal' });

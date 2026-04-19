@@ -23,6 +23,7 @@ Nền tảng microservices Python tích hợp nhiều dịch vụ AI: chatbot đ
 | **Thinking Modes** | Instant / Think / Deep-Think / Multi-Thinking (4 Agents) |
 | **Skill System** | 11 built-in personas tự động route theo nội dung tin nhắn |
 | **Image Generation** | 7 provider: fal.ai, BFL/FLUX, Replicate, StepFun, OpenAI DALL-E, Together AI, ComfyUI |
+| **Anime Pipeline** | 7-stage layered anime generation — Vision → Plan → Compose → Structure → Beauty → Critique → Upscale |
 | **Video AI** | OpenAI Sora 2 — text-to-video 4/8/12s, 720p/1080p |
 | **Web Search** | SerpAPI (Google, Bing, Baidu) + Google CSE fallback — tự động kích hoạt |
 | **Reverse Image** | Google Lens → Google Reverse Image → Yandex (cascade) |
@@ -221,6 +222,37 @@ Pricing: `sora-2` $0.10/s · `sora-2-pro` $0.30/s · Thời lượng: 4, 8, 12 g
 
 ---
 
+## Anime Pipeline
+
+7-stage layered anime image generation chạy qua ComfyUI backend. Yêu cầu ComfyUI đang chạy tại `ANIME_PIPELINE_COMFYUI_URL` (mặc định `http://localhost:8188`). Gated bởi feature flag `IMAGE_PIPELINE_V2`.
+
+```
+Prompt → Vision Analysis → Layer Planning → Composition Pass
+       → Structure Lock (lineart/depth/canny) → Beauty Pass
+       → Critique Loop (Gemini / GPT-4o-mini vision)
+       → Upscale → Output Manifest
+```
+
+Tất cả stage phát SSE events với prefix `anime_pipeline_*`. Chi tiết kiến trúc: [image_pipeline/anime_pipeline/README.md](image_pipeline/anime_pipeline/README.md).
+
+### Env vars
+
+```env
+ANIME_PIPELINE_COMFYUI_URL=http://localhost:8188   # ComfyUI URL
+ANIME_PIPELINE_VRAM_PROFILE=normalvram             # lowvram / normalvram / highvram / auto
+ANIME_PIPELINE_COMPOSITION_MODEL=animagine-xl-4.0-opt.safetensors
+ANIME_PIPELINE_BEAUTY_MODEL=noobai-xl-1.1.safetensors
+ANIME_PIPELINE_QUALITY_THRESHOLD=0.70              # 0.0-1.0 (critique pass threshold)
+ANIME_PIPELINE_MAX_REFINE_ROUNDS=3
+ANIME_PIPELINE_DEBUG=false                         # Lưu workflow JSON + intermediate images
+```
+
+Vision critique dùng `GEMINI_API_KEY` (primary) → `OPENAI_API_KEY` (fallback). Không cần package riêng — gọi API qua httpx.
+
+Config đầy đủ: [configs/anime_pipeline_example.yaml](configs/anime_pipeline_example.yaml).
+
+---
+
 ## MCP Server
 
 Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-server/server.py`.
@@ -391,6 +423,14 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 |---|---|---|
 | `GET` | `/api/payment/info` | Thông tin tài khoản nhận tiền |
 | `POST` | `/api/payment/qr` | Tạo QR code VietQR |
+
+### Anime Pipeline
+
+| Method | Path | Mô tả |
+|---|---|---|
+| `GET` | `/api/anime-pipeline/health` | ComfyUI health + feature flag status |
+| `POST` | `/api/anime-pipeline/stream` | **Primary** — 7-stage SSE streaming generation |
+| `POST` | `/api/anime-pipeline/generate` | Blocking generation (chờ hoàn thành) |
 
 ### Stable Diffusion Proxy
 
@@ -584,7 +624,7 @@ services/
     templates/               index.html, admin.html, login.html
     static/js/modules/       15 JS modules (skill-manager, image-gen-v2, video-gen, ...)
     config/                  mongodb_config.py, model_presets.py, features.json
-    tests/                   35+ test modules, 162+ tests
+    tests/                   40+ test modules, 275+ tests
   mcp-server/
     server.py                FastMCP stdio server
     tools/advanced_tools.py  10 advanced MCP tools
@@ -598,6 +638,15 @@ app/
   src/                       Shared modules (utils, database, cache, security)
 
 ComfyUI/                     ComfyUI installation (image editing backend)
+image_pipeline/
+  anime_pipeline/            7-stage anime pipeline (agents, config, schemas, orchestrator)
+    agents/                  VisionAnalyst, LayerPlanner, CompositionPass, StructureLock, BeautyPass, Critique, Upscale
+    examples/                request_payload.json, output_manifest.json
+    README.md                Developer docs
+    MIGRATION.md             Migration notes
+configs/
+  anime_pipeline.yaml        Runtime config (VRAM, model slots, thresholds)
+  anime_pipeline_example.yaml  Template config với comments đầy đủ
 rag/                         Standalone RAG service (separate stack)
 private/                     Dữ liệu nội bộ / submodule
 ```

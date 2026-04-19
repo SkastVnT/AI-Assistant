@@ -855,3 +855,107 @@ def list_characters():
         "characters": characters,
         "total": len(characters),
     })
+
+
+# ── Anime multi-pass pipeline (IMAGE_PIPELINE_V2) ────────────────────────
+
+@image_gen_bp.route("/api/image-gen/anime-pipeline", methods=["POST"])
+@_guarded
+def anime_pipeline():
+    """
+    Run the multi-pass anime image pipeline.
+    Requires IMAGE_PIPELINE_V2=true feature flag.
+
+    Body (JSON):
+        prompt: str               — Image description
+        reference_image_b64: str  — Optional base64 reference image
+        width: int                — Output width (default from config)
+        height: int               — Output height (default from config)
+        upscale: bool             — Run upscale pass (default: true)
+        stream: bool              — Return SSE stream (default: false)
+    """
+    from core.feature_flags import features
+
+    if not features.image_pipeline_v2:
+        return jsonify({"error": "Anime pipeline is not enabled (set IMAGE_PIPELINE_V2=true)"}), 403
+
+    data = request.get_json(force=True, silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"error": "prompt is required"}), 400
+
+    try:
+        from image_pipeline.anime_pipeline import AnimePipelineOrchestrator, AnimePipelineJob
+
+        orchestrator = AnimePipelineOrchestrator()
+        job = AnimePipelineJob(
+            user_prompt=prompt,
+            reference_image_b64=data.get("reference_image_b64"),
+        )
+
+        # Override resolution if provided
+        if data.get("width") and job.layer_plan:
+            pass  # Resolution is set during planning stage
+        if data.get("upscale") is False and job.layer_plan:
+            pass  # Upscale flag is set during planning stage
+
+        if data.get("stream"):
+            return _anime_pipeline_stream(orchestrator, job)
+
+        # Blocking run
+        result = orchestrator.run(job)
+        result_dict = result.to_dict()
+
+        # Store final image if available
+        if result.final_image_b64:
+            storage = _get_storage()
+            saved = storage.save(
+                image_b64=result.final_image_b64,
+                metadata={
+                    "prompt": prompt,
+                    "provider": "anime_pipeline_v2",
+                    "model": ",".join(result.models_used),
+                    "source": "anime_pipeline",
+                    "job_id": result.job_id,
+                },
+            )
+            result_dict["stored_image_id"] = saved.get("image_id")
+
+        return jsonify(result_dict)
+
+    except ImportError as e:
+        logger.error("[anime_pipeline] Import error: %s", e)
+        return jsonify({"error": "Anime pipeline modules not available"}), 500
+    except Exception as e:
+        logger.error("[anime_pipeline] Failed: %s", e, exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+def _anime_pipeline_stream(orchestrator, job) -> Response:
+    """SSE stream for anime pipeline stages."""
+    import json
+
+    def generate():
+        try:
+            for event in orchestrator.run_stream(job):
+                event_type = event.get("event", "message")
+                event_data = json.dumps(event.get("data", {}))
+                yield f"event: {event_type}\ndata: {event_data}\n\n"
+
+            # Send final image
+            if job.final_image_b64:
+                yield f"event: anime_pipeline_image\ndata: {json.dumps({'image_b64': job.final_image_b64})}\n\n"
+
+            yield "event: done\ndata: {}\n\n"
+        except Exception as e:
+            logger.error("[anime_pipeline_stream] Error: %s", e, exc_info=True)
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

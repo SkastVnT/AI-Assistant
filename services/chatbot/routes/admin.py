@@ -267,6 +267,7 @@ def get_images():
         search = request.args.get('search', '').strip()
 
         images = []
+        conv_ids = []
 
         # Extract images from messages
         msg_query = {'images': {'$exists': True, '$ne': []}}
@@ -353,6 +354,69 @@ def get_images():
         except Exception:
             pass
 
+        # Canonical generated images collection (used by gallery + storage contract)
+        try:
+            conv_user_cache = {}
+
+            def _resolve_conv_user(conversation_id_value):
+                conv_key = str(conversation_id_value or '')
+                if not conv_key:
+                    return ''
+                if conv_key in conv_user_cache:
+                    return conv_user_cache[conv_key]
+
+                resolved = ''
+                try:
+                    from bson import ObjectId
+                    conv = db.conversations.find_one(
+                        {'$or': [{'_id': conv_key}, {'_id': ObjectId(conv_key)}]},
+                        {'user_id': 1},
+                    )
+                    if conv:
+                        resolved = conv.get('user_id', '') or ''
+                except Exception:
+                    resolved = ''
+
+                conv_user_cache[conv_key] = resolved
+                return resolved
+
+            for doc in db.generated_images.find({}).sort('created_at', -1).limit(2000):
+                conversation_id = str(doc.get('conversation_id', ''))
+                resolved_user = (
+                    doc.get('creator')
+                    or doc.get('user_id')
+                    or _resolve_conv_user(conversation_id)
+                    or 'unknown'
+                )
+                if user_id and resolved_user != user_id:
+                    continue
+
+                prompt_text = str(doc.get('prompt', '') or '')
+                filename = str(doc.get('filename', '') or '')
+                model = str(doc.get('model', '') or '')
+                source = str(doc.get('source', '') or '')
+                if search:
+                    haystack = f"{prompt_text} {filename} {model} {source}".lower()
+                    if search.lower() not in haystack:
+                        continue
+
+                primary_url = doc.get('drive_url') or doc.get('cloud_url') or doc.get('url') or doc.get('local_path')
+                if not primary_url:
+                    continue
+
+                images.append({
+                    'url': primary_url,
+                    'cloud_url': doc.get('cloud_url') or doc.get('drive_url') or doc.get('url') or '',
+                    'caption': prompt_text[:120] if prompt_text else filename,
+                    'name': filename or 'Generated Image',
+                    'user_id': resolved_user,
+                    'created_at': doc.get('created_at'),
+                    'source': source or 'generated_images',
+                    'conversation_id': conversation_id,
+                })
+        except Exception as generated_err:
+            logger.warning(f"[Admin] generated_images fetch skipped: {generated_err}")
+
         # Also look for generated images in content (AI-generated image URLs in assistant messages)
         try:
             import re as _re
@@ -379,6 +443,18 @@ def get_images():
                     images.append(img_entry)
         except Exception:
             pass
+
+        # De-duplicate while preserving order
+        deduped = []
+        seen_keys = set()
+        for image in images:
+            key = image.get('cloud_url') or image.get('url') or image.get('data_url')
+            if key and key in seen_keys:
+                continue
+            if key:
+                seen_keys.add(key)
+            deduped.append(image)
+        images = deduped
 
         total = len(images)
         start = (page - 1) * per_page

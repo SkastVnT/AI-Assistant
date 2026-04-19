@@ -1,15 +1,15 @@
-﻿"""
+"""
 Model Presets Configuration
 Defines presets for different image generation styles,
 LoRA combinations, and workflow recipes.
 """
 
-# ─── LoRA Catalog ────────────────────────────────────────────────────────
+# --- LoRA Catalog --------------------------------------------------------
 # Each entry maps a short key to its filename and metadata.
 # Paths are resolved by ComfyUI via extra_model_paths.yaml.
 
 LORA_CATALOG = {
-    # ── Character LoRAs (Honkai Star Rail) ───────────────────────────────
+    # -- Character LoRAs (Honkai Star Rail) -------------------------------
     "firefly":        {"file": "Firefly-1024-v1.safetensors",           "trigger": ["firefly"],           "category": "character", "base": "sdxl"},
     "kafka":          {"file": "kafka-v2-naivae-final-6ep.safetensors", "trigger": ["kafka"],             "category": "character", "base": "sdxl"},
     "jingliu":        {"file": "JingliuV4-09.safetensors",              "trigger": ["jingliu"],           "category": "character", "base": "sdxl"},
@@ -19,29 +19,29 @@ LORA_CATALOG = {
     "bronya":         {"file": "Bronya Rand.safetensors",               "trigger": ["bronya rand"],       "category": "character", "base": "sd15"},
     "trailblazer":    {"file": "TrailblazerHonkaiStarRail4.safetensors","trigger": ["trailblazer"],       "category": "character", "base": "sd15"},
 
-    # ── Character LoRAs (Genshin Impact) ─────────────────────────────────
+    # -- Character LoRAs (Genshin Impact) ---------------------------------
     "nahida":         {"file": "Nahida3.safetensors",                   "trigger": ["nahida"],            "category": "character", "base": "sd15"},
     "furina":         {"file": "furina-lora-nochekaiser.safetensors",   "trigger": ["furina"],            "category": "character", "base": "sdxl"},
     "eula":           {"file": "Eula-1.0.safetensors",                  "trigger": ["eula"],              "category": "character", "base": "sd15"},
     "raiden":         {"file": "raiden shogun_LoRA.safetensors",        "trigger": ["raiden shogun"],     "category": "character", "base": "sd15"},
     "yae_miko":       {"file": "yaemiko1.safetensors",                  "trigger": ["yae miko"],          "category": "character", "base": "sd15"},
 
-    # ── Character LoRAs (Other) ──────────────────────────────────────────
+    # -- Character LoRAs (Other) ------------------------------------------
     "tatsumaki":      {"file": "tatsumaki.safetensors",                 "trigger": ["tatsumaki"],         "category": "character", "base": "sd15"},
     "atri":           {"file": "atri.safetensors",                      "trigger": ["atri"],              "category": "character", "base": "sd15"},
 
-    # ── Style LoRAs ──────────────────────────────────────────────────────
+    # -- Style LoRAs ------------------------------------------------------
     "outline":        {"file": "SIC_outline_v1.01.safetensors",         "trigger": [],                    "category": "style",     "base": "sdxl"},
     "dilation_tape":  {"file": "dilationTapeLora-05.safetensors",       "trigger": [],                    "category": "style",     "base": "sd15"},
 
-    # ── Anatomy / Quality LoRAs ──────────────────────────────────────────
+    # -- Anatomy / Quality LoRAs ------------------------------------------
     "detail_tweaker": {"file": "add_detail.safetensors",                "trigger": [],                    "category": "anatomy",   "base": "sd15"},
 
-    # ── Custom trained ───────────────────────────────────────────────────
+    # -- Custom trained ---------------------------------------------------
     "maki_custom":    {"file": "maki_lora.safetensors",                 "trigger": ["maki"],              "category": "character", "base": "sd15"},
 
-    # ── NSFW LoRAs — Illustrious XL base (compatible with ChenkinNoob-XL) ──
-    # These LoRAs are confirmed ILXL/Illustrious — use ChenkinNoob-XL-V0.2.safetensors
+    # -- NSFW LoRAs � Illustrious XL base (compatible with ChenkinNoob-XL) --
+    # These LoRAs are confirmed ILXL/Illustrious � use ChenkinNoob-XL-V0.2.safetensors
     "xray_ilxl":              {"file": "x-ray_ilxl_v1.safetensors",                                              "trigger": ["xray view", "x-ray view", "internal view", "see through body"],  "category": "nsfw", "base": "ilxl"},
     "speculum_ilxl":          {"file": "speculum_illustrious_V1.0.safetensors",                                   "trigger": ["speculum"],                                                       "category": "nsfw", "base": "ilxl"},
     "speculum_insertion_ilxl":{"file": "LoraILXL10_speculum_insertion_v1.safetensors",                            "trigger": ["speculum insertion"],                                             "category": "nsfw", "base": "ilxl"},
@@ -52,7 +52,7 @@ LORA_CATALOG = {
     "cameltoe_ilxl":          {"file": "Cameltoe_THICK_-_Anime-000009.safetensors",                               "trigger": ["cameltoe", "camel toe"],                                          "category": "nsfw", "base": "ilxl"},
     "eyes_ilxl":              {"file": "Eyes_for_Illustrious_Lora_Perfect_anime_eyes.safetensors",                "trigger": [],                                                                 "category": "quality", "base": "ilxl"},
 
-    # ── NSFW LoRAs — likely SDXL/anime base (ambiguous, attempt with ChenkinNoob) ──
+    # -- NSFW LoRAs � likely SDXL/anime base (ambiguous, attempt with ChenkinNoob) --
     "xray_v2":                {"file": "xray2.5.safetensors",                                                     "trigger": [],                                                                 "category": "nsfw", "base": "sdxl"},
     "xray_window":            {"file": "Johns_X-Ray_Window_LORA.safetensors",                                     "trigger": ["x-ray window", "xray window"],                                    "category": "nsfw", "base": "sdxl"},
     "xray_creampie":          {"file": "X-ray_creampie_high.safetensors",                                         "trigger": ["xray creampie", "x-ray creampie"],                                "category": "nsfw", "base": "sdxl"},
@@ -68,12 +68,12 @@ LORA_CATALOG = {
 }
 
 
-# ─── Workflow Presets ────────────────────────────────────────────────────
+# --- Workflow Presets ----------------------------------------------------
 # Pre-configured combos of checkpoint + LoRAs + settings.
 # Users pick a preset_id and get optimized generation settings.
 
 WORKFLOW_PRESETS = {
-    # ── Local ComfyUI bulk LoRA (auto live list) ──────────────────────────
+    # -- Local ComfyUI bulk LoRA (auto live list) --------------------------
     "lora_bulk_auto_chat": {
         "name": "Local LoRA Bulk (Auto)",
         "description": "ComfyUI local preset for chat flow: auto-attach a batch of available LoRAs without manual filename selection.",
@@ -97,7 +97,7 @@ WORKFLOW_PRESETS = {
         "hires_fix": False,
     },
 
-    # ── NSFW Illustrious XL preset (ChenkinNoob + ILXL LoRAs) ───────────
+    # -- NSFW Illustrious XL preset (ChenkinNoob + ILXL LoRAs) -----------
     "anime_nsfw_ilxl": {
         "name": "NSFW Illustrious XL",
         "description": "NSFW anime generation using ChenkinNoob-XL (NoobAI/Illustrious base). "
@@ -115,11 +115,11 @@ WORKFLOW_PRESETS = {
         "hires_fix": False,
     },
 
-    # ── Anime character generation (SDXL) ────────────────────────────────
+    # -- Anime character generation (SDXL) --------------------------------
     "anime_character_xl": {
         "name": "Anime Character (XL)",
-        "description": "Anime characters with SDXL — high quality, supports character LoRAs",
-        "checkpoint": "animagine-xl-3.1.safetensors",
+        "description": "Anime characters with SDXL � high quality, supports character LoRAs",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
         "default_loras": [],
         "negative_prompt": "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, watermark, text, signature",
         "cfg_scale": 7.0,
@@ -132,7 +132,7 @@ WORKFLOW_PRESETS = {
     },
     "anime_character_15": {
         "name": "Anime Character (Classic)",
-        "description": "Anime characters with SD 1.5 — compatible with most character LoRAs",
+        "description": "Anime characters with SD 1.5 � compatible with most character LoRAs",
         "checkpoint": "counterfeit_v30.safetensors",
         "default_loras": [],
         "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, blurry",
@@ -149,8 +149,8 @@ WORKFLOW_PRESETS = {
     },
     "anime_hsr_jingliu": {
         "name": "Jingliu (HSR)",
-        "description": "Jingliu from Honkai Star Rail — optimized preset",
-        "checkpoint": "animagine-xl-3.1.safetensors",
+        "description": "Jingliu from Honkai Star Rail � optimized preset",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
         "default_loras": [
             {"key": "jingliu", "weight": 0.85},
         ],
@@ -165,8 +165,8 @@ WORKFLOW_PRESETS = {
     },
     "anime_hsr_firefly": {
         "name": "Firefly (HSR)",
-        "description": "Firefly from Honkai Star Rail — character preset",
-        "checkpoint": "animagine-xl-3.1.safetensors",
+        "description": "Firefly from Honkai Star Rail � character preset",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
         "default_loras": [
             {"key": "firefly", "weight": 0.85},
         ],
@@ -181,8 +181,8 @@ WORKFLOW_PRESETS = {
     },
     "anime_genshin_furina": {
         "name": "Furina (Genshin)",
-        "description": "Furina from Genshin Impact — character preset",
-        "checkpoint": "animagine-xl-3.1.safetensors",
+        "description": "Furina from Genshin Impact � character preset",
+        "checkpoint": "animagine-xl-4.0-opt.safetensors",
         "default_loras": [
             {"key": "furina", "weight": 0.8},
         ],
@@ -196,10 +196,10 @@ WORKFLOW_PRESETS = {
         "hires_fix": False,
     },
 
-    # ── Realistic presets ────────────────────────────────────────────────
+    # -- Realistic presets ------------------------------------------------
     "realistic_portrait": {
         "name": "Realistic Portrait",
-        "description": "Photorealistic portraits — SDXL Lightning fast",
+        "description": "Photorealistic portraits � SDXL Lightning fast",
         "checkpoint": "realvisxlV50_v50LightningBakedvae.safetensors",
         "default_loras": [],
         "negative_prompt": "cartoon, anime, illustration, drawing, painting, sketch, bad quality, worst quality, blurry, distorted, deformed, ugly, bad anatomy, watermark, signature",
@@ -213,7 +213,7 @@ WORKFLOW_PRESETS = {
     },
     "realistic_pro": {
         "name": "Realistic Pro",
-        "description": "Professional photorealistic — slower but higher quality",
+        "description": "Professional photorealistic � slower but higher quality",
         "checkpoint": "juggernautXL_v9.safetensors",
         "default_loras": [],
         "negative_prompt": "cartoon, anime, illustration, drawing, painting, bad quality, worst quality, blurry, distorted, deformed, ugly, bad anatomy, extra limbs, watermark, signature, text",
@@ -226,10 +226,10 @@ WORKFLOW_PRESETS = {
         "hires_fix": False,
     },
 
-    # ── Fantasy / artistic ───────────────────────────────────────────────
+    # -- Fantasy / artistic -----------------------------------------------
     "fantasy_anime": {
         "name": "Fantasy Anime",
-        "description": "Fantasy anime art — great for environments and characters",
+        "description": "Fantasy anime art � great for environments and characters",
         "checkpoint": "dreamshaper_xl.safetensors",
         "default_loras": [],
         "negative_prompt": "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, watermark, signature",
@@ -294,7 +294,7 @@ def get_all_workflow_presets() -> dict:
     return cats
 
 
-# ─── Legacy Model Presets (backward-compatible) ─────────────────────────
+# --- Legacy Model Presets (backward-compatible) -------------------------
 # These are used by the old UI and stable_diffusion.py routes.
 
 MODEL_PRESETS = {
@@ -302,7 +302,7 @@ MODEL_PRESETS = {
     "anime_xl": {
         "name": "Anime XL",
         "description": "High quality anime art (SDXL)",
-        "model": "animagine-xl-3.1.safetensors",
+        "model": "animagine-xl-4.0-opt.safetensors",
         "negative_prompt": "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, fused fingers, too many fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, disfigured, watermark, text, signature",
         "cfg_scale": 7.0,
         "steps": 25,
@@ -392,19 +392,19 @@ MODEL_PRESETS = {
 # Category descriptions
 CATEGORIES = {
     "anime": {
-        "name": "ðŸŽ¨ Anime",
+        "name": "🎨 Anime",
         "description": "Anime & illustration styles",
-        "icon": "ðŸŽ¨"
+        "icon": "🎨"
     },
     "realistic": {
-        "name": "ðŸ“· Realistic",
+        "name": "📷 Realistic",
         "description": "Photorealistic human portraits",
-        "icon": "ðŸ“·"
+        "icon": "📷"
     },
     "versatile": {
-        "name": "âœ¨ Versatile",
+        "name": "✨ Versatile",
         "description": "General purpose models",
-        "icon": "âœ¨"
+        "icon": "✨"
     }
 }
 
@@ -412,22 +412,22 @@ CATEGORIES = {
 QUICK_PRESETS = [
     {
         "id": "anime_xl",
-        "name": "ðŸŽ¨ Anime XL",
+        "name": "🎨 Anime XL",
         "description": "High quality anime"
     },
     {
         "id": "realistic_xl",
-        "name": "ðŸ“· Realistic (Fast)",
+        "name": "📷 Realistic (Fast)",
         "description": "Photorealistic Lightning"
     },
     {
         "id": "realistic_juggernaut",
-        "name": "ðŸ“· Realistic Pro",
+        "name": "📷 Realistic Pro",
         "description": "Professional photos"
     },
     {
         "id": "anime_counterfeit",
-        "name": "ðŸŽ¨ Anime Classic",
+        "name": "🎨 Anime Classic",
         "description": "Classic anime style"
     }
 ]
