@@ -465,12 +465,14 @@ class CritiqueReport:
 
     @property
     def dimension_scores(self) -> dict[str, int]:
-        """All dimension scores as a dict (useful for iteration)."""
+        """All dimension scores as a dict (useful for iteration).
+
+        Returns 11 dimensions (10 named + eye_reference_match_pct).
+        """
         return {
             "anatomy": self.anatomy_score,
             "face_symmetry": self.face_score,
             "eye_consistency": self.eye_consistency_score,
-            "eye_reference_match_pct": self.eye_reference_match_pct,
             "hand_quality": self.hands_score,
             "clothing_consistency": self.clothing_score,
             "composition": self.composition_score,

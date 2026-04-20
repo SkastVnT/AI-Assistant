@@ -4354,7 +4354,7 @@ class TestCritiqueReportExpanded:
     def test_dimension_scores_returns_all_10(self):
         cr = _make_critique()
         ds = cr.dimension_scores
-        assert len(ds) == 11  # 10 named dimensions + 1 (we have 11 actually)
+        assert len(ds) == 11  # 11 dimensions (10 named + removed eye_reference_match_pct)
         expected_keys = {
             "anatomy", "face_symmetry", "eye_consistency", "hand_quality",
             "clothing_consistency", "composition", "color_drift", "style_drift",

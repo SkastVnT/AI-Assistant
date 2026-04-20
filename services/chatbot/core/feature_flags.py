@@ -83,15 +83,20 @@ class FeatureFlags:
     # ─── Image Pipeline V2 ────────────────────────────────────────────────────
     @property
     def image_pipeline_v2(self) -> bool:
-        """Enable anime multi-pass pipeline (IMAGE_PIPELINE_V2 env or features.json)."""
+        """Enable anime multi-pass pipeline (IMAGE_PIPELINE_V2 env or features.json).
+
+        Explicitly enabled: IMAGE_PIPELINE_V2=true/1/yes/on
+        Empty or not set: disabled by default
+        Explicitly disabled: IMAGE_PIPELINE_V2=false/0/no/off
+        """
         import os
-        env_flag = os.getenv("IMAGE_PIPELINE_V2", "").lower()
+        env_flag = os.getenv("IMAGE_PIPELINE_V2", "").lower().strip()
         if env_flag in ("1", "true", "yes", "on"):
             return True
         if env_flag in ("0", "false", "no", "off"):
             return False
-        # Default True — pipeline is built-in; set IMAGE_PIPELINE_V2=false to disable.
-        return self._get("image_pipeline", "v2_enabled", default=True)
+        # Check features.json if env not explicitly set
+        return self._get("image_pipeline", "v2_enabled", default=False)
 
 
 # Singleton

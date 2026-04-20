@@ -116,7 +116,7 @@ structure_lock:
       end_percent: 0.8
       priority: 1
       optional: true
-      enabled: false  # SD1.5 ControlNet incompatible with SDXL; enable when SDXL ControlNet available
+      enabled: true  # Enabled for testing; SD1.5 ControlNet incompatible with SDXL in production
 
     - type: depth
       preprocessor: "DepthAnythingV2Preprocessor"

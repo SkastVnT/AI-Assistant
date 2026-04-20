@@ -105,12 +105,18 @@ class ImageGenerationRouter:
                 priority=70,
             )
 
-        # ComfyUI (local) — register when local GPU services are available
-        comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
-        self._providers["comfyui"] = ProviderConfig(
-            provider=ComfyUIProvider(base_url=comfyui_url),
-            priority=10,  # lowest priority unless explicitly requested or FREE mode
-        )
+        # ComfyUI (local) — register only when not in low-resource mode
+        try:
+            from app.services.image_orchestrator.runtime_profile import get_runtime_profile
+            profile = get_runtime_profile()
+            if not profile.skip_comfyui_provider:
+                comfyui_url = os.getenv("COMFYUI_URL", os.getenv("SD_API_URL", "http://127.0.0.1:8188"))
+                self._providers["comfyui"] = ProviderConfig(
+                    provider=ComfyUIProvider(base_url=comfyui_url),
+                    priority=10,  # lowest priority unless explicitly requested or FREE mode
+                )
+        except Exception as e:
+            logger.warning(f"[ImageRouter] Failed to check runtime profile, skipping ComfyUI: {e}")
 
         # Together.ai (free tier available)
         together_key = os.getenv("TOGETHER_API_KEY", "")

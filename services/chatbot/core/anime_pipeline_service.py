@@ -37,13 +37,15 @@ _IMAGE_STORAGE_DIR = Path(__file__).parent.parent / "Storage" / "Image_Gen"
 def pipeline_enabled() -> bool:
     """Return True when the anime pipeline feature flag is on.
 
-    Defaults to True — set IMAGE_PIPELINE_V2=false to explicitly disable.
+    Explicitly set to enable: IMAGE_PIPELINE_V2=true/1/yes/on
+    Empty or not set: disabled by default
+    Explicitly disabled: IMAGE_PIPELINE_V2=false/0/no/off
     """
-    val = os.getenv(_PIPELINE_FLAG, "").lower()
-    if val in ("0", "false", "no", "off"):
-        return False
-    # Enabled by default (or explicitly via "1"/"true"/"yes"/"on")
-    return True
+    val = os.getenv(_PIPELINE_FLAG, "").lower().strip()
+    if val in ("1", "true", "yes", "on"):
+        return True
+    # Disabled by default when not explicitly enabled
+    return False
 
 
 def comfyui_url() -> str:

@@ -385,7 +385,7 @@ class TestE2EEventStructure:
         assert start["event"] == "anime_pipeline_pipeline_start"
         assert "job_id" in start["data"]
         assert "stages" in start["data"]
-        assert len(start["data"]["stages"]) == 7
+        assert len(start["data"]["stages"]) == 10  # Updated to 10 stages
 
         # Pipeline complete has expected fields
         complete = events[-1]

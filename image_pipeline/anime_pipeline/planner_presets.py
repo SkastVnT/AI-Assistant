@@ -95,7 +95,7 @@ ANIME_SPEED = PlannerPreset(
             steps=18,
             cfg=5.0,
             denoise=1.0,
-            sampler="euler_ancestral",
+            sampler="euler_a",
             scheduler="normal",
         ),
         "beauty": PassOverride(
