@@ -482,7 +482,7 @@ class AnimePipelineOrchestrator:
             "stage_num": 8,
             "total_stages": 10,
             "description": "ADetailer: 27-model multi-region detection + inpaint",
-            "vram_profile": self._vram.profile.value,
+            "vram_profile": self._config.vram.profile.value,
         })
 
         try:
@@ -518,7 +518,7 @@ class AnimePipelineOrchestrator:
             "stage": "character_research",
             "stage_num": 2,
             "total_stages": 9,
-            "vram_profile": self._vram.profile.value,
+            "vram_profile": self._config.vram.profile.value,
         })
 
         t0 = time.time()
@@ -619,7 +619,7 @@ class AnimePipelineOrchestrator:
             "stage": "lora_search",
             "stage_num": 3,
             "total_stages": 9,
-            "vram_profile": self._vram.profile.value,
+            "vram_profile": self._config.vram.profile.value,
         })
 
         t0 = time.time()
