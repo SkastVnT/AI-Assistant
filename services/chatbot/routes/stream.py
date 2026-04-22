@@ -22,6 +22,7 @@ if str(CHATBOT_DIR) not in sys.path:
 from core.config import MEMORY_DIR
 from core.extensions import MONGODB_ENABLED, logger
 from core.asset_memory import build_asset_context_block
+from core.request_normalizer import normalize_chat_request
 from core.chatbot_v2 import get_chatbot
 from core.stream_metrics import (
     get_stream_metrics_snapshot,
@@ -252,41 +253,25 @@ def chat_stream():
         memory_ids = data.get('memory_ids', [])
         mcp_selected_files = data.get('mcp_selected_files', [])
         history = data.get('history')
-        conversation_id = (data.get('conversation_id') or '').strip()[:64]
-        # Validate conversation_id format (alphanumeric + _ -, max 64 chars)
-        import re as _re_cid
-        if conversation_id and not _re_cid.fullmatch(r'[A-Za-z0-9_\-]{1,64}', conversation_id):
-            conversation_id = ''
-        if conversation_id:
-            logger.info(f"[SSE:{request_id}] conversation_id={conversation_id}")
-            # Bind backend session so downstream save_message_to_db /
-            # load_conversation_history target the conversation the client
-            # is actually viewing (URL/popstate switches happen client-side).
-            try:
-                session['conversation_id'] = conversation_id
-            except Exception as _bind_exc:
-                logger.warning(f"[SSE:{request_id}] failed to bind session conv_id: {_bind_exc}")
 
-        # ── Image asset memory: structured records for previously generated images ──
-        # Frontend sends a bounded list of canonical asset records — see
-        # services/chatbot/core/asset_memory.py for the schema. Old sessions
-        # send the legacy {url, prompt, provider, model, timestamp} shape;
-        # the normalizer migrates them transparently.
-        # When a record carries manifest_path (local anime pipeline output),
-        # the formatter enriches the line with preset/character/seed/models
-        # so the LLM understands what was generated, not just where it lives.
-        generated_images = data.get('generated_images', []) or []
-        if not isinstance(generated_images, list):
-            generated_images = []
-        try:
-            _img_ctx = build_asset_context_block(generated_images)
-        except Exception as _ctx_exc:
-            logger.warning(f"[SSE:{request_id}] asset context build failed: {_ctx_exc}")
-            _img_ctx = ""
-        if _img_ctx:
-            message = (message or '') + _img_ctx
-            _used = sum(1 for line in _img_ctx.split('\n') if line.startswith('- '))
-            logger.info(f"[SSE:{request_id}] Injected {_used} image asset(s) into context")
+        # ── Shared request normalization ──────────────────────────────
+        # Conversation id extract+validate+bind, image context injection,
+        # and history bounding live in core/request_normalizer.py so that
+        # /chat (routes/main.py) applies the exact same contract.
+        _normalized = normalize_chat_request(data, session, message=message)
+        conversation_id = _normalized['conversation_id']
+        if _normalized['conversation_id_bound']:
+            logger.info(f"[SSE:{request_id}] conversation_id={conversation_id}")
+        # generated_images / image-context were applied to message in-place.
+        message = _normalized['message']
+        if _normalized['image_context_count']:
+            logger.info(
+                f"[SSE:{request_id}] Injected {_normalized['image_context_count']} image asset(s) into context"
+            )
+        # Defensive history cap (frontend already caps; this is depth-in-defense).
+        if _normalized['history'] is not None:
+            history = _normalized['history']
+        generated_images = _normalized['generated_images']
 
         # ── Runtime Skill Resolution + Application ────────────────────
         skill_overrides = resolve_skill(

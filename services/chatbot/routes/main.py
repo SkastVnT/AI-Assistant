@@ -19,11 +19,16 @@ if str(CHATBOT_DIR) not in sys.path:
 
 from core.config import MEMORY_DIR
 from core.extensions import MONGODB_ENABLED, logger
+# NOTE: routes/main.py uses the LEGACY V1 ChatbotAgent. The streaming path
+# (routes/stream.py) uses V2 (core.chatbot_v2). Consolidation onto V2 is
+# deliberately out of scope for the current drift-reduction step — see the
+# LEGACY V1 marker in core/chatbot.py.
 from core.chatbot import get_chatbot
 from core.tools import google_search_tool, github_search_tool
 from core.private_logger import log_chat, log_interaction
 from core.skills.resolver import resolve_skill
 from core.skills.applicator import apply_skill_overrides
+from core.request_normalizer import normalize_chat_request
 from app.middleware.auth import require_login
 
 # Check MCP availability
@@ -208,7 +213,26 @@ def chat():
         
         if not message:
             return jsonify({'error': 'Tin nháº¯n trá»‘ng'}), 400
-        
+
+        # ── Shared request normalization ──────────────────────────────
+        # Same contract enforced by /chat/stream so the two endpoints agree
+        # on conversation_id binding, image-context injection, and history
+        # bounds. See core/request_normalizer.py.
+        _norm_data = data if hasattr(data, 'get') else {}
+        _normalized = normalize_chat_request(
+            _norm_data,
+            session,
+            message=message,
+        )
+        message = _normalized['message']
+        history = _normalized['history'] if _normalized['history'] is not None else history
+        if _normalized['conversation_id_bound']:
+            logger.info(f"[CHAT] conversation_id={_normalized['conversation_id']}")
+        if _normalized['image_context_count']:
+            logger.info(
+                f"[CHAT] Injected {_normalized['image_context_count']} image asset(s) into context"
+            )
+
         # ── Runtime Skill Resolution + Application ────────────────────
         skill_overrides = resolve_skill(
             message=message,

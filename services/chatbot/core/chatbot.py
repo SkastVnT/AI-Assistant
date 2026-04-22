@@ -1,5 +1,21 @@
 ﻿"""
-ChatbotAgent class - Multi-model AI chatbot
+ChatbotAgent class — Multi-model AI chatbot.
+
+⚠️ LEGACY V1
+----------
+This module is the **V1** ChatbotAgent. It is currently used only by the
+non-streaming `/chat` endpoint in routes/main.py. The primary streaming
+path (`/chat/stream` in routes/stream.py) uses the V2 implementation in
+`core/chatbot_v2.py` (ModelRegistry-based).
+
+Do not add new features here. New work should go into `core/chatbot_v2.py`.
+A full consolidation onto V2 is tracked separately and is intentionally
+out of scope for the current incremental drift-reduction step.
+
+Shared request-normalization concerns (conversation_id, generated_images
+context injection, history capping) live in `core/request_normalizer.py`
+and are applied by both endpoints regardless of which agent class they
+resolve.
 """
 import sys
 import logging
