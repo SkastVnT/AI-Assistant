@@ -251,6 +251,32 @@ def _persist_intermediate_preview(job_id: str, stage: str, b64: str) -> Optional
         return None
 
 
+def _make_thumb_b64(b64: str, max_dim: int = 192) -> Optional[str]:
+    """Decode a full PNG b64 and return a small JPEG b64 thumbnail.
+
+    Used to ship a tiny inline preview inside the SSE frame so the browser
+    does NOT need a second HTTP roundtrip to /storage/images while the
+    pipeline is still running (uvicorn workers are busy on the SSE stream
+    and can stall parallel image GETs). Returns None on any failure;
+    caller should then fall back to the local_url path.
+    """
+    if not b64:
+        return None
+    try:
+        from io import BytesIO
+        from PIL import Image
+        raw = base64.b64decode(b64)
+        with Image.open(BytesIO(raw)) as im:
+            im = im.convert("RGB")
+            im.thumbnail((max_dim, max_dim), Image.LANCZOS)
+            buf = BytesIO()
+            im.save(buf, format="JPEG", quality=78, optimize=True)
+            return base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception as exc:
+        logger.debug("[AnimePipelineService] thumb b64 failed: %s", exc)
+        return None
+
+
 
 def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
     """Persist a final anime-pipeline image to local storage and cloud/db backends."""
@@ -441,11 +467,16 @@ def _run_pipeline_inner(
                 if layer_meta_start is not None:
                     placeholder_b64 = _latest_any_intermediate_b64(job)
                     placeholder_url: Optional[str] = None
+                    placeholder_thumb: Optional[str] = None
                     if placeholder_b64:
                         placeholder_url = _persist_intermediate_preview(
                             job.job_id, f"{stage}_pending", placeholder_b64,
                         )
-                    if placeholder_url or req.debug:
+                        # Inline thumb so the UI never depends on the
+                        # /storage/images route during pipeline run (the
+                        # SSE worker keeps that path stalled).
+                        placeholder_thumb = _make_thumb_b64(placeholder_b64)
+                    if placeholder_url or placeholder_thumb or req.debug:
                         frame_start: dict[str, Any] = {
                             "stage": stage,
                             "label": _STAGE_LABELS.get(stage, stage),
@@ -454,6 +485,8 @@ def _run_pipeline_inner(
                             "layer_label": layer_meta_start[1],
                             "pending": True,
                         }
+                        if placeholder_thumb:
+                            frame_start["thumb_b64"] = placeholder_thumb
                         if placeholder_url:
                             frame_start["local_url"] = placeholder_url
                         elif placeholder_b64 and req.debug:
@@ -523,6 +556,7 @@ def _run_pipeline_inner(
                         local_url = _persist_intermediate_preview(
                             job.job_id, stage, preview_b64,
                         )
+                        thumb_b64 = _make_thumb_b64(preview_b64)
                         frame = {
                             "stage": stage,
                             "label": _STAGE_LABELS.get(stage, stage),
@@ -531,13 +565,15 @@ def _run_pipeline_inner(
                         if layer_meta is not None:
                             frame["layer_num"] = layer_meta[0]
                             frame["layer_label"] = layer_meta[1]
+                        if thumb_b64:
+                            frame["thumb_b64"] = thumb_b64
                         if local_url:
                             frame["local_url"] = local_url
                         elif req.debug:
                             # Fallback: embed b64 only when debug forced
                             # the preview AND on-disk persistence failed.
                             frame["image_b64"] = preview_b64
-                        if local_url or req.debug:
+                        if local_url or thumb_b64 or req.debug:
                             yield _sse_line("ap_preview", frame)
 
             elif etype == "anime_pipeline_refine_start":

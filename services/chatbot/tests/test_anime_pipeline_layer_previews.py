@@ -135,3 +135,33 @@ def test_latest_any_intermediate_b64_returns_most_recent_nonempty():
         SimpleNamespace(stage="beauty_pass",      image_b64=""),
     ])
     assert _latest_any_intermediate_b64(only_empties) == "real"
+
+
+def test_make_thumb_b64_returns_smaller_jpeg():
+    """The inline thumb b64 must decode back to a tiny JPEG so the SSE
+    frame stays small even when the source PNG is multi-MB."""
+    import base64 as _b64
+    from io import BytesIO
+    from PIL import Image
+    from core.anime_pipeline_service import _make_thumb_b64
+
+    # Build a real-ish 1024x1024 PNG so thumbnail() actually downscales.
+    src = Image.new("RGB", (1024, 1024), color=(120, 80, 200))
+    buf = BytesIO()
+    src.save(buf, format="PNG")
+    src_b64 = _b64.b64encode(buf.getvalue()).decode("ascii")
+
+    thumb_b64 = _make_thumb_b64(src_b64, max_dim=128)
+    assert thumb_b64 is not None
+    # Resulting payload must be substantially smaller than the source.
+    assert len(thumb_b64) < len(src_b64) // 4
+    # And it must be a valid JPEG that round-trips through PIL.
+    decoded = Image.open(BytesIO(_b64.b64decode(thumb_b64)))
+    assert decoded.format == "JPEG"
+    assert max(decoded.size) <= 128
+
+
+def test_make_thumb_b64_handles_garbage_input():
+    from core.anime_pipeline_service import _make_thumb_b64
+    assert _make_thumb_b64("") is None
+    assert _make_thumb_b64("not-base64-at-all!!") is None

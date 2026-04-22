@@ -334,9 +334,15 @@ export class AnimePipeline {
         const layerLabel = data.layer_label || data.label || data.stage || `Layer ${layerNum}`;
         const slotId = `ap-layer-${uid}-${data.stage || layerNum}`;
         const isPending = data.pending === true;
-        const imgSrc = data.local_url
-            ? data.local_url
-            : (data.image_b64 ? 'data:image/png;base64,' + data.image_b64 : '');
+        // Prefer inline thumb b64 — the /storage/images route stalls
+        // while the SSE worker is busy serving the pipeline stream, so
+        // a normal <img src="/storage/..."> would never load.
+        // local_url is still kept as the click-to-enlarge target.
+        const thumbSrc = data.thumb_b64
+            ? 'data:image/jpeg;base64,' + data.thumb_b64
+            : (data.image_b64 ? 'data:image/png;base64,' + data.image_b64 : data.local_url || '');
+        const fullSrc = data.local_url
+            || (data.image_b64 ? 'data:image/png;base64,' + data.image_b64 : thumbSrc);
 
         let card = document.getElementById(slotId);
         if (!card) {
@@ -370,17 +376,24 @@ export class AnimePipeline {
                     </div>
                 </div>`;
             card.addEventListener('click', () => {
-                const cur = card.querySelector('.ap-layer-thumb')?.src;
-                if (cur) window.chatApp?.imageGenV2?.openImageModal?.(cur);
+                // Use the stored full-resolution URL when available; fall
+                // back to the current thumb src otherwise.
+                const full = card.dataset.fullSrc
+                    || card.querySelector('.ap-layer-thumb')?.src;
+                if (full) window.chatApp?.imageGenV2?.openImageModal?.(full);
             });
             gallery.appendChild(card);
         }
-        // Refresh thumbnail when an image is supplied. A pending frame
-        // may arrive without local_url (placeholder fallback failed) —
-        // in that case keep whatever thumb is already there.
-        if (imgSrc) {
+        // Refresh thumbnail and click-target when an image is supplied.
+        // A pending frame may arrive without any image (b64 + persist
+        // both failed) — in that case keep whatever thumb is already
+        // there.
+        if (thumbSrc) {
             const thumb = card.querySelector('.ap-layer-thumb');
-            if (thumb) thumb.src = imgSrc;
+            if (thumb) thumb.src = thumbSrc;
+        }
+        if (fullSrc) {
+            card.dataset.fullSrc = fullSrc;
         }
         // Promote the previous layer card to ✓ Đã xong as soon as we
         // start drawing the next one. Also flip THIS card to done when
