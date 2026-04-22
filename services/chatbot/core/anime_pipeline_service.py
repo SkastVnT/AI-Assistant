@@ -431,6 +431,34 @@ def _run_pipeline_inner(
                     "label": _STAGE_LABELS.get(stage, stage),
                     "vram_profile": edata.get("vram_profile", ""),
                 })
+                # ChatGPT-style: surface a placeholder "Layer N" card the
+                # moment the stage starts. We reuse the previous layer's
+                # pixels so the user sees the image-being-worked-on right
+                # away. Frame is marked pending=True so the UI shows
+                # "Đang tạo" status; the same slot is later refreshed by
+                # the real preview emitted on stage_done.
+                layer_meta_start = _LAYER_STAGES.get(stage)
+                if layer_meta_start is not None:
+                    placeholder_b64 = _latest_any_intermediate_b64(job)
+                    placeholder_url: Optional[str] = None
+                    if placeholder_b64:
+                        placeholder_url = _persist_intermediate_preview(
+                            job.job_id, f"{stage}_pending", placeholder_b64,
+                        )
+                    if placeholder_url or req.debug:
+                        frame_start: dict[str, Any] = {
+                            "stage": stage,
+                            "label": _STAGE_LABELS.get(stage, stage),
+                            "job_id": job.job_id,
+                            "layer_num": layer_meta_start[0],
+                            "layer_label": layer_meta_start[1],
+                            "pending": True,
+                        }
+                        if placeholder_url:
+                            frame_start["local_url"] = placeholder_url
+                        elif placeholder_b64 and req.debug:
+                            frame_start["image_b64"] = placeholder_b64
+                        yield _sse_line("ap_preview", frame_start)
 
             elif etype == "anime_pipeline_stage_complete":
                 stage = edata.get("stage", "")
@@ -485,6 +513,12 @@ def _run_pipeline_inner(
                 want_preview = layer_meta is not None or req.debug
                 if want_preview:
                     preview_b64 = _latest_intermediate_b64(job, stage)
+                    # For layer stages that don't add a fresh intermediate
+                    # (notably structure_lock, often a 0-step pass-through)
+                    # fall back to whatever the most recent intermediate
+                    # is, so the layer card always shows *something*.
+                    if not preview_b64 and layer_meta is not None:
+                        preview_b64 = _latest_any_intermediate_b64(job)
                     if preview_b64:
                         local_url = _persist_intermediate_preview(
                             job.job_id, stage, preview_b64,
@@ -600,5 +634,20 @@ def _latest_intermediate_b64(job: Any, stage: str) -> Optional[str]:
         if img.stage == stage:
             return img.image_b64
         if accept_prefix and img.stage.startswith(accept_prefix):
+            return img.image_b64
+    return None
+
+
+def _latest_any_intermediate_b64(job: Any) -> Optional[str]:
+    """Return the most recent intermediate b64 of any stage, if any.
+
+    Used as a placeholder image for layer stages that are *about to start*
+    or that finish without producing a fresh intermediate (e.g.
+    ``structure_lock`` which is often a near-noop pass-through). Showing
+    the previous layer's pixels gives the user immediate feedback that the
+    next layer is being worked on, instead of an empty card.
+    """
+    for img in reversed(job.intermediates):
+        if img.image_b64:
             return img.image_b64
     return None

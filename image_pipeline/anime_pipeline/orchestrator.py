@@ -183,6 +183,12 @@ class AnimePipelineOrchestrator:
         self._replan_needed: bool = False
         self._replan_count: int = 0
         self._attempt_1_best_image: Optional[str] = None
+        # Instant-cancel state. Set to True by _run_stage when the user
+        # presses the Stop button between stages. run_stream and the
+        # beauty/critique loop check this after every yield-from to bail
+        # out as fast as possible.
+        self._cancelled: bool = False
+        self._run_t0: float = 0.0
 
     @property
     def enabled(self) -> bool:
@@ -198,6 +204,11 @@ class AnimePipelineOrchestrator:
     ) -> Generator[dict[str, Any], None, None]:
         """Run pipeline, yielding SSE events per stage."""
         t0 = time.time()
+        # Reset per-run cancel state and store t0 so any helper
+        # (notably _run_stage) can build a cancellation event without
+        # threading t0 through every call.
+        self._cancelled = False
+        self._run_t0 = t0
 
         yield self._event("pipeline_start", {
             "job_id": job.job_id,
@@ -282,6 +293,8 @@ class AnimePipelineOrchestrator:
             yield from self._run_stage(
                 "composition_pass", self._composition, job, stage_num=5, total=9,
             )
+            if self._cancelled:
+                return
             if job.status == AnimePipelineStatus.FAILED:
                 yield self._event("pipeline_error", {"error": job.error, "job_id": job.job_id})
                 return
@@ -295,6 +308,8 @@ class AnimePipelineOrchestrator:
             yield from self._run_stage(
                 "structure_lock", self._structure, job, stage_num=6, total=9,
             )
+            if self._cancelled:
+                return
 
             # User cancellation checkpoint after structure_lock
             if _is_cancel_requested(job.job_id):
@@ -305,6 +320,8 @@ class AnimePipelineOrchestrator:
             # YOLO runs INSIDE the loop so Critique evaluates the
             # YOLO-enhanced image, not raw Beauty output.
             yield from self._beauty_critique_loop(job)
+            if self._cancelled:
+                return
 
             # User cancellation checkpoint after beauty/critique loop
             # (most users hit Stop somewhere during the long beauty pass)
@@ -383,6 +400,8 @@ class AnimePipelineOrchestrator:
             yield from self._run_stage(
                 "upscale", self._upscale, job, stage_num=9, total=9,
             )
+            if self._cancelled:
+                return
 
             # Stage 9b: Artistic layer painter (spec §8/§9/§10/§11).
             # Post-upscale PIL pass: shadow + highlight + optional eye FX
@@ -520,6 +539,8 @@ class AnimePipelineOrchestrator:
                 "beauty_pass", self._beauty, job, stage_num=5, total=7,
                 extra={"round": round_num},
             )
+            if self._cancelled:
+                return
 
             beauty_failed = (job.status == AnimePipelineStatus.FAILED)
             if beauty_failed:
@@ -531,12 +552,16 @@ class AnimePipelineOrchestrator:
             # Skips gracefully if YOLO unavailable or beauty failed.
             if not beauty_failed:
                 yield from self._run_detection_inpaint(job)
+                if self._cancelled:
+                    return
 
             # Critique evaluates the post-YOLO image (or composition fallback)
             yield from self._run_stage(
                 "critique", self._critique, job, stage_num=6, total=7,
                 extra={"round": round_num},
             )
+            if self._cancelled:
+                return
 
             if beauty_failed:
                 break  # don't loop for refinement if beauty couldn't produce an image
@@ -1395,6 +1420,16 @@ class AnimePipelineOrchestrator:
                 self._config.comfyui_url,
                 unload=True,
             )
+
+        # Instant-cancel checkpoint: every stage transition is an
+        # opportunity to bail out. The user's Stop button POSTs to
+        # /api/anime-pipeline/cancel which flips the queue flag; we
+        # honour it BEFORE starting the next agent so blocking calls
+        # like critique (vision API) or upscale never even fire.
+        if _is_cancel_requested(job.job_id):
+            self._cancelled = True
+            yield self._build_cancellation_event(job, stage_name, self._run_t0)
+            return
 
         yield self._event("stage_start", {
             "stage": stage_name,

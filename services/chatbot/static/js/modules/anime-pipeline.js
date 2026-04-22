@@ -33,6 +33,40 @@ export class AnimePipeline {
         this._running = false;
         this._debug = false;
         this._available = null;  // cached availability
+
+        // F5 / tab-close orphan-job cleanup. Without this the backend
+        // pipeline keeps running (and eats GPU + the 60s queue slot)
+        // long after the user navigated away. We POST cancel beacons
+        // for every live bubble that has a job_id but no final image.
+        // Use 'pagehide' (Safari-friendly) + 'beforeunload' for parity.
+        const fireOrphanCancels = () => {
+            try {
+                document.querySelectorAll('.ap-inline-msg').forEach(el => {
+                    const jobId = el.dataset?.jobId || '';
+                    const hasResult = el.querySelector('.igv2-chat-image img');
+                    if (jobId && !hasResult) {
+                        // sendBeacon survives page teardown; fetch with
+                        // keepalive is the fallback for older browsers.
+                        const payload = JSON.stringify({ job_id: jobId });
+                        if (navigator.sendBeacon) {
+                            navigator.sendBeacon(
+                                '/api/anime-pipeline/cancel',
+                                new Blob([payload], { type: 'application/json' }),
+                            );
+                        } else {
+                            fetch('/api/anime-pipeline/cancel', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: payload,
+                                keepalive: true,
+                            }).catch(() => {});
+                        }
+                    }
+                });
+            } catch (_) { /* never block unload */ }
+        };
+        window.addEventListener('pagehide', fireOrphanCancels);
+        window.addEventListener('beforeunload', fireOrphanCancels);
     }
 
     // ── Modal lifecycle ─────────────────────────────────────────────
@@ -191,10 +225,16 @@ export class AnimePipeline {
                 </div>
             </div>`;
 
-        // Wire the Stop button. Click swallows event so the <details>
-        // toggle inside the <summary> doesn't fire on the same click.
-        // We POST to /cancel and let the server emit ap_cancelled
-        // followed by the normal ap_result with the partial image.
+        // Wire the Stop button. The Stop button must feel decisive:
+        //   1. POST /cancel so the backend bails at the next checkpoint.
+        //   2. Mark the bubble as "user-cancelled" via dataset.apHardStop.
+        //   3. Schedule an 8-second hard fallback: if neither ap_cancelled
+        //      nor ap_result has arrived by then (e.g. critique stuck on a
+        //      blocked vision API call, or SSE socket dropped), force the
+        //      bubble into a finalized "Đã ngưng" state using the most
+        //      recent layer thumbnail. This guarantees the UI never sits
+        //      on "⏳ Đang ngưng…" forever — which is the exact symptom
+        //      the user reported.
         const stopBtn = div.querySelector(`#ap-stop-${uid}`);
         if (stopBtn) {
             stopBtn.addEventListener('click', (ev) => {
@@ -204,19 +244,86 @@ export class AnimePipeline {
                 if (!jobId) return;  // not yet started
                 stopBtn.disabled = true;
                 stopBtn.textContent = '⏳ Đang ngưng…';
+                div.dataset.apHardStop = '1';
                 fetch('/api/anime-pipeline/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ job_id: jobId }),
-                }).catch(() => { /* network error is non-fatal */ });
+                    keepalive: true,
+                }).catch(() => { /* non-fatal — fallback timer will fire */ });
+
+                // Hard fallback. The handler is no-op if the bubble has
+                // already been swapped to a result by the normal SSE path.
+                setTimeout(() => {
+                    if (!document.body.contains(div)) return;
+                    if (div.dataset.apFinalized === '1') return;
+                    this._forceFinalizeAsCancelled(div, uid);
+                }, 8000);
             });
         }
         return div;
     }
 
+    /** Forcefully finalize the bubble as "stopped + exported best layer"
+     *  when the backend stops responding after Stop is pressed. Uses the
+     *  most recent layer thumbnail (gallery card) as the export.
+     */
+    _forceFinalizeAsCancelled(bubble, uid) {
+        // Pick the freshest layer thumbnail still in the DOM.
+        const gallery = document.getElementById(`ap-layers-${uid}`);
+        const thumbs = gallery ? gallery.querySelectorAll('.ap-layer-thumb') : [];
+        const lastThumb = thumbs.length ? thumbs[thumbs.length - 1] : null;
+        const imgSrc = lastThumb?.src || '';
+
+        const details = bubble.querySelector('.ap-inline-progress');
+        if (details) {
+            details.open = false;
+            const summary = details.querySelector('.ap-inline-summary');
+            if (summary) {
+                const dots = summary.querySelector('.thinking-pill__dots');
+                if (dots) dots.remove();
+                const stop = summary.querySelector('.ap-inline-stop-btn');
+                if (stop) stop.style.display = 'none';
+                const label = summary.querySelector('.ap-inline-label');
+                if (label) label.textContent = '⏸ Đã ngưng — đang dùng layer cuối làm output';
+            }
+        }
+        bubble.dataset.apFinalized = '1';
+        bubble.dataset.apCancelled = '1';
+
+        // Surface the freshest preview as the "result" image so the user
+        // sees what they got.
+        if (imgSrc && !bubble.querySelector('.igv2-chat-image img')) {
+            const msgContent = bubble.querySelector('.message-content');
+            if (msgContent) {
+                const wrap = document.createElement('div');
+                wrap.className = 'igv2-chat-image';
+                wrap.style.cssText = 'margin-top:10px;';
+                wrap.innerHTML = `
+                    <img src="${imgSrc}" data-igv2-open="${imgSrc}"
+                         style="max-width:100%; border-radius:10px; cursor:pointer;"
+                         alt="Layer cuối — đã ngưng">
+                    <div style="margin-top:6px; font-size:11px; opacity:.6;">
+                        Output từ layer cuối cùng được tạo trước khi ngưng.
+                    </div>`;
+                wrap.querySelector('img').addEventListener('click', () => {
+                    window.chatApp?.imageGenV2?.openImageModal?.(imgSrc);
+                });
+                msgContent.appendChild(wrap);
+            }
+        }
+    }
+
     /** Append a new layer card to the gallery, or update the existing one
      *  for the same layer slot. Cards show "Đang tạo · Layer N · {label}"
-     *  and animate to "✓ Layer N · {label}" once the next stage starts.
+     *  while the stage is running and animate to "✓ Đã xong" once a
+     *  non-pending preview arrives for the same slot or a later layer
+     *  starts.
+     *
+     *  Backend emits two ap_preview frames per layer stage:
+     *    1. on stage_start — { pending: true, local_url: <prev layer> }
+     *    2. on stage_done  — { local_url: <new image for this stage> }
+     *  The same slotId is reused so the card refreshes in place.
      */
     _inlineAddLayerPreview(uid, data) {
         const gallery = document.getElementById(`ap-layers-${uid}`);
@@ -226,10 +333,10 @@ export class AnimePipeline {
         const layerNum = data.layer_num || (gallery.children.length + 1);
         const layerLabel = data.layer_label || data.label || data.stage || `Layer ${layerNum}`;
         const slotId = `ap-layer-${uid}-${data.stage || layerNum}`;
+        const isPending = data.pending === true;
         const imgSrc = data.local_url
             ? data.local_url
             : (data.image_b64 ? 'data:image/png;base64,' + data.image_b64 : '');
-        if (!imgSrc) return;
 
         let card = document.getElementById(slotId);
         if (!card) {
@@ -243,8 +350,15 @@ export class AnimePipeline {
                 'transition:background .15s ease;'
             );
             card.innerHTML = `
-                <img class="ap-layer-thumb" alt="Layer ${layerNum}"
-                     style="width:64px; height:64px; object-fit:cover; border-radius:6px; flex:none;">
+                <div class="ap-layer-thumb-wrap" style="position:relative; width:64px; height:64px; flex:none;">
+                    <img class="ap-layer-thumb" alt="Layer ${layerNum}"
+                         style="width:64px; height:64px; object-fit:cover; border-radius:6px; display:block;">
+                    <div class="ap-layer-spinner" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.25); border-radius:6px; pointer-events:none;">
+                        <div class="thinking-pill__dots" style="--dot-color:#fff;">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
                 <div class="ap-layer-meta" style="flex:1; min-width:0;">
                     <div class="ap-layer-headline" style="font-size:13px; font-weight:600; color:var(--text);">
                         <span class="ap-layer-status" style="opacity:.85;">Đang tạo</span>
@@ -256,21 +370,48 @@ export class AnimePipeline {
                     </div>
                 </div>`;
             card.addEventListener('click', () => {
-                window.chatApp?.imageGenV2?.openImageModal?.(imgSrc);
+                const cur = card.querySelector('.ap-layer-thumb')?.src;
+                if (cur) window.chatApp?.imageGenV2?.openImageModal?.(cur);
             });
             gallery.appendChild(card);
         }
-        // Always refresh thumbnail (later stages overwrite in-place).
-        const thumb = card.querySelector('.ap-layer-thumb');
-        if (thumb) thumb.src = imgSrc;
-        // Mark previous layer as done
-        const prev = card.previousElementSibling;
-        if (prev) {
-            const status = prev.querySelector('.ap-layer-status');
-            if (status && status.textContent === 'Đang tạo') {
+        // Refresh thumbnail when an image is supplied. A pending frame
+        // may arrive without local_url (placeholder fallback failed) —
+        // in that case keep whatever thumb is already there.
+        if (imgSrc) {
+            const thumb = card.querySelector('.ap-layer-thumb');
+            if (thumb) thumb.src = imgSrc;
+        }
+        // Promote the previous layer card to ✓ Đã xong as soon as we
+        // start drawing the next one. Also flip THIS card to done when
+        // the non-pending preview arrives.
+        const status = card.querySelector('.ap-layer-status');
+        const spinner = card.querySelector('.ap-layer-spinner');
+        if (isPending) {
+            // Mark every prior card as done.
+            let prev = card.previousElementSibling;
+            while (prev) {
+                const ps = prev.querySelector('.ap-layer-status');
+                const psp = prev.querySelector('.ap-layer-spinner');
+                if (ps && ps.textContent === 'Đang tạo') {
+                    ps.textContent = '✓ Đã xong';
+                    ps.style.color = 'var(--accent, #4ade80)';
+                }
+                if (psp) psp.style.display = 'none';
+                prev = prev.previousElementSibling;
+            }
+            if (status) {
+                status.textContent = 'Đang tạo';
+                status.style.color = '';
+            }
+            if (spinner) spinner.style.display = '';
+        } else {
+            // Final preview for this slot: stop the spinner, mark done.
+            if (status) {
                 status.textContent = '✓ Đã xong';
                 status.style.color = 'var(--accent, #4ade80)';
             }
+            if (spinner) spinner.style.display = 'none';
         }
     }
 
@@ -494,6 +635,8 @@ export class AnimePipeline {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         const wasCancelled = bubble.dataset.apCancelled === '1';
         const cancelStage = bubble.dataset.apCancelStage || '';
+        // Disarm the Stop hard-fallback timer set in _createInlineBubble.
+        bubble.dataset.apFinalized = '1';
 
         // Mark every still-pending layer card as done (final stage emitted
         // before the bubble swap; nothing else will refresh them).
@@ -632,6 +775,14 @@ export class AnimePipeline {
 
     /** Show a fatal error state in the inline bubble. */
     _setInlineError(bubble, uid, message) {
+        // If the user already pressed Stop, treat any subsequent stream
+        // error as the cancel taking effect: surface the freshest layer
+        // as the output instead of an angry red error.
+        if (bubble?.dataset?.apHardStop === '1' && bubble?.dataset?.apFinalized !== '1') {
+            this._forceFinalizeAsCancelled(bubble, uid);
+            return;
+        }
+        bubble.dataset.apFinalized = '1';
         const details = bubble?.querySelector('.ap-inline-progress');
         if (details) {
             details.open = true;
@@ -1163,7 +1314,20 @@ export class AnimePipeline {
                 }
                 this._rewireInlineButtons(bubble);
             } else if (details) {
-                // No image — pipeline was interrupted mid-stream
+                // No image — pipeline was interrupted mid-stream (network drop / F5).
+                // Treat as broken: backend job (if any) is unreachable from here, so
+                // immediately fire-and-forget cancel (orphan cleanup) and switch the
+                // bubble into "retry" mode. The Stop button — if any — gets neutered
+                // because there is no live stream to stop.
+                const orphanJobId = bubble.dataset.jobId || '';
+                if (orphanJobId) {
+                    fetch('/api/anime-pipeline/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ job_id: orphanJobId }),
+                        keepalive: true,
+                    }).catch(() => {});
+                }
                 details.open = true;
                 const label = details.querySelector('.ap-inline-label');
                 if (label) label.textContent = '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
@@ -1171,17 +1335,34 @@ export class AnimePipeline {
                 if (dots) dots.remove();
                 const timer = details.querySelector('.ap-inline-timer');
                 if (timer) timer.remove();
+                // Disable any leftover Stop button — its job is dead.
+                const stopBtn = details.querySelector('.ap-inline-stop-btn');
+                if (stopBtn) {
+                    stopBtn.disabled = true;
+                    stopBtn.style.display = 'none';
+                }
                 const current = bubble.querySelector('[id^="ap-current-"]');
                 if (current) current.textContent = 'Bấm "Tạo lại" để chạy lại pipeline';
 
-                // Add a retry button
+                // Recovery button. We ALWAYS re-bind the click handler even if
+                // the .ap-recovery-btn element was restored from localStorage
+                // (in which case the original addEventListener is gone). Without
+                // this re-bind the button looks alive but does nothing — the
+                // exact "phế vật" symptom users hit after F5.
                 const msgContent = bubble.querySelector('.message-content');
-                if (msgContent && !bubble.querySelector('.ap-recovery-btn')) {
+                let retryBtn = bubble.querySelector('.ap-recovery-btn');
+                if (!retryBtn && msgContent) {
                     const retryDiv = document.createElement('div');
                     retryDiv.style.cssText = 'margin-top:8px;';
                     retryDiv.innerHTML = `<button class="ap-inline-btn ap-recovery-btn" style="padding:6px 14px;">🔄 Tạo lại</button>`;
-                    retryDiv.querySelector('button').addEventListener('click', () => {
-                        // Extract prompt from the bubble (data-ap-prompt) or result image (data-prompt)
+                    msgContent.appendChild(retryDiv);
+                    retryBtn = retryDiv.querySelector('button');
+                }
+                if (retryBtn) {
+                    // Clone-replace removes any stale listeners from a previous session.
+                    const fresh = retryBtn.cloneNode(true);
+                    retryBtn.replaceWith(fresh);
+                    fresh.addEventListener('click', () => {
                         const prompt = bubble.getAttribute('data-ap-prompt')
                             || bubble.querySelector('[data-prompt]')?.getAttribute('data-prompt')
                             || '';
@@ -1191,7 +1372,6 @@ export class AnimePipeline {
                             if (chatContainer) this._runInlineChat(prompt, chatContainer);
                         }
                     });
-                    msgContent.appendChild(retryDiv);
                 }
 
                 // Mark all active/pending stages as interrupted
