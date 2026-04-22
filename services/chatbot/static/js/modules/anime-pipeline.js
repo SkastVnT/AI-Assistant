@@ -414,6 +414,22 @@ export class AnimePipeline {
                 a.click();
             });
 
+            // Remember the result against the active chat session so
+            // follow-up turns ("crop tighter", "what color is the dress",
+            // "regenerate same character") see it as context. The backend
+            // back-fills manifest_path / character_key / preset from the
+            // JobQueue using job_id alone, so we do not need to forward
+            // them from here.
+            try {
+                window.chatManager?.addGeneratedImage?.({
+                    job_id: jobId,
+                    url: data.local_url || undefined,
+                    prompt: prompt,
+                    provider: 'local',
+                    model: 'anime_pipeline',
+                });
+            } catch (_e) { /* non-fatal */ }
+
             // Tạo lại: re-run inline with same prompt
             resultDiv.querySelector('[data-action="regenerate"]')?.addEventListener('click', () => {
                 this._runInlineChat(prompt, chatContainer);

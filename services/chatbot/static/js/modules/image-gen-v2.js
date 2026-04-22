@@ -690,10 +690,23 @@ export class ImageGenV2 {
         `;
         chatContainer.appendChild(msgDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Surface the image to ChatManager so follow-up chat turns get it
+        // as context (provider/model/prompt; no base64 -- chat-manager drops
+        // data: URLs anyway). job_id is forwarded when the backend returned
+        // one so server-side enrichment can fill manifest_path/preset later.
+        try {
+            window.chatManager?.addGeneratedImage?.({
+                url: imgSrc,
+                prompt: data?.prompt_used || prompt || undefined,
+                provider: data?.provider || undefined,
+                model: data?.model || undefined,
+                job_id: data?.job_id || data?.image_id || undefined,
+            });
+        } catch (_e) { /* non-fatal */ }
     }
 
-    _showStatus(msg, type = 'info') {
-        const el = document.getElementById('igv2Status');
+    _showStatus(msg, type = 'info') {        const el = document.getElementById('igv2Status');
         if (!el) return;
         el.textContent = msg;
         el.className = `igv2-status igv2-status-${type}`;

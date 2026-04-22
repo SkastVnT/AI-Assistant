@@ -110,8 +110,18 @@ def apply_image_context(message: str, generated_images: Sequence[Any]) -> tuple[
     """
     if not generated_images:
         return message or "", 0
+    # Local-pipeline enrichment: records that only carry a job_id (the
+    # frontend stores those after an anime-pipeline run) get back-filled
+    # with manifest_path / character_key / preset / live state from the
+    # JobQueue singleton. Soft-imported so tests can exercise this module
+    # without the queue subsystem present.
     try:
-        block = build_asset_context_block(generated_images)
+        from core.image_pipeline_link import enrich_records_with_live_state
+        records_for_block = enrich_records_with_live_state(generated_images)
+    except Exception:
+        records_for_block = generated_images
+    try:
+        block = build_asset_context_block(records_for_block)
     except Exception:
         return message or "", 0
     if not block:

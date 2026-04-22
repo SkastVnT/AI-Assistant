@@ -222,6 +222,19 @@ def format_asset_context_lines(
                 if summary:
                     body_parts.append(f"  manifest: {summary}")
 
+        # Live local-pipeline state hint (only present on records that went
+        # through core.image_pipeline_link.enrich_records_with_live_state).
+        # Soft-imported so unit tests that exercise asset_memory in isolation
+        # do not require the job_queue stack.
+        try:
+            from core.image_pipeline_link import format_pipeline_hint  # type: ignore
+        except Exception:
+            format_pipeline_hint = None  # type: ignore[assignment]
+        if format_pipeline_hint is not None:
+            hint = format_pipeline_hint(raw)
+            if hint:
+                body_parts.append(f"  {hint}")
+
         lines.append("\n".join(body_parts))
     return lines
 
