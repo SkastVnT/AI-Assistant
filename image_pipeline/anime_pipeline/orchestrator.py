@@ -821,6 +821,26 @@ class AnimePipelineOrchestrator:
             })
             return
 
+        # Spec (2026-04-23): persist every detected feature as a cropped
+        # layer file under storage/feature_layers/<session>/.  Failure is
+        # logged but never fatal — the pipeline must still hand back the
+        # main image even when crop persistence breaks.
+        try:
+            from .feature_crop_storage import persist_feature_crops
+            crops = persist_feature_crops(
+                job,
+                getattr(self._detection_inpaint, "last_result", None),
+            )
+            if crops:
+                job.metadata["feature_crops"] = crops
+                yield self._event("feature_crops_persisted", {
+                    "stage": "detection_inpaint",
+                    "count": len(crops),
+                    "feature_types": sorted({c["feature"] for c in crops}),
+                })
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[AnimePipeline] feature crop persistence failed: %s", exc)
+
         latency = job.stage_timings_ms.get("detection_inpaint", 0.0)
 
         # Emit deep reasoning event with all YOLO detection results
