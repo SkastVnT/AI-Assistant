@@ -39,6 +39,103 @@ _RESEARCH_DIR = _STORAGE_ROOT / "character_research"
 _RESEARCH_TTL_SECONDS = 7 * 24 * 3600
 
 
+# ── Seen-URL / byte-hash registry ────────────────────────────────────
+# 2026-04-23 user request: reference search MUST always find NEW images
+# and never reuse anything already on disk. This registry persists every
+# URL ever fetched AND a SHA-256 of the file bytes for that character so
+# CDN mirrors / aliased URLs serving identical content are also rejected.
+#
+# Layout: storage/character_refs/<tag>/seen_urls.json
+#   {
+#     "url_hashes": {"<md5_of_url>": "<filename>", ...},
+#     "byte_hashes": {"<sha256_of_bytes>": "<filename>", ...}
+#   }
+#
+# Override with CHAR_RESEARCH_REUSE_REFS=1 to fall back to the old
+# "reuse cached refs" behaviour (e.g. when running offline).
+
+def _seen_registry_path(danbooru_tag: str) -> Path:
+    return _REF_DIR / danbooru_tag / "seen_urls.json"
+
+
+def _load_seen_registry(danbooru_tag: str) -> dict[str, dict[str, str]]:
+    """Return {'url_hashes': {...}, 'byte_hashes': {...}} for this character.
+
+    Backfills entries for any pre-existing image files that aren't in the
+    registry yet so older runs (which didn't write the registry) still
+    contribute to the dedupe set the first time the new code is loaded.
+    Never raises; missing/corrupt files yield empty maps.
+    """
+    import json
+    reg: dict[str, dict[str, str]] = {"url_hashes": {}, "byte_hashes": {}}
+    path = _seen_registry_path(danbooru_tag)
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8")) or {}
+            reg["url_hashes"] = dict(data.get("url_hashes") or {})
+            reg["byte_hashes"] = dict(data.get("byte_hashes") or {})
+        except Exception as e:
+            logger.warning("[CharResearch] seen_urls.json unreadable for %s: %s",
+                           danbooru_tag, e)
+
+    # Backfill: any image already in the ref dir but absent from the
+    # registry should still be treated as seen.
+    ref_dir = _REF_DIR / danbooru_tag
+    if ref_dir.is_dir():
+        existing_files = list(ref_dir.glob("*.png")) + list(ref_dir.glob("*.jpg"))
+        new_byte_entries = 0
+        for f in existing_files:
+            try:
+                # Filename-derived url hash for files named web_<hash>.<ext>
+                stem = f.stem
+                if stem.startswith("web_") and len(stem) >= 12:
+                    uh = stem[4:12]
+                    reg["url_hashes"].setdefault(uh, f.name)
+                # Byte hash backfill
+                if not any(v == f.name for v in reg["byte_hashes"].values()):
+                    bh = hashlib.sha256(f.read_bytes()).hexdigest()
+                    if bh not in reg["byte_hashes"]:
+                        reg["byte_hashes"][bh] = f.name
+                        new_byte_entries += 1
+            except Exception:
+                continue
+        if new_byte_entries:
+            _save_seen_registry(danbooru_tag, reg)
+    return reg
+
+
+def _save_seen_registry(danbooru_tag: str, reg: dict[str, dict[str, str]]) -> None:
+    """Persist the seen registry. Never raises."""
+    import json
+    path = _seen_registry_path(danbooru_tag)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(reg, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        logger.warning("[CharResearch] could not persist seen_urls.json for %s: %s",
+                       danbooru_tag, e)
+
+
+def _url_hash(url: str) -> str:
+    return hashlib.md5(url.encode("utf-8", errors="ignore")).hexdigest()[:8]
+
+
+def _bytes_hash(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _is_url_seen(url: str, reg: dict[str, dict[str, str]]) -> bool:
+    return _url_hash(url) in reg.get("url_hashes", {})
+
+
+def _reuse_cached_refs_enabled() -> bool:
+    """User-overridable opt-in to reusing cached refs as the primary set."""
+    return os.getenv("CHAR_RESEARCH_REUSE_REFS", "0") == "1"
+
+
 @dataclass
 class LayerDetail:
     """Visual detail for a specific body/outfit layer."""
@@ -557,6 +654,12 @@ def _image_search_character(
     all_images: list[dict] = []
     seen_urls: set[str] = set()
 
+    # 2026-04-23 user request: skip URLs we've already downloaded for this
+    # character in any previous run. Loaded once; updated only by the
+    # downloader when it actually persists a file.
+    persisted_seen = _load_seen_registry(danbooru_tag)
+    skipped_already_seen = 0
+
     for query in queries:
         try:
             resp = httpx.get(
@@ -574,18 +677,30 @@ def _image_search_character(
 
             for item in data.get("images_results", [])[:15]:
                 url = item.get("original", item.get("link", ""))
-                if url and url not in seen_urls:
-                    seen_urls.add(url)
-                    all_images.append({
-                        "url": url,
-                        "thumbnail": item.get("thumbnail", ""),
-                        "title": item.get("title", ""),
-                        "source": item.get("source", ""),
-                        "width": item.get("original_width", 0),
-                        "height": item.get("original_height", 0),
-                    })
+                if not url or url in seen_urls:
+                    continue
+                if _is_url_seen(url, persisted_seen):
+                    skipped_already_seen += 1
+                    continue
+                seen_urls.add(url)
+                all_images.append({
+                    "url": url,
+                    "thumbnail": item.get("thumbnail", ""),
+                    "title": item.get("title", ""),
+                    "source": item.get("source", ""),
+                    "width": item.get("original_width", 0),
+                    "height": item.get("original_height", 0),
+                })
         except Exception as e:
             logger.warning("[CharResearch] Image search failed for '%s': %s", query, e)
+
+    if skipped_already_seen:
+        logger.info(
+            "[CharResearch] Skipped %d already-seen URLs (registry has %d url+%d byte entries)",
+            skipped_already_seen,
+            len(persisted_seen.get("url_hashes", {})),
+            len(persisted_seen.get("byte_hashes", {})),
+        )
 
     # ── Fallback chain: Gemini → OpenAI → Grok → StepFun (if NSFW) ──
     # Spec §3b: supplement SerpAPI results up to 10 images via LLM
@@ -611,12 +726,25 @@ def _image_search_character(
                 prioritize_sensitive=nsfw_intent,
             )
             if extra:
+                # Drop any fallback-provided URL we've already downloaded
+                # in a prior run so the LLM providers can't reintroduce
+                # cached duplicates.
+                fresh_extra = [
+                    e for e in extra
+                    if e.get("url") and not _is_url_seen(e["url"], persisted_seen)
+                ]
+                dropped = len(extra) - len(fresh_extra)
+                if dropped:
+                    logger.info(
+                        "[CharResearch] Dropped %d fallback URLs already in seen registry",
+                        dropped,
+                    )
                 logger.info(
                     "[CharResearch] Fallback chain added %d image URLs "
                     "(total %d, nsfw_intent=%s)",
-                    len(extra), len(all_images) + len(extra), nsfw_intent,
+                    len(fresh_extra), len(all_images) + len(fresh_extra), nsfw_intent,
                 )
-                all_images.extend(extra)
+                all_images.extend(fresh_extra)
         except Exception as e:
             logger.warning("[CharResearch] Fallback chain failed: %s", e)
 
@@ -630,37 +758,55 @@ def _download_reference_images(
 ) -> list[str]:
     """Download reference images and return as base64 strings.
 
-    Also caches them to storage/character_refs/<tag>/.
-    Filters for reasonable image sizes and formats.
+    Behaviour (post 2026-04-23 refresh):
+      * Always attempts FRESH downloads from ``image_results`` first.
+      * Skips URLs whose md5(url) hash is in the persisted seen registry.
+      * After download, computes SHA-256 of the bytes and skips if those
+        bytes were ever saved before (catches CDN mirrors / aliases).
+      * On every successful save, updates the registry on disk so the
+        next run never re-downloads the same content.
+      * Cached files in ``storage/character_refs/<tag>/`` are used ONLY
+        as a fallback when the fresh fetch yields zero new images, OR
+        when ``CHAR_RESEARCH_REUSE_REFS=1`` is set explicitly.
+
+    Always returns a list of base64-encoded image strings.
     """
     import httpx
 
     ref_dir = _REF_DIR / danbooru_tag
     ref_dir.mkdir(parents=True, exist_ok=True)
 
-    downloaded: list[str] = []
+    registry = _load_seen_registry(danbooru_tag)
+    fresh_b64: list[str] = []
+    registry_dirty = False
 
-    # Check existing cache first
-    existing = sorted(ref_dir.glob("*.png")) + sorted(ref_dir.glob("*.jpg"))
-    if existing:
-        logger.info("[CharResearch] Found %d cached refs for %s", len(existing), danbooru_tag)
-        for path in existing[:max_images]:
-            try:
-                img_data = path.read_bytes()
-                b64 = base64.b64encode(img_data).decode("ascii")
-                downloaded.append(b64)
-            except Exception:
-                pass
-        if len(downloaded) >= max_images:
-            return downloaded[:max_images]
+    # Honour explicit opt-in to old behaviour.
+    if _reuse_cached_refs_enabled():
+        existing = sorted(ref_dir.glob("*.png")) + sorted(ref_dir.glob("*.jpg"))
+        if existing:
+            logger.info(
+                "[CharResearch] CHAR_RESEARCH_REUSE_REFS=1 — using %d cached refs for %s",
+                len(existing), danbooru_tag,
+            )
+            for path in existing[:max_images]:
+                try:
+                    fresh_b64.append(
+                        base64.b64encode(path.read_bytes()).decode("ascii")
+                    )
+                except Exception:
+                    pass
+            if fresh_b64:
+                return fresh_b64[:max_images]
 
-    # Download new images
+    # Fresh-only download loop
     for item in image_results:
-        if len(downloaded) >= max_images:
+        if len(fresh_b64) >= max_images:
             break
 
         url = item.get("url", "")
         if not url:
+            continue
+        if _is_url_seen(url, registry):
             continue
 
         # Filter: skip tiny images, gifs, webp
@@ -686,26 +832,75 @@ def _download_reference_images(
                 continue
 
             img_data = resp.content
-            if len(img_data) < 5000:  # too small
+            if len(img_data) < 5000:
                 continue
-            if len(img_data) > 10_000_000:  # too large (>10MB)
+            if len(img_data) > 10_000_000:
                 continue
 
-            # Save to cache
-            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+            # Byte-hash dedupe: if these exact bytes were ever cached for
+            # this character (under any URL), reject.
+            byte_hash = _bytes_hash(img_data)
+            if byte_hash in registry["byte_hashes"]:
+                logger.info(
+                    "[CharResearch] Rejected duplicate-by-bytes from %s (matches %s)",
+                    url[:60], registry["byte_hashes"][byte_hash],
+                )
+                # Still mark URL as seen so we don't retry it.
+                registry["url_hashes"][_url_hash(url)] = registry["byte_hashes"][byte_hash]
+                registry_dirty = True
+                continue
+
             ext = ".png" if "png" in content_type else ".jpg"
-            cache_path = ref_dir / f"web_{url_hash}{ext}"
+            cache_path = ref_dir / f"web_{_url_hash(url)}{ext}"
             cache_path.write_bytes(img_data)
 
-            b64 = base64.b64encode(img_data).decode("ascii")
-            downloaded.append(b64)
-            logger.info("[CharResearch] Downloaded ref: %s (%d KB)",
-                        cache_path.name, len(img_data) // 1024)
+            # Record both URL hash and byte hash as seen
+            registry["url_hashes"][_url_hash(url)] = cache_path.name
+            registry["byte_hashes"][byte_hash] = cache_path.name
+            registry_dirty = True
+
+            fresh_b64.append(base64.b64encode(img_data).decode("ascii"))
+            logger.info(
+                "[CharResearch] Downloaded FRESH ref: %s (%d KB)",
+                cache_path.name, len(img_data) // 1024,
+            )
 
         except Exception as e:
             logger.debug("[CharResearch] Failed to download %s: %s", url[:80], e)
 
-    return downloaded[:max_images]
+    if registry_dirty:
+        _save_seen_registry(danbooru_tag, registry)
+
+    if fresh_b64:
+        logger.info(
+            "[CharResearch] Returned %d FRESH reference images for %s "
+            "(no cached reuse)",
+            len(fresh_b64), danbooru_tag,
+        )
+        return fresh_b64[:max_images]
+
+    # Last-resort fallback: if every search source rejected, use whatever
+    # we already have on disk so the pipeline doesn't run blind.
+    existing = sorted(ref_dir.glob("*.png")) + sorted(ref_dir.glob("*.jpg"))
+    if existing:
+        logger.warning(
+            "[CharResearch] No fresh refs found for %s — falling back to "
+            "%d cached refs as last resort",
+            danbooru_tag, len(existing),
+        )
+        out: list[str] = []
+        for path in existing[:max_images]:
+            try:
+                out.append(base64.b64encode(path.read_bytes()).decode("ascii"))
+            except Exception:
+                pass
+        return out
+
+    logger.warning(
+        "[CharResearch] No reference images available for %s (fresh+cached both empty)",
+        danbooru_tag,
+    )
+    return []
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1065,12 +1260,31 @@ def research_character(
     if not force_refresh:
         cached = _load_cached_research(danbooru_tag)
         if cached:
-            # Still load reference images (may have new ones from previous runs)
+            # 2026-04-23 user request: even when research metadata is
+            # cached, ALWAYS attempt a fresh image search so reference
+            # images don't get reused across runs. The downloader has
+            # its own seen-URL+byte-hash registry that guarantees no
+            # duplicate is ever returned.
+            try:
+                fresh_results = _image_search_character(
+                    display_name, series_name, danbooru_tag,
+                    nsfw_intent=nsfw_intent,
+                )
+            except Exception as e:
+                logger.warning(
+                    "[CharResearch] cache-path fresh search failed: %s", e,
+                )
+                fresh_results = [{"url": u} for u in cached.reference_image_urls]
+
             cached.reference_images_b64 = _download_reference_images(
-                [{"url": u} for u in cached.reference_image_urls],
-                danbooru_tag,
-                max_images=10,
+                fresh_results, danbooru_tag, max_images=10,
             )
+            # Refresh the cached URL list so subsequent runs see the new
+            # set rather than perpetually circling the original 5.
+            if fresh_results:
+                cached.reference_image_urls = [
+                    r.get("url", "") for r in fresh_results[:6] if r.get("url")
+                ]
             # Add user references
             if user_reference_images:
                 cached.reference_images_b64 = (
