@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time as _time
 from functools import wraps
 from flask import Blueprint, request, jsonify, session, Response
@@ -21,6 +22,12 @@ from core.job_queue import get_queue
 logger = logging.getLogger(__name__)
 
 anime_pipeline_bp = Blueprint("anime_pipeline", __name__)
+
+# Job IDs are produced by AnimePipelineJob (uuid-based, plus optional
+# alphanumeric suffixes for re-tries). Be conservative and only accept
+# safe characters; rejects path traversal / SQL / XSS payloads from
+# untrusted POST bodies.
+_VALID_JOB_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
 def _enrich_with_character(data: dict) -> dict:
@@ -60,6 +67,7 @@ def _wrap_stream_with_queue(inner_gen, character_record=None, preset: str = "",
     """
     queue = get_queue()
     job_id_seen: dict[str, str] = {}
+    cancelled_seen = {"v": False}
 
     def _ensure_registered(jid: str) -> None:
         if not jid or queue.get(jid) is not None:
@@ -120,10 +128,26 @@ def _wrap_stream_with_queue(inner_gen, character_record=None, preset: str = "",
                     elif event_name == "ap_result":
                         manifest = (data_payload or {}).get("manifest") or {}
                         final_path = manifest.get("final_image_path") or manifest.get("filename")
-                        queue.transition(current_jid, "completed",
-                                         progress_pct=100.0,
-                                         final_image_path=final_path,
-                                         manifest_path=manifest.get("manifest_path"))
+                        # If the user already pressed Stop & Export, keep
+                        # the queue state as ``cancelled`` instead of
+                        # flipping it back to ``completed`` when the
+                        # partial image flushes through.
+                        if cancelled_seen["v"]:
+                            queue.transition(current_jid, "cancelled",
+                                             progress_pct=100.0,
+                                             final_image_path=final_path,
+                                             manifest_path=manifest.get("manifest_path"))
+                        else:
+                            queue.transition(current_jid, "completed",
+                                             progress_pct=100.0,
+                                             final_image_path=final_path,
+                                             manifest_path=manifest.get("manifest_path"))
+                    elif event_name == "ap_cancelled":
+                        cancelled_seen["v"] = True
+                        queue.transition(
+                            current_jid, "cancelled",
+                            progress_stage=(data_payload or {}).get("stage", ""),
+                        )
                     elif event_name == "ap_error":
                         err = (data_payload or {}).get("error", "unknown")
                         queue.transition(current_jid, "failed", error=str(err))
@@ -394,3 +418,47 @@ def upload_reference_images():
         "count": len(refs_b64),
         "character_tag": character_tag or None,
     })
+
+
+# ── Cancel endpoint ─────────────────────────────────────────────────────
+
+@anime_pipeline_bp.route("/api/anime-pipeline/cancel", methods=["POST"])
+def cancel_pipeline():
+    """Request cancellation of an in-flight anime-pipeline job.
+
+    Body (JSON):
+        job_id: str   — the job_id captured from the first ap_status frame
+
+    Sets the JobQueue's ``cancel_requested`` flag. The orchestrator polls
+    this flag between major stages (composition_pass, structure_lock,
+    beauty_pass) and on the next checkpoint emits ``ap_cancelled`` plus a
+    final ``ap_result`` containing the best-so-far image. The SSE stream
+    is never killed by this endpoint — the partial image flows through
+    the normal chat-bubble code path.
+
+    Returns:
+        200 { ok: bool, was_terminal: bool, job_id: str }
+        400 { ok: false, error: "..." }  on invalid job_id format
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    raw_jid = (data.get("job_id") or "").strip()
+    if not raw_jid:
+        return jsonify({"ok": False, "error": "job_id is required"}), 400
+    if not _VALID_JOB_ID_RE.match(raw_jid):
+        return jsonify({"ok": False, "error": "invalid job_id format"}), 400
+
+    queue = get_queue()
+    rec = queue.get(raw_jid)
+    if rec is None:
+        # Unknown job: nothing to cancel. Return ok so the UI can
+        # collapse its progress bubble without showing an error.
+        logger.info("[anime_pipeline] /cancel: unknown job %s", raw_jid)
+        return jsonify({"ok": True, "was_terminal": True, "job_id": raw_jid})
+
+    accepted = queue.request_cancel(raw_jid)
+    was_terminal = not accepted  # request_cancel returns False for terminal states
+    logger.info(
+        "[anime_pipeline] /cancel: job=%s accepted=%s state=%s",
+        raw_jid, accepted, rec.state,
+    )
+    return jsonify({"ok": True, "was_terminal": was_terminal, "job_id": raw_jid})

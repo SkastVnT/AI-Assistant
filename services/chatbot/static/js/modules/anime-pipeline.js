@@ -163,12 +163,38 @@ export class AnimePipeline {
                             </div>
                             <span class="ap-inline-label">Đang tạo ảnh anime…</span>
                             <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
+                            <button type="button"
+                                    class="ap-inline-stop-btn"
+                                    id="ap-stop-${uid}"
+                                    style="display:none; margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid var(--border); background:var(--bg-secondary,var(--bg)); color:var(--text); border-radius:6px; cursor:pointer;"
+                                    title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng & xuất ảnh</button>
                         </summary>
                         <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
                         <div class="ap-inline-current" id="ap-current-${uid}">Khởi động…</div>
                     </details>
                 </div>
             </div>`;
+
+        // Wire the Stop button. Click swallows event so the <details>
+        // toggle inside the <summary> doesn't fire on the same click.
+        // We POST to /cancel and let the server emit ap_cancelled
+        // followed by the normal ap_result with the partial image.
+        const stopBtn = div.querySelector(`#ap-stop-${uid}`);
+        if (stopBtn) {
+            stopBtn.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const jobId = div.dataset.jobId || '';
+                if (!jobId) return;  // not yet started
+                stopBtn.disabled = true;
+                stopBtn.textContent = '⏳ Đang ngưng…';
+                fetch('/api/anime-pipeline/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: jobId }),
+                }).catch(() => { /* network error is non-fatal */ });
+            });
+        }
         return div;
     }
 
@@ -204,8 +230,28 @@ export class AnimePipeline {
     _handleInlineEvent(event, data, bubble, uid, prompt, startTime, chatContainer) {
         switch (event) {
             case 'ap_status':
+                // Capture job_id from the first status frame so the
+                // Stop button knows what to cancel. Reveal the button
+                // only after the backend has assigned an id.
+                if (data && data.job_id && !bubble.dataset.jobId) {
+                    bubble.dataset.jobId = data.job_id;
+                    const stopBtn = document.getElementById(`ap-stop-${uid}`);
+                    if (stopBtn) stopBtn.style.display = '';
+                }
                 this._inlineSetCurrent(uid, data.message || '');
                 break;
+            case 'ap_cancelled': {
+                // Server acknowledged Stop & Export. Mark the bubble
+                // as cancelled; the partial image will arrive in the
+                // following ap_result frame and _inlineShowResult will
+                // pick up the cancelled flag from the dataset.
+                bubble.dataset.apCancelled = '1';
+                bubble.dataset.apCancelStage = data.stage || '';
+                this._inlineSetCurrent(uid, `⏸ Đã ngưng tại ${data.stage || 'pipeline'} — đang xuất ảnh hiện tại…`);
+                const stopBtn = document.getElementById(`ap-stop-${uid}`);
+                if (stopBtn) stopBtn.style.display = 'none';
+                break;
+            }
             case 'ap_layer_plan':
                 this._inlineShowLayerChips(uid, data);
                 break;
@@ -362,6 +408,8 @@ export class AnimePipeline {
     /** Replace progress block with the final image result. */
     _inlineShowResult(bubble, uid, data, prompt, startTime, chatContainer) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const wasCancelled = bubble.dataset.apCancelled === '1';
+        const cancelStage = bubble.dataset.apCancelStage || '';
         // Prefer the saved local URL (lighter than base64 in DOM); fall back to base64
         const imgSrc = data.local_url
             ? data.local_url
@@ -378,9 +426,18 @@ export class AnimePipeline {
             details.open = false;
             const summary = details.querySelector('.ap-inline-summary');
             if (summary) {
-                summary.innerHTML = `
-                    <span class="ap-inline-done-icon">🎨</span>
-                    <span class="ap-inline-label">✅ Anime Pipeline · ${elapsed}s</span>`;
+                if (wasCancelled) {
+                    const stageLabel = cancelStage
+                        ? ` (ngưng tại ${cancelStage})`
+                        : '';
+                    summary.innerHTML = `
+                        <span class="ap-inline-done-icon">⏸</span>
+                        <span class="ap-inline-label">Đã ngưng — ảnh hiện tại · ${elapsed}s${stageLabel}</span>`;
+                } else {
+                    summary.innerHTML = `
+                        <span class="ap-inline-done-icon">🎨</span>
+                        <span class="ap-inline-label">✅ Anime Pipeline · ${elapsed}s</span>`;
+                }
             }
         }
 
@@ -388,10 +445,13 @@ export class AnimePipeline {
             // Append the result image after the details block
             const msgContent = bubble.querySelector('.message-content');
             const resultDiv = document.createElement('div');
+            const headerLabel = wasCancelled
+                ? `⏸ Anime Pipeline (đã ngưng) · ${elapsed}s`
+                : `🎨 Anime Pipeline · ${elapsed}s`;
             resultDiv.innerHTML = `
                 <div class="igv2-chat-image" data-prompt="${promptAttr}">
                     <img src="${imgSrc}" alt="Anime Pipeline result" data-igv2-open="${imgSrc}">
-                    <div class="igv2-chat-meta">🎨 Anime Pipeline · ${elapsed}s${data.local_url ? ' · 💾 saved' : ''}</div>
+                    <div class="igv2-chat-meta">${headerLabel}${data.local_url ? ' · 💾 saved' : ''}</div>
                     <div class="ap-inline-result-btns">
                         <button class="ap-inline-btn" data-action="download" data-job="${jobId}" data-prompt="${promptAttr}" data-download-url="${data.local_url || ''}">📥 Tải ảnh</button>
                         <button class="ap-inline-btn" data-action="regenerate" data-prompt="${promptAttr}">🔄 Tạo lại</button>

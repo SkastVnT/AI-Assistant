@@ -61,6 +61,24 @@ from .lora_manager import (
 logger = logging.getLogger(__name__)
 
 
+def _is_cancel_requested(job_id: str) -> bool:
+    """Best-effort check of the chatbot job queue's cancel flag.
+
+    Returns ``False`` when the chatbot service is not importable
+    (e.g. when this orchestrator is exercised from a test or a
+    standalone script without the Flask process). Any error is
+    swallowed so the pipeline never fails just because the queue
+    is unreachable.
+    """
+    if not job_id:
+        return False
+    try:
+        from core.job_queue import get_queue  # type: ignore[import-not-found]
+        return bool(get_queue().is_cancel_requested(job_id))
+    except Exception:
+        return False
+
+
 def _pipeline_enabled() -> bool:
     """Check IMAGE_PIPELINE_V2 feature flag."""
     flag = os.getenv("IMAGE_PIPELINE_V2", "").lower()
@@ -268,15 +286,31 @@ class AnimePipelineOrchestrator:
                 yield self._event("pipeline_error", {"error": job.error, "job_id": job.job_id})
                 return
 
+            # User cancellation checkpoint after composition (~30-60s in)
+            if _is_cancel_requested(job.job_id):
+                yield self._build_cancellation_event(job, "composition_pass", t0)
+                return
+
             # Stage 4: Structure Lock
             yield from self._run_stage(
                 "structure_lock", self._structure, job, stage_num=6, total=9,
             )
 
+            # User cancellation checkpoint after structure_lock
+            if _is_cancel_requested(job.job_id):
+                yield self._build_cancellation_event(job, "structure_lock", t0)
+                return
+
             # Stage 5-8: Beauty + YOLO Detail Fix + Critique loop
             # YOLO runs INSIDE the loop so Critique evaluates the
             # YOLO-enhanced image, not raw Beauty output.
             yield from self._beauty_critique_loop(job)
+
+            # User cancellation checkpoint after beauty/critique loop
+            # (most users hit Stop somewhere during the long beauty pass)
+            if _is_cancel_requested(job.job_id):
+                yield self._build_cancellation_event(job, "beauty_pass", t0)
+                return
 
             # ── Re-plan on 4-consecutive-fail: attempt 2 ───────────────
             if self._replan_needed and self._replan_count < 1:
@@ -2022,3 +2056,32 @@ class AnimePipelineOrchestrator:
             if img.image_b64:
                 return img.image_b64
         return None
+
+    def _build_cancellation_event(
+        self, job: AnimePipelineJob, stage: str, t0: float,
+    ) -> dict[str, Any]:
+        """Snapshot the best-so-far image, mark the job complete, and
+        return a ``pipeline_cancelled`` event dict.
+
+        Called when the chatbot's job queue reports
+        ``is_cancel_requested(job_id) == True`` between stages. The
+        partial image is promoted to ``job.final_image_b64`` so the
+        normal ``ap_result`` path downstream still emits a usable
+        result instead of an empty manifest.
+        """
+        best = self._pick_best_intermediate(job)
+        if best:
+            job.final_image_b64 = best
+        job.status = AnimePipelineStatus.COMPLETED
+        job.completed_at = self._now_iso()
+        job.total_latency_ms = (time.time() - t0) * 1000
+        logger.info(
+            "[AnimePipeline] job=%s cancelled at stage=%s (has_image=%s)",
+            job.job_id, stage, bool(job.final_image_b64),
+        )
+        return self._event("pipeline_cancelled", {
+            "job_id": job.job_id,
+            "stage": stage,
+            "has_image": bool(job.final_image_b64),
+            "message": f"Đã ngưng pipeline tại stage {stage}",
+        })

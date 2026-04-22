@@ -41,6 +41,13 @@ _PIPELINE_MAX_CONCURRENT = int(os.getenv("ANIME_PIPELINE_MAX_CONCURRENT", "2"))
 _PIPELINE_SEMAPHORE = _threading.Semaphore(_PIPELINE_MAX_CONCURRENT)
 _PIPELINE_QUEUE_LOCK = _threading.Lock()
 _PIPELINE_WAITING_COUNT = 0
+# Hard cap on how long a queued job will wait for a GPU slot before
+# failing fast with ap_error. Prevents the "second tab stalls forever"
+# bug when an earlier pipeline hangs and never releases its semaphore
+# permit. Override via ANIME_PIPELINE_QUEUE_TIMEOUT_SEC env var.
+_PIPELINE_QUEUE_TIMEOUT_SEC = float(
+    os.getenv("ANIME_PIPELINE_QUEUE_TIMEOUT_SEC", "60")
+)
 
 
 def pipeline_enabled() -> bool:
@@ -319,13 +326,37 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
             "message": f"Pipeline queued — vị trí {_queue_pos}. Đang chờ GPU…",
         })
         _wait_start = time.time()
-        while not _PIPELINE_SEMAPHORE.acquire(blocking=False):
-            time.sleep(1.0)
+        _last_keepalive = 0.0
+        _acquired = False
+        while True:
+            if _PIPELINE_SEMAPHORE.acquire(blocking=False):
+                _acquired = True
+                break
             _elapsed = time.time() - _wait_start
-            if _elapsed >= 15 and int(_elapsed) % 15 == 0:
+            if _elapsed >= _PIPELINE_QUEUE_TIMEOUT_SEC:
+                break
+            if _elapsed - _last_keepalive >= 15:
+                _last_keepalive = _elapsed
                 yield ": keepalive\n"
+            time.sleep(1.0)
         with _PIPELINE_QUEUE_LOCK:
             _PIPELINE_WAITING_COUNT -= 1
+        if not _acquired:
+            logger.warning(
+                "[AnimePipelineService] queue timeout after %.0fs for job=%s",
+                _PIPELINE_QUEUE_TIMEOUT_SEC, job.job_id,
+            )
+            yield _sse_line("ap_error", {
+                "job_id": job.job_id,
+                "stage": "queue",
+                "error": (
+                    f"Pipeline đang bận — không xin được GPU sau "
+                    f"{int(_PIPELINE_QUEUE_TIMEOUT_SEC)}s. Hãy thử lại sau."
+                ),
+                "recoverable": False,
+            })
+            yield _sse_line("ap_done", {"job_id": job.job_id})
+            return
 
     try:
         yield from _run_pipeline_inner(orchestrator, job, req)
@@ -450,6 +481,18 @@ def _run_pipeline_inner(
                     "error": edata.get("error", "Pipeline failed"),
                     "recoverable": False,
                     "has_fallback": edata.get("has_fallback_image", False),
+                })
+
+            elif etype == "anime_pipeline_pipeline_cancelled":
+                # User pressed "Stop & export" — orchestrator already set
+                # job.final_image_b64 to the best-so-far snapshot. Forward a
+                # dedicated frame so the UI can swap labels; the regular
+                # ap_result with the partial image still flows below.
+                yield _sse_line("ap_cancelled", {
+                    "job_id": job.job_id,
+                    "stage": edata.get("stage", ""),
+                    "has_image": edata.get("has_image", False),
+                    "message": edata.get("message", "Đã ngưng pipeline"),
                 })
 
             elif etype == "anime_pipeline_pipeline_complete":
