@@ -198,8 +198,12 @@ class AnimePipelineConfig:
     structure_layers: list[StructureLayerConfig] = field(default_factory=list)
     max_simultaneous_layers: int = 2
 
-    # Detection inpaint (ADetailer-style)
-    detection_inpaint_enabled: bool = True
+    # Detection inpaint (ADetailer-style).
+    # Default OFF: the user explicitly asked that every layer be a fully
+    # independent generation rather than an inpaint of the previous one.
+    # Re-enable with env ``ANIME_PIPELINE_DETECTION_INPAINT=1`` or by
+    # setting ``detection_inpaint.enabled: true`` in pipeline.yaml.
+    detection_inpaint_enabled: bool = False
     detection_inpaint_layers: list[dict[str, Any]] = field(default_factory=list)
 
     # Vision
@@ -428,9 +432,17 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
         ))
     cfg.max_simultaneous_layers = int(sl.get("max_simultaneous", 2))
 
-    # Detection inpaint (ADetailer-style)
+    # Detection inpaint (ADetailer-style). Default OFF unless the YAML
+    # explicitly enables it OR the env override is set. The env override
+    # is honored last so an operator can flip the stage on without
+    # rewriting pipeline.yaml.
     det = raw.get("detection_inpaint", {})
-    cfg.detection_inpaint_enabled = bool(det.get("enabled", True))
+    cfg.detection_inpaint_enabled = bool(det.get("enabled", False))
+    env_override = os.getenv("ANIME_PIPELINE_DETECTION_INPAINT", "").strip().lower()
+    if env_override in ("1", "true", "yes", "on"):
+        cfg.detection_inpaint_enabled = True
+    elif env_override in ("0", "false", "no", "off"):
+        cfg.detection_inpaint_enabled = False
     det_layers = det.get("layers", [])
     if isinstance(det_layers, list):
         cfg.detection_inpaint_layers = [

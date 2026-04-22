@@ -457,8 +457,44 @@ def cancel_pipeline():
 
     accepted = queue.request_cancel(raw_jid)
     was_terminal = not accepted  # request_cancel returns False for terminal states
+
+    # Hard-stop: also POST /interrupt to ComfyUI so the GPU pass that is
+    # currently in flight stops too. Without this, the orchestrator only
+    # bails between stages — the active KSampler keeps painting on the
+    # GPU for another 30-60 s after the user clicked Stop, which is what
+    # the user means by "Đã ngưng rồi mà bên ComfyUI còn chạy". Failure
+    # is silently swallowed (best-effort) so a missing ComfyUI does not
+    # turn the cancel button into a 500.
+    if accepted:
+        try:
+            _interrupt_comfyui()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("[anime_pipeline] /cancel: comfy interrupt failed: %s", exc)
+
     logger.info(
         "[anime_pipeline] /cancel: job=%s accepted=%s state=%s",
         raw_jid, accepted, rec.state,
     )
     return jsonify({"ok": True, "was_terminal": was_terminal, "job_id": raw_jid})
+
+
+def _interrupt_comfyui() -> None:
+    """Best-effort POST /interrupt to the active ComfyUI server.
+
+    Uses the same env vars the pipeline ComfyClient honors so we always
+    hit the same instance the orchestrator submitted to.
+    """
+    import os
+    import httpx
+
+    base = (
+        os.getenv("ANIME_PIPELINE_COMFYUI_URL")
+        or os.getenv("COMFYUI_URL")
+        or "http://127.0.0.1:8188"
+    ).rstrip("/")
+    with httpx.Client(timeout=3.0) as client:
+        resp = client.post(f"{base}/interrupt")
+        logger.info(
+            "[anime_pipeline] /cancel: comfy interrupt -> %s (%s)",
+            base, resp.status_code,
+        )

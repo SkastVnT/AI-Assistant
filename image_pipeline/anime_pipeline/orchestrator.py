@@ -581,6 +581,7 @@ class AnimePipelineOrchestrator:
                     eye_score_before < 7
                     and round_num not in eye_emergency_done_rounds
                     and self._detection_inpaint.is_available()
+                    and getattr(self._config, "detection_inpaint_enabled", False)
                 ):
                     eye_emergency_done_rounds.add(round_num)
                     yield from self._run_eye_emergency_inpaint(job, latest_critique)
@@ -799,6 +800,18 @@ class AnimePipelineOrchestrator:
             yield self._event("stage_skip", {
                 "stage": "detection_inpaint",
                 "reason": "dependencies_unavailable",
+            })
+            return
+
+        # User contract: each layer must be a fully independent generation
+        # (no inpaint reuse). Honor the config flag — when disabled, emit
+        # a stage_skip event so the UI still knows the stage was reached
+        # but did not run.
+        if not getattr(self._config, "detection_inpaint_enabled", False):
+            logger.info("[AnimePipeline] Detection inpaint disabled by config — skipping")
+            yield self._event("stage_skip", {
+                "stage": "detection_inpaint",
+                "reason": "disabled_by_config",
             })
             return
 

@@ -307,7 +307,13 @@ export class AnimePipeline {
                         Output từ layer cuối cùng được tạo trước khi ngưng.
                     </div>`;
                 wrap.querySelector('img').addEventListener('click', () => {
-                    window.chatApp?.imageGenV2?.openImageModal?.(imgSrc);
+                    // window.openImagePreview expects an <img> element. Pass
+                    // the element itself so the lightbox can read .src and
+                    // any data attributes (download filename, etc.).
+                    const el = wrap.querySelector('img');
+                    if (window.openImagePreview && el) {
+                        window.openImagePreview(el);
+                    }
                 });
                 msgContent.appendChild(wrap);
             }
@@ -378,9 +384,18 @@ export class AnimePipeline {
             card.addEventListener('click', () => {
                 // Use the stored full-resolution URL when available; fall
                 // back to the current thumb src otherwise.
-                const full = card.dataset.fullSrc
-                    || card.querySelector('.ap-layer-thumb')?.src;
-                if (full) window.chatApp?.imageGenV2?.openImageModal?.(full);
+                const thumb = card.querySelector('.ap-layer-thumb');
+                const full = card.dataset.fullSrc || thumb?.src;
+                if (!full) return;
+                // window.openImagePreview wants an <img> element. Build a
+                // detached one that points at the full-res source so the
+                // lightbox does not get the 64x64 cropped thumbnail.
+                const tmp = document.createElement('img');
+                tmp.src = full;
+                tmp.alt = thumb?.alt || 'Layer';
+                if (window.openImagePreview) {
+                    window.openImagePreview(tmp);
+                }
             });
             gallery.appendChild(card);
         }
