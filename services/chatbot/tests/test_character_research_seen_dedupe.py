@@ -96,21 +96,35 @@ def test_is_url_seen():
 
 
 def test_downloader_skips_seen_url(tmp_storage):
-    tag = "skip_url"
+    """URL-hash is no longer used to skip downloads (too aggressive — it
+    permanently blacklisted real character URLs after one run, leaving
+    only off-character series art behind). Byte-hash dedupe in
+    test_downloader_rejects_byte_duplicate is what enforces 'no
+    duplicates'.
+
+    This test asserts the downloader DOES proceed for a URL whose hash is
+    in the registry, as long as the bytes are new.
+    """
+    tag = "url_only_seen"
     url = "https://cdn.example/x.png"
-    # Pre-populate registry with this URL
+    body = _png_bytes(3)
     cr._save_seen_registry(tag, {
         "url_hashes": {cr._url_hash(url): "web_old.png"},
-        "byte_hashes": {},
+        "byte_hashes": {},  # bytes have NOT been seen
     })
     image_results = [{"url": url, "width": 1024, "height": 1024}]
 
-    with mock.patch("httpx.get") as mock_get:
+    fake_resp = mock.Mock()
+    fake_resp.status_code = 200
+    fake_resp.headers = {"content-type": "image/png"}
+    fake_resp.content = body
+
+    with mock.patch("httpx.get", return_value=fake_resp):
         out = cr._download_reference_images(image_results, tag, max_images=5)
 
-    # Network must not be called for a seen URL
-    mock_get.assert_not_called()
-    assert out == []
+    # Network IS called; bytes are new ⇒ download proceeds.
+    assert len(out) == 1
+    assert base64.b64decode(out[0]) == body
 
 
 def test_downloader_rejects_byte_duplicate(tmp_storage):
@@ -207,3 +221,52 @@ def test_reuse_env_flag_uses_cached_first(tmp_storage, monkeypatch):
     mock_get.assert_not_called()
     assert len(out) == 1
     assert base64.b64decode(out[0]) == body
+
+
+# ── Relevance filter ────────────────────────────────────────────────
+
+
+def test_image_search_relevance_filter_drops_off_character_hits(tmp_storage):
+    """SerpAPI results whose title/source/url do not mention the
+    character (or its danbooru tag) must be dropped. Regression for the
+    Hu Tao incident where a series-only warm-up query returned generic
+    Genshin reference sheets that ended up in storage.
+    """
+    captured: list[dict] = []
+
+    class _FakeResp:
+        def raise_for_status(self): pass
+        def json(self):
+            return {"images_results": [
+                # Off-character: no Hu Tao mention anywhere
+                {"original": "https://x/aquarian.png",
+                 "title": "Aquarian 3.0 Reference Sheet",
+                 "source": "pinterest", "link": "https://x/aquarian.png",
+                 "original_width": 2000, "original_height": 1000},
+                # Off-character: generic Genshin wallpaper
+                {"original": "https://x/group.png",
+                 "title": "Genshin Impact group wallpaper",
+                 "source": "wallhaven", "link": "https://x/group.png",
+                 "original_width": 1920, "original_height": 1080},
+                # Relevant: title mentions Hu Tao
+                {"original": "https://x/hutao.png",
+                 "title": "Hu Tao official illustration",
+                 "source": "hoyoverse", "link": "https://x/hutao.png",
+                 "original_width": 1500, "original_height": 2000},
+            ]}
+
+    def _fake_get(url, params=None, **kw):
+        captured.append(params)
+        return _FakeResp()
+
+    import httpx
+    with mock.patch.object(cr, "_get_serpapi_key", return_value="fake_key"):
+        with mock.patch.object(httpx, "get", side_effect=_fake_get):
+            results = cr._image_search_character(
+                "Hu Tao", "Genshin Impact", "hu_tao_(genshin_impact)",
+            )
+
+    urls = [r["url"] for r in results]
+    assert "https://x/hutao.png" in urls, "relevant Hu Tao hit was dropped"
+    assert "https://x/aquarian.png" not in urls, "off-character Aquarian leaked through"
+    assert "https://x/group.png" not in urls, "off-character group wallpaper leaked through"

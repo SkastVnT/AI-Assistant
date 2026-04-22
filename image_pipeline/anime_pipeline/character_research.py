@@ -632,33 +632,49 @@ def _image_search_character(
 
     import httpx
 
-    # Series-first query order (spec §2 + 2026-04-23 user request):
-    # ALWAYS run the series/franchise query BEFORE the character query so
-    # the result set is grounded in series-specific style and color
-    # palette. The first 1-2 hits become anchors that tell downstream
-    # passes (palette extraction, style critique) what the franchise
-    # looks like, even when the character itself is obscure.
+    # Character-first queries. The pure-series warm-up was removed
+    # 2026-04-23 because it polluted Hu Tao searches with generic
+    # Genshin art (group shots, reference sheets, other characters).
+    # We still bias toward franchise context by including series_name
+    # alongside display_name in every query.
     queries = [
-        f"{series_name} official art style reference",                # series-only warm-up
-        f"{series_name} {display_name} official art",                 # series-first
-        f"{series_name} character {display_name} anime illustration", # series-first (alt)
-        f"{display_name} {series_name} anime official art high quality",
+        f"{display_name} {series_name} official art",
+        f"{display_name} {series_name} character illustration",
+        f"{display_name} anime official art high quality",
         f"{danbooru_tag} anime illustration full body",
     ]
     if nsfw_intent:
-        # Skip the safe character-art queries; SerpAPI rarely returns
-        # what's asked for in NSFW contexts. Keep the series warm-up so
-        # we still have palette anchors.
-        queries = queries[:1]
+        # NSFW: keep the strongest character-specific query only.
+        queries = [f"{display_name} {series_name} official art"]
+
+    # Relevance filter tokens — every accepted SerpAPI hit must mention
+    # at least one of these in its title/source/url, otherwise we'd
+    # bring back generic franchise wallpapers.
+    name_tokens = {
+        t.lower() for t in display_name.replace("-", " ").split() if len(t) > 1
+    }
+    name_tokens.add(display_name.lower())
+    # Strip parenthesised series suffix, e.g. "hu_tao_(genshin_impact)" -> "hu_tao"
+    base_tag = danbooru_tag.split("_(")[0]
+    name_tokens.add(base_tag)
+    name_tokens.add(base_tag.replace("_", " "))
+    name_tokens.add(base_tag.replace("_", ""))
+
+    def _is_relevant(item: dict) -> bool:
+        haystack = " ".join(
+            str(item.get(k, "")) for k in ("title", "source", "link", "original")
+        ).lower()
+        return any(tok in haystack for tok in name_tokens if tok)
 
     all_images: list[dict] = []
     seen_urls: set[str] = set()
 
-    # 2026-04-23 user request: skip URLs we've already downloaded for this
-    # character in any previous run. Loaded once; updated only by the
-    # downloader when it actually persists a file.
+    # 2026-04-23 user request: use the seen registry for byte-hash dedupe
+    # ONLY (in the downloader). URL-hash filtering at search time is too
+    # aggressive — it permanently blacklists Hu Tao's actual image URLs
+    # after the first run, leaving only off-target series art behind.
     persisted_seen = _load_seen_registry(danbooru_tag)
-    skipped_already_seen = 0
+    skipped_irrelevant = 0
 
     for query in queries:
         try:
@@ -679,8 +695,8 @@ def _image_search_character(
                 url = item.get("original", item.get("link", ""))
                 if not url or url in seen_urls:
                     continue
-                if _is_url_seen(url, persisted_seen):
-                    skipped_already_seen += 1
+                if not _is_relevant(item):
+                    skipped_irrelevant += 1
                     continue
                 seen_urls.add(url)
                 all_images.append({
@@ -694,11 +710,12 @@ def _image_search_character(
         except Exception as e:
             logger.warning("[CharResearch] Image search failed for '%s': %s", query, e)
 
-    if skipped_already_seen:
+    if skipped_irrelevant:
         logger.info(
-            "[CharResearch] Skipped %d already-seen URLs (registry has %d url+%d byte entries)",
-            skipped_already_seen,
-            len(persisted_seen.get("url_hashes", {})),
+            "[CharResearch] Filtered %d off-character SerpAPI hits "
+            "(name_tokens=%s, byte-hash registry has %d entries)",
+            skipped_irrelevant,
+            sorted(t for t in name_tokens if t),
             len(persisted_seen.get("byte_hashes", {})),
         )
 
@@ -726,25 +743,21 @@ def _image_search_character(
                 prioritize_sensitive=nsfw_intent,
             )
             if extra:
-                # Drop any fallback-provided URL we've already downloaded
-                # in a prior run so the LLM providers can't reintroduce
-                # cached duplicates.
-                fresh_extra = [
-                    e for e in extra
-                    if e.get("url") and not _is_url_seen(e["url"], persisted_seen)
-                ]
-                dropped = len(extra) - len(fresh_extra)
+                # Apply the same relevance filter to fallback-chain URLs
+                # so off-character generic art doesn't leak in.
+                relevant = [e for e in extra if e.get("url") and _is_relevant(e)]
+                dropped = len(extra) - len(relevant)
                 if dropped:
                     logger.info(
-                        "[CharResearch] Dropped %d fallback URLs already in seen registry",
+                        "[CharResearch] Dropped %d off-character fallback URLs",
                         dropped,
                     )
                 logger.info(
                     "[CharResearch] Fallback chain added %d image URLs "
                     "(total %d, nsfw_intent=%s)",
-                    len(fresh_extra), len(all_images) + len(fresh_extra), nsfw_intent,
+                    len(relevant), len(all_images) + len(relevant), nsfw_intent,
                 )
-                all_images.extend(fresh_extra)
+                all_images.extend(relevant)
         except Exception as e:
             logger.warning("[CharResearch] Fallback chain failed: %s", e)
 
@@ -805,8 +818,6 @@ def _download_reference_images(
 
         url = item.get("url", "")
         if not url:
-            continue
-        if _is_url_seen(url, registry):
             continue
 
         # Filter: skip tiny images, gifs, webp

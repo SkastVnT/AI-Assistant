@@ -47,12 +47,18 @@ def test_detect_nsfw_intent_skips_safe_prompts(prompt):
     assert _detect_nsfw_intent(prompt) is False
 
 
-# ── Series-first SerpAPI query ordering ──────────────────────────────
+# ── Character-first SerpAPI query ordering ───────────────────────────
 
 def test_image_search_first_query_starts_with_series():
-    """The very first SerpAPI query must begin with the series name so
-    Google Images grounds the result set on the franchise BEFORE the
-    character is introduced."""
+    """The very first SerpAPI query must mention BOTH the character and
+    the series so Google Images grounds results on the actual character.
+
+    History: a pure-series warm-up query was tried in Phase 11 C5 to act
+    as a 'palette anchor', but it returned generic franchise wallpapers
+    that polluted the result set (Hu Tao search returned non-Hu-Tao
+    Genshin art). Removed 2026-04-23. The first query now MUST contain
+    the character name.
+    """
     from image_pipeline.anime_pipeline import character_research as cr
 
     captured_queries: list[str] = []
@@ -72,14 +78,14 @@ def test_image_search_first_query_starts_with_series():
 
     assert captured_queries, "expected at least one SerpAPI query"
     first = captured_queries[0].lower()
-    # Series name must appear BEFORE the character name in the first query.
-    assert "genshin impact" in first
-    assert first.index("genshin impact") < first.index("klee") if "klee" in first else True
+    # Both character and series must be present in the very first query.
+    assert "klee" in first, f"first query missing character name: {first!r}"
+    assert "genshin impact" in first, f"first query missing series name: {first!r}"
 
 
 def test_image_search_nsfw_intent_skips_safe_queries():
-    """When nsfw_intent=True we keep only the series-warm-up SerpAPI
-    query — the safe character-art queries waste quota."""
+    """When nsfw_intent=True we keep only one strong character-specific
+    SerpAPI query — the additional safe queries waste quota."""
     from image_pipeline.anime_pipeline import character_research as cr
 
     captured_queries: list[str] = []
