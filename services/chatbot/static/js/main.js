@@ -942,12 +942,23 @@ class ChatBotApp {
                 }
 
                 // ── Record into session for context-aware follow-ups ──
+                // Forward any structured metadata the backend returned (job_id,
+                // preset, character_key, manifest_path, seed) so future LLM
+                // turns can reference what was generated, not just where it lives.
+                // Backward compatible: missing fields are dropped by the chat-manager.
                 try {
                     this.chatManager.addGeneratedImage({
                         url: imgSrc,
                         prompt: result.prompt_used || message,
                         provider: result.provider,
                         model: result.model,
+                        job_id: result.job_id || result.jobId,
+                        conversation_id: conversationId,
+                        character_key: result.character_key,
+                        series_key: result.series_key,
+                        preset: result.preset,
+                        manifest_path: result.manifest_path,
+                        seed: result.seed,
                     });
                 } catch (e) {
                     console.warn('[App] addGeneratedImage failed:', e);

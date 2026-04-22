@@ -21,6 +21,7 @@ if str(CHATBOT_DIR) not in sys.path:
 
 from core.config import MEMORY_DIR
 from core.extensions import MONGODB_ENABLED, logger
+from core.asset_memory import build_asset_context_block
 from core.chatbot_v2 import get_chatbot
 from core.stream_metrics import (
     get_stream_metrics_snapshot,
@@ -266,33 +267,26 @@ def chat_stream():
             except Exception as _bind_exc:
                 logger.warning(f"[SSE:{request_id}] failed to bind session conv_id: {_bind_exc}")
 
-        # ── Image context from previously generated images in this conversation ──
-        # Frontend sends last N images with {url, prompt, provider, model, timestamp}
-        # We inject as system context so the LLM can reference them in follow-ups.
+        # ── Image asset memory: structured records for previously generated images ──
+        # Frontend sends a bounded list of canonical asset records — see
+        # services/chatbot/core/asset_memory.py for the schema. Old sessions
+        # send the legacy {url, prompt, provider, model, timestamp} shape;
+        # the normalizer migrates them transparently.
+        # When a record carries manifest_path (local anime pipeline output),
+        # the formatter enriches the line with preset/character/seed/models
+        # so the LLM understands what was generated, not just where it lives.
         generated_images = data.get('generated_images', []) or []
         if not isinstance(generated_images, list):
             generated_images = []
-        # Cap and validate each item
-        _img_ctx_lines = []
-        for _img in generated_images[:5]:
-            if not isinstance(_img, dict):
-                continue
-            _prompt = str(_img.get('prompt', ''))[:200]
-            _url = str(_img.get('url', ''))[:500]
-            _provider = str(_img.get('provider', ''))[:50]
-            _model = str(_img.get('model', ''))[:50]
-            if _prompt or _url:
-                _img_ctx_lines.append(
-                    f"- Prompt: {_prompt}\n  URL: {_url}\n  Provider: {_provider}/{_model}"
-                )
-        if _img_ctx_lines:
-            _img_ctx = (
-                "\n\n[\u00c1nh \u0111\u00e3 \u0111\u01b0\u1ee3c t\u1ea1o trong cu\u1ed9c tr\u00f2 chuy\u1ec7n n\u00e0y]\n"
-                + "\n".join(_img_ctx_lines)
-                + "\n[B\u1ea1n c\u00f3 th\u1ec3 tham chi\u1ebfu c\u00e1c \u1ea3nh n\u00e0y khi ng\u01b0\u1eddi d\u00f9ng h\u1ecfi v\u1ec1 ch\u00fang.]\n"
-            )
+        try:
+            _img_ctx = build_asset_context_block(generated_images)
+        except Exception as _ctx_exc:
+            logger.warning(f"[SSE:{request_id}] asset context build failed: {_ctx_exc}")
+            _img_ctx = ""
+        if _img_ctx:
             message = (message or '') + _img_ctx
-            logger.info(f"[SSE:{request_id}] Injected {len(_img_ctx_lines)} image(s) into context")
+            _used = sum(1 for line in _img_ctx.split('\n') if line.startswith('- '))
+            logger.info(f"[SSE:{request_id}] Injected {_used} image asset(s) into context")
 
         # ── Runtime Skill Resolution + Application ────────────────────
         skill_overrides = resolve_skill(

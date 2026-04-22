@@ -69,6 +69,26 @@ export class ChatManager {
                     // Ensure generatedImages exists (added for image context injection)
                     if (!Array.isArray(this.chatSessions[id].generatedImages)) {
                         this.chatSessions[id].generatedImages = [];
+                    } else {
+                        // Migrate legacy records to the canonical asset shape so backend
+                        // normalization stays a no-op on the hot path. Old records had only
+                        // {url, prompt, provider, model, timestamp}; new records may carry
+                        // job_id, character_key, preset, manifest_path, seed, etc.
+                        // Drop anything that isn't a usable object and cap to last 10.
+                        const _migrated = this.chatSessions[id].generatedImages
+                            .filter(r => r && typeof r === 'object')
+                            .map(r => {
+                                const out = { ...r };
+                                if (typeof out.url === 'string' && out.url.startsWith('data:')) {
+                                    delete out.url;  // never keep base64 in storage
+                                }
+                                if (typeof out.prompt === 'string' && out.prompt.length > 240) {
+                                    out.prompt = out.prompt.slice(0, 240);
+                                }
+                                return out;
+                            })
+                            .filter(r => r.url || r.prompt || r.job_id);
+                        this.chatSessions[id].generatedImages = _migrated.slice(-10);
                     }
                 });
                 console.log('[ChatManager] Loaded', Object.keys(this.chatSessions).length, 'sessions from localStorage');
@@ -625,6 +645,24 @@ export class ChatManager {
      * Record a generated image into the current session so future LLM turns
      * can reference it. Bounded to last 10 entries to keep localStorage small.
      * Skips base64 data URLs (too large to store) — only HTTP/relative URLs are kept.
+     *
+     * Schema (all fields optional except url-or-prompt):
+     *   {
+     *     job_id,           // local pipeline job id (if any)
+     *     conversation_id,  // bound by addGeneratedImage if missing
+     *     url,              // image URL (no data: blobs)
+     *     prompt,           // user prompt or final rewritten prompt
+     *     provider, model,  // "local", "fal", "bfl", "openai", model id, …
+     *     timestamp,        // ms epoch (auto-filled if missing)
+     *     character_key,    // optional — from character picker
+     *     series_key,       // optional
+     *     preset,           // "anime_quality" | "anime_speed" | …
+     *     manifest_path,    // optional — backend reads this for richer context
+     *     seed              // optional int
+     *   }
+     *
+     * Backward compatibility: callers that only pass {url, prompt, provider,
+     * model} keep working exactly as before; new fields default to undefined.
      */
     addGeneratedImage(imageData) {
         const session = this.getCurrentSession();
@@ -633,18 +671,39 @@ export class ChatManager {
 
         const url = String(imageData?.url || '');
         // Drop base64 / data URLs and anything suspiciously long — would bloat localStorage
-        if (!url || url.startsWith('data:') || url.length > 500) {
+        if (url && (url.startsWith('data:') || url.length > 500)) {
             console.warn('[ChatManager] addGeneratedImage: skipping non-URL image (base64 or oversized)');
             return;
         }
+        const prompt = String(imageData?.prompt || '').slice(0, 240);
+        const jobId = String(imageData?.job_id || imageData?.jobId || '').slice(0, 64);
 
-        session.generatedImages.push({
-            url: url,
-            prompt: String(imageData?.prompt || '').slice(0, 500),
-            provider: String(imageData?.provider || '').slice(0, 50),
-            model: String(imageData?.model || '').slice(0, 50),
-            timestamp: Date.now(),
-        });
+        // A record needs at least one of url/prompt/job_id to be useful.
+        if (!url && !prompt && !jobId) {
+            console.warn('[ChatManager] addGeneratedImage: empty record skipped');
+            return;
+        }
+
+        // Build the canonical asset record. Undefined fields are dropped to
+        // keep localStorage small — the backend normalizer treats missing
+        // and null identically.
+        const record = { timestamp: Date.now() };
+        if (jobId) record.job_id = jobId;
+        record.conversation_id = String(
+            imageData?.conversation_id || this.currentChatId || ''
+        ).slice(0, 64) || undefined;
+        if (url) record.url = url;
+        if (prompt) record.prompt = prompt;
+        if (imageData?.provider) record.provider = String(imageData.provider).slice(0, 64);
+        if (imageData?.model) record.model = String(imageData.model).slice(0, 64);
+        if (imageData?.character_key) record.character_key = String(imageData.character_key).slice(0, 64);
+        if (imageData?.series_key) record.series_key = String(imageData.series_key).slice(0, 64);
+        if (imageData?.preset) record.preset = String(imageData.preset).slice(0, 64);
+        if (imageData?.manifest_path) record.manifest_path = String(imageData.manifest_path).slice(0, 400);
+        const seed = imageData?.seed;
+        if (typeof seed === 'number' && Number.isFinite(seed)) record.seed = Math.trunc(seed);
+
+        session.generatedImages.push(record);
         if (session.generatedImages.length > 10) {
             session.generatedImages = session.generatedImages.slice(-10);
         }
