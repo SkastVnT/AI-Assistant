@@ -17,33 +17,34 @@ vram:
 
 models:
   # Stage 3: Base composition — stable, broad, good anatomy
+  # Switched to WAI-illustrious-SDXL v16 (NSFW-tuned, anime-native, 12GB friendly)
   composition:
-    checkpoint: "ChenkinNoob-XL-V0.2.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
-    sampler: dpmpp_2m_sde
+    sampler: euler_ancestral  # WAI recommends euler_a / dpmpp_2m
     scheduler: karras
-    steps: 35
-    cfg: 5.5
+    steps: 28
+    cfg: 5.0  # WAI recommends 4-7
     clip_skip: 2
     vae: null  # Use baked VAE
 
   # Stage 5: Beauty redraw — best final quality, anime-optimized
   beauty:
-    checkpoint: "ChenkinNoob-XL-V0.2.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: dpmpp_2m_sde
     scheduler: karras
     steps: 30
-    cfg: 6.5
+    cfg: 6.0
     clip_skip: 2
     vae: null
-    denoise_strength: 0.50  # Higher denoise = more quality enhancement
+    denoise_strength: 0.45  # WAI handles fine detail well; keep moderate
 
   # Dedicated final model slot — swappable without changing orchestration.
   # Defaults to beauty model values when absent. Set a different checkpoint
   # here to switch the final-pass model in one place.
   final:
-    checkpoint: "ChenkinNoob-XL-V0.2.safetensors"
+    checkpoint: "waiIllustriousSDXL_v160.safetensors"
     type: sdxl
     sampler: euler_ancestral      # euler_a is A1111 name; ComfyUI uses euler_ancestral
     scheduler: karras
@@ -199,16 +200,24 @@ pipeline:
 # ── Prompt Enhancement ─────────────────────────────────────────────
 
 prompts:
-  # Quality tags prepended to all positive prompts
-  quality_prefix: "masterpiece, best quality, very aesthetic, absurdres, highly detailed, vivid colors"
+  # Quality tags prepended to all positive prompts.
+  # WAI-illustrious-SDXL recommended formula: masterpiece, best quality, amazing
+  # quality, very aesthetic, absurdres, newest, scenery — also benefits from
+  # `year 2024` style tag for recent-style anime.
+  quality_prefix: "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
 
-  # Negative prompt base
+  # Negative prompt base.
+  # WAI v16 recommended negatives + standard quality drops + the `easynegative`
+  # textual inversion (loaded automatically when present in embeddings/).
   negative_base: >-
+    embedding:easynegative,
     lowres, bad anatomy, bad hands, text, error, missing fingers,
     extra digit, fewer digits, cropped, worst quality, low quality,
     normal quality, jpeg artifacts, signature, watermark, username, blurry,
     artist name, bad proportions, deformed, disfigured, ugly,
-    monochrome, greyscale, grayscale, sketch, lineart, black_and_white
+    monochrome, greyscale, grayscale, sketch, lineart, black_and_white,
+    logo, copyright, credit, stamp, title_text, author_name, english_text,
+    twitter_username, instagram_username, url, website
 
   # Style-specific negative additions
   style_negatives:

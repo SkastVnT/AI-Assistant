@@ -30,6 +30,8 @@ DIRS = {
     "lora_effect":    COMFYUI / "loras" / "effects",
     "lora_pose":      COMFYUI / "loras" / "poses",
     "lora_quality":   COMFYUI / "loras" / "anime-quality",
+    "lora_style":     COMFYUI / "loras" / "styles",
+    "embedding":      COMFYUI / "embeddings",
     "adetailer_bbox": COMFYUI / "ultralytics" / "bbox",
     "adetailer_segm": COMFYUI / "ultralytics" / "segm",
     "vae":            COMFYUI / "vae",
@@ -202,6 +204,59 @@ MODELS: list[dict] = [
     {"url": "https://civitai.com/models/192941", "cat": "lora_pose", "sub": "playing_guitar", "name": "OpenPose Playing Guitar"},
     {"url": "https://civitai.com/models/213828", "cat": "lora_pose", "sub": "sitting_leaning_back", "name": "OpenPose Sitting Leaning Back"},
     {"url": "https://civitai.com/models/211714", "cat": "lora_pose", "sub": "crossed_arms_v2", "name": "OpenPose Crossed Arms v2"},
+
+    # ═══════════════ NEW: from private/new_download.txt ═══════════════
+
+    # Eye-detection (eyeful)
+    {"url": "https://civitai.com/models/178518", "cat": "adetailer_bbox", "sub": None, "name": "Eyeful Robust Eye Detection ADetailer"},
+
+    # Eye-quality LoRAs
+    {"url": "https://civitai.com/models/596221", "cat": "lora_effect", "sub": "eyes", "name": "Eyes for Pony Lora Perfect Anime Eyes"},
+    {"url": "https://civitai.com/models/1690241", "cat": "lora_effect", "sub": "eyes", "name": "SDXL White Eyelashes Helper"},
+    {"url": "https://civitai.com/models/1719571", "cat": "lora_effect", "sub": "eyes", "name": "Lora Illustrious XL Eye Focus"},
+
+    # Style / screencap
+    {"url": "https://civitai.com/models/345962", "cat": "lora_style", "sub": None, "name": "Fine Anime Screencap XL"},
+    {"url": "https://civitai.com/models/269772", "cat": "lora_style", "sub": None, "name": "MemaXL Flat Anime Style"},
+    {"url": "https://civitai.com/models/1059388", "cat": "lora_style", "sub": None, "name": "Flux Illustrious Anime Style"},
+    {"url": "https://civitai.com/models/1261082", "cat": "lora_style", "sub": None, "name": "Text Expressive Language Loving It"},
+    {"url": "https://civitai.com/models/1623264", "cat": "lora_style", "sub": None, "name": "Textolyte Style Illustrious"},
+
+    # Detail boosters
+    {"url": "https://civitai.com/models/1145743", "cat": "lora_quality", "sub": None, "name": "Smooth Detailer Booster NoobAI/Illustrious/Pony"},
+
+    # NSFW improvement LoRAs (new IDs)
+    {"url": "https://civitai.com/models/1430080", "cat": "lora_effect", "sub": "nsfw", "name": "Better Ahegao Lora Illustrious"},
+    {"url": "https://civitai.com/models/1466471", "cat": "lora_effect", "sub": "nsfw", "name": "Better Anal Fingering Illustrious"},
+    {"url": "https://civitai.com/models/17122", "cat": "lora_effect", "sub": "nsfw", "name": "Better Pink Pussy"},
+    {"url": "https://civitai.com/models/2183555", "cat": "lora_effect", "sub": "nsfw", "name": "Better Nipples and Pussy"},
+    {"url": "https://civitai.com/models/459445", "cat": "lora_effect", "sub": "nsfw", "name": "Better Panties"},
+    {"url": "https://civitai.com/models/72811", "cat": "lora_effect", "sub": "nsfw", "name": "Better Nipples Maybe"},
+    {"url": "https://civitai.com/models/728342", "cat": "lora_effect", "sub": "nsfw", "name": "Better Cum on Tongue"},
+
+    # Character packs (new)
+    {"url": "https://civitai.com/models/413006", "cat": "lora_character", "sub": "touhou_pony", "name": "Pony Touhou Characters 145"},
+    {"url": "https://civitai.com/models/422352", "cat": "lora_character", "sub": "oshi_no_ko", "name": "All Characters Oshi no Ko"},
+    {"url": "https://civitai.com/models/471854", "cat": "lora_character", "sub": "zenless_zone_zero", "name": "All Characters Zenless Zone Zero"},
+    {"url": "https://civitai.com/models/539130", "cat": "lora_character", "sub": "fire_emblem", "name": "All Characters Fire Emblem"},
+    {"url": "https://civitai.com/models/558527", "cat": "lora_character", "sub": "frieren", "name": "All Characters Frieren"},
+    {"url": "https://civitai.com/models/677863", "cat": "lora_character", "sub": "nikke", "name": "All Characters Nikke"},
+
+    # Textual-inversion embeddings
+    {"url": "https://civitai.com/models/7808", "cat": "embedding", "sub": None, "name": "EasyNegative"},
+    {"url": "https://civitai.com/models/64870", "cat": "embedding", "sub": None, "name": "Better Hands Embedding"},
+
+    # ═══════════════ HuggingFace YOLO detectors ═══════════════
+    # Format differs: hf_repo + hf_file route through download_hf_yolo()
+    {"hf_repo": "deepghs/anime_head_detection", "hf_file": "head_detect_v1.6_n.onnx", "cat": "adetailer_bbox", "sub": None, "name": "DeepGHS Anime Head Detection"},
+    {"hf_repo": "Fuyucchi/yolov8_animeface", "hf_file": "yolov8_animeface.pt", "cat": "adetailer_bbox", "sub": None, "name": "Fuyucchi YOLOv8 Animeface"},
+    {"hf_repo": "deepghs/anime_hand_detection", "hf_file": "hand_detect_v1.0_n.onnx", "cat": "adetailer_bbox", "sub": None, "name": "DeepGHS Anime Hand Detection"},
+    {"hf_repo": "deepghs/AnimeText_yolo", "hf_file": "yolov8s_text_seg.pt", "cat": "adetailer_segm", "sub": None, "name": "DeepGHS AnimeText YOLO Segm"},
+    {"hf_repo": "karma1jp/yolo26n-anime-segmentation", "hf_file": "yolo26n-anime-seg.pt", "cat": "adetailer_segm", "sub": None, "name": "Karma1JP YOLOv26n Anime Segmentation"},
+    {"hf_repo": "sophic00/animehead", "hf_file": "animehead.pt", "cat": "adetailer_bbox", "sub": None, "name": "Sophic00 Anime Head"},
+    {"hf_repo": "iitolstykh/YOLO-Face-Person-Detector", "hf_file": "yolov8n-face-person.pt", "cat": "adetailer_bbox", "sub": None, "name": "Itolstykh YOLO Face Person Detector"},
+    {"hf_repo": "Kiuyha/Manga-Bubble-YOLO", "hf_file": "manga_bubble_yolo.pt", "cat": "adetailer_bbox", "sub": None, "name": "Kiuyha Manga Bubble YOLO"},
+    {"hf_repo": "poptoz/yolo26-hand-pose-face-detection", "hf_file": "yolo26-hand-pose-face.pt", "cat": "adetailer_bbox", "sub": None, "name": "Poptoz YOLO26 Hand Pose Face Detection"},
 ]
 
 
@@ -319,8 +374,103 @@ def _download_file(url: str, dest_path: Path, size_hint: int = 0) -> bool:
         return False
 
 
+def _download_hf_yolo(entry: dict, dry_run: bool = False) -> dict:
+    """Download a YOLO weight file from a HuggingFace repo.
+
+    Strategy: probe HF resolve URL for the listed candidate filename. If 404,
+    fall back to scanning the repo's `tree/main` listing via the HF API and
+    pick the first .pt/.onnx/.pth file. Result mirrors process_model().
+    """
+    name = entry["name"]
+    repo = entry["hf_repo"]
+    candidate = entry.get("hf_file") or ""
+    result = {"name": name, "url": f"hf://{repo}", "status": "unknown",
+              "file": None, "error": None}
+
+    dest_dir = _resolve_dest_dir(entry)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{'='*60}")
+    print(f"📦 {name}  (HuggingFace: {repo})")
+
+    candidates: list[str] = []
+    if candidate:
+        candidates.append(candidate)
+
+    # Probe repo file tree via HF API to discover real filenames
+    try:
+        api_resp = requests.get(
+            f"https://huggingface.co/api/models/{repo}",
+            timeout=30,
+        )
+        if api_resp.status_code == 200:
+            siblings = api_resp.json().get("siblings", []) or []
+            for sib in siblings:
+                fname = sib.get("rfilename") or ""
+                if fname.lower().endswith((".pt", ".onnx", ".pth", ".safetensors")):
+                    if fname not in candidates:
+                        candidates.append(fname)
+    except Exception as e:
+        print(f"  ⚠ HF API probe failed: {e}")
+
+    if not candidates:
+        result["status"] = "no_file"
+        result["error"] = "No weight files discovered in HF repo"
+        return result
+
+    # Try each candidate filename until one downloads
+    for fname in candidates:
+        url = f"https://huggingface.co/{repo}/resolve/main/{fname}"
+        # Use a safe-prefixed local name so multiple repos don't collide
+        local_name = f"{repo.replace('/', '_')}__{Path(fname).name}"
+        dest_path = dest_dir / local_name
+        result["file"] = str(dest_path)
+
+        if dest_path.exists():
+            print(f"   ✅ Already exists: {local_name}")
+            result["status"] = "exists"
+            return result
+
+        if dry_run:
+            print(f"   🔍 DRY RUN — would fetch {fname} → {dest_path}")
+            result["status"] = "dry_run"
+            return result
+
+        # HEAD probe to avoid wasting bandwidth on a 404
+        try:
+            head = requests.head(url, allow_redirects=True, timeout=20)
+            if head.status_code != 200:
+                continue
+        except Exception:
+            continue
+
+        print(f"   ⬇  Fetching {fname}")
+        if _download_file(url, dest_path):
+            actual_size = dest_path.stat().st_size
+            print(f"   ✅ Downloaded: {actual_size / (1024*1024):.1f} MB")
+            result["status"] = "downloaded"
+
+            meta_path = dest_path.with_suffix(dest_path.suffix + ".json")
+            meta_path.write_text(json.dumps({
+                "hf_repo": repo,
+                "hf_file": fname,
+                "name": name,
+                "category": entry["cat"],
+                "downloaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            }, indent=2, ensure_ascii=False), encoding="utf-8")
+            return result
+
+    result["status"] = "download_fail"
+    result["error"] = f"None of the candidates downloaded: {candidates[:3]}"
+    return result
+
+
 def process_model(entry: dict, dry_run: bool = False) -> dict:
     """Process a single model entry. Returns result dict."""
+    # HuggingFace entries take a different code path
+    if entry.get("hf_repo"):
+        return _download_hf_yolo(entry, dry_run=dry_run)
+
     name = entry["name"]
     url = entry["url"]
     model_id = _extract_model_id(url)

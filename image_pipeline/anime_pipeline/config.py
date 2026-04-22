@@ -252,8 +252,9 @@ class AnimePipelineConfig:
     unload_between_passes: bool = True
 
     # Prompts
-    quality_prefix: str = "masterpiece, best quality, very aesthetic, absurdres, highly detailed, vivid colors"
+    quality_prefix: str = "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
     negative_base: str = (
+        "embedding:easynegative, "
         "lowres, bad anatomy, bad hands, text, error, missing fingers, "
         "extra digit, fewer digits, cropped, worst quality, low quality, "
         "normal quality, jpeg artifacts, signature, watermark, username, blurry, "
@@ -326,7 +327,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Composition model
     comp = models.get("composition", {})
     cfg.composition_model = ModelConfig(
-        checkpoint=comp.get("checkpoint", "animagine-xl-4.0-opt.safetensors"),
+        checkpoint=comp.get("checkpoint", "waiIllustriousSDXL_v160.safetensors"),
         model_type=comp.get("type", "sdxl"),
         sampler=comp.get("sampler", "dpmpp_2m_sde"),
         scheduler=comp.get("scheduler", "karras"),
@@ -339,7 +340,7 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
     # Beauty model
     beauty = models.get("beauty", {})
     cfg.beauty_model = ModelConfig(
-        checkpoint=beauty.get("checkpoint", "animagine-xl-4.0-opt.safetensors"),
+        checkpoint=beauty.get("checkpoint", "waiIllustriousSDXL_v160.safetensors"),
         model_type=beauty.get("type", "sdxl"),
         sampler=beauty.get("sampler", "dpmpp_2m_sde"),
         scheduler=beauty.get("scheduler", "karras"),

@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+from pathlib import Path
 from typing import Any, Optional
 
 from ..comfy_client import ComfyClient
@@ -192,9 +193,88 @@ _REGION_LORA_MAP: dict[str, list[dict[str, Any]]] = {
     ],
 }
 
+# ── Auto-discovery of supplemental LoRAs ───────────────────────────
+# After bulk_model_downloader.py drops files into ComfyUI/models/loras/effects/<sub>/,
+# any .safetensors found is auto-attached to the matching region(s) at low
+# strength so it complements (not replaces) the core entries above. Triggered
+# at import time, idempotent, never raises.
+
+# Subfolder name → list of region_type keys it should be merged into
+_EFFECT_SUBDIR_REGION_MAP: dict[str, tuple[str, ...]] = {
+    "eyes":       ("full_eyes", "eyes", "iris", "pupil", "sclera"),
+    "mouth":      ("mouth", "lips"),
+    "expression": ("face", "mouth"),
+    "drunk":      ("face",),
+    "sleep":      ("face", "full_eyes", "eyes"),
+    "drool":      ("mouth", "lips"),
+    "legs":       ("leg", "thigh", "feet"),
+    "pose":       (),  # poses are control-layer concepts, not region LoRAs
+    "outfit":     ("clothes",),
+    "style":      (),  # styles are global, not region-specific
+    "nsfw":       ("breasts", "nipples", "genital", "pubic_area", "underwear"),
+}
+
+# Default supplemental strengths — kept lower than hand-curated entries so
+# auto-discovered LoRAs reinforce rather than dominate.
+_AUTO_LORA_STRENGTH_MODEL = 0.45
+_AUTO_LORA_STRENGTH_CLIP = 0.35
+
+
+def _auto_discover_effect_loras() -> None:
+    """Scan ComfyUI/models/loras/effects/<sub>/ and merge into _REGION_LORA_MAP.
+
+    Skipped silently if the directory is missing or scanning fails.
+    Existing region entries are preserved; auto-discovered files are appended
+    only if their basename is not already present in that region's stack.
+    """
+    try:
+        from ..lora_manager import _COMFYUI_LORA_ROOT  # type: ignore
+    except Exception:
+        return
+
+    effects_root = _COMFYUI_LORA_ROOT / "effects"
+    if not effects_root.is_dir():
+        return
+
+    discovered = 0
+    for sub_name, region_types in _EFFECT_SUBDIR_REGION_MAP.items():
+        if not region_types:
+            continue
+        sub_dir = effects_root / sub_name
+        if not sub_dir.is_dir():
+            continue
+        for f in sub_dir.glob("*.safetensors"):
+            rel = f"effects/{sub_name}/{f.name}"
+            entry = {
+                "name": rel,
+                "strength_model": _AUTO_LORA_STRENGTH_MODEL,
+                "strength_clip": _AUTO_LORA_STRENGTH_CLIP,
+            }
+            for region in region_types:
+                stack = _REGION_LORA_MAP.setdefault(region, [])
+                # Dedupe by basename so re-imports don't double-stack
+                names = {Path(item.get("name", "")).name for item in stack}
+                if f.name not in names:
+                    stack.append(entry)
+                    discovered += 1
+
+    if discovered:
+        logger.info(
+            "[DetectionInpaint] Auto-discovered %d supplemental LoRA attachments "
+            "across effects/ subfolders.",
+            discovered,
+        )
+
+
+# Run discovery at import. Failures must not break module load.
+try:
+    _auto_discover_effect_loras()
+except Exception as _exc:  # pragma: no cover - defensive
+    logger.debug("[DetectionInpaint] effect LoRA auto-discovery skipped: %s", _exc)
+
 # ── Quality tags per region ────────────────────────────────────────
 
-_QUALITY_PREFIX = "masterpiece, best quality, very aesthetic, absurdres"
+_QUALITY_PREFIX = "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest"
 
 _REGION_POSITIVE: dict[str, str] = {
     # Tier 1: Core anatomy
