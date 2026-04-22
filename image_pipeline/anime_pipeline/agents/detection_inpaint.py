@@ -587,6 +587,8 @@ class DetectionInpaintAgent:
             detection_layers=self._detection_layers,
         )
         self._enabled = config.detection_inpaint_enabled
+        # Set per-execute() by detect_eye_taped_intent or job.metadata override.
+        self._eye_taped_active: bool = False
 
     def is_available(self) -> bool:
         """Check if detection libraries are available."""
@@ -602,6 +604,30 @@ class DetectionInpaintAgent:
         if not self.is_available():
             logger.info("[DetectionInpaint] Skipped — detection not available")
             return
+
+        # Eye-taped intent: detect ONCE per execute() so all eye-region
+        # passes use the same decision. Honour an explicit override via
+        # job.metadata['eye_taped'] (UI toggle) but otherwise sniff the
+        # user prompt directly.
+        meta_override = (
+            (job.metadata or {}).get("eye_taped")
+            if hasattr(job, "metadata") else None
+        )
+        if isinstance(meta_override, bool):
+            self._eye_taped_active = meta_override
+        else:
+            try:
+                from ..eye_taped_lora import detect_eye_taped_intent
+                self._eye_taped_active = detect_eye_taped_intent(
+                    getattr(job, "user_prompt", "")
+                )
+            except Exception:  # noqa: BLE001 — never block the pipeline
+                self._eye_taped_active = False
+        if self._eye_taped_active:
+            logger.info(
+                "[DetectionInpaint] eye-taped intent ACTIVE — stacking "
+                "high-strength eye-tape LoRAs on eye/face passes"
+            )
 
         # Get the latest image (from beauty pass)
         current_image_b64 = self._get_latest_image(job)
@@ -685,6 +711,28 @@ class DetectionInpaintAgent:
                 reduced["strength_model"] = float(reduced.get("strength_model", reduced.get("strength", 0.5))) * 0.7
                 reduced["strength_clip"] = float(reduced.get("strength_clip", reduced.get("strength", 0.5))) * 0.7
                 region_loras.append(reduced)
+
+            # Eye-taped LoRA stack (Layer 4 sub-effect, opt-in via prompt
+            # intent). Stacks AT FULL STRENGTH on top of the standard eye
+            # LoRAs because the user spec explicitly requests "cuc cao".
+            if region_type in ("full_eyes", "eyes", "face", "eyebrows"):
+                if self._eye_taped_active:
+                    from ..eye_taped_lora import (
+                        build_eye_taped_lora_stack,
+                        EYE_TAPED_POSITIVE,
+                        EYE_TAPED_NEGATIVE,
+                    )
+                    region_loras.extend(build_eye_taped_lora_stack(
+                        character_name=getattr(job, "character_name", ""),
+                        character_tag=getattr(job, "character_tag", ""),
+                    ))
+                    region_positive = self._merge_prompt(
+                        region_positive, EYE_TAPED_POSITIVE,
+                    )
+                    region_negative = self._merge_prompt(
+                        region_negative, EYE_TAPED_NEGATIVE,
+                    )
+
             region_loras = self._filter_existing_loras(region_loras, region_type=region_type)
 
             # Build PassConfig for this region
