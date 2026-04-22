@@ -213,10 +213,43 @@ _STAGE_LABELS = {
     "upscale": "Upscaling…",
 }
 
+# Stages that produce a visually-meaningful intermediate worth showing as
+# a "Layer N" thumbnail in the chat bubble (ChatGPT-style live gallery).
+# Each entry: stage_key -> (layer_num, short_vi_label).
+# Order matches the canonical pipeline pass order.
+_LAYER_STAGES: dict[str, tuple[int, str]] = {
+    "composition_pass":  (1, "Bố cục"),
+    "structure_lock":    (2, "Khoá nét"),
+    "beauty_pass":       (3, "Tô màu"),
+    "detection_inpaint": (4, "Tinh chỉnh"),
+}
+
 
 def _sse_line(event: str, data: dict) -> str:
     """Format a single SSE frame."""
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _persist_intermediate_preview(job_id: str, stage: str, b64: str) -> Optional[str]:
+    """Persist a per-stage preview PNG to Storage/Image_Gen and return its
+    local URL. Returns None on any failure (caller should fall back to
+    embedding the b64 directly in the SSE frame).
+    """
+    if not b64 or not job_id or not stage:
+        return None
+    try:
+        _IMAGE_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+        # Stable per-stage filename so re-runs of the same stage overwrite
+        # the previous preview rather than accumulating clones.
+        safe_jid = "".join(c for c in job_id if c.isalnum() or c in "-_")[:32]
+        safe_stage = "".join(c for c in stage if c.isalnum() or c == "_")[:32]
+        filename = f"preview_{safe_jid}_{safe_stage}.png"
+        (_IMAGE_STORAGE_DIR / filename).write_bytes(base64.b64decode(b64))
+        return f"/storage/images/{filename}"
+    except Exception as exc:
+        logger.debug("[AnimePipelineService] preview persist failed: %s", exc)
+        return None
+
 
 
 def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
@@ -297,7 +330,12 @@ def stream_pipeline(req: PipelineRequest) -> Generator[str, None, None]:
         ap_status       — availability / init status
         ap_stage_start  — a stage has begun
         ap_stage_done   — a stage has completed
-        ap_preview      — intermediate image (debug mode only)
+        ap_preview      — intermediate image. Always emitted for the
+                          four "layer" stages (composition_pass,
+                          structure_lock, beauty_pass, detection_inpaint)
+                          with a tiny local_url (saved to disk). In debug
+                          mode it is also emitted for any other stage and
+                          falls back to image_b64 when persistence fails.
         ap_refine       — refine loop iteration
         ap_result       — final image + manifest
         ap_error        — recoverable or fatal error
@@ -437,14 +475,36 @@ def _run_pipeline_inner(
                         "resolution": f"{plan.resolution_width}\u00d7{plan.resolution_height}",
                         "subject": plan.subject_list[0] if plan.subject_list else "",
                     })
-                # Send intermediate preview in debug mode
-                if req.debug:
-                    preview = _latest_intermediate_b64(job, stage)
-                    if preview:
-                        yield _sse_line("ap_preview", {
+                # Auto-emit a "Layer N" preview for visually-meaningful
+                # stages (composition, structure, beauty, detection_inpaint).
+                # In debug mode we additionally surface previews for any
+                # stage that produced an intermediate. Each preview is
+                # persisted to disk so the SSE frame can carry a tiny
+                # local_url instead of a multi-MB base64 blob.
+                layer_meta = _LAYER_STAGES.get(stage)
+                want_preview = layer_meta is not None or req.debug
+                if want_preview:
+                    preview_b64 = _latest_intermediate_b64(job, stage)
+                    if preview_b64:
+                        local_url = _persist_intermediate_preview(
+                            job.job_id, stage, preview_b64,
+                        )
+                        frame = {
                             "stage": stage,
-                            "image_b64": preview,
-                        })
+                            "label": _STAGE_LABELS.get(stage, stage),
+                            "job_id": job.job_id,
+                        }
+                        if layer_meta is not None:
+                            frame["layer_num"] = layer_meta[0]
+                            frame["layer_label"] = layer_meta[1]
+                        if local_url:
+                            frame["local_url"] = local_url
+                        elif req.debug:
+                            # Fallback: embed b64 only when debug forced
+                            # the preview AND on-disk persistence failed.
+                            frame["image_b64"] = preview_b64
+                        if local_url or req.debug:
+                            yield _sse_line("ap_preview", frame)
 
             elif etype == "anime_pipeline_refine_start":
                 yield _sse_line("ap_refine", {
@@ -527,8 +587,18 @@ def _run_pipeline_inner(
 
 
 def _latest_intermediate_b64(job: Any, stage: str) -> Optional[str]:
-    """Return the most recent intermediate image b64 for *stage*, if any."""
+    """Return the most recent intermediate image b64 for *stage*, if any.
+
+    For ``detection_inpaint`` the orchestrator stores per-region snapshots
+    under stage names like ``detail_face`` / ``detail_eye``, so we accept
+    that prefix as a match.
+    """
+    accept_prefix = "detail_" if stage == "detection_inpaint" else None
     for img in reversed(job.intermediates):
-        if img.stage == stage and img.image_b64:
+        if not img.image_b64:
+            continue
+        if img.stage == stage:
+            return img.image_b64
+        if accept_prefix and img.stage.startswith(accept_prefix):
             return img.image_b64
     return None

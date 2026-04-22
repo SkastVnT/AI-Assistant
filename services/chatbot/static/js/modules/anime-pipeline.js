@@ -137,7 +137,19 @@ export class AnimePipeline {
         }
     }
 
-    /** Build the initial inline pipeline message bubble. */
+    /** Build the initial inline pipeline message bubble.
+     *
+     * Layout (ChatGPT-style):
+     *   ┌─────────────────────────────────────────┐
+     *   │ 🎨 Finalizing image adjustments  ›      │  ← reasoning pill
+     *   │   (expanded text · stage chips inside)  │
+     *   ├─────────────────────────────────────────┤
+     *   │ Đang tạo · Layer 1 · Bố cục   [thumb]  │  ← layer gallery
+     *   │ Đang tạo · Layer 2 · Khoá nét [thumb]  │     (grows as
+     *   │ Đang tạo · Layer 3 · Tô màu   [thumb]  │      previews
+     *   │ Đang tạo · Layer 4 · Tinh chỉnh [thumb] │      arrive)
+     *   └─────────────────────────────────────────┘
+     */
     _createInlineBubble(uid, prompt) {
         const stagesHtml = STAGES.map(s => `
             <div class="ap-stage-item pending" data-ap-stage="${s.key}" id="ap-stage-${uid}-${s.key}">
@@ -156,12 +168,13 @@ export class AnimePipeline {
             </div>
             <div class="message__body">
                 <div class="message-content">
-                    <details class="ap-inline-progress" open>
-                        <summary class="ap-inline-summary">
+                    <details class="ap-inline-progress ap-reasoning-pill" open>
+                        <summary class="ap-inline-summary ap-reasoning-summary">
+                            <span class="ap-reasoning-chevron">›</span>
                             <div class="thinking-pill__dots">
                                 <span></span><span></span><span></span>
                             </div>
-                            <span class="ap-inline-label">Đang tạo ảnh anime…</span>
+                            <span class="ap-inline-label" id="ap-headline-${uid}">Finalizing image adjustments</span>
                             <span class="ap-inline-timer" id="ap-timer-${uid}">0.0s</span>
                             <button type="button"
                                     class="ap-inline-stop-btn"
@@ -169,9 +182,12 @@ export class AnimePipeline {
                                     style="display:none; margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid var(--border); background:var(--bg-secondary,var(--bg)); color:var(--text); border-radius:6px; cursor:pointer;"
                                     title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng & xuất ảnh</button>
                         </summary>
-                        <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
-                        <div class="ap-inline-current" id="ap-current-${uid}">Khởi động…</div>
+                        <div class="ap-reasoning-body">
+                            <div class="ap-inline-current ap-reasoning-text" id="ap-current-${uid}">Khởi động…</div>
+                            <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
+                        </div>
                     </details>
+                    <div class="ap-layers-gallery" id="ap-layers-${uid}" style="display:none; margin-top:10px;"></div>
                 </div>
             </div>`;
 
@@ -196,6 +212,66 @@ export class AnimePipeline {
             });
         }
         return div;
+    }
+
+    /** Append a new layer card to the gallery, or update the existing one
+     *  for the same layer slot. Cards show "Đang tạo · Layer N · {label}"
+     *  and animate to "✓ Layer N · {label}" once the next stage starts.
+     */
+    _inlineAddLayerPreview(uid, data) {
+        const gallery = document.getElementById(`ap-layers-${uid}`);
+        if (!gallery) return;
+        gallery.style.display = '';
+
+        const layerNum = data.layer_num || (gallery.children.length + 1);
+        const layerLabel = data.layer_label || data.label || data.stage || `Layer ${layerNum}`;
+        const slotId = `ap-layer-${uid}-${data.stage || layerNum}`;
+        const imgSrc = data.local_url
+            ? data.local_url
+            : (data.image_b64 ? 'data:image/png;base64,' + data.image_b64 : '');
+        if (!imgSrc) return;
+
+        let card = document.getElementById(slotId);
+        if (!card) {
+            card = document.createElement('div');
+            card.id = slotId;
+            card.className = 'ap-layer-card';
+            card.style.cssText = (
+                'display:flex; align-items:center; gap:10px; padding:8px 10px; ' +
+                'margin-bottom:6px; border:1px solid var(--border); border-radius:10px; ' +
+                'background:var(--bg-secondary,var(--bg)); cursor:pointer; ' +
+                'transition:background .15s ease;'
+            );
+            card.innerHTML = `
+                <img class="ap-layer-thumb" alt="Layer ${layerNum}"
+                     style="width:64px; height:64px; object-fit:cover; border-radius:6px; flex:none;">
+                <div class="ap-layer-meta" style="flex:1; min-width:0;">
+                    <div class="ap-layer-headline" style="font-size:13px; font-weight:600; color:var(--text);">
+                        <span class="ap-layer-status" style="opacity:.85;">Đang tạo</span>
+                        <span style="opacity:.45; margin:0 4px;">·</span>
+                        <span class="ap-layer-name">Layer ${layerNum} · ${layerLabel}</span>
+                    </div>
+                    <div class="ap-layer-sub" style="font-size:11px; opacity:.55; margin-top:2px;">
+                        ${data.stage || ''}
+                    </div>
+                </div>`;
+            card.addEventListener('click', () => {
+                window.chatApp?.imageGenV2?.openImageModal?.(imgSrc);
+            });
+            gallery.appendChild(card);
+        }
+        // Always refresh thumbnail (later stages overwrite in-place).
+        const thumb = card.querySelector('.ap-layer-thumb');
+        if (thumb) thumb.src = imgSrc;
+        // Mark previous layer as done
+        const prev = card.previousElementSibling;
+        if (prev) {
+            const status = prev.querySelector('.ap-layer-status');
+            if (status && status.textContent === 'Đang tạo') {
+                status.textContent = '✓ Đã xong';
+                status.style.color = 'var(--accent, #4ade80)';
+            }
+        }
     }
 
     /** Consume SSE stream for inline mode, updating the bubble DOM. */
@@ -255,8 +331,16 @@ export class AnimePipeline {
             case 'ap_layer_plan':
                 this._inlineShowLayerChips(uid, data);
                 break;
+            case 'ap_preview':
+                // ChatGPT-style: live "Layer N" thumbnail card. Backend
+                // emits this for composition_pass / structure_lock /
+                // beauty_pass / detection_inpaint with a local_url.
+                this._inlineAddLayerPreview(uid, data);
+                break;
             case 'ap_stage_start': {
                 this._inlineSetStage(uid, data.stage, 'active');
+                // _inlineSetCurrent updates both the reasoning body text
+                // and the ChatGPT-style headline pill (.ap-inline-label).
                 this._inlineSetCurrent(uid, data.label || data.stage);
                 break;
             }
@@ -410,6 +494,18 @@ export class AnimePipeline {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         const wasCancelled = bubble.dataset.apCancelled === '1';
         const cancelStage = bubble.dataset.apCancelStage || '';
+
+        // Mark every still-pending layer card as done (final stage emitted
+        // before the bubble swap; nothing else will refresh them).
+        const gallery = document.getElementById(`ap-layers-${uid}`);
+        if (gallery) {
+            gallery.querySelectorAll('.ap-layer-status').forEach(el => {
+                if (el.textContent === 'Đang tạo') {
+                    el.textContent = '✓ Đã xong';
+                    el.style.color = 'var(--accent, #4ade80)';
+                }
+            });
+        }
         // Prefer the saved local URL (lighter than base64 in DOM); fall back to base64
         const imgSrc = data.local_url
             ? data.local_url

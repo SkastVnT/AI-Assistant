@@ -253,3 +253,48 @@
     color: #fb923c;
     border: 1px solid rgba(251, 146, 60, 0.28);
 }
+
+
+/* -- ChatGPT-style reasoning pill + live layer gallery -- */
+.ap-reasoning-pill {
+    border: 1px solid rgba(124, 108, 240, 0.22);
+    background: rgba(124, 108, 240, 0.05);
+    border-radius: 12px;
+}
+.ap-reasoning-summary {
+    align-items: center;
+    gap: 8px;
+}
+.ap-reasoning-chevron {
+    display: inline-block;
+    transition: transform 0.18s ease;
+    font-size: 14px;
+    opacity: 0.6;
+    width: 12px;
+}
+.ap-reasoning-pill[open] > .ap-reasoning-summary .ap-reasoning-chevron {
+    transform: rotate(90deg);
+}
+.ap-reasoning-body {
+    padding: 0 4px 6px;
+}
+.ap-reasoning-text {
+    padding: 6px 12px 8px;
+    font-size: 12.5px;
+    color: var(--text-secondary, var(--text-tertiary));
+    font-style: italic;
+    line-height: 1.45;
+}
+
+.ap-layers-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ap-layer-card:hover {
+    background: rgba(124, 108, 240, 0.08) !important;
+}
+.ap-layer-thumb {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+}
