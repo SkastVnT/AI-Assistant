@@ -109,3 +109,29 @@ def test_latest_intermediate_b64_skips_empty_b64():
         SimpleNamespace(stage="beauty_pass", image_b64="real_b64"),
     ])
     assert _latest_intermediate_b64(fake_job, "beauty_pass") == "real_b64"
+
+
+def test_latest_any_intermediate_b64_returns_most_recent_nonempty():
+    """Used as the placeholder image for layer stages that are about to
+    start or that finish without producing a fresh intermediate."""
+    from core.anime_pipeline_service import _latest_any_intermediate_b64
+
+    # Empty job → None.
+    assert _latest_any_intermediate_b64(SimpleNamespace(intermediates=[])) is None
+
+    # Returns the most recent non-empty entry across any stage.
+    fake_job = SimpleNamespace(intermediates=[
+        SimpleNamespace(stage="composition_pass", image_b64="comp"),
+        SimpleNamespace(stage="structure_lock",   image_b64=""),
+        SimpleNamespace(stage="beauty_pass",      image_b64="beauty"),
+        SimpleNamespace(stage="critique",         image_b64=None),
+    ])
+    assert _latest_any_intermediate_b64(fake_job) == "beauty"
+
+    # Skips empty/None entries from the tail.
+    only_empties = SimpleNamespace(intermediates=[
+        SimpleNamespace(stage="composition_pass", image_b64="real"),
+        SimpleNamespace(stage="structure_lock",   image_b64=None),
+        SimpleNamespace(stage="beauty_pass",      image_b64=""),
+    ])
+    assert _latest_any_intermediate_b64(only_empties) == "real"
