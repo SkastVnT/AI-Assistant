@@ -381,6 +381,48 @@ def _detect_series_hint(text: str) -> Optional[str]:
     return None
 
 
+# ── NSFW intent heuristic (2026-04-23 user request) ──────────────────
+# Conservative keyword list. Triggering this flips the image-search
+# fallback chain so StepFun (NSFW-tolerant) goes first and the safe
+# providers are tried only as backup. Target image count drops to 5
+# because StepFun's free tier on OpenRouter is rate-limited.
+#
+# Keep this list TIGHT — every false-positive wastes OpenRouter tokens
+# AND silently bypasses safety-filter providers. If a word is ambiguous
+# (e.g. "lewd"), prefer not to add it; require explicit anatomical
+# vocabulary before flipping the chain.
+_NSFW_KEYWORDS: frozenset[str] = frozenset({
+    "nsfw", "r-18", "r18", "explicit", "uncensored",
+    "nude", "naked", "topless", "bottomless",
+    "pussy", "vagina", "vulva", "clitoris", "cervix", "urethra",
+    "cock", "penis", "dick", "cum", "semen", "sperm",
+    "sex", "fucking", "intercourse", "penetration", "creampie",
+    "ahegao", "orgasm",
+    "nipple", "nipples", "areola",
+    "spread pussy", "spread legs", "leg spread", "legs spread",
+    "anal", "anus",
+    "loli",  # explicit policy violation flag — handled upstream
+})
+
+
+def _detect_nsfw_intent(user_prompt: str) -> bool:
+    """Return True when the user prompt contains explicit anatomical or
+    R-18 vocabulary that warrants flipping the image-search chain to
+    NSFW-tolerant providers.
+
+    Pure substring match against ``_NSFW_KEYWORDS`` (lowercased). Does
+    NOT call any network or LLM — must stay cheap because it runs on
+    every research call.
+    """
+    if not user_prompt:
+        return False
+    low = user_prompt.lower()
+    for kw in _NSFW_KEYWORDS:
+        if kw in low:
+            return True
+    return False
+
+
 def detect_character(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     """Detect a known character in the user prompt.
 
@@ -476,10 +518,16 @@ def _web_search_character(display_name: str, series_name: str) -> dict:
 
 def _image_search_character(
     display_name: str, series_name: str, danbooru_tag: str,
+    nsfw_intent: bool = False,
 ) -> list[dict]:
     """Search for character reference images via SerpAPI image search.
 
     Returns list of {url, thumbnail, title, source} dicts.
+
+    When ``nsfw_intent`` is True, the SerpAPI pass is reduced to a single
+    series-warm + character query (we'll prefer the StepFun NSFW pass via
+    the fallback chain instead of burning SerpAPI quota on safe queries
+    that won't yield what the user wants).
     """
     api_key = _get_serpapi_key()
     if not api_key:
@@ -487,15 +535,24 @@ def _image_search_character(
 
     import httpx
 
-    # Series-first query order (spec §2): query the game/series catalog
-    # BEFORE the character, so Google Images pulls from series-curated
-    # results first, then character-specific art, then Danbooru tags.
+    # Series-first query order (spec §2 + 2026-04-23 user request):
+    # ALWAYS run the series/franchise query BEFORE the character query so
+    # the result set is grounded in series-specific style and color
+    # palette. The first 1-2 hits become anchors that tell downstream
+    # passes (palette extraction, style critique) what the franchise
+    # looks like, even when the character itself is obscure.
     queries = [
+        f"{series_name} official art style reference",                # series-only warm-up
         f"{series_name} {display_name} official art",                 # series-first
         f"{series_name} character {display_name} anime illustration", # series-first (alt)
         f"{display_name} {series_name} anime official art high quality",
         f"{danbooru_tag} anime illustration full body",
     ]
+    if nsfw_intent:
+        # Skip the safe character-art queries; SerpAPI rarely returns
+        # what's asked for in NSFW contexts. Keep the series warm-up so
+        # we still have palette anchors.
+        queries = queries[:1]
 
     all_images: list[dict] = []
     seen_urls: set[str] = set()
@@ -533,22 +590,31 @@ def _image_search_character(
     # ── Fallback chain: Gemini → OpenAI → Grok → StepFun (if NSFW) ──
     # Spec §3b: supplement SerpAPI results up to 10 images via LLM
     # web-search providers so we don't ship to the pipeline with <10 refs.
-    if len(all_images) < 10:
+    # When ``nsfw_intent`` is True, the chain is FLIPPED — StepFun goes
+    # first (5-image target) because the safe providers will refuse or
+    # return generic SFW art that fights the user's actual prompt.
+    target_total = 5 if nsfw_intent else 10
+    if len(all_images) < target_total:
         try:
             from .image_url_fallback import fetch_image_urls_fallback
-            allow_sensitive = bool(os.getenv("CHAR_RESEARCH_ALLOW_SENSITIVE", "0") == "1")
+            allow_sensitive = (
+                nsfw_intent
+                or bool(os.getenv("CHAR_RESEARCH_ALLOW_SENSITIVE", "0") == "1")
+            )
             extra = fetch_image_urls_fallback(
                 display_name=display_name,
                 series_name=series_name,
                 danbooru_tag=danbooru_tag,
                 already_found=all_images,
-                target_count=10,
+                target_count=target_total,
                 allow_sensitive=allow_sensitive,
+                prioritize_sensitive=nsfw_intent,
             )
             if extra:
                 logger.info(
                     "[CharResearch] Fallback chain added %d image URLs "
-                    "(total %d)", len(extra), len(all_images) + len(extra),
+                    "(total %d, nsfw_intent=%s)",
+                    len(extra), len(all_images) + len(extra), nsfw_intent,
                 )
                 all_images.extend(extra)
         except Exception as e:
@@ -986,6 +1052,15 @@ def research_character(
     danbooru_tag, series_tag, display_name, series_name = char_info
     logger.info("[CharResearch] Character detected: %s (%s)", display_name, series_name)
 
+    # Detect NSFW intent ONCE per research call. Threaded into image
+    # search to flip provider priority + halve target count.
+    nsfw_intent = _detect_nsfw_intent(user_prompt)
+    if nsfw_intent:
+        logger.info(
+            "[CharResearch] NSFW intent detected — switching image search to "
+            "StepFun-priority chain (target=5)",
+        )
+
     # Step 2: Check cache
     if not force_refresh:
         cached = _load_cached_research(danbooru_tag)
@@ -1010,7 +1085,9 @@ def research_character(
 
     # Step 4: Image search + download
     logger.info("[CharResearch] Searching for reference images...")
-    image_results = _image_search_character(display_name, series_name, danbooru_tag)
+    image_results = _image_search_character(
+        display_name, series_name, danbooru_tag, nsfw_intent=nsfw_intent,
+    )
     ref_images = _download_reference_images(image_results, danbooru_tag, max_images=10)
 
     # Add user-uploaded references (highest priority)

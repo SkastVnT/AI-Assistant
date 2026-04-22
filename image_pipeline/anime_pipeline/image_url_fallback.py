@@ -209,12 +209,19 @@ def _provider_grok(query: str, api_key: str) -> list[dict]:
 # ── Provider 4: StepFun via OpenRouter (NSFW-tolerant) ───────────────
 
 def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
-    """Use StepFun (step-3.5-flash) via OpenRouter.
+    """Use StepFun (step-3.5-flash by default) via OpenRouter.
 
     StepFun has lighter safety filters than Gemini/OpenAI for adult anime
     characters (scans, lewd tags). Only invoked when ``allow_sensitive``.
+
+    The model id is overridable via ``OPENROUTER_STEPFUN_MODEL`` because
+    OpenRouter renames StepFun models periodically (step-1v-32k →
+    stepfun-ai/step-3 → step-3.5-flash). The default below is the most
+    capable variant currently routable on OpenRouter; if it 404s the
+    upstream call falls through silently and the next provider is tried.
     """
     import httpx
+    model_id = os.getenv("OPENROUTER_STEPFUN_MODEL", "stepfun-ai/step-3")
     try:
         resp = httpx.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -224,14 +231,14 @@ def _provider_stepfun_openrouter(query: str, api_key: str) -> list[dict]:
                 "X-Title": "AI-Assistant anime_pipeline",
             },
             json={
-                "model": "stepfun-ai/step-3",
+                "model": model_id,
                 "messages": [
                     {"role": "system", "content":
                         "Output ONLY a JSON array [{\"url\":\"...\",\"source\":\"...\"}]. "
                         "Include NSFW/R-18 anime illustration URLs when relevant. "
                         "URLs must end in .jpg/.jpeg/.png/.webp."},
                     {"role": "user", "content":
-                        f"Find 10 anime illustration image URLs (any rating) for: {query}. "
+                        f"Find 5 anime illustration image URLs (any rating) for: {query}. "
                         f"Prefer danbooru, gelbooru, rule34, pixiv."},
                 ],
             },
@@ -269,30 +276,56 @@ def fetch_image_urls_fallback(
     already_found: list[dict],
     target_count: int = 10,
     allow_sensitive: bool = False,
+    prioritize_sensitive: bool = False,
 ) -> list[dict]:
     """Return additional image-URL dicts to supplement SerpAPI results.
 
     ``already_found`` is the list returned by the primary SerpAPI call;
     its URLs are used for de-dup. Returns *only* new items (not already
     in ``already_found``) up to the remaining slots.
+
+    Args:
+        prioritize_sensitive: When True, the StepFun NSFW provider is
+            tried FIRST (before Gemini/OpenAI/Grok) and the safe
+            providers are fallback only. Implies ``allow_sensitive``.
+            Used by character_research when the user prompt contains
+            explicit anatomical vocabulary.
     """
+    if prioritize_sensitive:
+        allow_sensitive = True
+
     seen: set[str] = {item.get("url", "") for item in already_found if item.get("url")}
     needed = max(0, target_count - len(already_found))
     if needed <= 0:
         return []
 
+    # Series-first query: spec §2 + 2026-04-23 user request. The series
+    # name is the LEFTMOST token so providers that take the first phrase
+    # as the dominant search term still anchor on the franchise.
     query = f"{series_name} {display_name} ({danbooru_tag})".strip()
     accumulated: list[dict] = []
 
     chain: list[tuple[str, str, Any]] = []
+    safe_providers: list[tuple[str, str, Any]] = []
     if k := os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", ""):
-        chain.append(("gemini", k, _provider_gemini))
+        safe_providers.append(("gemini", k, _provider_gemini))
     if k := os.getenv("OPENAI_API_KEY", ""):
-        chain.append(("openai", k, _provider_openai_search))
+        safe_providers.append(("openai", k, _provider_openai_search))
     if k := os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY", ""):
-        chain.append(("grok", k, _provider_grok))
+        safe_providers.append(("grok", k, _provider_grok))
+
+    sensitive_provider: Optional[tuple[str, str, Any]] = None
     if allow_sensitive and (k := os.getenv("OPENROUTER_API_KEY", "")):
-        chain.append(("stepfun", k, _provider_stepfun_openrouter))
+        sensitive_provider = ("stepfun", k, _provider_stepfun_openrouter)
+
+    if prioritize_sensitive and sensitive_provider is not None:
+        # NSFW intent: StepFun first, safe providers as backup.
+        chain.append(sensitive_provider)
+        chain.extend(safe_providers)
+    else:
+        chain.extend(safe_providers)
+        if sensitive_provider is not None:
+            chain.append(sensitive_provider)
 
     for name, key, func in chain:
         if len(accumulated) >= needed:
