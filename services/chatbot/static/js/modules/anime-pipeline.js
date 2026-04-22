@@ -785,11 +785,13 @@ export class AnimePipeline {
                 editBox.style.display = 'none';
             });
 
-            // Wire image click-to-open if igv2 handler is available
+            // Wire image click-to-open via the real lightbox.
             const img = resultDiv.querySelector('img');
             if (img) {
                 img.addEventListener('click', () => {
-                    window.chatApp?.imageGenV2?.openImageModal?.(imgSrc);
+                    if (window.openImagePreview) {
+                        window.openImagePreview(img);
+                    }
                 });
             }
 
@@ -1498,12 +1500,13 @@ export class AnimePipeline {
             });
         });
 
-        // Image click-to-open
+        // Image click-to-open via the real lightbox.
         bubble.querySelectorAll('.igv2-chat-image img').forEach(img => {
-            const src = img.getAttribute('data-igv2-open') || img.src;
             img.style.cursor = 'pointer';
             img.addEventListener('click', () => {
-                window.chatApp?.imageGenV2?.openImageModal?.(src);
+                if (window.openImagePreview) {
+                    window.openImagePreview(img);
+                }
             });
         });
     }
