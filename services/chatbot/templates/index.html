@@ -2207,6 +2207,34 @@ try {
                 window.openJobQueuePanel();
             });
         }
+        // Anime Pipeline topbar button. Without this binding the layered-pipeline
+        // button is a no-op even though the module is fully wired in main.js.
+        // We kick off the inline chat flow (no separate modal) so the user sees
+        // the same ChatGPT-style reasoning pill + layer gallery as when the
+        // pipeline auto-triggers from a chat message.
+        const apBtn = document.getElementById('animePipelineBtn');
+        if (apBtn) {
+            apBtn.addEventListener('click', () => {
+                const ap = window.chatApp?.animePipeline;
+                if (!ap) {
+                    console.warn('[anime-pipeline] AnimePipeline not initialized yet');
+                    return;
+                }
+                // Prefer the inline chat entry-point (openModal already routes
+                // there). The user can also pre-fill the prompt by typing in
+                // the chat input; we pass it through if present.
+                const inputEl = document.getElementById('messageInput');
+                const prefill = (inputEl?.value || '').trim();
+                if (prefill && typeof ap.openModalWithPrompt === 'function') {
+                    ap.openModalWithPrompt(prefill);
+                    if (inputEl) inputEl.value = '';
+                } else if (typeof ap.openModal === 'function') {
+                    ap.openModal();
+                } else {
+                    console.warn('[anime-pipeline] no openModal entry-point found');
+                }
+            });
+        }
         // Listen for character:selected to refresh icons
         document.addEventListener('character:selected', () => {
             if (window.lucide && typeof window.lucide.createIcons === 'function') {

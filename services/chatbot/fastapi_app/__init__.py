@@ -47,6 +47,8 @@ from fastapi_app.routers import (
     main_extras,
     stable_diffusion,
     anime_pipeline,
+    characters,
+    jobs,
 )
 
 logger = logging.getLogger("chatbot.fastapi")
@@ -361,6 +363,11 @@ def create_app() -> FastAPI:
     app.include_router(main_extras.router)
     app.include_router(stable_diffusion.router, tags=["Stable Diffusion"])
     app.include_router(anime_pipeline.router, tags=["Anime Pipeline"])
+    # Local registries used by the topbar Choose-character + Job-queue buttons.
+    # Without these, FastAPI mode returns 404 for /api/characters/* and
+    # /api/jobs/*, which makes both topbar buttons appear dead.
+    app.include_router(characters.router)
+    app.include_router(jobs.router)
 
     # --- Root health check ---
     @app.get("/health")
