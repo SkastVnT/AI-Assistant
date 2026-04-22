@@ -18,6 +18,8 @@ import { initLanguage } from './language-switcher.js';
 import { AnimePipeline } from './modules/anime-pipeline.js';
 import { initOverlayActions } from './modules/overlay-actions.js';
 import { initOverlayManager, registerOverlay } from './modules/overlay-manager.js';
+import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
+import { buildHistoryFromTimeline } from './modules/timeline.js';
 
 class ChatBotApp {
     constructor() {
@@ -1876,18 +1878,46 @@ class ChatBotApp {
 
     /**
      * Build conversation history.
-     * Caps at MAX_HISTORY_MESSAGES recent turns to keep token usage and
-     * upload payload bounded for long conversations.
+     *
+     * Structured-first: when the current session has structured messages
+     * (newer sessions, or legacy ones lazily migrated by ChatManager), we
+     * build the history from session state instead of scraping the DOM.
+     * This is more accurate (no template/wrapper noise), survives partial
+     * UI re-renders, and lets us merge generated-image asset records into
+     * the same timeline so the LLM sees them in chronological order.
+     *
+     * Falls back to DOM scraping for sessions that have neither structured
+     * messages nor legacy HTML — i.e. brand-new chats where the user just
+     * typed something but session state hasn't been saved yet.
+     *
+     * Caps at MAX_HISTORY_MESSAGES recent turns to bound token usage.
      */
     buildConversationHistory() {
         const MAX_HISTORY_MESSAGES = 30;
-        const MAX_CONTENT_CHARS = 4000;  // per-message safety cap
+        const MAX_CONTENT_CHARS = 4000;
+
+        const session = this.chatManager.getCurrentSession
+            ? this.chatManager.getCurrentSession()
+            : null;
+
+        if (session && (
+            (Array.isArray(session.structuredMessages) && session.structuredMessages.length > 0)
+            || (Array.isArray(session.messages) && session.messages.length > 0)
+        )) {
+            const history = buildHistoryFromTimeline(session, {
+                maxMessages: MAX_HISTORY_MESSAGES,
+                maxChars: MAX_CONTENT_CHARS,
+                legacyMigrator: legacyHtmlToStructured,
+            });
+            if (history.length > 0) return history;
+        }
+
+        // Fallback: scrape DOM. Same shape as before so the wire format is unchanged.
         const elements = this.uiUtils.elements;
         const messages = Array.from(elements.chatContainer.children);
         const history = [];
 
         messages.forEach(msgEl => {
-            // Skip the welcome screen and any non-message elements
             if (msgEl.id === 'welcomeScreen') return;
             const isUser = msgEl.classList.contains('user');
             const isAssistant = msgEl.classList.contains('assistant');
@@ -1903,7 +1933,6 @@ class ChatBotApp {
             });
         });
 
-        // Keep only the most recent N turns
         if (history.length > MAX_HISTORY_MESSAGES) {
             return history.slice(-MAX_HISTORY_MESSAGES);
         }
@@ -1953,12 +1982,25 @@ class ChatBotApp {
 
         // Exclude the welcome screen element from saved messages.
         // Strip inline base64 images before persisting to avoid localStorage bloat.
-        const messages = Array.from(elements.chatContainer.children)
-            .filter(el => el.id !== 'welcomeScreen')
-            .map(el => this._stripBase64ForStorage(el.outerHTML));
-        window.CHATBOT_DEBUG && console.log('[DEBUG] saveCurrentSession: chatId=', this.chatManager.currentChatId, 'messages=', messages.length, 'updateTimestamp=', updateTimestamp);
-        
-        this.chatManager.updateCurrentSession(messages, updateTimestamp);
+        const messageElements = Array.from(elements.chatContainer.children)
+            .filter(el => el.id !== 'welcomeScreen');
+        const messages = messageElements.map(el => this._stripBase64ForStorage(el.outerHTML));
+
+        // Capture structured snapshot too — source of truth for the next
+        // history build. Each render writes both legacy HTML (for fast restore)
+        // and structured objects (for downstream consumers). Keeping both
+        // sides for now to stay backward compatible with sessions that the
+        // current code may not have re-saved yet.
+        let structuredMessages = null;
+        try {
+            structuredMessages = messageElements.map(el => domToStructured(el));
+        } catch (e) {
+            console.warn('[App] saveCurrentSession: structured capture failed', e);
+            structuredMessages = null;
+        }
+        window.CHATBOT_DEBUG && console.log('[DEBUG] saveCurrentSession: chatId=', this.chatManager.currentChatId, 'messages=', messages.length, 'structured=', structuredMessages ? structuredMessages.length : 0, 'updateTimestamp=', updateTimestamp);
+
+        this.chatManager.updateCurrentSession(messages, updateTimestamp, structuredMessages);
         await this.chatManager.saveSessions();
         
         this.uiUtils.updateStorageDisplay(this.chatManager.getStorageInfo());
