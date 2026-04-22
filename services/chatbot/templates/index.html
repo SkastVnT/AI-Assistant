@@ -3397,7 +3397,14 @@ window.ThinkingPanel = (function() {
                 var body = el.querySelector('.tsp-reasoning__body');
                 if (typeof marked !== 'undefined') {
                     var rendered = marked.parse(step.text);
-                    body.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rendered) : rendered;
+                    // SECURITY: refuse to inject un-sanitized HTML. Plain-text
+                    // fallback if DOMPurify did not load.
+                    if (typeof DOMPurify !== 'undefined') {
+                        body.innerHTML = DOMPurify.sanitize(rendered);
+                    } else {
+                        console.warn('[security] DOMPurify missing — rendering reasoning step as plain text');
+                        body.textContent = step.text;
+                    }
                 } else {
                     body.textContent = step.text;
                 }

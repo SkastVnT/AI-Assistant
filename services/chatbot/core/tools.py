@@ -260,6 +260,19 @@ def serpapi_reverse_image(image_url: str) -> str:
     if not image_url or not image_url.startswith("http"):
         return "❌ Cần cung cấp URL ảnh hợp lệ (http/https)."
 
+    # SSRF guard. SerpAPI is the actual fetcher, but we still refuse to
+    # forward URLs that obviously target internal infrastructure — those
+    # requests cost API quota, leak intent, and a future caller might use
+    # this same string in a different (server-side) fetch path.
+    # See core/url_safety.py for the full block list.
+    try:
+        from core.url_safety import is_safe_external_url
+    except Exception:  # pragma: no cover - import safety only
+        is_safe_external_url = None  # type: ignore[assignment]
+    if is_safe_external_url is not None and not is_safe_external_url(image_url):
+        logger.warning(f"[SERPAPI:REVERSE_IMAGE] Rejected unsafe URL: {image_url[:120]}")
+        return "❌ URL bị từ chối vì không an toàn (loopback / private / link-local / non-http)."
+
     logger.info(f"[SERPAPI:REVERSE_IMAGE] URL: {image_url[:80]}")
 
     # --- Attempt 1: Google Lens ---

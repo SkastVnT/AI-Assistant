@@ -1898,8 +1898,23 @@ Provide:
                     tool_results.append(f"## ðŸ”¬ Deep Research\n\nError: {str(e)}")
 
             # â”€â”€ Code Interpreter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            if 'code-interpreter' in tools:
-                logger.info(f"[TOOLS] Code Interpreter for: {message[:80]}")
+            # ⚠️  SECURITY: this tool runs ARBITRARY user-supplied code as the
+            # service account via subprocess.run(). It has no sandbox, no
+            # network restriction, no filesystem restriction, and no CPU/memory
+            # limits beyond a 30s wall clock. That is RCE by design — anything
+            # the chatbot process can do, the prompted code can do too (read
+            # .env files, contact internal services, etc.).
+            #
+            # It is therefore DISABLED by default and gated behind the
+            # ENABLE_CODE_INTERPRETER env flag. Operators who want to re-enable
+            # it should run the chatbot inside a real sandbox (container with
+            # no network, nsjail, gVisor, Firecracker, …) first.
+            if 'code-interpreter' in tools and \
+                    os.getenv('ENABLE_CODE_INTERPRETER', '').strip().lower() in ('1', 'true', 'yes', 'on'):
+                logger.warning(
+                    "[TOOLS] Code Interpreter ENABLED — executing user-supplied code. "
+                    "Ensure this process is inside a sandbox."
+                )
                 try:
                     import subprocess, tempfile, re as _re
                     # Extract code blocks from message
@@ -1964,6 +1979,20 @@ Provide:
                 except Exception as e:
                     logger.error(f"[TOOLS] Code Interpreter error: {e}")
                     tool_results.append(f"## ðŸ’» Code Interpreter\n\nâŒ Error: {str(e)}")
+            elif 'code-interpreter' in tools:
+                # Flag is off -- refuse with a clear, actionable message instead
+                # of silently dropping the request. See SECURITY block above.
+                logger.warning(
+                    "[TOOLS] Code Interpreter request refused: ENABLE_CODE_INTERPRETER is not set."
+                )
+                tool_results.append(
+                    "## Code Interpreter\n\n"
+                    "This tool is disabled because it would run arbitrary code on the "
+                    "server with no sandbox. An operator must explicitly enable it via the "
+                    "`ENABLE_CODE_INTERPRETER` environment variable, after first running the "
+                    "chatbot inside a real sandbox (container/nsjail/gVisor). Until then, "
+                    "code-execution requests are refused."
+                )
 
             # â”€â”€ PDF Analyzer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if 'pdf-analyzer' in tools:
@@ -1978,11 +2007,25 @@ Provide:
                     url_match = _re.search(r'https?://\S+\.pdf', message, _re.IGNORECASE)
                     if url_match:
                         pdf_url = url_match.group(0)
-                        pdf_source = pdf_url
-                        import httpx
-                        resp = httpx.get(pdf_url, timeout=30, follow_redirects=True)
-                        if resp.status_code == 200:
-                            import io
+                        # SSRF guard: block file://, loopback, RFC1918, link-local,
+                        # cloud metadata endpoints, and unresolvable hostnames.
+                        # See core/url_safety.py for the full block list.
+                        from core.url_safety import is_safe_external_url
+                        if not is_safe_external_url(pdf_url):
+                            logger.warning(
+                                "[TOOLS] PDF Analyzer rejected unsafe URL: %s", pdf_url[:120]
+                            )
+                            tool_results.append(
+                                "## 📄 PDF Analyzer\n\n❌ URL bị từ chối vì không an toàn "
+                                "(loopback / private / link-local / non-http). Vui lòng dùng "
+                                "URL công khai (https://) hoặc upload file PDF trực tiếp."
+                            )
+                        else:
+                            pdf_source = pdf_url
+                            import httpx
+                            resp = httpx.get(pdf_url, timeout=30, follow_redirects=True)
+                            if resp.status_code == 200:
+                                import io
                             try:
                                 import PyPDF2
                                 reader = PyPDF2.PdfReader(io.BytesIO(resp.content))

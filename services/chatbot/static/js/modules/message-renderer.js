@@ -131,7 +131,16 @@ export class MessageRenderer {
         body.className = 'thinking-reasoning__body';
         if (typeof marked !== 'undefined') {
             const rendered = marked.parse(stepText);
-            body.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rendered) : rendered;
+            // SECURITY: never insert un-sanitized markdown HTML. If DOMPurify
+            // failed to load (CDN blocked, offline, CSP violation) we fall back
+            // to plain text instead of rendering raw HTML — markdown content
+            // can come from LLM output that quotes user input.
+            if (typeof DOMPurify !== 'undefined') {
+                body.innerHTML = DOMPurify.sanitize(rendered);
+            } else {
+                console.warn('[security] DOMPurify missing — rendering thinking step as plain text');
+                body.textContent = stepText;
+            }
         } else {
             body.textContent = stepText;
         }
@@ -449,7 +458,15 @@ export class MessageRenderer {
             // Parse markdown for assistant messages
             if (typeof marked !== 'undefined') {
                 const rawHtml = marked.parse(content);
-                textDiv.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+                // SECURITY: refuse to inject un-sanitized HTML. If DOMPurify is
+                // unavailable, render the original markdown as plain text so a
+                // missing CDN cannot turn assistant output into XSS.
+                if (typeof DOMPurify !== 'undefined') {
+                    textDiv.innerHTML = DOMPurify.sanitize(rawHtml);
+                } else {
+                    console.warn('[security] DOMPurify missing — rendering assistant message as plain text');
+                    textDiv.textContent = content;
+                }
                 
                 // Highlight code blocks
                 if (typeof hljs !== 'undefined') {
