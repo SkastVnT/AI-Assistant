@@ -86,9 +86,31 @@ class ChatBotApp {
                     this.loadCurrentChat();
                     this.renderChatList();
                 }
+            } else if (targetId) {
+                // URL points to an id we don't have locally — try backend recovery.
+                this.chatManager.restoreFromBackend(targetId).then((recovered) => {
+                    if (recovered) {
+                        this.chatManager.currentChatId = recovered;
+                        localStorage.setItem('lastActiveChatId', recovered);
+                        this.loadCurrentChat();
+                        this.renderChatList();
+                    } else if (typeof window.showToast === 'function') {
+                        window.showToast('Cuộc trò chuyện không tồn tại trên thiết bị này', 'warn');
+                    }
+                }).catch(() => { /* silent */ });
             } else if (path === '/' || path === '') {
                 // Root \u2014 keep current chat but ensure UI reflects state
                 this.renderChatList();
+            }
+        });
+
+        // Async backend recovery completed during initial load
+        window.addEventListener('chatRestoredFromBackend', (e) => {
+            try {
+                this.loadCurrentChat();
+                this.renderChatList();
+            } catch (err) {
+                console.warn('[App] post-recovery render failed:', err);
             }
         });
         

@@ -258,6 +258,13 @@ def chat_stream():
             conversation_id = ''
         if conversation_id:
             logger.info(f"[SSE:{request_id}] conversation_id={conversation_id}")
+            # Bind backend session so downstream save_message_to_db /
+            # load_conversation_history target the conversation the client
+            # is actually viewing (URL/popstate switches happen client-side).
+            try:
+                session['conversation_id'] = conversation_id
+            except Exception as _bind_exc:
+                logger.warning(f"[SSE:{request_id}] failed to bind session conv_id: {_bind_exc}")
 
         # ── Image context from previously generated images in this conversation ──
         # Frontend sends last N images with {url, prompt, provider, model, timestamp}

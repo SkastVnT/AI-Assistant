@@ -112,6 +112,25 @@ export class ChatManager {
                 }
                 // Sync URL to whatever we picked (replaceState — don't pollute history)
                 this._syncUrl(this.currentChatId, true);
+
+                // 4. If URL had an id we couldn't satisfy locally, try backend
+                // recovery in the background so cross-device / cleared-cache
+                // share links still work without blocking initial render.
+                if (urlChatId && urlChatId !== this.currentChatId) {
+                    this.restoreFromBackend(urlChatId).then((recovered) => {
+                        if (recovered && recovered === urlChatId) {
+                            this.currentChatId = recovered;
+                            localStorage.setItem('lastActiveChatId', recovered);
+                            this._syncUrl(recovered, true);
+                            // Notify the app shell so it re-renders the active chat.
+                            try {
+                                window.dispatchEvent(new CustomEvent('chatRestoredFromBackend', {
+                                    detail: { chatId: recovered },
+                                }));
+                            } catch (_) { /* non-DOM env */ }
+                        }
+                    }).catch(() => { /* swallow — fallback already chosen */ });
+                }
             }
         }
     }
@@ -377,7 +396,58 @@ export class ChatManager {
     }
 
     /**
-     * Create new chat session
+     * Try to recover a conversation from the backend when its id appears in the
+     * URL but is missing from localStorage (cross-device link, cleared cache,
+     * or new browser). Returns the hydrated session id on success, null otherwise.
+     *
+     * Backend contract: GET /api/conversations/<id> returns 200 with messages,
+     * 404 when not found, 503 when MongoDB is disabled. Anything else is treated
+     * as a soft failure and we fall back gracefully.
+     */
+    async restoreFromBackend(conversationId) {
+        if (!conversationId || !/^[A-Za-z0-9_\-]{1,64}$/.test(conversationId)) return null;
+        if (this.chatSessions[conversationId]) return conversationId;
+        let resp;
+        try {
+            resp = await fetch(`/api/conversations/${encodeURIComponent(conversationId)}`, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' },
+            });
+        } catch (e) {
+            console.warn('[ChatManager] restoreFromBackend network error:', e);
+            return null;
+        }
+        if (!resp.ok) {
+            console.info('[ChatManager] restoreFromBackend: conversation not recoverable (status', resp.status, ')');
+            return null;
+        }
+        let payload;
+        try { payload = await resp.json(); } catch { return null; }
+        // Build a minimal ChatSession shell so the rest of the UI works.
+        // We deliberately leave structuredMessages empty and rely on the
+        // server-side history loader to seed conversation context on the next
+        // message; the goal here is just to make the URL navigable.
+        const shell = new ChatSession(conversationId);
+        shell.title = (payload && payload.title) || shell.title;
+        if (payload && Array.isArray(payload.messages)) {
+            // Keep a lightweight projection so the sidebar shows something useful.
+            shell.messages = payload.messages
+                .filter(m => m && typeof m.content === 'string')
+                .map(m => `<div class="message ${m.role === 'user' ? 'user' : 'assistant'}"><div class="message__body"><div class="message-content"><div class="message-text">${m.content}</div></div></div></div>`);
+        }
+        this.chatSessions[conversationId] = shell;
+        try { await this.saveSessions(); } catch (_) { /* best-effort */ }
+        console.log('[ChatManager] Restored conversation from backend:', conversationId);
+        return conversationId;
+    }
+
+    /**
+    /**
+     * Create new chat session.
+     * Uses replaceState (not push) so a freshly created empty chat does not
+     * pollute browser history with throwaway entries the user did not navigate to.
+     * Real navigation entries are still added by switchChat().
      */
     newChat() {
         const id = 'chat_' + Date.now();
@@ -386,7 +456,7 @@ export class ChatManager {
         this.currentChatId = id;
         this.chatHistory = [];
         localStorage.setItem('lastActiveChatId', id);
-        this._syncUrl(id);
+        this._syncUrl(id, true);
         this.saveSessions();
         return id;
     }

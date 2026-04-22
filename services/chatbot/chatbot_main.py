@@ -1336,6 +1336,13 @@ def index_with_conversation(conversation_id):
     if not _re.fullmatch(r'[A-Za-z0-9_\-]{1,64}', conversation_id or ''):
         return redirect('/')
 
+    # Bind backend session to URL-supplied conversation_id so MongoDB writes
+    # (save_message_to_db, load_conversation_history, set_active_conversation)
+    # target the conversation the user is actually viewing. Without this,
+    # session['conversation_id'] keeps the previous value and DB reads/writes
+    # silently target the wrong conversation after a URL switch / direct load.
+    session['conversation_id'] = conversation_id
+
     firebase_config = json.dumps({
         "apiKey": os.getenv("FIREBASE_API_KEY", ""),
         "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
