@@ -748,6 +748,18 @@ class ChatBotApp {
                                         <span class="igv2-choice-btn-desc">Không tạo ảnh</span>
                                     </button>
                                 </div>
+                                <div class="igv2-choice-imageonly" style="margin-top:10px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg));">
+                                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                                        <input type="checkbox" class="igv2-imageonly-toggle" style="width:16px; height:16px;">
+                                        <span><strong>🎨 Chỉ tạo ảnh (LOCAL)</strong> — Bỏ qua tinh chỉnh, trả về nhiều ảnh</span>
+                                    </label>
+                                    <div class="igv2-batch-row" style="margin-top:6px; display:flex; align-items:center; gap:6px; opacity:0.45; pointer-events:none; font-size:12px;">
+                                        <span style="color:var(--text-muted,#888);">Số lượng:</span>
+                                        <button type="button" class="igv2-batch-chip" data-batch="2" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">2</button>
+                                        <button type="button" class="igv2-batch-chip selected" data-batch="4" style="padding:3px 10px; border:1px solid var(--accent,#4a9eff); border-radius:12px; background:var(--accent,#4a9eff); color:#fff; cursor:pointer; font-size:12px;">4</button>
+                                        <button type="button" class="igv2-batch-chip" data-batch="6" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">6</button>
+                                    </div>
+                                </div>
                                 <div class="igv2-choice-progress">
                                     <div class="igv2-choice-progress-bar"></div>
                                 </div>
@@ -774,8 +786,45 @@ class ChatBotApp {
                         else btn.classList.add('dimmed');
                     });
                     timerEl.textContent = choice === 'cancel' ? 'Đã hủy' : choice === 'local' ? 'LOCAL' : 'API';
-                    resolve(choice);
+                    const opts = choiceContainer._getImageOnlyOpts
+                        ? choiceContainer._getImageOnlyOpts()
+                        : { imageOnly: false, batchSize: 1 };
+                    resolve({ choice, opts });
                 };
+
+                // Image-only toggle + batch-size chips wiring
+                const imageOnlyCb = choiceContainer.querySelector('.igv2-imageonly-toggle');
+                const batchRow = choiceContainer.querySelector('.igv2-batch-row');
+                const batchChips = choiceContainer.querySelectorAll('.igv2-batch-chip');
+                let _imageOnly = false;
+                let _batchSize = 4;
+                if (imageOnlyCb) {
+                    imageOnlyCb.addEventListener('change', () => {
+                        _imageOnly = !!imageOnlyCb.checked;
+                        if (batchRow) {
+                            batchRow.style.opacity = _imageOnly ? '1' : '0.45';
+                            batchRow.style.pointerEvents = _imageOnly ? 'auto' : 'none';
+                        }
+                    });
+                }
+                batchChips.forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        _batchSize = parseInt(chip.dataset.batch, 10) || 4;
+                        batchChips.forEach(c => {
+                            const sel = c === chip;
+                            c.classList.toggle('selected', sel);
+                            c.style.background = sel ? 'var(--accent,#4a9eff)' : 'transparent';
+                            c.style.color = sel ? '#fff' : 'var(--text)';
+                            c.style.borderColor = sel ? 'var(--accent,#4a9eff)' : 'var(--border)';
+                        });
+                    });
+                });
+
+                // Stash on container so the resolver below can read them
+                choiceContainer._getImageOnlyOpts = () => ({
+                    imageOnly: _imageOnly,
+                    batchSize: Math.max(1, Math.min(parseInt(_batchSize, 10) || 1, 6)),
+                });
 
                 choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
                     btn.addEventListener('click', () => finalize(btn.dataset.choice));
@@ -793,7 +842,7 @@ class ChatBotApp {
                 if (progressBar) progressBar.style.width = '100%';
             });
 
-            if (providerChoice === 'cancel') {
+            if (providerChoice.choice === 'cancel') {
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
                     '⏰ Đã hủy tạo ảnh — không có phản hồi hoặc người dùng chọn HỦY.',
@@ -805,14 +854,20 @@ class ChatBotApp {
                 return;
             }
 
-            // LOCAL → open Anime Pipeline modal with pre-filled prompt
-            if (providerChoice === 'local') {
-                this.animePipeline?.openModalWithPrompt(message);
+            // LOCAL → open Anime Pipeline modal with pre-filled prompt.
+            // Forward the image-only / batch-size selection from the
+            // choice card so the modal/inline run honors them.
+            if (providerChoice.choice === 'local') {
+                const _opts = providerChoice.opts || { imageOnly: false, batchSize: 1 };
+                this.animePipeline?.openModalWithPrompt(message, {
+                    imageOnly: !!_opts.imageOnly,
+                    batchSize: _opts.batchSize || 1,
+                });
                 return;
             }
 
             const imageGenOptions = { quality: 'auto' };
-            console.log('[App] Provider choice:', providerChoice, imageGenOptions);
+            console.log('[App] Provider choice:', providerChoice.choice, imageGenOptions);
 
             // Create streaming status container (like thinking but for image gen)
             const statusContainer = document.createElement('div');
@@ -936,7 +991,7 @@ class ChatBotApp {
                 // Store image gen metadata on the message div for regeneration
                 const lastAssistantMsg = elements.chatContainer.querySelector('.message.assistant:last-child');
                 if (lastAssistantMsg) {
-                    lastAssistantMsg.dataset.igv2Provider = providerChoice;  // 'local' or 'api'
+                    lastAssistantMsg.dataset.igv2Provider = providerChoice.choice;  // 'local' or 'api'
                     lastAssistantMsg.dataset.igv2Prompt = message;           // original user prompt
                     lastAssistantMsg.dataset.igv2RegenCount = '0';
                     lastAssistantMsg.dataset.igv2ConversationId = conversationId;
@@ -981,7 +1036,7 @@ class ChatBotApp {
                         { icon: '🎨', text: `**Provider:** ${result.provider} / ${result.model}` },
                         { icon: '⚡', text: `**Hiệu suất:** ${Math.round(result.latency_ms)}ms · Chi phí: $${result.cost_usd}` },
                         { icon: '📐', text: `**Đánh giá bố cục:** Ảnh được tạo với kích thước ${result.metadata?.width || '?'}×${result.metadata?.height || '?'}` },
-                        { icon: '✨', text: `**Chất lượng:** ${providerChoice === 'local' ? 'ComfyUI local — miễn phí, tùy chỉnh tốt' : 'Cloud API — chất lượng cao, tốc độ nhanh'}` },
+                        { icon: '✨', text: `**Chất lượng:** ${providerChoice.choice === 'local' ? 'ComfyUI local — miễn phí, tùy chỉnh tốt' : 'Cloud API — chất lượng cao, tốc độ nhanh'}` },
                         { icon: '✅', text: '**Kết luận:** Ảnh đã được tạo thành công. Bạn có thể yêu cầu chỉnh sửa thêm.' },
                     ];
 
@@ -1009,7 +1064,7 @@ class ChatBotApp {
                 // Store image gen metadata on error message too for retry
                 const lastErrMsg = elements.chatContainer.querySelector('.message.assistant:last-child');
                 if (lastErrMsg) {
-                    lastErrMsg.dataset.igv2Provider = providerChoice;
+                    lastErrMsg.dataset.igv2Provider = providerChoice.choice;
                     lastErrMsg.dataset.igv2Prompt = message;
                     lastErrMsg.dataset.igv2RegenCount = '0';
                     lastErrMsg.dataset.igv2ConversationId = conversationId;
