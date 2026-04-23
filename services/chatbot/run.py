@@ -268,6 +268,77 @@ def _autostart_image_services() -> None:
 
     _start_comfyui_if_needed()
     _start_stable_diffusion_if_needed()
+    _start_character_select_if_needed()
+
+
+def _start_character_select_if_needed() -> None:
+    """Spawn the Character Select SAA Electron sidecar when configured.
+
+    Gated by both ``CHARACTER_SELECT_ENABLED`` and
+    ``CHARACTER_SELECT_AUTO_START`` so the sidecar only launches when the
+    operator has explicitly opted in. Skips silently when the install
+    directory is missing or the port is already in use.
+    """
+    if not _env_flag('CHARACTER_SELECT_ENABLED', 'false'):
+        return
+    if not _env_flag('CHARACTER_SELECT_AUTO_START', 'false'):
+        return
+
+    saa_url = os.getenv('CHARACTER_SELECT_URL', 'http://localhost:51028')
+    saa_port_env = os.getenv('CHARACTER_SELECT_PORT', '51028')
+    try:
+        saa_port = int(saa_port_env)
+    except ValueError:
+        saa_port = 51028
+    host, port = _parse_host_port(saa_url, saa_port)
+    if _port_is_open(host, port):
+        print(f">> Character Select SAA already running at {host}:{port}")
+        return
+
+    saa_path_str = os.getenv(
+        'CHARACTER_SELECT_PATH',
+        str(project_root / 'character_select_stand_alone_app-main'),
+    )
+    saa_path = Path(saa_path_str)
+    if not saa_path.is_absolute():
+        saa_path = (project_root / saa_path).resolve()
+    if not (saa_path / 'package.json').exists():
+        print(f"[WARN] Character Select SAA not found at {saa_path}. Skipping autostart.")
+        return
+
+    npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
+
+    # First-run install: SAA ships a package.json but no node_modules; without
+    # Electron installed, `npm start` immediately fails with
+    # "'electron' is not recognized". Install once on first launch.
+    needs_install = not (saa_path / 'node_modules' / 'electron').exists()
+    install_clause = f'{npm_cmd} install && ' if needs_install else ''
+
+    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true'):
+        command_line = f'cd /d "{saa_path}" && {install_clause}{npm_cmd} start'
+        _spawn_windows_terminal(command_line, saa_path, f'Character Select {port}')
+    elif needs_install:
+        # Headless: chain install → start in one shell so the spawned
+        # process tree stays attached to the same log file.
+        shell_cmd = f'{npm_cmd} install && {npm_cmd} start'
+        if os.name == 'nt':
+            _spawn_background_process(
+                ['cmd.exe', '/c', shell_cmd],
+                saa_path,
+                'character-select-autostart.log',
+            )
+        else:
+            _spawn_background_process(
+                ['sh', '-c', shell_cmd],
+                saa_path,
+                'character-select-autostart.log',
+            )
+    else:
+        _spawn_background_process(
+            [npm_cmd, 'start'],
+            saa_path,
+            'character-select-autostart.log',
+        )
 
 
 def _should_autostart_services() -> bool:

@@ -345,6 +345,9 @@ docker compose --profile tools up -d
 # + Hermes sidecar
 docker compose --profile hermes up -d
 
+# + Character Select picker
+docker compose --profile character-select up -d
+
 # Tất cả
 docker compose --profile all up -d
 
@@ -399,6 +402,10 @@ LAST30DAYS_SCRIPT_PATH=
 HERMES_ENABLED=false
 HERMES_API_URL=http://localhost:8080
 HERMES_API_KEY=
+CHARACTER_SELECT_ENABLED=false
+CHARACTER_SELECT_URL=http://localhost:51028
+CHARACTER_SELECT_PORT=51028
+CHARACTER_SELECT_AUTO_START=false
 
 # ── Runtime flags ──
 USE_FASTAPI=true                     # Khuyến nghị
@@ -470,7 +477,7 @@ menu.bat / menu.sh           Service launcher menu
 |---|---|---|---|
 | **last30days** | Subprocess | `LAST30DAYS_ENABLED=true` hoặc `docker compose --profile tools` | Multi-source social media research (Reddit, X, YouTube, HackerNews, ...) |
 | **Hermes Agent** | HTTP sidecar (port 8080) | `HERMES_ENABLED=true` hoặc `docker compose --profile hermes` | AI agent với tool registry, memory, subagent delegation |
-| **Character Select** | Standalone Electron app | `cd character_select_stand_alone_app-main && npm start` | Character picker UI cho image gen workflow. Source: [mirabarukaso/character_select_stand_alone_app](https://github.com/mirabarukaso/character_select_stand_alone_app). Port configurable trong `settings.json` |
+| **Character Select** | Electron + WS sidecar (port 51028) | `CHARACTER_SELECT_ENABLED=true` (+ `CHARACTER_SELECT_AUTO_START=true` to spawn) hoặc `docker compose --profile character-select` | Character picker UI cho image gen workflow. Status endpoint: `GET /api/character-select/status`. Source: [mirabarukaso/character_select_stand_alone_app](https://github.com/mirabarukaso/character_select_stand_alone_app) |
 
 Tất cả đều **tuỳ chọn** — chatbot chạy bình thường khi không bật.
 

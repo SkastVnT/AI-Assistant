@@ -114,6 +114,41 @@ services:
     volumes:
       - hermes_data:/app/data
 
+  # ─── Character Select SAA — Electron picker sidecar (optional) ─────
+  # Activate with: docker compose --profile character-select up -d
+  # Source: https://github.com/mirabarukaso/character_select_stand_alone_app
+  # NOTE: SAA is an Electron app. Inside Docker we run only its Express +
+  # WebSocket backend (browser/SAAC mode). No display server required.
+  character-select:
+    image: node:20-bullseye-slim
+    container_name: ai-assistant-character-select
+    profiles: ["character-select", "all"]
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./character_select_stand_alone_app-main:/app
+      - character_select_node_modules:/app/node_modules
+    ports:
+      - "${CHARACTER_SELECT_PORT:-51028}:51028"
+    environment:
+      NODE_ENV: production
+      SAA_WS_ADDR: "0.0.0.0"
+      SAA_WS_PORT: "51028"
+    command: >
+      bash -c "
+        if [ ! -d /app/node_modules/express ]; then
+          apt-get update && apt-get install -y python3 build-essential git;
+          npm install --omit=dev || npm install;
+        fi;
+        node ./scripts/main/saa-headless.js 2>/dev/null || node -e \"import('./webserver/back/wsService.js').then(m => m.setupHttpServer(process.cwd(), '0.0.0.0', 51028));\"
+      "
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').createConnection(51028,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
   # ─── Redis (optional, for caching/RAG) ─────────────────────────────
   redis:
     image: redis:7-alpine
@@ -136,3 +171,4 @@ volumes:
   last30days_repo:
   hermes_data:
   redis_data:
+  character_select_node_modules:

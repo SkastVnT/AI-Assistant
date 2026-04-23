@@ -46,6 +46,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
 
     <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
     <script>
@@ -1039,6 +1040,7 @@ try {
                         <button class="topbar__more-item" id="eyeCareBtn"><i data-lucide="eye" class="lucide"></i> <span>Eye Care</span></button>
                         <button class="topbar__more-item" id="downloadBtn" data-lang-key="controls.download"><i data-lucide="download" class="lucide"></i> <span>Export Chat</span></button>
                         <button class="topbar__more-item" id="imageGenBtn"><i data-lucide="palette" class="lucide"></i> <span>Image Gen (ComfyUI)</span></button>
+                        <button class="topbar__more-item" id="localImageGenBtn"><i data-lucide="image-plus" class="lucide"></i> <span>Local Image Gen (SAA)</span></button>
 
                     </div>
                 </div>
@@ -1164,29 +1166,25 @@ try {
                                 <div class="tools-dropdown" id="toolsMenuDropdown">
                                     <div class="tools-dropdown__header">Tools</div>
 
-                                    <!-- Search -->
+                                    <!-- Search (gộp web/social/image/github) -->
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search</div>
                                         <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="googleSearchBtn" title="Google Search">
+                                            <button class="tools-grid__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
                                                 <span class="tools-grid__icon"><i data-lucide="search" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Web Search</span>
+                                                <span class="tools-grid__label">Web</span>
                                             </button>
-                                            <button class="tools-grid__item" id="serpapiBingBtn" title="Bing Search (SerpAPI)">
-                                                <span class="tools-grid__icon"><i data-lucide="globe" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Bing</span>
+                                            <button class="tools-grid__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
+                                                <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Images</span>
                                             </button>
-                                            <button class="tools-grid__item" id="serpapiBaiduBtn" title="Baidu Search (SerpAPI)">
-                                                <span class="tools-grid__icon"><i data-lucide="search-code" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Baidu</span>
+                                            <button class="tools-grid__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
+                                                <span class="tools-grid__icon"><i data-lucide="bar-chart-3" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Social</span>
                                             </button>
-                                            <button class="tools-grid__item" id="githubBtn" title="GitHub">
+                                            <button class="tools-grid__item" id="githubBtn" title="GitHub repository search">
                                                 <span class="tools-grid__icon"><i data-lucide="github" class="lucide"></i></span>
                                                 <span class="tools-grid__label">GitHub</span>
-                                            </button>
-                                            <button class="tools-grid__item" id="serpapiImagesBtn" title="Google Images Search (SerpAPI)">
-                                                <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Img Search</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1203,13 +1201,9 @@ try {
                                                 <span class="tools-grid__icon"><i data-lucide="scan-eye" class="lucide"></i></span>
                                                 <span class="tools-grid__label">Img2Img</span>
                                             </button>
-                                            <button class="tools-grid__item" id="googleLensBtn" title="Google Lens — Reverse Image (SerpAPI)">
-                                                <span class="tools-grid__icon"><i data-lucide="camera" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Lens</span>
-                                            </button>
-                                            <button class="tools-grid__item" id="saucenaoBtn" title="SauceNAO Reverse Image Search">
+                                            <button class="tools-grid__item" id="reverseImageBtn" title="Reverse Image — chạy song song Google Lens + SauceNAO">
                                                 <span class="tools-grid__icon"><i data-lucide="scan-search" class="lucide"></i></span>
-                                                <span class="tools-grid__label">SauceNAO</span>
+                                                <span class="tools-grid__label">Reverse Image</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1221,17 +1215,6 @@ try {
                                             <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
                                                 <span class="tools-grid__icon"><i data-lucide="telescope" class="lucide"></i></span>
                                                 <span class="tools-grid__label">Deep Research</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Agent -->
-                                    <div class="tools-category">
-                                        <div class="tools-category__label"><i data-lucide="bot" class="lucide lucide-sm"></i> Agent</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="last30daysBtn" title="Social Media Research (last30days)">
-                                                <span class="tools-grid__icon"><i data-lucide="bar-chart-3" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Social Research</span>
                                             </button>
                                             <button class="tools-grid__item" id="configAgentBtn" title="Config Agent">
                                                 <span class="tools-grid__icon"><i data-lucide="settings" class="lucide"></i></span>
@@ -2172,6 +2155,7 @@ try {
 <script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
 <script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
+<script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
 <script>
     // Character picker + job queue topbar bindings
     (function () {
@@ -2205,6 +2189,16 @@ try {
                     return;
                 }
                 window.openJobQueuePanel();
+            });
+        }
+        const localImgBtn = document.getElementById('localImageGenBtn');
+        if (localImgBtn) {
+            localImgBtn.addEventListener('click', () => {
+                if (typeof window.openLocalImageGen !== 'function') {
+                    console.warn('[local-image-gen] module not loaded');
+                    return;
+                }
+                window.openLocalImageGen();
             });
         }
         // Anime Pipeline topbar button. Without this binding the layered-pipeline
@@ -2371,18 +2365,21 @@ try {
     let activeTools = new Set();
 
     // Map tool name → button element ID (shared by setupToolItemClicks + removeTool)
+    // NOTE: 'reverse-image' is a virtual UI slug that toggles BOTH
+    // serpapi-reverse-image (Google Lens) and saucenao at once.
     const toolBtnMap = {
         'image-generation':    'imageGenToolBtn',
         'img2img':             'img2imgToolBtn',
         'google-search':       'googleSearchBtn',
         'github':              'githubBtn',
-        'saucenao':            'saucenaoBtn',
         'deep-research':       'deepResearchToolBtn',
-        'serpapi-reverse-image': 'googleLensBtn',
-        'serpapi-bing':        'serpapiBingBtn',
-        'serpapi-baidu':       'serpapiBaiduBtn',
         'serpapi-images':      'serpapiImagesBtn',
         'last30days-research': 'last30daysBtn',
+        'reverse-image':       'reverseImageBtn',
+    };
+    // Virtual → real tool slug expansion (sent to backend in `tools` array)
+    const toolExpansionMap = {
+        'reverse-image': ['serpapi-reverse-image', 'saucenao'],
     };
 
     function initToolsMenu() {
@@ -2448,14 +2445,19 @@ try {
         const icons = {
             'image-generation': '🎨', 'img2img': '🖼️',
             'google-search': '🔍', 'github': '📦', 'deep-research': '🔬',
-            'saucenao': '🔎', 'serpapi-reverse-image': '📸',
-            'serpapi-bing': '🅱️', 'serpapi-baidu': '🀄', 'serpapi-images': '🖼️',
+            'serpapi-images': '🖼️', 'reverse-image': '📸',
             'last30days-research': '📊'
+        };
+        const labels = {
+            'image-generation': 'Image Gen', 'img2img': 'Img2Img',
+            'google-search': 'Web', 'github': 'GitHub', 'deep-research': 'Deep Research',
+            'serpapi-images': 'Images', 'reverse-image': 'Reverse Image',
+            'last30days-research': 'Social',
         };
         activeTools.forEach(tool => {
             const badge = document.createElement('span');
             badge.className = 'active-tool-badge';
-            badge.innerHTML = `${icons[tool] || '🔧'} ${tool} <button onclick="removeTool('${tool}')">&times;</button>`;
+            badge.innerHTML = `${icons[tool] || '🔧'} ${labels[tool] || tool} <button onclick="removeTool('${tool}')">&times;</button>`;
             display.appendChild(badge);
         });
     }
@@ -2470,7 +2472,19 @@ try {
         }
         updateActiveToolsDisplay();
     };
-    window.getActiveTools = () => Array.from(activeTools);
+    // Expand virtual tools (e.g. 'reverse-image' → ['serpapi-reverse-image','saucenao'])
+    // before sending to the backend, so existing dispatchers keep working.
+    window.getActiveTools = () => {
+        const out = [];
+        activeTools.forEach(t => {
+            if (toolExpansionMap[t]) {
+                out.push(...toolExpansionMap[t]);
+            } else {
+                out.push(t);
+            }
+        });
+        return out;
+    };
 
     function closeToolsMenu() {
         const d = document.getElementById('toolsMenuDropdown');
@@ -2481,13 +2495,14 @@ try {
     // TOOL STATUS BAR — shows what tools are running during SSE
     // ════════════════════════════════════════════════════════════
     const toolStatusMessages = {
-        'google-search': '🔍 Searching the web…',
+        'google-search': '🔍 Đang tìm trên web…',
         'serpapi-bing': '🔍 Searching Bing…',
         'serpapi-baidu': '🔍 Searching Baidu…',
-        'serpapi-images': '🖼️ Searching images…',
-        'serpapi-reverse-image': '📸 Reverse image search…',
-        'saucenao': '🔎 Searching SauceNAO…',
-        'github': '📦 Searching GitHub…',
+        'serpapi-images': '🖼️ Đang tìm ảnh…',
+        'serpapi-reverse-image': '📸 Reverse image (Lens)…',
+        'saucenao': '🔎 Reverse image (SauceNAO)…',
+        'reverse-image': '📸 Reverse image (Lens + SauceNAO song song)…',
+        'github': '📦 Đang tìm GitHub…',
         'image-generation': '🎨 Generating image…',
         'img2img': '🖼️ Running Img2Img…',
         'deep-research': '🔬 Deep research in progress…',
@@ -2497,7 +2512,9 @@ try {
     window.showToolStatus = function() {
         const bar = document.getElementById('toolStatusBar');
         if (!bar) return;
-        const active = window.getActiveTools ? window.getActiveTools() : [];
+        // Use the user-facing activeTools (not expanded) so combined slugs
+        // like 'reverse-image' show a single status line instead of two.
+        const active = Array.from(activeTools);
         if (active.length === 0) { bar.style.display = 'none'; return; }
         const msgs = active.map(t => toolStatusMessages[t]).filter(Boolean);
         if (msgs.length === 0) { bar.style.display = 'none'; return; }

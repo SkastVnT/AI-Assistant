@@ -5503,6 +5503,13 @@ except ImportError as e:
     logger.warning(f"Could not register hermes blueprint: {e}")
 
 try:
+    from routes.character_select import character_select_bp
+    app.register_blueprint(character_select_bp)
+    logger.info("Registered character_select blueprint (SAA sidecar)")
+except ImportError as e:
+    logger.warning(f"Could not register character_select blueprint: {e}")
+
+try:
     from routes.anime_pipeline import anime_pipeline_bp
     app.register_blueprint(anime_pipeline_bp)
     logger.info("Registered anime_pipeline blueprint (/api/anime-pipeline/*)")

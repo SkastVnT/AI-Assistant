@@ -41,6 +41,7 @@ from fastapi_app.routers import (
     skills,
     last30days,
     hermes,
+    character_select,
     admin,
     image_gen,
     mcp,
@@ -148,6 +149,15 @@ def create_app() -> FastAPI:
                 "firebase_config": _firebase_config,
             })
         return HTMLResponse("<h1>AI Chatbot (FastAPI)</h1><p>Templates directory not found.</p>")
+
+    @app.get("/c/{chat_id}", response_class=HTMLResponse)
+    async def chat_permalink(request: Request, chat_id: str):
+        """Permalink for a specific conversation — serves the same SPA shell.
+        The frontend (chat-manager.js) hydrates the conversation from
+        localStorage or via GET /api/conversations/<chat_id> on load.
+        """
+        # Reuse the index handler to keep template context identical.
+        return await index(request)
 
     @app.get("/login", response_class=HTMLResponse)
     async def login_page(request: Request):
@@ -357,6 +367,7 @@ def create_app() -> FastAPI:
     app.include_router(skills.router, tags=["Skills"])
     app.include_router(last30days.router, tags=["Tools"])
     app.include_router(hermes.router, tags=["Tools"])
+    app.include_router(character_select.router, tags=["Tools"])
     app.include_router(admin.router, tags=["Admin"])
     app.include_router(image_gen.router, tags=["Image Generation"])
     app.include_router(mcp.router)

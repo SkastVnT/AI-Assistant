@@ -68,6 +68,21 @@ HERMES_API_URL = os.getenv('HERMES_API_URL', 'http://localhost:8080')
 HERMES_API_KEY = os.getenv('HERMES_API_KEY', '')
 HERMES_TIMEOUT = int(os.getenv('HERMES_TIMEOUT', '120'))
 
+# Character Select SAA — Standalone Electron character picker sidecar
+# Source: https://github.com/mirabarukaso/character_select_stand_alone_app
+CHARACTER_SELECT_ENABLED = os.getenv('CHARACTER_SELECT_ENABLED', 'false').lower() == 'true'
+CHARACTER_SELECT_URL = os.getenv('CHARACTER_SELECT_URL', 'http://localhost:51028')
+CHARACTER_SELECT_PORT = int(os.getenv('CHARACTER_SELECT_PORT', '51028'))
+CHARACTER_SELECT_AUTO_START = os.getenv('CHARACTER_SELECT_AUTO_START', 'false').lower() == 'true'
+CHARACTER_SELECT_PATH = os.getenv('CHARACTER_SELECT_PATH', './character_select_stand_alone_app-main')
+CHARACTER_SELECT_TIMEOUT = int(os.getenv('CHARACTER_SELECT_TIMEOUT', '5'))
+
+# ComfyUI output dir — watched by /api/local-image-gen/recent so the chatbot can
+# surface images that SAA (or any other ComfyUI client) just generated.
+# Defaults to repo-local ``ComfyUI/output`` next to the chatbot service tree.
+_DEFAULT_COMFY_OUTPUT = (CHATBOT_DIR.parent.parent / 'ComfyUI' / 'output').resolve()
+COMFYUI_OUTPUT_DIR = os.getenv('COMFYUI_OUTPUT_DIR', str(_DEFAULT_COMFY_OUTPUT))
+
 # Stable Diffusion
 SD_API_URL = os.getenv('SD_API_URL', 'http://127.0.0.1:7861')
 

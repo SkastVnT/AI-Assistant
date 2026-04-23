@@ -144,9 +144,103 @@ def github_search_tool(query):
         return f"❌ Lỗi: {str(e)}"
 
 
+def _saucenao_http(
+    *,
+    image_url: str = "",
+    image_bytes: bytes = b"",
+    numres: int = 8,
+    timeout: int = 25,
+) -> dict:
+    """Call the SauceNAO HTTP API directly (no third-party wrapper).
+
+    Returns the raw JSON dict on success, or ``{"error": "..."}`` on
+    failure. SauceNAO endpoint: ``GET/POST https://saucenao.com/search.php``.
+
+    The official ``saucenao_api`` PyPI package pins ancient versions of
+    ``requests``/``urllib3``/``aiohttp`` and downgrades the entire venv,
+    so we hit the JSON endpoint ourselves.
+    """
+    if not SAUCENAO_API_KEY:
+        return {"error": "SAUCENAO_API_KEY chưa được cấu hình."}
+    if not image_url and not image_bytes:
+        return {"error": "Cần URL hoặc bytes ảnh."}
+
+    params = {
+        "api_key": SAUCENAO_API_KEY,
+        "output_type": 2,   # JSON
+        "numres": numres,
+        "db": 999,          # all DBs
+    }
+    try:
+        if image_url:
+            params["url"] = image_url
+            resp = requests.get(
+                "https://saucenao.com/search.php",
+                params=params,
+                timeout=timeout,
+            )
+        else:
+            resp = requests.post(
+                "https://saucenao.com/search.php",
+                params=params,
+                files={"file": ("image.png", image_bytes, "image/png")},
+                timeout=timeout,
+            )
+        if resp.status_code != 200:
+            return {"error": f"SauceNAO HTTP {resp.status_code}: {resp.text[:200]}"}
+        data = resp.json()
+        header = data.get("header", {})
+        if int(header.get("status", 0)) != 0:
+            return {"error": f"SauceNAO status={header.get('status')}: {header.get('message', '')}"}
+        return data
+    except requests.RequestException as exc:
+        return {"error": f"SauceNAO request failed: {exc}"}
+    except ValueError as exc:  # JSON decode error
+        return {"error": f"SauceNAO invalid JSON: {exc}"}
+
+
+def _saucenao_extract_entries(payload: dict) -> list[dict]:
+    """Normalise SauceNAO ``results[*]`` into a flat list of dicts.
+
+    Each entry: {title, author, urls, thumbnail, similarity}.
+    """
+    entries: list[dict] = []
+    for raw in payload.get("results", []) or []:
+        h = raw.get("header", {}) or {}
+        d = raw.get("data", {}) or {}
+        title = (
+            d.get("title")
+            or d.get("eng_name")
+            or d.get("jp_name")
+            or d.get("source")
+            or d.get("material")
+            or "Không rõ"
+        )
+        author = (
+            d.get("member_name")
+            or d.get("creator")
+            or d.get("author_name")
+            or d.get("artist")
+            or None
+        )
+        urls = d.get("ext_urls") or []
+        try:
+            similarity = float(h.get("similarity")) if h.get("similarity") is not None else None
+        except (TypeError, ValueError):
+            similarity = None
+        entries.append({
+            "title": title,
+            "author": author,
+            "urls": urls,
+            "thumbnail": h.get("thumbnail") or None,
+            "similarity": similarity,
+        })
+    return entries
+
+
 def saucenao_search_tool(image_url: str = "", image_data: bytes = None) -> str:
     """
-    Reverse image search using SauceNAO API.
+    Reverse image search using SauceNAO API (raw HTTP — no wrapper dep).
     Accepts an image URL or raw image bytes.
     Returns formatted results with source info, similarity, and links.
     """
@@ -154,47 +248,52 @@ def saucenao_search_tool(image_url: str = "", image_data: bytes = None) -> str:
         if not SAUCENAO_API_KEY:
             return "❌ SauceNAO API Key chưa được cấu hình. Thêm SAUCENAO_API_KEY vào .env"
 
-        from saucenao_api import SauceNao
-
         logger.info(f"[SAUCENAO] Searching: {image_url[:80] if image_url else 'uploaded image'}")
 
-        sauce = SauceNao(api_key=SAUCENAO_API_KEY, numres=8)
-
         if image_url:
-            results = sauce.from_url(image_url)
+            payload = _saucenao_http(image_url=image_url)
         elif image_data:
-            import tempfile, os
-            ext = ".png"
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-            tmp.write(image_data)
-            tmp.close()
-            try:
-                results = sauce.from_file(tmp.name)
-            finally:
-                os.unlink(tmp.name)
+            payload = _saucenao_http(image_bytes=image_data)
         else:
             return "❌ Cần cung cấp URL ảnh hoặc file ảnh để tìm kiếm."
 
+        if "error" in payload:
+            return f"❌ Lỗi SauceNAO: {payload['error']}"
+
+        results = _saucenao_extract_entries(payload)
         if not results:
             return "🔍 Không tìm thấy kết quả nào trên SauceNAO."
 
         parts = []
         for i, res in enumerate(results[:6]):
-            sim = f"{res.similarity:.1f}%"
-            title = res.title or "Không rõ"
-            author = res.author or "N/A"
-            urls = res.urls or []
-            url_str = "\n".join(f"  🔗 {u}" for u in urls[:3]) if urls else "  (không có link)"
+            sim = f"{res['similarity']:.1f}%" if res['similarity'] is not None else "N/A"
+            title = res['title'] or "Không rõ"
+            author = res['author'] or "N/A"
+            urls = res['urls'] or []
+            primary_url = urls[0] if urls else ""
+            url_str = "\n".join(f"  🔗 [{u}]({u})" for u in urls[:3]) if urls else "  (không có link)"
+            thumb = res.get('thumbnail') or ''
+            if thumb:
+                if primary_url:
+                    image_md = f"[![{title}]({thumb})]({primary_url})\n"
+                else:
+                    image_md = f"![{title}]({thumb})\n"
+            else:
+                image_md = ""
 
             parts.append(
                 f"**#{i+1}** — {sim} tương đồng\n"
+                f"{image_md}"
                 f"📌 **{title}**\n"
                 f"🎨 Tác giả: {author}\n"
                 f"{url_str}"
             )
 
         header = f"🔍 **SauceNAO — Kết quả tìm kiếm ảnh** ({len(results)} nguồn)\n"
-        remaining = f"\n⏳ Còn lại: {results.short_remaining}/30s · {results.long_remaining}/ngày"
+        ph = payload.get("header", {}) or {}
+        short_rem = ph.get("short_remaining", "?")
+        long_rem = ph.get("long_remaining", "?")
+        remaining = f"\n⏳ Còn lại: {short_rem}/30s · {long_rem}/ngày"
 
         return header + "\n\n---\n\n".join(parts) + remaining
 
@@ -239,7 +338,9 @@ def serpapi_web_search(query: str, engine: str = "google") -> str:
             title = item.get("title", "")
             snippet = item.get("snippet", item.get("description", ""))
             link = item.get("link", "")
-            parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
+            thumb = item.get("thumbnail", "") or ""
+            preview = f"![]({thumb})\n" if thumb else ""
+            parts.append(f"**[{title}]({link})**\n{preview}{snippet}\n🔗 [{link}]({link})")
 
         return f"🔍 **{engine_label} Search — Kết quả:**\n\n" + "\n\n---\n\n".join(parts)
 
@@ -291,12 +392,21 @@ def serpapi_reverse_image(image_url: str) -> str:
                     title = m.get("title", "Không rõ")
                     source = m.get("source", "")
                     link = m.get("link", "")
+                    thumb = m.get("thumbnail") or m.get("image") or ""
                     price = m.get("price", {})
                     price_str = f" — 💰 {price.get('value', '')}" if price else ""
-                    parts.append(f"**#{i+1}** [{source}] {title}{price_str}\n🔗 {link}")
+                    if thumb:
+                        image_md = f"[![{title}]({thumb})]({link or thumb})\n"
+                    else:
+                        image_md = ""
+                    parts.append(
+                        f"**#{i+1}** [{source}] {title}{price_str}\n"
+                        f"{image_md}"
+                        f"🔗 [{link}]({link})"
+                    )
                 return (
                     f"🔍 **Google Lens — Visual Matches** ({len(matches)} kết quả):\n\n"
-                    + "\n\n".join(parts)
+                    + "\n\n---\n\n".join(parts)
                 )
     except Exception as e:
         logger.warning(f"[SERPAPI:GOOGLE_LENS] Failed: {e}")
@@ -316,10 +426,20 @@ def serpapi_reverse_image(image_url: str) -> str:
             if kg:
                 parts.append(f"**🧠 Knowledge Graph:** {kg.get('title', '')} — {kg.get('description', '')[:200]}")
             for i, item in enumerate(items[:5]):
-                title = item.get("title", "")
+                title = item.get("title", "") or "(không tiêu đề)"
                 snippet = item.get("snippet", "")
-                link = item.get("link", item.get("original", ""))
-                parts.append(f"**#{i+1}** {title}\n{snippet}\n🔗 {link}")
+                link = item.get("link", item.get("original", "")) or ""
+                thumb = item.get("thumbnail", "") or item.get("original", "")
+                if thumb:
+                    image_md = f"[![{title}]({thumb})]({link or thumb})\n"
+                else:
+                    image_md = ""
+                parts.append(
+                    f"**#{i+1}** {title}\n"
+                    f"{image_md}"
+                    f"{snippet}\n"
+                    f"🔗 [{link}]({link})"
+                )
             if parts:
                 return "🔍 **Google Reverse Image:**\n\n" + "\n\n---\n\n".join(parts)
     except Exception as e:
@@ -338,11 +458,20 @@ def serpapi_reverse_image(image_url: str) -> str:
             if items:
                 parts = []
                 for i, item in enumerate(items[:5]):
-                    title = item.get("title", "")
+                    title = item.get("title", "") or "(không tiêu đề)"
                     source = item.get("source", "")
-                    link = item.get("link", item.get("original", ""))
-                    parts.append(f"**#{i+1}** {title} ({source})\n🔗 {link}")
-                return "🔍 **Yandex Images Reverse:**\n\n" + "\n\n".join(parts)
+                    link = item.get("link", item.get("original", "")) or ""
+                    thumb = item.get("thumbnail", "") or item.get("original", "")
+                    if thumb:
+                        image_md = f"[![{title}]({thumb})]({link or thumb})\n"
+                    else:
+                        image_md = ""
+                    parts.append(
+                        f"**#{i+1}** {title} ({source})\n"
+                        f"{image_md}"
+                        f"🔗 [{link}]({link})"
+                    )
+                return "🔍 **Yandex Images Reverse:**\n\n" + "\n\n---\n\n".join(parts)
     except Exception as e:
         logger.warning(f"[SERPAPI:YANDEX_IMAGES] Failed: {e}")
 
@@ -377,13 +506,22 @@ def serpapi_image_search(query: str, engine: str = "google_images_light") -> str
                         "google_images": "Google Images (Full)"}.get(engine, engine)
         parts = []
         for i, item in enumerate(items[:6]):
-            title = item.get("title", "")
-            thumbnail = item.get("thumbnail", "")
-            original = item.get("original", item.get("link", ""))
-            source = item.get("source", "")
-            parts.append(f"**#{i+1}** {title} ({source})\n📎 {original}")
+            title = item.get("title", "") or "(không tiêu đề)"
+            thumbnail = item.get("thumbnail", "") or item.get("thumbnail_link", "")
+            original = item.get("original", item.get("link", "")) or ""
+            source = item.get("source", "") or ""
+            preview = thumbnail or original
+            if preview:
+                image_md = f"[![{title}]({preview})]({original or preview})\n"
+            else:
+                image_md = ""
+            parts.append(
+                f"**#{i+1}** {title}{f' — _{source}_' if source else ''}\n"
+                f"{image_md}"
+                f"🔗 [{original}]({original})"
+            )
 
-        return f"🖼️ **{engine_label} — '{query}'** ({len(items)} kết quả):\n\n" + "\n\n".join(parts)
+        return f"🖼️ **{engine_label} — '{query}'** ({len(items)} kết quả):\n\n" + "\n\n---\n\n".join(parts)
 
     except Exception as e:
         logger.error(f"[SERPAPI:IMAGE_SEARCH] Error: {e}")
@@ -439,38 +577,32 @@ def reverse_image_search(image_data_url: str = "", image_url: str = "") -> dict:
     # ── 1. SauceNAO (best for anime/art) ─────────────────────────
     try:
         if SAUCENAO_API_KEY:
-            from saucenao_api import SauceNao
-            sauce = SauceNao(api_key=SAUCENAO_API_KEY, numres=8)
+            sauce_payload = None
             if public_url:
-                sauce_results = sauce.from_url(public_url)
+                sauce_payload = _saucenao_http(image_url=public_url)
             elif image_data_url:
-                import tempfile, os, base64 as _b64
+                import base64 as _b64
                 raw = image_data_url
                 if ',' in raw:
                     raw = raw.split(',', 1)[1]
-                img_bytes = _b64.b64decode(raw)
-                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                tmp.write(img_bytes)
-                tmp.close()
                 try:
-                    sauce_results = sauce.from_file(tmp.name)
-                finally:
-                    os.unlink(tmp.name)
-            else:
-                sauce_results = None
+                    img_bytes = _b64.b64decode(raw)
+                    sauce_payload = _saucenao_http(image_bytes=img_bytes)
+                except Exception as decode_err:
+                    logger.warning(f"[ReverseImg] base64 decode failed: {decode_err}")
 
-            if sauce_results:
-                for res in sauce_results[:6]:
+            if sauce_payload and "error" not in sauce_payload:
+                for entry in _saucenao_extract_entries(sauce_payload)[:6]:
                     result["sources"].append({
-                        "title": res.title or "Unknown",
-                        "author": res.author or None,
-                        "url": (res.urls[0] if res.urls else ""),
-                        "thumbnail": None,
-                        "similarity": float(res.similarity) if res.similarity else None,
+                        "title": entry["title"] or "Unknown",
+                        "author": entry["author"],
+                        "url": (entry["urls"][0] if entry["urls"] else ""),
+                        "thumbnail": entry["thumbnail"],
+                        "similarity": entry["similarity"],
                         "source_engine": "saucenao",
                     })
-    except ImportError:
-        logger.debug("[ReverseImg] saucenao_api not installed — skipping")
+            elif sauce_payload and "error" in sauce_payload:
+                logger.debug(f"[ReverseImg] SauceNAO: {sauce_payload['error']}")
     except Exception as e:
         logger.warning(f"[ReverseImg] SauceNAO failed: {e}")
 

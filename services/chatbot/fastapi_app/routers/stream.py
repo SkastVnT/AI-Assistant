@@ -4,6 +4,7 @@ SSE Streaming router — /chat/stream
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import AsyncGenerator
@@ -243,6 +244,127 @@ def _run_web_search(query: str) -> str:
     return ""
 
 
+_IMAGE_URL_RE = re.compile(
+    r'https?://\S+\.(?:jpg|jpeg|png|gif|webp)\S*',
+    re.IGNORECASE,
+)
+
+
+def _extract_first_image_bytes(images: list[str] | None) -> bytes | None:
+    """Decode the first base64 data-URL image to raw bytes."""
+    if not images:
+        return None
+    first = images[0]
+    if "," in first:
+        first = first.split(",", 1)[1]
+    try:
+        import base64 as _b64
+        return _b64.b64decode(first)
+    except Exception as exc:
+        logger.warning(f"[Tools] Failed to decode attached image: {exc}")
+        return None
+
+
+def _run_explicit_tools(
+    tools: list[str],
+    message: str,
+    images: list[str] | None,
+) -> list[str]:
+    """Run user-selected tools (SauceNAO, SerpAPI variants, GitHub) and
+    return their formatted result strings. Mirrors the Flask dispatch in
+    chatbot_main.py so FastAPI mode honours the same UI-selected tools.
+    """
+    results: list[str] = []
+    image_urls = _IMAGE_URL_RE.findall(message or "")
+
+    # ── SauceNAO ──
+    if "saucenao" in tools:
+        try:
+            from core.tools import saucenao_search_tool
+            if image_urls:
+                logger.info(f"[Tools] SauceNAO via URL: {image_urls[0][:80]}")
+                results.append(saucenao_search_tool(image_url=image_urls[0]))
+            else:
+                img_bytes = _extract_first_image_bytes(images)
+                if img_bytes:
+                    logger.info(f"[Tools] SauceNAO via upload ({len(img_bytes)} bytes)")
+                    results.append(saucenao_search_tool(image_data=img_bytes))
+                else:
+                    results.append(
+                        "⚠️ SauceNAO: Cần đính kèm ảnh hoặc gửi URL ảnh để tìm nguồn gốc."
+                    )
+        except Exception as exc:
+            logger.warning(f"[Tools] SauceNAO error: {exc}")
+            results.append(f"⚠️ SauceNAO error: {exc}")
+
+    # ── SerpAPI Reverse Image (Google Lens) ──
+    if "serpapi-reverse-image" in tools:
+        try:
+            from core.tools import serpapi_reverse_image
+            target_url = image_urls[0] if image_urls else None
+            if not target_url and images:
+                # Need a public URL — upload base64 image to ImgBB
+                first = images[0]
+                if "," in first:
+                    first = first.split(",", 1)[1]
+                try:
+                    from src.utils.imgbb_uploader import ImgBBUploader
+                    uploaded = ImgBBUploader().upload(first)
+                    if uploaded:
+                        target_url = uploaded.get("url")
+                except Exception as up_err:
+                    logger.warning(f"[Tools] imgbb upload failed: {up_err}")
+            if target_url:
+                logger.info(f"[Tools] Google Lens: {target_url[:80]}")
+                results.append(serpapi_reverse_image(target_url))
+            else:
+                results.append(
+                    "⚠️ Google Lens: Cần URL ảnh công khai (http/https) hoặc đính kèm ảnh."
+                )
+        except Exception as exc:
+            logger.warning(f"[Tools] Google Lens error: {exc}")
+            results.append(f"⚠️ Google Lens error: {exc}")
+
+    # ── SerpAPI Bing ──
+    if "serpapi-bing" in tools:
+        try:
+            from core.tools import serpapi_web_search
+            logger.info("[Tools] SerpAPI Bing search")
+            results.append(serpapi_web_search(message, engine="bing"))
+        except Exception as exc:
+            logger.warning(f"[Tools] SerpAPI Bing error: {exc}")
+
+    # ── SerpAPI Baidu ──
+    if "serpapi-baidu" in tools:
+        try:
+            from core.tools import serpapi_web_search
+            logger.info("[Tools] SerpAPI Baidu search")
+            results.append(serpapi_web_search(message, engine="baidu"))
+        except Exception as exc:
+            logger.warning(f"[Tools] SerpAPI Baidu error: {exc}")
+
+    # ── SerpAPI Image Search ──
+    if "serpapi-images" in tools:
+        try:
+            from core.tools import serpapi_image_search
+            logger.info("[Tools] SerpAPI image search")
+            results.append(serpapi_image_search(message))
+        except Exception as exc:
+            logger.warning(f"[Tools] SerpAPI image search error: {exc}")
+
+    # ── GitHub Search ──
+    if "github" in tools:
+        try:
+            from core.tools import github_search_tool
+            logger.info("[Tools] GitHub search")
+            results.append(f"## 🐙 GitHub Search Results\n\n{github_search_tool(message)}")
+        except Exception as exc:
+            logger.warning(f"[Tools] GitHub search error: {exc}")
+
+    return results
+
+
+
 @router.post("/chat/stream")
 async def chat_stream(body: StreamRequest, request: Request):
     """Streaming chat via Server-Sent Events."""
@@ -338,6 +460,25 @@ async def chat_stream(body: StreamRequest, request: Request):
                 logger.info(f"[Stream] Auto web search triggered for: {body.message[:60]}")
         except Exception as e:
             logger.warning(f"[Stream] Web search failed: {e}")
+
+    # ── Explicit tool dispatch (saucenao, serpapi-*, github) ───────
+    # Mirrors chatbot_main.py Flask path so FastAPI mode actually runs
+    # these tools when the user selects them in the UI.
+    explicit_tool_results: list[str] = []
+    if tools:
+        try:
+            explicit_tool_results = _run_explicit_tools(
+                tools=tools,
+                message=body.message,
+                images=images,
+            )
+        except Exception as _et_err:
+            logger.warning(f"[Stream] Explicit tool dispatch error: {_et_err}")
+
+    if explicit_tool_results:
+        joined = "\n\n---\n\n".join(explicit_tool_results)
+        tool_context = f"{tool_context}\n\n{joined}".strip() if tool_context else joined
+        _search_performed = True
 
     # Inject tool results into the message context for the LLM
     if tool_context:

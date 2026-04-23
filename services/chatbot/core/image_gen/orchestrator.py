@@ -82,6 +82,28 @@ def _orchestrator_enabled() -> bool:
     ])
 
 
+# Tools that, when explicitly selected by the user, indicate the request
+# is NOT for image generation. The orchestrator must defer to the LLM/tool
+# path so these tools actually execute (saucenao reverse-image search,
+# serpapi reverse-image, web search, github search, etc.).
+_CONFLICTING_TOOLS = frozenset({
+    "saucenao",
+    "serpapi-reverse-image",
+    "serpapi-images",
+    "serpapi-bing",
+    "serpapi-baidu",
+    "google-search",
+    "github",
+    "deep-research",
+    "last30days-research",
+})
+
+
+def _has_conflicting_tools(tools: list[str]) -> bool:
+    """True if any selected tool conflicts with image generation."""
+    return any(t in _CONFLICTING_TOOLS for t in tools)
+
+
 def _fetch_url_as_b64(url: str) -> Optional[str]:
     """Download an image URL and return base64-encoded bytes (best-effort)."""
     try:
@@ -247,8 +269,15 @@ class ImageOrchestrator:
         if not self._enabled:
             return OrchestratorResult(fallback_to_llm=True)
 
-        explicit_tool = "image-generation" in tools
+        explicit_tool = "image-generation" in tools or "img2img" in tools
         intent_result = detect_intent(message, has_previous_image=self.has_previous_image)
+
+        # ── Conflicting tools → never hijack ───────────────────────────
+        # If user explicitly selected a non-image-gen tool (search,
+        # reverse-image, github, etc.) AND did not select image-generation,
+        # defer to the LLM/tool path so those tools can run.
+        if _has_conflicting_tools(tools) and not explicit_tool:
+            return OrchestratorResult(fallback_to_llm=True)
 
         # Not an image request and tool not forced → pass to LLM
         if intent_result.intent == ImageIntent.NONE and not explicit_tool:
@@ -289,8 +318,12 @@ class ImageOrchestrator:
         if not self._enabled:
             return
 
-        explicit_tool = "image-generation" in tools
+        explicit_tool = "image-generation" in tools or "img2img" in tools
         intent_result = detect_intent(message, has_previous_image=self.has_previous_image)
+
+        # ── Conflicting tools → never hijack (mirrors handle()) ────────
+        if _has_conflicting_tools(tools) and not explicit_tool:
+            return  # let LLM/tool path run
 
         if intent_result.intent == ImageIntent.NONE and not explicit_tool:
             return  # not an image request
