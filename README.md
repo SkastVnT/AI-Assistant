@@ -36,7 +36,7 @@ Tất cả đều listen trên port `FLASK_PORT` (default `5000`).
 | Tính năng | Mô tả |
 |---|---|
 | Đa LLM provider | OpenAI, Grok (xAI), DeepSeek, Qwen, OpenRouter, StepFun, BloomVN (HF), Gemini, Ollama local |
-| Thinking modes | `instant` / `thinking` / `deep` / `multi-thinking` / `auto` |
+| Thinking modes | UI: `Instant` / `4-Agents` (default) |
 | Multi-thinking council | 4-agent: Planner → Researcher → Critic → Synthesizer |
 | Skill system | 12 built-in personas, auto-route theo nội dung tin nhắn |
 | Image generation | 7 provider router với fallback chain |
@@ -58,15 +58,16 @@ Tất cả đều listen trên port `FLASK_PORT` (default `5000`).
 
 ## Thinking Modes
 
-| Mode | `deep_thinking` flag | Mô tả |
-|---|---|---|
-| `instant` | False | Trả lời ngay, không reasoning |
-| `thinking` | True | Bật reasoning chuẩn |
-| `deep` | True | Extended reasoning (lâu hơn, sâu hơn) |
-| `multi-thinking` | True | Kích hoạt 4-agent council |
-| `auto` | (auto) | Tự detect dựa trên độ phức tạp |
+UI chỉ expose **2 mode**:
 
-Mode được resolve qua skill system (`core/skills/applicator.py`) hoặc set thủ công qua UI / request payload.
+| Mode | UI Label | Default | Mô tả |
+|---|---|---|---|
+| `instant` | Instant | | Trả lời trực tiếp một agent, không reasoning pipeline |
+| `multi-thinking` | **4-Agents** | ✓ | Kích hoạt 4-agent council (Planner → Researcher → Critic → Synthesizer) |
+
+Khi user ở `instant` mà muốn nghiêm túc hơn: nhấn nút **“Think Harder”** trong response actions → gửi lại tin nhắn cuối với `multi-thinking`.
+
+> Backend (`core/skills/applicator.py`, `routes/stream.py`, các test) vẫn nhận các giá trị `thinking` / `deep` / `auto` cho mục đích nội bộ (skill overrides, tương thích ngược). Người dùng cuối chỉ chọn 2 mode trên.
 
 ---
 
