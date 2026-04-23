@@ -21,30 +21,21 @@ Nền tảng microservices Python tích hợp các dịch vụ AI: chatbot đa m
 
 | Tính năng | Mô tả |
 |---|---|
-| **Đa mô hình LLM** | Grok (xAI), OpenAI GPT-4/o1, DeepSeek, Gemini (pool 4 key), Qwen, OpenRouter, StepFun, HuggingFace, Ollama local |
-| **Thinking Modes** | Instant / Think / Deep-Think / Multi-Thinking (Research Council 5 thành viên) |
+| **Đa mô hình LLM** | Grok, OpenAI, DeepSeek, Gemini, Qwen, OpenRouter, Ollama local |
+| **Thinking Modes** | Instant / Think / Deep-Think / Multi-Thinking (4-agent council) |
 | **Skill System** | 12 built-in personas tự động route theo nội dung tin nhắn |
 | **Image Generation** | 7 provider: fal.ai, Black Forest Labs, Replicate, StepFun, OpenAI DALL-E, Together AI, ComfyUI |
-| **Video AI** | OpenAI Sora 2 — text-to-video 4/8/12s, 720p/1080p (yêu cầu unlock) |
-| **Web Search** | SerpAPI (Google, Bing, Baidu) + Google CSE fallback — tự động kích hoạt theo từ khoá |
-| **Reverse Image** | Google Lens → Google Reverse Image → Yandex (cascade tự động) |
-| **Image Search** | SerpAPI google_images — tìm ảnh theo query |
+| **Video AI** | OpenAI Sora 2 — text-to-video (yêu cầu unlock) |
+| **Web Search** | SerpAPI (Google, Bing, Baidu) + Google CSE fallback, tự động kích hoạt |
+| **Reverse Image** | Google Lens → Google Reverse Image → Yandex (cascade) |
 | **SauceNAO** | Tìm nguồn gốc ảnh |
-| **Voice (STT)** | Whisper API — transcribe audio thành text |
-| **OCR** | Vision APIs — đọc nội dung ảnh và PDF |
-| **RAG** | MongoDB Atlas — lưu và tìm kiếm memory theo ngữ nghĩa |
-| **MCP Integration** | Truy cập file/folder local, đọc code, grep, OCR — qua MCP server (stdio) |
-| **Memory System** | Lưu trữ memory theo session + semantic search |
-| **User Auth** | Đăng ký / đăng nhập, quota tin nhắn / ảnh, video unlock qua admin |
-| **Admin Panel** | Quản lý user, session, ảnh, memory, logs, payment |
-| **QR Payment** | VietQR — mở khoá tính năng video generation |
+| **Voice (STT)** | Whisper API — transcribe audio |
+| **OCR** | Vision APIs — đọc ảnh và PDF |
+| **RAG** | MongoDB Atlas — memory theo ngữ nghĩa |
+| **MCP Integration** | Truy cập file/folder local qua MCP server (stdio) |
+| **User Auth** | Đăng ký / đăng nhập, quota, video unlock qua admin |
 | **SSE Streaming** | Server-Sent Events — streaming token thời gian thực |
-| **URL Routing** | URL theo từng cuộc trò chuyện `/c/<conversation_id>` (ChatGPT-style), Back/Forward browser hoạt động đầy đủ |
-| **Image Storage** | ImgBB + MongoDB + Firebase RTDB + Google Drive (best-effort) |
-| **Conversation CRUD** | Tạo / xoá / archive / switch / generate title |
-| **Image Context Memory** | Tự động đính kèm các ảnh đã tạo gần đây vào context để LLM tham chiếu |
-| **History Truncation** | Giới hạn history gửi lên LLM (30 messages × 4000 chars) để tránh context overflow |
-| **Optional Sidecars** | last30days (social media research), Hermes Agent (HTTP sidecar) — bật/tắt qua env |
+| **URL Routing** | `/c/<conversation_id>` per-conversation URL (ChatGPT-style) |
 
 ---
 
@@ -54,8 +45,8 @@ Nền tảng microservices Python tích hợp các dịch vụ AI: chatbot đa m
 |---|---|
 | `instant` | Trả lời ngay, không reasoning — nhanh nhất |
 | `think` | Chuỗi suy nghĩ nội tại trước khi trả lời |
-| `deep-think` | DeepSeek R1 extended reasoning — phân tích sâu |
-| `multi-thinking` | Research Council 5 thành viên, 2 phase: Logic Architect / Research Lead / Creative Strategist / Optimization Engineer / DevOps QA Critic |
+| `deep-think` | Extended reasoning — phân tích sâu |
+| `multi-thinking` | 4-agent council: Planner → Researcher → Critic → Synthesizer |
 
 ---
 
@@ -63,14 +54,12 @@ Nền tảng microservices Python tích hợp các dịch vụ AI: chatbot đa m
 
 | Provider | Env Key | Ghi chú |
 |---|---|---|
-| xAI Grok | `GROK_API_KEY` / `XAI_API_KEY` | Grok-2, Grok-3 |
-| OpenAI | `OPENAI_API_KEY` | GPT-4o, GPT-4, o1; bắt buộc cho Sora 2 + DALL-E + Whisper |
-| DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek-V3, R1 reasoning |
-| Google Gemini | `GEMINI_API_KEY_1..4` | Pool 4 key, rotation tự động |
-| Alibaba Qwen | `QWEN_API_KEY` / `DASHSCOPE_API_KEY` | Qwen-2.5, Qwen-VL |
+| xAI Grok | `GROK_API_KEY` | Grok-2, Grok-3 |
+| OpenAI | `OPENAI_API_KEY` | GPT-4o, o1; bắt buộc cho Sora 2 + DALL-E + Whisper |
+| DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek-V3, R1 |
+| Google Gemini | `GEMINI_API_KEY_1..4` | Pool 4 key, tự động rotation |
+| Alibaba Qwen | `QWEN_API_KEY` | Qwen-2.5, Qwen-VL |
 | OpenRouter | `OPENROUTER_API_KEY` | Multi-model proxy |
-| StepFun | `STEPFUN_API_KEY` | Step-1X |
-| HuggingFace | `HUGGINGFACE_API_KEY` / `HUGGINGFACE_TOKEN` | Inference API |
 | Local (Ollama) | — | Qwen, Llama qua Ollama / llama.cpp |
 
 ---
@@ -169,20 +158,14 @@ Skill files đặt tại `services/chatbot/core/skills/builtins/`. Có thể đ�
 Kích hoạt bằng thinking mode `multi-thinking`. Dùng cho các câu hỏi phức tạp cần nhiều góc nhìn.
 
 ```
-Research Council (5 thành viên, 2 phase)
-  Phase 1 (song song):
-    Logic Architect        → Phân tích logic, kiến trúc, thuật toán
-    Research Lead          → Thu thập và đánh giá dữ liệu web
-    Creative Strategist    → Góc nhìn sáng tạo, phá vỡ convention
-    Optimization Engineer  → Tối ưu hiệu năng, trade-offs
-    DevOps / QA Critic     → Bảo mật, edge cases, production readiness
-  Phase 2 (top 3 thảo luận nhóm):
-    Top 3 trajectories tranh luận, phản biện lẫn nhau
-  Synthesis:
-    Tổng hợp kết quả tốt nhất từ toàn bộ council
+4-agent council (Planner → Researcher → Critic → Synthesizer)
+  Planner      → Phân tích câu hỏi, chia nhỏ thành task list
+  Researcher   → Thu thập bằng chứng (web search, RAG, MCP)
+  Critic       → Đánh giá kết quả, quyết định cần làm thêm hay không
+  Synthesizer  → Tổng hợp câu trả lời cuối cùng
 ```
 
-Mỗi agent dùng LLMAdapter riêng (model cấu hình độc lập). Dữ liệu chia sẻ qua `Blackboard` (in-memory hoặc Redis). SSE streaming tại `/council/stream` (FastAPI).
+Mỗi agent dùng LLMAdapter riêng. Dữ liệu chia sẻ qua `Blackboard`. SSE streaming tại `/council/stream` (FastAPI).
 
 **xAI Native Research mode**: endpoint `xai-native/stream` — dùng xAI Live Search để làm giàu context trước khi trả lời.
 
@@ -461,17 +444,7 @@ git clone https://github.com/SkastVnT/AI-Assistant.git
 cd AI-Assistant
 ```
 
-### 2. Chạy bằng menu (khuyến nghị)
-
-```bash
-# Windows
-menu.bat
-
-# Linux/Mac
-./menu.sh
-```
-
-### 3. Chạy Chatbot thủ công
+### 2. Chạy Chatbot thủ công
 
 ```bash
 # Flask mode (mặc định)
@@ -487,7 +460,7 @@ set USE_FASTAPI=true           # Windows
 python run.py
 ```
 
-### 4. Chạy bằng script (Windows)
+### 3. Chạy bằng script (Windows)
 
 ```bat
 app\scripts\start-chatbot.bat
@@ -499,7 +472,7 @@ rem Khởi động tất cả
 app\scripts\start-all.bat
 ```
 
-### 5. Docker
+### 4. Docker
 
 ```bash
 # Core services (chatbot + MongoDB)
@@ -728,14 +701,15 @@ CI: `.github/workflows/tests.yml` — `pytest tests/ -v --tb=short --timeout=60`
 
 ## Optional Sidecars
 
-Hai công cụ tuỳ chọn có thể được kích hoạt cùng chatbot:
+Các công cụ tuỳ chọn có thể được kích hoạt cùng chatbot:
 
 | Tool | Type | Port | Env flag | Description |
 |---|---|---|---|---|
 | **last30days** | Subprocess | — | `LAST30DAYS_ENABLED=true` | Multi-source social media research (Reddit, X, YouTube, HackerNews, etc.) |
 | **Hermes Agent** | HTTP sidecar | 8080 | `HERMES_ENABLED=true` | Advanced AI agent với tool registry, memory, subagent delegation |
+| **Character Select** | Standalone web app | 51028 | — | Character picker UI — chọn/quản lý character cho image gen workflow. Source: [mirabarukaso/character_select_stand_alone_app](https://github.com/mirabarukaso/character_select_stand_alone_app), local copy tại `character_select_stand_alone_app-main/` |
 
-Cả hai đều **tuỳ chọn** — chatbot hoạt động bình thường khi chúng tắt. Routes tương ứng (`routes/last30days.py`, `routes/hermes.py`) chỉ register handler nhưng trả 503 nếu sidecar không được bật.
+Tất cả đều **tuỳ chọn** — chatbot hoạt động bình thường khi chúng tắt.
 
 ---
 
