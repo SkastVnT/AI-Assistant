@@ -187,6 +187,7 @@ services/stable-diffusion/log/
 services/stable-diffusion/tmp/
 services/stable-diffusion/cache.json
 stable-diffusion-webui/
+ComfyUI/final/
 
 # ============================================
 # LORA TRAINING SERVICE
