@@ -34,6 +34,37 @@ _DEFAULT_COMFYUI_URL = "http://127.0.0.1:8188"
 # Image storage: services/chatbot/Storage/Image_Gen/
 _IMAGE_STORAGE_DIR = Path(__file__).parent.parent / "Storage" / "Image_Gen"
 
+# ComfyUI sibling folder for the final canonical image of every run, including
+# runs that ended early via Stop. Mirrors the file already written under
+# Storage/Image_Gen so users can browse it next to ComfyUI/input + output.
+# Repo root is parents[3] of this file: services/chatbot/core/<file> -> repo.
+_COMFYUI_FINAL_DIR = Path(__file__).resolve().parents[3] / "ComfyUI" / "final"
+
+
+def _mirror_final_to_comfyui(b64: str, filename: str) -> Optional[str]:
+    """Write the final image bytes into ComfyUI/final/ alongside the canonical
+    Storage/Image_Gen copy. Also overwrites ``latest.png`` for quick access.
+
+    Returns the absolute filesystem path of the written file on success, or
+    None on any failure (mirroring is best-effort and never blocks the run).
+    """
+    if not b64 or not filename:
+        return None
+    try:
+        _COMFYUI_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+        raw = base64.b64decode(b64)
+        target = _COMFYUI_FINAL_DIR / filename
+        target.write_bytes(raw)
+        # Always-overwriting pointer so external tools can find "the last one".
+        try:
+            (_COMFYUI_FINAL_DIR / "latest.png").write_bytes(raw)
+        except Exception:
+            pass
+        return str(target)
+    except Exception as exc:
+        logger.debug("[AnimePipelineService] ComfyUI/final mirror failed: %s", exc)
+        return None
+
 # ── Concurrency control ─────────────────────────────────────────────────────
 # Limit concurrent ComfyUI pipeline jobs on local GPU.
 # Override via ANIME_PIPELINE_MAX_CONCURRENT env var (default 2).
@@ -316,6 +347,10 @@ def persist_pipeline_result(job: Any, req: PipelineRequest) -> dict[str, Any]:
         persisted["filename"] = filename
         persisted["local_url"] = local_url
         logger.info("[AnimePipelineService] Saved final image locally: %s", filename)
+        # Mirror into ComfyUI/final/ so users can browse the last image of
+        # every run (including Stop-and-export snapshots) right next to
+        # ComfyUI/input and ComfyUI/output. Best-effort, never blocks.
+        _mirror_final_to_comfyui(job.final_image_b64, filename)
     except Exception as save_err:
         logger.warning("[AnimePipelineService] Could not save image locally: %s", save_err)
 
@@ -684,6 +719,10 @@ def _run_pipeline_inner(
                 fname = f"anime_pipeline_io_{ts}_{safe_jid}_{idx}.png"
                 try:
                     (_IMAGE_STORAGE_DIR / fname).write_bytes(base64.b64decode(b64))
+                    # Also drop every candidate into ComfyUI/final/ — the
+                    # last write also refreshes latest.png so it points at
+                    # the most recent image-only batch tile.
+                    _mirror_final_to_comfyui(b64, fname)
                     gallery.append({
                         "index": idx,
                         "local_url": f"/storage/images/{fname}",
