@@ -1145,6 +1145,16 @@ class AnimePipelineOrchestrator:
                 job.stage_timings_ms["character_research"] = latency
                 job.stages_executed.append("character_research")
 
+                # SAA thumbnail lookup (best-effort, offline).
+                saa_thumbnail: Optional[str] = None
+                try:
+                    from .saa_character_db import get_character_thumbnail
+                    # The WAI DB keys are the space-form tag, so convert.
+                    tag_space = (result.danbooru_tag or "").replace("_", " ")
+                    saa_thumbnail = get_character_thumbnail(tag_space)
+                except Exception:
+                    saa_thumbnail = None
+
                 yield self._event("stage_complete", {
                     "stage": "character_research",
                     "stage_num": 2,
@@ -1156,6 +1166,12 @@ class AnimePipelineOrchestrator:
                     "ref_images_count": len(result.reference_images_b64),
                     "identity_tags_count": len(result.identity_tags),
                     "cached": result.cached,
+                    # New: expose resolution provenance so the UI can show
+                    # whether the match came from the hand-curated table,
+                    # the SAA 5149-char offline DB, or the web fallback.
+                    "alias_source": getattr(job, "alias_source", None),
+                    "character_tag": getattr(job, "character_tag", None),
+                    "saa_thumbnail": saa_thumbnail,
                 })
             else:
                 latency = (time.time() - t0) * 1000

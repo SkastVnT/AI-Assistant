@@ -156,6 +156,12 @@ def parse_character_identity(user_prompt: str) -> ParsedIdentity:
 
     alias_matches = _find_alias_matches(lower)
     if not alias_matches:
+        # Fallback to the SAA 5149-char verified database before giving up.
+        # This covers the long tail (Lynx, Castorice, Anaxa, ...) that the
+        # hand-maintained _CHARACTER_ALIASES table does not list.
+        saa_hit = _resolve_via_saa(user_prompt)
+        if saa_hit is not None:
+            _assign(result, saa_hit, source="saa_wai_db")
         # No character found — still emit solo-based negatives so that a
         # prompt like "one anime girl" still suppresses crowds.
         _fill_collision_blocks(result, alias_matches)
@@ -337,3 +343,47 @@ def _fill_collision_blocks(
 
 
 __all__ = ["ParsedIdentity", "parse_character_identity"]
+
+
+# ══════════════════════════════════════════════════════════════════════
+# SAA (Character Select Stand-Alone App) fallback
+# ══════════════════════════════════════════════════════════════════════
+
+def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
+    """Resolve a character via the SAA wai_characters.csv database.
+
+    Returns ``(danbooru_tag, series_tag, display_name, series_name)`` or
+    ``None``. The SAA DB holds 5149 characters verified against
+    waiIllustriousSDXL, which is much larger than the hand-curated
+    ``_CHARACTER_ALIASES`` table. Kept as a last-resort fallback because
+    the hand-curated table also knows about series hints and display
+    aliases that the CSV does not encode.
+
+    Fails closed on any import / lookup error so the main parser never
+    regresses to a crash when the SAA folder is missing.
+    """
+    try:
+        from .saa_character_db import lookup_character
+    except Exception:
+        return None
+
+    # Strip common prompt noise ("tạo ảnh", "draw", "make a picture of") so
+    # the CSV lookup sees just the likely subject phrase.
+    cleaned = user_prompt
+    for junk in ("tạo ảnh", "vẽ", "draw", "generate", "make a picture of",
+                 "picture of", "image of"):
+        cleaned = re.sub(rf"\b{re.escape(junk)}\b", " ", cleaned, flags=re.I)
+
+    try:
+        hit = lookup_character(cleaned)
+    except Exception:
+        return None
+    if hit is None or hit.match_score < 0.5:
+        return None
+
+    # Map SAA fields to the (tag, series_tag, display, series_name) tuple
+    # shape the pipeline expects.
+    series_tag = (hit.series_hint or "").replace(" ", "_").lower() or "unknown"
+    series_name = hit.series_hint or "Unknown"
+    display = hit.display_name or hit.tag.title()
+    return (hit.danbooru_tag, series_tag, display, series_name)

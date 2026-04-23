@@ -75,3 +75,109 @@ def local_image_gen_file(name: str):
         abort(404)
     return send_file(str(path), mimetype=mime, conditional=True)
 
+
+# ── SAA offline DB endpoints (tag autocomplete + character lookup) ───
+# Powered by image_pipeline/anime_pipeline/saa_character_db.py which
+# reads character_select_stand_alone_app-main/data/{wai_characters.csv,
+# danbooru_e621_merged.csv, wai_character_thumbs.json}. All lookups are
+# in-memory after the first call, so these endpoints are safe to call
+# from the chat input on every keystroke.
+
+
+@character_select_bp.route('/api/tags/autocomplete', methods=['GET'])
+def tags_autocomplete_route():
+    """Return up to ``limit`` tag suggestions for the given ``q`` prefix.
+
+    Response shape::
+        {"ok": true, "tags": [
+            {"tag": "...", "category": 0, "post_count": 42,
+             "aliases": ["..."]}, ...
+        ]}
+    """
+    q = (request.args.get('q') or '').strip()
+    try:
+        limit = max(1, min(int(request.args.get('limit', '20') or 20), 50))
+    except (TypeError, ValueError):
+        limit = 20
+    if len(q) < 1:
+        return jsonify({'ok': True, 'tags': []}), 200
+
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import autocomplete_tag
+    except Exception as exc:
+        logger.warning("[SAA-DB] autocomplete unavailable: %s", exc)
+        return jsonify({'ok': False, 'tags': [], 'error': str(exc)}), 200
+
+    try:
+        hits = autocomplete_tag(q, limit=limit)
+    except Exception as exc:
+        logger.exception("[SAA-DB] autocomplete lookup failed")
+        return jsonify({'ok': False, 'tags': [], 'error': str(exc)}), 500
+
+    return jsonify({
+        'ok': True,
+        'tags': [
+            {
+                'tag': t.tag,
+                'category': t.category,
+                'post_count': t.post_count,
+                'aliases': list(t.aliases)[:5],
+            }
+            for t in hits
+        ],
+    }), 200
+
+
+@character_select_bp.route('/api/characters/lookup', methods=['GET'])
+def character_lookup_route():
+    """Resolve a free-text query against the WAI 5149-character DB.
+
+    Response shape::
+        {"ok": true, "match": {
+            "display_name": "...", "tag": "...", "danbooru_tag": "...",
+            "series_hint": "...", "match_score": 0.87, "thumbnail": "..."
+        }}
+        or {"ok": true, "match": null} when nothing resolves.
+    """
+    q = (request.args.get('q') or '').strip()
+    if not q:
+        return jsonify({'ok': True, 'match': None}), 200
+
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import (
+            lookup_character, get_character_thumbnail,
+        )
+    except Exception as exc:
+        return jsonify({'ok': False, 'match': None, 'error': str(exc)}), 200
+
+    try:
+        hit = lookup_character(q)
+    except Exception as exc:
+        logger.exception("[SAA-DB] character lookup failed")
+        return jsonify({'ok': False, 'match': None, 'error': str(exc)}), 500
+
+    if hit is None:
+        return jsonify({'ok': True, 'match': None}), 200
+
+    return jsonify({
+        'ok': True,
+        'match': {
+            'display_name': hit.display_name,
+            'tag': hit.tag,
+            'danbooru_tag': hit.danbooru_tag,
+            'series_hint': hit.series_hint,
+            'match_score': hit.match_score,
+            'thumbnail': get_character_thumbnail(hit.tag),
+        },
+    }), 200
+
+
+@character_select_bp.route('/api/saa-db/stats', methods=['GET'])
+def saa_db_stats_route():
+    """Diagnostic endpoint — returns counts for the three DB files."""
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import db_stats
+        return jsonify({'ok': True, **db_stats()}), 200
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 200
+

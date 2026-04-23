@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # ── Paths ────────────────────────────────────────────────────────────
 
-_WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+_WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 _COMFYUI_LORA_ROOT = _WORKSPACE_ROOT / "ComfyUI" / "models" / "loras"
 _COMFYUI_LORA_DIR = _COMFYUI_LORA_ROOT / "characters"
 _STORAGE_ROOT = _WORKSPACE_ROOT / "storage"

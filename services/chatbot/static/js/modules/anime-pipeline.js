@@ -520,6 +520,10 @@ export class AnimePipeline {
                     if (row) row.querySelector('.ap-stage-time').textContent =
                         `${(data.latency_ms / 1000).toFixed(1)}s`;
                 }
+                // Show rich character card when character_research completes.
+                if (data.stage === 'character_research') {
+                    this._inlineShowCharacterCard(uid, data);
+                }
                 break;
             }
             case 'ap_critique_result': {
@@ -647,6 +651,147 @@ export class AnimePipeline {
             row.insertBefore(wrapper, timeEl);
         } else {
             row.appendChild(wrapper);
+        }
+    }
+
+    /**
+     * Render a "cực xịn" character research card right under the
+     * character_research stage row.
+     *
+     * Shows:
+     *   • 48×48 thumbnail (from SAA wai_character_thumbs.json when available)
+     *   • display_name + series
+     *   • provenance badge — "SAA DB", "alias table", "web", etc
+     *   • confidence bar (0–1) with a colored gradient
+     *
+     * This method is idempotent — calling twice replaces the previous card.
+     */
+    _inlineShowCharacterCard(uid, data) {
+        const row = document.getElementById(`ap-stage-${uid}-character_research`);
+        if (!row) return;
+
+        // Nothing to show when no character was detected.
+        if (data.skipped || !data.character) return;
+
+        const cardId = `ap-char-card-${uid}`;
+        document.getElementById(cardId)?.remove();
+
+        const card = document.createElement('div');
+        card.className = 'ap-character-card';
+        card.id = cardId;
+
+        const aliasSource = data.alias_source || 'unknown';
+        const sourceLabel = {
+            alias_table: 'Alias Table',
+            saa_wai_db:  'SAA DB (5149)',
+            civitai:     'CivitAI',
+            web:         'Web',
+            unknown:     'Auto',
+        }[aliasSource] || aliasSource;
+        const sourceColor = {
+            alias_table: '#68d391',
+            saa_wai_db:  '#8ab4ff',
+            civitai:     '#b794f4',
+            web:         '#f6e05e',
+        }[aliasSource] || '#999';
+
+        const conf = Math.max(0, Math.min(1, Number(data.confidence) || 0));
+        const confPct = Math.round(conf * 100);
+        const confColor = conf >= 0.8 ? '#68d391' : conf >= 0.5 ? '#f6e05e' : '#ff6b6b';
+
+        // Thumbnail: prefer SAA DB data URL; hide element when none.
+        const thumbHtml = data.saa_thumbnail
+            ? `<img class="ap-char-thumb" src="${data.saa_thumbnail}" alt="${data.character}">`
+            : `<div class="ap-char-thumb ap-char-thumb--placeholder">👤</div>`;
+
+        const charTag = data.character_tag || '';
+        const tagHtml = charTag
+            ? `<code class="ap-char-tag" title="Danbooru tag">${charTag}</code>`
+            : '';
+
+        const refsHtml = data.ref_images_count
+            ? `<span class="ap-char-meta-item" title="Reference images">🖼 ${data.ref_images_count}</span>`
+            : '';
+        const idTagsHtml = data.identity_tags_count
+            ? `<span class="ap-char-meta-item" title="Identity tags">🏷 ${data.identity_tags_count}</span>`
+            : '';
+        const cachedHtml = data.cached
+            ? `<span class="ap-char-meta-item" title="Loaded from local cache">⚡ cached</span>`
+            : '';
+
+        card.innerHTML = `
+            <div class="ap-char-card__left">${thumbHtml}</div>
+            <div class="ap-char-card__body">
+                <div class="ap-char-card__head">
+                    <span class="ap-char-name">${data.character}</span>
+                    <span class="ap-char-source-badge" style="background:${sourceColor}22;color:${sourceColor};border:1px solid ${sourceColor}55;">${sourceLabel}</span>
+                </div>
+                <div class="ap-char-card__sub">
+                    ${data.series ? `<span class="ap-char-series">${data.series}</span>` : ''}
+                    ${tagHtml}
+                </div>
+                <div class="ap-char-confbar" title="Confidence ${confPct}%">
+                    <div class="ap-char-confbar__fill" style="width:${confPct}%;background:${confColor};"></div>
+                    <span class="ap-char-confbar__label">${confPct}%</span>
+                </div>
+                <div class="ap-char-card__meta">${refsHtml}${idTagsHtml}${cachedHtml}</div>
+            </div>
+        `;
+
+        // Insert after the character_research stage row.
+        row.insertAdjacentElement('afterend', card);
+
+        // Lazy-inject card styles only once.
+        if (!document.getElementById('ap-character-card-styles')) {
+            const style = document.createElement('style');
+            style.id = 'ap-character-card-styles';
+            style.textContent = `
+.ap-character-card {
+  display: flex; gap: 10px; align-items: stretch;
+  margin: 6px 0 8px 22px; padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(138,180,255,0.08), rgba(183,148,244,0.08));
+  border: 1px solid rgba(138,180,255,0.25);
+  border-radius: 10px;
+  font-size: 12px;
+}
+.ap-char-card__left { flex: 0 0 auto; display: flex; align-items: center; }
+.ap-char-thumb {
+  width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.3);
+}
+.ap-char-thumb--placeholder {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #888;
+}
+.ap-char-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ap-char-card__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ap-char-name { font-weight: 600; color: var(--text, #eee); }
+.ap-char-source-badge {
+  font-size: 10px; font-weight: 600; padding: 1px 6px;
+  border-radius: 10px; letter-spacing: 0.3px;
+}
+.ap-char-card__sub { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--text-muted, #aaa); }
+.ap-char-series { font-style: italic; }
+.ap-char-tag {
+  font-family: ui-monospace, monospace; font-size: 10px;
+  padding: 1px 5px; border-radius: 3px;
+  background: rgba(0,0,0,0.35); color: #8ab4ff;
+}
+.ap-char-confbar {
+  position: relative; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 2px;
+}
+.ap-char-confbar__fill { height: 100%; transition: width 250ms ease; }
+.ap-char-confbar__label {
+  position: absolute; right: 4px; top: -14px;
+  font-size: 10px; color: var(--text-muted, #aaa);
+  font-variant-numeric: tabular-nums;
+}
+.ap-char-card__meta { display: flex; gap: 10px; font-size: 10px; color: var(--text-muted, #888); }
+.ap-char-meta-item { display: inline-flex; align-items: center; gap: 2px; }
+`;
+            document.head.appendChild(style);
         }
     }
 

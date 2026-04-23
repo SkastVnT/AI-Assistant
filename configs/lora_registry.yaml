@@ -2195,3 +2195,224 @@ character:
   compatible_models: ["illustrious", "sdxl"]
   tags: ["nsfw", "booster", "wai"]
   notes: "Companion to WAI Illustrious base. Keep strength low to avoid style drift."
+
+# ==============================================================
+# Newly downloaded batch (LORA/new_2/ - Apr 2026)
+# Integrated into ComfyUI via junctions: new_2_character/, new_2_style/,
+# new_2_eyes/, new_2_expression/, new_2_pixai/
+# Ultralytics models for ADetailer in ComfyUI/models/ultralytics/new_2/
+# ==============================================================
+
+# ---- Character packs (all-in-one, Illustrious/Pony/SDXL) ----
+
+- name: "new_2_character/star_rail_all-000014.safetensors"
+  location: comfyui
+  description: "Honkai Star Rail all-characters LoRA (civitai 434763). Trigger per-character with danbooru tags."
+  strength_model_range: [0.55, 0.85]
+  strength_clip_range: [0.45, 0.75]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["character", "honkai_star_rail", "all_in_one"]
+
+- name: "new_2_character/Star_Rail_251013.safetensors"
+  location: comfyui
+  description: "HSR 2025 all-characters refresh pack (civitai 2043415). Larger recent-roster coverage."
+  strength_model_range: [0.55, 0.85]
+  strength_clip_range: [0.45, 0.75]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["character", "honkai_star_rail", "2025", "all_in_one"]
+
+- name: "new_2_character/All_inone_Amphoreus_V3.6.safetensors"
+  location: comfyui
+  description: "HSR Amphoreus arc all-characters v3.6 (civitai 1866697)."
+  strength_model_range: [0.55, 0.85]
+  strength_clip_range: [0.45, 0.75]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["illustrious"]
+  tags: ["character", "honkai_star_rail", "amphoreus"]
+
+- name: "new_2_character/genshin_v4.safetensors"
+  location: comfyui
+  description: "Genshin Impact all-characters v4 (civitai 357976) - Pony base, 124+ characters."
+  strength_model_range: [0.55, 0.85]
+  strength_clip_range: [0.45, 0.75]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["pony", "illustrious"]
+  tags: ["character", "genshin_impact", "all_in_one"]
+
+- name: "new_2_character/mki-genshin108-1.5-v3.safetensors"
+  location: comfyui
+  description: "Genshin 108-character pack (civitai 450738). SD1.5 base."
+  strength_model_range: [0.50, 0.80]
+  strength_clip_range: [0.40, 0.70]
+  recommended_model: 0.65
+  recommended_clip: 0.55
+  compatible_models: ["sd1.5"]
+  tags: ["character", "genshin_impact", "sd15"]
+
+- name: "new_2_character/zenless_zone_zero_ill.safetensors"
+  location: comfyui
+  description: "Zenless Zone Zero all-characters (civitai 471854). Illustrious base."
+  strength_model_range: [0.55, 0.85]
+  strength_clip_range: [0.45, 0.75]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["illustrious"]
+  tags: ["character", "zenless_zone_zero", "zzz"]
+
+- name: "new_2_character/wuthering_waves_all_1_.safetensors"
+  location: comfyui
+  description: "Wuthering Waves all-characters pack (civitai 796742)."
+  strength_model_range: [0.55, 0.85]
+  strength_clip_range: [0.45, 0.75]
+  recommended_model: 0.70
+  recommended_clip: 0.60
+  compatible_models: ["illustrious"]
+  tags: ["character", "wuthering_waves", "wuwa"]
+
+# ---- Style / detail polish ----
+
+new_2_style:
+- name: "new_2_style/Smooth_Booster_v5.safetensors"
+  location: comfyui
+  description: "Smooth detailer booster (civitai 1145743). NoobAI/Illustrious/Pony. Sharpens detail without changing style."
+  strength_model_range: [0.25, 0.55]
+  strength_clip_range: [0.20, 0.45]
+  recommended_model: 0.40
+  recommended_clip: 0.35
+  compatible_models: ["illustrious", "noobai", "pony"]
+  tags: ["detail", "booster", "quality"]
+
+- name: "new_2_style/anime_screencap-IL-NOOB_v3.safetensors"
+  location: comfyui
+  description: "Fine anime-screencap style (civitai 345962). PonyXL/AutismMix anime TV-screencap aesthetic."
+  strength_model_range: [0.40, 0.80]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.65
+  recommended_clip: 0.45
+  compatible_models: ["illustrious", "noobai", "pony"]
+  tags: ["style", "screencap", "anime"]
+
+- name: "new_2_style/MeMax6-noob-vpred.safetensors"
+  location: comfyui
+  description: "MeMax flat-anime style (civitai 269772). PonyXL/Illustrious v-pred variant."
+  strength_model_range: [0.40, 0.80]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.65
+  recommended_clip: 0.45
+  compatible_models: ["pony", "illustrious"]
+  tags: ["style", "flat_anime", "vpred"]
+
+- name: "new_2_style/hinaFluxAnimeStyle_v3.safetensors"
+  location: comfyui
+  description: "Flux Illustrious anime style (civitai 1059388). Use for Flux-compatible workflows."
+  strength_model_range: [0.40, 0.80]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.65
+  recommended_clip: 0.45
+  compatible_models: ["flux", "illustrious"]
+  tags: ["style", "flux", "anime"]
+
+# ---- PixAI mirrors ----
+
+new_2_pixai:
+- name: "new_2_pixai/Vivid_Neon_Colors.safetensors"
+  location: comfyui
+  description: "PIXAI style collection - vivid neon colors variant (civitai 1756576). Illustrious base."
+  strength_model_range: [0.35, 0.75]
+  strength_clip_range: [0.25, 0.55]
+  recommended_model: 0.55
+  recommended_clip: 0.40
+  compatible_models: ["illustrious"]
+  tags: ["style", "pixai", "neon"]
+
+- name: "new_2_pixai/chubby_styleXL.safetensors"
+  location: comfyui
+  description: "PixAI chubby style XL (pixai 2001904744702518492). Chubby/moe anime character style."
+  strength_model_range: [0.40, 0.80]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.65
+  recommended_clip: 0.45
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["style", "chubby", "moe", "pixai"]
+
+# ---- Eyes ----
+
+new_2_eyes:
+- name: "new_2_eyes/Eyes_Lora_Pony_Perfect_eyes.safetensors"
+  location: comfyui
+  description: "Perfect anime eyes LoRA for Pony (civitai 596221)."
+  strength_model_range: [0.30, 0.65]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.50
+  recommended_clip: 0.40
+  compatible_models: ["pony"]
+  tags: ["eyes", "detail"]
+
+- name: "new_2_eyes/Eye_Focus__Concept__ILXL.safetensors"
+  location: comfyui
+  description: "Illustrious XL eye-focus concept LoRA (civitai 1719571). Close-up eye composition."
+  strength_model_range: [0.30, 0.65]
+  strength_clip_range: [0.25, 0.50]
+  recommended_model: 0.50
+  recommended_clip: 0.40
+  compatible_models: ["illustrious"]
+  tags: ["eyes", "composition", "closeup"]
+
+- name: "new_2_eyes/whiteeyelash_xl_v10_ill.safetensors"
+  location: comfyui
+  description: "White eyelashes helper SDXL (civitai 1690241). Illustrious."
+  strength_model_range: [0.25, 0.60]
+  strength_clip_range: [0.20, 0.45]
+  recommended_model: 0.45
+  recommended_clip: 0.35
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["eyes", "eyelash", "helper"]
+
+# ---- Expression ----
+
+new_2_expression:
+- name: "new_2_expression/sleepy_v100.safetensors"
+  location: comfyui
+  description: "Sleepy eyes expression (civitai 140423)."
+  strength_model_range: [0.35, 0.75]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.60
+  recommended_clip: 0.45
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["expression", "sleepy", "drunk_sleep"]
+
+- name: "new_2_expression/Unconscious_with_eyes_open.safetensors"
+  location: comfyui
+  description: "Sleeping-with-eyes-open / unconscious expression (civitai 1297732)."
+  strength_model_range: [0.35, 0.75]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.60
+  recommended_clip: 0.45
+  compatible_models: ["illustrious"]
+  tags: ["expression", "unconscious", "drunk_sleep"]
+
+- name: "new_2_expression/ahegao_v2.5.safetensors"
+  location: comfyui
+  description: "Rolling-eyes / ahegao expression (civitai 158012). NSFW."
+  strength_model_range: [0.30, 0.70]
+  strength_clip_range: [0.25, 0.55]
+  recommended_model: 0.55
+  recommended_clip: 0.40
+  compatible_models: ["illustrious", "pony"]
+  tags: ["expression", "nsfw_effect", "rolling_eyes"]
+
+- name: "new_2_expression/A_Better_Cry.safetensors"
+  location: comfyui
+  description: "Better crying expression (civitai 174836)."
+  strength_model_range: [0.35, 0.75]
+  strength_clip_range: [0.30, 0.60]
+  recommended_model: 0.60
+  recommended_clip: 0.45
+  compatible_models: ["illustrious", "sdxl"]
+  tags: ["expression", "crying", "mood"]
