@@ -46,6 +46,23 @@ from .detection_detail import (
 
 logger = logging.getLogger(__name__)
 
+
+def _is_job_cancel_requested(job_id: str) -> bool:
+    """Best-effort check against the chatbot job queue cancel flag.
+
+    Used as an instant-cancel checkpoint between region inpaint
+    iterations so the agent stops submitting new ComfyUI workflows
+    once the user clicks Stop. Silently returns ``False`` outside
+    the chatbot process (tests, standalone usage).
+    """
+    if not job_id:
+        return False
+    try:
+        from core.job_queue import get_queue  # type: ignore[import-not-found]
+        return bool(get_queue().is_cancel_requested(job_id))
+    except Exception:
+        return False
+
 # ── Processing order — regions are inpainted in this sequence ──────
 # Face first (highest visual impact), cleanup last.
 # full_eyes and eyes are deduplicated in DetectionDetailAgent.
@@ -758,6 +775,14 @@ class DetectionInpaintAgent:
         passes_run = 0
         total_region_count = 0
         for region_type in ordered_types:
+            # Instant-cancel checkpoint: abort before submitting the
+            # next region's inpaint workflow when the user clicked Stop.
+            if _is_job_cancel_requested(getattr(job, "job_id", "")):
+                logger.info(
+                    "[DetectionInpaint] job=%s cancel requested — stopping region loop at %s (passes_run=%d)",
+                    getattr(job, "job_id", "?"), region_type, passes_run,
+                )
+                break
             regions = detection.get(region_type)
             if not regions:
                 continue
@@ -1053,6 +1078,15 @@ class DetectionInpaintAgent:
 
         passes_run = 0
         for region_type in self._EYE_REGION_TYPES:
+            # Instant-cancel checkpoint for eye-emergency pass: the
+            # beauty-critique loop may trigger this AFTER the user
+            # clicked Stop; refuse to submit new ComfyUI workflows.
+            if _is_job_cancel_requested(getattr(job, "job_id", "")):
+                logger.info(
+                    "[DetectionInpaint] job=%s cancel requested — skipping eye_emergency_%s",
+                    getattr(job, "job_id", "?"), region_type,
+                )
+                break
             regions = detection.get(region_type)
             if not regions:
                 continue

@@ -38,6 +38,24 @@ _POLL_INTERVAL = 1.5
 _MAX_RETRIES = 3
 _WORKFLOW_VERSION = "2.0.0"
 
+
+def _is_job_cancel_requested(job_id: str) -> bool:
+    """Best-effort check against the chatbot job queue cancel flag.
+
+    Mirrors ``orchestrator._is_cancel_requested`` so any ComfyUI
+    submission can short-circuit before issuing a new workflow,
+    even if the cancel signal arrived while this client was between
+    calls. Returns ``False`` when the chatbot process is not
+    importable (standalone/test context).
+    """
+    if not job_id:
+        return False
+    try:
+        from core.job_queue import get_queue  # type: ignore[import-not-found]
+        return bool(get_queue().is_cancel_requested(job_id))
+    except Exception:
+        return False
+
 # Debug-mode filenames per pass name
 _DEBUG_FILENAMES: dict[str, str] = {
     "composition": "base.png",
@@ -209,6 +227,21 @@ class ComfyClient:
             ComfyJobResult with images or error details.
         """
         job_id = job_id or uuid.uuid4().hex[:12]
+
+        # Hard cancel gate: if the chatbot job queue already has a
+        # cancel request for this job_id, refuse to submit a new
+        # workflow. This prevents downstream agents (detection
+        # inpaint, eye-emergency, upscale) from queuing additional
+        # ComfyUI jobs after the user clicked Stop.
+        if _is_job_cancel_requested(job_id):
+            logger.info(
+                "[ComfyClient] job=%s pass=%s cancel requested — skipping submit",
+                job_id, pass_name,
+            )
+            return ComfyJobResult(
+                error="Cancelled",
+                cancelled=True,
+            )
 
         # Replace LoadImageFromBase64 with LoadImage (standard ComfyUI node).
         # This handles cases where custom nodes are not installed.
@@ -393,8 +426,15 @@ class ComfyClient:
 
         while time.time() < deadline:
             # Check cancellation
-            if self._is_cancelled(prompt_id):
+            if self._is_cancelled(prompt_id) or _is_job_cancel_requested(job_id):
                 duration = (time.time() - t0) * 1000
+                # If only job-level cancel fired, proactively tell
+                # ComfyUI to interrupt the currently running prompt.
+                try:
+                    with httpx.Client(timeout=3) as c2:
+                        c2.post(f"{self._base_url}/interrupt")
+                except Exception:
+                    pass
                 logger.info(
                     "[ComfyClient] job=%s pass=%s cancelled (%.0fms)",
                     job_id, pass_name, duration,

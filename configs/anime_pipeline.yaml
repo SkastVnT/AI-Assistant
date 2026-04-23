@@ -207,10 +207,12 @@ prompts:
   quality_prefix: "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed, vivid colors"
 
   # Negative prompt base.
-  # WAI v16 recommended negatives + standard quality drops + the `easynegative`
-  # textual inversion (loaded automatically when present in embeddings/).
+  # WAI v16 recommended negatives + standard quality drops.
+  # NOTE: `embedding:easynegative` removed — it is an SD1.5 embedding
+  # (768-dim) and causes "shape mismatch 768 != 1280" warnings when
+  # applied to SDXL-based illustrious checkpoints (1280-dim). Use an
+  # SDXL-compatible negative embedding if you want one back.
   negative_base: >-
-    embedding:easynegative,
     lowres, bad anatomy, bad hands, text, error, missing fingers,
     extra digit, fewer digits, cropped, worst quality, low quality,
     normal quality, jpeg artifacts, signature, watermark, username, blurry,
@@ -293,7 +295,10 @@ eye_refine:
 #   Tier 5: breasts, nipples, genital, pubic_area (NSFW)
 
 detection_inpaint:
-  enabled: true
+  # Disabled by default — user requested "mỗi layer mỗi khác biệt hoàn toàn
+  # nên không dựa vào inpaint nữa" (2026-04). Re-enable explicitly or via
+  # the ANIME_PIPELINE_DETECTION_INPAINT=1 env override.
+  enabled: false
 
   # ── Tier 1: Core anatomy ─────────────────────────────────────────
   layers:
