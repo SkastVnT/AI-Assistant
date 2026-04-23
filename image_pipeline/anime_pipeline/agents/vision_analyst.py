@@ -11,6 +11,7 @@ import base64
 import json
 import logging
 import os
+import re
 import time
 from typing import Optional
 
@@ -540,10 +541,22 @@ class VisionAnalystAgent:
           - "vẽ Rem từ Re:Zero"
           - "draw Asuna from SAO"
         Returns character_tag + series_tag + appearance_tags, or [] if no match.
+
+        Matching uses word boundaries so short aliases like "rem", "rin",
+        "saber" don't match inside unrelated words (e.g. "extreme",
+        "drinking", "scabbard"). Aliases are checked longest-first so
+        multi-word aliases win over single-word prefixes.
         """
         lower = user_prompt.lower()
-        for alias, (char_tag, series_tag, appearance) in _KNOWN_CHARACTERS.items():
-            if alias in lower:
+        # Longest alias first so "tokisaki kurumi" wins over "kurumi",
+        # "ellen joe" wins over "ellen", etc.
+        for alias in sorted(_KNOWN_CHARACTERS.keys(), key=len, reverse=True):
+            # Build a word-boundary regex. re.escape handles colons/spaces in
+            # aliases. \b works with ASCII aliases and the surrounding
+            # Vietnamese/Japanese/English text we support here.
+            pattern = r"\b" + re.escape(alias) + r"\b"
+            if re.search(pattern, lower):
+                char_tag, series_tag, appearance = _KNOWN_CHARACTERS[alias]
                 tags = [char_tag, series_tag] + appearance
                 logger.info("[VisionAnalyst] Character detected: %s → %s", alias, char_tag)
                 return tags
