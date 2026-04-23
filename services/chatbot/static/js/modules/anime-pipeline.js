@@ -90,12 +90,13 @@ export class AnimePipeline {
      * Runs inline in the chat (like a thinking box) — no modal popup.
      * Falls back to modal if chat container is not found.
      * @param {string} prompt
+     * @param {{imageOnly?: boolean, batchSize?: number, negativePrompt?: string}} [opts]
      */
-    openModalWithPrompt(prompt) {
+    openModalWithPrompt(prompt, opts = {}) {
         // Prefer inline chat mode so the result lands directly in the conversation.
         const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) {
-            this._runInlineChat(prompt, chatContainer);
+            this._runInlineChat(prompt, chatContainer, opts);
             return;
         }
         // Fallback: open modal
@@ -117,10 +118,20 @@ export class AnimePipeline {
      * then replaces it with the final image on completion.
      * @param {string} prompt
      * @param {HTMLElement} chatContainer
+     * @param {{imageOnly?: boolean, batchSize?: number, negativePrompt?: string}} [opts]
+     *   imageOnly  — when true the backend stops after composition_pass
+     *                and returns N candidates (skips beauty / yolo / etc.).
+     *   batchSize  — number of candidates to emit (1-6, clamped server-side).
+     *                Only meaningful when imageOnly is true.
+     *   negativePrompt — optional; not yet wired into the backend request
+     *                schema but reserved so the choice-card payload survives
+     *                the regenerate round-trip.
      */
-    async _runInlineChat(prompt, chatContainer) {
+    async _runInlineChat(prompt, chatContainer, opts = {}) {
         if (this._running) return;
         this._running = true;
+        const imageOnly = !!opts.imageOnly;
+        const batchSize = Math.max(1, Math.min(parseInt(opts.batchSize, 10) || 1, 6));
 
         const uid = Date.now().toString(36);
         const startTime = Date.now();
@@ -142,7 +153,19 @@ export class AnimePipeline {
             preset: 'anime_quality',
             quality_mode: 'quality',
             debug: false,
+            image_only: imageOnly,
+            batch_size: imageOnly ? batchSize : 1,
         };
+
+        // Stash the run options on the bubble so the regenerate /
+        // edit-and-rerun buttons in _inlineShowResult can preserve
+        // image-only mode and batch size on the next round-trip
+        // without the user re-opening the choice card.
+        const bubbleEl = document.getElementById(`ap-inline-${uid}`);
+        if (bubbleEl) {
+            bubbleEl.dataset.apImageOnly = imageOnly ? '1' : '0';
+            bubbleEl.dataset.apBatchSize = String(body.batch_size);
+        }
 
         this._abort = new AbortController();
         try {
@@ -893,10 +916,47 @@ export class AnimePipeline {
             const headerLabel = wasCancelled
                 ? `⏸ Anime Pipeline (đã ngưng) · ${elapsed}s`
                 : `🎨 Anime Pipeline · ${elapsed}s`;
+
+            // Recover the run options so regenerate can stay in the
+            // same mode (image-only + batch size). Fallback to defaults
+            // when the dataset was lost (older bubbles, edge cases).
+            const wasImageOnly = bubble.dataset.apImageOnly === '1' || !!data.image_only;
+            const replayBatchSize = parseInt(bubble.dataset.apBatchSize, 10)
+                || data.batch_count || 1;
+
+            // Image-only batch mode: render every candidate as a
+            // clickable thumb in a responsive grid. Each opens the
+            // existing lightbox (window.openImagePreview) at full
+            // resolution. Falls back to the single-image layout when
+            // ``data.images`` is missing (regular pipeline result).
+            const galleryItems = Array.isArray(data.images) ? data.images : [];
+            const hasGallery = wasImageOnly && galleryItems.length > 1;
+
+            let mediaHtml;
+            if (hasGallery) {
+                const tiles = galleryItems.map((g, i) => {
+                    const src = g.local_url
+                        ? g.local_url
+                        : (g.image_b64 ? 'data:image/png;base64,' + g.image_b64 : '');
+                    if (!src) return '';
+                    return `<div class="ap-batch-tile" style="position:relative;">
+                        <img src="${src}" alt="Anime Pipeline candidate ${i + 1}" data-igv2-open="${src}" style="width:100%;height:auto;display:block;border-radius:8px;cursor:zoom-in;">
+                        <span class="ap-batch-tile-num" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">#${i + 1}</span>
+                    </div>`;
+                }).join('');
+                mediaHtml = `<div class="ap-batch-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">${tiles}</div>`;
+            } else {
+                mediaHtml = `<img src="${imgSrc}" alt="Anime Pipeline result" data-igv2-open="${imgSrc}">`;
+            }
+
+            const metaSuffix = hasGallery
+                ? ` · ${galleryItems.length} ảnh`
+                : (data.local_url ? ' · 💾 saved' : '');
+
             resultDiv.innerHTML = `
                 <div class="igv2-chat-image" data-prompt="${promptAttr}">
-                    <img src="${imgSrc}" alt="Anime Pipeline result" data-igv2-open="${imgSrc}">
-                    <div class="igv2-chat-meta">${headerLabel}${data.local_url ? ' · 💾 saved' : ''}</div>
+                    ${mediaHtml}
+                    <div class="igv2-chat-meta">${headerLabel}${metaSuffix}</div>
                     <div class="ap-inline-result-btns">
                         <button class="ap-inline-btn" data-action="download" data-job="${jobId}" data-prompt="${promptAttr}" data-download-url="${data.local_url || ''}">📥 Tải ảnh</button>
                         <button class="ap-inline-btn" data-action="regenerate" data-prompt="${promptAttr}">🔄 Tạo lại</button>
@@ -935,9 +995,16 @@ export class AnimePipeline {
                 });
             } catch (_e) { /* non-fatal */ }
 
-            // Tạo lại: re-run inline with same prompt
+            // Tạo lại: re-run inline with same prompt — preserve the
+            // image-only / batch-size mode so a regenerate from a
+            // 4-image batch produces another 4-image batch (with new
+            // random seeds) instead of dropping back to the full
+            // beauty pipeline.
             resultDiv.querySelector('[data-action="regenerate"]')?.addEventListener('click', () => {
-                this._runInlineChat(prompt, chatContainer);
+                this._runInlineChat(prompt, chatContainer, {
+                    imageOnly: wasImageOnly,
+                    batchSize: replayBatchSize,
+                });
             });
 
             // Chỉnh sửa: toggle edit box
@@ -949,12 +1016,15 @@ export class AnimePipeline {
                 }
             });
 
-            // Run with edited prompt
+            // Run with edited prompt — also preserve the run mode.
             resultDiv.querySelector('[data-action="edit-run"]')?.addEventListener('click', () => {
                 const newPrompt = editBox.querySelector('textarea')?.value?.trim();
                 if (newPrompt) {
                     editBox.style.display = 'none';
-                    this._runInlineChat(newPrompt, chatContainer);
+                    this._runInlineChat(newPrompt, chatContainer, {
+                        imageOnly: wasImageOnly,
+                        batchSize: replayBatchSize,
+                    });
                 }
             });
 
@@ -963,15 +1033,16 @@ export class AnimePipeline {
                 editBox.style.display = 'none';
             });
 
-            // Wire image click-to-open via the real lightbox.
-            const img = resultDiv.querySelector('img');
-            if (img) {
+            // Wire image click-to-open via the real lightbox. Covers
+            // both the single-image layout and every tile in the
+            // image-only batch grid.
+            resultDiv.querySelectorAll('img[data-igv2-open]').forEach(img => {
                 img.addEventListener('click', () => {
                     if (window.openImagePreview) {
                         window.openImagePreview(img);
                     }
                 });
-            }
+            });
 
             msgContent?.appendChild(resultDiv.firstElementChild);
             chatContainer.scrollTop = chatContainer.scrollHeight;

@@ -141,11 +141,17 @@ class CompositionPassAgent:
         clip_skip = self._config.composition_model.clip_skip
 
         # Build workflow via WorkflowBuilder
+        # Image-only mode: emit a batch of N candidates from a single
+        # KSampler so the user gets variety without paying for N full
+        # pipeline runs. job.batch_size is clamped 1-6 by the request
+        # validator; ignored when img2img (source_image_b64 set).
+        batch_size = max(1, min(int(getattr(job, "batch_size", 1) or 1), 6))
         workflow = self._builder.build_composition(
             refined_comp,
             seed,
             source_image_b64=job.source_image_b64 or "",
             clip_skip=clip_skip,
+            batch_size=batch_size,
         )
 
         # Submit to ComfyUI via ComfyClient
@@ -176,6 +182,24 @@ class CompositionPassAgent:
             checkpoint=comp.checkpoint,
             duration_ms=result.duration_ms,
         )
+
+        # Image-only batch mode: persist EVERY candidate so the chat UI
+        # can render a gallery. The first one is also the canonical
+        # composition_pass intermediate (used by downstream stages when
+        # image_only is False). Extra candidates are added under
+        # composition_pass_alt_N stages so the existing intermediate
+        # tracker / save_intermediates logic stays consistent.
+        if getattr(job, "image_only", False) and len(result.images_b64) > 1:
+            job.final_images_b64 = list(result.images_b64)
+            for idx, alt_b64 in enumerate(result.images_b64[1:], start=1):
+                job.add_intermediate(
+                    f"composition_pass_alt_{idx}", alt_b64,
+                    seed=seed,
+                    checkpoint=comp.checkpoint,
+                    duration_ms=result.duration_ms,
+                )
+        elif getattr(job, "image_only", False):
+            job.final_images_b64 = [image_b64]
 
         latency = (time.time() - t0) * 1000
         job.mark_stage("composition_pass", latency)

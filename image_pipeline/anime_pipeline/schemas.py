@@ -614,6 +614,16 @@ class AnimePipelineJob:
     critique_results: list[CritiqueReport] = field(default_factory=list)
     intermediates: list[IntermediateImage] = field(default_factory=list)
 
+    # Image-only batch mode (composition-only fast path) ─────────────
+    # When ``image_only`` is True the orchestrator stops after
+    # composition_pass and skips structure_lock / beauty / detection /
+    # critique / upscale. ``batch_size`` controls how many candidates
+    # the composition KSampler emits in a single workflow (clamped 1-6
+    # by the request validator). All N candidates are kept and surfaced
+    # via ``final_images_b64`` so the chat UI can render a gallery.
+    image_only: bool = False
+    batch_size: int = 1
+
     # Final output
     final_image_b64: Optional[str] = None
     final_image_url: Optional[str] = None
@@ -623,6 +633,10 @@ class AnimePipelineJob:
     # Secondary output: populated when re-plan attempt 1 also produced a usable image.
     # Both images are returned to the user when neither attempt passes quality.
     secondary_image_b64: Optional[str] = None
+    # Image-only batch results — populated by composition_pass when
+    # ``image_only`` is True and ``batch_size`` > 1. First entry equals
+    # ``final_image_b64``.
+    final_images_b64: list[str] = field(default_factory=list)
 
     # Arbitrary metadata bag (internal pipeline use, not persisted by default)
     metadata: dict[str, Any] = field(default_factory=dict)

@@ -304,6 +304,41 @@ class AnimePipelineOrchestrator:
                 yield self._build_cancellation_event(job, "composition_pass", t0)
                 return
 
+            # ── Image-only fast path ──────────────────────────────────
+            # When the user picked "Chỉ tạo ảnh" in the choice card, we
+            # stop here and skip structure_lock / beauty / detection /
+            # critique / upscale entirely. The composition_pass agent
+            # already populated job.final_images_b64 with all batch
+            # candidates (1 to 6 images). We just promote the first one
+            # to final_image_b64 and emit pipeline_complete.
+            if getattr(job, "image_only", False):
+                last_intermediate = self._pick_best_intermediate(job)
+                if last_intermediate and not job.final_image_b64:
+                    job.final_image_b64 = last_intermediate
+                if not job.final_images_b64 and job.final_image_b64:
+                    job.final_images_b64 = [job.final_image_b64]
+                job.status = AnimePipelineStatus.COMPLETED
+                job.completed_at = self._now_iso()
+                job.total_latency_ms = (time.time() - t0) * 1000
+                logger.info(
+                    "[AnimePipeline] image_only fast path complete: %d candidate(s), %.0fms",
+                    len(job.final_images_b64), job.total_latency_ms,
+                )
+                yield self._event("pipeline_complete", {
+                    "job_id": job.job_id,
+                    "status": "completed",
+                    "has_image": job.final_image_b64 is not None,
+                    "has_secondary_image": False,
+                    "image_only": True,
+                    "batch_count": len(job.final_images_b64),
+                    "total_latency_ms": job.total_latency_ms,
+                    "stages_executed": job.stages_executed,
+                    "refine_rounds": 0,
+                    "models_used": job.models_used,
+                    "vram_profile": self._config.vram.profile.value,
+                })
+                return
+
             # Stage 4: Structure Lock
             yield from self._run_stage(
                 "structure_lock", self._structure, job, stage_num=6, total=9,

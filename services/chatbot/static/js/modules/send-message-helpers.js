@@ -197,7 +197,14 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
     // ── LOCAL → open Anime Pipeline modal with prompt pre-filled ──
     if (providerChoice === 'local') {
         const effectivePrompt = dialogResult.promptOverride || message;
-        window.animePipeline?.openModalWithPrompt(effectivePrompt);
+        // Forward image-only toggle + batch size + per-run negative
+        // prompt down into the anime pipeline so the LOCAL path can
+        // honour the choice card without going through the modal.
+        window.animePipeline?.openModalWithPrompt(effectivePrompt, {
+            imageOnly: !!dialogResult.imageOnly,
+            batchSize: dialogResult.batchSize || 1,
+            negativePrompt: dialogResult.negativePrompt || '',
+        });
         return;
     }
 
@@ -339,6 +346,20 @@ function showProviderChoiceDialog(elements) {
                                     <button class="igv2-choice-chip" data-value="15">15</button>
                                 </div>
                             </div>
+                            <div class="igv2-choice-option-group igv2-choice-option-full">
+                                <span class="igv2-choice-option-label">🎨 Chỉ tạo ảnh (LOCAL)</span>
+                                <div class="igv2-choice-image-only-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                    <label class="igv2-choice-toggle" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;" title="Bỏ qua YOLO / beauty pass / critique — chỉ chạy tới composition rồi trả về nhiều ảnh.">
+                                        <input type="checkbox" data-field="image-only" style="width:16px;height:16px;cursor:pointer;">
+                                        <span>Bỏ qua tinh chỉnh, trả về nhiều ảnh</span>
+                                    </label>
+                                    <div class="igv2-choice-chips igv2-choice-batch-chips" data-option="batch" style="opacity:0.45;pointer-events:none;">
+                                        <button class="igv2-choice-chip" data-value="2">2</button>
+                                        <button class="igv2-choice-chip selected" data-value="4">4</button>
+                                        <button class="igv2-choice-chip" data-value="6">6</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="igv2-choice-progress">
@@ -368,6 +389,23 @@ function showProviderChoiceDialog(elements) {
             ta.addEventListener('blur', () => { paused = false; });
         });
 
+        // Image-only checkbox enables / disables the batch-size chip
+        // group. Batch size is meaningful only when image-only is on,
+        // so the row stays dimmed until the user opts in.
+        const imageOnlyCb = choiceContainer.querySelector('[data-field="image-only"]');
+        const batchChipsRoot = choiceContainer.querySelector('.igv2-choice-batch-chips');
+        if (imageOnlyCb && batchChipsRoot) {
+            imageOnlyCb.addEventListener('change', () => {
+                if (imageOnlyCb.checked) {
+                    batchChipsRoot.style.opacity = '1';
+                    batchChipsRoot.style.pointerEvents = 'auto';
+                } else {
+                    batchChipsRoot.style.opacity = '0.45';
+                    batchChipsRoot.style.pointerEvents = 'none';
+                }
+            });
+        }
+
         const timerEl = choiceContainer.querySelector('.igv2-choice-timer');
         const progressBar = choiceContainer.querySelector('.igv2-choice-progress-bar');
         let remaining = TIMEOUT_SECONDS;
@@ -377,8 +415,12 @@ function showProviderChoiceDialog(elements) {
             const stepsChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="steps"] .igv2-choice-chip.selected');
             const sizeChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="size"] .igv2-choice-chip.selected');
             const guidanceChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="guidance"] .igv2-choice-chip.selected');
+            const batchChip = choiceContainer.querySelector('.igv2-choice-chips[data-option="batch"] .igv2-choice-chip.selected');
             const promptOverride = choiceContainer.querySelector('.igv2-choice-textarea[data-field="prompt"]')?.value.trim() || '';
             const negativePrompt = choiceContainer.querySelector('.igv2-choice-textarea[data-field="negative"]')?.value.trim() || '';
+            const imageOnly = !!choiceContainer.querySelector('[data-field="image-only"]')?.checked;
+            const rawBatch = batchChip ? parseInt(batchChip.dataset.value, 10) : 4;
+            const batchSize = Math.max(1, Math.min(rawBatch || 1, 6));
             return {
                 steps: stepsChip ? parseInt(stepsChip.dataset.value, 10) : 30,
                 width: sizeChip ? parseInt(sizeChip.dataset.w, 10) : 1024,
@@ -387,6 +429,8 @@ function showProviderChoiceDialog(elements) {
                 guidance: guidanceChip ? parseFloat(guidanceChip.dataset.value) : 5,
                 promptOverride,
                 negativePrompt,
+                imageOnly,
+                batchSize: imageOnly ? batchSize : 1,
             };
         };
 

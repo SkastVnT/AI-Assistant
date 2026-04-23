@@ -141,6 +141,14 @@ class PipelineRequest:
     session_id: str = ""
     conversation_id: str = ""
     thinking_mode: str = "instant"
+    # Image-only fast path: when True, the orchestrator stops after
+    # composition_pass and skips structure_lock / beauty / yolo /
+    # critique / upscale. Triggered by the "Chỉ tạo ảnh" toggle on
+    # the chat choice card. ``batch_size`` (clamped 1-6) is the number
+    # of candidate images the composition KSampler emits in a single
+    # workflow; only meaningful when ``image_only`` is True.
+    image_only: bool = False
+    batch_size: int = 1
 
 
 def validate_request(data: dict) -> tuple[Optional[PipelineRequest], Optional[str]]:
@@ -179,6 +187,8 @@ def validate_request(data: dict) -> tuple[Optional[PipelineRequest], Optional[st
         session_id=data.get("session_id", ""),
         conversation_id=data.get("conversation_id", ""),
         thinking_mode=data.get("thinking_mode", "instant"),
+        image_only=bool(data.get("image_only", False)),
+        batch_size=max(1, min(int(data.get("batch_size", 1) or 1), 6)),
     )
     return req, None
 
@@ -196,6 +206,8 @@ def build_job(req: PipelineRequest) -> Any:
         quality_hint=req.quality_mode,
         session_id=req.session_id,
         thinking_mode=req.thinking_mode,
+        image_only=req.image_only,
+        batch_size=req.batch_size,
     )
     return job
 
@@ -651,6 +663,45 @@ def _run_pipeline_inner(
     if job.final_image_b64:
         result_data["image_b64"] = job.final_image_b64
         result_data.update(persist_pipeline_result(job, req))
+
+    # Image-only batch mode: persist every candidate image so the
+    # frontend can render a clickable gallery. The first one is
+    # already the canonical final_image_b64 above; we surface the
+    # full list (with local URLs) under ``images`` so the UI can
+    # show all of them at once and each opens in the lightbox at
+    # full resolution. Each candidate is saved to /storage/images
+    # under its own filename so the gallery survives a page reload.
+    extra_images: list[str] = list(getattr(job, "final_images_b64", []) or [])
+    if req.image_only and len(extra_images) > 1:
+        gallery: list[dict[str, Any]] = []
+        try:
+            _IMAGE_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            safe_jid = "".join(c for c in job.job_id if c.isalnum() or c in "-_")[:16]
+            for idx, b64 in enumerate(extra_images):
+                if not b64:
+                    continue
+                fname = f"anime_pipeline_io_{ts}_{safe_jid}_{idx}.png"
+                try:
+                    (_IMAGE_STORAGE_DIR / fname).write_bytes(base64.b64decode(b64))
+                    gallery.append({
+                        "index": idx,
+                        "local_url": f"/storage/images/{fname}",
+                        "filename": fname,
+                    })
+                except Exception as save_err:
+                    logger.warning(
+                        "[AnimePipelineService] image_only save %d failed: %s",
+                        idx, save_err,
+                    )
+                    gallery.append({"index": idx, "image_b64": b64})
+        except Exception as exc:
+            logger.warning("[AnimePipelineService] image_only gallery setup failed: %s", exc)
+            gallery = [{"index": i, "image_b64": b} for i, b in enumerate(extra_images) if b]
+        if gallery:
+            result_data["images"] = gallery
+            result_data["image_only"] = True
+            result_data["batch_count"] = len(gallery)
 
     yield _sse_line("ap_result", result_data)
     yield _sse_line("ap_done", {"job_id": job.job_id})

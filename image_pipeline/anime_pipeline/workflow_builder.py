@@ -60,6 +60,7 @@ class WorkflowBuilder:
         *,
         source_image_b64: str = "",
         clip_skip: int = 1,
+        batch_size: int = 1,
     ) -> dict:
         """Build a composition-pass workflow: txt2img or img2img.
 
@@ -73,17 +74,22 @@ class WorkflowBuilder:
         ``clip_skip`` > 1 inserts a CLIPSetLastLayer node to skip
         the last N-1 CLIP layers — common for anime checkpoints.
 
+        ``batch_size`` controls the EmptyLatentImage batch dim — used
+        by the image-only fast path so a single ComfyUI workflow emits
+        N candidate images. Ignored for img2img (single source).
+
         ControlNet inputs attached from ``pc.control_inputs`` are wired
         in the same way as all other builder methods.
         """
+        bs = max(1, min(int(batch_size or 1), 6))
         if source_image_b64:
             return self._build_composition_img2img(
                 pc, source_image_b64, seed, clip_skip,
             )
-        return self._build_composition_txt2img(pc, seed, clip_skip)
+        return self._build_composition_txt2img(pc, seed, clip_skip, bs)
 
     def _build_composition_txt2img(
-        self, pc: PassConfig, seed: int, clip_skip: int,
+        self, pc: PassConfig, seed: int, clip_skip: int, batch_size: int = 1,
     ) -> dict:
         """Composition txt2img: checkpoint → [CLIPSetLastLayer] → CLIP → latent → KSampler → VAE → Save."""
         self._reset()
@@ -129,7 +135,7 @@ class WorkflowBuilder:
         latent = self._nid()
         w[latent] = {
             "class_type": "EmptyLatentImage",
-            "inputs": {"width": pc.width, "height": pc.height, "batch_size": 1},
+            "inputs": {"width": pc.width, "height": pc.height, "batch_size": int(batch_size)},
         }
 
         pos_out = clip_pos
