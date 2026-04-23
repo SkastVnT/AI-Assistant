@@ -1,13 +1,15 @@
-﻿# AI-Assistant
+# AI-Assistant
 
-Nền tảng microservices Python tích hợp nhiều dịch vụ AI: chatbot đa mô hình, stable diffusion, image editing (ComfyUI), và MCP server.
+Nền tảng microservices Python tích hợp các dịch vụ AI: chatbot đa mô hình LLM, image generation đa provider, video generation, và MCP server.
+
+---
 
 ## Dịch vụ đang hoạt động
 
 | Service | Port | Entry Point | Mô tả |
 |---|---|---|---|
 | **ChatBot** | **5000** | `services/chatbot/run.py` | AI Chat + Voice + OCR + Image Gen + Video + Tools |
-| **Stable Diffusion** | **7861** | `services/stable-diffusion/` | Image generation (SDXL) |
+| **Stable Diffusion** | **7861** | `services/stable-diffusion/` | Image generation (SDXL backend) |
 | **Edit Image** | **8100** | `services/edit-image/` | AI image editing (ComfyUI backend) |
 | **MCP Server** | **stdio** | `services/mcp-server/server.py` | Model Context Protocol tools |
 
@@ -19,28 +21,30 @@ Nền tảng microservices Python tích hợp nhiều dịch vụ AI: chatbot đ
 
 | Tính năng | Mô tả |
 |---|---|
-| **Đa mô hình LLM** | Grok (xAI), OpenAI GPT-4, DeepSeek, Gemini (pool 4 key), Qwen, OpenRouter, StepFun |
-| **Thinking Modes** | Instant / Think / Deep-Think / Multi-Thinking (4 Agents) |
-| **Skill System** | 11 built-in personas tự động route theo nội dung tin nhắn |
-| **Image Generation** | 7 provider: fal.ai, BFL/FLUX, Replicate, StepFun, OpenAI DALL-E, Together AI, ComfyUI |
-| **Anime Pipeline** | Local 9-stage layered anime generation — Vision → Character Research → LoRA → (Council) → Plan → Compose → Structure → Beauty+YOLO+Critique loop → Upscale → Ranker → Manifest |
-| **Video AI** | OpenAI Sora 2 — text-to-video 4/8/12s, 720p/1080p |
-| **Web Search** | SerpAPI (Google, Bing, Baidu) + Google CSE fallback — tự động kích hoạt |
-| **Reverse Image** | Google Lens → Google Reverse Image → Yandex (cascade) |
+| **Đa mô hình LLM** | Grok (xAI), OpenAI GPT-4/o1, DeepSeek, Gemini (pool 4 key), Qwen, OpenRouter, StepFun, HuggingFace, Ollama local |
+| **Thinking Modes** | Instant / Think / Deep-Think / Multi-Thinking (Research Council 5 thành viên) |
+| **Skill System** | 12 built-in personas tự động route theo nội dung tin nhắn |
+| **Image Generation** | 7 provider: fal.ai, Black Forest Labs, Replicate, StepFun, OpenAI DALL-E, Together AI, ComfyUI |
+| **Video AI** | OpenAI Sora 2 — text-to-video 4/8/12s, 720p/1080p (yêu cầu unlock) |
+| **Web Search** | SerpAPI (Google, Bing, Baidu) + Google CSE fallback — tự động kích hoạt theo từ khoá |
+| **Reverse Image** | Google Lens → Google Reverse Image → Yandex (cascade tự động) |
 | **Image Search** | SerpAPI google_images — tìm ảnh theo query |
-| **SauceNAO** | Tìm nguồn gốc ảnh anime/illustration |
+| **SauceNAO** | Tìm nguồn gốc ảnh |
 | **Voice (STT)** | Whisper API — transcribe audio thành text |
 | **OCR** | Vision APIs — đọc nội dung ảnh và PDF |
 | **RAG** | MongoDB Atlas — lưu và tìm kiếm memory theo ngữ nghĩa |
-| **MCP Integration** | Truy cập file/folder local, đọc code, grep — qua MCP server (stdio) |
+| **MCP Integration** | Truy cập file/folder local, đọc code, grep, OCR — qua MCP server (stdio) |
 | **Memory System** | Lưu trữ memory theo session + semantic search |
-| **User Auth** | Đăng ký/đăng nhập, quota tin nhắn/ảnh, video unlock |
+| **User Auth** | Đăng ký / đăng nhập, quota tin nhắn / ảnh, video unlock qua admin |
 | **Admin Panel** | Quản lý user, session, ảnh, memory, logs, payment |
-| **QR Payment** | VietQR — mở khóa tính năng video generation |
-| **Streaming** | Server-Sent Events (SSE) — streaming thời gian thực |
-| **Image Storage** | ImgBB + MongoDB + Firebase RTDB + Google Drive |
-| **Conversation CRUD** | Tạo / xóa / archive / switch conversation |
-| **Swagger UI** | Tài liệu API tự động tại `/docs` (FastAPI mode) |
+| **QR Payment** | VietQR — mở khoá tính năng video generation |
+| **SSE Streaming** | Server-Sent Events — streaming token thời gian thực |
+| **URL Routing** | URL theo từng cuộc trò chuyện `/c/<conversation_id>` (ChatGPT-style), Back/Forward browser hoạt động đầy đủ |
+| **Image Storage** | ImgBB + MongoDB + Firebase RTDB + Google Drive (best-effort) |
+| **Conversation CRUD** | Tạo / xoá / archive / switch / generate title |
+| **Image Context Memory** | Tự động đính kèm các ảnh đã tạo gần đây vào context để LLM tham chiếu |
+| **History Truncation** | Giới hạn history gửi lên LLM (30 messages × 4000 chars) để tránh context overflow |
+| **Optional Sidecars** | last30days (social media research), Hermes Agent (HTTP sidecar) — bật/tắt qua env |
 
 ---
 
@@ -60,14 +64,14 @@ Nền tảng microservices Python tích hợp nhiều dịch vụ AI: chatbot đ
 | Provider | Env Key | Ghi chú |
 |---|---|---|
 | xAI Grok | `GROK_API_KEY` / `XAI_API_KEY` | Grok-2, Grok-3 |
-| OpenAI | `OPENAI_API_KEY` | GPT-4o, GPT-4, o1; bắt buộc để dùng Sora 2 + DALL-E |
+| OpenAI | `OPENAI_API_KEY` | GPT-4o, GPT-4, o1; bắt buộc cho Sora 2 + DALL-E + Whisper |
 | DeepSeek | `DEEPSEEK_API_KEY` | DeepSeek-V3, R1 reasoning |
 | Google Gemini | `GEMINI_API_KEY_1..4` | Pool 4 key, rotation tự động |
 | Alibaba Qwen | `QWEN_API_KEY` / `DASHSCOPE_API_KEY` | Qwen-2.5, Qwen-VL |
 | OpenRouter | `OPENROUTER_API_KEY` | Multi-model proxy |
-| StepFun | `STEPFUN_API_KEY` | Step-1X (Chinese LLM) |
+| StepFun | `STEPFUN_API_KEY` | Step-1X |
 | HuggingFace | `HUGGINGFACE_API_KEY` / `HUGGINGFACE_TOKEN` | Inference API |
-| Local (Ollama) | — | Qwen, Llama qua Ollama/llama.cpp |
+| Local (Ollama) | — | Qwen, Llama qua Ollama / llama.cpp |
 
 ---
 
@@ -77,13 +81,13 @@ Nền tảng microservices Python tích hợp nhiều dịch vụ AI: chatbot đ
 |---|---|---|---|
 | **fal.ai** | `FAL_API_KEY` | 90 | FLUX.1, FLUX Pro, Recraft, Ideogram |
 | **Black Forest Labs** | `BFL_API_KEY` | 85 | FLUX Pro raw |
-| **Replicate** | `REPLICATE_API_KEY` | 80 | Nhiều model, marketplace |
+| **Replicate** | `REPLICATE_API_KEY` | 80 | Marketplace nhiều model |
 | **StepFun** | `STEPFUN_API_KEY` | 75 | Step-1X Flash |
 | **OpenAI DALL-E** | `OPENAI_API_KEY` | 70 | DALL-E 3 |
 | **Together AI** | `TOGETHER_API_KEY` | 60 | FLUX Schnell, distributed inference |
 | **ComfyUI** | `SD_API_URL` | 10 | Local GPU, miễn phí, cần cài ComfyUI |
 
-Tự động dùng những provider nào có API key. Fallback chain: nếu provider lỗi, thử provider tiếp theo theo thứ tự ưu tiên.
+Tự động dùng provider nào có API key. Fallback chain: nếu provider lỗi, thử provider tiếp theo theo thứ tự ưu tiên.
 
 ---
 
@@ -97,13 +101,13 @@ Runtime Skill System cho phép chatbot tự động chọn persona phù hợp v�
 resolve_skill()    Ưu tiên: explicit > session > auto-route > none
   explicit         Request body có trường "skill": "coding-assistant"
   session          Người dùng đã kích hoạt skill qua /api/skills/activate
-  auto-route       SkillRouter chấm điểm từ khóa trong tin nhắn (ngưỡng 1.05)
+  auto-route       SkillRouter chấm điểm từ khoá trong tin nhắn (ngưỡng 1.05)
         ↓
 apply_skill_overrides()   Merge cấu hình skill vào request
   → model, thinking_mode, system_prompt, tools, context_window
 ```
 
-### 11 Skill Built-in
+### 12 Skill Built-in
 
 | Skill ID | Trigger tự động | Mô tả |
 |---|---|---|
@@ -113,7 +117,8 @@ apply_skill_overrides()   Merge cấu hình skill vào request
 | `research-analyst` | analyze, compare, evaluate, report | Nghiên cứu chuyên sâu |
 | `repo-analyzer` | repository, codebase, project structure | Phân tích repository |
 | `research-web` | search, find, look up, research | Nghiên cứu web |
-| `prompt-engineer` | prompt, system prompt, instruction | Tối ưu image prompt |
+| `social-research` | reddit, twitter, x, youtube, hackernews | Tổng hợp dữ liệu social media (qua last30days nếu bật) |
+| `prompt-engineer` | prompt, system prompt, instruction | Tối ưu prompt |
 | `mcp-file-helper` | file, folder, read file, MCP | Thao tác file qua MCP |
 | `creative-writer` | write, story, poem, creative, essay | Sáng tạo, viết lách |
 | `shopping-advisor` | buy, price, recommend, product | Tư vấn mua sắm |
@@ -121,7 +126,7 @@ apply_skill_overrides()   Merge cấu hình skill vào request
 
 ### SSE Metadata
 
-`POST /chat/stream` phát event `metadata` kèm thông tin skill đang được dùng:
+`POST /chat/stream` phát event `metadata` kèm thông tin skill đang dùng:
 
 ```json
 {
@@ -187,7 +192,7 @@ Mỗi agent dùng LLMAdapter riêng (model cấu hình độc lập). Dữ liệ
 
 ### Tự động kích hoạt
 
-Web search tự động khi tin nhắn chứa từ khóa thời gian thực: giá vàng, thời tiết, tin tức, tỷ giá, v.v.
+Web search tự động khi tin nhắn chứa từ khoá thời gian thực: giá vàng, thời tiết, tin tức, tỷ giá, v.v.
 
 ### Cascade Reverse Image Search
 
@@ -202,7 +207,7 @@ Google Lens → Google Reverse Image → Yandex Images
 | `serpapi-baidu` | SerpAPI Baidu Search |
 | `serpapi-reverse-image` | Google Lens → Reverse Image → Yandex (cascade tự động) |
 | `serpapi-images` | SerpAPI Google Images |
-| `saucenao` | SauceNAO — tìm nguồn gốc ảnh anime/illustration |
+| `saucenao` | SauceNAO — tìm nguồn gốc ảnh |
 
 ---
 
@@ -222,83 +227,21 @@ Pricing: `sora-2` $0.10/s · `sora-2-pro` $0.30/s · Thời lượng: 4, 8, 12 g
 
 ---
 
-## Anime Pipeline (local image stack)
+## URL Routing & Conversation State (ChatGPT-style)
 
-Local anime image generation chạy qua ComfyUI backend. Gated bởi feature flag **`IMAGE_PIPELINE_V2=true`**. Yêu cầu ComfyUI đang chạy tại `ANIME_PIPELINE_COMFYUI_URL` (mặc định `http://localhost:8188`). Khi flag tắt, các route chatbot truyền thống vẫn chạy bình thường.
+Mỗi cuộc trò chuyện có URL riêng:
 
-### Pipeline thực tế (live trong orchestrator)
-
-Orchestrator hiện tại chạy 9 stage chính (không phải 7 như tài liệu cũ). Stage number đã hiển thị trong SSE events khớp với danh sách dưới đây:
-
-```
- 1. Vision Analysis          — agents/vision_analyst.py
- 1.5. Character Research     — character_research.py + character_parser.py
- 1.75. LoRA stage            — lora_manager.py (CivitAI search + local file check + vision verify)
- 1.9. Council reasoning      — chỉ khi thinking_mode = multi-thinking
- 2. Layer Planning           — agents/layer_planner.py
- 3. Composition Pass         — agents/composition_pass.py
- 4. Structure Lock           — agents/structure_lock.py (lineart / depth / canny)
- 5-8. Beauty + YOLO Detection-Inpaint + Critique loop
-      — agents/beauty_pass.py + agents/detection_inpaint.py + agents/critique.py
-      — tự re-plan attempt 2 nếu 4 beauty passes liên tiếp fail quality threshold
- 9. Upscale                  — agents/upscale.py + upscale_service.py
- Final. Ranking + Manifest   — agents/final_ranker.py + agents/output_manifest.py
-```
-
-Tất cả stage phát SSE events. Route blueprint (`routes/anime_pipeline.py`) dùng prefix `ap_*` (`ap_stage_start`, `ap_stage_done`, `ap_preview`, `ap_refine`, `ap_result`, `ap_done`); orchestrator nội bộ dùng prefix `anime_pipeline_*` và `final_ranking` / `dual_output`. Final ranker chấm mọi candidate (composite = face × 1.5 + clarity × 1.2 + style × 1.0 − artifact_penalty) và feed vào output manifest; final image chỉ bị override khi ranker xác định ứng viên tốt hơn.
-
-### Nơi từng phần logic nằm
-
-| Responsibility | File |
+| Hành động | URL |
 |---|---|
-| Character handling (parser, disambiguation, references) | [`character_parser.py`](image_pipeline/anime_pipeline/character_parser.py), [`character_research.py`](image_pipeline/anime_pipeline/character_research.py), [`character_references.py`](image_pipeline/anime_pipeline/character_references.py) |
-| LoRA routing (registry + CivitAI + file-exists check) | [`lora_manager.py`](image_pipeline/anime_pipeline/lora_manager.py), [`configs/lora_registry.yaml`](configs/lora_registry.yaml) |
-| Detection + correction (YOLO ADetailer-style, feature-flagged) | [`agents/detection_detail.py`](image_pipeline/anime_pipeline/agents/detection_detail.py), [`agents/detection_inpaint.py`](image_pipeline/anime_pipeline/agents/detection_inpaint.py) |
-| Ranking + output manifest | [`agents/final_ranker.py`](image_pipeline/anime_pipeline/agents/final_ranker.py), [`agents/output_manifest.py`](image_pipeline/anime_pipeline/agents/output_manifest.py) |
-| Result storage (files + manifest JSON) | [`result_store.py`](image_pipeline/anime_pipeline/result_store.py), output dir từ `ANIME_PIPELINE_OUTPUT_DIR` hoặc `storage/anime_pipeline/<job_id>/` |
-| Workflow JSON gửi ComfyUI | [`workflow_builder.py`](image_pipeline/anime_pipeline/workflow_builder.py), [`workflow_serializer.py`](image_pipeline/anime_pipeline/workflow_serializer.py) |
-| VRAM profile / LoRA swap policy | [`vram_manager.py`](image_pipeline/anime_pipeline/vram_manager.py), [`config.py`](image_pipeline/anime_pipeline/config.py) |
+| Mở `localhost:5000` lần đầu | Tự đổi thành `/c/chat_<id>` (replaceState) |
+| Click chat khác trong sidebar | URL đổi sang `/c/<id chat đó>` (pushState) |
+| Bấm Back / Forward browser | Quay lại / tiến tới chat trước (popstate) |
+| Bấm "+ New chat" | URL đổi sang `/c/chat_<timestamp mới>` |
+| Paste link `/c/<id>` | Khôi phục đúng cuộc trò chuyện đó |
 
-### Entry points
+Backend route: `GET /c/<conversation_id>` (chatbot_main.py) — validate ID khớp regex `[A-Za-z0-9_\-]{1,64}`, trả về cùng `index.html`. Frontend khôi phục state từ `localStorage.chatSessions[id]`.
 
-Canonical: [`services/chatbot/routes/anime_pipeline.py`](services/chatbot/routes/anime_pipeline.py) → `/api/anime-pipeline/{health,stream,generate}` (bridged qua [`services/chatbot/core/anime_pipeline_service.py`](services/chatbot/core/anime_pipeline_service.py)).
-
-Legacy endpoint `/api/image-gen/anime-pipeline` trong [`routes/image_gen.py`](services/chatbot/routes/image_gen.py) vẫn hoạt động cho backward compatibility nhưng đã **deprecated** và log warning mỗi lần gọi.
-
-Subtree `image_pipeline/{workflow,planner,evaluator,semantic_editor,multi_reference}/` **không** wired vào route — xem [image_pipeline/DEPRECATED.md](image_pipeline/DEPRECATED.md) để biết trạng thái.
-
-### Env vars
-
-```env
-IMAGE_PIPELINE_V2=true                             # bật toàn bộ anime pipeline
-ANIME_PIPELINE_COMFYUI_URL=http://localhost:8188   # ComfyUI URL
-ANIME_PIPELINE_VRAM_PROFILE=normalvram             # lowvram / normalvram / highvram / auto
-ANIME_PIPELINE_COMPOSITION_MODEL=animagine-xl-4.0-opt.safetensors
-ANIME_PIPELINE_BEAUTY_MODEL=noobai-xl-1.1.safetensors
-ANIME_PIPELINE_QUALITY_THRESHOLD=0.70              # 0.0-1.0 (critique pass threshold)
-ANIME_PIPELINE_MAX_REFINE_ROUNDS=3
-ANIME_PIPELINE_DEBUG=false                         # Lưu workflow JSON + intermediate images
-```
-
-Vision critique dùng `GEMINI_API_KEY` (primary) → `OPENAI_API_KEY` (fallback). Character research reuse cùng keys. Không cần SDK riêng — gọi API qua httpx.
-
-### Dependencies
-
-Core profile đã có `httpx`, `pyyaml`, `numpy`, `requests`, `Pillow`. Detection/inpaint pass cần `ultralytics` (optional, feature-flagged) — khi thiếu, pipeline tự skip YOLO stage và tiếp tục chạy. Chi tiết: [app/requirements/README.md](app/requirements/README.md) (section *Local anime image pipeline — dependency matrix*).
-
-### Debug & tests
-
-- `ANIME_PIPELINE_DEBUG=true` → lưu workflow JSON + preview từng stage vào `storage/anime_pipeline/<job_id>/`.
-- Test suite: `cd services/chatbot && pytest tests/test_anime_pipeline.py tests/test_anime_pipeline_integration.py tests/test_character_parser.py tests/test_local_integration.py tests/test_critique_refine_ranker.py -v` (619 tests).
-
-### Tài liệu sâu hơn
-
-- [image_pipeline/anime_pipeline/README.md](image_pipeline/anime_pipeline/README.md) — kiến trúc chi tiết
-- [image_pipeline/anime_pipeline/MIGRATION.md](image_pipeline/anime_pipeline/MIGRATION.md) — migration notes
-- [configs/anime_pipeline_example.yaml](configs/anime_pipeline_example.yaml) — template config đầy đủ comment
-- [configs/lora_registry.yaml](configs/lora_registry.yaml) — character / LoRA registry
-- [skills.md](skills.md) — operator guide (checklist-oriented, pipeline-specific)
-- [private/agent-skills/skills.md](private/agent-skills/skills.md) — operator guide (longer narrative)
+Stream payload (`POST /chat/stream`) gửi kèm `conversation_id` và 3 ảnh gen gần nhất (`generated_images[]`) để LLM có context về ảnh đã tạo trong cuộc trò chuyện.
 
 ---
 
@@ -337,17 +280,29 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 | `POST` | `/chat/async` | Async SSE chat |
 | `POST` | `/chat/async/batch` | Batch async requests |
 
+### Trang HTML
+
+| Method | Path | Mô tả |
+|---|---|---|
+| `GET` | `/` | Trang chủ chat |
+| `GET` | `/c/<conversation_id>` | Trang chat với cuộc trò chuyện cụ thể |
+| `GET` | `/new` | Tạo session mới rồi redirect về `/` |
+| `GET` | `/mobile` | Layout di động |
+| `GET` | `/desktop` | Layout máy tính |
+| `GET` | `/login` | Trang đăng nhập |
+| `GET` | `/admin` | Admin dashboard |
+
 ### Conversations
 
 | Method | Path | Mô tả |
 |---|---|---|
 | `GET` | `/conversations` | Danh sách conversations (tối đa 50) |
 | `GET` | `/conversations/<id>` | Chi tiết conversation + messages |
-| `DELETE` | `/conversations/<id>` | Xóa conversation |
+| `DELETE` | `/conversations/<id>` | Xoá conversation |
 | `POST` | `/conversations/<id>/archive` | Archive conversation |
 | `POST` | `/conversations/new` | Tạo conversation mới |
 | `POST` | `/conversations/<id>/switch` | Chuyển sang conversation |
-| `POST` | `/clear` | Xóa history session hiện tại |
+| `POST` | `/clear` | Xoá history session hiện tại |
 | `GET` | `/history` | History session hiện tại |
 | `POST` | `/api/generate-title` | Tạo tên conversation bằng LLM |
 
@@ -367,19 +322,19 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 |---|---|---|
 | `POST` | `/api/image-gen/generate` | Tạo ảnh (multi-provider) |
 | `POST` | `/api/image-gen/stream` | Stream image generation (SSE) |
-| `POST` | `/api/image-gen/edit` | Edit/transform ảnh có sẵn |
+| `POST` | `/api/image-gen/edit` | Edit / transform ảnh có sẵn |
 
 ### Image Storage & Gallery
 
 | Method | Path | Mô tả |
 |---|---|---|
-| `POST` | `/api/save-generated-image` | Lưu ảnh + upload cloud/db |
-| `POST` | `/api/gallery/upload-db` | Đồng bộ ảnh local lên cloud/db |
+| `POST` | `/api/save-generated-image` | Lưu ảnh + upload cloud / DB |
+| `POST` | `/api/gallery/upload-db` | Đồng bộ ảnh local lên cloud / DB |
 | `GET` | `/api/gallery/images` | Danh sách ảnh trong gallery |
 | `GET` | `/api/gallery/cloud` | Gallery links từ cloud storage |
 | `GET` | `/api/gallery/image-info` | Metadata ảnh |
 | `GET` | `/storage/images/<filename>` | Serve ảnh đã lưu |
-| `DELETE` | `/api/delete-image/<filename>` | Xóa ảnh |
+| `DELETE` | `/api/delete-image/<filename>` | Xoá ảnh |
 | `POST` | `/api/upload-imgbb` | Upload ảnh lên ImgBB |
 
 ### Video
@@ -399,7 +354,7 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 | `POST` | `/memory/save` | Lưu memory entry |
 | `GET` | `/memory/list` | Danh sách memory |
 | `GET` | `/memory/get/<id>` | Chi tiết memory |
-| `DELETE` | `/memory/delete/<id>` | Xóa memory |
+| `DELETE` | `/memory/delete/<id>` | Xoá memory |
 | `PUT` | `/memory/update/<id>` | Cập nhật memory |
 | `GET` | `/memory/search` | Tìm kiếm memory theo keyword |
 
@@ -410,12 +365,13 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 | `POST` | `/api/mcp/enable` | Bật MCP integration |
 | `POST` | `/api/mcp/disable` | Tắt MCP |
 | `POST` | `/api/mcp/add-folder` | Thêm folder vào scope MCP |
-| `POST` | `/api/mcp/remove-folder` | Xóa folder khỏi scope |
+| `POST` | `/api/mcp/remove-folder` | Xoá folder khỏi scope |
 | `GET` | `/api/mcp/list-files` | Danh sách files trong scope |
-| `GET` | `/api/mcp/search-files` | Tìm file theo tên/pattern |
+| `GET` | `/api/mcp/search-files` | Tìm file theo tên / pattern |
 | `GET` | `/api/mcp/read-file` | Đọc nội dung file |
 | `GET` | `/api/mcp/grep` | Grep pattern trong files |
 | `POST` | `/api/mcp/ocr-extract` | OCR từ file |
+| `POST` | `/api/mcp/warm-cache` | Warm cache cho MCP scope |
 | `GET` | `/api/mcp/status` | MCP server health |
 
 ### Models
@@ -427,22 +383,22 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 | `GET` | `/api/models/health` | Provider health status |
 | `GET` | `/api/models/contexts` | Context window theo model |
 | `POST` | `/api/models/recommend` | Gợi ý model cho task |
-| `GET` | `/api/local-models-status` | Trạng thái Ollama/llama.cpp |
+| `GET` | `/api/local-models-status` | Trạng thái Ollama / llama.cpp |
 
 ### User Auth & Quota
 
 | Method | Path | Mô tả |
 |---|---|---|
 | `GET` | `/login` | Trang đăng nhập |
-| `POST` | `/api/auth/login` | Đăng nhập (username/password) |
+| `POST` | `/api/auth/login` | Đăng nhập (username / password) |
 | `GET` | `/logout` | Đăng xuất |
 | `POST` | `/api/auth/register` | Đăng ký tài khoản |
 | `GET` | `/api/auth/me` | Thông tin user hiện tại |
 | `POST` | `/api/auth/change-password` | Đổi mật khẩu |
-| `GET` | `/api/auth/quota` | Quota tin nhắn/ảnh còn lại |
+| `GET` | `/api/auth/quota` | Quota tin nhắn / ảnh còn lại |
 | `POST` | `/api/auth/update-profile` | Cập nhật display name, avatar, bio |
 | `GET` | `/api/features` | Feature flags theo user |
-| `POST` | `/api/auth/request-video-unlock` | Yêu cầu mở khóa video generation |
+| `POST` | `/api/auth/request-video-unlock` | Yêu cầu mở khoá video generation |
 
 ### Admin Panel
 
@@ -452,7 +408,7 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 | `GET` | `/api/admin/stats` | Thống kê tổng quan |
 | `GET` | `/api/admin/users` | Danh sách user |
 | `POST` | `/api/admin/users` | Tạo user mới |
-| `POST` | `/api/admin/users/<u>/toggle` | Bật/tắt tài khoản |
+| `POST` | `/api/admin/users/<u>/toggle` | Bật / tắt tài khoản |
 | `POST` | `/api/admin/users/<u>/password` | Reset mật khẩu |
 | `POST` | `/api/admin/users/<u>/quota/reset` | Reset quota |
 | `POST` | `/api/admin/users/<u>/video/unlock` | Cấp quyền video |
@@ -463,7 +419,7 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 | `GET` | `/api/admin/memory` | AI memory log |
 | `GET` | `/api/admin/logs` | System logs |
 | `GET` | `/api/admin/payments` | Yêu cầu thanh toán |
-| `POST` | `/api/admin/payments/<id>/approve` | Duyệt mở khóa video |
+| `POST` | `/api/admin/payments/<id>/approve` | Duyệt mở khoá video |
 | `POST` | `/api/admin/payments/<id>/reject` | Từ chối thanh toán |
 
 ### Payment (VietQR)
@@ -472,35 +428,6 @@ Transport: **stdio** (FastMCP). Không dùng HTTP. Entry point: `services/mcp-se
 |---|---|---|
 | `GET` | `/api/payment/info` | Thông tin tài khoản nhận tiền |
 | `POST` | `/api/payment/qr` | Tạo QR code VietQR |
-
-### Anime Pipeline
-
-| Method | Path | Mô tả |
-|---|---|---|
-| `GET` | `/api/anime-pipeline/health` | ComfyUI health + feature flag status |
-| `POST` | `/api/anime-pipeline/stream` | **Primary** — 9-stage SSE streaming generation. Optional `character_key` enriches prompt + tracks job in queue |
-| `POST` | `/api/anime-pipeline/generate` | Blocking generation (chờ hoàn thành) |
-| `POST` | `/api/anime-pipeline/upload-refs` | Upload reference images cho character fidelity |
-
-### Character Picker & Job Queue
-
-Local registry of canonical characters (display name + series + danbooru tag + aliases + thumbnail) and a lightweight in-memory job tracker. Data lives under [`storage/character_db/`](storage/character_db/).
-
-| Method | Path | Mô tả |
-|---|---|---|
-| `GET` | `/api/characters` | Search/filter (`q`, `series`, `limit≤200`) |
-| `GET` | `/api/characters/series` | List unique series + canonical keys |
-| `GET` | `/api/characters/<key>` | Single record + collisions across series |
-| `GET` | `/api/characters/<key>/thumbnail` | Thumbnail bytes (resolves repo-relative path) |
-| `POST` | `/api/characters/reload` | Reload registry from disk |
-| `POST` | `/api/characters/resolve` | `{query}` → best match |
-| `GET` | `/api/jobs` | List jobs (`state`, `limit` filters) |
-| `GET` | `/api/jobs/stats` | Counts by state |
-| `GET` | `/api/jobs/<job_id>` | Single job record |
-| `GET` | `/api/jobs/<job_id>/manifest` | Persisted manifest from `storage/metadata/` |
-| `POST` | `/api/jobs/<job_id>/cancel` | Cooperative cancel flag |
-
-UI: topbar buttons `characterPickerBtn` (👤) + `jobQueueBtn` (📋). Selected character is exposed at `window.selectedCharacter` and via the `character:selected` DOM event. Job panel polls every 3.5 s. Adding/removing characters: edit `storage/character_db/characters.json` then `POST /api/characters/reload`. Skill: [`.github/skills/character-picker-integration/SKILL.md`](.github/skills/character-picker-integration/SKILL.md).
 
 ### Stable Diffusion Proxy
 
@@ -511,7 +438,6 @@ UI: topbar buttons `characterPickerBtn` (👤) + `jobQueueBtn` (📋). Selected 
 | `POST` | `/api/sd-change-model` | Đổi SD model |
 | `GET` | `/api/sd-presets` | SD generation presets |
 | `GET` | `/api/sd-samplers` | Samplers khả dụng |
-| `GET` | `/api/sd-loras` | LoRA models |
 | `GET` | `/api/sd-vaes` | VAE models |
 | `POST` | `/api/generate-image` | Text-to-image qua SD |
 | `POST` | `/api/img2img` | Image-to-image qua SD |
@@ -522,7 +448,7 @@ UI: topbar buttons `characterPickerBtn` (👤) + `jobQueueBtn` (📋). Selected 
 |---|---|---|
 | `GET` | `/health` | Service health check |
 | `GET` | `/api/health/databases` | Database connectivity |
-| `POST` | `/api/extract-file-text` | OCR/STT từ file upload |
+| `POST` | `/api/extract-file-text` | OCR / STT từ file upload |
 
 ---
 
@@ -579,7 +505,7 @@ app\scripts\start-all.bat
 # Core services (chatbot + MongoDB)
 docker compose up -d
 
-# Với optional tools
+# Với optional sidecars
 docker compose --profile tools up -d    # + last30days
 docker compose --profile hermes up -d   # + Hermes agent
 
@@ -615,7 +541,7 @@ MONGODB_DB_NAME=chatbot_db
 env=dev
 ```
 
-### Biến tùy chọn thường dùng
+### Biến tuỳ chọn thường dùng
 
 ```env
 # LLM providers
@@ -636,11 +562,11 @@ SD_API_URL=http://127.0.0.1:7861  # Stable Diffusion WebUI
 
 # Web search
 SERPAPI_API_KEY=            # SerpAPI — Google, Bing, Baidu, Lens, Images
-GOOGLE_SEARCH_API_KEY_1=   # Google CSE fallback key 1
-GOOGLE_SEARCH_API_KEY_2=   # Google CSE fallback key 2
+GOOGLE_SEARCH_API_KEY_1=    # Google CSE fallback key 1
+GOOGLE_SEARCH_API_KEY_2=    # Google CSE fallback key 2
 GOOGLE_CSE_ID=              # Google Custom Search Engine ID
 
-# Reverse image / anime
+# Reverse image
 SAUCENAO_API_KEY=
 
 # GitHub (dùng cho MCP tools)
@@ -660,6 +586,10 @@ GOOGLE_DRIVE_FOLDER_ID=
 MONGODB_X509_ENABLED=false
 MONGODB_X509_URI=
 MONGODB_X509_CERT_PATH=
+
+# Optional sidecars
+LAST30DAYS_ENABLED=false
+HERMES_ENABLED=false
 ```
 
 ---
@@ -670,7 +600,7 @@ MONGODB_X509_CERT_PATH=
 services/
   shared_env.py              Bộ tải env dùng chung — gọi 1 lần per service
   chatbot/
-    chatbot_main.py          Entry point Flask monolith (14 blueprints)
+    chatbot_main.py          Entry point Flask monolith (15 blueprints)
     run.py                   Dispatcher cho Flask modular + FastAPI
     core/
       config.py              API keys, system prompts, storage paths
@@ -679,11 +609,11 @@ services/
       tools.py               Web search, reverse image, SauceNAO
       thinking_generator.py  Thinking modes + ThinkTagParser
       stream_contract.py     SSE payload contract
-      agentic/               CouncilOrchestrator (Planner/Researcher/Critic/Synthesizer)
+      agentic/               CouncilOrchestrator (5-member research council)
       image_gen/             ImageOrchestrator + 7 providers
-      skills/                SkillRegistry, Router, Resolver, Session (11 YAML builtins)
-    routes/                  Flask blueprints (~95 endpoints / 15 files)
-    fastapi_app/             FastAPI routers (~40 endpoints / 9 files)
+      skills/                SkillRegistry, Router, Resolver, Session (12 YAML builtins)
+    routes/                  Flask blueprints (15 files)
+    fastapi_app/             FastAPI routers (parallel implementation)
     src/
       audio_transcription.py  Whisper STT
       ocr_integration.py      Vision OCR
@@ -692,9 +622,9 @@ services/
       utils/                  imgbb, sd_client, mcp_integration, cache, ...
       rag/                    RAG subsystem (ingest, embeddings, retrieval)
     templates/               index.html, admin.html, login.html
-    static/js/modules/       15 JS modules (skill-manager, image-gen-v2, video-gen, ...)
+    static/js/modules/       Vanilla JS modules (chat-manager, api-service, image-gen-v2, ...)
     config/                  mongodb_config.py, model_presets.py, features.json
-    tests/                   40+ test modules, 275+ tests
+    tests/                   40+ test modules
   mcp-server/
     server.py                FastMCP stdio server
     tools/advanced_tools.py  10 advanced MCP tools
@@ -704,38 +634,9 @@ services/
 app/
   config/                    .env, config.yml, model_config.py, rate_limiter.py
   requirements/              profile_core_services.txt, profile_image_ai_services.txt
-  scripts/                   start/stop/health-check scripts
+  scripts/                   start / stop / health-check scripts
   src/                       Shared modules (utils, database, cache, security)
 
-ComfyUI/                     ComfyUI installation (image editing backend)
-image_pipeline/
-  anime_pipeline/            Local 9-stage anime pipeline
-    orchestrator.py          Stage dispatcher + SSE event emitter
-    schemas.py               AnimePipelineJob dataclass + statuses
-    config.py                Pipeline config loader (YAML)
-    character_parser.py      Character name/series disambiguation
-    character_research.py    CivitAI + reference search
-    character_references.py  Reference cache (storage/character_refs/)
-    lora_manager.py          LoRA search, download, file-existence check, vision verify
-    vram_manager.py          VRAM profile + LoRA swap policy
-    workflow_builder.py      Build ComfyUI workflow JSON per stage
-    workflow_serializer.py   Version + hash workflow payloads
-    comfy_client.py          ComfyUI HTTP client
-    vision_service.py        Vision LLM calls (Gemini / OpenAI)
-    critique_service.py      Quality critique scoring
-    result_store.py          Persist output manifest + artifacts
-    agents/                  VisionAnalyst, LayerPlanner, CompositionPass, StructureLock,
-                             BeautyPass, CleanupPass, RefineLoop, Critique,
-                             DetectionDetail, DetectionInpaint, Upscale,
-                             FinalRanker, OutputManifest
-    examples/                request_payload.json, output_manifest.json
-    README.md                Developer docs
-    MIGRATION.md             Migration notes
-configs/
-  anime_pipeline.yaml        Runtime config (VRAM, model slots, thresholds)
-  anime_pipeline_example.yaml  Template config với comments đầy đủ
-  lora_registry.yaml         Character + LoRA registry (series-aware)
-rag/                         Standalone RAG service (separate stack)
 private/                     Dữ liệu nội bộ / submodule
 ```
 
@@ -748,7 +649,7 @@ private/                     Dữ liệu nội bộ / submodule
 | core-services | `venv-core` | `app/requirements/profile_core_services.txt` |
 | image-ai-services | `venv-image` | `app/requirements/profile_image_ai_services.txt` |
 
-Chatbot và MCP dùng `venv-core`. Image generation workflows dùng `venv-image`. Không trộn lẫn.
+Chatbot và MCP dùng `venv-core`. Image generation backends (Stable Diffusion, ComfyUI) dùng `venv-image`. Không trộn lẫn.
 
 ---
 
@@ -759,9 +660,9 @@ services/shared_env.py  <-  các service gọi load_shared_env(__file__)
          |
      app/config/
          .env / .env_dev      Biến môi trường
-         config.yml           Port/host config
+         config.yml           Port / host config
          model_config.py      ServiceConfig dataclasses
-         rate_limiter.py      Gemini/OpenAI rate limiting
+         rate_limiter.py      Gemini / OpenAI rate limiting
          response_cache.py    LLM response caching
          public_urls.py       Cloudflare tunnel URL manager
          logging_config.py    Centralized logging setup
@@ -788,8 +689,20 @@ Browser -> POST /chat/stream
 2. Lưu file local trong chatbot storage
 3. Upload ImgBB -> public URL
 4. Ghi metadata vào MongoDB
-5. Ghi vào Firebase RTDB (gallery fallback/index)
+5. Ghi vào Firebase RTDB (gallery fallback / index)
 6. Upload Google Drive nếu bật (best-effort, lỗi không chặn luồng chính)
+```
+
+### Luồng URL routing (frontend)
+
+```
+Page load        URL /c/<id>?  -> restore session từ localStorage
+                 Else          -> chọn lastActiveChatId hoặc most-recent
+                 -> _syncUrl(replace=true) cập nhật URL không reload
+newChat()        -> _syncUrl(push) -> URL đổi sang /c/<new_id>
+switchChat(id)   -> _syncUrl(push) -> URL đổi sang /c/<id>
+deleteChat(id)   -> nếu còn chat: _syncUrl(replace) ; nếu hết: replaceState '/'
+popstate event   -> đọc URL, switch session tương ứng (Back/Forward browser)
 ```
 
 ---
@@ -813,34 +726,16 @@ CI: `.github/workflows/tests.yml` — `pytest tests/ -v --tb=short --timeout=60`
 
 ---
 
-## Optional Tools & Sidecars
+## Optional Sidecars
 
-Hai công cụ tùy chọn có thể được kích hoạt cùng chatbot:
+Hai công cụ tuỳ chọn có thể được kích hoạt cùng chatbot:
 
 | Tool | Type | Port | Env flag | Description |
 |---|---|---|---|---|
-| **last30days** | Subprocess | — | `LAST30DAYS_ENABLED=true` | Multi-source social media research (Reddit, X, YouTube, HN, etc.) |
+| **last30days** | Subprocess | — | `LAST30DAYS_ENABLED=true` | Multi-source social media research (Reddit, X, YouTube, HackerNews, etc.) |
 | **Hermes Agent** | HTTP sidecar | 8080 | `HERMES_ENABLED=true` | Advanced AI agent với tool registry, memory, subagent delegation |
 
-Cả hai đều **tùy chọn** — chatbot hoạt động bình thường khi chúng tắt.
-
-### Docker Compose
-
-```bash
-# Chatbot + MongoDB only
-docker compose up -d
-
-# + last30days
-docker compose --profile tools up -d
-
-# + Hermes
-docker compose --profile hermes up -d
-
-# Everything
-docker compose --profile all up -d
-```
-
-📖 Chi tiết đầy đủ: [docs/deployment_last30days_hermes.md](docs/deployment_last30days_hermes.md)
+Cả hai đều **tuỳ chọn** — chatbot hoạt động bình thường khi chúng tắt. Routes tương ứng (`routes/last30days.py`, `routes/hermes.py`) chỉ register handler nhưng trả 503 nếu sidecar không được bật.
 
 ---
 
@@ -849,13 +744,8 @@ docker compose --profile all up -d
 - [docs/deployment_last30days_hermes.md](docs/deployment_last30days_hermes.md) — Deployment guide cho last30days + Hermes
 - [services/chatbot/docs/last30days_integration.md](services/chatbot/docs/last30days_integration.md) — last30days tool integration
 - [services/chatbot/README.md](services/chatbot/README.md) — Chi tiết chatbot service + skill system
-- [image_pipeline/anime_pipeline/README.md](image_pipeline/anime_pipeline/README.md) — Anime pipeline architecture
-- [image_pipeline/anime_pipeline/MIGRATION.md](image_pipeline/anime_pipeline/MIGRATION.md) — Anime pipeline migration notes
-- [image_pipeline/DEPRECATED.md](image_pipeline/DEPRECATED.md) — Trạng thái các subtree không wired
 - [app/scripts/README.md](app/scripts/README.md) — Script vận hành
-- [app/requirements/README.md](app/requirements/README.md) — Dependency profiles + anime pipeline matrix
-- [skills.md](skills.md) — Local image stack operator guide (checklist-oriented)
-- [private/agent-skills/skills.md](private/agent-skills/skills.md) — Longer narrative version of the operator guide
+- [app/requirements/README.md](app/requirements/README.md) — Dependency profiles
 - [SECURITY.md](SECURITY.md) — Security policy
 - [AGENTS.md](AGENTS.md) — Agent conventions cho AI coding assistants
 
