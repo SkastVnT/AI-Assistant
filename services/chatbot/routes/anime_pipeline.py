@@ -478,6 +478,27 @@ def cancel_pipeline():
     return jsonify({"ok": True, "was_terminal": was_terminal, "job_id": raw_jid})
 
 
+@anime_pipeline_bp.route("/api/anime-pipeline/cancel-all", methods=["POST"])
+def cancel_all_pipelines():
+    """Nuclear Stop: cancel every active anime-pipeline job.
+
+    Called by the Stop button as a belt-and-suspenders alongside
+    ``/cancel`` so the server always halts even when the client did
+    not yet know the ``job_id`` (e.g. Stop pressed before the first
+    ``ap_status`` frame landed, or the bubble was recreated and lost
+    its ``dataset.jobId``). Also fires ComfyUI ``/interrupt`` once to
+    kill the currently running GPU workflow.
+    """
+    queue = get_queue()
+    accepted = queue.request_cancel_all()
+    try:
+        _interrupt_comfyui()
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("[anime_pipeline] /cancel-all: comfy interrupt failed: %s", exc)
+    logger.info("[anime_pipeline] /cancel-all: accepted=%d", len(accepted))
+    return jsonify({"ok": True, "cancelled": accepted, "count": len(accepted)})
+
+
 def _interrupt_comfyui() -> None:
     """Best-effort POST /interrupt to the active ComfyUI server.
 

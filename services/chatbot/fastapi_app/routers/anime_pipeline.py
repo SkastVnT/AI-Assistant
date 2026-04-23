@@ -197,3 +197,21 @@ async def cancel_pipeline(request: Request):
         raw_jid, accepted, rec.state,
     )
     return {"ok": True, "was_terminal": was_terminal, "job_id": raw_jid}
+
+
+@router.post("/cancel-all")
+async def cancel_all_pipelines():
+    """Nuclear Stop: cancel every active anime-pipeline job and hit
+    ComfyUI ``/interrupt`` once. The frontend Stop button calls this
+    as a belt-and-suspenders alongside ``/cancel`` so the server
+    always halts — even when ``job_id`` is missing on the client.
+    """
+    from core.job_queue import get_queue
+
+    accepted = get_queue().request_cancel_all()
+    try:
+        _interrupt_comfyui()
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("[anime_pipeline] /cancel-all: comfy interrupt failed: %s", exc)
+    logger.info("[anime_pipeline] /cancel-all: accepted=%d", len(accepted))
+    return {"ok": True, "cancelled": accepted, "count": len(accepted)}

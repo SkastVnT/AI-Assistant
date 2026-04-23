@@ -213,7 +213,7 @@ export class AnimePipeline {
                             <button type="button"
                                     class="ap-inline-stop-btn"
                                     id="ap-stop-${uid}"
-                                    style="display:none; margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid var(--border); background:var(--bg-secondary,var(--bg)); color:var(--text); border-radius:6px; cursor:pointer;"
+                                    style="margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid var(--border); background:var(--bg-secondary,var(--bg)); color:var(--text); border-radius:6px; cursor:pointer;"
                                     title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng & xuất ảnh</button>
                         </summary>
                         <div class="ap-reasoning-body">
@@ -241,16 +241,49 @@ export class AnimePipeline {
                 ev.preventDefault();
                 ev.stopPropagation();
                 const jobId = div.dataset.jobId || '';
-                if (!jobId) return;  // not yet started
                 stopBtn.disabled = true;
                 stopBtn.textContent = '⏳ Đang ngưng…';
                 div.dataset.apHardStop = '1';
-                fetch('/api/anime-pipeline/cancel', {
+
+                // Log so the console makes it obvious whether Stop
+                // actually fired the cancel requests. Users previously
+                // reported "ComfyUI kept running after Stop" and the
+                // only way to tell whether /cancel ever hit the server
+                // was via uvicorn access logs.
+                try {
+                    // eslint-disable-next-line no-console
+                    console.log('[anime-pipeline] Stop clicked, job_id=%s', jobId || '(unknown)');
+                } catch (_) { /* noop */ }
+
+                // 1. Abort the SSE reader so the browser stops listening
+                //    to more server frames. Without this, even after the
+                //    server cancels, stale SSE frames keep updating the UI.
+                try { this._abort?.abort?.(); } catch (_) { /* noop */ }
+
+                // 2. POST /cancel with the specific job_id when we have one.
+                //    Fire-and-forget; the nuclear /cancel-all below is the
+                //    belt-and-suspenders that guarantees the server halts.
+                if (jobId) {
+                    fetch('/api/anime-pipeline/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ job_id: jobId }),
+                        keepalive: true,
+                    }).catch(() => { /* noop */ });
+                }
+
+                // 3. Nuclear cancel-all — always fires, regardless of
+                //    whether we captured a job_id. This was added after
+                //    users observed the pipeline keep running because
+                //    the Stop handler silently returned when jobId was
+                //    missing from dataset. Now the server ALWAYS gets
+                //    a kill signal for every in-flight pipeline job.
+                fetch('/api/anime-pipeline/cancel-all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ job_id: jobId }),
+                    body: '{}',
                     keepalive: true,
-                }).catch(() => { /* non-fatal — fallback timer will fire */ });
+                }).catch(() => { /* noop */ });
 
                 // Hard fallback. The handler is no-op if the bubble has
                 // already been swapped to a result by the normal SSE path.

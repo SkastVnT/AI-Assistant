@@ -145,6 +145,27 @@ class JobQueue:
             logger.info("job_queue: cancel requested for %s", job_id)
             return True
 
+    def request_cancel_all(self) -> list[str]:
+        """Nuclear option: mark every non-terminal job as cancel-requested.
+
+        Returns the list of job IDs that were accepted for cancellation.
+        Used by the anime-pipeline ``/cancel-all`` endpoint so the Stop
+        button works even when the frontend does not know the job_id
+        (e.g. Stop pressed before the first ``ap_status`` frame lands,
+        or the bubble was recreated and lost ``dataset.jobId``).
+        """
+        accepted: list[str] = []
+        with self._lock:
+            for jid, rec in self._jobs.items():
+                if rec.state in ("completed", "failed", "cancelled"):
+                    continue
+                rec.cancel_requested = True
+                accepted.append(jid)
+        if accepted:
+            logger.info("job_queue: cancel-all requested for %d job(s): %s",
+                        len(accepted), accepted)
+        return accepted
+
     def is_cancel_requested(self, job_id: str) -> bool:
         with self._lock:
             rec = self._jobs.get(job_id)
