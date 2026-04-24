@@ -152,7 +152,10 @@ def check_availability() -> AvailabilityResult:
 
 _VALID_QUALITY = {"auto", "fast", "quality"}
 _VALID_PRESETS = {"anime_quality", "anime_speed", "anime_balanced"}
-_MAX_PROMPT = 2000
+# Prompt cap kept only as a safety net against pathological inputs; real
+# anime prompts can easily exceed 3-4 KB once layered tags + scene + LoRA
+# trigger words are concatenated. Set well above realistic usage.
+_MAX_PROMPT = 20000
 _MAX_REFS = 4
 
 

@@ -37,7 +37,7 @@ _router: object = None
 _sessions: object = None
 _storage: object = None
 
-_MAX_PROMPT = 2000
+_MAX_PROMPT = 20000
 _MAX_DIM = 3840
 _MIN_DIM = 64
 _MAX_STEPS = 150

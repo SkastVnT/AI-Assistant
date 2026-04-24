@@ -97,7 +97,7 @@ router = APIRouter(tags=["Stable Diffusion"])
 
 # ── Validation & Rate Limiting ───────────────────────────────────────────────
 
-_MAX_PROMPT_LENGTH = 2000
+_MAX_PROMPT_LENGTH = 20000
 _MAX_DIMENSION = 2048
 _MIN_DIMENSION = 64
 _MAX_STEPS = 150

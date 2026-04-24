@@ -359,6 +359,13 @@ def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     the hand-curated table also knows about series hints and display
     aliases that the CSV does not encode.
 
+    The lookup splits the prompt into short candidate phrases (segments
+    between commas/parentheses/colons, plus 1-3 word n-grams from each
+    segment) and queries each one. Passing the whole prompt to
+    ``lookup_character`` is unsafe because its containment matcher is
+    happy to return spurious hits like ``chara (undertale)`` for any
+    prompt that simply contains the word "character".
+
     Fails closed on any import / lookup error so the main parser never
     regresses to a crash when the SAA folder is missing.
     """
@@ -367,23 +374,72 @@ def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     except Exception:
         return None
 
-    # Strip common prompt noise ("tạo ảnh", "draw", "make a picture of") so
-    # the CSV lookup sees just the likely subject phrase.
+    # Strip common prompt noise so candidate phrases are clean.
     cleaned = user_prompt
     for junk in ("tạo ảnh", "vẽ", "draw", "generate", "make a picture of",
-                 "picture of", "image of"):
-        cleaned = re.sub(rf"\b{re.escape(junk)}\b", " ", cleaned, flags=re.I)
+                 "picture of", "image of", "character:", "char:", "subject:"):
+        cleaned = re.sub(rf"(?i)\b{re.escape(junk)}", " ", cleaned)
 
-    try:
-        hit = lookup_character(cleaned)
-    except Exception:
-        return None
-    if hit is None or hit.match_score < 0.5:
+    # Split on common separators (comma, parens, colon, slash, newline).
+    segments = [
+        s.strip(" \t\r\n,.()[]{}:;/")
+        for s in re.split(r"[,\(\)\[\]\{\}:;/\n]+", cleaned)
+        if s and s.strip()
+    ]
+
+    # Build candidate phrases: each segment plus its 1- and 2-word prefixes
+    # (character names are almost always 1-3 words). Cap segment length to
+    # avoid feeding the whole noisy prompt back to the loose containment
+    # matcher.
+    candidates: list[str] = []
+    seen_cands: set[str] = set()
+    for seg in segments:
+        words = re.findall(r"[A-Za-z][A-Za-z0-9'_-]{1,}", seg)
+        if not words:
+            continue
+        for n in (3, 2, 1):
+            if len(words) >= n:
+                phrase = " ".join(words[:n])
+                key = phrase.lower()
+                if key and key not in seen_cands:
+                    seen_cands.add(key)
+                    candidates.append(phrase)
+        # Also try the full segment if short (≤4 words), in case the
+        # character name sits in the middle.
+        if 1 <= len(words) <= 4:
+            phrase = " ".join(words)
+            key = phrase.lower()
+            if key and key not in seen_cands:
+                seen_cands.add(key)
+                candidates.append(phrase)
+
+    if not candidates:
         return None
 
-    # Map SAA fields to the (tag, series_tag, display, series_name) tuple
-    # shape the pipeline expects.
-    series_tag = (hit.series_hint or "").replace(" ", "_").lower() or "unknown"
-    series_name = hit.series_hint or "Unknown"
-    display = hit.display_name or hit.tag.title()
-    return (hit.danbooru_tag, series_tag, display, series_name)
+    # Try each candidate and keep the best high-confidence match.
+    best = None
+    best_score = 0.0
+    # Require strong score because this fallback runs only when the curated
+    # table failed; loose hits cause more harm than no hit.
+    threshold = 0.85
+    for phrase in candidates:
+        try:
+            hit = lookup_character(phrase)
+        except Exception:
+            continue
+        if hit is None:
+            continue
+        if hit.match_score >= threshold and hit.match_score > best_score:
+            best = hit
+            best_score = hit.match_score
+            # Score 1.0 = exact key match — can't beat that.
+            if best_score >= 1.0:
+                break
+
+    if best is None:
+        return None
+
+    series_tag = (best.series_hint or "").replace(" ", "_").lower() or "unknown"
+    series_name = best.series_hint or "Unknown"
+    display = best.display_name or best.tag.title()
+    return (best.danbooru_tag, series_tag, display, series_name)

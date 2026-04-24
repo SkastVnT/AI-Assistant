@@ -430,9 +430,12 @@ class ChatBotApp {
             }
         });
 
-        // Warn when textarea is getting close to the auto-convert threshold
-        const LONG_WARN = 2500;
-        const LONG_LIMIT = 3000;
+        // Warn when textarea is getting close to the auto-convert threshold.
+        // Threshold is intentionally high so multi-paragraph image prompts
+        // (often 3-8 KB of tags) stay as plain text and route correctly to
+        // image-gen instead of being silently attached as message.txt.
+        const LONG_WARN = 40000;
+        const LONG_LIMIT = 50000;
         const inputHint = document.getElementById('messageInputLengthHint');
         elements.messageInput.addEventListener('input', () => {
             const len = elements.messageInput.value.length;
@@ -671,7 +674,10 @@ class ChatBotApp {
         const elements = this.uiUtils.elements;
 
         // ── Auto-convert very long input to a staged .txt file ──────────────
-        const LONG_TEXT_THRESHOLD = 3000; // characters
+        // Only kicks in for genuinely huge pastes (e.g. dumping an entire log
+        // or document). Normal long anime image prompts (a few KB) must stay
+        // as text so they can be detected as image requests.
+        const LONG_TEXT_THRESHOLD = 50000; // characters
         const rawInput = elements.messageInput ? elements.messageInput.value : '';
         if (rawInput.length > LONG_TEXT_THRESHOLD && this._stagedFiles !== undefined) {
             const blob = new Blob([rawInput], { type: 'text/plain' });
