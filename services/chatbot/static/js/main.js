@@ -766,6 +766,20 @@ class ChatBotApp {
                                         <button type="button" class="igv2-batch-chip" data-batch="6" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">6</button>
                                     </div>
                                 </div>
+                                <div class="igv2-choice-continuous" style="margin-top:8px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg));">
+                                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                                        <input type="checkbox" class="igv2-continuous-toggle" style="width:16px; height:16px;">
+                                        <span><strong>🔁 Tạo liên tục</strong> — Giữ nguyên prompt, đổi nhân vật nữ mỗi lượt</span>
+                                    </label>
+                                    <div class="igv2-continuous-row" style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; opacity:0.45; pointer-events:none; font-size:12px;">
+                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Số lần:
+                                            <input type="number" class="igv2-continuous-count" min="2" max="50" value="5" style="width:60px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text); font-size:12px;">
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Nghỉ (giây):
+                                            <input type="number" class="igv2-continuous-sleep" min="0" max="600" value="3" style="width:60px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text); font-size:12px;">
+                                        </label>
+                                    </div>
+                                </div>
                                 <div class="igv2-choice-progress">
                                     <div class="igv2-choice-progress-bar"></div>
                                 </div>
@@ -830,7 +844,33 @@ class ChatBotApp {
                 choiceContainer._getImageOnlyOpts = () => ({
                     imageOnly: _imageOnly,
                     batchSize: Math.max(1, Math.min(parseInt(_batchSize, 10) || 1, 6)),
+                    continuous: _getContinuousOpts(),
                 });
+
+                // Continuous-generation toggle wiring (independent of image-only).
+                const contCb = choiceContainer.querySelector('.igv2-continuous-toggle');
+                const contRow = choiceContainer.querySelector('.igv2-continuous-row');
+                const contCountEl = choiceContainer.querySelector('.igv2-continuous-count');
+                const contSleepEl = choiceContainer.querySelector('.igv2-continuous-sleep');
+                let _contEnabled = false;
+                if (contCb) {
+                    contCb.addEventListener('change', () => {
+                        _contEnabled = !!contCb.checked;
+                        if (contRow) {
+                            contRow.style.opacity = _contEnabled ? '1' : '0.45';
+                            contRow.style.pointerEvents = _contEnabled ? 'auto' : 'none';
+                        }
+                    });
+                }
+                function _getContinuousOpts() {
+                    const rawCount = parseInt(contCountEl && contCountEl.value, 10);
+                    const rawSleep = parseFloat(contSleepEl && contSleepEl.value);
+                    return {
+                        enabled: _contEnabled,
+                        count: Math.max(2, Math.min(isFinite(rawCount) ? rawCount : 5, 50)),
+                        sleepSeconds: Math.max(0, Math.min(isFinite(rawSleep) ? rawSleep : 3, 600)),
+                    };
+                }
 
                 choiceContainer.querySelectorAll('.igv2-choice-btn').forEach(btn => {
                     btn.addEventListener('click', () => finalize(btn.dataset.choice));
@@ -868,6 +908,7 @@ class ChatBotApp {
                 this.animePipeline?.openModalWithPrompt(message, {
                     imageOnly: !!_opts.imageOnly,
                     batchSize: _opts.batchSize || 1,
+                    continuous: _opts.continuous || { enabled: false, count: 1, sleepSeconds: 0 },
                 });
                 return;
             }

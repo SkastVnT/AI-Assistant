@@ -181,3 +181,105 @@ def saa_db_stats_route():
     except Exception as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 200
 
+
+# ── Continuous-generation helpers (random pick + prompt swap) ────────
+
+
+@character_select_bp.route('/api/characters/random', methods=['GET'])
+def character_random_route():
+    """Pick a random WAI character, optionally avoiding a comma-separated
+    ``exclude`` list of tags. Powers the chatbot's "Tạo liên tục" loop
+    so every iteration uses a fresh female character.
+
+    Response shape::
+        {"ok": true, "character": {
+            "display_name": "...", "tag": "...", "danbooru_tag": "...",
+            "series_hint": "...", "thumbnail": "..."
+        }}
+    """
+    raw_excl = (request.args.get('exclude') or '').strip()
+    excludes = [t.strip() for t in raw_excl.split(',') if t.strip()] if raw_excl else []
+
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import (
+            random_character, get_character_thumbnail,
+        )
+    except Exception as exc:
+        return jsonify({'ok': False, 'character': None, 'error': str(exc)}), 200
+
+    try:
+        hit = random_character(exclude_tags=excludes)
+    except Exception as exc:
+        logger.exception("[SAA-DB] random character failed")
+        return jsonify({'ok': False, 'character': None, 'error': str(exc)}), 500
+
+    if hit is None:
+        return jsonify({'ok': True, 'character': None}), 200
+
+    return jsonify({
+        'ok': True,
+        'character': {
+            'display_name': hit.display_name,
+            'tag': hit.tag,
+            'danbooru_tag': hit.danbooru_tag,
+            'series_hint': hit.series_hint,
+            'thumbnail': get_character_thumbnail(hit.tag),
+        },
+    }), 200
+
+
+@character_select_bp.route('/api/characters/swap-in-prompt', methods=['POST'])
+def character_swap_in_prompt_route():
+    """Rewrite a prompt so its lead character is replaced by a fresh
+    random pick. Used by the "Tạo liên tục" loop on every iteration.
+
+    Request body::
+        {"prompt": "...", "exclude": ["tag1", "tag2", ...]}
+
+    Response shape::
+        {"ok": true, "prompt": "<rewritten>", "character": {...},
+         "swap": {"old_tag": "...", "new_tag": "...", "replaced": true}}
+    """
+    payload = request.get_json(silent=True) or {}
+    prompt = (payload.get('prompt') or '').strip()
+    excludes_raw = payload.get('exclude') or []
+    excludes = [str(t).strip() for t in excludes_raw if str(t).strip()]
+
+    if not prompt:
+        return jsonify({'ok': False, 'error': 'prompt required'}), 400
+
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import (
+            random_character, swap_character_in_prompt, get_character_thumbnail,
+        )
+    except Exception as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 200
+
+    try:
+        pick = random_character(exclude_tags=excludes)
+    except Exception as exc:
+        logger.exception("[SAA-DB] random pick failed")
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+    if pick is None:
+        return jsonify({'ok': False, 'error': 'character DB empty'}), 200
+
+    try:
+        new_prompt, swap_info = swap_character_in_prompt(prompt, pick)
+    except Exception as exc:
+        logger.exception("[SAA-DB] swap failed")
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+
+    return jsonify({
+        'ok': True,
+        'prompt': new_prompt,
+        'character': {
+            'display_name': pick.display_name,
+            'tag': pick.tag,
+            'danbooru_tag': pick.danbooru_tag,
+            'series_hint': pick.series_hint,
+            'thumbnail': get_character_thumbnail(pick.tag),
+        },
+        'swap': swap_info,
+    }), 200
+
+

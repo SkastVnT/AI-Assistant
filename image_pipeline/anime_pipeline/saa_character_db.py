@@ -25,6 +25,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import random
 import re
 import threading
 from dataclasses import dataclass
@@ -315,6 +316,111 @@ def db_stats() -> dict[str, int]:
     }
 
 
+# ── Random pick (continuous-generation feature) ──────────────────────
+
+
+def random_character(
+    exclude_tags: Optional[list[str]] = None,
+    max_retries: int = 24,
+) -> Optional[WaiCharacterMatch]:
+    """Pick a random WAI character, avoiding any tag in ``exclude_tags``.
+
+    Used by the chatbot's "Tạo liên tục" loop to rotate the female
+    character on every iteration while keeping the rest of the prompt
+    intact. Returns ``None`` only when the DB is empty.
+    """
+    _load_wai()
+    if not _wai_tags:
+        return None
+    excludes = {(t or "").strip().lower() for t in (exclude_tags or [])}
+    # Try a few random picks before falling back to a full scan.
+    for _ in range(max(1, int(max_retries))):
+        key, tag = random.choice(_wai_tags)
+        if tag.strip().lower() in excludes:
+            continue
+        entry = _wai_index.get(key) if _wai_index else None
+        if not entry:
+            entry = (tag, tag)
+        return _to_match(entry, score=1.0)
+    # All recent picks collided — scan once for any non-excluded entry.
+    for key, tag in _wai_tags:
+        if tag.strip().lower() in excludes:
+            continue
+        entry = (_wai_index or {}).get(key) or (tag, tag)
+        return _to_match(entry, score=1.0)
+    # Excludes covered the whole DB; just return any character.
+    key, tag = random.choice(_wai_tags)
+    entry = (_wai_index or {}).get(key) or (tag, tag)
+    return _to_match(entry, score=1.0)
+
+
+def swap_character_in_prompt(
+    prompt: str,
+    new_match: WaiCharacterMatch,
+) -> tuple[str, dict]:
+    """Rewrite ``prompt`` so the leading character reference is replaced
+    by ``new_match``.
+
+    Heuristic, intentionally simple — the ``character_parser`` module is
+    where the production identity resolution lives. This helper exists
+    purely to support the continuous-generation loop, which only needs
+    "swap the obvious character mention(s) with the new pick".
+
+    Strategy:
+      1. If a known WAI character resolves from the prompt, replace every
+         occurrence of its tag (and the underscore variant) with the new
+         tag.
+      2. Always strip a leading ``character: <name>,`` / ``character:
+         <name>\n`` prefix and re-insert ``character: <new_tag>,`` so the
+         downstream prompt enhancer keeps recognising the lead character.
+      3. Return ``(new_prompt, info)`` where ``info`` tells the caller
+         what was swapped (useful for the UI banner).
+    """
+    if not prompt or not new_match:
+        return prompt or "", {"replaced": False}
+
+    info: dict = {
+        "replaced": False,
+        "old_tag": None,
+        "new_tag": new_match.tag,
+        "new_display": new_match.display_name,
+        "new_danbooru": new_match.danbooru_tag,
+    }
+
+    text = prompt
+
+    # 1) Resolve the existing character (if any) and swap inline mentions.
+    try:
+        prev = lookup_character(prompt)
+    except Exception:
+        prev = None
+
+    if prev and prev.tag:
+        info["old_tag"] = prev.tag
+        info["old_display"] = prev.display_name
+        for variant in {prev.tag, prev.danbooru_tag, prev.tag.replace(" ", "_")}:
+            if not variant:
+                continue
+            pattern = re.compile(re.escape(variant), re.IGNORECASE)
+            text = pattern.sub(new_match.tag, text)
+        info["replaced"] = True
+
+    # 2) Normalise / inject the leading ``character:`` directive so the
+    #    rest of the prompt keeps its structure.
+    lead_re = re.compile(r"^\s*character\s*:\s*[^,\n]+\s*([,\n])", re.IGNORECASE)
+    if lead_re.search(text):
+        text = lead_re.sub(f"character: {new_match.tag}\\1", text, count=1)
+        info["replaced"] = True
+    else:
+        # Prepend a fresh character directive so the new pick actually
+        # influences the generation even when the original prompt did
+        # not mention any character.
+        text = f"character: {new_match.tag}, " + text.lstrip()
+        info["replaced"] = True
+
+    return text, info
+
+
 __all__ = [
     "WaiCharacterMatch",
     "TagAutocomplete",
@@ -322,4 +428,6 @@ __all__ = [
     "autocomplete_tag",
     "get_character_thumbnail",
     "db_stats",
+    "random_character",
+    "swap_character_in_prompt",
 ]

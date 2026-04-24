@@ -90,13 +90,20 @@ export class AnimePipeline {
      * Runs inline in the chat (like a thinking box) — no modal popup.
      * Falls back to modal if chat container is not found.
      * @param {string} prompt
-     * @param {{imageOnly?: boolean, batchSize?: number, negativePrompt?: string}} [opts]
+     * @param {{imageOnly?: boolean, batchSize?: number, negativePrompt?: string,
+     *         continuous?: {enabled: boolean, count: number, sleepSeconds: number}}} [opts]
      */
     openModalWithPrompt(prompt, opts = {}) {
         // Prefer inline chat mode so the result lands directly in the conversation.
         const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) {
-            this._runInlineChat(prompt, chatContainer, opts);
+            const cont = opts && opts.continuous;
+            if (cont && cont.enabled && (cont.count || 0) > 1) {
+                // Fire-and-forget; the loop manages its own bubbles.
+                this._runContinuous(prompt, chatContainer, opts);
+            } else {
+                this._runInlineChat(prompt, chatContainer, opts);
+            }
             return;
         }
         // Fallback: open modal
@@ -194,6 +201,102 @@ export class AnimePipeline {
         }
     }
 
+    /**
+     * Continuous-generation loop. Runs `_runInlineChat` repeatedly with
+     * a fresh random WAI character swapped into the prompt on every
+     * iteration. Sleeps between iterations. Stops early when the user
+     * clicks the Stop button on the most recent bubble (which sets
+     * this._continuousCancelled via the Stop handler below).
+     *
+     * @param {string} prompt
+     * @param {HTMLElement} chatContainer
+     * @param {{imageOnly?: boolean, batchSize?: number,
+     *          continuous: {enabled: boolean, count: number,
+     *                       sleepSeconds: number}}} opts
+     */
+    async _runContinuous(prompt, chatContainer, opts) {
+        const cont = opts.continuous || {};
+        const total = Math.max(2, Math.min(parseInt(cont.count, 10) || 2, 50));
+        const sleepMs = Math.max(0, (parseFloat(cont.sleepSeconds) || 0) * 1000);
+        const baseOpts = { imageOnly: !!opts.imageOnly, batchSize: opts.batchSize || 1 };
+
+        // Reset cancel flag and exclude-list at loop start.
+        this._continuousCancelled = false;
+        this._continuousExcludes = [];
+
+        // Render a small banner so the user sees the loop is active.
+        const banner = document.createElement('div');
+        banner.className = 'message assistant ap-continuous-banner';
+        banner.style.cssText = 'padding:6px 10px; font-size:12px; color:var(--text-muted,#888);';
+        banner.innerHTML = `<div class="message__body"><div class="message-content">🔁 Tạo liên tục: <strong class="ap-cont-progress">1</strong>/${total} · nghỉ ${cont.sleepSeconds || 0}s · đổi nhân vật mỗi lượt</div></div>`;
+        chatContainer.appendChild(banner);
+        const progressEl = banner.querySelector('.ap-cont-progress');
+
+        let currentPrompt = prompt;
+
+        for (let i = 0; i < total; i++) {
+            if (this._continuousCancelled) break;
+            if (progressEl) progressEl.textContent = String(i + 1);
+
+            // After the first iteration, swap the character in the prompt.
+            if (i > 0) {
+                try {
+                    const swapResp = await fetch('/api/characters/swap-in-prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: prompt,
+                            exclude: this._continuousExcludes,
+                        }),
+                    });
+                    const swapData = await swapResp.json().catch(() => ({}));
+                    if (swapData && swapData.ok && swapData.prompt) {
+                        currentPrompt = swapData.prompt;
+                        const newTag = swapData.character && swapData.character.tag;
+                        if (newTag) this._continuousExcludes.push(newTag);
+                        const display = (swapData.character && swapData.character.display_name) || newTag || '';
+                        const note = document.createElement('div');
+                        note.className = 'message assistant ap-continuous-swap';
+                        note.style.cssText = 'padding:4px 10px; font-size:12px; color:var(--text-muted,#888);';
+                        note.innerHTML = `<div class="message__body"><div class="message-content">↳ Lượt ${i + 1}: nhân vật mới · <strong>${display}</strong> <code style="font-size:11px;">${newTag || ''}</code></div></div>`;
+                        chatContainer.appendChild(note);
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                } catch (err) {
+                    // Swap failed — keep the original prompt and continue.
+                    // eslint-disable-next-line no-console
+                    console.warn('[anime-pipeline] swap-in-prompt failed:', err);
+                }
+            }
+
+            if (this._continuousCancelled) break;
+
+            // Run one full pipeline. _runInlineChat resolves when SSE EOF.
+            try {
+                await this._runInlineChat(currentPrompt, chatContainer, baseOpts);
+            } catch (err) {
+                // eslint-disable-next-line no-console
+                console.warn('[anime-pipeline] continuous iteration error:', err);
+            }
+
+            if (this._continuousCancelled) break;
+
+            // Sleep between iterations (skipped after the last one).
+            if (i < total - 1 && sleepMs > 0) {
+                if (progressEl) progressEl.textContent = `${i + 1} (nghỉ ${cont.sleepSeconds}s)`;
+                await new Promise((r) => setTimeout(r, sleepMs));
+            }
+        }
+
+        // Final banner update.
+        if (banner.isConnected) {
+            const tail = this._continuousCancelled ? '⏹ đã ngưng' : '✅ hoàn thành';
+            const body = banner.querySelector('.message-content');
+            if (body) body.innerHTML = `🔁 Tạo liên tục: ${tail}`;
+        }
+        this._continuousCancelled = false;
+    }
+
     /** Build the initial inline pipeline message bubble.
      *
      * Layout (ChatGPT-style):
@@ -267,6 +370,11 @@ export class AnimePipeline {
                 stopBtn.disabled = true;
                 stopBtn.textContent = '⏳ Đang ngưng…';
                 div.dataset.apHardStop = '1';
+
+                // Also break out of any active continuous-generation loop
+                // so the next iteration does not start. The flag is
+                // checked between iterations and around the sleep.
+                this._continuousCancelled = true;
 
                 // Log so the console makes it obvious whether Stop
                 // actually fired the cancel requests. Users previously
