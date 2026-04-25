@@ -29,8 +29,23 @@ from image_pipeline.reasoning.schemas import (
     SinglePanelSpec,
     ZoneRef,
 )
+from image_pipeline.reasoning.capability_router import (
+    CapabilityDecision,
+    CapabilityRequest,
+    RequestKind,
+    classify,
+)
+from image_pipeline.reasoning.prompt_revision import RevisedPrompt, revise
+from image_pipeline.reasoning.prompt_parser import ParseResult, parse
+from image_pipeline.reasoning.panel_spec_validator import (
+    ValidationIssue,
+    ValidationResult,
+    validate_panel,
+    validate_sequence,
+)
 
 __all__ = [
+    # schemas
     "BoundingBox",
     "CharacterAppearance",
     "CharacterState",
@@ -48,4 +63,20 @@ __all__ = [
     "ShotType",
     "SinglePanelSpec",
     "ZoneRef",
+    # capability router
+    "CapabilityDecision",
+    "CapabilityRequest",
+    "RequestKind",
+    "classify",
+    # prompt revision
+    "RevisedPrompt",
+    "revise",
+    # prompt parser
+    "ParseResult",
+    "parse",
+    # validator
+    "ValidationIssue",
+    "ValidationResult",
+    "validate_panel",
+    "validate_sequence",
 ]

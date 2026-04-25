@@ -18,7 +18,7 @@ from pathlib import Path
 # Ensure the workspace root is importable so `image_pipeline` resolves when
 # pytest is invoked from `services/chatbot/`. Mirrors the bootstrap used by
 # tests/test_anime_pipeline.py.
-_ROOT = Path(__file__).resolve().parents[3]
+_ROOT = Path(__file__).resolve().parents[4]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
