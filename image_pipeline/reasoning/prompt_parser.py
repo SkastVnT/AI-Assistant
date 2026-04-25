@@ -29,6 +29,7 @@ from image_pipeline.reasoning.capability_router import (
     classify,
 )
 from image_pipeline.reasoning.prompt_revision import RevisedPrompt, revise
+from image_pipeline.reasoning.state import StateResolver
 from image_pipeline.reasoning.schemas import (
     CharacterAppearance,
     CharacterState,
@@ -196,6 +197,7 @@ def parse(
     character_hint: Mapping[str, str] | None = None,
     sequence_id: str | None = None,
     panel_count_override: int | None = None,
+    state_resolver: StateResolver | None = None,
 ) -> ParseResult:
     """
     Convert ``text`` into a draft :class:`SinglePanelSpec` or
@@ -205,6 +207,12 @@ def parse(
     ``character_hint`` lets the caller pin the resolved character (name + key)
     so the parser can populate panel ``character_keys`` confidently. When
     omitted, no character is referenced from panels.
+
+    ``state_resolver`` (Cycle 2): when provided, character / prop / scene
+    extraction is delegated to the resolver's managers. The resolver may
+    produce real registry-backed states (e.g. with ``must_keep`` populated
+    from the character DB). When ``None``, legacy placeholder behavior is
+    preserved unchanged.
     """
     request = CapabilityRequest(
         text=text,
@@ -217,9 +225,14 @@ def parse(
     revision = revise(text)
 
     warnings: list[str] = []
-    scene = _build_scene(revision)
-    props = _extract_props(revision, warnings)
-    character_state = _build_character_placeholder(character_hint, warnings)
+    if state_resolver is not None:
+        scene = state_resolver.extract_scene(revision.source_text)
+        props = state_resolver.extract_props(revision.source_text)
+        character_state = state_resolver.resolve_character(character_hint)
+    else:
+        scene = _build_scene(revision)
+        props = _extract_props(revision, warnings)
+        character_state = _build_character_placeholder(character_hint, warnings)
 
     panel_count = panel_count_override or decision.panel_count_hint or 1
     if panel_count < 1:

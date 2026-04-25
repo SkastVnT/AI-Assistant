@@ -43,6 +43,13 @@ from image_pipeline.reasoning.panel_spec_validator import (
     validate_panel,
     validate_sequence,
 )
+from image_pipeline.reasoning.state import (
+    CharacterStateManager,
+    PropStateManager,
+    StateResolver,
+    default_resolver,
+    extract_scene,
+)
 
 __all__ = [
     # schemas
@@ -79,4 +86,10 @@ __all__ = [
     "ValidationResult",
     "validate_panel",
     "validate_sequence",
+    # state managers (cycle 2)
+    "CharacterStateManager",
+    "PropStateManager",
+    "StateResolver",
+    "default_resolver",
+    "extract_scene",
 ]
