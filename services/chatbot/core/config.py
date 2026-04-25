@@ -62,6 +62,14 @@ LAST30DAYS_SCRIPT_PATH = os.getenv('LAST30DAYS_SCRIPT_PATH', '')
 LAST30DAYS_PYTHON_PATH = os.getenv('LAST30DAYS_PYTHON_PATH', '')
 LAST30DAYS_TIMEOUT = int(os.getenv('LAST30DAYS_TIMEOUT', '180'))
 
+# Reasoning Image Pipeline (Cycle 6) — opt-in local nano-banana-style multi-panel
+# pipeline. When false (default) the route is NOT registered, the import is
+# never executed, and the URL map is byte-identical to today's runtime.
+REASONING_PIPELINE_ENABLED = os.getenv('REASONING_PIPELINE', 'false').lower() == 'true'
+REASONING_PIPELINE_COMFY_URL = os.getenv('REASONING_PIPELINE_COMFY_URL', os.getenv('COMFYUI_URL', 'http://localhost:8188'))
+REASONING_PIPELINE_MAX_PANELS = int(os.getenv('REASONING_PIPELINE_MAX_PANELS', '9'))
+REASONING_PIPELINE_MAX_CORRECTION_PASSES = int(os.getenv('REASONING_PIPELINE_MAX_CORRECTION_PASSES', '0'))
+
 # Hermes Agent — advanced AI sidecar
 HERMES_ENABLED = os.getenv('HERMES_ENABLED', 'false').lower() == 'true'
 HERMES_API_URL = os.getenv('HERMES_API_URL', 'http://localhost:8080')

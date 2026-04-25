@@ -207,6 +207,16 @@ Chatbot proxy qua `routes/mcp.py` (Flask) hoặc `fastapi_app/routers/mcp.py` (F
 |---|---|
 | `POST` | `/api/image-gen/generate`, `/api/image-gen/stream`, `/api/image-gen/edit` |
 
+### Reasoning Image Pipeline (opt-in, `REASONING_PIPELINE=true`)
+| Method | Path |
+|---|---|
+| `GET`  | `/api/reasoning-image-gen/status` |
+| `POST` | `/api/reasoning-image-gen/generate` |
+
+Local nano-banana-style multi-panel pipeline backed by ComfyUI. Disabled
+by default; the route is not registered when the flag is unset, so the
+URL map is byte-identical to the legacy runtime.
+
 ### Video (Sora 2)
 | Method | Path |
 |---|---|
