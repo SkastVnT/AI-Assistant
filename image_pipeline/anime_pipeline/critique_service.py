@@ -133,7 +133,8 @@ class CritiqueService:
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent",
+                headers={"X-goog-api-key": api_key},
                 json=payload,
             )
             resp.raise_for_status()

@@ -421,6 +421,19 @@ def generate_image():
     # -----------------------------------------------------------------
 
     data = request.get_json(force=True, silent=True) or {}
+
+    # ── SAA character pin ────────────────────────────────────────────
+    # Honour ``character_key`` from the picker by prepending the
+    # fully-qualified ``Display Name in Series`` phrase to the prompt.
+    # Reuses the same resolver as the anime pipeline so behaviour is
+    # consistent across image-gen surfaces (local registry → SAA WAI fallback).
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover — defensive
+            logger.warning(f"[image_gen] character enrichment skipped: {_ce}")
+
     prompt = data.get("prompt", "").strip()
 
     if not prompt:
@@ -592,6 +605,15 @@ def generate_image_stream():
     import json as _json
 
     data = request.get_json(force=True, silent=True) or {}
+
+    # ── SAA character pin (mirror /generate) ─────────────────────────
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover
+            logger.warning(f"[image_gen.stream] character enrichment skipped: {_ce}")
+
     prompt = data.get("prompt", "").strip()
 
     if not prompt:

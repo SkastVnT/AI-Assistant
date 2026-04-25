@@ -335,6 +335,14 @@ async def generate_image_stream(request: Request):
     except Exception:
         data = {}
 
+    # ── SAA character pin (parity with Flask /api/image-gen/stream) ──────
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover
+            logger.warning(f"[fastapi.image_gen.stream] character enrichment skipped: {_ce}")
+
     prompt = (data.get("prompt") or "").strip()
     if not prompt:
         def _err():
@@ -517,6 +525,14 @@ async def generate_image(request: Request):
         data = await request.json()
     except Exception:
         data = {}
+
+    # ── SAA character pin (parity with Flask /api/image-gen/generate) ────
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover
+            logger.warning(f"[fastapi.image_gen] character enrichment skipped: {_ce}")
 
     prompt = (data.get("prompt") or "").strip()
     if not prompt:

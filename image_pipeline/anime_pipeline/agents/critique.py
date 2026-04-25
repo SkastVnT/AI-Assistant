@@ -140,9 +140,14 @@ class CritiqueAgent:
         if job.reference_images_b64:
             reference_images = job.reference_images_b64[:2]
 
-        # Try each vision model
+        # Try each vision model. Skip Gemini variants once their key pool is
+        # fully exhausted to avoid hammering a dead API on every refine round.
+        from .._gemini_pool import all_exhausted as _gp_all_exhausted
         result = None
         for model_name in self._config.vision_model_priority:
+            if model_name.lower().startswith("gemini") and _gp_all_exhausted():
+                logger.debug("[Critique] Skipping %s (Gemini key pool exhausted)", model_name)
+                continue
             try:
                 result = self._critique_with_model(
                     model_name, job.user_prompt, output_b64,
@@ -153,7 +158,15 @@ class CritiqueAgent:
                     result.model_used = model_name
                     break
             except Exception as e:
-                logger.warning("[Critique] %s failed: %s", model_name, e)
+                # Redact ?key=... from URLs so leaked Gemini/OpenAI keys do
+                # not end up in plain-text logs (and uploaded log dumps).
+                import re as _re
+                safe_msg = _re.sub(
+                    r"([?&](?:key|api[_-]?key)=)[^&\s'\"]+",
+                    r"\1***REDACTED***",
+                    str(e),
+                )
+                logger.warning("[Critique] %s failed: %s", model_name, safe_msg)
 
         if not result:
             logger.warning("[Critique] All models failed, auto-passing")
@@ -203,10 +216,11 @@ class CritiqueAgent:
         identity_context: str = "",
         reference_images: Optional[list[str]] = None,
     ) -> Optional[CritiqueResult]:
-        """Critique using Gemini vision."""
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        """Critique using Gemini vision (with key-pool rotation on 429)."""
+        from .._gemini_pool import get_active_key, mark_exhausted, is_quota_error, is_auth_error
+        api_key = get_active_key()
         if not api_key:
-            raise RuntimeError("No GEMINI_API_KEY")
+            raise RuntimeError("No GEMINI_API_KEY available (pool exhausted)")
 
         import httpx
 
@@ -249,19 +263,39 @@ class CritiqueAgent:
 
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{api_model}:generateContent?key={api_key}"
+            f"{api_model}:generateContent"
         )
 
         with httpx.Client(timeout=30) as client:
-            resp = client.post(url, json={
-                "contents": [{"parts": parts}],
-                "generationConfig": {
-                    "temperature": 0.1,
-                    "maxOutputTokens": 700,
-                    "responseMimeType": "application/json",
-                },
-            })
-            resp.raise_for_status()
+            try:
+                resp = client.post(
+                    url,
+                    headers={
+                        "Content-Type": "application/json",
+                        # Header-based auth (vs ?key=... in query string).
+                        # Prevents the API key from appearing in httpx
+                        # exception messages, access logs, or proxy logs.
+                        "X-goog-api-key": api_key,
+                    },
+                    json={
+                        "contents": [{"parts": parts}],
+                        "generationConfig": {
+                            "temperature": 0.1,
+                            "maxOutputTokens": 700,
+                            "responseMimeType": "application/json",
+                        },
+                    },
+                )
+                resp.raise_for_status()
+            except Exception as e:
+                if is_quota_error(e):
+                    mark_exhausted(api_key, "429 in critique")
+                elif is_auth_error(e):
+                    # 401/403 = key permanently bad (invalid, disabled,
+                    # billing-blocked, region-blocked). Retrying it on
+                    # every refine round wastes 1–2s per call. Burn it.
+                    mark_exhausted(api_key, "403/401 in critique")
+                raise
 
         data = resp.json()
         text = (

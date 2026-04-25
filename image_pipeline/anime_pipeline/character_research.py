@@ -647,10 +647,19 @@ def _image_search_character(
         # NSFW: keep the strongest character-specific query only.
         queries = [f"{display_name} {series_name} official art"]
 
-    # Relevance filter tokens — every accepted SerpAPI hit must mention
-    # at least one of these in its title/source/url, otherwise we'd
-    # bring back generic franchise wallpapers.
-    name_tokens = {
+    # ── Relevance filter (2026-04-25 hardening) ─────────────────────
+    # Every accepted hit must:
+    #   (A) Match the character name as a WHOLE WORD (not substring) —
+    #       prevents "magic sparkle effect" from passing as Sparkle and
+    #       prevents misspellings like "Sparxie" from passing as Sparkle.
+    #   (B) Also match a SERIES token (franchise anchor) when the name
+    #       is a common English word (Sparkle, Robin, Sunday, March, …) —
+    #       prevents random off-franchise art from leaking in.
+    #   (C) NOT look like duo / multi-character art ("X and Y", "X & Y",
+    #       "X ft. Y", "X x Y", "X with Y") — those frames are bad refs
+    #       because the secondary character dominates a portion of the
+    #       canvas and pollutes the identity signal.
+    name_tokens: set[str] = {
         t.lower() for t in display_name.replace("-", " ").split() if len(t) > 1
     }
     name_tokens.add(display_name.lower())
@@ -658,13 +667,70 @@ def _image_search_character(
     base_tag = danbooru_tag.split("_(")[0]
     name_tokens.add(base_tag)
     name_tokens.add(base_tag.replace("_", " "))
-    name_tokens.add(base_tag.replace("_", ""))
+
+    # Series anchor tokens — split on punctuation/space and keep stems
+    # ≥ 4 chars (drops "of", "the", "no", "ga"). For "Honkai: Star Rail"
+    # → {"honkai", "star", "rail"}; for "Genshin Impact" → {"genshin",
+    # "impact"}; for "Blue Archive" → {"blue", "archive"}.
+    series_tokens: set[str] = {
+        t.lower()
+        for t in re.split(r"[\s\-:_/]+", series_name or "")
+        if len(t) >= 4
+    }
+    # Always add the joined no-punct form too so "honkaistarrail.fandom.com"
+    # passes when the series name is "Honkai: Star Rail".
+    if series_name:
+        series_tokens.add(re.sub(r"[^a-z0-9]", "", series_name.lower()))
+
+    # Common English words that would otherwise produce false-positives
+    # without a series anchor. Grow this list when audit finds new ones.
+    _AMBIGUOUS_NAMES: frozenset[str] = frozenset({
+        "sparkle", "robin", "sunday", "march", "moze", "boothill",
+        "bronya", "luna", "nicole", "yuki", "rei", "asuka",
+        "ruby", "amber", "diona", "sara", "lisa", "rosa",
+        "may", "june", "april", "noel", "noelle",
+    })
+    name_is_ambiguous = display_name.strip().lower() in _AMBIGUOUS_NAMES
+
+    # Pre-compile word-boundary patterns for the name tokens. Tokens with
+    # underscores/spaces get escaped for safety.
+    name_patterns = [
+        re.compile(r"\b" + re.escape(tok) + r"\b", re.IGNORECASE)
+        for tok in sorted(name_tokens) if tok
+    ]
+
+    # Duo / multi-character title heuristic. The secondary half is
+    # typically capitalised and follows one of these connectors.
+    # Note: deliberately omit "x" and "+" (too many false positives in
+    # urls/titles like "1500x2000" or hashtags). "&amp;" handled via "&".
+    _DUO_RE = re.compile(
+        r"\b(?:and|ft\.?|feat\.?|featuring|with|vs\.?)\b\s+[A-Z]"
+        r"|\s[&×]\s+[A-Z]",
+        re.IGNORECASE,
+    )
 
     def _is_relevant(item: dict) -> bool:
+        title = str(item.get("title", ""))
         haystack = " ".join(
             str(item.get(k, "")) for k in ("title", "source", "link", "original")
-        ).lower()
-        return any(tok in haystack for tok in name_tokens if tok)
+        )
+
+        # (A) Whole-word name match anywhere in title/source/url.
+        if not any(p.search(haystack) for p in name_patterns):
+            return False
+
+        # (B) Series anchor required for ambiguous names.
+        if name_is_ambiguous and series_tokens:
+            haystack_low = haystack.lower()
+            if not any(s in haystack_low for s in series_tokens):
+                return False
+
+        # (C) Duo / multi-character title rejection. Only inspect the
+        # title (URLs and source domains shouldn't trigger this).
+        if title and _DUO_RE.search(title):
+            return False
+
+        return True
 
     all_images: list[dict] = []
     seen_urls: set[str] = set()
@@ -1028,8 +1094,9 @@ def _llm_extract_gemini(prompt: str, api_key: str) -> Optional[dict]:
 
     try:
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={api_key}",
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            "gemini-2.0-flash:generateContent",
+            headers={"X-goog-api-key": api_key},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
@@ -1131,8 +1198,9 @@ def _analyze_reference_image(
 
     try:
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={gemini_key}",
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            "gemini-2.0-flash:generateContent",
+            headers={"X-goog-api-key": gemini_key},
             json={
                 "contents": [{
                     "parts": [

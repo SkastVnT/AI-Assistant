@@ -35,17 +35,51 @@ def _enrich_with_character(data: dict) -> dict:
     ``Display Name in Series`` phrase to the prompt so the existing
     character_parser resolves identity reliably. Returns enriched dict.
 
+    Resolution order:
+      1. Local hand-curated registry (``storage/character_db/``) — preferred,
+         carries display_name + series + LoRA hints.
+      2. SAA WAI database (5149 entries from
+         ``character_select_stand_alone_app-main/data/wai_characters.csv``)
+         — long-tail fallback.
+
     Backward-compatible: if no character_key (or unresolved), returns input.
     """
     char_key = (data.get("character_key") or "").strip()
     if not char_key:
         return data
+
     rec = get_registry().get(char_key)
+
+    # Fallback: SAA WAI DB. The picker may surface keys (especially the
+    # autocomplete tag entries) that are not present in the curated local
+    # registry. Looking them up against SAA keeps the data flow intact.
     if rec is None:
-        logger.warning("[anime_pipeline] character_key %s not in registry", char_key)
-        return data
+        try:
+            from image_pipeline.anime_pipeline.saa_character_db import lookup_character
+            saa_hit = lookup_character(char_key)
+        except Exception as e:  # pragma: no cover — defensive import guard
+            logger.debug("[anime_pipeline] SAA fallback unavailable: %s", e)
+            saa_hit = None
+
+        if saa_hit is not None:
+            class _SAARecord:  # lightweight stand-in matching the queue contract
+                __slots__ = ("key", "display_name", "series", "series_key")
+                def __init__(self, key: str, display: str, series: str | None) -> None:
+                    self.key = key
+                    self.display_name = display
+                    self.series = series or ""
+                    self.series_key = (series or "").strip().lower().replace(" ", "_") or None
+            rec = _SAARecord(char_key, saa_hit.display_name, saa_hit.series_hint)
+            logger.info(
+                "[anime_pipeline] character_key %s resolved via SAA WAI DB (%s)",
+                char_key, saa_hit.display_name,
+            )
+        else:
+            logger.warning("[anime_pipeline] character_key %s not in registry or SAA", char_key)
+            return data
+
     prompt = (data.get("prompt") or "").strip()
-    qualified = f"{rec.display_name} in {rec.series}"
+    qualified = f"{rec.display_name} in {rec.series}" if rec.series else rec.display_name
     # Only prepend if the qualified phrase isn't already present
     if qualified.lower() not in prompt.lower():
         new_prompt = f"{qualified}, {prompt}" if prompt else qualified

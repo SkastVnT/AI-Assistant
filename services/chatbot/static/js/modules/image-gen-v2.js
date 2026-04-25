@@ -162,6 +162,20 @@ export class ImageGenV2 {
 
             if (statusEl) statusEl.textContent = '🎨 Đang tạo ảnh...';
 
+            // ── Character pin (SAA / local registry) ─────────────────
+            // Mirror anime-pipeline.js: read window.selectedCharacter or
+            // body data-attributes so the picker selection flows through
+            // /api/image-gen/generate as well.
+            const _selChar = window.selectedCharacter || null;
+            let _characterKey = null, _seriesKey = null;
+            if (_selChar && _selChar.key) {
+                _characterKey = _selChar.key;
+                if (_selChar.series_key) _seriesKey = _selChar.series_key;
+            } else {
+                _characterKey = document.body?.dataset?.characterKey || null;
+                _seriesKey = document.body?.dataset?.seriesKey || null;
+            }
+
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -179,6 +193,8 @@ export class ImageGenV2 {
                     conversation_id: this.conversationId,
                     num_images: 1,
                     use_reasoning_pipeline: useReasoning,
+                    character_key: _characterKey,
+                    series_key: _seriesKey,
                 }),
             });
 

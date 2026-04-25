@@ -387,11 +387,45 @@ def generate() -> Any:
     ``image_b64`` (final assembled comic, base64 PNG).
     """
     payload = request.get_json(silent=True) or {}
+
+    # ── SAA character pin ────────────────────────────────────────────
+    # Accept either an explicit ``character_hint`` mapping (legacy) or a
+    # picker-style ``character_key`` (preferred). When ``character_key`` is
+    # supplied we resolve it via the local registry → SAA WAI fallback and
+    # build a ``character_hint`` that the parser can consume directly.
+    character_hint = payload.get("character_hint")
+    char_key = (payload.get("character_key") or "").strip()
+    if not character_hint and char_key:
+        try:
+            from core.character_registry import get_registry as _get_reg
+            rec = _get_reg().get(char_key)
+            if rec is not None:
+                character_hint = {
+                    "key": rec.key,
+                    "display_name": rec.display_name,
+                    "series": rec.series,
+                    "series_key": rec.series_key,
+                    "character_tag": rec.character_tag,
+                }
+            else:
+                from image_pipeline.anime_pipeline.saa_character_db import lookup_character as _saa_lookup
+                hit = _saa_lookup(char_key)
+                if hit is not None:
+                    character_hint = {
+                        "key": char_key,
+                        "display_name": hit.display_name,
+                        "series": hit.series_hint or "",
+                        "character_tag": hit.tag,
+                        "source": "saa",
+                    }
+        except Exception as _ce:  # pragma: no cover
+            logger.warning("[reasoning_image_gen] character resolve failed: %s", _ce)
+
     result = run_pipeline_for_prompt(
         payload.get("prompt") or "",
         layout=payload.get("layout"),
         attached_images=payload.get("attached_images") or 0,
-        character_hint=payload.get("character_hint"),
+        character_hint=character_hint,
     )
     status_code = int(result.pop("status_code", 200))
     return jsonify(result), status_code

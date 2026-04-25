@@ -164,6 +164,23 @@ export class AnimePipeline {
             batch_size: imageOnly ? batchSize : 1,
         };
 
+        // Pipe the character picker selection (if any) into the request.
+        // Backend ``_enrich_with_character`` resolves this against the local
+        // registry first, then falls back to the SAA WAI database (5149
+        // entries) so long-tail characters still get fully-qualified prompts.
+        try {
+            const sel = window.selectedCharacter || null;
+            if (sel && sel.key) {
+                body.character_key = sel.key;
+                if (sel.series_key) body.series_key = sel.series_key;
+            } else {
+                const dsKey = document.body.getAttribute('data-character-key');
+                const dsSeries = document.body.getAttribute('data-series-key');
+                if (dsKey) body.character_key = dsKey;
+                if (dsSeries) body.series_key = dsSeries;
+            }
+        } catch (_) { /* picker not loaded — ignore */ }
+
         // Stash the run options on the bubble so the regenerate /
         // edit-and-rerun buttons in _inlineShowResult can preserve
         // image-only mode and batch size on the next round-trip

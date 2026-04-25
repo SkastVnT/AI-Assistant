@@ -413,7 +413,7 @@ class VisionAnalystAgent:
 
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{api_model}:generateContent?key={api_key}"
+            f"{api_model}:generateContent"
         )
 
         payload = {
@@ -426,7 +426,7 @@ class VisionAnalystAgent:
         }
 
         with httpx.Client(timeout=30) as client:
-            resp = client.post(url, json=payload)
+            resp = client.post(url, headers={"X-goog-api-key": api_key}, json=payload)
             resp.raise_for_status()
 
         data = resp.json()
@@ -668,16 +668,19 @@ class VisionAnalystAgent:
                 pass
             return [], []
 
-        # Try Gemini first
-        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if gemini_key:
+        # Try Gemini first (rotate through key pool, skip exhausted keys).
+        from .._gemini_pool import get_active_key, mark_exhausted, is_quota_error
+        while True:
+            gemini_key = get_active_key()
+            if not gemini_key:
+                break
             try:
                 url = (
                     "https://generativelanguage.googleapis.com/v1beta/models/"
-                    f"gemini-2.0-flash:generateContent?key={gemini_key}"
+                    "gemini-2.0-flash:generateContent"
                 )
                 with httpx.Client(timeout=15) as client:
-                    resp = client.post(url, json={
+                    resp = client.post(url, headers={"X-goog-api-key": gemini_key}, json={
                         "contents": [{"parts": [{"text": msg}]}],
                         "generationConfig": {
                             "temperature": 0.1,
@@ -696,8 +699,13 @@ class VisionAnalystAgent:
                 char_t, scene_t = _parse_tags(text)
                 if char_t or scene_t:
                     return char_t, scene_t
+                break  # Empty response — give up on Gemini, fall through to OpenAI.
             except Exception as e:
+                if is_quota_error(e):
+                    mark_exhausted(gemini_key, "429 in vision_analyst")
+                    continue  # Try next key in pool.
                 logger.warning("[VisionAnalyst] Gemini translation failed: %s", e)
+                break
 
         # Fallback: OpenAI
         openai_key = os.getenv("OPENAI_API_KEY")

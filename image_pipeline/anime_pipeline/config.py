@@ -218,6 +218,11 @@ class AnimePipelineConfig:
     max_refine_rounds: int = 8
     max_stagnant_rounds: int = 5
     max_full_restarts: int = 3
+    # Hard cap: after N total beauty rounds without a pass, force a re-plan
+    # (attempt 2 + dual_output) regardless of whether failures were consecutive.
+    # Prevents endless oscillation around the quality threshold (e.g. 7.9/8.1/7.8
+    # never tripping the 4-consecutive-fail rule).
+    force_replan_after_rounds: int = 5
     critique_dimensions: list[str] = field(
         default_factory=lambda: [
             "instruction_adherence", "detail_handling", "identity_consistency"
@@ -550,6 +555,13 @@ def _apply_env(cfg: AnimePipelineConfig) -> None:
     max_rounds = os.getenv("ANIME_PIPELINE_MAX_REFINE_ROUNDS")
     if max_rounds:
         cfg.max_refine_rounds = int(max_rounds)
+
+    force_replan = os.getenv("ANIME_PIPELINE_FORCE_REPLAN_AFTER_ROUNDS")
+    if force_replan:
+        try:
+            cfg.force_replan_after_rounds = max(1, int(force_replan))
+        except ValueError:
+            pass
 
     url = os.getenv("ANIME_PIPELINE_COMFYUI_URL") or os.getenv("COMFYUI_URL")
     if url:

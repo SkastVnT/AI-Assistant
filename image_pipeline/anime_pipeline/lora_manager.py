@@ -51,6 +51,95 @@ def lora_file_exists(lora_rel_path: str) -> bool:
     except OSError:
         return False
 
+
+# ── ComfyUI LoRA list awareness ─────────────────────────────────────
+# ComfyUI caches its lora_name dropdown at startup. When new LoRA files
+# are dropped into subfolders (e.g. effects/mouth/) AFTER ComfyUI has
+# started, the file is on disk but ``LoraLoader`` will reject it with
+# HTTP 400 ``value_not_in_list``. We query /object_info/LoraLoader once
+# per process and cache the membership set so callers can drop unknown
+# LoRAs before submitting the workflow.
+
+_COMFY_LORA_LIST_CACHE: Optional[set[str]] = None
+_COMFY_LORA_LIST_LOCK = __import__("threading").Lock()
+
+
+def _normalise_lora_name(name: str) -> str:
+    return str(name or "").replace("\\", "/").lstrip("/").lower()
+
+
+def _fetch_comfy_lora_list(base_url: str) -> Optional[set[str]]:
+    try:
+        import httpx
+        with httpx.Client(timeout=8) as client:
+            resp = client.get(f"{base_url.rstrip('/')}/object_info/LoraLoader")
+            if resp.status_code != 200:
+                return None
+            info = resp.json()
+            raw = (
+                info.get("LoraLoader", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("lora_name", [[]])[0]
+            )
+            if not isinstance(raw, list):
+                return None
+            return {_normalise_lora_name(x) for x in raw if isinstance(x, str)}
+    except Exception as e:
+        logger.debug("[LoRA] Could not fetch ComfyUI lora list: %s", e)
+        return None
+
+
+def get_comfy_lora_set(force_refresh: bool = False) -> Optional[set[str]]:
+    """Return ComfyUI's known LoRA filenames (lowercase, forward-slash).
+
+    Returns ``None`` if ComfyUI is unreachable; callers should then fall
+    back to disk-only checks. Cached for the process lifetime.
+    """
+    global _COMFY_LORA_LIST_CACHE
+    with _COMFY_LORA_LIST_LOCK:
+        if _COMFY_LORA_LIST_CACHE is not None and not force_refresh:
+            return _COMFY_LORA_LIST_CACHE
+        base_url = (
+            os.getenv("ANIME_PIPELINE_COMFYUI_URL")
+            or os.getenv("COMFYUI_URL")
+            or "http://127.0.0.1:8188"
+        )
+        result = _fetch_comfy_lora_list(base_url)
+        if result is not None:
+            _COMFY_LORA_LIST_CACHE = result
+            logger.info("[LoRA] Cached ComfyUI lora list: %d entries", len(result))
+        return result
+
+
+def lora_known_to_comfyui(lora_rel_path: str) -> bool:
+    """Return True if ComfyUI's LoraLoader will accept this name.
+
+    Falls back to ``lora_file_exists`` when ComfyUI is unreachable, so
+    offline / cold-start workflows are not unnecessarily blocked.
+
+    If the name is on disk but missing from the cached ComfyUI list,
+    refresh the cache once: a user may have restarted ComfyUI mid-run
+    after dropping new LoRA files into ``effects/<sub>/``.
+    """
+    if not lora_rel_path:
+        return False
+    known = get_comfy_lora_set()
+    if known is None:
+        return lora_file_exists(lora_rel_path)
+    norm = _normalise_lora_name(lora_rel_path)
+    if norm in known:
+        return True
+    # Cache miss — if file exists on disk, attempt one refresh in case
+    # ComfyUI was restarted (or user manually triggered a /object_info
+    # rescan) since process start. Avoids permanently blacklisting LoRAs
+    # added after the first successful query.
+    if lora_file_exists(lora_rel_path):
+        refreshed = get_comfy_lora_set(force_refresh=True)
+        if refreshed is not None and norm in refreshed:
+            return True
+    return False
+
 _CIVITAI_API = "https://civitai.com/api/v1"
 _CIVITAI_DOWNLOAD = "https://civitai.com/api/download/models"
 
@@ -520,8 +609,9 @@ def _verify_lora_with_vision(
 
         try:
             resp = httpx.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/"
-                f"gemini-2.0-flash:generateContent?key={gemini_key}",
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                "gemini-2.0-flash:generateContent",
+                headers={"X-goog-api-key": gemini_key},
                 json={
                     "contents": [{"parts": parts}],
                     "generationConfig": {
