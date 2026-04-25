@@ -136,6 +136,7 @@ export class ImageGenV2 {
             const enhance = document.getElementById('igv2Enhance')?.checked !== false;
             const steps = parseInt(document.getElementById('igv2Steps')?.value || '28');
             const guidance = parseFloat(document.getElementById('igv2Guidance')?.value || '3.5');
+            const useReasoning = document.getElementById('igv2UseReasoning')?.checked === true;
             const effectivePresetId = presetId || (provider === 'comfyui' ? 'lora_bulk_auto_chat' : '');
 
             if (statusEl) statusEl.textContent = '🎨 Đang tạo ảnh...';
@@ -156,6 +157,7 @@ export class ImageGenV2 {
                     guidance,
                     conversation_id: this.conversationId,
                     num_images: 1,
+                    use_reasoning_pipeline: useReasoning,
                 }),
             });
 

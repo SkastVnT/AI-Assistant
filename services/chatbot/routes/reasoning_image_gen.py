@@ -228,30 +228,27 @@ def status() -> Any:
     })
 
 
-@reasoning_image_gen_bp.post("/generate")
-def generate() -> Any:
-    """Run parse → plan → run → correct → assemble for the supplied prompt.
+def run_pipeline_for_prompt(
+    prompt_text: str,
+    *,
+    layout: Any = None,
+    attached_images: int = 0,
+    character_hint: Mapping[str, Any] | None = None,
+) -> dict:
+    """Run the full reasoning pipeline as a plain Python call (no Flask).
 
-    Request JSON
-    ------------
-    ``prompt`` (str, required) — natural-language request.
-    ``layout`` (str, optional) — override OutputLayout (e.g. ``"grid_2x2"``).
-    ``attached_images`` (int, optional) — count of attachments, forwarded to parser.
-    ``character_hint`` (mapping, optional) — pin character resolution.
+    Returns a dict with the same keys as the ``/generate`` HTTP endpoint plus
+    a ``status_code`` field (so callers like :mod:`routes.image_gen` can map
+    the result back to HTTP). The ``status_code`` mirrors what the route
+    handler would return; callers may ignore it.
 
-    Response JSON
-    -------------
-    ``job_id``, ``parse``, ``panels`` (per-panel diagnostic dicts),
-    ``comic`` (descriptor from :meth:`AssembledComic.to_dict`),
-    ``image_b64`` (final assembled comic, base64 PNG).
-
-    Failures surface as HTTP 4xx (validation) or HTTP 200 with
-    ``success=False`` + per-panel error fields when a panel's render fails.
+    This is the integration boundary used by Cycle 7 to plug the reasoning
+    pipeline into the existing LOCAL image-gen flow without spinning a second
+    HTTP hop.
     """
-    payload = request.get_json(silent=True) or {}
-    prompt_text = (payload.get("prompt") or "").strip()
+    prompt_text = (prompt_text or "").strip()
     if not prompt_text:
-        return jsonify({"success": False, "error": "prompt is required"}), 400
+        return {"success": False, "error": "prompt is required", "status_code": 400}
 
     job_id = f"reason-{uuid.uuid4().hex[:12]}"
     logger.info("[%s] reasoning pipeline start: %r", job_id, prompt_text[:160])
@@ -260,33 +257,35 @@ def generate() -> Any:
     try:
         parse_result = parse(
             prompt_text,
-            attached_images=int(payload.get("attached_images") or 0),
-            character_hint=payload.get("character_hint"),
+            attached_images=int(attached_images or 0),
+            character_hint=character_hint,
             state_resolver=default_resolver(),
         )
     except SchemaValidationError as exc:
-        return jsonify({"success": False, "error": f"parse failed: {exc}"}), 400
+        return {"success": False, "error": f"parse failed: {exc}", "status_code": 400}
     except Exception as exc:
         logger.exception("[%s] parse raised", job_id)
-        return jsonify({"success": False, "error": f"parse raised: {exc}"}), 500
+        return {"success": False, "error": f"parse raised: {exc}", "status_code": 500}
 
     panels, parsed_layout = _panels_from_parse(parse_result)
     if not panels:
-        return jsonify({
+        return {
             "success": False,
             "error": "parser produced no panels",
             "parse": parse_result.to_dict(),
-        }), 422
+            "status_code": 422,
+        }
     if len(panels) > REASONING_PIPELINE_MAX_PANELS:
-        return jsonify({
+        return {
             "success": False,
             "error": (
                 f"panel count {len(panels)} exceeds max "
                 f"{REASONING_PIPELINE_MAX_PANELS}"
             ),
-        }), 422
+            "status_code": 422,
+        }
 
-    layout = _coerce_layout(payload.get("layout"), parsed_layout)
+    chosen_layout = _coerce_layout(layout, parsed_layout)
     required_stages = tuple(parse_result.required_stages or ())
 
     # 2. Per-panel: plan + run + correct.
@@ -335,36 +334,67 @@ def generate() -> Any:
 
     # 3. Assemble — bail if any panel produced no bytes.
     if any_failure or not panel_bytes:
-        return jsonify({
+        return {
             "success": False,
             "job_id": job_id,
             "parse": parse_result.to_dict(),
             "panels": panel_reports,
             "error": "one or more panels failed to render",
-        }), 200
+            "status_code": 200,
+        }
 
     try:
         # SINGLE layout supports exactly 1 panel; downgrade if mismatch.
-        if layout is OutputLayout.SINGLE and len(panel_bytes) != 1:
-            layout = OutputLayout.HORIZONTAL_STRIP
-        comic = assemble_comic(layout, panel_bytes)
+        if chosen_layout is OutputLayout.SINGLE and len(panel_bytes) != 1:
+            chosen_layout = OutputLayout.HORIZONTAL_STRIP
+        comic = assemble_comic(chosen_layout, panel_bytes)
     except ValueError as exc:
-        return jsonify({
+        return {
             "success": False,
             "job_id": job_id,
             "parse": parse_result.to_dict(),
             "panels": panel_reports,
             "error": f"assemble_comic: {exc}",
-        }), 200
+            "status_code": 200,
+        }
 
-    return jsonify({
+    return {
         "success": True,
         "job_id": job_id,
         "parse": parse_result.to_dict(),
         "panels": panel_reports,
         "comic": comic.to_dict(),
         "image_b64": base64.b64encode(comic.image_bytes).decode("ascii"),
-    })
+        "status_code": 200,
+    }
 
 
-__all__ = ["reasoning_image_gen_bp"]
+@reasoning_image_gen_bp.post("/generate")
+def generate() -> Any:
+    """HTTP wrapper around :func:`run_pipeline_for_prompt`.
+
+    Request JSON
+    ------------
+    ``prompt`` (str, required) — natural-language request.
+    ``layout`` (str, optional) — override OutputLayout (e.g. ``"grid_2x2"``).
+    ``attached_images`` (int, optional) — count of attachments, forwarded to parser.
+    ``character_hint`` (mapping, optional) — pin character resolution.
+
+    Response JSON
+    -------------
+    ``job_id``, ``parse``, ``panels`` (per-panel diagnostic dicts),
+    ``comic`` (descriptor from :meth:`AssembledComic.to_dict`),
+    ``image_b64`` (final assembled comic, base64 PNG).
+    """
+    payload = request.get_json(silent=True) or {}
+    result = run_pipeline_for_prompt(
+        payload.get("prompt") or "",
+        layout=payload.get("layout"),
+        attached_images=payload.get("attached_images") or 0,
+        character_hint=payload.get("character_hint"),
+    )
+    status_code = int(result.pop("status_code", 200))
+    return jsonify(result), status_code
+
+
+__all__ = ["reasoning_image_gen_bp", "run_pipeline_for_prompt"]

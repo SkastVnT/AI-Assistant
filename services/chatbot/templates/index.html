@@ -1417,6 +1417,15 @@ try {
                         <select id="igv2Provider" class="form-select" style="width: 100%;"><option value="">🤖 Auto</option></select>
                     </div>
                 </div>
+                <div id="igv2ReasoningRow" style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="igv2UseReasoning" style="width: 16px; height: 16px;">
+                        <span style="font-size: 13px;">🧠 Use Reasoning Pipeline (LOCAL multi-panel)</span>
+                    </label>
+                    <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
+                        Requires <code>REASONING_PIPELINE=true</code>. Routes through parse → plan → run → assemble.
+                    </div>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
                         <label class="form-label">📐 Width</label>

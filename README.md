@@ -217,6 +217,13 @@ Local nano-banana-style multi-panel pipeline backed by ComfyUI. Disabled
 by default; the route is not registered when the flag is unset, so the
 URL map is byte-identical to the legacy runtime.
 
+When the flag is on, the existing `POST /api/image-gen/generate` endpoint
+also accepts `use_reasoning_pipeline: true` in its JSON payload — that
+opt-in toggle short-circuits the regular provider router and returns the
+assembled comic via the standard image-gen response shape (`provider:
+"reasoning"`, `model: "comic-pipeline"`). The toggle is exposed in the
+chat UI's Image Gen v2 modal as **🧠 Use Reasoning Pipeline**.
+
 ### Video (Sora 2)
 | Method | Path |
 |---|---|

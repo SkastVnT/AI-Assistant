@@ -145,6 +145,112 @@ def _save_to_gallery(saved: dict, prompt: str, provider: str, model: str,
         logger.warning(f'[image_gen] gallery sync failed (non-fatal): {e}')
 
 
+def _run_reasoning_fastpath(
+    *,
+    prompt: str,
+    data: dict,
+    conversation_id: str,
+    storage,
+    username: str,
+    quota_db,
+):
+    """Cycle 7 LOCAL fast-path: route /generate to the reasoning pipeline.
+
+    Returns a Flask response (the route's full reply) on success/failure of
+    the pipeline. Returns ``None`` if the pipeline is structurally unable to
+    run (e.g. helper import failed) so the caller can fall back to the normal
+    router. Imports are lazy so the regular path stays untouched when the
+    REASONING_PIPELINE flag is off.
+    """
+    try:
+        from routes.reasoning_image_gen import run_pipeline_for_prompt
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(f"[image_gen] reasoning fastpath import failed: {exc}")
+        return None
+
+    pipeline = run_pipeline_for_prompt(
+        prompt,
+        layout=data.get("layout"),
+        attached_images=data.get("attached_images") or 0,
+        character_hint=data.get("character_hint"),
+    )
+    pipeline.pop("status_code", None)
+
+    if not pipeline.get("success") or not pipeline.get("image_b64"):
+        return jsonify({
+            "success": False,
+            "error": pipeline.get("error") or "reasoning pipeline failed",
+            "prompt_used": prompt,
+            "provider": "reasoning",
+            "model": "comic-pipeline",
+            "reasoning": pipeline,
+        }), 200
+
+    saved = storage.save(
+        image_b64=pipeline["image_b64"],
+        prompt=prompt,
+        provider="reasoning",
+        model="comic-pipeline",
+        conversation_id=conversation_id,
+        metadata={
+            "reasoning_job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+        },
+    )
+    if saved.get("error"):
+        return jsonify({
+            "success": False,
+            "error": f"reasoning save failed: {saved['error']}",
+            "prompt_used": prompt,
+            "provider": "reasoning",
+            "model": "comic-pipeline",
+        }), 500
+
+    _save_to_gallery(
+        saved, prompt, "reasoning", "comic-pipeline",
+        conversation_id, source="image_gen_v2_reasoning",
+    )
+
+    if username and quota_db is not None:
+        try:
+            from core.user_auth import increment_image_quota
+            increment_image_quota(quota_db, username, 1)
+        except Exception:
+            pass
+
+    try:
+        log_image_generation(
+            prompt=prompt, provider="reasoning", model="comic-pipeline",
+            image_url=saved.get("url", ""), image_path=saved.get("local_path", ""),
+            session_id=conversation_id, mode="txt2img",
+            extra={"reasoning_job_id": pipeline.get("job_id")},
+        )
+    except Exception:
+        pass
+
+    return jsonify({
+        "success": True,
+        "images": [{
+            "url": saved.get("url", ""),
+            "image_id": saved.get("image_id", ""),
+            "local_path": saved.get("local_path", ""),
+        }],
+        "images_url": [],
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "prompt_used": prompt,
+        "original_prompt": prompt,
+        "latency_ms": 0.0,
+        "cost_usd": 0.0,
+        "style": data.get("style"),
+        "reasoning": {
+            "job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+            "panels": pipeline.get("panels"),
+        },
+    })
+
+
 # â”€â”€ Main generation endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/generate", methods=["POST"])
@@ -195,6 +301,28 @@ def generate_image():
 
     conversation_id = data.get("conversation_id", session.get("conversation_id", ""))
     img_session = sessions.get_or_create(conversation_id)
+
+    # ── Cycle 7: reasoning pipeline fast-path (LOCAL, opt-in) ────────────
+    # Activates only when BOTH: (a) REASONING_PIPELINE flag is on, and
+    # (b) the request payload sets ``use_reasoning_pipeline: true``. When
+    # either is false this branch is skipped and the regular router runs.
+    # This preserves the byte-identical flag-off behaviour from Cycle 6.
+    if data.get("use_reasoning_pipeline"):
+        try:
+            from core.config import REASONING_PIPELINE_ENABLED
+        except Exception:
+            REASONING_PIPELINE_ENABLED = False
+        if REASONING_PIPELINE_ENABLED:
+            reasoning_resp = _run_reasoning_fastpath(
+                prompt=prompt,
+                data=data,
+                conversation_id=conversation_id,
+                storage=storage,
+                username=_username,
+                quota_db=_quota_db,
+            )
+            if reasoning_resp is not None:
+                return reasoning_resp
 
     # Build context from session history
     context = img_session.get_context_for_enhancement() if img_session.history else None
