@@ -18,6 +18,12 @@ the spec.
 from __future__ import annotations
 
 from .comfy_workflow_builder import build_workflow
+from .correction_router import (
+    CorrectionResult,
+    CorrectionRound,
+    CorrectionScore,
+    maybe_correct,
+)
 from .execution_plan import (
     ExecutionPlan,
     ExecutionStep,
@@ -31,7 +37,11 @@ __all__ = [
     "ExecutionStep",
     "StageKind",
     "PanelResult",
+    "CorrectionResult",
+    "CorrectionRound",
+    "CorrectionScore",
     "plan_panel",
     "build_workflow",
     "run_panel",
+    "maybe_correct",
 ]

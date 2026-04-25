@@ -51,11 +51,15 @@ from image_pipeline.reasoning.state import (
     extract_scene,
 )
 from image_pipeline.reasoning.execution import (
+    CorrectionResult,
+    CorrectionRound,
+    CorrectionScore,
     ExecutionPlan,
     ExecutionStep,
     PanelResult,
     StageKind,
     build_workflow,
+    maybe_correct,
     plan_panel,
     run_panel,
 )
@@ -109,4 +113,9 @@ __all__ = [
     "build_workflow",
     "plan_panel",
     "run_panel",
+    # correction router (cycle 4)
+    "CorrectionResult",
+    "CorrectionRound",
+    "CorrectionScore",
+    "maybe_correct",
 ]
