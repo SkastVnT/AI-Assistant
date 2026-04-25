@@ -51,6 +51,7 @@ from image_pipeline.reasoning.state import (
     extract_scene,
 )
 from image_pipeline.reasoning.execution import (
+    AssembledComic,
     CorrectionResult,
     CorrectionRound,
     CorrectionScore,
@@ -58,6 +59,7 @@ from image_pipeline.reasoning.execution import (
     ExecutionStep,
     PanelResult,
     StageKind,
+    assemble_comic,
     build_workflow,
     maybe_correct,
     plan_panel,
@@ -118,4 +120,7 @@ __all__ = [
     "CorrectionRound",
     "CorrectionScore",
     "maybe_correct",
+    # comic assembler (cycle 5)
+    "AssembledComic",
+    "assemble_comic",
 ]

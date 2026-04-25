@@ -18,6 +18,7 @@ the spec.
 from __future__ import annotations
 
 from .comfy_workflow_builder import build_workflow
+from .comic_assembler import AssembledComic, assemble_comic
 from .correction_router import (
     CorrectionResult,
     CorrectionRound,
@@ -37,11 +38,13 @@ __all__ = [
     "ExecutionStep",
     "StageKind",
     "PanelResult",
+    "AssembledComic",
     "CorrectionResult",
     "CorrectionRound",
     "CorrectionScore",
     "plan_panel",
     "build_workflow",
     "run_panel",
+    "assemble_comic",
     "maybe_correct",
 ]
