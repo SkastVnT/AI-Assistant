@@ -735,7 +735,7 @@ class ChatBotApp {
                                 <div class="igv2-choice-header">
                                     <span class="igv2-choice-icon">⚡</span>
                                     <span class="igv2-choice-title">Chọn phương thức tạo ảnh</span>
-                                    <span class="igv2-choice-timer">${TIMEOUT_SECONDS}s</span>
+                                    <span class="igv2-choice-timer" aria-live="polite" aria-atomic="true">${TIMEOUT_SECONDS}s</span>
                                 </div>
                                 <div class="igv2-choice-buttons">
                                     <button class="igv2-choice-btn igv2-choice-local" data-choice="local">
@@ -878,8 +878,18 @@ class ChatBotApp {
 
                 const countdownInterval = setInterval(() => {
                     remaining--;
-                    if (timerEl) timerEl.textContent = `${remaining}s`;
-                    if (progressBar) progressBar.style.width = `${(remaining / TIMEOUT_SECONDS) * 100}%`;
+                    if (timerEl) {
+                        timerEl.textContent = `${remaining}s`;
+                        // Color-shift via class state (CSS handles styling).
+                        timerEl.classList.toggle('is-warning', remaining <= 10 && remaining > 5);
+                        timerEl.classList.toggle('is-critical', remaining <= 5);
+                    }
+                    if (progressBar) {
+                        const ratio = Math.max(0, remaining / TIMEOUT_SECONDS);
+                        progressBar.style.width = `${ratio * 100}%`;
+                        // Expose ratio for any CSS that wants it.
+                        choiceContainer.style.setProperty('--igv2-time-left', ratio.toFixed(3));
+                    }
                     if (remaining <= 0) {
                         finalize('cancel');
                     }
