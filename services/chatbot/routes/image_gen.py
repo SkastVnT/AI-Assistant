@@ -251,6 +251,137 @@ def _run_reasoning_fastpath(
     })
 
 
+def _stream_reasoning_fastpath(
+    *,
+    prompt: str,
+    data: dict,
+    conversation_id: str,
+    storage,
+    img_session,
+    username: str,
+    quota_db,
+):
+    """Cycle 7.5 SSE variant of ``_run_reasoning_fastpath``.
+
+    Returns a Python generator that yields SSE-formatted strings, mirroring
+    the event vocabulary used by ``/api/image-gen/stream``: ``status``,
+    ``provider_try``, ``provider_success``, ``result``, ``saved``, ``error``.
+    The frontend's ``generateFromChatStream`` callbacks therefore work with
+    no rendering changes.
+
+    Like the JSON variant this is a no-op fall-through: callers that want to
+    bypass reasoning simply do not invoke this generator.
+    """
+    import json as _json
+
+    def _emit(event: str, payload: dict) -> str:
+        return f"event: {event}\ndata: {_json.dumps(payload)}\n\n"
+
+    try:
+        from routes.reasoning_image_gen import run_pipeline_for_prompt
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(f"[image_gen] reasoning stream import failed: {exc}")
+        yield _emit("error", {"error": f"reasoning import failed: {exc}"})
+        return
+
+    yield _emit("status", {
+        "step": "reasoning_pipeline",
+        "phase": "start",
+        "message": "Routing through reasoning pipeline",
+    })
+    yield _emit("provider_try", {
+        "provider": "reasoning",
+        "priority": 0,
+        "attempt": 1,
+        "total_providers": 1,
+    })
+
+    pipeline = run_pipeline_for_prompt(
+        prompt,
+        layout=data.get("layout"),
+        attached_images=data.get("attached_images") or 0,
+        character_hint=data.get("character_hint"),
+    )
+    pipeline.pop("status_code", None)
+
+    if not pipeline.get("success") or not pipeline.get("image_b64"):
+        yield _emit("error", {
+            "error": pipeline.get("error") or "reasoning pipeline failed",
+            "provider": "reasoning",
+            "reasoning": pipeline,
+        })
+        return
+
+    saved = storage.save(
+        image_b64=pipeline["image_b64"],
+        prompt=prompt,
+        provider="reasoning",
+        model="comic-pipeline",
+        conversation_id=conversation_id,
+        metadata={
+            "reasoning_job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+        },
+    )
+    if saved.get("error"):
+        yield _emit("error", {
+            "error": f"reasoning save failed: {saved['error']}",
+            "provider": "reasoning",
+        })
+        return
+
+    _save_to_gallery(
+        saved, prompt, "reasoning", "comic-pipeline",
+        conversation_id, source="image_gen_v2_reasoning_stream",
+    )
+
+    if username and quota_db is not None:
+        try:
+            from core.user_auth import increment_image_quota
+            increment_image_quota(quota_db, username, 1)
+        except Exception:
+            pass
+
+    try:
+        log_image_generation(
+            prompt=prompt, provider="reasoning", model="comic-pipeline",
+            image_url=saved.get("url", ""), image_path=saved.get("local_path", ""),
+            session_id=conversation_id, mode="txt2img",
+            extra={"reasoning_job_id": pipeline.get("job_id"), "stream": True},
+        )
+    except Exception:
+        pass
+
+    yield _emit("provider_success", {
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "latency_ms": 0.0,
+    })
+    yield _emit("result", {
+        "success": True,
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "prompt_used": prompt,
+        "images_url": [],
+        "images_b64": [],
+        "latency_ms": 0.0,
+        "cost_usd": 0.0,
+        "metadata": {"reasoning_job_id": pipeline.get("job_id")},
+        "reasoning": {
+            "job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+            "panels": pipeline.get("panels"),
+        },
+    })
+    yield _emit("saved", {
+        "images": [{
+            "url": saved.get("url", ""),
+            "image_id": saved.get("image_id", ""),
+            "local_path": saved.get("local_path", ""),
+        }],
+    })
+
+
 # â”€â”€ Main generation endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/generate", methods=["POST"])
@@ -487,6 +618,47 @@ def generate_image_stream():
     conversation_id = data.get("conversation_id", session.get("conversation_id", ""))
     img_session = sessions.get_or_create(conversation_id)
     context = img_session.get_context_for_enhancement() if img_session.history else None
+
+    # ── Cycle 7.5: streaming reasoning fast-path (LOCAL, opt-in) ─────────
+    # Same gating semantics as ``/generate``: payload + env flag.
+    _use_reasoning_stream = bool(data.get("use_reasoning_pipeline"))
+    if _use_reasoning_stream:
+        try:
+            from core.config import REASONING_PIPELINE_ENABLED as _RP_FLAG
+        except Exception:
+            _RP_FLAG = False
+        if _RP_FLAG:
+            # Resolve quota context the same way ``/generate`` does so
+            # successful reasoning runs increment the user's image quota.
+            _r_username = session.get("username", "")
+            _r_quota_db = None
+            if _r_username:
+                try:
+                    from core.extensions import get_db as _get_qdb
+                    _r_quota_db = _get_qdb()
+                except Exception:
+                    _r_quota_db = None
+
+            def _reasoning_stream_wrapper():
+                yield from _stream_reasoning_fastpath(
+                    prompt=prompt,
+                    data=data,
+                    conversation_id=conversation_id,
+                    storage=storage,
+                    img_session=img_session,
+                    username=_r_username,
+                    quota_db=_r_quota_db,
+                )
+
+            return Response(
+                _reasoning_stream_wrapper(),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'X-Accel-Buffering': 'no',
+                },
+            )
 
     def _stream():
         try:

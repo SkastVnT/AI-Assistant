@@ -34,10 +34,23 @@ export class ImageGenV2 {
                 this.loadStyles(),
                 this.loadWorkflowPresets(),
             ]);
+            this._restoreReasoningCheckbox();
             console.log('[ImageGenV2] Initialized with', this.providers.length, 'providers,', this.styles.length, 'styles,', this.workflowPresets.length, 'presets');
         } catch (e) {
             console.warn('[ImageGenV2] Init partial:', e);
         }
+    }
+
+    /**
+     * Restore the reasoning-pipeline checkbox from localStorage so the
+     * preference is sticky across modal opens / page reloads.
+     */
+    _restoreReasoningCheckbox() {
+        const cb = document.getElementById('igv2UseReasoning');
+        if (!cb) return;
+        try {
+            cb.checked = window.localStorage?.getItem('igv2.useReasoning') === '1';
+        } catch (_) { /* ignore */ }
     }
 
     async loadProviders() {
@@ -138,6 +151,14 @@ export class ImageGenV2 {
             const guidance = parseFloat(document.getElementById('igv2Guidance')?.value || '3.5');
             const useReasoning = document.getElementById('igv2UseReasoning')?.checked === true;
             const effectivePresetId = presetId || (provider === 'comfyui' ? 'lora_bulk_auto_chat' : '');
+
+            // Persist the reasoning toggle so chat-typed prompts (which run
+            // outside this modal) can read the same preference.
+            try {
+                window.localStorage?.setItem(
+                    'igv2.useReasoning', useReasoning ? '1' : '0',
+                );
+            } catch (_) { /* ignore quota / disabled storage */ }
 
             if (statusEl) statusEl.textContent = '🎨 Đang tạo ảnh...';
 
@@ -299,7 +320,8 @@ export class ImageGenV2 {
      */
     async generateFromChat(message, conversationId) {
         this.conversationId = conversationId || this.conversationId;
-        
+        const useReasoning = this._readReasoningPreference();
+
         try {
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
@@ -310,6 +332,7 @@ export class ImageGenV2 {
                     enhance: true,
                     conversation_id: this.conversationId,
                     num_images: 1,
+                    use_reasoning_pipeline: useReasoning,
                 }),
             });
 
@@ -340,6 +363,10 @@ export class ImageGenV2 {
     async generateFromChatStream(message, conversationId, abortSignal = null, callbacks = {}, options = {}) {
         this.conversationId = conversationId || this.conversationId;
 
+        const useReasoning = (typeof options.useReasoning === 'boolean')
+            ? options.useReasoning
+            : this._readReasoningPreference();
+
         try {
             const resp = await fetch('/api/image-gen/stream', {
                 method: 'POST',
@@ -357,6 +384,7 @@ export class ImageGenV2 {
                     height: options.height || undefined,
                     guidance: options.guidance || undefined,
                     negative_prompt: options.negativePrompt || undefined,
+                    use_reasoning_pipeline: useReasoning,
                 }),
                 signal: abortSignal,
             });
@@ -712,6 +740,21 @@ export class ImageGenV2 {
         if (!el) return;
         el.textContent = msg;
         el.className = `igv2-status igv2-status-${type}`;
+    }
+
+    /**
+     * Read the reasoning-pipeline preference. Priority:
+     *   1. Live checkbox in the modal (truth source while modal is open).
+     *   2. Persisted localStorage value (set by ``generate()`` when the
+     *      modal closes), so chat-typed prompts inherit the last choice.
+     *   3. Default false.
+     */
+    _readReasoningPreference() {
+        const live = document.getElementById('igv2UseReasoning');
+        if (live) return live.checked === true;
+        try {
+            return window.localStorage?.getItem('igv2.useReasoning') === '1';
+        } catch (_) { return false; }
     }
 
     // ── Utility ────────────────────────────────────────────────────
