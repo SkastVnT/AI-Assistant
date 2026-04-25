@@ -50,6 +50,15 @@ from image_pipeline.reasoning.state import (
     default_resolver,
     extract_scene,
 )
+from image_pipeline.reasoning.execution import (
+    ExecutionPlan,
+    ExecutionStep,
+    PanelResult,
+    StageKind,
+    build_workflow,
+    plan_panel,
+    run_panel,
+)
 
 __all__ = [
     # schemas
@@ -92,4 +101,12 @@ __all__ = [
     "StateResolver",
     "default_resolver",
     "extract_scene",
+    # execution (cycle 3)
+    "ExecutionPlan",
+    "ExecutionStep",
+    "PanelResult",
+    "StageKind",
+    "build_workflow",
+    "plan_panel",
+    "run_panel",
 ]
