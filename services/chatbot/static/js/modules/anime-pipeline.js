@@ -26,6 +26,20 @@ const STAGES = [
     { key: 'upscale',          icon: '📐',  label: 'Upscale' },
 ];
 
+// Off-DOM full-resolution image cache for layer cards.
+//
+// Earlier versions stored the full-res src directly on
+// ``card.dataset.fullSrc``. When the src was a base64 PNG (composition
+// pass with no /storage URL yet) that meant injecting a 2–4 MB string
+// into a DOM attribute. Five layer cards × 3 MB = ~15 MB of HTML, which
+// pushed the browser into "very heavy" territory and stalled the image
+// viewer (every Lightbox open re-cloned the attribute).
+//
+// A WeakMap keyed by the card element keeps the heavy strings outside
+// the serialized DOM and lets the GC drop them when the bubble is
+// removed — no manual cleanup needed on Stop / new chat.
+const _layerFullSrcMap = new WeakMap();
+
 export class AnimePipeline {
     constructor() {
         /** @type {AbortController|null} */
@@ -450,11 +464,17 @@ export class AnimePipeline {
      *  most recent layer thumbnail (gallery card) as the export.
      */
     _forceFinalizeAsCancelled(bubble, uid) {
-        // Pick the freshest layer thumbnail still in the DOM.
+        // Pick the freshest layer card and prefer its FULL-resolution
+        // source over the 64x64 thumbnail. Earlier versions used
+        // ``lastThumb.src`` which is only the cropped preview, so the
+        // "Đã ngưng" output came out pixelated. ``card.dataset.fullSrc``
+        // is set by ``_inlineAddLayerPreview`` to the local /storage URL
+        // when available, falling back to the full-res base64.
         const gallery = document.getElementById(`ap-layers-${uid}`);
-        const thumbs = gallery ? gallery.querySelectorAll('.ap-layer-thumb') : [];
-        const lastThumb = thumbs.length ? thumbs[thumbs.length - 1] : null;
-        const imgSrc = lastThumb?.src || '';
+        const cards = gallery ? gallery.querySelectorAll('.ap-layer-card') : [];
+        const lastCard = cards.length ? cards[cards.length - 1] : null;
+        const lastThumb = lastCard ? lastCard.querySelector('.ap-layer-thumb') : null;
+        const imgSrc = (lastCard && (_layerFullSrcMap.get(lastCard) || lastCard.dataset.fullSrc)) || lastThumb?.src || '';
 
         const details = bubble.querySelector('.ap-inline-progress');
         if (details) {
@@ -566,7 +586,7 @@ export class AnimePipeline {
                 // Use the stored full-resolution URL when available; fall
                 // back to the current thumb src otherwise.
                 const thumb = card.querySelector('.ap-layer-thumb');
-                const full = card.dataset.fullSrc || thumb?.src;
+                const full = _layerFullSrcMap.get(card) || card.dataset.fullSrc || thumb?.src;
                 if (!full) return;
                 // window.openImagePreview wants an <img> element. Build a
                 // detached one that points at the full-res source so the
@@ -589,7 +609,17 @@ export class AnimePipeline {
             if (thumb) thumb.src = thumbSrc;
         }
         if (fullSrc) {
-            card.dataset.fullSrc = fullSrc;
+            // Heavy base64 strings live in the WeakMap, NOT the DOM.
+            // Light /storage URLs can also live there — uniform access.
+            _layerFullSrcMap.set(card, fullSrc);
+            // Keep dataset only when src is a short URL (not base64),
+            // so devtools / right-click "copy URL" still works without
+            // bloating the HTML attribute when the src is multi-MB.
+            if (!fullSrc.startsWith('data:')) {
+                card.dataset.fullSrc = fullSrc;
+            } else if (card.dataset.fullSrc) {
+                delete card.dataset.fullSrc;
+            }
         }
         // Promote the previous layer card to ✓ Đã xong as soon as we
         // start drawing the next one. Also flip THIS card to done when
@@ -1167,6 +1197,41 @@ export class AnimePipeline {
                         window.openImagePreview(img);
                     }
                 });
+            });
+
+            // Inject a per-image "📐 Upscale" overlay button on every
+            // candidate (single layout or batch grid). Clicking opens
+            // the lightbox for that image and auto-runs the configured
+            // upscale factor — re-runnable via the lightbox toolbar.
+            resultDiv.querySelectorAll('img[data-igv2-open]').forEach(img => {
+                const wrap = img.parentElement;
+                if (!wrap || wrap.querySelector('.ap-tile-upscale')) return;
+                if (getComputedStyle(wrap).position === 'static') {
+                    wrap.style.position = 'relative';
+                }
+                const btn = document.createElement('button');
+                btn.className = 'ap-tile-upscale';
+                btn.type = 'button';
+                btn.title = 'Phóng ảnh này (Upscale 2×)';
+                btn.textContent = '📐 Upscale';
+                Object.assign(btn.style, {
+                    position: 'absolute', bottom: '6px', right: '6px',
+                    background: 'rgba(0,0,0,0.65)', color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    fontSize: '11px', padding: '3px 8px',
+                    borderRadius: '6px', cursor: 'pointer', zIndex: '2',
+                });
+                btn.addEventListener('click', async (ev) => {
+                    ev.stopPropagation();
+                    if (window.openImagePreview) window.openImagePreview(img);
+                    // Auto-run a 2× pass via the existing lightbox handler
+                    // so the user does not have to click twice. Subsequent
+                    // re-upscales happen from the lightbox toolbar.
+                    if (window.upscalePreviewImage) {
+                        setTimeout(() => window.upscalePreviewImage(), 80);
+                    }
+                });
+                wrap.appendChild(btn);
             });
 
             msgContent?.appendChild(resultDiv.firstElementChild);

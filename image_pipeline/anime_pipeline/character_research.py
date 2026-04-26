@@ -136,6 +136,98 @@ def _reuse_cached_refs_enabled() -> bool:
     return os.getenv("CHAR_RESEARCH_REUSE_REFS", "0") == "1"
 
 
+# ── SAA-first local reference collection ─────────────────────────────
+# 2026-04-26 user spec: SAA / cached refs MUST be checked BEFORE any
+# external web search.  This helper:
+#   1. Persists the WAI thumbnail (if available) into character_refs/
+#      so subsequent runs see it as a cached file.
+#   2. Returns base64 strings for every PNG/JPG already on disk.
+# The orchestrator/researcher calls this first; web search is only
+# invoked when the local count is below the minimum.
+
+_SAA_MIN_LOCAL_REFS = int(os.getenv("CHAR_RESEARCH_MIN_LOCAL_REFS", "3"))
+
+
+def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
+    """Save the SAA WAI thumbnail for ``danbooru_tag`` into character_refs/.
+
+    Returns the path on success, None when no thumbnail or already saved.
+    Never raises.
+    """
+    if not danbooru_tag:
+        return None
+    ref_dir = _REF_DIR / danbooru_tag
+    target = ref_dir / "saa_thumb.png"
+    if target.exists():
+        return target
+    try:
+        from .saa_character_db import get_character_thumbnail
+    except Exception:
+        return None
+    try:
+        # WAI keys use space-form tags.
+        b64 = (
+            get_character_thumbnail(danbooru_tag.replace("_", " "))
+            or get_character_thumbnail(danbooru_tag)
+        )
+        if not b64:
+            return None
+        if "," in b64 and b64.startswith("data:"):
+            b64 = b64.split(",", 1)[1]
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(base64.b64decode(b64))
+        logger.info(
+            "[CharResearch] Persisted SAA thumbnail for %s -> %s",
+            danbooru_tag, target.name,
+        )
+        return target
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[CharResearch] SAA thumbnail persist failed: %s", exc)
+        return None
+
+
+def _collect_local_refs(
+    danbooru_tag: str,
+    *,
+    max_images: int = 10,
+    include_saa: bool = True,
+) -> list[str]:
+    """Return base64 strings for every cached / SAA reference image.
+
+    Order of inclusion (highest priority first):
+      1. SAA thumbnail (persisted on first call) \u2014 always front of list.
+      2. Existing PNG/JPG files in storage/character_refs/<tag>/.
+    """
+    if not danbooru_tag:
+        return []
+    out: list[str] = []
+    ref_dir = _REF_DIR / danbooru_tag
+    saa_path = _persist_saa_thumbnail(danbooru_tag) if include_saa else None
+    seen: set[str] = set()
+    if saa_path and saa_path.exists():
+        try:
+            out.append(base64.b64encode(saa_path.read_bytes()).decode("ascii"))
+            seen.add(saa_path.name)
+        except Exception:
+            pass
+    if ref_dir.exists():
+        for p in sorted(ref_dir.glob("*.png")) + sorted(ref_dir.glob("*.jpg")):
+            if p.name in seen or p.name == "seen_urls.json":
+                continue
+            try:
+                out.append(base64.b64encode(p.read_bytes()).decode("ascii"))
+            except Exception:
+                continue
+            if len(out) >= max_images:
+                break
+    if out:
+        logger.info(
+            "[CharResearch] SAA-first local refs: %d found for %s (saa=%s)",
+            len(out), danbooru_tag, bool(saa_path),
+        )
+    return out
+
+
 @dataclass
 class LayerDetail:
     """Visual detail for a specific body/outfit layer."""
@@ -1336,34 +1428,50 @@ def research_character(
         )
 
     # Step 2: Check cache
+    # 2026-04-26: SAA-first — ALWAYS gather local refs (incl. SAA thumb)
+    # before any web call so external search becomes a true fallback.
+    local_refs = _collect_local_refs(danbooru_tag, max_images=10)
+    skip_web_image_search = len(local_refs) >= _SAA_MIN_LOCAL_REFS
+
     if not force_refresh:
         cached = _load_cached_research(danbooru_tag)
         if cached:
-            # 2026-04-23 user request: even when research metadata is
-            # cached, ALWAYS attempt a fresh image search so reference
-            # images don't get reused across runs. The downloader has
-            # its own seen-URL+byte-hash registry that guarantees no
-            # duplicate is ever returned.
-            try:
-                fresh_results = _image_search_character(
-                    display_name, series_name, danbooru_tag,
-                    nsfw_intent=nsfw_intent,
+            if skip_web_image_search:
+                logger.info(
+                    "[CharResearch] Cache+SAA path: %d local refs >= %d — "
+                    "skipping web image search for %s",
+                    len(local_refs), _SAA_MIN_LOCAL_REFS, danbooru_tag,
                 )
-            except Exception as e:
-                logger.warning(
-                    "[CharResearch] cache-path fresh search failed: %s", e,
-                )
-                fresh_results = [{"url": u} for u in cached.reference_image_urls]
+                cached.reference_images_b64 = local_refs[:10]
+            else:
+                # 2026-04-23 user request: even when research metadata is
+                # cached, ALWAYS attempt a fresh image search so reference
+                # images don't get reused across runs. The downloader has
+                # its own seen-URL+byte-hash registry that guarantees no
+                # duplicate is ever returned.
+                try:
+                    fresh_results = _image_search_character(
+                        display_name, series_name, danbooru_tag,
+                        nsfw_intent=nsfw_intent,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "[CharResearch] cache-path fresh search failed: %s", e,
+                    )
+                    fresh_results = [{"url": u} for u in cached.reference_image_urls]
 
-            cached.reference_images_b64 = _download_reference_images(
-                fresh_results, danbooru_tag, max_images=10,
-            )
-            # Refresh the cached URL list so subsequent runs see the new
-            # set rather than perpetually circling the original 5.
-            if fresh_results:
-                cached.reference_image_urls = [
-                    r.get("url", "") for r in fresh_results[:6] if r.get("url")
-                ]
+                cached.reference_images_b64 = (
+                    local_refs
+                    + _download_reference_images(
+                        fresh_results, danbooru_tag, max_images=10,
+                    )
+                )[:12]
+                # Refresh the cached URL list so subsequent runs see the new
+                # set rather than perpetually circling the original 5.
+                if fresh_results:
+                    cached.reference_image_urls = [
+                        r.get("url", "") for r in fresh_results[:6] if r.get("url")
+                    ]
             # Add user references
             if user_reference_images:
                 cached.reference_images_b64 = (
@@ -1377,11 +1485,26 @@ def research_character(
     search_results = _web_search_character(display_name, series_name)
 
     # Step 4: Image search + download
-    logger.info("[CharResearch] Searching for reference images...")
-    image_results = _image_search_character(
-        display_name, series_name, danbooru_tag, nsfw_intent=nsfw_intent,
-    )
-    ref_images = _download_reference_images(image_results, danbooru_tag, max_images=10)
+    if skip_web_image_search:
+        logger.info(
+            "[CharResearch] Fresh path: %d local refs satisfy minimum (%d) — "
+            "skipping web image search for %s",
+            len(local_refs), _SAA_MIN_LOCAL_REFS, danbooru_tag,
+        )
+        image_results = []
+        ref_images = list(local_refs)
+    else:
+        logger.info("[CharResearch] Searching for reference images...")
+        image_results = _image_search_character(
+            display_name, series_name, danbooru_tag, nsfw_intent=nsfw_intent,
+        )
+        # Local refs (incl. SAA thumb) come first; web fills the rest.
+        ref_images = (
+            local_refs
+            + _download_reference_images(
+                image_results, danbooru_tag, max_images=10,
+            )
+        )[:12]
 
     # Add user-uploaded references (highest priority)
     if user_reference_images:

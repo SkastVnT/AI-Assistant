@@ -34,7 +34,12 @@ _COMFYUI_LORA_DIR = _COMFYUI_LORA_ROOT / "characters"
 _STORAGE_ROOT = _WORKSPACE_ROOT / "storage"
 _LORA_META_DIR = _STORAGE_ROOT / "character_loras"
 _LORA_META_TTL = 7 * 24 * 3600  # 7 days
+_LORA_REGISTRY_YAML = _WORKSPACE_ROOT / "configs" / "lora_registry.yaml"
 
+# 2026-04-26 user spec: SAA / local registry must be consulted BEFORE
+# any CivitAI call.  Cache the parsed character-section once per process.
+_CHAR_REGISTRY_CACHE: Optional[list[dict[str, Any]]] = None
+_CHAR_REGISTRY_LOCK = __import__("threading").Lock()
 
 def lora_file_exists(lora_rel_path: str) -> bool:
     """Return True if the LoRA file is present under ComfyUI/models/loras/.
@@ -734,6 +739,123 @@ def _save_lora_cache(danbooru_tag: str, meta: dict) -> None:
 
 
 # ════════════════════════════════════════════════════════════════════════
+# Local registry (SAA-first lookup before CivitAI)
+# ════════════════════════════════════════════════════════════════════════
+
+def _load_character_registry() -> list[dict[str, Any]]:
+    """Parse the ``character:`` section of configs/lora_registry.yaml once."""
+    global _CHAR_REGISTRY_CACHE
+    if _CHAR_REGISTRY_CACHE is not None:
+        return _CHAR_REGISTRY_CACHE
+    with _CHAR_REGISTRY_LOCK:
+        if _CHAR_REGISTRY_CACHE is not None:
+            return _CHAR_REGISTRY_CACHE
+        entries: list[dict[str, Any]] = []
+        if not _LORA_REGISTRY_YAML.exists():
+            _CHAR_REGISTRY_CACHE = entries
+            return entries
+        try:
+            import yaml  # type: ignore
+            data = yaml.safe_load(_LORA_REGISTRY_YAML.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                section = data.get("character") or []
+                if isinstance(section, list):
+                    entries = [e for e in section if isinstance(e, dict) and e.get("name")]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[LoRAMgr] Failed to load lora_registry.yaml: %s", exc)
+        _CHAR_REGISTRY_CACHE = entries
+        logger.info("[LoRAMgr] Local character registry loaded: %d entries", len(entries))
+        return entries
+
+
+def _resolve_local_lora_path(filename: str, location: str) -> Optional[Path]:
+    """Find an actual file on disk for a registry entry."""
+    if not filename:
+        return None
+    candidates: list[Path] = []
+    if location == "comfyui" or not location:
+        candidates += [
+            _COMFYUI_LORA_DIR / filename,
+            _COMFYUI_LORA_ROOT / filename,
+        ]
+    if location == "lora_dir" or not location:
+        candidates += [
+            _WORKSPACE_ROOT / "LORA" / filename,
+            _WORKSPACE_ROOT / "LORA" / "new_2" / "character" / filename,
+        ]
+    for c in candidates:
+        try:
+            if c.is_file():
+                return c
+        except OSError:
+            continue
+    return None
+
+
+def _local_registry_lookup(
+    danbooru_tag: str,
+    display_name: str,
+    series_name: str,
+) -> Optional[tuple[Path, list[str], dict[str, Any]]]:
+    """Match a character against the local registry.
+
+    Returns ``(lora_path, trigger_words, registry_entry)`` on hit, else None.
+    Match order: exact char-list hit, then series-named all-in-one packs.
+    """
+    entries = _load_character_registry()
+    if not entries:
+        return None
+
+    def _norm(s: str) -> str:
+        return (s or "").lower().replace("-", "_").replace(" ", "_").strip()
+
+    tag_n = _norm(danbooru_tag)
+    series_n = _norm(series_name)
+    display_n = _norm(display_name)
+
+    # Pass 1: exact character-list match
+    for entry in entries:
+        chars = entry.get("characters") or []
+        if not isinstance(chars, list):
+            continue
+        for c in chars:
+            if not isinstance(c, str):
+                continue
+            cn = _norm(c)
+            if not cn:
+                continue
+            if cn == tag_n or cn == display_n or (tag_n and (tag_n in cn or cn in tag_n)):
+                path = _resolve_local_lora_path(entry.get("name", ""), entry.get("location", ""))
+                if path:
+                    triggers = entry.get("trigger_words") or []
+                    if not isinstance(triggers, list):
+                        triggers = []
+                    triggers = [str(t) for t in triggers if t]
+                    twbc = entry.get("trigger_words_by_character") or {}
+                    if isinstance(twbc, dict):
+                        for k, v in twbc.items():
+                            if _norm(k) == cn and isinstance(v, list):
+                                triggers = [str(t) for t in v if t] + triggers
+                                break
+                    return (path, triggers, entry)
+
+    # Pass 2: series-named all-in-one packs
+    if series_n:
+        for entry in entries:
+            name = (entry.get("name") or "").lower()
+            if series_n in name:
+                path = _resolve_local_lora_path(entry.get("name", ""), entry.get("location", ""))
+                if path:
+                    triggers = entry.get("trigger_words") or []
+                    if not isinstance(triggers, list):
+                        triggers = []
+                    triggers = [str(t) for t in triggers if t]
+                    return (path, triggers, entry)
+
+    return None
+
+
+# ════════════════════════════════════════════════════════════════════════
 # Public API
 # ════════════════════════════════════════════════════════════════════════
 
@@ -784,6 +906,40 @@ def find_and_verify_character_lora(
                 )
             else:
                 logger.info("[LoRAMgr] Cached LoRA missing from disk, re-searching")
+
+    # 2026-04-26: SAA-first — consult the local LoRA registry
+    # (configs/lora_registry.yaml) BEFORE going to CivitAI.  If a known
+    # local file matches the character, accept it without any external
+    # network call.  This honours the user requirement that local /
+    # SAA-curated assets always win over external search.
+    local_hit = _local_registry_lookup(danbooru_tag, display_name, series_name)
+    if local_hit is not None:
+        local_path, local_triggers, local_meta = local_hit
+        logger.info(
+            "[LoRAMgr] Local registry hit for %s: %s (skipping CivitAI)",
+            danbooru_tag, local_path.name,
+        )
+        result = LoRAVerificationResult(
+            accepted=True,
+            vision_score=8.0,  # registry-curated entries are trusted
+            test_image_b64=None,
+            lora_filename=local_path.name,
+            lora_path=local_path,
+            trigger_words=local_triggers,
+            latency_ms=(time.time() - t0) * 1000,
+        )
+        try:
+            _save_lora_cache(danbooru_tag, {
+                "accepted": True,
+                "lora_path": str(local_path),
+                "vision_score": 8.0,
+                "trigger_words": local_triggers,
+                "source": "local_registry",
+                "registry_entry": local_meta.get("name"),
+            })
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("[LoRAMgr] cache save (local hit) failed: %s", exc)
+        return result
 
     logger.info("[LoRAMgr] Searching CivitAI for %s (%s) LoRAs...",
                 display_name, series_name)

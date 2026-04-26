@@ -2027,7 +2027,15 @@ try {
 
 <!-- ═══ Image Preview (Discord‑style) ═══ -->
 <div class="image-preview-overlay" id="imagePreviewModal">
-    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
+    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310; align-items: center;">
+        <select id="imagePreviewUpscaleFactor" class="btn btn--secondary btn--sm" title="Upscale factor — 1× = pure text-fix only" style="padding: 4px 8px;">
+            <option value="1">1× (text only)</option>
+            <option value="1.5">1.5×</option>
+            <option value="2" selected>2×</option>
+            <option value="3">3×</option>
+            <option value="4">4×</option>
+        </select>
+        <button class="btn btn--secondary btn--sm" id="imagePreviewUpscaleBtn" onclick="upscalePreviewImage()" title="Upscale + fix garbled text in one pass (re-runnable). Factor 1× = pure text-fix.">📐 Upscale + Fix text</button>
         <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()">📥</button>
         <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)">🔍-</button>
         <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)">🔍+</button>

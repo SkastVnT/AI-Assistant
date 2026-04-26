@@ -3053,7 +3053,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initOverlayManager();
     registerOverlay('galleryModal',            { type: 'modal' });
     registerOverlay('galleryInfoModal',        { type: 'modal' });
-    registerOverlay('imagePreviewModal',       { type: 'modal', onClose: () => { document.body.style.overflow = ''; } });
+    // outsideClose:false — image preview is the only modal where the
+    // visible dark area IS the overlay (no inner content card), so a
+    // backdrop-click would close on every accidental tap near the image
+    // edge. Force users to use the × / Esc instead.
+    registerOverlay('imagePreviewModal',       { type: 'modal', outsideClose: false, onClose: () => { document.body.style.overflow = ''; } });
     registerOverlay('historyModal',            { type: 'modal' });
     registerOverlay('configAgentModal',        { type: 'modal' });
     registerOverlay('imageGenV2Modal',         { type: 'modal' });
@@ -3308,6 +3312,125 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);
     window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
     window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
+
+    // Upscale + fix-text in a single pass via ComfyUI Ultimate SD
+    // Upscale (SDXL img2img tile redraw). Re-runnable: each call uses
+    // the *current* previewImg.src as the source, so the user can
+    // stack passes (1× → 2× → 4× …) or refine text further.
+    // ``factor=1`` ⇒ pure text-fix at original resolution.
+    window.upscalePreviewImage = async () => {
+        const factorSel = document.getElementById('imagePreviewUpscaleFactor');
+        const factor = parseFloat(factorSel?.value || '2') || 2;
+        const isTextOnly = factor <= 1.05;
+        return _runPreviewOp({
+            endpoint: '/api/anime-pipeline/upscale',
+            extraBody: {
+                factor,
+                // Slightly higher denoise when at 1× (no resize) to
+                // give SDXL more room to redraw mangled glyphs.
+                denoise: isTextOnly ? 0.40 : 0.30,
+            },
+            btnId: 'imagePreviewUpscaleBtn',
+            label: '📐 Upscale + Fix text',
+            workingLabel: isTextOnly
+                ? '⏳ Fixing text…'
+                : `⏳ Upscaling ${factor}× + fixing text…`,
+            metaExtra: (j) => (
+                j.factor <= 1.05
+                    ? `text-fix · denoise ${j.denoise} · ${j.processing_ms}ms`
+                    : `${j.factor}× · denoise ${j.denoise} · ${j.processing_ms}ms`
+            ),
+            metaExtraLabel: 'Processed',
+        });
+    };
+
+    // Shared implementation for lightbox image-mutating ops. Reads
+    // previewImg.src, posts {image_url|image_b64, ...extraBody} to
+    // ``endpoint``, swaps in the result, and mirrors back into the
+    // originating chat <img>.
+    async function _runPreviewOp({ endpoint, extraBody, btnId, label,
+                                   workingLabel, metaExtra, metaExtraLabel }) {
+        const previewImg = document.getElementById('imagePreviewContent');
+        const btn = document.getElementById(btnId);
+        const info = document.getElementById('imagePreviewInfo');
+        if (!previewImg || !previewImg.src) return;
+        const src = previewImg.src;
+        const body = { ...extraBody };
+        if (src.startsWith('data:')) {
+            body.image_b64 = src;
+        } else if (src.includes('/storage/images/')) {
+            const idx = src.indexOf('/storage/images/');
+            body.image_url = src.substring(idx);
+        } else {
+            alert('Chỉ hỗ trợ ảnh từ /storage/images/ hoặc base64 data URL.');
+            return;
+        }
+
+        // Surface the original generation prompt back to the backend so
+        // the SDXL re-render keeps NSFW vocalizations / character context
+        // (e.g. ``english text "NGHHH~♥♥"``) on the redrawn image.
+        // Source order:
+        //   1. ``data-prompt`` on the originating chat <img>'s parent
+        //      ``.igv2-chat-image`` container (set by anime-pipeline.js).
+        //   2. Direct ``data-prompt`` on the <img> itself (older code).
+        try {
+            const srcEl = app.messageRenderer?._lastPreviewSourceImg;
+            if (srcEl) {
+                const container = srcEl.closest?.('.igv2-chat-image');
+                const original = (container?.dataset?.prompt
+                                  || srcEl.dataset?.prompt
+                                  || '').trim();
+                if (original && !body.prompt) body.prompt = original;
+            }
+        } catch (_e) { /* non-fatal */ }
+
+        if (btn) { btn.disabled = true; btn.textContent = workingLabel; }
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok || !j.ok) {
+                const msg = j.error || `HTTP ${res.status}`;
+                if (info) {
+                    const errEl = document.createElement('div');
+                    errEl.style.color = '#ff6b6b';
+                    errEl.style.marginTop = '6px';
+                    errEl.textContent = `${label} lỗi: ${msg}`;
+                    info.appendChild(errEl);
+                    setTimeout(() => errEl.remove(), 6000);
+                } else {
+                    alert(`${label} lỗi: ${msg}`);
+                }
+                return;
+            }
+            const newSrc = j.image_url || ('data:image/png;base64,' + j.image_b64);
+            previewImg.src = newSrc;
+            previewImg.dataset.downloadUrl = newSrc;
+            if (window.resetPreviewZoom) window.resetPreviewZoom();
+            if (info) {
+                info.innerHTML = `
+                    <div class="lightbox__meta-grid">
+                        <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${j.width} × ${j.height}</span></div>
+                        <div class="lightbox__meta-item"><span class="lightbox__meta-label">${metaExtraLabel}</span><span class="lightbox__meta-value">${metaExtra(j)}</span></div>
+                    </div>
+                `;
+            }
+            try {
+                const srcEl = app.messageRenderer._lastPreviewSourceImg;
+                if (srcEl && srcEl.tagName === 'IMG') {
+                    srcEl.src = newSrc;
+                    srcEl.setAttribute('data-igv2-open', newSrc);
+                }
+            } catch (_e) { /* non-fatal */ }
+        } catch (err) {
+            alert(`${label} lỗi: ${err.message || err}`);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = label; }
+        }
+    }
     
     // Image preview zoom state
     let currentZoom = 1.0;

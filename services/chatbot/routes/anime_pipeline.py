@@ -454,6 +454,243 @@ def upload_reference_images():
     })
 
 
+# ── Upscale endpoint (re-runnable) ──────────────────────────────────────
+
+@anime_pipeline_bp.route("/api/anime-pipeline/upscale", methods=["POST"])
+def upscale_image():
+    """Upscale **and** fix-text in a single pass via Ultimate SD Upscale.
+
+    Combines two operations the user used to run separately:
+      1. ESRGAN-style upsampling to ``factor`` (1.5×–4×)
+      2. SDXL img2img tile redraw at moderate denoise to clean up
+         garbled letters / typography artifacts.
+
+    Re-runnable: feed the result back in for another pass. Each pass
+    refines text further at the cost of slight style drift.
+
+    Body (JSON):
+        image_url / image_b64  — same contract as before
+        factor: float          — upscale factor [1.0..4.0], default 2.0.
+                                 ``factor=1.0`` ⇒ no resize, pure
+                                 text-fix (replaces the old /fix-text
+                                 endpoint).
+        denoise: float         — img2img strength [0.10..0.55],
+                                 default 0.30. Higher = better text
+                                 repair but more style drift.
+        prompt: str            — optional extra context (character/scene)
+                                 to keep the redraw on-style.
+
+    Returns 200 ``{ ok, image_url, image_b64, width, height, factor,
+    denoise, model, processing_ms }`` on success.
+    """
+    import base64
+    import io
+    import uuid as _uuid
+    from datetime import datetime
+    from pathlib import Path
+
+    rate_err = _rate_check()
+    if rate_err:
+        return jsonify({"ok": False, "error": rate_err}), 429
+
+    data = request.get_json(force=True, silent=True) or {}
+    image_url = (data.get("image_url") or "").strip()
+    image_b64 = (data.get("image_b64") or "").strip()
+
+    # Resolve raw base64 from either source. ``/storage/images/<file>``
+    # is read directly off disk; remote URLs are not fetched (would
+    # require an outbound HTTP allowlist — out of scope).
+    raw_b64: str | None = None
+    if image_b64:
+        raw_b64 = image_b64.split(",", 1)[1] if "," in image_b64 else image_b64
+    elif image_url:
+        if image_url.startswith("data:"):
+            raw_b64 = image_url.split(",", 1)[1] if "," in image_url else ""
+        elif image_url.startswith("/storage/images/"):
+            fname = image_url.rsplit("/", 1)[-1]
+            # Reuse the same path-traversal guard as serve_image.
+            if "/" in fname or "\\" in fname or ".." in fname or "\0" in fname:
+                return jsonify({"ok": False, "error": "Invalid image_url"}), 400
+            if not re.match(r"^[A-Za-z0-9_\-\.]+$", fname):
+                return jsonify({"ok": False, "error": "Invalid image_url"}), 400
+            try:
+                from chatbot_main import IMAGE_STORAGE_DIR
+            except Exception:
+                IMAGE_STORAGE_DIR = Path(__file__).resolve().parents[1] / "Storage" / "Image_Gen"
+            allowed = Path(IMAGE_STORAGE_DIR).resolve()
+            target = (allowed / fname).resolve()
+            try:
+                target.relative_to(allowed)
+            except ValueError:
+                return jsonify({"ok": False, "error": "image_url outside storage"}), 400
+            if not target.is_file():
+                return jsonify({"ok": False, "error": "image not found"}), 404
+            raw_b64 = base64.b64encode(target.read_bytes()).decode("ascii")
+        else:
+            return jsonify({"ok": False, "error": "Only /storage/images/ URLs or base64 supported"}), 400
+
+    if not raw_b64:
+        return jsonify({"ok": False, "error": "image_url or image_b64 is required"}), 400
+
+    # Validate raw_b64 is decodable PNG/JPEG before submitting to ComfyUI.
+    try:
+        img_bytes = base64.b64decode(raw_b64, validate=True)
+        from PIL import Image
+        with Image.open(io.BytesIO(img_bytes)) as im:
+            im.verify()
+        with Image.open(io.BytesIO(img_bytes)) as im:
+            src_w, src_h = im.size
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Invalid image data: {exc}"}), 400
+
+    # Safety cap: SDXL img2img at high factor is heavy. Refuse > 4 MP
+    # source so a 4× upscale stays under ~64 MP target.
+    if src_w * src_h > 4_000_000:
+        return jsonify({
+            "ok": False,
+            "error": f"Source too large ({src_w}×{src_h}={src_w*src_h:,} px). Max 4 MP.",
+        }), 413
+
+    factor = float(data.get("factor", 2.0))
+    factor = max(1.0, min(4.0, factor))
+    denoise = float(data.get("denoise", 0.30))
+    denoise = max(0.10, min(0.55, denoise))
+    extra_prompt = (data.get("prompt") or "").strip()
+
+    t0 = _time.time()
+    try:
+        from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+        from image_pipeline.anime_pipeline.comfy_client import ComfyClient
+
+        cfg = load_config()
+        checkpoint = (cfg.beauty_model.checkpoint
+                      or cfg.composition_model.checkpoint)
+        if not checkpoint:
+            return jsonify({
+                "ok": False,
+                "error": "No SDXL checkpoint configured for upscale",
+            }), 503
+        if not cfg.upscale_model:
+            return jsonify({
+                "ok": False,
+                "error": "No upscale model configured in ComfyUI",
+            }), 503
+
+        # Text-aware booster — kept short so it does not drown the
+        # caller's character/scene context.
+        text_booster = (
+            "clean readable english text, sharp clear letters, "
+            "well-formed typography, high quality lettering, "
+            "crisp letter shapes, accurate spelling"
+        )
+        positive = ", ".join(filter(None, [
+            text_booster,
+            cfg.quality_prefix or "masterpiece, best quality",
+            extra_prompt,
+        ]))
+        negative = ", ".join(filter(None, [
+            "garbled text, blurry text, illegible letters, scrambled "
+            "letters, distorted typography, broken characters, "
+            "misspelled, gibberish, fake text, alien glyphs",
+            cfg.negative_base or "lowres, worst quality",
+        ]))
+
+        builder = WorkflowBuilder()
+        client = ComfyClient(base_url=cfg.comfyui_url)
+
+        workflow = builder.build_ultimate_sd_upscale(
+            image_b64=raw_b64,
+            upscale_model=cfg.upscale_model,
+            upscale_by=factor,
+            checkpoint=checkpoint,
+            positive_prompt=positive,
+            negative_prompt=negative,
+            seed=int(_time.time()) & 0x7FFF_FFFF,
+            steps=22,
+            cfg=6.0,
+            denoise=denoise,
+            tile_width=cfg.upscale_tile_size,
+            tile_height=cfg.upscale_tile_size,
+        )
+
+        result = client.submit_workflow(
+            workflow,
+            job_id=f"upscale_{_uuid.uuid4().hex[:8]}",
+            pass_name="upscale",
+        )
+        if not result.success or not result.images_b64:
+            err = (result.error or
+                   getattr(result, "validation_error", None) or
+                   "ComfyUI returned no images")
+            logger.warning("[anime_pipeline] /upscale: %s", err)
+            return jsonify({"ok": False, "error": str(err)}), 502
+
+        out_b64 = result.images_b64[0]
+        target_w = int(src_w * factor)
+        target_h = int(src_h * factor)
+        model_name = cfg.upscale_model
+
+    except Exception as exc:
+        logger.exception("[anime_pipeline] /upscale failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+    # Persist to storage so the frontend can display via /storage URL.
+    try:
+        try:
+            from chatbot_main import IMAGE_STORAGE_DIR
+        except Exception:
+            IMAGE_STORAGE_DIR = Path(__file__).resolve().parents[1] / "Storage" / "Image_Gen"
+        Path(IMAGE_STORAGE_DIR).mkdir(parents=True, exist_ok=True)
+        fname = f"upscaled_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{_uuid.uuid4().hex[:8]}.png"
+        out_path = Path(IMAGE_STORAGE_DIR) / fname
+        out_path.write_bytes(base64.b64decode(out_b64))
+        out_url = f"/storage/images/{fname}"
+    except Exception as exc:
+        logger.warning("[anime_pipeline] /upscale: storage save failed: %s", exc)
+        out_url = ""
+
+    elapsed_ms = int((_time.time() - t0) * 1000)
+    return jsonify({
+        "ok": True,
+        "image_url": out_url,
+        "image_b64": out_b64,
+        "width": target_w,
+        "height": target_h,
+        "factor": factor,
+        "denoise": denoise,
+        "model": model_name,
+        "processing_ms": elapsed_ms,
+    })
+
+
+# ── Fix-text endpoint (kept as alias of /upscale with factor=1.0) ──────
+# The combined /upscale endpoint above now handles text repair too. This
+# alias is kept for backward compatibility with any external caller and
+# forwards to /upscale forcing factor=1.0 + denoise=0.40.
+
+@anime_pipeline_bp.route("/api/anime-pipeline/fix-text", methods=["POST"])
+def fix_text_image():
+    """Backward-compat alias: forwards to ``/upscale`` with
+    ``factor=1.0`` and ``denoise=0.40``. New callers should use
+    ``/api/anime-pipeline/upscale`` directly with the desired factor.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    data["factor"] = 1.0
+    if "denoise" not in data:
+        data["denoise"] = 0.40
+    # Reinject into the request context. Easiest: call the function and
+    # let it parse from a stub. We do a direct call by mutating
+    # request.json via a tiny shim.
+    from werkzeug.wrappers import Request as _WReq  # noqa: F401
+    # Simplest path: just call upscale_image — Flask's request is
+    # request-scoped and we cannot easily rebuild it; instead, replicate
+    # the body inline by passing through the JSON cache.
+    # Flask caches parsed JSON on the request object.
+    request._cached_json = (data, data)  # type: ignore[attr-defined]
+    return upscale_image()
+
+
 # ── Cancel endpoint ─────────────────────────────────────────────────────
 
 @anime_pipeline_bp.route("/api/anime-pipeline/cancel", methods=["POST"])
@@ -534,8 +771,16 @@ def cancel_all_pipelines():
 
 
 def _interrupt_comfyui() -> None:
-    """Best-effort POST /interrupt to the active ComfyUI server.
+    """Best-effort halt of the active ComfyUI server.
 
+    Sends two requests in sequence:
+      1. ``POST /queue`` with ``{"clear": true}`` — drops every queued
+         prompt so the queued workflows do not start once the current
+         one ends. Without this, the user sees ComfyUI keep printing
+         ``got prompt`` for ~30 s after Stop while the queue drains.
+      2. ``POST /interrupt`` — aborts the currently running KSampler.
+
+    Both calls are best-effort; failures are logged but never raise.
     Uses the same env vars the pipeline ComfyClient honors so we always
     hit the same instance the orchestrator submitted to.
     """
@@ -548,6 +793,17 @@ def _interrupt_comfyui() -> None:
         or "http://127.0.0.1:8188"
     ).rstrip("/")
     with httpx.Client(timeout=3.0) as client:
+        # Clear pending queue FIRST, then interrupt the running prompt.
+        # Reverse order would let the next queued prompt grab the GPU
+        # in the gap between interrupt completing and clear arriving.
+        try:
+            qresp = client.post(f"{base}/queue", json={"clear": True})
+            logger.info(
+                "[anime_pipeline] /cancel: comfy queue clear -> %s (%s)",
+                base, qresp.status_code,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("[anime_pipeline] /cancel: comfy queue clear failed: %s", exc)
         resp = client.post(f"{base}/interrupt")
         logger.info(
             "[anime_pipeline] /cancel: comfy interrupt -> %s (%s)",

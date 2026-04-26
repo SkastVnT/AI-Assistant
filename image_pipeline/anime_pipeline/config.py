@@ -206,23 +206,45 @@ class AnimePipelineConfig:
     detection_inpaint_enabled: bool = False
     detection_inpaint_layers: list[dict[str, Any]] = field(default_factory=list)
 
+    # New pipeline order (v2):
+    #   composition → upscale 2× → structure_lock → YOLO → beauty
+    #     → critique loop → upscale 1.5×
+    # When False, the legacy v1 order runs (structure → beauty-loop-with-YOLO
+    # → ESRGAN single 4× upscale). Override per-env via
+    # ``ANIME_PIPELINE_V2_UPSCALE_FIRST=0``.
+    pipeline_v2_upscale_first: bool = True
+
     # Vision
+    # NSFW-friendly providers first (Grok and StepFun do not apply
+    # Gemini/OpenAI-style image safety filters), then fall back to
+    # Gemini/OpenAI for SFW content.
     vision_model_priority: list[str] = field(
-        default_factory=lambda: ["gemini-2.0-flash", "gpt-4o-mini", "gpt-4o"]
+        default_factory=lambda: [
+            "grok-2-vision-1212",
+            "step-1v-8k",
+            "gemini-2.0-flash",
+            "gpt-4o-mini",
+            "gpt-4o",
+        ]
     )
     vision_max_tokens: int = 500
     vision_temperature: float = 0.2
 
     # Critique
-    quality_threshold: float = 0.80
-    max_refine_rounds: int = 8
-    max_stagnant_rounds: int = 5
-    max_full_restarts: int = 3
+    # Lowered defaults after observing 38-min runs that hit Round 5 with
+    # score=3.8 (character mismatch) and never converged. Realistic
+    # vision-LLM critiques rarely cross 7.5; threshold 0.70 = pass at 7.0.
+    # Cap rounds at 4 (was 8) and force-replan at 3 (was 5) so a bad seed
+    # is abandoned in ~5–7 minutes instead of >30.
+    quality_threshold: float = 0.70
+    max_refine_rounds: int = 4
+    max_stagnant_rounds: int = 3
+    max_full_restarts: int = 2
     # Hard cap: after N total beauty rounds without a pass, force a re-plan
     # (attempt 2 + dual_output) regardless of whether failures were consecutive.
     # Prevents endless oscillation around the quality threshold (e.g. 7.9/8.1/7.8
     # never tripping the 4-consecutive-fail rule).
-    force_replan_after_rounds: int = 5
+    force_replan_after_rounds: int = 3
     critique_dimensions: list[str] = field(
         default_factory=lambda: [
             "instruction_adherence", "detail_handling", "identity_consistency"
@@ -231,7 +253,7 @@ class AnimePipelineConfig:
     return_best_on_fail: bool = True
 
     # Refine loop
-    refine_score_threshold: float = 8.0
+    refine_score_threshold: float = 7.0
     refine_denoise_step_up: float = 0.05
     refine_denoise_step_down: float = 0.03
     refine_denoise_floor: float = 0.12
@@ -453,6 +475,19 @@ def _apply_yaml(cfg: AnimePipelineConfig, raw: dict) -> None:
         cfg.detection_inpaint_layers = [
             x for x in det_layers if isinstance(x, dict)
         ]
+
+    # New pipeline order (v2). YAML key: ``pipeline.v2_upscale_first``.
+    # Env override: ``ANIME_PIPELINE_V2_UPSCALE_FIRST=0`` to fall back to
+    # the legacy order.
+    pipeline_section = raw.get("pipeline", {}) if isinstance(raw.get("pipeline"), dict) else {}
+    cfg.pipeline_v2_upscale_first = bool(
+        pipeline_section.get("v2_upscale_first", cfg.pipeline_v2_upscale_first)
+    )
+    v2_env = os.getenv("ANIME_PIPELINE_V2_UPSCALE_FIRST", "").strip().lower()
+    if v2_env in ("1", "true", "yes", "on"):
+        cfg.pipeline_v2_upscale_first = True
+    elif v2_env in ("0", "false", "no", "off"):
+        cfg.pipeline_v2_upscale_first = False
 
     # Vision
     vision = raw.get("vision", {})
