@@ -607,10 +607,9 @@ class AnimePipelineOrchestrator:
 
             # If we have any intermediate, use it as fallback
             if not job.final_image_b64:
-                for img in reversed(job.intermediates):
-                    if img.image_b64:
-                        job.final_image_b64 = img.image_b64
-                        break
+                fallback = job.latest_render_image()
+                if fallback:
+                    job.final_image_b64 = fallback
 
             yield self._event("pipeline_error", {
                 "job_id": job.job_id,
@@ -2452,10 +2451,7 @@ class AnimePipelineOrchestrator:
         for img in reversed(job.intermediates):
             if img.stage.startswith("detail_") or img.stage == "beauty_pass":
                 return img.image_b64
-        for img in reversed(job.intermediates):
-            if img.image_b64:
-                return img.image_b64
-        return None
+        return job.latest_render_image()
 
     def _build_cancellation_event(
         self, job: AnimePipelineJob, stage: str, t0: float,

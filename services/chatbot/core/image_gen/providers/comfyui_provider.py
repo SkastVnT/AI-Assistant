@@ -625,8 +625,8 @@ class ComfyUIProvider(BaseImageProvider):
                     .get("required", {})
                     .get("vae_name", [[]])[0]
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("[ComfyUI] VAE list fetch failed: %s", e)
 
         try:
             r = self._http.get("/object_info/LoraLoader", timeout=5.0)
@@ -638,8 +638,8 @@ class ComfyUIProvider(BaseImageProvider):
                     .get("required", {})
                     .get("lora_name", [[]])[0]
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("[ComfyUI] LoRA list fetch failed: %s", e)
 
         try:
             r = self._http.get("/object_info/ControlNetLoader", timeout=5.0)
@@ -651,7 +651,8 @@ class ComfyUIProvider(BaseImageProvider):
                     .get("required", {})
                     .get("control_net_name", [[]])[0]
                 )
-        except Exception:
+        except Exception as e:
+            logger.warning("[ComfyUI] ControlNet list fetch failed: %s", e)
             self._available_controlnets = []
 
         logger.info(

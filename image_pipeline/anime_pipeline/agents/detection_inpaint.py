@@ -926,10 +926,30 @@ class DetectionInpaintAgent:
     # ── Helpers ──────────────────────────────────────────────────────
 
     def _get_latest_image(self, job: AnimePipelineJob) -> str:
-        """Get the most recent image from intermediates (beauty pass output)."""
+        """Get the most recent *render* image from intermediates.
+
+        Skips non-render artifacts whose ``image_b64`` is a control hint
+        (lineart / depth / canny / mask) rather than a finished frame.
+        Without this filter the lineart produced by ``structure_lock``
+        would be picked as the source for inpainting, turning the final
+        result into a black-and-white edge map.
+        """
+        _NON_RENDER_PREFIXES = (
+            "structure_", "mask_", "hint_", "control_", "preprocess_",
+        )
+        _NON_RENDER_EXACT = {
+            "lineart", "lineart_anime", "depth", "canny",
+            "pre_upscale", "upscale_hint",
+        }
         for img in reversed(job.intermediates):
-            if img.image_b64:
-                return img.image_b64
+            if not img.image_b64:
+                continue
+            stage = (img.stage or "").lower()
+            if stage in _NON_RENDER_EXACT:
+                continue
+            if any(stage.startswith(p) for p in _NON_RENDER_PREFIXES):
+                continue
+            return img.image_b64
         return job.final_image_b64 or ""
 
     def _get_base_positive(self, job: AnimePipelineJob) -> str:

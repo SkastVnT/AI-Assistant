@@ -1059,6 +1059,117 @@ def stats():
     })
 
 
+# ── LoRA inventory ─────────────────────────────────────────────────────
+_LORA_INVENTORY_CACHE: dict | None = None
+_LORA_INVENTORY_MTIME: float = 0.0
+
+
+def _load_lora_inventory() -> dict:
+    """Load (and cache) `storage/lora_inventory.json` produced by
+    `scripts/scan_lora_inventory.py`. Re-reads when the file mtime changes.
+    """
+    global _LORA_INVENTORY_CACHE, _LORA_INVENTORY_MTIME
+    import os
+    import json as _json
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[3] / "storage" / "lora_inventory.json"
+    if not p.exists():
+        return {"items": [], "total_count": 0, "error": "inventory not generated; run scripts/scan_lora_inventory.py"}
+    mtime = p.stat().st_mtime
+    if _LORA_INVENTORY_CACHE is None or mtime != _LORA_INVENTORY_MTIME:
+        try:
+            _LORA_INVENTORY_CACHE = _json.loads(p.read_text(encoding="utf-8"))
+            _LORA_INVENTORY_MTIME = mtime
+        except Exception as e:
+            logger.warning("[image_gen] lora_inventory load failed: %s", e)
+            return {"items": [], "total_count": 0, "error": str(e)}
+    return _LORA_INVENTORY_CACHE or {"items": []}
+
+
+@image_gen_bp.route("/api/image-gen/loras", methods=["GET"])
+def list_loras():
+    """List all available LoRAs from the inventory manifest.
+
+    Query params:
+        q:       optional filter (substring, case-insensitive) on name
+        limit:   max items returned (default 200)
+        registered: "1" → only registered, "0" → only unregistered
+    """
+    data = _load_lora_inventory()
+    items = list(data.get("items", []))
+
+    q = (request.args.get("q") or "").strip().lower()
+    if q:
+        items = [i for i in items if q in i.get("name", "").lower()]
+
+    reg_filter = request.args.get("registered")
+    if reg_filter in ("0", "1"):
+        want = reg_filter == "1"
+        items = [i for i in items if bool(i.get("registered")) == want]
+
+    try:
+        limit = max(1, min(2000, int(request.args.get("limit", 200))))
+    except (ValueError, TypeError):
+        limit = 200
+
+    return jsonify({
+        "total_count": data.get("total_count", len(items)),
+        "total_size_mb": data.get("total_size_mb", 0),
+        "registered_count": data.get("registered_count", 0),
+        "unregistered_count": data.get("unregistered_count", 0),
+        "missing_on_disk": data.get("registry_entries_missing_on_disk", []),
+        "items": items[:limit],
+        "returned": min(limit, len(items)),
+    })
+
+
+@image_gen_bp.route("/api/image-gen/loras/suggest", methods=["GET", "POST"])
+def suggest_loras():
+    """Preview which LoRAs the text resolver would auto-inject for a prompt.
+
+    Lets the chatbot show users (or other tools) the indirect text→LoRA
+    mapping before actually generating. Accepts `text` or `prompt` via
+    query string or JSON body.
+    """
+    text = ""
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        text = (body.get("text") or body.get("prompt") or "").strip()
+    if not text:
+        text = (request.args.get("text") or request.args.get("prompt") or "").strip()
+    if not text:
+        return jsonify({"error": "missing text"}), 400
+
+    try:
+        from core.image_gen.lora_resolver import suggest_for_chat
+        return jsonify(suggest_for_chat(text))
+    except Exception as e:
+        logger.exception("[image_gen] suggest_loras failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@image_gen_bp.route("/api/image-gen/loras/stats", methods=["GET"])
+def loras_stats():
+    """Runtime LoRA catalog stats (curated vs auto-derived)."""
+    try:
+        from core.image_gen.lora_resolver import catalog_stats
+        return jsonify(catalog_stats())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@image_gen_bp.route("/api/image-gen/loras/reload", methods=["POST"])
+def loras_reload():
+    """Force-rebuild runtime catalog (after rescanning inventory)."""
+    try:
+        from core.image_gen.lora_resolver import reload_catalog
+        return jsonify(reload_catalog())
+    except Exception as e:
+        logger.exception("[image_gen] loras_reload failed")
+        return jsonify({"error": str(e)}), 500
+
+
 # â”€â”€ Cost tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _cost_log_v2: list = []  # [{type, provider, model, cost_usd, timestamp}]

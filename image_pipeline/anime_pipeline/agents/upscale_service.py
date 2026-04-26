@@ -126,11 +126,8 @@ class UpscaleService:
         for img in reversed(job.intermediates):
             if img.stage in preferred:
                 return img.image_b64
-        # Fallback: any intermediate with image data
-        for img in reversed(job.intermediates):
-            if img.image_b64:
-                return img.image_b64
-        return None
+        # Fallback: last renderable intermediate (skips lineart / mask hints)
+        return job.latest_render_image()
 
     def _get_source_dimensions(self, job: AnimePipelineJob) -> tuple[int, int]:
         """Resolve source image dimensions from job metadata."""

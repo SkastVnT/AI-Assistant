@@ -36,6 +36,48 @@ _LORA_META_DIR = _STORAGE_ROOT / "character_loras"
 _LORA_META_TTL = 7 * 24 * 3600  # 7 days
 _LORA_REGISTRY_YAML = _WORKSPACE_ROOT / "configs" / "lora_registry.yaml"
 
+# 2026-04-27: User-visible download manifest. Every LoRA we pull from
+# CivitAI (and every vision verdict) is appended here so the user has a
+# single auditable file showing what was downloaded, where it lives, and
+# whether the pipeline kept it. Lives under ./LORA/ alongside other
+# user-curated LoRAs for visibility.
+_DOWNLOAD_MANIFEST_DIR = _WORKSPACE_ROOT / "LORA"
+_DOWNLOAD_MANIFEST_PATH = _DOWNLOAD_MANIFEST_DIR / "download_manifest.json"
+_DOWNLOAD_MANIFEST_LOCK = __import__("threading").Lock()
+
+
+def _append_download_manifest(entry: dict[str, Any]) -> None:
+    """Append a single event row to ./LORA/download_manifest.json.
+
+    Schema is intentionally loose — each entry has at least ``ts`` (epoch
+    seconds), ``event`` ("download" | "verdict"), ``character_tag``, and
+    ``filename``. Failures are logged but never propagated; the manifest
+    is a convenience artifact, not a correctness boundary.
+    """
+    try:
+        entry = {"ts": time.time(), **entry}
+        with _DOWNLOAD_MANIFEST_LOCK:
+            _DOWNLOAD_MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
+            existing: list[dict[str, Any]] = []
+            if _DOWNLOAD_MANIFEST_PATH.exists():
+                try:
+                    with _DOWNLOAD_MANIFEST_PATH.open("r", encoding="utf-8") as f:
+                        loaded = json.load(f)
+                    if isinstance(loaded, list):
+                        existing = loaded
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.warning(
+                        "[LoRAMgr] download_manifest.json unreadable, starting "
+                        "fresh: %s", e,
+                    )
+            existing.append(entry)
+            tmp = _DOWNLOAD_MANIFEST_PATH.with_suffix(".json.tmp")
+            with tmp.open("w", encoding="utf-8") as f:
+                json.dump(existing, f, ensure_ascii=False, indent=2)
+            tmp.replace(_DOWNLOAD_MANIFEST_PATH)
+    except Exception as e:
+        logger.warning("[LoRAMgr] Failed to append download manifest: %s", e)
+
 # 2026-04-26 user spec: SAA / local registry must be consulted BEFORE
 # any CivitAI call.  Cache the parsed character-section once per process.
 _CHAR_REGISTRY_CACHE: Optional[list[dict[str, Any]]] = None
@@ -340,8 +382,27 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
                 for chunk in resp.iter_bytes(chunk_size=65536):
                     f.write(chunk)
 
-        logger.info("[LoRAMgr] Downloaded: %s (%.1f MB)",
-                    dest, dest.stat().st_size / 1_000_000)
+        size_mb = dest.stat().st_size / 1_000_000
+        logger.info("[LoRAMgr] Downloaded: %s (%.1f MB)", dest, size_mb)
+        try:
+            file_path_rel = str(dest.relative_to(_WORKSPACE_ROOT)).replace("\\", "/")
+        except ValueError:
+            file_path_rel = str(dest)
+        _append_download_manifest({
+            "event": "download",
+            "character_tag": danbooru_tag,
+            "filename": candidate.filename,
+            "file_path": file_path_rel,
+            "size_mb": round(size_mb, 2),
+            "civitai_model_id": candidate.model_id,
+            "civitai_version_id": candidate.version_id,
+            "candidate_name": candidate.name,
+            "base_model": candidate.base_model,
+            "trigger_words": candidate.trigger_words,
+            "download_count": candidate.download_count,
+            "source": "civitai",
+            "source_url": candidate.download_url,
+        })
         return dest
 
     except Exception as e:
@@ -479,14 +540,27 @@ def _run_test_generation(
 
     client_id = uuid.uuid4().hex
 
+    # Queue prompt — infrastructure failures (HTTP 4xx/5xx, connect refused,
+    # missing custom node) are raised as _LoRATestInfraError so the caller
+    # knows NOT to mark the candidate as "tried & rejected".
     try:
-        # Queue prompt
         resp = httpx.post(
             f"{comfyui_url}/prompt",
             json={"prompt": workflow, "client_id": client_id},
             timeout=15,
         )
-        resp.raise_for_status()
+    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.NetworkError) as e:
+        raise _LoRATestInfraError(f"ComfyUI unreachable: {e}") from e
+
+    if resp.status_code >= 400:
+        # 400 = workflow validation (missing node), 5xx = ComfyUI crashed.
+        # Both are infra problems, not LoRA problems.
+        body_snip = resp.text[:300] if resp.text else ""
+        raise _LoRATestInfraError(
+            f"ComfyUI rejected workflow (HTTP {resp.status_code}): {body_snip}"
+        )
+
+    try:
         prompt_id = resp.json().get("prompt_id")
         if not prompt_id:
             logger.warning("[LoRAMgr] No prompt_id from ComfyUI")
@@ -530,6 +604,9 @@ def _run_test_generation(
         logger.warning("[LoRAMgr] Test generation timed out after %ds", timeout)
         return None
 
+    except _LoRATestInfraError:
+        # Bubble up — these must NOT be silenced or downgraded to "rejected".
+        raise
     except Exception as e:
         logger.error("[LoRAMgr] Test generation failed: %s", e)
         return None
@@ -960,7 +1037,35 @@ def find_and_verify_character_lora(
 
     logger.info("[LoRAMgr] Found %d candidates for %s", len(candidates), display_name)
 
+    # 2026-04-26: Re-load cache so we can preserve the cumulative list of
+    # candidates that were already tried & rejected by vision in a previous
+    # run.  Skipping those saves repeated multi-hundred-MB downloads.
+    prior_tried: dict[str, dict] = {}
+    if not force_refresh:
+        _prev = _load_lora_cache(danbooru_tag)
+        if _prev and not _prev.get("accepted"):
+            for entry in (_prev.get("tried_candidates") or []):
+                fn = entry.get("filename")
+                if fn:
+                    prior_tried[fn] = entry
+    tried_candidates: list[dict] = list(prior_tried.values())
+    if prior_tried:
+        logger.info(
+            "[LoRAMgr] %d candidate(s) previously rejected by vision \u2014 will skip those",
+            len(prior_tried),
+        )
+
+    infra_aborted = False
+
     for candidate in candidates:
+        if candidate.filename in prior_tried:
+            prev = prior_tried[candidate.filename]
+            logger.info(
+                "[LoRAMgr] Skip %s \u2014 previously rejected (score=%.1f)",
+                candidate.filename, float(prev.get("vision_score", 0.0)),
+            )
+            continue
+
         logger.info("[LoRAMgr] Trying: %s (downloads=%d, base=%s, size=%.1fMB)",
                     candidate.name, candidate.download_count,
                     candidate.base_model, candidate.size_bytes / 1_000_000)
@@ -1008,11 +1113,33 @@ def find_and_verify_character_lora(
             })
             return result
 
-        test_image_b64 = _run_test_generation(comfyui_url, workflow, timeout=90)
+        try:
+            test_image_b64 = _run_test_generation(comfyui_url, workflow, timeout=90)
+        except _LoRATestInfraError as exc:
+            # ComfyUI broken (missing custom node, crash, etc.) \u2014 do NOT delete
+            # the downloaded LoRA, do NOT mark candidate as tried.  Bail out
+            # of the whole loop because all subsequent attempts will hit the
+            # same infra error.  Keep cache untouched so next run retries.
+            logger.error(
+                "[LoRAMgr] ComfyUI infrastructure error testing %s \u2014 keeping "
+                "downloaded file, aborting verification (will retry next run): %s",
+                candidate.filename, exc,
+            )
+            infra_aborted = True
+            break
+
         if not test_image_b64:
-            logger.warning("[LoRAMgr] Test generation failed for %s", candidate.filename)
-            # Clean up download on failure
-            lora_path.unlink(missing_ok=True)
+            logger.warning("[LoRAMgr] Test generation produced no image for %s", candidate.filename)
+            # Keep the file on disk \u2014 user may want to use it manually, and
+            # an empty result is often a transient ComfyUI hiccup.  Mark as
+            # tried so we don't waste time on a re-test next run.
+            tried_candidates.append({
+                "filename": candidate.filename,
+                "lora_path": str(lora_path),
+                "vision_score": 0.0,
+                "reason": "test_no_image",
+                "candidate_name": candidate.name,
+            })
             continue
 
         # Step 5: Vision verification
@@ -1047,25 +1174,66 @@ def find_and_verify_character_lora(
                 "trigger_words": candidate.trigger_words,
                 "candidate_name": candidate.name,
             })
+            _append_download_manifest({
+                "event": "verdict",
+                "character_tag": danbooru_tag,
+                "filename": candidate.filename,
+                "vision_score": round(vision_score, 2),
+                "accepted": True,
+                "reason": "vision_accepted",
+            })
             return result
 
         else:
-            # Reject — delete downloaded file, try next candidate
-            logger.info("[LoRAMgr] REJECTED LoRA: %s (score=%.1f < %.1f)",
-                        candidate.filename, vision_score, _VISION_ACCEPT_THRESHOLD)
-            lora_path.unlink(missing_ok=True)
-            # Remove empty dir if nothing left
-            try:
-                lora_path.parent.rmdir()
-            except OSError:
-                pass
+            # Reject \u2014 KEEP the downloaded file (user may use it manually,
+            # and we never want to re-download multi-hundred-MB files just
+            # to re-fail the same vision check).  Record it in tried list
+            # so future runs skip it.
+            logger.info(
+                "[LoRAMgr] REJECTED LoRA: %s (score=%.1f < %.1f) \u2014 keeping file on disk",
+                candidate.filename, vision_score, _VISION_ACCEPT_THRESHOLD,
+            )
+            tried_candidates.append({
+                "filename": candidate.filename,
+                "lora_path": str(lora_path),
+                "vision_score": vision_score,
+                "reason": "vision_rejected",
+                "candidate_name": candidate.name,
+            })
+            _append_download_manifest({
+                "event": "verdict",
+                "character_tag": danbooru_tag,
+                "filename": candidate.filename,
+                "vision_score": round(vision_score, 2),
+                "accepted": False,
+                "reason": "vision_rejected",
+            })
 
-    # All candidates rejected
-    logger.info("[LoRAMgr] No acceptable LoRA found for %s", display_name)
+    # All candidates rejected (or infra error aborted before completion)
+    if infra_aborted:
+        logger.warning(
+            "[LoRAMgr] Verification aborted by infra error for %s \u2014 cache NOT updated",
+            display_name,
+        )
+        return LoRAVerificationResult(
+            accepted=False,
+            vision_score=0.0,
+            test_image_b64=None,
+            lora_filename="",
+            lora_path=None,
+            rejection_reason="ComfyUI infrastructure error during test generation",
+            latency_ms=(time.time() - t0) * 1000,
+        )
+
+    logger.info(
+        "[LoRAMgr] No acceptable LoRA found for %s (tried %d, rejected %d)",
+        display_name, len(candidates), len(tried_candidates),
+    )
     _save_lora_cache(danbooru_tag, {
         "accepted": False,
         "vision_score": 0.0,
         "candidates_tried": len(candidates),
+        "tried_candidates": tried_candidates,
     })
 
     return LoRAVerificationResult(

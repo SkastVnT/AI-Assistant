@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\main.py", line 163, in <module>
+    execute_prestartup_script()
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\main.py", line 127, in execute_prestartup_script
+    possible_modules = os.listdir(custom_node_path)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\Asus\\Downloads\\Compressed\\AI-Assistant\\ComfyUI\\custom_nodes'
+Checkpoint files will always be loaded safely.
+Traceback (most recent call last):
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\main.py", line 177, in <module>
+    import execution
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\execution.py", line 15, in <module>
+    import comfy.model_management
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\comfy\model_management.py", line 239, in <module>
+    total_vram = get_total_memory(get_torch_device()) / (1024 * 1024)
+                                  ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\comfy\model_management.py", line 189, in get_torch_device
+    return torch.device(torch.cuda.current_device())
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\venv-image\Lib\site-packages\torch\cuda\__init__.py", line 1094, in current_device
+    _lazy_init()
+  File "C:\Users\Asus\Downloads\Compressed\AI-Assistant\venv-image\Lib\site-packages\torch\cuda\__init__.py", line 417, in _lazy_init
+    raise AssertionError("Torch not compiled with CUDA enabled")
+AssertionError: Torch not compiled with CUDA enabled
