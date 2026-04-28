@@ -281,6 +281,14 @@ class CharacterResearchResult:
     cached: bool = False
     research_time_ms: float = 0.0
 
+    # 2026-04-29: source diagnostics so the UI can tell the user where
+    # the reference images really came from. Filled in by the research
+    # path that built the final reference_images_b64 list.
+    local_refs_count: int = 0          # served from storage/character_refs/
+    web_refs_count: int = 0            # downloaded via image_search_character
+    web_search_skipped: bool = False   # short-circuit triggered (≥ min refs)
+    nsfw_intent: bool = False          # NSFW priority chain was used
+
     def build_positive_tags(self) -> list[str]:
         """Build ordered tag list: character > identity > layers."""
         tags: list[str] = [self.danbooru_tag, self.series_tag]
@@ -1493,6 +1501,13 @@ def research_character(
                     user_reference_images[:2] + cached.reference_images_b64
                 )[:12]
             cached.research_time_ms = (time.time() - t0) * 1000
+            cached.local_refs_count = len(local_refs)
+            cached.web_refs_count = max(
+                0, len(cached.reference_images_b64) - len(local_refs)
+                - (len(user_reference_images or []) if user_reference_images else 0)
+            )
+            cached.web_search_skipped = skip_web_image_search
+            cached.nsfw_intent = nsfw_intent
             return cached
 
     # Step 3: Web search
@@ -1581,9 +1596,18 @@ def research_character(
     _save_research_cache(result)
 
     result.research_time_ms = (time.time() - t0) * 1000
+    result.local_refs_count = len(local_refs)
+    result.web_refs_count = max(
+        0, len(ref_images) - len(local_refs)
+        - (len(user_reference_images or []) if user_reference_images else 0)
+    )
+    result.web_search_skipped = skip_web_image_search
+    result.nsfw_intent = nsfw_intent
     logger.info(
-        "[CharResearch] Research complete: %s (conf=%.2f, %d refs, %.0fms)",
-        danbooru_tag, result.confidence, len(ref_images), result.research_time_ms,
+        "[CharResearch] Research complete: %s (conf=%.2f, %d refs [%d local + %d web], skip_web=%s, %.0fms)",
+        danbooru_tag, result.confidence, len(ref_images),
+        result.local_refs_count, result.web_refs_count,
+        result.web_search_skipped, result.research_time_ms,
     )
 
     return result

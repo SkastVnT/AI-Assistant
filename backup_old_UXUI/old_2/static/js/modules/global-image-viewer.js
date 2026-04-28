@@ -24,9 +24,6 @@ const SELECTOR =
   ' .gallery-thumb img,' +
   ' .ap-inline-msg img,' +
   ' .ap-debug-preview img,' +
-  ' .igv2-gallery-item img,' +
-  ' .igv2-result-img,' +
-  ' .ap-stage-preview img,' +
   ' img[alt="Generated Image"]';
 
 // Things we never want to "preview"

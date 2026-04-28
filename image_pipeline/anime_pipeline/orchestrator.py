@@ -1391,6 +1391,22 @@ class AnimePipelineOrchestrator:
                 job.stage_timings_ms["character_research"] = latency
                 job.stages_executed.append("character_research")
 
+                # 2026-04-29: surface ref-source diagnostics so the chat
+                # UI can tell the user "Đã dùng N ảnh local cache, K ảnh
+                # web mới" instead of leaving the path opaque.
+                yield self._event("research_status", {
+                    "stage": "character_research",
+                    "danbooru_tag": result.danbooru_tag,
+                    "display_name": result.display_name,
+                    "local_refs": int(getattr(result, "local_refs_count", 0)),
+                    "web_refs": int(getattr(result, "web_refs_count", 0)),
+                    "web_search_skipped": bool(getattr(result, "web_search_skipped", False)),
+                    "nsfw_intent": bool(getattr(result, "nsfw_intent", False)),
+                    "cached": bool(getattr(result, "cached", False)),
+                    "confidence": float(getattr(result, "confidence", 0.0)),
+                    "latency_ms": latency,
+                })
+
                 # 2026-04-26: persist YOLO-detected feature crops from
                 # the reference images (SAA / cached / web) into
                 # storage/feature_layers/<session>/original/.  These
@@ -1961,6 +1977,11 @@ class AnimePipelineOrchestrator:
             "scene_description": getattr(va, "scene_description", ""),
             "style_tags": getattr(va, "style_tags", [])[:10],
             "quality_tags": getattr(va, "quality_tags", [])[:10],
+            # 2026-04-29: surface which provider in the priority chain
+            # actually answered (grok/step/gemini/gpt/prompt_only/...).
+            # Lets the UI explain why a particular vision result happened
+            # — especially after fallback through the NSFW chain.
+            "model_used": getattr(va, "model_used", "unknown"),
         }
 
     @staticmethod

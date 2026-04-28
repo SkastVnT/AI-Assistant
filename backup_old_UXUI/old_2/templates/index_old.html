@@ -1,0 +1,2761 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Assistant</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/favicon-180.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+
+    <!-- PWA / browser chrome -->
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="application-name" content="AI Assistant">
+    <meta name="apple-mobile-web-app-title" content="AI Assistant">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Open Graph (share preview) -->
+    <meta property="og:title" content="AI Assistant">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="{{ url_for('static', filename='icons/favicon-180.png') }}">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Markdown / Code highlight -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- DOMPurify ΓÇö sanitize HTML to prevent XSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous"></script>
+
+    <!-- PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}">
+
+    <!-- Tailwind Play CDN ΓÇö preflight disabled to avoid overriding existing styles -->
+    <script>
+      tailwind = { config: { corePlugins: { preflight: false } } };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<!-- Sidebar visibility reset: one-time fix for stuck sidebar -->
+<script>
+try {
+    if (window.innerWidth > 768 && !localStorage.getItem('sidebarFixApplied_v1')) {
+        localStorage.removeItem('sidebarCollapsed');
+        localStorage.setItem('sidebarFixApplied_v1', '1');
+    }
+} catch(e) {}
+
+// Runtime feature flags (override via localStorage or window.__CHAT_FEATURES)
+try {
+    const storedFlags = JSON.parse(localStorage.getItem('chatFeatureFlags') || '{}');
+    window.__CHAT_FEATURES = {
+        tokenGauge: true,
+        collapsibleThinking: false,
+        suggestionChips: true,
+        selectAndReply: true,
+        codeCopy: true,
+        ...storedFlags,
+        ...(window.__CHAT_FEATURES || {}),
+        collapsibleThinking: false,
+    };
+} catch (e) {
+    window.__CHAT_FEATURES = {
+        tokenGauge: true,
+        collapsibleThinking: false,
+        suggestionChips: true,
+        selectAndReply: true,
+        codeCopy: true,
+    };
+}
+</script>
+
+<div class="app">
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay hidden" id="sidebarOverlay"></div>
+
+    <!-- ΓòÉΓòÉΓòÉ Sidebar ΓòÉΓòÉΓòÉ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar__header">
+            <button class="sidebar__new-chat" id="newChatBtn" title="New chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span data-lang-key="sidebar.newChat">New chat</span>
+            </button>
+        </div>
+
+        <div class="sidebar__chats-header">
+            <span class="sidebar__chats-label">Cuß╗Öc tr├▓ chuyß╗çn</span>
+            <button class="sidebar__refresh-btn" id="chatRefreshBtn" title="L├ám mß╗¢i danh s├ích">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                    <path d="M8 16H3v5"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sidebar__chats" id="chatList">
+        </div>
+        <div class="sidebar__footer">
+            <button class="sidebar__footer-btn" id="galleryBtn" title="Image Gallery">
+                <i data-lucide="image" class="lucide"></i> <span>Image Gallery</span>
+            </button>
+            <button class="sidebar__footer-btn" id="memoryBtn" title="AI Memory" data-lang-key="controls.memory">
+                <i data-lucide="brain" class="lucide"></i> <span>AI Memory</span>
+            </button>
+            <div id="storageInfo" style="padding: 4px 12px; font-size: 11px; color: var(--text-tertiary);"></div>
+
+            <!-- Quota + Video unlock bar (non-admin only) -->
+            <div id="quotaSection" style="display:none;padding:6px 10px 2px;">
+                <!-- Image quota bar -->
+                <div id="imageQuotaWrap" style="margin-bottom:6px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                        <span style="font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px;">
+                            <i data-lucide="image" style="width:11px;height:11px;"></i> ß║ónh ─æ├ú tß║ío
+                        </span>
+                        <span id="quotaText" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0/5</span>
+                    </div>
+                    <div style="height:5px;border-radius:3px;background:var(--bg-active);overflow:hidden;">
+                        <div id="quotaBar" style="height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,#7c6cf0,#ab7df6);transition:width .4s;"></div>
+                    </div>
+                </div>
+                <!-- Video unlock button -->
+                <button id="videoUnlockBtn" data-action="modal:open-qr" class="hover-bg-accent-soft" style="
+                    display:none;width:100%;padding:7px 10px;border:1px solid rgba(241,196,15,.35);
+                    border-radius:9px;background:rgba(241,196,15,.08);color:#f1c40f;
+                    font-size:12px;font-weight:500;font-family:var(--font-sans);cursor:pointer;
+                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;">
+                    <i data-lucide="lock" style="width:13px;height:13px;"></i>
+                    <span>Mß╗ƒ kh├│a t├¡nh n─âng Video</span>
+                </button>
+                <div id="videoUnlockedMsg" style="display:none;width:100%;padding:6px 10px;border:1px solid rgba(46,204,113,.3);border-radius:9px;background:rgba(46,204,113,.08);color:#2ecc71;font-size:11px;font-weight:500;text-align:center;margin-bottom:4px;">
+                    Γ£ô Video ─æ├ú ─æ╞░ß╗úc mß╗ƒ kh├│a
+                </div>
+            </div>
+
+            <!-- User section -->
+            <div style="position:relative; margin-top:4px; border-top: 1px solid var(--border-primary); padding-top:6px;">
+                <!-- User dropdown panel -->
+                <div id="userDropdown" style="
+                    position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
+                    background:var(--bg-secondary); border:1px solid var(--border-primary);
+                    border-radius:12px; box-shadow:0 -8px 32px rgba(0,0,0,0.45); overflow:hidden; z-index:200;">
+                    <!-- Header -->
+                    <div style="padding:14px 14px 10px; border-bottom:1px solid var(--border-primary);">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div id="dropAvatar" style="
+                                width:38px;height:38px;border-radius:50%;
+                                background:var(--accent-gradient);flex-shrink:0;
+                                display:flex;align-items:center;justify-content:center;
+                                font-size:15px;font-weight:700;color:#fff;">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
+                            <div style="min-width:0;">
+                                <div id="dropDisplayName" style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
+                                <div id="dropUsername" style="font-size:11px;color:var(--text-tertiary);">@{{ session.get('username') or 'username' }}</div>
+                            </div>
+                            <span id="dropRoleBadge" style="
+                                display:{% if session.get('user_role') == 'admin' %}inline-block{% else %}none{% endif %};margin-left:auto;flex-shrink:0;
+                                font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;
+                                background:rgba(124,108,240,0.2);color:#9488f4;border:1px solid rgba(124,108,240,0.3);">Admin</span>
+                        </div>
+                    </div>
+                    <!-- Menu items -->
+                    <div style="padding:6px;">
+                        <a href="/admin" id="dropAdminLink" class="hover-bg-tertiary" style="display:{% if session.get('user_role') == 'admin' %}flex{% else %}none{% endif %};align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;">
+                            <i data-lucide="shield" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>Admin Panel</span>
+                        </a>
+                        <button data-action="user:open-profile" class="hover-bg-tertiary" style="
+                            width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+                            color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
+                            font-family:var(--font-sans);transition:background 0.15s;">
+                            <i data-lucide="user-pen" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>Chß╗ënh sß╗¡a hß╗ô s╞í</span>
+                        </button>
+                        <button data-action="user:open-password" class="hover-bg-tertiary" style="
+                            width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+                            color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
+                            font-family:var(--font-sans);transition:background 0.15s;">
+                            <i data-lucide="key-round" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>─Éß╗òi mß║¡t khß║⌐u</span>
+                        </button>
+                        <a href="/logout" class="hover-bg-danger-soft" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
+                           data-action="user:logout">
+                            <i data-lucide="log-out" style="width:15px;height:15px;flex-shrink:0;"></i>
+                            <span>─É─âng xuß║Ñt</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Trigger row -->
+                <button id="userTrigger" data-action="user:toggle-dropdown" class="hover-bg-tertiary" style="
+                    width:100%;display:flex;align-items:center;gap:10px;padding:6px 10px;
+                    background:transparent;border:none;cursor:pointer;border-radius:10px;
+                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);">
+                    <div id="userAvatar" style="
+                        width:30px;height:30px;border-radius:50%;background:var(--accent-gradient);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
+                    <div style="min-width:0;flex:1;">
+                        <div id="userName" style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
+                        <div id="userRoleLabel" style="font-size:10px;color:var(--text-tertiary);">{% if session.get('user_role') == 'admin' %}Γ¡É admin{% else %}member{% endif %}</div>
+                    </div>
+                    <i data-lucide="chevrons-up-down" id="userChevron" style="width:14px;height:14px;color:var(--text-tertiary);flex-shrink:0;transition:transform 0.2s;"></i>
+                </button>
+            </div>
+
+            <!-- QR Payment Modal -->
+            <div id="qrPayModal" class="inline-modal">
+                <div data-action="modal:close-qr" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
+                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:18px;padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);text-align:center;">
+                    <button data-action="modal:close-qr" class="hover-bg-tertiary" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;">
+                        <i data-lucide="x" style="width:18px;height:18px;"></i>
+                    </button>
+                    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">≡ƒÄ¼ Mß╗ƒ kh├│a Video</div>
+                    <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:18px;">Qu├⌐t m├ú QR ─æß╗â chuyß╗ân khoß║ún v├á gß╗¡i y├¬u cß║ºu mß╗ƒ kh├│a</p>
+                    <!-- QR Image -->
+                    <div id="qrImgWrap" style="margin:0 auto 16px;width:220px;height:220px;background:var(--bg-tertiary);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        <div id="qrLoading" style="font-size:12px;color:var(--text-tertiary);">─Éang tß║úiΓÇª</div>
+                        <img id="qrImg" src="" alt="QR" style="display:none;width:100%;height:100%;object-fit:contain;">
+                    </div>
+                    <!-- Bank info -->
+                    <div id="qrBankInfo" style="background:var(--bg-tertiary);border-radius:10px;padding:12px 16px;text-align:left;margin-bottom:16px;font-size:12px;line-height:1.9;">
+                        <div><span style="color:var(--text-tertiary)">Ng├ón h├áng:</span> <strong id="qrBankName">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Sß╗æ TK:</span> <strong id="qrAccountNo">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Chß╗º TK:</span> <strong id="qrAccountName">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Sß╗æ tiß╗ün:</span> <strong id="qrAmount" style="color:#f1c40f;">ΓÇö</strong></div>
+                        <div><span style="color:var(--text-tertiary)">Nß╗Öi dung:</span> <strong id="qrDesc">ΓÇö</strong></div>
+                    </div>
+                    <div id="qrRequestAlert" style="display:none;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
+                    <button data-action="modal:submit-qr" id="qrSubmitBtn" class="hover-opacity-down" style="
+                        width:100%;padding:11px;border:none;border-radius:12px;background:var(--accent-gradient);
+                        color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
+                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;">
+                        <i data-lucide="send" style="width:16px;height:16px;"></i>
+                        <span id="qrSubmitLbl">─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu</span>
+                    </button>
+                    <p style="font-size:11px;color:var(--text-tertiary);margin-top:10px;">Sau khi admin x├íc nhß║¡n, t├¡nh n─âng Video sß║╜ ─æ╞░ß╗úc mß╗ƒ kh├│a.</p>
+                </div>
+            </div>
+
+            <!-- Change Password Modal -->
+            <div id="changePwModal" class="inline-modal">
+                <div data-action="modal:close-password" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:360px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="key-round" style="width:18px;height:18px;color:var(--accent);"></i> ─Éß╗òi mß║¡t khß║⌐u
+                    </h3>
+                    <div id="cpwError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+                    <div id="cpwSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mß║¡t khß║⌐u hiß╗çn tß║íi</label>
+                        <input type="password" id="cpwCurrent" class="form-input" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó">
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mß║¡t khß║⌐u mß╗¢i</label>
+                        <input type="password" id="cpwNew" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="├ìt nhß║Ñt 6 k├╜ tß╗▒">
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button data-action="modal:close-password" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hß╗ºy</button>
+                        <button data-action="modal:submit-password" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">X├íc nhß║¡n</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Profile Modal -->
+            <div id="editProfileModal" class="inline-modal">
+                <div data-action="modal:close-profile" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
+                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:390px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="user-pen" style="width:18px;height:18px;color:var(--accent);"></i> Chß╗ënh sß╗¡a hß╗ô s╞í
+                    </h3>
+                    <!-- Avatar picker -->
+                    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;gap:10px;">
+                        <div id="epAvatarPreview" data-action="profile:trigger-avatar" title="Nhß║Ñn ─æß╗â thay ─æß╗òi ß║únh" style="
+                            width:80px;height:80px;border-radius:50%;background:var(--accent-gradient);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:28px;font-weight:700;color:#fff;cursor:pointer;
+                            overflow:hidden;position:relative;border:2px solid var(--border-primary);flex-shrink:0;">
+                            <span id="epAvatarInitial" style="position:relative;z-index:1;">U</span>
+                            <img id="epAvatarImg" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+                            <div id="epAvatarHover" class="hover-opacity-reveal" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:2;">
+                                <i data-lucide="camera" style="width:22px;height:22px;color:#fff;"></i>
+                            </div>
+                        </div>
+                        <input type="file" id="epAvatarInput" accept="image/*" style="display:none;" data-action="profile:avatar-file">
+                        <div style="display:flex;gap:6px;">
+                            <button data-action="profile:trigger-avatar" style="font-size:11px;padding:5px 11px;border:1px solid var(--border-primary);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;">
+                                <i data-lucide="upload" style="width:11px;height:11px;"></i> Tß║úi ß║únh l├¬n
+                            </button>
+                            <button id="epClearAvatarBtn" data-action="profile:clear-avatar" style="display:none;font-size:11px;padding:5px 11px;border:1px solid rgba(231,76,60,0.3);border-radius:8px;background:transparent;color:#e74c3c;cursor:pointer;font-family:var(--font-sans);">
+                                X├│a ß║únh
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Display name -->
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">T├¬n hiß╗ân thß╗ï</label>
+                        <input type="text" id="epDisplayName" maxlength="50" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;box-sizing:border-box;" placeholder="Nhß║¡p t├¬n hiß╗ân thß╗ï...">
+                    </div>
+                    <!-- Bio -->
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Giß╗¢i thiß╗çu <span style="color:var(--text-tertiary)">(tuß╗│ chß╗ìn, tß╗æi ─æa 200 k├╜ tß╗▒)</span></label>
+                        <textarea id="epBio" maxlength="200" rows="2" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);outline:none;resize:none;box-sizing:border-box;" placeholder="Mß╗Öt v├ái d├▓ng giß╗¢i thiß╗çu bß║ún th├ón..."></textarea>
+                    </div>
+                    <div id="epError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+                    <div id="epSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+                    <div style="display:flex;gap:8px;">
+                        <button data-action="modal:close-profile" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hß╗ºy</button>
+                        <button data-action="modal:submit-profile" id="epSaveBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">L╞░u thay ─æß╗òi</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+            // Avatar color palette ΓÇö global so profile edit can reuse
+            const AVATAR_COLORS = ['#7c6cf0','#ab7df6','#3498db','#e74c3c','#2ecc71','#e67e22','#1abc9c','#9b59b6'];
+            function strColor(str) {
+                let h = 0;
+                for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff;
+                return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+            }
+            let _currentUser = null; // { username, display_name, avatar_data, bio }
+            function _applyAvatarToEl(el, user) {
+                if (user && user.avatar_data) {
+                    el.style.background = 'transparent';
+                    el.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = user.avatar_data;
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+                    el.appendChild(img);
+                } else {
+                    const initial = user ? (user.display_name || user.username)[0].toUpperCase() : 'U';
+                    const color   = user ? strColor(user.username) : '#7c6cf0';
+                    el.textContent = initial;
+                    el.style.background = color;
+                }
+            }
+
+            (function(){
+                fetch('/api/auth/me').then(r=>r.json()).then(d=>{
+                    if(d.authenticated && d.user) {
+                        const u = d.user;
+                        _currentUser = {
+                            username:     u.username,
+                            display_name: u.display_name || u.username,
+                            avatar_data:  u.avatar_data || '',
+                            bio:          u.bio || '',
+                        };
+
+                        // Trigger row
+                        _applyAvatarToEl(document.getElementById('userAvatar'), _currentUser);
+                        document.getElementById('userName').textContent = _currentUser.display_name;
+                        document.getElementById('userRoleLabel').textContent = u.role === 'admin' ? 'Γ¡É admin' : 'member';
+
+                        // Dropdown header
+                        _applyAvatarToEl(document.getElementById('dropAvatar'), _currentUser);
+                        document.getElementById('dropDisplayName').textContent = _currentUser.display_name;
+                        document.getElementById('dropUsername').textContent = '@' + u.username;
+
+                        if(u.role === 'admin') {
+                            document.getElementById('dropAdminLink').style.display = 'flex';
+                            document.getElementById('dropRoleBadge').style.display = 'inline-block';
+                        }
+
+                        // Quota bar (non-admin only)
+                        if(u.role !== 'admin') {
+                            loadQuotaBar();
+                        }
+                    }
+                }).catch(()=>{});
+            })();
+
+            let _dropOpen = false;
+
+            /* ΓöÇΓöÇ Quota bar ΓöÇΓöÇ */
+            function loadQuotaBar() {
+                // First check if features are enabled at all
+                fetch('/api/features').then(r => r.json()).then(flags => {
+                    const quotaOn   = flags.quota   !== false;
+                    const videoOn   = flags.video   !== false;
+                    const paymentOn = flags.payment !== false;
+
+                    if (!quotaOn && !videoOn) {
+                        // Both off ΓÇö hide entirely
+                        document.getElementById('quotaSection').style.display = 'none';
+                        return;
+                    }
+
+                    // Show the section then fill with real data
+                    document.getElementById('quotaSection').style.display = 'block';
+                    // Hide sub-sections that are off
+                    document.getElementById('imageQuotaWrap').style.display = quotaOn ? 'block' : 'none';
+
+                    fetch('/api/auth/quota').then(r => r.json()).then(d => {
+                        if (!d.success) return;
+                        const q = d.quota || {};
+                        if (quotaOn) {
+                            const used  = q.image_quota_used  || 0;
+                            const limit = q.image_quota_limit || 5;
+                            const pct   = Math.min(100, Math.round(used / limit * 100));
+                            const danger = pct >= 80;
+                            document.getElementById('quotaText').textContent = used + '/' + limit;
+                            const bar = document.getElementById('quotaBar');
+                            bar.style.width = pct + '%';
+                            bar.style.background = danger ? 'linear-gradient(90deg,#e74c3c,#c0392b)' : 'linear-gradient(90deg,#7c6cf0,#ab7df6)';
+                            document.getElementById('quotaText').style.color = danger ? '#e74c3c' : 'var(--text-secondary)';
+                        }
+                        if (videoOn) {
+                            if (q.video_unlocked) {
+                                document.getElementById('videoUnlockedMsg').style.display = 'block';
+                                document.getElementById('videoUnlockBtn').style.display = 'none';
+                            } else if (paymentOn && flags.video_requires_payment !== false) {
+                                document.getElementById('videoUnlockBtn').style.display = 'flex';
+                                document.getElementById('videoUnlockedMsg').style.display = 'none';
+                            } else {
+                                // Video on but no payment required ΓÇö hide button
+                                document.getElementById('videoUnlockBtn').style.display = 'none';
+                                document.getElementById('videoUnlockedMsg').style.display = 'none';
+                            }
+                        } else {
+                            document.getElementById('videoUnlockBtn').style.display = 'none';
+                            document.getElementById('videoUnlockedMsg').style.display = 'none';
+                        }
+                        lucide.createIcons({ nodes: [document.getElementById('quotaSection')] });
+                    }).catch(() => {});
+                }).catch(() => {
+                    // If /api/features fails, fall back to showing the quota bar normally
+                    loadQuotaBarFallback();
+                });
+            }
+
+            /* fallback if /api/features unreachable */
+            function loadQuotaBarFallback() {
+                fetch('/api/auth/quota').then(r => r.json()).then(d => {
+                    if (!d.success) return;
+                    const q = d.quota || {};
+                    document.getElementById('quotaSection').style.display = 'block';
+                    const used  = q.image_quota_used  || 0;
+                    const limit = q.image_quota_limit || 5;
+                    const pct   = Math.min(100, Math.round(used / limit * 100));
+                    document.getElementById('quotaText').textContent = used + '/' + limit;
+                    document.getElementById('quotaBar').style.width = pct + '%';
+                    if (q.video_unlocked) {
+                        document.getElementById('videoUnlockedMsg').style.display = 'block';
+                        document.getElementById('videoUnlockBtn').style.display = 'none';
+                    } else {
+                        document.getElementById('videoUnlockBtn').style.display = 'flex';
+                        document.getElementById('videoUnlockedMsg').style.display = 'none';
+                    }
+                    lucide.createIcons({ nodes: [document.getElementById('quotaSection')] });
+                }).catch(() => {});
+            }
+
+            /* ΓöÇΓöÇ QR Modal ΓöÇΓöÇ */
+            function openVideoUnlockModal() {
+                const m = document.getElementById('qrPayModal');
+                m.classList.add('open');
+                document.getElementById('qrImg').style.display = 'none';
+                document.getElementById('qrLoading').style.display = 'block';
+                document.getElementById('qrRequestAlert').style.display = 'none';
+                document.getElementById('qrSubmitBtn').disabled = false;
+                document.getElementById('qrSubmitLbl').textContent = '─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu';
+                lucide.createIcons({ nodes: [m] });
+                // Fetch QR
+                fetch('/api/payment/qr', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type: 'video_unlock'})
+                }).then(r => r.json()).then(d => {
+                    if (d.qr_url) {
+                        document.getElementById('qrImg').src = d.qr_url;
+                        document.getElementById('qrImg').style.display = 'block';
+                    }
+                    document.getElementById('qrLoading').style.display = 'none';
+                    document.getElementById('qrBankName').textContent = d.bank_name || 'ΓÇö';
+                    document.getElementById('qrAccountNo').textContent = d.account_no || 'ΓÇö';
+                    document.getElementById('qrAccountName').textContent = d.account_name || 'ΓÇö';
+                    document.getElementById('qrAmount').textContent = d.amount ? d.amount.toLocaleString('vi-VN') + ' ─æ' : 'ΓÇö';
+                    document.getElementById('qrDesc').textContent = d.description || 'ΓÇö';
+                }).catch(() => { document.getElementById('qrLoading').textContent = 'Kh├┤ng tß║úi ─æ╞░ß╗úc QR code'; });
+            }
+
+            function closeVideoUnlockModal() {
+                document.getElementById('qrPayModal').classList.remove('open');
+            }
+
+            async function submitVideoUnlockRequest() {
+                const btn = document.getElementById('qrSubmitBtn');
+                const alertEl = document.getElementById('qrRequestAlert');
+                btn.disabled = true;
+                document.getElementById('qrSubmitLbl').textContent = '─Éang gß╗¡iΓÇª';
+                alertEl.style.display = 'none';
+                try {
+                    const res = await fetch('/api/auth/request-video-unlock', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({note: 'Y├¬u cß║ºu mß╗ƒ kh├│a Video qua QR'})
+                    });
+                    const data = await res.json();
+                    alertEl.style.display = 'block';
+                    if (data.success) {
+                        alertEl.style.background = 'rgba(46,204,113,.12)';
+                        alertEl.style.border = '1px solid rgba(46,204,113,.3)';
+                        alertEl.style.color = '#2ecc71';
+                        alertEl.textContent = data.message || 'Y├¬u cß║ºu ─æ├ú ─æ╞░ß╗úc gß╗¡i. Vui l├▓ng chß╗¥ admin x├íc nhß║¡n.';
+                        document.getElementById('qrSubmitBtn').style.display = 'none';
+                    } else {
+                        alertEl.style.background = 'rgba(231,76,60,.12)';
+                        alertEl.style.border = '1px solid rgba(231,76,60,.3)';
+                        alertEl.style.color = '#e74c3c';
+                        alertEl.textContent = data.message || 'Lß╗ùi gß╗¡i y├¬u cß║ºu';
+                        btn.disabled = false;
+                        document.getElementById('qrSubmitLbl').textContent = '─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu';
+                    }
+                } catch(e) {
+                    alertEl.style.display = 'block';
+                    alertEl.style.background = 'rgba(231,76,60,.12)';
+                    alertEl.style.border = '1px solid rgba(231,76,60,.3)';
+                    alertEl.style.color = '#e74c3c';
+                    alertEl.textContent = 'Lß╗ùi kß║┐t nß╗æi server';
+                    btn.disabled = false;
+                    document.getElementById('qrSubmitLbl').textContent = '─É├ú chuyß╗ân khoß║ún ΓÇö Gß╗¡i y├¬u cß║ºu';
+                }
+            }
+
+            function toggleUserDropdown() {
+                _dropOpen = !_dropOpen;
+                const dd = document.getElementById('userDropdown');
+                const chevron = document.getElementById('userChevron');
+                dd.classList.toggle('open', _dropOpen);
+                chevron.style.transform = _dropOpen ? 'rotate(180deg)' : '';
+                document.getElementById('userTrigger').style.background = _dropOpen ? 'var(--bg-tertiary)' : '';
+                lucide.createIcons();
+            }
+
+            document.addEventListener('click', function(e) {
+                if(_dropOpen && !document.getElementById('userTrigger').contains(e.target) && !document.getElementById('userDropdown').contains(e.target)) {
+                    _dropOpen = false;
+                    document.getElementById('userDropdown').classList.remove('open');
+                    document.getElementById('userChevron').style.transform = '';
+                    document.getElementById('userTrigger').style.background = '';
+                }
+            });
+
+            function openChangePassword() {
+                toggleUserDropdown();
+                const m = document.getElementById('changePwModal');
+                m.classList.add('open');
+                document.getElementById('cpwCurrent').value = '';
+                document.getElementById('cpwNew').value = '';
+                document.getElementById('cpwError').style.display = 'none';
+                document.getElementById('cpwSuccess').style.display = 'none';
+                lucide.createIcons();
+                setTimeout(() => document.getElementById('cpwCurrent').focus(), 100);
+            }
+            function closeChangePassword() {
+                document.getElementById('changePwModal').classList.remove('open');
+            }
+            async function submitChangePw() {
+                const btn = document.getElementById('cpwBtn');
+                const errEl = document.getElementById('cpwError');
+                const okEl = document.getElementById('cpwSuccess');
+                errEl.style.display = 'none'; okEl.style.display = 'none';
+                const current = document.getElementById('cpwCurrent').value;
+                const newpw = document.getElementById('cpwNew').value;
+                if(!current || !newpw) { errEl.textContent='Vui l├▓ng ─æiß╗ün ─æß║ºy ─æß╗º'; errEl.style.display='block'; return; }
+                btn.disabled = true; btn.textContent = '...';
+                try {
+                    const res = await fetch('/api/auth/change-password', {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({current_password: current, new_password: newpw})
+                    });
+                    const data = await res.json();
+                    if(data.success) { okEl.textContent = data.message; okEl.style.display='block'; setTimeout(closeChangePassword, 1800); }
+                    else { errEl.textContent = data.message; errEl.style.display='block'; }
+                } catch { errEl.textContent='Lß╗ùi kß║┐t nß╗æi'; errEl.style.display='block'; }
+                finally { btn.disabled=false; btn.textContent='X├íc nhß║¡n'; }
+            }
+
+            /* ΓöÇΓöÇ Edit Profile ΓöÇΓöÇ */
+            let _epAvatarData = null;  // null=unchanged, ''=clear, 'data:ΓÇª'=new image
+
+            function openEditProfile() {
+                // Close dropdown first
+                if (_dropOpen) toggleUserDropdown();
+                const m = document.getElementById('editProfileModal');
+                m.classList.add('open');
+                document.getElementById('epError').style.display = 'none';
+                document.getElementById('epSuccess').style.display = 'none';
+                _epAvatarData = null;
+                // Pre-fill fields from current state
+                document.getElementById('epDisplayName').value = (_currentUser && _currentUser.display_name) || '';
+                document.getElementById('epBio').value = (_currentUser && _currentUser.bio) || '';
+                // Show avatar preview
+                const hasAvatar = _currentUser && _currentUser.avatar_data;
+                const epImg = document.getElementById('epAvatarImg');
+                const epInitial = document.getElementById('epAvatarInitial');
+                const epPreview = document.getElementById('epAvatarPreview');
+                if (hasAvatar) {
+                    epImg.src = _currentUser.avatar_data;
+                    epImg.style.display = 'block';
+                    epInitial.style.display = 'none';
+                    epPreview.style.background = 'transparent';
+                    document.getElementById('epClearAvatarBtn').style.display = 'inline-flex';
+                } else {
+                    epImg.style.display = 'none';
+                    epImg.src = '';
+                    epInitial.style.display = 'block';
+                    epInitial.textContent = _currentUser ? (_currentUser.display_name || _currentUser.username)[0].toUpperCase() : 'U';
+                    epPreview.style.background = _currentUser ? strColor(_currentUser.username) : 'var(--accent-gradient)';
+                    document.getElementById('epClearAvatarBtn').style.display = 'none';
+                }
+                lucide.createIcons({ nodes: [m] });
+                setTimeout(() => document.getElementById('epDisplayName').focus(), 80);
+            }
+
+            function closeEditProfile() {
+                document.getElementById('editProfileModal').classList.remove('open');
+                document.getElementById('epAvatarInput').value = '';
+            }
+
+            function handleEpAvatarFile(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                    document.getElementById('epError').textContent = 'ß║ónh qu├í lß╗¢n (tß╗æi ─æa 5MB)';
+                    document.getElementById('epError').style.display = 'block';
+                    return;
+                }
+                document.getElementById('epError').style.display = 'none';
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const raw = new Image();
+                    raw.onload = function() {
+                        // Crop to square 220├ù220 JPEG
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 220; canvas.height = 220;
+                        const ctx = canvas.getContext('2d');
+                        const s = Math.min(raw.width, raw.height);
+                        const sx = (raw.width - s) / 2, sy = (raw.height - s) / 2;
+                        ctx.drawImage(raw, sx, sy, s, s, 0, 0, 220, 220);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        _epAvatarData = dataUrl;
+                        const epImg = document.getElementById('epAvatarImg');
+                        epImg.src = dataUrl;
+                        epImg.style.display = 'block';
+                        document.getElementById('epAvatarInitial').style.display = 'none';
+                        document.getElementById('epAvatarPreview').style.background = 'transparent';
+                        document.getElementById('epClearAvatarBtn').style.display = 'inline-flex';
+                    };
+                    raw.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function clearEpAvatar() {
+                _epAvatarData = '';  // explicit clear signal
+                document.getElementById('epAvatarImg').style.display = 'none';
+                document.getElementById('epAvatarImg').src = '';
+                const epInitial = document.getElementById('epAvatarInitial');
+                epInitial.style.display = 'block';
+                epInitial.textContent = _currentUser ? (_currentUser.display_name || _currentUser.username)[0].toUpperCase() : 'U';
+                document.getElementById('epAvatarPreview').style.background = _currentUser ? strColor(_currentUser.username) : 'var(--accent-gradient)';
+                document.getElementById('epClearAvatarBtn').style.display = 'none';
+            }
+
+            async function submitEditProfile() {
+                const btn = document.getElementById('epSaveBtn');
+                const errEl = document.getElementById('epError');
+                const okEl = document.getElementById('epSuccess');
+                errEl.style.display = 'none'; okEl.style.display = 'none';
+
+                const displayName = document.getElementById('epDisplayName').value.trim();
+                const bio = document.getElementById('epBio').value.trim();
+
+                if (!displayName) {
+                    errEl.textContent = 'T├¬n hiß╗ân thß╗ï kh├┤ng ─æ╞░ß╗úc ─æß╗â trß╗æng';
+                    errEl.style.display = 'block';
+                    return;
+                }
+
+                const payload = { display_name: displayName, bio };
+                if (_epAvatarData !== null) payload.avatar_data = _epAvatarData;
+
+                btn.disabled = true; btn.textContent = '─Éang l╞░u...';
+                try {
+                    const res = await fetch('/api/auth/update-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        okEl.textContent = '─É├ú cß║¡p nhß║¡t hß╗ô s╞í!';
+                        okEl.style.display = 'block';
+                        // Update global cache
+                        const u = data.user;
+                        if (_currentUser) {
+                            _currentUser.display_name = u.display_name;
+                            _currentUser.avatar_data  = u.avatar_data || '';
+                            _currentUser.bio          = u.bio || '';
+                        }
+                        // Reflect in sidebar
+                        document.getElementById('userName').textContent = u.display_name;
+                        document.getElementById('dropDisplayName').textContent = u.display_name;
+                        _applyAvatarToEl(document.getElementById('userAvatar'), _currentUser);
+                        _applyAvatarToEl(document.getElementById('dropAvatar'), _currentUser);
+                        setTimeout(closeEditProfile, 1600);
+                    } else {
+                        errEl.textContent = data.message || 'Lß╗ùi cß║¡p nhß║¡t';
+                        errEl.style.display = 'block';
+                    }
+                } catch(e) {
+                    errEl.textContent = 'Lß╗ùi kß║┐t nß╗æi server';
+                    errEl.style.display = 'block';
+                } finally {
+                    btn.disabled = false; btn.textContent = 'L╞░u thay ─æß╗òi';
+                }
+            }
+            </script>
+        </div>
+    </aside>
+
+    <!-- ΓòÉΓòÉΓòÉ Main ΓòÉΓòÉΓòÉ -->
+    <div class="main">
+
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar__left">
+                <!-- Sidebar toggle -->
+                <button class="topbar__toggle" id="sidebarToggleBtn" title="Toggle sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 3v18"/>
+                    </svg>
+                </button>
+
+                <!-- Model Selector -->
+                <div class="topbar__model-selector" id="modelSelectorContainer">
+                    <button class="topbar__model-btn" id="modelSelectorBtn">
+                        <span id="modelSelectorLabel">Grok-3</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                    </button>
+
+                    <div class="model-dropdown" id="modelDropdown">
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Premium</div>
+                            <div class="model-dropdown__item active" data-model="grok">
+                                <span class="model-dropdown__item-icon">≡ƒñû</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Grok-3</div>
+                                    <div class="model-dropdown__item-desc">xAI ΓÇö 131K context</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Default</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="deepseek-reasoner">
+                                <span class="model-dropdown__item-icon">≡ƒº¬</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">DeepSeek R1</div>
+                                    <div class="model-dropdown__item-desc">Reasoning model ΓÇö 64K</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Pro</span>
+                            </div>
+                        </div>
+
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Standard</div>
+                            <div class="model-dropdown__item" data-model="openai">
+                                <span class="model-dropdown__item-icon">≡ƒºá</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">GPT-4o-mini</div>
+                                    <div class="model-dropdown__item-desc">OpenAI ΓÇö 128K context</div>
+                                </div>
+                            </div>
+                            <div class="model-dropdown__item" data-model="deepseek">
+                                <span class="model-dropdown__item-icon">≡ƒöì</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">DeepSeek Chat</div>
+                                    <div class="model-dropdown__item-desc">DeepSeek ΓÇö 64K context</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Free</div>
+                            <div class="model-dropdown__item" data-model="gemini">
+                                <span class="model-dropdown__item-icon">≡ƒÆÄ</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Gemini 2.0 Flash</div>
+                                    <div class="model-dropdown__item-desc">Google ΓÇö 1M context</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="step-flash">
+                                <span class="model-dropdown__item-icon">ΓÜí</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Step-3.5 Flash</div>
+                                    <div class="model-dropdown__item-desc">StepFun via OpenRouter ΓÇö 128K</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="bloomvn">
+                                <span class="model-dropdown__item-icon">≡ƒî╕</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">BloomVN-8B</div>
+                                    <div class="model-dropdown__item-desc">Vietnamese optimized</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                        </div>
+
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Other</div>
+                            <div class="model-dropdown__item" data-model="qwen">
+                                <span class="model-dropdown__item-icon">≡ƒîÖ</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Qwen Turbo</div>
+                                    <div class="model-dropdown__item-desc">Alibaba Cloud</div>
+                                </div>
+                            </div>
+                            <div class="model-dropdown__item" data-model="stepfun">
+                                <span class="model-dropdown__item-icon">≡ƒÜÇ</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">StepFun Direct</div>
+                                    <div class="model-dropdown__item-desc">step-2-16k</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden select for backward compatibility -->
+                    <select id="modelSelect" class="hidden">
+                        <option value="grok" selected>Grok-3</option>
+                        <option value="deepseek-reasoner">DeepSeek R1</option>
+                        <option value="openai">GPT-4o-mini</option>
+                        <option value="deepseek">DeepSeek Chat</option>
+                        <option value="gemini">Gemini 2.0 Flash</option>
+                        <option value="step-flash">Step-3.5 Flash</option>
+                        <option value="bloomvn">BloomVN-8B</option>
+                        <option value="qwen">Qwen Turbo</option>
+                        <option value="stepfun">StepFun Direct</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="topbar__center">
+                <!-- GitHub branding -->
+                <a href="https://github.com/SkastVnT" target="_blank" class="topbar__brand" title="GitHub ΓÇö SKAST">
+                    <i data-lucide="github" class="lucide brand-icon"></i>
+                    <span class="brand-name">SKAST</span>
+                </a>
+
+                <!-- Thinking mode indicator -->
+                <div id="thinkingModeContainer" style="position: relative;">
+                    <button class="topbar__btn" id="thinkingModeBtn" title="Thinking mode" style="width: auto; gap: 4px; padding: 6px 10px; display: flex; font-size: 14px;">
+                        <span id="thinkingModeIcon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" class="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg></span>
+                        <span id="thinkingModeLabel" style="font-size: 13px; font-weight: 500;">4-Agents</span>
+                    </button>
+                    <div id="thinkingModeDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 260px; top: calc(100% + 4px);">
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Thinking Mode</div>
+                            <div class="thinking-mode-option model-dropdown__item" data-mode="instant" data-icon="zap" data-label="Instant">
+                                <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Instant</div>
+                                    <div class="model-dropdown__item-desc">Trß║ú lß╗¥i tß╗⌐c thß╗¥i</div>
+                                </div>
+                            </div>
+                            <div class="thinking-mode-option model-dropdown__item active" data-mode="multi-thinking" data-icon="layers" data-label="4-Agents">
+                                <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" class="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">4-Agents</div>
+                                    <div class="model-dropdown__item-desc">4 agents tham gia trß║ú lß╗¥i</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Pro</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="thinkingModeValue" value="multi-thinking">
+                </div>
+
+                <!-- Skill selector -->
+                <div id="skillSelectorContainer" style="position: relative;">
+                    <button class="topbar__btn" id="skillSelectorBtn" title="Skill" style="width: auto; gap: 4px; padding: 6px 10px; display: flex; font-size: 14px;">
+                        <span id="skillSelectorIcon"><i data-lucide="book-open" class="lucide"></i></span>
+                        <span id="skillSelectorLabel" style="font-size: 13px; font-weight: 500;">Skill</span>
+                    </button>
+                    <div id="skillSelectorDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 280px; top: calc(100% + 4px);">
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Skills</div>
+                            <div class="skill-option model-dropdown__item active" id="skillNoneOption" data-skill-id="">
+                                <span class="model-dropdown__item-icon"><i data-lucide="circle-off" class="lucide"></i></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">None</div>
+                                    <div class="model-dropdown__item-desc">No skill ΓÇö default behavior</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="skillListContainer"></div>
+                    </div>
+                    <input type="hidden" id="activeSkillId" value="">
+                </div>
+            </div>
+
+            <div class="topbar__right">
+                <!-- Primary actions -->
+                <!-- <button class="topbar__btn" id="splitViewBtn" title="Split view"><i data-lucide="columns-2" class="lucide"></i></button> -->
+                <button class="topbar__btn" id="imageGenV2Btn" title="AI Image (Multi-provider)" style="color: var(--accent);"><i data-lucide="sparkles" class="lucide"></i></button>
+                <button class="topbar__btn" id="videoGenBtn" title="Video Sora2" style="color: var(--warning, #f59e0b);"><i data-lucide="video" class="lucide"></i></button>
+                <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
+                <button class="topbar__btn" id="darkModeBtn" title="Toggle theme"><i data-lucide="moon" class="lucide" id="darkModeIcon"></i></button>
+
+                <!-- More menu -->
+                <div class="topbar__more" style="position:relative;">
+                    <button class="topbar__btn" id="moreMenuBtn" title="More options"><i data-lucide="ellipsis-vertical" class="lucide"></i></button>
+                    <div class="topbar__more-dropdown hidden" id="moreMenuDropdown">
+                        <button class="topbar__more-item" id="eyeCareBtn"><i data-lucide="eye" class="lucide"></i> <span>Eye Care</span></button>
+                        <button class="topbar__more-item" id="downloadBtn" data-lang-key="controls.download"><i data-lucide="download" class="lucide"></i> <span>Export Chat</span></button>
+                        <button class="topbar__more-item" id="imageGenBtn"><i data-lucide="palette" class="lucide"></i> <span>Image Gen (ComfyUI)</span></button>
+
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading bar -->
+        <div class="loading-bar hidden" id="loadingBar"></div>
+
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <div class="chat-area__messages" id="chatContainer">
+                <!-- Welcome screen (shown when empty) -->
+                <div class="welcome" id="welcomeScreen">
+                    <div class="welcome__logo"><i data-lucide="bot" class="lucide lucide-xl" style="width:64px;height:64px;stroke-width:1.5;"></i></div>
+                    <h1 class="welcome__title" data-lang-key="app.title">AI Assistant</h1>
+                    <p class="welcome__subtitle" data-lang-key="app.subtitle">Chat, code, create images, and solve problems with AI</p>
+                    <div class="welcome__suggestions" id="welcomeSuggestions">
+                        <button class="welcome__suggestion" data-message="Giß║úi th├¡ch c├ích hoß║ít ─æß╗Öng cß╗ºa AI mß╗Öt c├ích ─æ╞ín giß║ún">
+                            <div class="welcome__suggestion-title"><i data-lucide="lightbulb" class="lucide lucide-sm"></i> Giß║úi th├¡ch</div>
+                            C├ích hoß║ít ─æß╗Öng cß╗ºa AI ─æ╞ín giß║ún
+                        </button>
+                        <button class="welcome__suggestion" data-message="Viß║┐t mß╗Öt function Python ─æß╗â sort mß║úng bß║▒ng quicksort">
+                            <div class="welcome__suggestion-title"><i data-lucide="code-2" class="lucide lucide-sm"></i> Viß║┐t code</div>
+                            Python quicksort implementation
+                        </button>
+                        <button class="welcome__suggestion" data-message="Tß║ío ß║únh anime mß╗Öt c├┤ g├íi ngß╗ôi b├¬n cß╗¡a sß╗ò, ├ính ho├áng h├┤n, chi tiß║┐t cao">
+                            <div class="welcome__suggestion-title"><i data-lucide="image" class="lucide lucide-sm"></i> Tß║ío ß║únh</div>
+                            Anime girl at sunset window
+                        </button>
+                        <button class="welcome__suggestion" data-message="Cho t├┤i 5 tips t─âng n─âng suß║Ñt l├ám viß╗çc hiß╗çu quß║ú">
+                            <div class="welcome__suggestion-title"><i data-lucide="trending-up" class="lucide lucide-sm"></i> T╞░ vß║Ñn</div>
+                            5 tips t─âng n─âng suß║Ñt
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div class="hidden" id="loading" style="display:none;">
+            <div class="typing-indicator" style="max-width: 768px; margin: 0 auto; padding: 0 16px;">
+                <div class="message" style="animation: none;">
+                    <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+                    <div class="message__body">
+                        <div class="typing-indicator" style="padding: 0;">
+                            <div class="typing-indicator__dot"></div>
+                            <div class="typing-indicator__dot"></div>
+                            <div class="typing-indicator__dot"></div>
+                        </div>
+                        <span id="loadingText" class="stop-text" data-lang-key="loading.thinking">Thinking...</span>
+                        <div id="toolStatusBar" class="tool-status-bar" style="display:none;"></div>
+                        <button id="stopGenerationBtn" class="btn btn--ghost btn--sm" data-lang-key="loading.stop" style="margin-left: 8px;"><i data-lucide="square" class="lucide lucide-sm"></i> Stop</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Panel -->
+        <div class="memory-panel" id="memoryPanel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong data-lang-key="memory.title"><i data-lucide="book-open" class="lucide lucide-sm"></i> Saved Memories</strong>
+                <button id="saveMemoryBtn" class="btn btn--sm btn--secondary" data-lang-key="memory.save"><i data-lucide="save" class="lucide lucide-sm"></i> Save this chat</button>
+            </div>
+            <div id="memoryList"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+            <!-- Advanced Model Settings Panel (hidden by default) -->
+            <div class="adv-settings" id="advSettingsPanel" aria-hidden="true">
+                <div class="adv-settings__header">
+                    <span class="adv-settings__title">Advanced Model Settings</span>
+                    <button class="adv-settings__reset" id="advSettingsReset" title="Reset to defaults">Γå║ Reset</button>
+                </div>
+                <div class="adv-settings__grid">
+                    <!-- Temperature -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advTemperature">
+                            Temperature
+                            <span class="adv-settings__value" id="advTemperatureVal">0.7</span>
+                        </label>
+                        <input type="range" id="advTemperature" class="adv-settings__slider"
+                            min="0" max="2" step="0.05" value="0.7">
+                        <div class="adv-settings__sub">Creativity (non-deep mode)</div>
+                    </div>
+                    <!-- Temperature Deep -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advTemperatureDeep">
+                            Temperature Deep
+                            <span class="adv-settings__value" id="advTemperatureDeepVal">0.5</span>
+                        </label>
+                        <input type="range" id="advTemperatureDeep" class="adv-settings__slider"
+                            min="0" max="2" step="0.05" value="0.5">
+                        <div class="adv-settings__sub">Creativity (deep-thinking mode)</div>
+                    </div>
+                    <!-- Max Tokens Deep -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advMaxTokensDeep">
+                            Max Tokens (Deep)
+                            <span class="adv-settings__value" id="advMaxTokensDeepVal">4096</span>
+                        </label>
+                        <input type="range" id="advMaxTokensDeep" class="adv-settings__slider"
+                            min="256" max="32768" step="256" value="4096">
+                        <div class="adv-settings__sub">Max output tokens in deep-thinking mode</div>
+                    </div>
+                    <!-- Top-P -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advTopP">
+                            Top-P
+                            <span class="adv-settings__value" id="advTopPVal">default</span>
+                        </label>
+                        <input type="range" id="advTopP" class="adv-settings__slider"
+                            min="0" max="1" step="0.01" value="1">
+                        <div class="adv-settings__sub">Nucleus sampling (1.0 = disabled)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="input-area__wrapper">
+                <!-- Active skill badge -->
+                <div class="active-skill-badge" id="activeSkillBadge" style="display: none;"></div>
+                <!-- Active tools display -->
+                <div class="active-tools" id="activeToolsDisplay"></div>
+
+                <div class="input-area__container">
+                    <!-- File attachments -->
+                    <div class="input-area__files" id="fileList"></div>
+
+                    <div class="input-area__row">
+                        <!-- Tools area -->
+                        <div class="input-area__tools">
+                            <!-- Plus / Tools button -->
+                            <div style="position: relative;">
+                                <button class="input-area__tool-btn" id="toolsMenuBtn" title="Tools">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
+                                <!-- Tools dropdown -->
+                                <div class="tools-dropdown" id="toolsMenuDropdown">
+                                    <div class="tools-dropdown__header">Tools</div>
+
+                                    <!-- Search -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search</div>
+                                        <div class="tools-grid tools-grid--3col">
+                                            <button class="tools-grid__item" id="googleSearchBtn" title="Google Search">
+                                                <span class="tools-grid__icon"><i data-lucide="search" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Web Search</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="serpapiBingBtn" title="Bing Search (SerpAPI)">
+                                                <span class="tools-grid__icon"><i data-lucide="globe" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Bing</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="serpapiBaiduBtn" title="Baidu Search (SerpAPI)">
+                                                <span class="tools-grid__icon"><i data-lucide="search-code" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Baidu</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="githubBtn" title="GitHub">
+                                                <span class="tools-grid__icon"><i data-lucide="github" class="lucide"></i></span>
+                                                <span class="tools-grid__label">GitHub</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="serpapiImagesBtn" title="Google Images Search (SerpAPI)">
+                                                <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Img Search</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Image -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
+                                        <div class="tools-grid tools-grid--3col">
+                                            <button class="tools-grid__item" id="imageGenToolBtn" title="Tß║ío h├¼nh ß║únh">
+                                                <span class="tools-grid__icon"><i data-lucide="sparkles" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Image Gen</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
+                                                <span class="tools-grid__icon"><i data-lucide="scan-eye" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Img2Img</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="googleLensBtn" title="Google Lens ΓÇö Reverse Image (SerpAPI)">
+                                                <span class="tools-grid__icon"><i data-lucide="camera" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Lens</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="saucenaoBtn" title="SauceNAO Reverse Image Search">
+                                                <span class="tools-grid__icon"><i data-lucide="scan-search" class="lucide"></i></span>
+                                                <span class="tools-grid__label">SauceNAO</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reasoning -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="brain" class="lucide lucide-sm"></i> Reasoning</div>
+                                        <div class="tools-grid tools-grid--3col">
+                                            <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research ΓÇö 4-Agent Council">
+                                                <span class="tools-grid__icon"><i data-lucide="telescope" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Deep Research</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Agent -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="bot" class="lucide lucide-sm"></i> Agent</div>
+                                        <div class="tools-grid tools-grid--3col">
+                                            <button class="tools-grid__item" id="last30daysBtn" title="Social Media Research (last30days)">
+                                                <span class="tools-grid__icon"><i data-lucide="bar-chart-3" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Social Research</span>
+                                            </button>
+                                            <button class="tools-grid__item" id="configAgentBtn" title="Config Agent">
+                                                <span class="tools-grid__icon"><i data-lucide="settings" class="lucide"></i></span>
+                                                <span class="tools-grid__label">Config</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="tools-dropdown__divider"></div>
+
+                                    <!-- Utility actions -->
+                                    <div class="tools-dropdown__actions">
+                                        <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files">
+                                            <span class="tools-dropdown__item-icon"><i data-lucide="paperclip" class="lucide"></i></span>
+                                            <div>
+                                                <div class="tools-dropdown__item-text">Upload Files</div>
+                                                <div class="tools-dropdown__item-sub">Attach images, docs, code</div>
+                                            </div>
+                                        </button>
+                                        <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch">
+                                            <span class="tools-dropdown__item-icon"><i data-lucide="git-branch" class="lucide"></i></span>
+                                            <div>
+                                                <div class="tools-dropdown__item-text">Branch conversation</div>
+                                                <div class="tools-dropdown__item-sub">Fork from current point</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,.md,.ts,.tsx,.jsx,.xml,.yaml,.yml,.log,.sql,.sh,.bat,image/*,audio/*,video/*" multiple class="hidden">
+
+                            <!-- Advanced Settings toggle -->
+                            <button class="input-area__tool-btn adv-settings__toggle" id="advSettingsBtn"
+                                title="Advanced model settings" aria-expanded="false" aria-controls="advSettingsPanel">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- File staging area -->
+                        <div id="fileStagingArea" class="file-staging" style="display:none;"></div>
+
+                        <!-- Input length hint (shown when text approaches auto-convert threshold) -->
+                        <div id="messageInputLengthHint" class="message-input-hint" style="display:none;"></div>
+
+                        <!-- Textarea -->
+                        <textarea
+                            id="messageInput"
+                            placeholder="Message AI Assistant..."
+                            data-lang-key="input.placeholder"
+                            rows="1"
+                            class="input-area__textarea"
+                        ></textarea>
+
+                        <!-- Send / Stop -->
+                        <button class="input-area__send" id="sendBtn" title="Send" data-lang-key="input.send">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Context is now unified ΓÇö hidden select for backward compatibility -->
+                    <div class="context-selector" style="display:none;">
+                        <select id="contextSelect">
+                            <option value="casual" selected>≡ƒÆ¼ Universal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-area__footer">
+                    AI Assistant can make mistakes. Verify important information.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Sidebar (Right) -->
+    <div class="mcp-panel" id="mcpSidebar">
+        <div style="padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="mcpEnabledCheck" style="width: 16px; height: 16px; accent-color: var(--accent);">
+                    <label for="mcpEnabledCheck" style="font-weight: 600; font-size: 14px;" data-lang-key="mcp.enable">≡ƒöù MCP Context</label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="mcpStatus" style="font-size: 12px; color: var(--text-tertiary);"><span data-lang-key="mcp.status.disabled">ΓÜ¬ Off</span></span>
+                    <button id="mcpCloseBtn" style="background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 16px;">Γ£ò</button>
+                </div>
+            </div>
+
+            <div class="mcp-source-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="btn btn--sm btn--secondary active" id="mcpTabFolder" data-source="folder" disabled>≡ƒôü Folder</button>
+                <button class="btn btn--sm btn--ghost" id="mcpTabUrl" data-source="url" disabled>≡ƒîÉ URL</button>
+                <button class="btn btn--sm btn--ghost" id="mcpTabUpload" data-source="upload" disabled>≡ƒôñ Upload</button>
+            </div>
+
+            <div id="mcpFolderSource">
+                <button class="btn btn--secondary" id="mcpSelectFolderBtn" style="width: 100%;" disabled>≡ƒôü Select Folder</button>
+                <input type="file" id="mcpFolderInput" webkitdirectory directory multiple class="hidden">
+                <div id="mcpFolderList" class="hidden" style="margin-top: 12px;"></div>
+            </div>
+
+            <div id="mcpUrlSource" class="hidden">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="mcpUrlInput" placeholder="https://example.com/..." class="form-input" style="flex: 1;" disabled>
+                    <button class="btn btn--secondary btn--sm" id="mcpFetchUrlBtn" disabled>≡ƒöì Fetch</button>
+                </div>
+                <div id="mcpUrlList" style="margin-top: 12px;"></div>
+            </div>
+
+            <div id="mcpUploadSource" class="hidden">
+                <button class="btn btn--secondary" id="mcpUploadBtn" style="width: 100%;" disabled>≡ƒôñ Upload Files</button>
+                <input type="file" id="mcpFileUpload" multiple accept="image/*,.pdf,.txt,.md,.py,.js,.json" class="hidden">
+                <div id="mcpUploadList" style="margin-top: 12px;"></div>
+            </div>
+        </div>
+
+        <div id="mcpFileBrowser" style="flex: 1; overflow-y: auto; padding: 0 16px;">
+            <div style="margin-bottom: 12px;">
+                <input type="text" id="mcpFileSearch" placeholder="≡ƒöì Search files..." class="form-input" disabled>
+            </div>
+            <div id="mcpFileList">
+                <div style="text-align: center; padding: 40px 0; color: var(--text-tertiary);">
+                    <p style="font-size: 24px;">≡ƒôé</p>
+                    <p style="font-size: 13px; font-weight: 600; color: var(--accent);">No context loaded</p>
+                    <p style="font-size: 11px;">Enable MCP and select a source</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="mcpSelectedFiles" class="hidden" style="padding: 12px 16px; border-top: 1px solid var(--border-secondary);">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+                ≡ƒôî Selected Context
+                <span class="badge badge--accent" id="selectedFileCount">0</span>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <button class="btn btn--sm btn--secondary" id="mcpOcrBtn" title="OCR selected files" style="flex: 1;">
+                    ≡ƒöÄ OCR qua MCP
+                </button>
+                <button class="btn btn--sm btn--ghost" id="mcpWarmCacheBtn" title="Warm memory cache" style="flex: 1;">
+                    ≡ƒöÑ Warm Cache
+                </button>
+            </div>
+            <div id="selectedFileList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Image Generation V2 Modal ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="imageGenV2Modal">
+    <div class="modal-panel" style="max-width: 720px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title"><i data-lucide="sparkles" class="lucide"></i> AI Image Generation V2</h2>
+            <button class="modal-panel__close" onclick="window.imageGenV2?.closeModal()">&times;</button>
+        </div>
+        <div class="modal-panel__body" style="padding: 0;">
+            <div id="igv2Status" style="padding: 8px 24px; font-size: 13px; color: var(--text-tertiary);">
+                Ready ΓÇö 8 providers available
+            </div>
+            <div class="igv2-tabs" style="display: flex; gap: 4px; padding: 0 24px 12px;">
+                <button class="btn btn--sm btn--primary igv2-tab-btn active" data-tab="generate" onclick="window.imageGenV2?.switchTab('generate')">Γ£¿ Generate</button>
+                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="edit" onclick="window.imageGenV2?.switchTab('edit')">Γ£Å∩╕Å Edit</button>
+                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="gallery" onclick="window.imageGenV2?.switchTab('gallery'); window.imageGenV2?.loadGallery()">≡ƒû╝∩╕Å Gallery</button>
+                <button class="btn btn--sm btn--ghost igv2-tab-btn" data-tab="stats" onclick="window.imageGenV2?.switchTab('stats'); window.imageGenV2?.loadStats()">≡ƒôè Stats</button>
+            </div>
+
+            <!-- Generate Tab -->
+            <div class="igv2-tab-panel" id="igv2-generate" style="display: block; padding: 0 24px 24px;">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒô¥ Prompt</label>
+                    <textarea id="igv2Prompt" class="form-input" rows="3" style="resize: vertical;" placeholder="M├┤ tß║ú ß║únh bß║ín muß╗æn..."></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒÄ¿ Style</label>
+                    <select id="igv2Style" class="form-select" style="width: 100%;"><option value="">None (auto)</option></select>
+                    <div id="igv2StyleGrid" style="margin-top: 8px;"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label class="form-label">ΓÜí Quality</label>
+                        <select id="igv2Quality" class="form-select" style="width: 100%;">
+                            <option value="auto">≡ƒñû Auto</option>
+                            <option value="quality">≡ƒÆÄ Quality</option>
+                            <option value="fast">ΓÜí Fast</option>
+                            <option value="cheap">≡ƒÆ░ Cheap</option>
+                            <option value="free">≡ƒåô Free (Local)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">≡ƒöº Provider</label>
+                        <select id="igv2Provider" class="form-select" style="width: 100%;"><option value="">≡ƒñû Auto</option></select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label class="form-label">≡ƒôÉ Width</label>
+                        <select id="igv2Width" class="form-select" style="width: 100%;">
+                            <option value="512">512</option><option value="768">768</option>
+                            <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">≡ƒôÉ Height</label>
+                        <select id="igv2Height" class="form-select" style="width: 100%;">
+                            <option value="512">512</option><option value="768">768</option>
+                            <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">≡ƒöó Steps</label>
+                        <input id="igv2Steps" class="form-input" type="number" value="28" min="1" max="100">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label class="form-label">≡ƒÄ» Guidance</label>
+                        <input id="igv2Guidance" class="form-input" type="number" value="3.5" min="1" max="20" step="0.5">
+                    </div>
+                    <div style="display: flex; align-items: flex-end; padding-bottom: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-secondary);">
+                            <input type="checkbox" id="igv2Enhance" checked style="accent-color: var(--accent);">
+                            ≡ƒñû AI Enhance Prompt
+                        </label>
+                    </div>
+                </div>
+                <button id="igv2GenerateBtn" class="btn btn--primary btn--lg" style="width: 100%;" onclick="window.imageGenV2?.generate()">≡ƒÄ¿ Generate Image</button>
+                <div id="igv2Result" style="margin-top: 16px;"></div>
+            </div>
+
+            <!-- Edit Tab -->
+            <div class="igv2-tab-panel" id="igv2-edit" style="display: none; padding: 0 24px 24px;">
+                <p style="color: var(--text-tertiary); font-size: 13px; margin-bottom: 12px;">Γ£Å∩╕Å Edit generated images ΓÇö describe changes you want.</p>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Γ£Å∩╕Å Edit Instruction</label>
+                    <textarea id="igv2EditPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="VD: th├¬m cß║ºu vß╗ông, ─æß╗òi nß╗ün..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label class="form-label">≡ƒÆ¬ Edit Strength</label>
+                        <input id="igv2EditStrength" class="form-input" type="number" value="0.75" min="0.1" max="1.0" step="0.05">
+                    </div>
+                    <div>
+                        <label class="form-label">≡ƒöº Provider</label>
+                        <select id="igv2EditProvider" class="form-select" style="width: 100%;"><option value="">≡ƒñû Auto</option></select>
+                    </div>
+                </div>
+                <button id="igv2EditBtn" class="btn btn--primary btn--lg" style="width: 100%; background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: transparent;" onclick="window.imageGenV2?.editImage()">Γ£Å∩╕Å Edit Image</button>
+                <div id="igv2EditResult" style="margin-top: 16px;"></div>
+            </div>
+
+            <!-- Gallery Tab -->
+            <div class="igv2-tab-panel" id="igv2-gallery" style="display: none; padding: 0 24px 24px;">
+                <div id="igv2Gallery" class="gallery-grid" style="padding: 0;"></div>
+            </div>
+
+            <!-- Stats Tab -->
+            <div class="igv2-tab-panel" id="igv2-stats" style="display: none; padding: 0 24px 24px;">
+                <div id="igv2Stats"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Image Gen V1 Modal (ComfyUI) ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="imageGenModal">
+    <div class="modal-panel" style="max-width: 800px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title" data-lang-key="imageGen.title"><i data-lucide="palette" class="lucide"></i> Image Generation (ComfyUI)</h2>
+            <button class="modal-panel__close" onclick="closeImageModal()">&times;</button>
+        </div>
+        <div class="modal-panel__body">
+            <div id="sdStatus" style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--bg-tertiary); font-size: 13px; margin-bottom: 16px;">
+                Checking Stable Diffusion...
+            </div>
+
+            <!-- Style selector -->
+            <div style="margin-bottom: 16px;">
+                <label class="form-label">≡ƒÄ¿ Quick Style</label>
+                <div class="style-buttons" id="styleButtons" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                    <button class="btn btn--sm btn--primary style-btn active" onclick="selectStyle('anime_xl')" data-style="anime_xl">Anime XL</button>
+                    <button class="btn btn--sm btn--secondary style-btn" onclick="selectStyle('realistic_xl')" data-style="realistic_xl">Realistic</button>
+                    <button class="btn btn--sm btn--secondary style-btn" onclick="selectStyle('realistic_juggernaut')" data-style="realistic_juggernaut">Real Pro</button>
+                    <button class="btn btn--sm btn--secondary style-btn" onclick="selectStyle('anime_counterfeit')" data-style="anime_counterfeit">Classic</button>
+                </div>
+                <p id="styleDescription" style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">High quality anime art (SDXL)</p>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;">
+                <button class="btn btn--sm btn--primary tab-btn active" onclick="switchImageGenTab('text2img')" data-lang-key="imageGen.tab.text2img">Γ£ì∩╕Å Text2Img</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('img2img')" data-lang-key="imageGen.tab.img2img">≡ƒû╝∩╕Å Img2Img</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('inpaint')">≡ƒÄ¡ Inpaint</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('controlnet')">≡ƒò╣∩╕Å ControlNet</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('upscale')">≡ƒöì Upscale</button>
+                <button class="btn btn--sm btn--ghost tab-btn" onclick="switchImageGenTab('batch')">≡ƒÄ▓ Batch</button>
+            </div>
+
+            <!-- Model -->
+            <div style="margin-bottom: 16px;">
+                <label class="form-label" data-lang-key="imageGen.model">Model Checkpoint</label>
+                <select id="modelCheckpoint" class="form-select" style="width: 100%;"><option value="">Loading...</option></select>
+            </div>
+
+            <!-- Text2Img -->
+            <div id="text2imgTab" class="tab-content">
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label" data-lang-key="imageGen.prompt">Prompt</label>
+                    <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+                        <button onclick="randomPrompt()" class="btn btn--sm btn--ghost" data-lang-key="imageGen.random">≡ƒÄ▓ Random</button>
+                        <button onclick="showPromptHistory()" class="btn btn--sm btn--ghost">≡ƒô£ History</button>
+                    </div>
+                    <textarea id="imagePrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="1girl, beautiful, cherry blossoms, masterpiece" list="promptHistoryList"></textarea>
+                    <div id="promptHistoryDropdown" style="display: none; position: absolute; z-index: 10; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); max-height: 150px; overflow-y: auto; width: 100%; box-shadow: var(--shadow-lg);"></div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label" data-lang-key="imageGen.negativePrompt">Negative Prompt</label>
+                    <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+                        <button onclick="randomNegativePrompt()" class="btn btn--sm btn--ghost" data-lang-key="imageGen.random">≡ƒÄ▓ Random</button>
+                        <select id="negativePresetSelect" class="form-select" style="flex: 1; font-size: 12px;" onchange="applyNegativePreset(this.value)">
+                            <option value="">≡ƒôï Preset...</option>
+                        </select>
+                    </div>
+                    <textarea id="negativePrompt" class="form-input" rows="2" style="resize: vertical;" placeholder="bad quality, blurry"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label" data-lang-key="imageGen.width">Width</label>
+                        <select id="imageWidth" class="form-select" style="width: 100%;">
+                            <option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option>
+                            <option value="1280">1280</option><option value="1440">1440</option><option value="1920">1920</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" data-lang-key="imageGen.height">Height</label>
+                        <select id="imageHeight" class="form-select" style="width: 100%;">
+                            <option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option>
+                            <option value="1280">1280</option><option value="1440">1440</option><option value="1920">1920</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label"><span data-lang-key="imageGen.steps">Steps</span></label>
+                        <input type="number" id="imageSteps" class="form-input" value="20" min="1" max="150">
+                    </div>
+                    <div>
+                        <label class="form-label"><span data-lang-key="imageGen.cfgScale">CFG Scale</span></label>
+                        <input type="number" id="cfgScale" class="form-input" value="7" min="1" max="30" step="0.5">
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label" data-lang-key="imageGen.sampler">Sampler</label>
+                    <select id="samplerSelect" class="form-select" style="width: 100%;">
+                        <option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option>
+                        <option value="Euler a">Euler a</option><option value="Euler">Euler</option>
+                        <option value="DDIM">DDIM</option><option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                        <input type="checkbox" id="restoreFaces" style="accent-color: var(--accent);"> <span data-lang-key="imageGen.restoreFaces">Restore Faces</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                        <input type="checkbox" id="enableHR" style="accent-color: var(--accent);"> <span data-lang-key="imageGen.hiresfix">Hires Fix</span>
+                    </label>
+                </div>
+                <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
+                    <label class="form-label" data-lang-key="imageGen.lora">≡ƒÄ¿ LoRA Models (Optional)</label>
+                    <div id="loraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        <button type="button" id="addLoraBtn" class="btn btn--sm btn--ghost" onclick="addLoraSelection()" data-lang-key="imageGen.addLora">Γ₧ò Add Lora</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒöº VAE</label>
+                    <select id="vaeSelect" class="form-select" style="width: 100%;"><option value="">Automatic</option></select>
+                </div>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImageBtn" onclick="generateImage()">≡ƒÄ¿ Generate</button>
+            </div>
+
+            <!-- Img2Img -->
+            <div id="img2imgTab" class="tab-content" style="display: none;">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒôñ Source Image</label>
+                    <div id="uploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 40px; text-align: center; cursor: pointer; transition: all var(--transition);" onclick="document.getElementById('sourceImage').click()">
+                        <div id="uploadPlaceholder">
+                            <span style="font-size: 40px;">≡ƒô╖</span>
+                            <p style="margin-top: 8px; color: var(--text-tertiary);">Click or drag & drop</p>
+                        </div>
+                        <img id="sourceImagePreview" style="display: none; max-width: 100%; max-height: 250px; border-radius: var(--radius-sm);">
+                    </div>
+                    <input type="file" id="sourceImage" accept="image/*" class="hidden" onchange="handleSourceImageUpload(event)">
+                </div>
+                <div id="featureExtractionSection" style="display: none; margin-bottom: 16px;">
+                    <button class="btn btn--secondary" onclick="extractFeatures()" style="width: 100%; margin-bottom: 12px;">≡ƒö¼ Extract Features</button>
+                    <div id="extractedTags" style="display: none;">
+                        <div id="tagsList" style="max-height: 300px; overflow-y: auto;"></div>
+                        <button id="autoGeneratePromptBtn" class="btn btn--primary" onclick="autoGeneratePromptFromTags()" style="display: none; width: 100%; margin-top: 12px;">≡ƒñû Auto-generate prompt</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Prompt</label>
+                    <textarea id="img2imgPrompt" class="form-input" rows="2" style="resize: vertical;"></textarea>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Negative Prompt</label>
+                    <textarea id="img2imgNegativePrompt" class="form-input" rows="2" style="resize: vertical;"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Width</label>
+                        <select id="img2imgWidth" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768" selected>768</option><option value="1024">1024</option></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Height</label>
+                        <select id="img2imgHeight" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768" selected>768</option><option value="1024">1024</option></select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Denoising</label>
+                        <input type="number" id="denoisingStrength" class="form-input" value="0.6" min="0" max="1" step="0.05">
+                    </div>
+                    <div>
+                        <label class="form-label">Steps</label>
+                        <input type="number" id="img2imgSteps" class="form-input" value="30" min="1" max="150">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">CFG Scale</label>
+                        <input type="number" id="img2imgCfgScale" class="form-input" value="7" min="1" max="30" step="0.5">
+                    </div>
+                    <div>
+                        <label class="form-label">Sampler</label>
+                        <select id="img2imgSampler" class="form-select" style="width: 100%;"><option value="DPM++ 2M Karras" selected>DPM++ 2M Karras</option><option value="Euler a">Euler a</option></select>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Feature Weight (%)</label>
+                    <input type="number" id="featureWeight" class="form-input" value="80" min="0" max="100" step="5">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Seed</label>
+                    <input type="number" id="img2imgSeed" class="form-input" value="-1">
+                </div>
+                <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border-secondary);">
+                    <label class="form-label">≡ƒÄ¿ LoRA</label>
+                    <div id="img2imgLoraSelectionContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        <button type="button" class="btn btn--sm btn--ghost" onclick="addImg2imgLoraSelection()">Γ₧ò Add Lora</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒöº VAE</label>
+                    <select id="img2imgVaeSelect" class="form-select" style="width: 100%;"><option value="">Automatic</option></select>
+                </div>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="generateImg2ImgBtn" onclick="generateImg2Img()" disabled>≡ƒÄ¿ Generate from image</button>
+            </div>
+
+            <!-- Inpaint Tab -->
+            <div id="inpaintTab" class="tab-content" style="display: none;">
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒÄ¡ Edit specific areas of an image. Paint white over areas to regenerate.</p>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒôñ Source Image</label>
+                    <div id="inpaintUploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('inpaintSourceInput').click()">
+                        <span style="font-size: 32px;">≡ƒû╝∩╕Å</span>
+                        <p style="margin-top: 6px; color: var(--text-tertiary); font-size: 13px;">Upload image to inpaint</p>
+                    </div>
+                    <input type="file" id="inpaintSourceInput" accept="image/*" class="hidden" onchange="handleInpaintSourceUpload(event)">
+                    <img id="inpaintPreview" style="display: none; max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 8px;">
+                </div>
+                <div id="inpaintCanvasWrapper" style="display: none; margin-bottom: 16px;">
+                    <label class="form-label">≡ƒûî∩╕Å Paint Mask <span style="font-size:11px; color: var(--text-tertiary);">(white = edit area)</span></label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button class="btn btn--sm btn--ghost" onclick="clearInpaintMask()">≡ƒùæ∩╕Å Clear</button>
+                        <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;">Brush:
+                            <input type="range" id="inpaintBrushSize" min="5" max="80" value="30" style="width: 80px;">
+                        </label>
+                    </div>
+                    <canvas id="inpaintCanvas" style="border: 1px solid var(--border-primary); border-radius: var(--radius-sm); cursor: crosshair; max-width: 100%;"></canvas>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Prompt (what to paint in masked area)</label>
+                    <textarea id="inpaintPrompt" class="form-input" rows="2" placeholder="beautiful flowers, detailed"></textarea>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Negative Prompt</label>
+                    <textarea id="inpaintNegativePrompt" class="form-input" rows="1" placeholder="bad quality, blurry"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Denoising</label>
+                        <input type="number" id="inpaintDenoising" class="form-input" value="0.75" min="0" max="1" step="0.05">
+                    </div>
+                    <div>
+                        <label class="form-label">Steps</label>
+                        <input type="number" id="inpaintSteps" class="form-input" value="30" min="1" max="150">
+                    </div>
+                </div>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="inpaintBtn" onclick="generateInpaint()" disabled>≡ƒÄ¡ Inpaint</button>
+            </div>
+
+            <!-- ControlNet Tab -->
+            <div id="controlnetTab" class="tab-content" style="display: none;">
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒò╣∩╕Å Guide image generation with a control image (pose, edges, depth map).</p>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒôñ Control Image</label>
+                    <div id="controlnetUploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('controlnetSourceInput').click()">
+                        <span style="font-size: 32px;">≡ƒò╣∩╕Å</span>
+                        <p style="margin-top: 6px; color: var(--text-tertiary); font-size: 13px;">Upload control image</p>
+                    </div>
+                    <input type="file" id="controlnetSourceInput" accept="image/*" class="hidden" onchange="handleControlnetSourceUpload(event)">
+                    <img id="controlnetPreview" style="display: none; max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 8px;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">ControlNet Type</label>
+                    <select id="controlnetType" class="form-select" style="width: 100%;">
+                        <option value="canny">Canny Edge</option>
+                        <option value="depth">Depth Map</option>
+                        <option value="openpose">OpenPose</option>
+                        <option value="mlsd">MLSD (Lines)</option>
+                        <option value="scribble">Scribble</option>
+                        <option value="lineart">LineArt</option>
+                        <option value="normal">Normal Map</option>
+                        <option value="seg">Segmentation</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Prompt</label>
+                    <textarea id="controlnetPrompt" class="form-input" rows="2" placeholder="beautiful scene, highly detailed"></textarea>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Negative Prompt</label>
+                    <textarea id="controlnetNegativePrompt" class="form-input" rows="1" placeholder="bad quality, blurry"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Control Weight</label>
+                        <input type="number" id="controlnetWeight" class="form-input" value="1.0" min="0" max="2" step="0.1">
+                    </div>
+                    <div>
+                        <label class="form-label">Steps</label>
+                        <input type="number" id="controlnetSteps" class="form-input" value="30" min="1" max="150">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Width</label>
+                        <select id="controlnetWidth" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Height</label>
+                        <select id="controlnetHeight" class="form-select" style="width: 100%;"><option value="512" selected>512</option><option value="768">768</option><option value="1024">1024</option></select>
+                    </div>
+                </div>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="controlnetBtn" onclick="generateControlNet()" disabled>≡ƒò╣∩╕Å Generate with ControlNet</button>
+            </div>
+
+            <!-- Upscale Tab -->
+            <div id="upscaleTab" class="tab-content" style="display: none;">
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒöì Upscale images to higher resolution with AI enhancement.</p>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒôñ Image to Upscale</label>
+                    <div id="upscaleUploadArea" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('upscaleSourceInput').click()">
+                        <span style="font-size: 32px;">≡ƒöì</span>
+                        <p style="margin-top: 6px; color: var(--text-tertiary); font-size: 13px;">Upload image to upscale</p>
+                    </div>
+                    <input type="file" id="upscaleSourceInput" accept="image/*" class="hidden" onchange="handleUpscaleSourceUpload(event)">
+                    <img id="upscalePreview" style="display: none; max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 8px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Upscaler</label>
+                        <select id="upscalerSelect" class="form-select" style="width: 100%;">
+                            <option value="R-ESRGAN 4x+">R-ESRGAN 4x+</option>
+                            <option value="R-ESRGAN 4x+ Anime6B">R-ESRGAN 4x+ Anime6B</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Scale Factor</label>
+                        <select id="upscaleFactor" class="form-select" style="width: 100%;">
+                            <option value="2">2x</option>
+                            <option value="4" selected>4x</option>
+                        </select>
+                    </div>
+                </div>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; margin-bottom: 16px;">
+                    <input type="checkbox" id="upscaleRestoreFaces" style="accent-color: var(--accent);"> Restore Faces (CodeFormer)
+                </label>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="upscaleBtn" onclick="generateUpscale()" disabled>≡ƒöì Upscale</button>
+            </div>
+
+            <!-- Batch Tab -->
+            <div id="batchTab" class="tab-content" style="display: none;">
+                <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 12px;">≡ƒÄ▓ Generate multiple variations with different seeds.</p>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Prompt</label>
+                    <textarea id="batchPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="1girl, beautiful, cherry blossoms, masterpiece"></textarea>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label">Negative Prompt</label>
+                    <textarea id="batchNegativePrompt" class="form-input" rows="2" style="resize: vertical;" placeholder="bad quality, blurry"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Count</label>
+                        <select id="batchCount" class="form-select" style="width: 100%;">
+                            <option value="2">2</option>
+                            <option value="4" selected>4</option>
+                            <option value="6">6</option>
+                            <option value="8">8</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Width</label>
+                        <select id="batchWidth" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768">768</option><option value="1024" selected>1024</option></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Height</label>
+                        <select id="batchHeight" class="form-select" style="width: 100%;"><option value="512">512</option><option value="768">768</option><option value="1024" selected>1024</option></select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label">Steps</label>
+                        <input type="number" id="batchSteps" class="form-input" value="20" min="1" max="150">
+                    </div>
+                    <div>
+                        <label class="form-label">CFG Scale</label>
+                        <input type="number" id="batchCfgScale" class="form-input" value="7" min="1" max="30" step="0.5">
+                    </div>
+                </div>
+                <button class="btn btn--primary btn--lg" style="width: 100%;" id="batchBtn" onclick="generateBatch()">≡ƒÄ▓ Generate Variations</button>
+                <div id="batchResults" style="display: none; margin-top: 16px;">
+                    <label class="form-label">Results</label>
+                    <div id="batchGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generated image overlay -->
+    <div id="generatedImageContainer" data-action="overlay:close">
+        <div data-action-stop style="position: relative; max-width: 90%; max-height: 90%;">
+            <button style="position: absolute; top: -12px; right: -12px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-primary); cursor: pointer; font-size: 16px;" data-action="overlay:close-btn">&times;</button>
+            <img id="generatedImage" style="max-width: 100%; max-height: 80vh; border-radius: var(--radius-md);" alt="Generated">
+            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
+                <button class="btn btn--primary btn--sm" data-action="overlay:share">≡ƒöù Share</button>
+                <button class="btn btn--secondary btn--sm" data-action="overlay:download">≡ƒôÑ Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Video Generation Modal (Sora 2) ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="videoGenModal">
+    <div class="modal-panel" style="max-width: 680px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title"><i data-lucide="video" class="lucide"></i> Video Generation ΓÇö Sora 2</h2>
+            <button class="modal-panel__close" onclick="window.videoGen?.closeModal()">&times;</button>
+        </div>
+        <div class="modal-panel__body" style="padding: 0;">
+            <div id="vgStatus" style="padding: 8px 24px; font-size: 13px; color: var(--text-tertiary);">Ready</div>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 4px; padding: 0 24px 12px;">
+                <button class="btn btn--sm btn--primary vg-tab-btn active" data-tab="generate" onclick="window.videoGen?.switchTab('generate')">≡ƒÄ¼ Generate</button>
+                <button class="btn btn--sm btn--ghost vg-tab-btn" data-tab="jobs" onclick="window.videoGen?.switchTab('jobs'); window.videoGen?.loadJobs()">≡ƒôï Jobs</button>
+            </div>
+
+            <!-- ΓòÉΓòÉΓòÉ Generate Tab ΓòÉΓòÉΓòÉ -->
+            <div class="vg-tab-panel" id="vg-generate" style="display: block; padding: 0 24px 24px;">
+                <!-- Mode Toggle: Text-to-Video / Image-to-Video -->
+                <div style="display: flex; gap: 4px; margin-bottom: 16px; padding: 4px; background: var(--bg-tertiary); border-radius: var(--radius-sm);">
+                    <button class="btn btn--sm btn--primary vg-mode-btn" data-mode="text" onclick="window.videoGen?.switchMode('text')" style="flex: 1;">≡ƒô¥ Text to Video</button>
+                    <button class="btn btn--sm btn--ghost vg-mode-btn" data-mode="image" onclick="window.videoGen?.switchMode('image')" style="flex: 1;">≡ƒû╝∩╕Å Image to Video</button>
+                </div>
+
+                <!-- ΓöÇΓöÇ Image Upload Zone (hidden by default, max 5 images) ΓöÇΓöÇ -->
+                <div id="vgImageUploadZone" style="display: none; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-label" style="margin: 0;">≡ƒû╝∩╕Å Reference Images</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="vgImageCounter" style="font-size: 12px; color: var(--text-tertiary);">0/5 images</span>
+                            <button class="btn btn--sm btn--ghost" onclick="window.videoGen?.clearAllImages()" style="font-size: 11px; padding: 2px 8px;">Clear All</button>
+                        </div>
+                    </div>
+                    <div id="vgDropZone" style="border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg-tertiary); min-height: 80px;"
+                         onclick="document.getElementById('vgImageInput').click()">
+                        <div id="vgDropContent">
+                            <div style="font-size: 28px; margin-bottom: 6px;">≡ƒôñ</div>
+                            <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Drop images here or click to browse</div>
+                            <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px;">PNG, JPG, WebP ΓÇö Max 20 MB each ΓÇö Up to 5 images</div>
+                        </div>
+                    </div>
+                    <!-- Image preview grid -->
+                    <div id="vgImageGrid" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px;"></div>
+                    <input type="file" id="vgImageInput" accept="image/png,image/jpeg,image/webp" multiple style="display: none;" onchange="window.videoGen?.handleImageSelect(this)">
+                </div>
+
+                <!-- Prompt -->
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒô¥ Prompt</label>
+                    <textarea id="vgPrompt" class="form-input" rows="3" style="resize: vertical;" placeholder="Describe the video you want to create..."></textarea>
+                </div>
+
+                <!-- Settings Grid -->
+                <div class="vg-settings-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label class="form-label">≡ƒôÉ Aspect Ratio</label>
+                        <select id="vgResolution" class="form-select" style="width: 100%;">
+                            <option value="1280x720" selected>16:9 Landscape</option>
+                            <option value="720x1280">9:16 Portrait</option>
+                            <option value="1080x1920">1:1 Square</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">ΓÅ▒∩╕Å Duration</label>
+                        <select id="vgDuration" class="form-select" style="width: 100%;">
+                            <option value="4">4 seconds</option>
+                            <option value="8" selected>8 seconds</option>
+                            <!-- <option value="12">12 seconds</option> -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">≡ƒñû Model</label>
+                        <select id="vgModel" class="form-select" style="width: 100%;">
+                            <option value="sora-2" selected>Sora 2 ($0.10/s)</option>
+                            <!-- <option value="sora-2-pro">Sora 2 Pro ($0.30/s)</option> -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cost Estimate -->
+                <div id="vgCostEstimate" style="margin-bottom: 16px; padding: 8px 12px; background: var(--bg-tertiary); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary);">
+                    ≡ƒÆ░ Estimated cost: <strong>$0.80</strong> (8s ├ù $0.10/s)
+                </div>
+
+                <!-- Generate Button -->
+                <button id="vgGenerateBtn" class="btn btn--primary btn--lg" style="width: 100%;" onclick="window.videoGen?.generate()">≡ƒÄ¼ Generate Video</button>
+
+                <!-- Active Job Progress -->
+                <div id="vgProgress" style="display: none; margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-primary);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 600; font-size: 14px;">≡ƒÄÑ <span id="vgProgressLabel">Generating...</span></span>
+                        <span id="vgProgressPct" style="font-size: 13px; color: var(--accent);"></span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;">
+                        <div id="vgProgressBar" style="height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div id="vgProgressMeta" style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary);"></div>
+                </div>
+
+                <!-- Cancel / Stop Button -->
+                <button id="vgCancelBtn" class="btn btn--lg" style="display: none; width: 100%; margin-top: 10px; background: var(--error, #ef4444); color: white; border: none; font-weight: 600;" onclick="window.videoGen?.cancelJob()">Γ¢ö Stop / Cancel Job</button>
+
+                <!-- Result -->
+                <div id="vgResult" style="display: none; margin-top: 16px;">
+                    <video id="vgVideo" controls style="width: 100%; border-radius: var(--radius-md); background: #000;"></video>
+                    <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
+                        <button class="btn btn--primary btn--sm" onclick="window.videoGen?.downloadCurrent()">≡ƒôÑ Download (Full Quality)</button>
+                        <button class="btn btn--secondary btn--sm" onclick="window.videoGen?.generateAnother()">≡ƒöä New Video</button>
+                    </div>
+                    <div id="vgResultMeta" style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary); text-align: center;"></div>
+                </div>
+            </div>
+
+            <!-- ΓòÉΓòÉΓòÉ Jobs Tab ΓòÉΓòÉΓòÉ -->
+            <div class="vg-tab-panel" id="vg-jobs" style="display: none; padding: 0 24px 24px;">
+                <div id="vgJobsList" class="vg-jobs-list">
+                    <p style="color: var(--text-tertiary); text-align: center; padding: 24px;">Loading jobs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Image Preview (DiscordΓÇæstyle) ΓòÉΓòÉΓòÉ -->
+<div class="image-preview-overlay" id="imagePreviewModal">
+    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
+        <button class="btn btn--secondary btn--sm" data-action="preview:download">≡ƒôÑ</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:zoom" data-zoom-delta="-0.2">≡ƒöì-</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:zoom" data-zoom-delta="0.2">≡ƒöì+</button>
+        <button class="btn btn--secondary btn--sm" data-action="preview:reset-zoom">Γƒ▓</button>
+    </div>
+    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" data-action="preview:close">&times;</span>
+    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%; border-radius: var(--radius-md);">
+    <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Edit History Modal ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="historyModal">
+    <div class="modal-panel" style="max-width: 700px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title" data-lang-key="history.title"><i data-lucide="history" class="lucide"></i> Edit History</h2>
+            <button class="modal-panel__close" data-action="modal:close-history">&times;</button>
+        </div>
+        <div class="modal-panel__body">
+            <div id="historyContent" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Gallery Modal ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="galleryModal">
+    <div class="modal-panel" style="max-width: 900px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title">≡ƒû╝∩╕Å Image Gallery</h2>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn--sm btn--ghost" data-action="gallery:refresh">≡ƒöä</button>
+                <button class="modal-panel__close" data-action="gallery:close">&times;</button>
+            </div>
+        </div>
+        <div id="galleryStats" style="padding: 12px 24px; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-secondary);">Loading...</div>
+        <div id="galleryGrid" class="gallery-grid" style="max-height: 65vh; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Gallery Image Info Modal ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="galleryInfoModal">
+    <div class="modal-panel gallery-info-modal">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title">Γä╣∩╕Å Image Information</h2>
+            <button class="modal-panel__close" data-action="gallery:close-info">&times;</button>
+        </div>
+        <div class="modal-panel__body gallery-info-modal__body" id="galleryInfoBody">
+            Loading...
+        </div>
+    </div>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Config Agent Modal ΓòÉΓòÉΓòÉ -->
+<div class="modal-overlay" id="configAgentModal">
+    <div class="modal-panel" style="max-width: 640px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title"><i data-lucide="settings-2" class="lucide"></i> Config Agent</h2>
+            <button class="modal-panel__close" data-action="config:close">&times;</button>
+        </div>
+        <div class="modal-panel__body">
+            <!-- Enable toggle -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); margin-bottom: 20px;">
+                <div>
+                    <div style="font-weight: 600; font-size: 14px;">≡ƒöÑ Enable Config Agent</div>
+                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">Use custom config instead of defaults</div>
+                </div>
+                <label style="position: relative; display: inline-flex; cursor: pointer;">
+                    <input type="checkbox" id="configAgentEnabled" data-action="config:toggle" style="width: 44px; height: 24px; accent-color: var(--accent);">
+                </label>
+            </div>
+
+            <div id="configAgentFields" style="opacity: 0.5; pointer-events: none; transition: all 0.2s;">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒºá System Prompt</label>
+                    <textarea id="configSystemPrompt" class="form-input" rows="3" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="You are an expert..."></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒÆë Injection Prompt</label>
+                    <textarea id="configInjectionPrompt" class="form-input" rows="2" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="Always respond in..."></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒôÜ Context Prompt</label>
+                    <textarea id="configContextPrompt" class="form-input" rows="2" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="Project uses Python..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label class="form-label">≡ƒîí∩╕Å Temperature <span id="tempValue" style="color: var(--accent);">0.7</span></label>
+                        <input type="range" id="configTemperature" min="0" max="2" step="0.1" value="0.7" style="width: 100%; accent-color: var(--accent);" data-mirror-to="tempValue">
+                    </div>
+                    <div>
+                        <label class="form-label">≡ƒÄ» Top-P <span id="topPValue" style="color: var(--accent);">0.9</span></label>
+                        <input type="range" id="configTopP" min="0.1" max="1" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent);" data-mirror-to="topPValue">
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">≡ƒô¥ Token Limit <span id="tokenLimitValue" style="color: var(--accent);">4096</span></label>
+                    <input type="range" id="configTokenLimit" min="500" max="65535" step="500" value="4096" style="width: 100%; accent-color: var(--accent);" data-mirror-to="tokenLimitValue">
+                </div>
+                <div style="margin-bottom: 16px; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); border: 1px solid rgba(124,108,240,0.2);">
+                    <label class="form-label">≡ƒº¬ Thinking Budget</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
+                            <input type="radio" name="thinkingBudget" value="off" checked class="sr-only">
+                            <span style="font-size: 20px;">ΓÜí</span>
+                            <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">Off</span>
+                        </label>
+                        <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
+                            <input type="radio" name="thinkingBudget" value="on" class="sr-only">
+                            <span style="font-size: 20px;">≡ƒö«</span>
+                            <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">On</span>
+                        </label>
+                        <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
+                            <input type="radio" name="thinkingBudget" value="advanced" class="sr-only">
+                            <span style="font-size: 20px;">≡ƒÜÇ</span>
+                            <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">Advanced</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-panel__footer">
+            <button data-action="config:reset" class="btn btn--ghost">≡ƒöä Reset</button>
+            <button data-action="config:save" class="btn btn--primary">≡ƒÆ╛ Save Config</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden elements for backward compat -->
+<div class="hidden">
+    <button id="clearBtn"></button>
+</div>
+
+<!-- ΓòÉΓòÉΓòÉ Scripts ΓòÉΓòÉΓòÉ -->
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mcp.js') }}"></script>
+
+<script>
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // MODEL SELECTOR (dropdown)
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    (function() {
+        const btn = document.getElementById('modelSelectorBtn');
+        const dropdown = document.getElementById('modelDropdown');
+        const label = document.getElementById('modelSelectorLabel');
+        const hiddenSelect = document.getElementById('modelSelect');
+        const items = dropdown.querySelectorAll('.model-dropdown__item');
+
+        const modelLabels = {
+            'grok': 'Grok-3',
+            'deepseek-reasoner': 'DeepSeek R1',
+            'openai': 'GPT-4o-mini',
+            'deepseek': 'DeepSeek Chat',
+            'gemini': 'Gemini 2.0 Flash',
+            'step-flash': 'Step-3.5 Flash',
+            'bloomvn': 'BloomVN-8B',
+            'qwen': 'Qwen Turbo',
+            'stepfun': 'StepFun Direct'
+        };
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+            btn.classList.toggle('open');
+        });
+
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+            btn.classList.remove('open');
+        });
+
+        items.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const model = item.dataset.model;
+                items.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                label.textContent = modelLabels[model] || model;
+                hiddenSelect.value = model;
+                hiddenSelect.dispatchEvent(new Event('change'));
+                dropdown.classList.remove('open');
+                btn.classList.remove('open');
+            });
+        });
+    })();
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // THINKING MODE
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    const _savedMode = localStorage.getItem('thinkingMode');
+    let currentThinkingMode = (_savedMode === 'instant' || _savedMode === 'multi-thinking') ? _savedMode : 'multi-thinking';
+
+    function initThinkingMode() {
+        const btn = document.getElementById('thinkingModeBtn');
+        const dropdown = document.getElementById('thinkingModeDropdown');
+        const options = document.querySelectorAll('.thinking-mode-option');
+
+        if (!btn || !dropdown) return;
+
+        // Toggle dropdown on click/tap
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const isOpen = !dropdown.classList.contains('hidden');
+            // Close all other dropdowns first
+            document.querySelectorAll('.model-dropdown.open, .tools-dropdown.open, .topbar__more-dropdown:not(.hidden)').forEach(d => {
+                if (d !== dropdown) { d.classList.add('hidden'); d.classList.remove('open'); }
+            });
+            if (isOpen) {
+                dropdown.classList.add('hidden');
+                dropdown.classList.remove('open');
+            } else {
+                dropdown.classList.remove('hidden');
+                dropdown.classList.add('open');
+            }
+        });
+
+        // Close on outside click/tap
+        document.addEventListener('click', (e) => {
+            if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                dropdown.classList.remove('open');
+            }
+        });
+
+        options.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                selectThinkingMode(option.dataset.mode, option.dataset.icon, option.dataset.label);
+                dropdown.classList.add('hidden');
+                dropdown.classList.remove('open');
+            });
+        });
+
+        const saved = document.querySelector(`.thinking-mode-option[data-mode="${currentThinkingMode}"]`);
+        if (saved) selectThinkingMode(currentThinkingMode, saved.dataset.icon, saved.dataset.label);
+    }
+
+    function selectThinkingMode(mode, icon, label) {
+        currentThinkingMode = mode;
+        localStorage.setItem('thinkingMode', mode);
+        const iconEl = document.getElementById('thinkingModeIcon');
+        if (iconEl) {
+            iconEl.innerHTML = '<i data-lucide="' + icon + '" class="lucide"></i>';
+            if (window.lucide) lucide.createIcons({nodes: [iconEl]});
+        }
+        document.getElementById('thinkingModeLabel').textContent = label;
+        document.getElementById('thinkingModeValue').value = mode;
+        document.querySelectorAll('.thinking-mode-option').forEach(o => {
+            o.classList.toggle('active', o.dataset.mode === mode);
+        });
+    }
+
+    window.getThinkingMode = () => currentThinkingMode;
+    window.isDeepThinking = () => currentThinkingMode === 'multi-thinking';
+    window.selectThinkingMode = selectThinkingMode;
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // TOOLS MENU
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    let activeTools = new Set();
+
+    // Map tool name ΓåÆ button element ID (shared by setupToolItemClicks + removeTool)
+    const toolBtnMap = {
+        'image-generation':    'imageGenToolBtn',
+        'img2img':             'img2imgToolBtn',
+        'google-search':       'googleSearchBtn',
+        'github':              'githubBtn',
+        'saucenao':            'saucenaoBtn',
+        'deep-research':       'deepResearchToolBtn',
+        'serpapi-reverse-image': 'googleLensBtn',
+        'serpapi-bing':        'serpapiBingBtn',
+        'serpapi-baidu':       'serpapiBaiduBtn',
+        'serpapi-images':      'serpapiImagesBtn',
+        'last30days-research': 'last30daysBtn',
+    };
+
+    function initToolsMenu() {
+        const btn = document.getElementById('toolsMenuBtn');
+        const dropdown = document.getElementById('toolsMenuDropdown');
+        if (!btn || !dropdown) return;
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', () => dropdown.classList.remove('open'));
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        setupToolItemClicks();
+        updateActiveToolsDisplay();
+    }
+
+    function setupToolItemClicks() {
+        const configBtn = document.getElementById('configAgentBtn');
+        if (configBtn) configBtn.addEventListener('click', () => { closeToolsMenu(); openConfigAgentModal(); });
+
+        // All toggle-able tools ΓÇö derived from toolBtnMap for DRY
+        Object.entries(toolBtnMap).forEach(([tool, id]) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => {
+                toggleToolActive(tool, el);
+                // Deep Research: also enable web search + switch to multi-thinking
+                if (tool === 'deep-research' && activeTools.has('deep-research')) {
+                    const gsBtn = document.getElementById('googleSearchBtn');
+                    if (gsBtn && !activeTools.has('google-search')) {
+                        activeTools.add('google-search');
+                        gsBtn.classList.add('active');
+                    }
+                    if (typeof selectThinkingMode === 'function') {
+                        selectThinkingMode('multi-thinking', 'layers', '4-Agents');
+                    }
+                }
+            });
+        });
+
+        const br = document.getElementById('branchConversationBtn');
+        if (br) br.addEventListener('click', () => { closeToolsMenu(); createBranchConversation(); });
+    }
+
+    function toggleToolActive(name, btn) {
+        if (activeTools.has(name)) {
+            activeTools.delete(name);
+            btn.classList.remove('active');
+        } else {
+            activeTools.add(name);
+            btn.classList.add('active');
+        }
+        updateActiveToolsDisplay();
+    }
+
+    function updateActiveToolsDisplay() {
+        const display = document.getElementById('activeToolsDisplay');
+        if (!display) return;
+        display.innerHTML = '';
+        if (activeTools.size === 0) return;
+        const icons = {
+            'image-generation': '≡ƒÄ¿', 'img2img': '≡ƒû╝∩╕Å',
+            'google-search': '≡ƒöì', 'github': '≡ƒôª', 'deep-research': '≡ƒö¼',
+            'saucenao': '≡ƒöÄ', 'serpapi-reverse-image': '≡ƒô╕',
+            'serpapi-bing': '≡ƒà▒∩╕Å', 'serpapi-baidu': '≡ƒÇä', 'serpapi-images': '≡ƒû╝∩╕Å',
+            'last30days-research': '≡ƒôè'
+        };
+        activeTools.forEach(tool => {
+            const badge = document.createElement('span');
+            badge.className = 'active-tool-badge';
+            badge.innerHTML = `${icons[tool] || '≡ƒöº'} ${tool} <button onclick="removeTool('${tool}')">&times;</button>`;
+            display.appendChild(badge);
+        });
+    }
+
+    window.removeTool = function(name) {
+        activeTools.delete(name);
+        // Sync the dropdown button state so it no longer appears active
+        const btnId = toolBtnMap[name];
+        if (btnId) {
+            const btn = document.getElementById(btnId);
+            if (btn) btn.classList.remove('active');
+        }
+        updateActiveToolsDisplay();
+    };
+    window.getActiveTools = () => Array.from(activeTools);
+
+    function closeToolsMenu() {
+        const d = document.getElementById('toolsMenuDropdown');
+        if (d) d.classList.remove('open');
+    }
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // TOOL STATUS BAR ΓÇö shows what tools are running during SSE
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    const toolStatusMessages = {
+        'google-search': '≡ƒöì Searching the webΓÇª',
+        'serpapi-bing': '≡ƒöì Searching BingΓÇª',
+        'serpapi-baidu': '≡ƒöì Searching BaiduΓÇª',
+        'serpapi-images': '≡ƒû╝∩╕Å Searching imagesΓÇª',
+        'serpapi-reverse-image': '≡ƒô╕ Reverse image searchΓÇª',
+        'saucenao': '≡ƒöÄ Searching SauceNAOΓÇª',
+        'github': '≡ƒôª Searching GitHubΓÇª',
+        'image-generation': '≡ƒÄ¿ Generating imageΓÇª',
+        'img2img': '≡ƒû╝∩╕Å Running Img2ImgΓÇª',
+        'deep-research': '≡ƒö¼ Deep research in progressΓÇª',
+        'last30days-research': '≡ƒôè Social media researchΓÇª',
+    };
+
+    window.showToolStatus = function() {
+        const bar = document.getElementById('toolStatusBar');
+        if (!bar) return;
+        const active = window.getActiveTools ? window.getActiveTools() : [];
+        if (active.length === 0) { bar.style.display = 'none'; return; }
+        const msgs = active.map(t => toolStatusMessages[t]).filter(Boolean);
+        if (msgs.length === 0) { bar.style.display = 'none'; return; }
+        bar.innerHTML = msgs.map(m => `<span class="tool-status-item">${m}</span>`).join('');
+        bar.style.display = 'flex';
+    };
+
+    window.hideToolStatus = function() {
+        const bar = document.getElementById('toolStatusBar');
+        if (bar) { bar.innerHTML = ''; bar.style.display = 'none'; }
+    };
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // SKILL SELECTOR
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    let skillManager = null;
+
+    async function initSkillSelector() {
+        try {
+            const { SkillManager } = await import("{{ url_for('static', filename='js/modules/skill-manager.js') }}");
+            skillManager = new SkillManager();
+            await skillManager.init();
+            window.skillManager = skillManager;
+            window.getActiveSkillId = () => skillManager.getActiveSkillId();
+        } catch (err) {
+            console.warn('[SkillSelector] Init failed:', err.message);
+        }
+    }
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // BRANCH CONVERSATION
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    function createBranchConversation() {
+        if (!window.chatManager) return;
+        const cur = window.chatManager.getCurrentSession();
+        if (!cur || !cur.messages || cur.messages.length === 0) return;
+
+        const branchId = 'branch_' + Date.now();
+        const title = `≡ƒî┐ ${(cur.title || 'Chat').substring(0, 20)}ΓÇª`;
+        window.chatManager.chatSessions[branchId] = {
+            id: branchId, title: title, messages: [...cur.messages],
+            parentId: cur.id, branchPoint: cur.messages.length, createdAt: Date.now(),
+            attachedFiles: cur.attachedFiles ? [...cur.attachedFiles] : []
+        };
+        window.chatManager.saveSessions();
+        window.chatManager.currentChatId = branchId;
+        window.dispatchEvent(new Event('chatListNeedsUpdate'));
+        if (window.chatApp) window.chatApp.loadCurrentChat();
+    }
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // COORDINATED REASONING
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    window.coordinatedReasoning = {
+        estimateComplexity(msg) {
+            const pats = [/giß║úi th├¡ch|explain|why|tß║íi sao/i, /so s├ính|compare/i, /ph├ón t├¡ch|analyze/i,
+                /code|programming|bug|error|lß╗ùi/i, /math|to├ín|calculate/i, /step by step|tß╗½ng b╞░ß╗¢c/i];
+            let c = 0;
+            pats.forEach(p => { if (p.test(msg)) c++; });
+            if (msg.length > 200) c++;
+            if (msg.length > 500) c++;
+            return c;
+        },
+        autoDecideMode(msg) {
+            const mode = window.getThinkingMode ? window.getThinkingMode() : 'instant';
+            if (mode !== 'auto') return mode === 'thinking' || mode === 'deep';
+            return this.estimateComplexity(msg) >= 3;
+        }
+    };
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // CONFIG AGENT
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    const defaultAgentConfig = {
+        enabled: false, systemPrompt: '', injectionPrompt: '', contextPrompt: '',
+        temperature: 0.7, topP: 0.9, tokenLimit: 4096, thinkingBudget: 'off'
+    };
+    let agentConfig = JSON.parse(localStorage.getItem('agentConfig')) || {...defaultAgentConfig};
+    window.getAgentConfig = () => (!agentConfig || !agentConfig.enabled) ? null : agentConfig;
+    window.agentConfig = agentConfig;
+
+    function openConfigAgentModal() {
+        const m = document.getElementById('configAgentModal');
+        document.getElementById('configAgentEnabled').checked = agentConfig.enabled;
+        document.getElementById('configSystemPrompt').value = agentConfig.systemPrompt || '';
+        document.getElementById('configInjectionPrompt').value = agentConfig.injectionPrompt || '';
+        document.getElementById('configContextPrompt').value = agentConfig.contextPrompt || '';
+        document.getElementById('configTemperature').value = agentConfig.temperature;
+        document.getElementById('tempValue').textContent = agentConfig.temperature;
+        document.getElementById('configTopP').value = agentConfig.topP;
+        document.getElementById('topPValue').textContent = agentConfig.topP;
+        document.getElementById('configTokenLimit').value = agentConfig.tokenLimit;
+        document.getElementById('tokenLimitValue').textContent = agentConfig.tokenLimit;
+        document.querySelectorAll('input[name="thinkingBudget"]').forEach(r => r.checked = r.value === agentConfig.thinkingBudget);
+        toggleConfigAgent();
+        m.classList.add('open');
+    }
+
+    function closeConfigAgentModal() {
+        document.getElementById('configAgentModal').classList.remove('open');
+    }
+
+    function toggleConfigAgent() {
+        const enabled = document.getElementById('configAgentEnabled').checked;
+        const fields = document.getElementById('configAgentFields');
+        fields.style.opacity = enabled ? '1' : '0.5';
+        fields.style.pointerEvents = enabled ? 'auto' : 'none';
+        agentConfig.enabled = enabled;
+        window.agentConfig = agentConfig;
+        localStorage.setItem('agentConfig', JSON.stringify(agentConfig));
+    }
+
+    function saveConfigAgent() {
+        agentConfig = {
+            enabled: document.getElementById('configAgentEnabled').checked,
+            systemPrompt: document.getElementById('configSystemPrompt').value.trim(),
+            injectionPrompt: document.getElementById('configInjectionPrompt').value.trim(),
+            contextPrompt: document.getElementById('configContextPrompt').value.trim(),
+            temperature: parseFloat(document.getElementById('configTemperature').value),
+            topP: parseFloat(document.getElementById('configTopP').value),
+            tokenLimit: parseInt(document.getElementById('configTokenLimit').value),
+            thinkingBudget: document.querySelector('input[name="thinkingBudget"]:checked')?.value || 'off'
+        };
+        localStorage.setItem('agentConfig', JSON.stringify(agentConfig));
+        window.agentConfig = agentConfig;
+        closeConfigAgentModal();
+    }
+
+    function resetConfigAgent() {
+        if (!confirm('Reset?')) return;
+        agentConfig = {...defaultAgentConfig};
+        localStorage.removeItem('agentConfig');
+        window.agentConfig = agentConfig;
+        openConfigAgentModal();
+    }
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // STYLE PRESETS (for V1 Image Gen)
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    const stylePresets = {
+        anime_xl: { name: "Anime XL", description: "High quality anime art (SDXL)", model: "animagine-xl-3.1.safetensors", negative_prompt: "bad quality, worst quality, low quality, blurry, distorted, deformed, ugly, bad anatomy, bad hands, missing fingers, extra fingers, watermark, text, signature", cfg_scale: 7.0, steps: 25, width: 1024, height: 1024 },
+        realistic_xl: { name: "Realistic Fast", description: "Photorealistic Lightning (SDXL)", model: "realvisxlV50_v50LightningBakedvae.safetensors", negative_prompt: "cartoon, anime, illustration, drawing, painting, sketch, bad quality, blurry, distorted, deformed, ugly, watermark, signature", cfg_scale: 2.0, steps: 6, width: 1024, height: 1024 },
+        realistic_juggernaut: { name: "Realistic Pro", description: "Professional photorealistic (SDXL)", model: "juggernautXL_v9.safetensors", negative_prompt: "cartoon, anime, illustration, drawing, painting, bad quality, worst quality, blurry, distorted, deformed, ugly, extra limbs, missing limbs, watermark, signature, text", cfg_scale: 4.5, steps: 25, width: 1024, height: 1344 },
+        anime_counterfeit: { name: "Anime Classic", description: "Classic anime style (SD 1.5)", model: "counterfeit_v30.safetensors", negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, blurry", cfg_scale: 7.0, steps: 28, width: 512, height: 768 }
+    };
+    let currentStyle = 'anime_xl';
+
+    function selectStyle(id) {
+        currentStyle = id;
+        const p = stylePresets[id];
+        if (!p) return;
+        document.querySelectorAll('.style-btn').forEach(b => {
+            b.className = b.dataset.style === id ? 'btn btn--sm btn--primary style-btn active' : 'btn btn--sm btn--secondary style-btn';
+        });
+        const d = document.getElementById('styleDescription');
+        if (d) d.textContent = p.description;
+        const np = document.getElementById('negativePrompt');
+        if (np) np.value = p.negative_prompt;
+    }
+
+    window.getCurrentStyle = () => currentStyle;
+    window.getStylePreset = (id) => stylePresets[id || currentStyle];
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // INIT
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    document.addEventListener('DOMContentLoaded', () => {
+        initThinkingMode();
+        initToolsMenu();
+        initSkillSelector();
+        selectStyle('anime_xl');
+
+        // Welcome suggestions
+        document.querySelectorAll('.welcome__suggestion').forEach(s => {
+            s.addEventListener('click', () => {
+                const msg = s.dataset.message;
+                const input = document.getElementById('messageInput');
+                if (input && msg) {
+                    input.value = msg;
+                    input.focus();
+                    input.dispatchEvent(new Event('input'));
+                }
+            });
+        });
+
+        // Sidebar toggle restore (handled by initSidebarState in ui-utils.js)
+
+        // Thinking budget radio visual
+        document.querySelectorAll('input[name="thinkingBudget"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                radio.closest('[style*="grid"]')?.querySelectorAll('label').forEach(l => {
+                    l.style.borderColor = l.querySelector('input:checked') ? 'var(--accent)' : 'transparent';
+                });
+            });
+        });
+    });
+</script>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {{ firebase_config | safe }};
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+    window.firebaseDb = db;
+
+    let firebaseUserId = localStorage.getItem('firebase-user-id');
+    if (!firebaseUserId) {
+        firebaseUserId = 'web_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('firebase-user-id', firebaseUserId);
+    }
+    window.firebaseUserId = firebaseUserId;
+
+    window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
+        try {
+            const docRef = await addDoc(collection(db, 'conversations'), {
+                userId: firebaseUserId, platform: 'web', model, userMessage, assistantResponse, imageUrls,
+                timestamp: serverTimestamp(), userAgent: navigator.userAgent.substring(0, 200)
+            });
+            return docRef.id;
+        } catch (e) { return null; }
+    };
+
+    window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
+        try {
+            const docRef = await addDoc(collection(db, 'generated_images'), {
+                userId: firebaseUserId, platform: 'web', type: 'image_generation',
+                prompt, negativePrompt: negativePrompt || '', imageUrl, cloudUrl: cloudUrl,
+                timestamp: serverTimestamp()
+            });
+            return docRef.id;
+        } catch (e) { return null; }
+    };
+
+    window.saveUserProfile = async function(profileData = {}) {
+        try {
+            await setDoc(doc(db, 'users', firebaseUserId), {
+                ...profileData, lastActive: serverTimestamp(), platform: 'web'
+            }, { merge: true });
+        } catch (e) {}
+    };
+
+    (async () => {
+        try {
+            await addDoc(collection(db, 'page_views'), {
+                userId: firebaseUserId, page: '/chatbot', platform: 'web',
+                timestamp: serverTimestamp(), referrer: document.referrer || 'direct'
+            });
+            await window.saveUserProfile({});
+        } catch (e) {}
+    })();
+</script>
+
+<!-- Initialize Lucide Icons -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.lucide) {
+            lucide.createIcons();
+            console.log('[Lucide] Icons initialized');
+        } else {
+            console.warn('[Lucide] Library not loaded');
+        }
+    });
+    // Helper: swap a lucide icon inside an element
+    window.swapLucideIcon = function(element, iconName) {
+        if (!element) return;
+        element.innerHTML = '<i data-lucide="' + iconName + '" class="lucide"></i>';
+        if (window.lucide) lucide.createIcons({nodes: [element]});
+    };
+</script>
+
+<!-- Thinking Side Panel -->
+<div class="thinking-side-panel" id="thinkingSidePanel" aria-hidden="true">
+    <div class="thinking-side-panel__header">
+        <div class="thinking-side-panel__title-wrap">
+            <span class="thinking-side-panel__brain">≡ƒºá</span>
+            <span class="thinking-side-panel__title" id="thinkingPanelTitle">Thinking...</span>
+        </div>
+        <button class="thinking-side-panel__close" id="thinkingPanelClose" title="Close panel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <div class="thinking-side-panel__body" id="thinkingPanelBody"></div>
+</div>
+
+<script>
+window.ThinkingPanel = (function() {
+    var _panel = null, _panelBody = null, _panelTitle = null, _currentPill = null;
+
+    function _init() {
+        _panel = document.getElementById('thinkingSidePanel');
+        _panelBody = document.getElementById('thinkingPanelBody');
+        _panelTitle = document.getElementById('thinkingPanelTitle');
+        var closeBtn = document.getElementById('thinkingPanelClose');
+        if (closeBtn) closeBtn.addEventListener('click', close);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && _panel && _panel.classList.contains('thinking-side-panel--open')) close();
+        });
+    }
+
+    function open(pill) {
+        if (!_panel) _init();
+        if (!_panel) return;
+        _currentPill = pill;
+        _renderContent(pill);
+        _panel.classList.add('thinking-side-panel--open');
+        _panel.removeAttribute('aria-hidden');
+        document.querySelectorAll('.thinking-pill--panel-open').forEach(function(p) { p.classList.remove('thinking-pill--panel-open'); });
+        pill.classList.add('thinking-pill--panel-open');
+    }
+
+    function close() {
+        if (!_panel) return;
+        _panel.classList.remove('thinking-side-panel--open');
+        _panel.setAttribute('aria-hidden', 'true');
+        if (_currentPill) {
+            _currentPill.classList.remove('thinking-pill--panel-open');
+            _currentPill = null;
+        }
+    }
+
+    function _esc(str) {
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function _renderContent(pill) {
+        if (!_panelBody) return;
+        _panelBody.innerHTML = '';
+        var steps = pill._stepsData || [];
+        var dur = pill._durationMs ? (pill._durationMs / 1000).toFixed(1) + 's' : '';
+        if (_panelTitle) {
+            _panelTitle.textContent = pill._finalized
+                ? (pill._summary || ('Thought. ' + dur))
+                : 'Thinking...';
+        }
+        steps.forEach(function(step) { _appendStep(step, pill._finalized); });
+    }
+
+    function _appendStep(step, finalized) {
+        if (!_panelBody) return;
+        var el = document.createElement('div');
+        var isDone = finalized || step.done;
+        if (step.isReasoning) {
+            el.className = 'tsp-reasoning' + (isDone ? '' : ' tsp-reasoning--live');
+            el.dataset.tid = step.tid || '_default';
+            if (isDone && step.text.trim()) {
+                var tid = step.tid || '_default';
+                var tidMatch = tid.match(/^r(\d+)_t(\d+)$/);
+                var label = tidMatch
+                    ? ('≡ƒöì Direction ' + (parseInt(tidMatch[2]) + 1) + ' (round ' + (parseInt(tidMatch[1]) + 1) + ')')
+                    : '≡ƒöì Reasoning';
+                el.innerHTML = '<div class="tsp-reasoning__header"><span class="tsp-reasoning__label">' + label + '</span><span class="tsp-reasoning__toggle">Γû╢</span></div><div class="tsp-reasoning__body"></div>';
+                var body = el.querySelector('.tsp-reasoning__body');
+                if (typeof marked !== 'undefined') {
+                    var rendered = marked.parse(step.text);
+                    body.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rendered) : rendered;
+                } else {
+                    body.textContent = step.text;
+                }
+                var expanded = false;
+                (function(element) {
+                    element.querySelector('.tsp-reasoning__header').addEventListener('click', function() {
+                        expanded = !expanded;
+                        element.classList.toggle('tsp-reasoning--expanded', expanded);
+                        element.querySelector('.tsp-reasoning__toggle').textContent = expanded ? 'Γû╝' : 'Γû╢';
+                    });
+                })(el);
+            } else {
+                el.textContent = step.text;
+            }
+        } else {
+            el.className = 'tsp-step' + (isDone ? ' tsp-step--done' : ' tsp-step--active');
+            var boldMatch = step.text.match(/^\*\*(.+?)\*\*\n?([\s\S]*)$/);
+            if (boldMatch) {
+                el.innerHTML = '<div class="tsp-step__title">' + _esc(boldMatch[1]) + '</div>' +
+                    (boldMatch[2].trim() ? '<div class="tsp-step__desc">' + _esc(boldMatch[2].trim()) + '</div>' : '');
+            } else {
+                el.textContent = step.text;
+            }
+        }
+        _panelBody.appendChild(el);
+    }
+
+    function onStep(pill, stepText, isReasoningChunk, trajectoryId) {
+        if (_currentPill !== pill || !_panelBody) return;
+        var tid = trajectoryId || '_default';
+        if (isReasoningChunk) {
+            var block = _panelBody.querySelector('.tsp-reasoning.tsp-reasoning--live[data-tid="' + tid + '"]');
+            if (!block) {
+                block = document.createElement('div');
+                block.className = 'tsp-reasoning tsp-reasoning--live';
+                block.dataset.tid = tid;
+                _panelBody.appendChild(block);
+            }
+            block.textContent += stepText;
+        } else {
+            _panelBody.querySelectorAll('.tsp-step--active').forEach(function(el) {
+                el.classList.remove('tsp-step--active');
+                el.classList.add('tsp-step--done');
+            });
+            _panelBody.querySelectorAll('.tsp-reasoning--live').forEach(function(el) {
+                el.classList.remove('tsp-reasoning--live');
+            });
+            var el2 = document.createElement('div');
+            el2.className = 'tsp-step tsp-step--active';
+            var bm = stepText.match(/^\*\*(.+?)\*\*\n?([\s\S]*)$/);
+            if (bm) {
+                el2.innerHTML = '<div class="tsp-step__title">' + _esc(bm[1]) + '</div>' +
+                    (bm[2].trim() ? '<div class="tsp-step__desc">' + _esc(bm[2].trim()) + '</div>' : '');
+            } else {
+                el2.textContent = stepText;
+            }
+            _panelBody.appendChild(el2);
+        }
+    }
+
+    function onFinalize(pill, data) {
+        if (_currentPill !== pill || !_panelBody) return;
+        var dur = data.duration_ms ? (data.duration_ms / 1000).toFixed(1) + 's' : '';
+        if (_panelTitle) _panelTitle.textContent = data.summary || ('Thought. ' + dur);
+        _renderContent(pill);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _init);
+    } else {
+        _init();
+    }
+
+    return { open: open, close: close, onStep: onStep, onFinalize: onFinalize };
+})();
+</script>
+
+</body>
+</html>

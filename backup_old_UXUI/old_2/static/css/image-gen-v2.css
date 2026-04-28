@@ -433,13 +433,10 @@
     margin-top: 2px;
 }
 
-/* Shared base for hover-revealed corner buttons (delete + open-in-tab).
-   Click on the gallery card itself opens the in-page lightbox via
-   global-image-viewer.js — these buttons are explicit secondary actions. */
-.igv2-gallery-action,
 .igv2-gallery-delete {
     position: absolute;
     top: 6px;
+    right: 6px;
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -454,21 +451,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    z-index: 2;
 }
 
-.igv2-gallery-delete,
-.igv2-gallery-action.igv2-gallery-delete { right: 6px; }
-.igv2-gallery-newtab { right: 40px; }
-
-.igv2-gallery-item { cursor: zoom-in; }
-.igv2-gallery-item:hover .igv2-gallery-delete,
-.igv2-gallery-item:hover .igv2-gallery-action {
+.igv2-gallery-item:hover .igv2-gallery-delete {
     opacity: 1;
     transform: scale(1);
 }
-.igv2-gallery-delete:hover { background: #ef4444; }
-.igv2-gallery-newtab:hover { background: #2563eb; }
+.igv2-gallery-delete:hover {
+    background: #ef4444;
+}
 
 .igv2-gallery-empty {
     text-align: center;

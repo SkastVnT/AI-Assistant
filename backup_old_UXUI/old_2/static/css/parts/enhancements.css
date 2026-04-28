@@ -1,0 +1,459 @@
+/* ═══════════════════════════════════════════════════════════════
+   UI Enhancements (refine-only, no markup change)
+   Loaded LAST so it can override existing styles via specificity.
+   Scope: thinking blocks, image-gen (AP inline / IGV2), lightbox,
+   global polish (focus rings, scrollbars, motion).
+   ─────────────────────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────────────────────────
+   Motion preferences
+   ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .thinking-container,
+  .ap-inline-progress,
+  .ap-stage-item,
+  .ap-reasoning-pill,
+  .image-preview-overlay,
+  .image-preview-overlay img {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Thinking block — clearer hierarchy + smoother animation
+   ──────────────────────────────────────────────────────────── */
+.thinking-container {
+  position: relative;
+  border-radius: 14px !important;
+  border: 1px solid rgba(124, 108, 240, 0.20) !important;
+  background:
+    linear-gradient(135deg, rgba(124, 108, 240, 0.07), rgba(171, 125, 246, 0.03)) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+  transition: border-color .25s ease, box-shadow .25s ease, background .25s ease;
+}
+.thinking-container::before {
+  /* left accent stripe — appears only while loading */
+  content: "";
+  position: absolute;
+  left: 0; top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #7c6cf0, #ab7df6);
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.thinking-container.thinking--loading::before { opacity: 1; }
+
+.thinking-container.thinking--loading {
+  border-color: rgba(124, 108, 240, 0.40) !important;
+  background:
+    linear-gradient(135deg, rgba(124, 108, 240, 0.10), rgba(171, 125, 246, 0.05)) !important;
+  animation: thinking-glow-2 2.4s ease-in-out infinite !important;
+}
+@keyframes thinking-glow-2 {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124,108,240,0); }
+  50%      { box-shadow: 0 0 18px 2px rgba(124,108,240,0.22); }
+}
+
+.thinking-header {
+  padding: 11px 14px 11px 18px !important; /* room for stripe */
+}
+.thinking-header:hover {
+  background: rgba(124, 108, 240, 0.08) !important;
+}
+.thinking-title {
+  letter-spacing: 0.1px;
+}
+.thinking-badge--loading {
+  position: relative;
+  overflow: hidden;
+}
+.thinking-badge--loading::after {
+  /* shimmer */
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: thinking-shimmer 1.6s linear infinite;
+}
+@keyframes thinking-shimmer {
+  to { transform: translateX(100%); }
+}
+.thinking-badge--done {
+  animation: thinking-badge-pop .35s ease-out;
+}
+@keyframes thinking-badge-pop {
+  0%   { transform: scale(.6); opacity: 0; }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.thinking-toggle-arrow {
+  width: 16px;
+  text-align: center;
+}
+.thinking-content--open {
+  /* a touch more breathing room + custom scrollbar */
+  max-height: 70vh !important;
+  padding: 4px 16px 14px 18px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,108,240,0.35) transparent;
+}
+.thinking-content--open::-webkit-scrollbar {
+  width: 6px;
+}
+.thinking-content--open::-webkit-scrollbar-thumb {
+  background: rgba(124,108,240,0.35);
+  border-radius: 3px;
+}
+.thinking-content--open::-webkit-scrollbar-thumb:hover {
+  background: rgba(124,108,240,0.55);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   AP inline image-gen — clearer stages, animated active state,
+   nicer chips, bolder result preview
+   ──────────────────────────────────────────────────────────── */
+.ap-inline-msg .ap-inline-progress {
+  border-radius: 14px !important;
+  border: 1px solid rgba(124, 108, 240, 0.22);
+  background:
+    linear-gradient(135deg, rgba(124, 108, 240, 0.06), rgba(99, 102, 241, 0.03)) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* top progress strip (animated while generating) */
+.ap-inline-msg .ap-inline-progress::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(124,108,240,0.85) 30%,
+    rgba(171,125,246,0.85) 60%,
+    transparent 100%);
+  background-size: 200% 100%;
+  animation: ap-progress-strip 1.6s linear infinite;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.ap-inline-msg:not([data-ap-finalized="1"]) .ap-inline-progress::before {
+  opacity: 1;
+}
+@keyframes ap-progress-strip {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.ap-inline-summary {
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+}
+.ap-inline-label {
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  letter-spacing: 0.1px;
+}
+.ap-inline-timer {
+  background: rgba(124, 108, 240, 0.12);
+  color: var(--text-secondary);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid rgba(124, 108, 240, 0.18);
+}
+
+/* Stage list */
+.ap-inline-stages {
+  padding: 6px 14px 8px !important;
+  gap: 3px !important;
+}
+.ap-stage-item {
+  border-radius: 8px !important;
+  padding: 7px 10px !important;
+  font-size: 13px !important;
+  position: relative;
+  transition: background .2s ease, opacity .2s ease, transform .2s ease;
+}
+.ap-stage-item.active {
+  background: linear-gradient(90deg,
+    rgba(124,108,240,0.16),
+    rgba(124,108,240,0.04)) !important;
+  font-weight: 600 !important;
+  transform: translateX(2px);
+}
+.ap-stage-item.active::before {
+  /* left accent dot */
+  content: "";
+  position: absolute;
+  left: -1px; top: 50%;
+  width: 4px; height: 18px;
+  margin-top: -9px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #7c6cf0, #ab7df6);
+  box-shadow: 0 0 8px rgba(124,108,240,0.55);
+}
+.ap-stage-item.active .ap-stage-icon {
+  animation: ap-icon-spin 1.6s linear infinite;
+  display: inline-block;
+}
+@keyframes ap-icon-spin {
+  to { transform: rotate(360deg); }
+}
+.ap-stage-item.done {
+  opacity: 0.85 !important;
+}
+.ap-stage-item.done .ap-stage-icon::after {
+  font-size: 12px !important;
+  font-weight: 700;
+}
+.ap-stage-time {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-secondary, rgba(255,255,255,0.06));
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 11px !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px !important;
+}
+
+/* Pass chips — slightly punchier */
+.ap-layer-chip {
+  font-size: 11px !important;
+  padding: 2px 9px !important;
+  background: rgba(124, 108, 240, 0.14) !important;
+  border-color: rgba(124, 108, 240, 0.30) !important;
+  color: var(--accent-hover, #9488f4) !important;
+  transition: transform .15s ease, background .15s ease;
+}
+.ap-layer-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(124, 108, 240, 0.22) !important;
+}
+
+/* Result image — bigger hover hint */
+.ap-inline-msg img,
+.ap-debug-preview img {
+  cursor: zoom-in;
+  border-radius: 10px;
+  transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
+}
+.ap-inline-msg img:hover,
+.ap-debug-preview img:hover {
+  transform: scale(1.012);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  filter: brightness(1.04);
+}
+
+/* Error state (label was rewritten with ❌ prefix) */
+.ap-inline-msg[data-ap-state="error"] .ap-inline-progress {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02)) !important;
+}
+.ap-inline-msg[data-ap-state="error"] .ap-inline-label {
+  color: #fca5a5 !important;
+}
+
+/* Done state — subtle success glow */
+.ap-inline-msg[data-ap-state="done"] .ap-inline-progress {
+  border-color: rgba(46, 204, 113, 0.30) !important;
+  background:
+    linear-gradient(135deg, rgba(46, 204, 113, 0.05), rgba(46, 204, 113, 0.02)) !important;
+}
+.ap-inline-msg[data-ap-state="done"] .ap-inline-done-icon {
+  color: var(--success, #2ecc71);
+  animation: thinking-badge-pop .4s ease-out;
+}
+
+/* Action buttons row */
+.ap-inline-result-btns {
+  margin-top: 10px !important;
+  gap: 8px !important;
+}
+.ap-inline-btn {
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+.ap-inline-btn:hover {
+  transform: translateY(-1px);
+}
+.ap-inline-btn:active {
+  transform: translateY(0);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Image preview overlay (lightbox) — clickable backdrop hint,
+   bigger image, smoother fade, ESC hint
+   ──────────────────────────────────────────────────────────── */
+.image-preview-overlay {
+  background: rgba(0, 0, 0, 0.92) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+  transition: opacity .22s ease, visibility .22s ease !important;
+}
+.image-preview-overlay.open {
+  animation: lightbox-fade-in .22s ease-out;
+}
+@keyframes lightbox-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.image-preview-overlay img {
+  max-width: 92% !important;
+  max-height: 88% !important;
+  border-radius: 10px !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6),
+              0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: lightbox-zoom-in .25s cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes lightbox-zoom-in {
+  from { transform: scale(.96); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* helpful hint at the bottom — only when meta is empty */
+.image-preview-overlay::after {
+  content: "Click rìa đen hoặc nhấn Esc để đóng";
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.3px;
+  pointer-events: none;
+  z-index: 305;
+  user-select: none;
+}
+
+/* Make the close × in top-left more visible */
+.image-preview-overlay > span[onclick*="closeImagePreview"] {
+  width: 36px; height: 36px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 22px !important;
+  line-height: 1;
+  transition: background .15s, transform .15s;
+}
+.image-preview-overlay > span[onclick*="closeImagePreview"]:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.06);
+}
+
+/* All chat images are clickable now → cursor hint */
+.message-content img:not(.no-zoom):not(.avatar):not([data-no-preview]),
+.message-text img:not(.no-zoom):not(.avatar):not([data-no-preview]),
+.generated-preview,
+.gallery-thumb img,
+.ap-inline-msg img,
+.ap-debug-preview img,
+img[alt="Generated Image"] {
+  cursor: zoom-in;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Global polish — focus rings, smooth scrollbar, message fade-in
+   ──────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--border-focus, #7c6cf0);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+button:focus-visible,
+.btn:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Fade-in for new messages (does not retrigger on scroll) */
+.message {
+  animation: msg-fade-in .25s ease-out;
+}
+@keyframes msg-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Slightly nicer global scrollbars on dark theme */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.18);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Provider choice chips (LOCAL / API / HỦY in chat) */
+.igv2-provider-choice {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.igv2-provider-choice button,
+.igv2-provider-choice .btn {
+  border-radius: 999px !important;
+  padding: 7px 16px !important;
+  font-size: 13px !important;
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+.igv2-provider-choice button:hover,
+.igv2-provider-choice .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 108, 240, 0.18);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Responsive tweaks
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .thinking-content--open {
+    max-height: 60vh !important;
+    padding: 4px 12px 12px 14px !important;
+  }
+  .ap-inline-stages {
+    padding: 4px 10px 6px !important;
+  }
+  .ap-stage-item {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+  .image-preview-overlay::after {
+    font-size: 10px;
+    bottom: 4px;
+  }
+}
+
+/* --------------------------------------------------------------
+   Provider choice � Heavy variant accent (red/orange = expensive)
+   ------------------------------------------------------------ */
+.igv2-choice-btn.igv2-choice-heavy {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(249, 115, 22, 0.06)) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+.igv2-choice-btn.igv2-choice-heavy:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(249, 115, 22, 0.10)) !important;
+  border-color: rgba(239, 68, 68, 0.55) !important;
+}
+.igv2-choice-btn.igv2-choice-heavy.selected {
+  border-color: rgba(239, 68, 68, 0.85) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+}

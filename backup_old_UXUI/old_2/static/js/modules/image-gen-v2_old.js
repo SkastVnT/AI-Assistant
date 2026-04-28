@@ -1,5 +1,5 @@
-/**
- * Image Generation V2 — Multi-Provider System
+﻿/**
+ * Image Generation V2 ΓÇö Multi-Provider System
  * Uses the new /api/image-gen/* endpoints backed by:
  * fal.ai, Replicate, BFL, OpenAI, Together.ai, StepFun, ComfyUI (local)
  * 
@@ -17,7 +17,6 @@ export class ImageGenV2 {
         this.apiService = apiService;
         this.providers = [];
         this.styles = [];
-        this.workflowPresets = [];
         this.isGenerating = false;
         this.currentImage = null;
         this.conversationId = '';
@@ -25,32 +24,18 @@ export class ImageGenV2 {
         this.stats = null;
     }
 
-    // ── Initialization ─────────────────────────────────────────────
+    // ΓöÇΓöÇ Initialization ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     async init() {
         try {
             await Promise.all([
                 this.loadProviders(),
                 this.loadStyles(),
-                this.loadWorkflowPresets(),
             ]);
-            this._restoreReasoningCheckbox();
-            console.log('[ImageGenV2] Initialized with', this.providers.length, 'providers,', this.styles.length, 'styles,', this.workflowPresets.length, 'presets');
+            console.log('[ImageGenV2] Initialized with', this.providers.length, 'providers,', this.styles.length, 'styles');
         } catch (e) {
             console.warn('[ImageGenV2] Init partial:', e);
         }
-    }
-
-    /**
-     * Restore the reasoning-pipeline checkbox from localStorage so the
-     * preference is sticky across modal opens / page reloads.
-     */
-    _restoreReasoningCheckbox() {
-        const cb = document.getElementById('igv2UseReasoning');
-        if (!cb) return;
-        try {
-            cb.checked = window.localStorage?.getItem('igv2.useReasoning') === '1';
-        } catch (_) { /* ignore */ }
     }
 
     async loadProviders() {
@@ -75,21 +60,7 @@ export class ImageGenV2 {
         }
     }
 
-    async loadWorkflowPresets() {
-        try {
-            const resp = await fetch('/api/image-gen/workflow-presets');
-            const data = await resp.json();
-            const grouped = data.presets || {};
-            this.workflowPresets = Object.values(grouped).flat();
-            this._renderWorkflowPresetSelect();
-        } catch (e) {
-            console.warn('[ImageGenV2] Failed to load workflow presets:', e);
-            this.workflowPresets = [];
-            this._renderWorkflowPresetSelect();
-        }
-    }
-
-    // ── Modal Control ──────────────────────────────────────────────
+    // ΓöÇΓöÇ Modal Control ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     openModal() {
         const modal = document.getElementById('imageGenV2Modal');
@@ -117,66 +88,14 @@ export class ImageGenV2 {
         });
     }
 
-    /**
-     * Read the active character pin from the picker (window.selectedCharacter)
-     * with a body[data-character-key] fallback. Returns
-     * { character_key, series_key } — both may be null when nothing is pinned.
-     * Used by every image-gen entry point so the picker selection flows
-     * through modal-triggered, chat-typed, and SSE flows uniformly.
-     */
-    _collectCharacterPin() {
-        const sel = window.selectedCharacter || null;
-        let character_key = null, series_key = null;
-        if (sel && sel.key) {
-            character_key = sel.key;
-            if (sel.series_key) series_key = sel.series_key;
-        } else {
-            character_key = document.body?.dataset?.characterKey || null;
-            series_key = document.body?.dataset?.seriesKey || null;
-        }
-        return { character_key, series_key };
-    }
-
-    /**
-     * Apply an orientation preset to the Width/Height selects.
-     *  - 'square'    → 2048×2048
-     *  - 'portrait'  → 1536×2048
-     *  - 'landscape' → 2048×1536
-     * Adds the option dynamically if it isn't in the dropdown so we
-     * don't depend on the template having every preset listed.
-     */
-    setOrientation(kind) {
-        const presets = {
-            square:    { w: 2048, h: 2048 },
-            portrait:  { w: 1536, h: 2048 },
-            landscape: { w: 2048, h: 1536 },
-        };
-        const p = presets[kind];
-        if (!p) return;
-        const setSelect = (id, value) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const v = String(value);
-            if (![...el.options].some(o => o.value === v)) {
-                const opt = document.createElement('option');
-                opt.value = v; opt.textContent = v;
-                el.appendChild(opt);
-            }
-            el.value = v;
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-        };
-        setSelect('igv2Width', p.w);
-        setSelect('igv2Height', p.h);
-    }
-
-    // ── Generate ───────────────────────────────────────────────────
+    // ΓöÇΓöÇ Generate ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     async generate() {
         if (this.isGenerating) return;
 
         const prompt = document.getElementById('igv2Prompt')?.value?.trim();
         if (!prompt) {
-            this._showStatus('Nhập mô tả ảnh!', 'error');
+            this._showStatus('Nhß║¡p m├┤ tß║ú ß║únh!', 'error');
             return;
         }
 
@@ -187,38 +106,21 @@ export class ImageGenV2 {
 
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="animate-spin">⏳</span> Đang tạo ảnh...';
+            btn.innerHTML = '<span class="animate-spin">ΓÅ│</span> ─Éang tß║ío ß║únh...';
         }
-        if (statusEl) statusEl.textContent = '🤖 Đang enhance prompt với AI...';
+        if (statusEl) statusEl.textContent = '≡ƒñû ─Éang enhance prompt vß╗¢i AI...';
 
         try {
             const quality = document.getElementById('igv2Quality')?.value || 'auto';
             const style = document.getElementById('igv2Style')?.value || '';
             const provider = document.getElementById('igv2Provider')?.value || '';
-            const presetId = document.getElementById('igv2WorkflowPreset')?.value || '';
             const width = parseInt(document.getElementById('igv2Width')?.value || '1024');
             const height = parseInt(document.getElementById('igv2Height')?.value || '1024');
             const enhance = document.getElementById('igv2Enhance')?.checked !== false;
             const steps = parseInt(document.getElementById('igv2Steps')?.value || '28');
             const guidance = parseFloat(document.getElementById('igv2Guidance')?.value || '3.5');
-            const useReasoning = document.getElementById('igv2UseReasoning')?.checked === true;
-            const effectivePresetId = presetId || (provider === 'comfyui' ? 'lora_bulk_auto_chat' : '');
 
-            // Persist the reasoning toggle so chat-typed prompts (which run
-            // outside this modal) can read the same preference.
-            try {
-                window.localStorage?.setItem(
-                    'igv2.useReasoning', useReasoning ? '1' : '0',
-                );
-            } catch (_) { /* ignore quota / disabled storage */ }
-
-            if (statusEl) statusEl.textContent = '🎨 Đang tạo ảnh...';
-
-            // ── Character pin (SAA / local registry) ─────────────────
-            // Mirror anime-pipeline.js: read window.selectedCharacter or
-            // body data-attributes so the picker selection flows through
-            // /api/image-gen/generate as well.
-            const { character_key: _characterKey, series_key: _seriesKey } = this._collectCharacterPin();
+            if (statusEl) statusEl.textContent = '≡ƒÄ¿ ─Éang tß║ío ß║únh...';
 
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
@@ -230,15 +132,11 @@ export class ImageGenV2 {
                     width,
                     height,
                     provider: provider || null,
-                    preset_id: effectivePresetId || null,
                     enhance,
                     steps,
                     guidance,
                     conversation_id: this.conversationId,
                     num_images: 1,
-                    use_reasoning_pipeline: useReasoning,
-                    character_key: _characterKey,
-                    series_key: _seriesKey,
                 }),
             });
 
@@ -248,7 +146,7 @@ export class ImageGenV2 {
                 this.currentImage = data;
                 this._renderResult(data);
                 this._showStatus(
-                    `✅ Tạo thành công! Provider: ${data.provider} | Model: ${data.model} | ${data.latency_ms}ms | $${data.cost_usd}`,
+                    `Γ£à Tß║ío th├ánh c├┤ng! Provider: ${data.provider} | Model: ${data.model} | ${data.latency_ms}ms | $${data.cost_usd}`,
                     'success'
                 );
 
@@ -258,12 +156,12 @@ export class ImageGenV2 {
                 // Refresh gallery
                 this.loadGallery();
             } else {
-                this._showStatus(`❌ Lỗi: ${data.error}`, 'error');
+                this._showStatus(`Γ¥î Lß╗ùi: ${data.error}`, 'error');
                 if (resultArea) {
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'igv2-error';
                     const errorP = document.createElement('p');
-                    errorP.textContent = '❌ ' + (data.error || 'Unknown error');
+                    errorP.textContent = 'Γ¥î ' + (data.error || 'Unknown error');
                     errorDiv.appendChild(errorP);
                     const promptP = document.createElement('p');
                     promptP.className = 'text-sm mt-2';
@@ -275,24 +173,24 @@ export class ImageGenV2 {
             }
         } catch (e) {
             console.error('[ImageGenV2] Generate error:', e);
-            this._showStatus(`❌ Lỗi: ${e.message}`, 'error');
+            this._showStatus(`Γ¥î Lß╗ùi: ${e.message}`, 'error');
         } finally {
             this.isGenerating = false;
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🎨 Tạo ảnh';
+                btn.innerHTML = '≡ƒÄ¿ Tß║ío ß║únh';
             }
         }
     }
 
-    // ── Edit (iterative) ───────────────────────────────────────────
+    // ΓöÇΓöÇ Edit (iterative) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     async editImage() {
         if (this.isGenerating) return;
 
         const prompt = document.getElementById('igv2EditPrompt')?.value?.trim();
         if (!prompt) {
-            this._showStatus('Nhập lệnh chỉnh sửa!', 'error');
+            this._showStatus('Nhß║¡p lß╗çnh chß╗ënh sß╗¡a!', 'error');
             return;
         }
 
@@ -300,7 +198,7 @@ export class ImageGenV2 {
         const btn = document.getElementById('igv2EditBtn');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="animate-spin">⏳</span> Đang chỉnh sửa...';
+            btn.innerHTML = '<span class="animate-spin">ΓÅ│</span> ─Éang chß╗ënh sß╗¡a...';
         }
 
         try {
@@ -323,24 +221,24 @@ export class ImageGenV2 {
             if (data.success) {
                 this.currentImage = data;
                 this._renderResult(data);
-                this._showStatus(`✅ Chỉnh sửa thành công! ${data.provider} | ${data.latency_ms}ms`, 'success');
-                this._addImageToChat(data, `✏️ Edit: ${prompt}`);
+                this._showStatus(`Γ£à Chß╗ënh sß╗¡a th├ánh c├┤ng! ${data.provider} | ${data.latency_ms}ms`, 'success');
+                this._addImageToChat(data, `Γ£Å∩╕Å Edit: ${prompt}`);
                 this.loadGallery();
             } else {
-                this._showStatus(`❌ ${data.error}`, 'error');
+                this._showStatus(`Γ¥î ${data.error}`, 'error');
             }
         } catch (e) {
-            this._showStatus(`❌ ${e.message}`, 'error');
+            this._showStatus(`Γ¥î ${e.message}`, 'error');
         } finally {
             this.isGenerating = false;
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '✏️ Chỉnh sửa';
+                btn.innerHTML = 'Γ£Å∩╕Å Chß╗ënh sß╗¡a';
             }
         }
     }
 
-    // ── Gallery ────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Gallery ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     async loadGallery() {
         try {
@@ -372,7 +270,7 @@ export class ImageGenV2 {
         }
     }
 
-    // ── Chat Integration ───────────────────────────────────────────
+    // ΓöÇΓöÇ Chat Integration ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     /**
      * Called from the chat flow when image generation intent is detected.
@@ -380,9 +278,7 @@ export class ImageGenV2 {
      */
     async generateFromChat(message, conversationId) {
         this.conversationId = conversationId || this.conversationId;
-        const useReasoning = this._readReasoningPreference();
-        const { character_key, series_key } = this._collectCharacterPin();
-
+        
         try {
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
@@ -393,9 +289,6 @@ export class ImageGenV2 {
                     enhance: true,
                     conversation_id: this.conversationId,
                     num_images: 1,
-                    use_reasoning_pipeline: useReasoning,
-                    character_key,
-                    series_key,
                 }),
             });
 
@@ -426,11 +319,6 @@ export class ImageGenV2 {
     async generateFromChatStream(message, conversationId, abortSignal = null, callbacks = {}, options = {}) {
         this.conversationId = conversationId || this.conversationId;
 
-        const useReasoning = (typeof options.useReasoning === 'boolean')
-            ? options.useReasoning
-            : this._readReasoningPreference();
-        const { character_key, series_key } = this._collectCharacterPin();
-
         try {
             const resp = await fetch('/api/image-gen/stream', {
                 method: 'POST',
@@ -439,18 +327,9 @@ export class ImageGenV2 {
                     prompt: message,
                     quality: options.quality || 'auto',
                     provider: options.provider || undefined,
-                    preset_id: options.presetId || undefined,
                     enhance: true,
                     conversation_id: this.conversationId,
                     num_images: 1,
-                    steps: options.steps || undefined,
-                    width: options.width || undefined,
-                    height: options.height || undefined,
-                    guidance: options.guidance || undefined,
-                    negative_prompt: options.negativePrompt || undefined,
-                    use_reasoning_pipeline: useReasoning,
-                    character_key,
-                    series_key,
                 }),
                 signal: abortSignal,
             });
@@ -528,20 +407,20 @@ export class ImageGenV2 {
 
     /**
      * Detect if a message is an image generation request.
-     * Enhanced detection with better accuracy — avoids false positives.
+     * Enhanced detection with better accuracy ΓÇö avoids false positives.
      */
     static isImageRequest(message) {
         const lower = message.toLowerCase().trim();
         
-        // Command triggers (highest confidence — always match)
+        // Command triggers (highest confidence ΓÇö always match)
         const commandTriggers = ['/img ', '/image ', '/draw ', '/gen ', '/paint '];
         if (commandTriggers.some(t => lower.startsWith(t))) return true;
         
         // Vietnamese triggers (start-of-sentence)
         const viStartTriggers = [
-            'vẽ ', 'vẽ cho', 'vẽ giúp', 'hãy vẽ', 'tạo ảnh', 'tạo hình',
-            'sinh ảnh', 'tạo một bức', 'vẽ một', 'tạo một ảnh',
-            'tạo hình ảnh', 'hãy tạo', 'giúp tôi vẽ', 'giúp mình vẽ',
+            'vß║╜ ', 'vß║╜ cho', 'vß║╜ gi├║p', 'h├úy vß║╜', 'tß║ío ß║únh', 'tß║ío h├¼nh',
+            'sinh ß║únh', 'tß║ío mß╗Öt bß╗⌐c', 'vß║╜ mß╗Öt', 'tß║ío mß╗Öt ß║únh',
+            'tß║ío h├¼nh ß║únh', 'h├úy tß║ío', 'gi├║p t├┤i vß║╜', 'gi├║p m├¼nh vß║╜',
         ];
         if (viStartTriggers.some(t => lower.startsWith(t))) return true;
         
@@ -556,8 +435,8 @@ export class ImageGenV2 {
         if (enStartTriggers.some(t => lower.startsWith(t))) return true;
         
         // Contextual patterns (require keyword + image-related word)
-        const imageWords = ['ảnh', 'hình', 'image', 'picture', 'photo', 'illustration', 'artwork'];
-        const actionWords = ['tạo', 'vẽ', 'create', 'generate', 'make', 'draw'];
+        const imageWords = ['ß║únh', 'h├¼nh', 'image', 'picture', 'photo', 'illustration', 'artwork'];
+        const actionWords = ['tß║ío', 'vß║╜', 'create', 'generate', 'make', 'draw'];
         
         const hasImage = imageWords.some(w => lower.includes(w));
         const hasAction = actionWords.some(w => lower.includes(w));
@@ -577,7 +456,7 @@ export class ImageGenV2 {
         
         // Must reference a previous image
         const imageRef = [
-            'ảnh trước', 'ảnh vừa', 'cái ảnh', 'bức ảnh',
+            'ß║únh tr╞░ß╗¢c', 'ß║únh vß╗½a', 'c├íi ß║únh', 'bß╗⌐c ß║únh',
             'previous image', 'last image', 'that image', 'the image',
         ];
         const hasImageRef = imageRef.some(t => lower.includes(t));
@@ -586,13 +465,13 @@ export class ImageGenV2 {
         
         // And must have an edit action
         const editActions = [
-            'thêm', 'bỏ', 'xóa', 'đổi', 'thay đổi', 'sửa', 'chỉnh',
+            'th├¬m', 'bß╗Å', 'x├│a', '─æß╗òi', 'thay ─æß╗òi', 'sß╗¡a', 'chß╗ënh',
             'add', 'remove', 'change', 'edit', 'modify', 'replace',
         ];
         return editActions.some(t => lower.includes(t));
     }
 
-    // ── Private: Rendering ─────────────────────────────────────────
+    // ΓöÇΓöÇ Private: Rendering ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     _renderResult(data) {
         const resultArea = document.getElementById('igv2Result');
@@ -633,9 +512,9 @@ export class ImageGenV2 {
                     </div>
                 </div>
                 <div class="igv2-result-actions">
-                    <button onclick="window.imageGenV2?.downloadImage('${imgSrc}')" class="igv2-action-btn">💾 Download</button>
-                    <button onclick="window.imageGenV2?.copyToChat('${imgSrc}')" class="igv2-action-btn">📋 Copy to Chat</button>
-                    <button onclick="document.getElementById('igv2EditPrompt')?.focus(); window.imageGenV2?.switchTab('edit')" class="igv2-action-btn">✏️ Edit</button>
+                    <button onclick="window.imageGenV2?.downloadImage('${imgSrc}')" class="igv2-action-btn">≡ƒÆ╛ Download</button>
+                    <button onclick="window.imageGenV2?.copyToChat('${imgSrc}')" class="igv2-action-btn">≡ƒôï Copy to Chat</button>
+                    <button onclick="document.getElementById('igv2EditPrompt')?.focus(); window.imageGenV2?.switchTab('edit')" class="igv2-action-btn">Γ£Å∩╕Å Edit</button>
                 </div>
             </div>
         `;
@@ -646,7 +525,7 @@ export class ImageGenV2 {
         const editSelect = document.getElementById('igv2EditProvider');
         if (!select) return;
 
-        const options = '<option value="">🤖 Auto (Best available)</option>' +
+        const options = '<option value="">≡ƒñû Auto (Best available)</option>' +
             this.providers
                 .filter(p => p.available)
                 .map(p => `<option value="${p.name}">${this._providerIcon(p.name)} ${p.name} (${p.tier}${p.cost_per_image > 0 ? ' ~$' + p.cost_per_image : ' FREE'})</option>`)
@@ -677,24 +556,6 @@ export class ImageGenV2 {
         }
     }
 
-    _renderWorkflowPresetSelect() {
-        const select = document.getElementById('igv2WorkflowPreset');
-        if (!select) return;
-
-        const options = ['<option value="">None (auto)</option>'];
-
-        this.workflowPresets.forEach((p) => {
-            if (!p || !p.id || !p.name) return;
-            options.push(`<option value="${p.id}">${p.name}</option>`);
-        });
-
-        select.innerHTML = options.join('');
-
-        if ([...select.options].some((opt) => opt.value === 'lora_bulk_auto_chat')) {
-            select.value = 'lora_bulk_auto_chat';
-        }
-    }
-
     _selectStyle(name) {
         // Update select
         const select = document.getElementById('igv2Style');
@@ -716,14 +577,13 @@ export class ImageGenV2 {
         }
 
         container.innerHTML = this.gallery.map(img => `
-            <div class="igv2-gallery-item" data-image-id="${img.image_id}" data-image-url="/api/image-gen/images/${img.image_id}">
+            <div class="igv2-gallery-item" onclick="window.open('/api/image-gen/images/${img.image_id}', '_blank')">
                 <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy">
                 <div class="igv2-gallery-meta">
                     <span class="igv2-gallery-prompt">${img.prompt?.substring(0, 40)}...</span>
                     <span class="igv2-gallery-info">${img.provider} | ${img.model}</span>
                 </div>
-                <button class="igv2-gallery-action igv2-gallery-newtab" onclick="event.stopPropagation(); window.open('/api/image-gen/images/${img.image_id}', '_blank', 'noopener,noreferrer')" title="Open in new tab">↗️</button>
-                <button class="igv2-gallery-action igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">🗑️</button>
+                <button class="igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">≡ƒùæ∩╕Å</button>
             </div>
         `).join('');
     }
@@ -779,52 +639,24 @@ export class ImageGenV2 {
                     <img src="${imgSrc}" alt="Generated" style="max-width: 100%; border-radius: 12px; cursor: pointer;" 
                          onclick="window.open('${imgSrc}', '_blank')">
                     <div class="igv2-chat-meta">
-                        🎨 <strong>${data.provider}</strong> / ${data.model} | ${Math.round(data.latency_ms)}ms | $${data.cost_usd}
-                        ${data.prompt_used ? `<br>📝 ${data.prompt_used.substring(0, 120)}...` : ''}
+                        ≡ƒÄ¿ <strong>${data.provider}</strong> / ${data.model} | ${Math.round(data.latency_ms)}ms | $${data.cost_usd}
+                        ${data.prompt_used ? `<br>≡ƒô¥ ${data.prompt_used.substring(0, 120)}...` : ''}
                     </div>
                 </div>
             </div>
         `;
         chatContainer.appendChild(msgDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-
-        // Surface the image to ChatManager so follow-up chat turns get it
-        // as context (provider/model/prompt; no base64 -- chat-manager drops
-        // data: URLs anyway). job_id is forwarded when the backend returned
-        // one so server-side enrichment can fill manifest_path/preset later.
-        try {
-            window.chatManager?.addGeneratedImage?.({
-                url: imgSrc,
-                prompt: data?.prompt_used || prompt || undefined,
-                provider: data?.provider || undefined,
-                model: data?.model || undefined,
-                job_id: data?.job_id || data?.image_id || undefined,
-            });
-        } catch (_e) { /* non-fatal */ }
     }
 
-    _showStatus(msg, type = 'info') {        const el = document.getElementById('igv2Status');
+    _showStatus(msg, type = 'info') {
+        const el = document.getElementById('igv2Status');
         if (!el) return;
         el.textContent = msg;
         el.className = `igv2-status igv2-status-${type}`;
     }
 
-    /**
-     * Read the reasoning-pipeline preference. Priority:
-     *   1. Live checkbox in the modal (truth source while modal is open).
-     *   2. Persisted localStorage value (set by ``generate()`` when the
-     *      modal closes), so chat-typed prompts inherit the last choice.
-     *   3. Default false.
-     */
-    _readReasoningPreference() {
-        const live = document.getElementById('igv2UseReasoning');
-        if (live) return live.checked === true;
-        try {
-            return window.localStorage?.getItem('igv2.useReasoning') === '1';
-        } catch (_) { return false; }
-    }
-
-    // ── Utility ────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Utility ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     downloadImage(url) {
         const a = document.createElement('a');
@@ -846,20 +678,20 @@ export class ImageGenV2 {
 
     _providerIcon(name) {
         const icons = {
-            fal: '⚡', replicate: '🔄', bfl: '🌊', openai: '🤖',
-            comfyui: '🖥️', together: '🤝', stepfun: '🚀',
+            fal: 'ΓÜí', replicate: '≡ƒöä', bfl: '≡ƒîè', openai: '≡ƒñû',
+            comfyui: '≡ƒûÑ∩╕Å', together: '≡ƒñ¥', stepfun: '≡ƒÜÇ',
         };
-        return icons[name] || '🎯';
+        return icons[name] || '≡ƒÄ»';
     }
 
     _styleIcon(name) {
         const icons = {
-            photorealistic: '📷', anime: '🎌', cinematic: '🎬',
-            watercolor: '🎨', digital_art: '💻', oil_painting: '🖼️',
-            pixel_art: '👾', '3d_render': '🧊', sketch: '✏️',
-            pop_art: '🎪', minimalist: '⬜', fantasy: '🧙',
-            noir: '🌑', vaporwave: '🌴', studio_photo: '📸',
+            photorealistic: '≡ƒô╖', anime: '≡ƒÄî', cinematic: '≡ƒÄ¼',
+            watercolor: '≡ƒÄ¿', digital_art: '≡ƒÆ╗', oil_painting: '≡ƒû╝∩╕Å',
+            pixel_art: '≡ƒæ╛', '3d_render': '≡ƒºè', sketch: 'Γ£Å∩╕Å',
+            pop_art: '≡ƒÄ¬', minimalist: 'Γ¼£', fantasy: '≡ƒºÖ',
+            noir: '≡ƒîæ', vaporwave: '≡ƒî┤', studio_photo: '≡ƒô╕',
         };
-        return icons[name] || '🎨';
+        return icons[name] || '≡ƒÄ¿';
     }
 }

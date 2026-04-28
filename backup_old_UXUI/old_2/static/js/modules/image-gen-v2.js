@@ -716,14 +716,13 @@ export class ImageGenV2 {
         }
 
         container.innerHTML = this.gallery.map(img => `
-            <div class="igv2-gallery-item" data-image-id="${img.image_id}" data-image-url="/api/image-gen/images/${img.image_id}">
+            <div class="igv2-gallery-item" onclick="window.open('/api/image-gen/images/${img.image_id}', '_blank')">
                 <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy">
                 <div class="igv2-gallery-meta">
                     <span class="igv2-gallery-prompt">${img.prompt?.substring(0, 40)}...</span>
                     <span class="igv2-gallery-info">${img.provider} | ${img.model}</span>
                 </div>
-                <button class="igv2-gallery-action igv2-gallery-newtab" onclick="event.stopPropagation(); window.open('/api/image-gen/images/${img.image_id}', '_blank', 'noopener,noreferrer')" title="Open in new tab">↗️</button>
-                <button class="igv2-gallery-action igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">🗑️</button>
+                <button class="igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">🗑️</button>
             </div>
         `).join('');
     }

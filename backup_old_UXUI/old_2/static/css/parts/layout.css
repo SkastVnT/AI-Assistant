@@ -1,0 +1,137 @@
+/* ── App Layout ────────────────────────────────────────────── */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Sidebar overlay — hidden on desktop, used on mobile */
+.sidebar-overlay {
+  display: none;
+}
+
+/* ── Split View ─────────────────────────────────────────── */
+.main.split-view {
+  flex-direction: row;
+}
+.main.split-view .split-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+.main.split-view .split-pane + .split-pane {
+  border-left: 2px solid var(--border-primary);
+}
+.split-pane__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  min-height: 32px;
+}
+.split-pane__header-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.split-pane__close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+}
+.split-pane__close:hover {
+  color: var(--error);
+  background: rgba(231,76,60,0.1);
+}
+.split-divider {
+  width: 4px;
+  cursor: col-resize;
+  background: var(--border-secondary);
+  transition: background var(--transition);
+  flex-shrink: 0;
+  position: relative;
+}
+.split-divider:hover,
+.split-divider.active {
+  background: var(--accent);
+}
+.split-divider::after {
+  content: '⋮';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* Context badge on chat items */
+.sidebar__chat-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.sidebar__footer {
+  padding: 12px;
+  border-top: 1px solid var(--border-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sidebar__footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar__footer-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ── Main Content Area ─────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}

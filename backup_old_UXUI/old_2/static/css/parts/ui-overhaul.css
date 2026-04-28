@@ -1,0 +1,648 @@
+/* ==========================================================================
+   UI Overhaul — Topbar / Sidebar / Gallery
+   Added 2026-04-27. Loaded LAST so it can override.
+   Goals:
+   - Replace messy inline styles with proper classes.
+   - Modern, glassy, consistent visual language.
+   - Better grouping & spacing in topbar.
+   - Sticky, organized sidebar footer (storage / quota / user).
+   - Premium-feeling gallery: rounded cards, soft hover overlays, masonry feel,
+     elegant lightbox toolbar.
+   ========================================================================== */
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. TOPBAR
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Generic relative wrapper (replaces style="position:relative") */
+.topbar__group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Pill-style labelled button used for thinking-mode + skill selectors */
+.topbar__btn--labelled {
+    width: auto;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 10px;
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.04));
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    transition: background 160ms ease, border-color 160ms ease,
+                color 160ms ease, transform 100ms ease;
+}
+.topbar__btn--labelled:hover {
+    background: var(--bg-active, rgba(255, 255, 255, 0.08));
+    border-color: var(--border-primary, rgba(255, 255, 255, 0.10));
+    color: var(--text-primary);
+}
+.topbar__btn--labelled:active { transform: scale(0.97); }
+.topbar__btn--labelled .lucide,
+.topbar__btn--labelled svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Right-side action row: tighter, with hover background */
+.topbar__right {
+    align-items: center;
+    gap: 2px;
+}
+.topbar__right .topbar__btn {
+    border-radius: 9px;
+    transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+}
+.topbar__right .topbar__btn:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.06));
+    color: var(--text-primary);
+}
+.topbar__right .topbar__btn:active { transform: scale(0.94); }
+
+/* Subtle vertical divider between action button groups */
+.topbar__sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 6px;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        var(--border-primary, rgba(255, 255, 255, 0.14)),
+        transparent
+    );
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* Brand link — slightly more refined */
+.topbar__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: background 150ms ease, color 150ms ease;
+}
+.topbar__brand:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary);
+}
+.topbar__brand .brand-icon { width: 16px; height: 16px; }
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. SIDEBAR — footer / storage / quota / user
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Footer becomes a clean, sticky-feeling stack */
+.sidebar__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    border-top: 1px solid var(--border-primary, rgba(255, 255, 255, 0.06));
+    background: linear-gradient(
+        to top,
+        var(--bg-secondary),
+        transparent 100%
+    );
+}
+
+.sidebar__footer-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    width: 100%;
+    transition: background 150ms ease, color 150ms ease;
+    font-family: var(--font-sans);
+}
+.sidebar__footer-btn:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary);
+}
+.sidebar__footer-btn .lucide { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Storage info pill */
+.sidebar__storage,
+#storageInfo {
+    padding: 8px 14px;
+    margin: 4px 0 2px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.45;
+    border-top: 1px solid var(--border-primary, rgba(255, 255, 255, 0.06));
+}
+
+/* ── Quota section (image quota + video unlock) ────────────────── */
+.sidebar__quota,
+#quotaSection {
+    padding: 10px 12px !important;
+    margin: 6px 6px 2px;
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.025));
+    border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.06));
+    border-radius: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+}
+.sidebar__quota[style*="block"],
+#quotaSection[style*="block"] {
+    display: flex !important;
+}
+
+.sidebar__quota-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.sidebar__quota-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.01em;
+}
+.sidebar__quota-label .lucide { width: 12px; height: 12px; }
+.sidebar__quota-value,
+#quotaText {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+}
+.sidebar__quota-track {
+    height: 6px;
+    border-radius: 4px;
+    background: var(--bg-active, rgba(255, 255, 255, 0.05));
+    overflow: hidden;
+    position: relative;
+}
+.sidebar__quota-fill,
+#quotaBar {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #7c6cf0, #ab7df6, #d97cff) !important;
+    box-shadow: 0 0 10px rgba(124, 108, 240, 0.40);
+    transition: width 450ms cubic-bezier(.2, .8, .2, 1),
+                background 200ms ease;
+}
+#quotaBar[style*="e74c3c"] {
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.40) !important;
+}
+
+/* Video unlock CTA — gold, but tasteful */
+#videoUnlockBtn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px !important;
+    border: 1px solid rgba(241, 196, 15, 0.40) !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, rgba(241, 196, 15, 0.10), rgba(241, 196, 15, 0.04)) !important;
+    color: #f1c40f !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    font-family: var(--font-sans) !important;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 160ms ease, transform 100ms ease,
+                box-shadow 160ms ease, border-color 160ms ease !important;
+}
+#videoUnlockBtn[style*="flex"] { display: flex !important; }
+#videoUnlockBtn:hover {
+    background: linear-gradient(135deg, rgba(241, 196, 15, 0.18), rgba(241, 196, 15, 0.08)) !important;
+    border-color: rgba(241, 196, 15, 0.55) !important;
+    box-shadow: 0 4px 14px rgba(241, 196, 15, 0.18);
+}
+#videoUnlockBtn:active { transform: scale(0.98); }
+#videoUnlockBtn .lucide { width: 13px; height: 13px; }
+
+#videoUnlockedMsg {
+    width: 100%;
+    padding: 7px 12px !important;
+    border: 1px solid rgba(46, 204, 113, 0.35) !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.10), rgba(46, 204, 113, 0.04)) !important;
+    color: #2ecc71 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    letter-spacing: 0.01em;
+}
+
+/* ── User section (trigger + dropdown) ─────────────────────────── */
+.sidebar__user {
+    position: relative;
+    margin-top: 4px;
+    padding: 6px;
+    border-top: 1px solid var(--border-primary, rgba(255, 255, 255, 0.06));
+}
+
+.sidebar__user-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-sans);
+    transition: background 150ms ease;
+}
+.sidebar__user-trigger:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.04));
+}
+.sidebar__user-trigger.is-open {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.06));
+}
+
+.sidebar__user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.sidebar__user-avatar img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+.sidebar__user-info { min-width: 0; flex: 1; }
+.sidebar__user-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+.sidebar__user-role {
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    line-height: 1.3;
+    margin-top: 1px;
+}
+.sidebar__user-chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    transition: transform 200ms ease;
+}
+.sidebar__user-trigger.is-open .sidebar__user-chevron {
+    transform: rotate(180deg);
+}
+
+#userDropdown {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 6px;
+    right: 6px;
+    background: color-mix(in oklab, var(--bg-secondary) 90%, transparent);
+    border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.50),
+                0 0 0 1px rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+    z-index: 200;
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. GALLERY — grid, cards, badges, action buttons, empty state
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Modal panel sizing — wider, taller */
+#galleryModal .modal-panel {
+    max-width: 1100px;
+    width: 96vw;
+    height: 88vh;
+    display: flex;
+    flex-direction: column;
+}
+#galleryModal .modal-panel__header {
+    flex-shrink: 0;
+}
+#galleryStats {
+    padding: 12px 24px;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-secondary, rgba(255, 255, 255, 0.06));
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+#galleryGrid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(124, 108, 240, 0.04), transparent 60%);
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 0;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    cursor: pointer;
+    background: var(--bg-tertiary, #1a1a22);
+    border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.06));
+    transition: transform 220ms cubic-bezier(.2, .8, .2, 1),
+                box-shadow 220ms ease,
+                border-color 220ms ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+}
+.gallery-item:hover {
+    transform: translateY(-3px);
+    border-color: rgba(124, 108, 240, 0.40);
+    box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(124, 108, 240, 0.22);
+}
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 400ms cubic-bezier(.2, .8, .2, 1),
+                filter 220ms ease;
+}
+.gallery-item:hover img {
+    transform: scale(1.06);
+    filter: brightness(0.85);
+}
+
+/* Cloud / Drive badges — small, glassy */
+.gallery-cloud-badge,
+.gallery-drive-badge {
+    position: absolute;
+    top: 10px;
+    font-size: 11px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    z-index: 4;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    line-height: 1;
+}
+.gallery-cloud-badge { left: 10px; }
+.gallery-drive-badge { left: 46px; }
+
+/* Footer info gradient + prompt */
+.gallery-item-info {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 10px 12px;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.85) 0%,
+        rgba(0, 0, 0, 0.50) 60%,
+        transparent 100%
+    );
+    color: #fff;
+    z-index: 2;
+    transform: translateY(20%);
+    opacity: 0;
+    transition: transform 240ms cubic-bezier(.2, .8, .2, 1), opacity 200ms ease;
+}
+.gallery-item:hover .gallery-item-info,
+.gallery-item.show-actions .gallery-item-info {
+    transform: translateY(0);
+    opacity: 1;
+}
+.gallery-item-info > div:first-child {
+    font-size: 10.5px;
+    opacity: 0.75;
+    margin-bottom: 4px;
+}
+.gallery-item-prompt {
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: #f1f1f1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Action buttons (info/upload/delete) — slide in on hover */
+.gallery-delete-btn,
+.gallery-info-btn,
+.gallery-upload-btn {
+    position: absolute;
+    top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 10px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 6;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 14px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transform: translateY(-6px);
+    opacity: 0;
+    transition: transform 220ms cubic-bezier(.2, .8, .2, 1),
+                opacity 180ms ease,
+                background 160ms ease,
+                border-color 160ms ease;
+}
+.gallery-item:hover .gallery-delete-btn,
+.gallery-item:hover .gallery-info-btn,
+.gallery-item:hover .gallery-upload-btn,
+.gallery-item.show-actions .gallery-delete-btn,
+.gallery-item.show-actions .gallery-info-btn,
+.gallery-item.show-actions .gallery-upload-btn {
+    transform: translateY(0);
+    opacity: 1;
+}
+.gallery-delete-btn:hover { background: rgba(231, 76, 60, 0.85); border-color: #e74c3c; }
+.gallery-info-btn:hover,
+.gallery-upload-btn:hover { background: rgba(124, 108, 240, 0.80); border-color: #7c6cf0; }
+
+.gallery-delete-btn { right: 10px; }
+.gallery-upload-btn { right: 46px; }
+.gallery-info-btn   { right: 82px; }
+
+.gallery-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    padding: 80px 20px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    grid-column: 1 / -1;
+}
+
+/* ── Image preview lightbox toolbar — glassy & icon-driven ─────── */
+.image-preview-overlay {
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    background: rgba(0, 0, 0, 0.85) !important;
+}
+.image-preview-controls {
+    background: rgba(20, 20, 28, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 6px !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.image-preview-controls .btn {
+    height: 34px;
+    padding: 0 12px !important;
+    border-radius: 9px !important;
+    font-size: 12.5px !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease !important;
+}
+.image-preview-controls .btn:hover {
+    background: rgba(255, 255, 255, 0.10) !important;
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.image-preview-controls select.btn {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+#imagePreviewContent {
+    border-radius: 14px !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55),
+                0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+#imagePreviewInfo {
+    max-width: min(900px, 92vw) !important;
+    background: rgba(20, 20, 28, 0.70);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 10px 14px !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255, 255, 255, 0.92) !important;
+    line-height: 1.5;
+    max-height: 28vh;
+    overflow-y: auto;
+}
+#imagePreviewInfo .lightbox__prompt {
+    margin-bottom: 8px;
+    word-break: break-word;
+}
+#imagePreviewInfo .lightbox__meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px 10px;
+    margin-top: 6px;
+}
+#imagePreviewInfo .lightbox__meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 7px;
+}
+#imagePreviewInfo .lightbox__meta-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.55);
+}
+#imagePreviewInfo .lightbox__meta-value {
+    font-size: 12px;
+    color: #fff;
+    word-break: break-word;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. RESPONSIVE
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .topbar__btn--labelled span:last-child { display: none; }
+    .topbar__sep { display: none; }
+
+    #galleryModal .modal-panel {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        border-radius: 0;
+    }
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+    }
+    .gallery-item-info { transform: translateY(0); opacity: 1; }
+    .gallery-delete-btn,
+    .gallery-info-btn,
+    .gallery-upload-btn { transform: translateY(0); opacity: 1; }
+
+    .image-preview-controls {
+        flex-wrap: wrap;
+        max-width: calc(100vw - 32px);
+    }
+}
