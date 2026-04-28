@@ -1,6 +1,13 @@
 ﻿"""
 Multimodal AI Handler - Vision + Text + Audio Integration
 Supports: Image analysis, Document OCR, Audio transcription, Combined analysis
+
+DEPRECATED (2026-04-28): no callers remain in the runtime code path.
+Vision / OCR / audio is now handled directly inside the active provider
+adapters (Gemini, OpenAI, xAI) via `core/chatbot.py` and the per-provider
+modules under `core/`. This module is kept as a reference implementation
+for the consolidated multimodal pipeline and may be removed once the
+provider adapters are confirmed to cover all historical use cases.
 """
 
 import os

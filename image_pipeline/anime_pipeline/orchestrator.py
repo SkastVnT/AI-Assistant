@@ -384,7 +384,7 @@ class AnimePipelineOrchestrator:
             # ``reversed(intermediates)`` filter.
             if v2:
                 yield self._event("stage_start", {
-                    "stage": "upscale_pre", "stage_num": 5.5, "total": 9,
+                    "stage": "upscale_pre", "stage_num": 5.5, "total_stages": 9,
                     "factor": 2.0,
                 })
                 self._upscale.execute_sdxl_pass(
@@ -524,7 +524,7 @@ class AnimePipelineOrchestrator:
             # v1: legacy ESRGAN single 4× pass.
             if getattr(self._config, "pipeline_v2_upscale_first", True):
                 yield self._event("stage_start", {
-                    "stage": "upscale", "stage_num": 9, "total": 9, "factor": 1.5,
+                    "stage": "upscale", "stage_num": 9, "total_stages": 9, "factor": 1.5,
                 })
                 self._upscale.execute_sdxl_pass(
                     job, factor=1.5, denoise=0.18, stage_name="upscale",

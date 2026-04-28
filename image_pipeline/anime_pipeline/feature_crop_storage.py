@@ -75,6 +75,26 @@ def _resolve_storage_root() -> Path:
     return (Path(__file__).resolve().parents[2] / "storage" / "feature_layers").resolve()
 
 
+def _resolve_job_subdir(job: "AnimePipelineJob") -> str:
+    """Per-generation folder name under ``<session>/``.
+
+    User spec (2026-04-27): every distinct generation must land in its
+    own subdirectory so crops from different prompts never collide.
+    Folder name embeds character + series + job-id prefix for human
+    browsability:
+
+        ``<char>__<series>__<job_id_prefix>``
+
+    The job_id is truncated to 12 chars (uuid4 hex prefix) which keeps
+    the path short while staying unique within a session.
+    """
+    char = _slug(getattr(job, "character_name", "") or "character")
+    series = _slug(getattr(job, "series_name", "") or "unknown_series")
+    raw_id = str(getattr(job, "job_id", "") or "").strip()
+    job_id = _slug(raw_id, fallback="job", max_len=16)[:16] or "job"
+    return f"{char}__{series}__{job_id}"
+
+
 # ── Image decoding / colour stats ───────────────────────────────────
 
 def _decode_b64_png(b64: str):
@@ -171,8 +191,12 @@ def persist_feature_crops(
     # 2026-04-26 user spec: split into original/ (reference layers) and
     # ai_gen/ (generated layers).  Existing flat-layout files remain
     # readable but new writes always go through the source-aware subdir.
+    # 2026-04-27 user spec: each generation also gets its own job-id
+    # subdirectory under <session>/ so crops from different prompts no
+    # longer pile up in a single flat folder.
     sub = "original" if source == "reference" else "ai_gen"
-    storage_root = _resolve_storage_root() / session / sub
+    job_subdir = _resolve_job_subdir(job)
+    storage_root = _resolve_storage_root() / session / job_subdir / sub
     try:
         storage_root.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
@@ -257,12 +281,21 @@ def evaluate_reference_vs_generated(
     ]
 
     session = _slug(getattr(job, "session_id", "") or job.job_id, fallback="default")
-    base = _resolve_storage_root() / session
+    job_subdir = _resolve_job_subdir(job)
+    base = _resolve_storage_root() / session / job_subdir
     orig_dir = base / "original"
     gen_dir = base / "ai_gen"
 
     if not orig_dir.exists() or not gen_dir.exists():
-        return {"compared": 0, "reason": "missing_subdir"}
+        # Backwards-compat: fall back to the legacy flat layout from
+        # before the per-job subdirectory split.
+        legacy = _resolve_storage_root() / session
+        legacy_orig = legacy / "original"
+        legacy_gen = legacy / "ai_gen"
+        if legacy_orig.exists() and legacy_gen.exists():
+            orig_dir, gen_dir = legacy_orig, legacy_gen
+        else:
+            return {"compared": 0, "reason": "missing_subdir"}
 
     try:
         from PIL import Image, ImageStat  # type: ignore

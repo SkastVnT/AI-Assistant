@@ -145,7 +145,17 @@ def _reuse_cached_refs_enabled() -> bool:
 # The orchestrator/researcher calls this first; web search is only
 # invoked when the local count is below the minimum.
 
-_SAA_MIN_LOCAL_REFS = int(os.getenv("CHAR_RESEARCH_MIN_LOCAL_REFS", "3"))
+# Threshold above which web image search is skipped because the local
+# cache already has "enough" reference images.
+# 2026-04-29: Default raised from 0 → 5 per user spec
+# ("nên đọc file đã tìm được ở đâu trước, sau đó mới tìm nơi khác").
+# Behaviour:
+#   * len(local) >= 5  → skip web image search, reuse cache.
+#   * len(local) <  5  → run web search to grow the cache.
+# Set CHAR_RESEARCH_MIN_LOCAL_REFS=0 to force unlimited web search
+# (legacy "Không giới hạn" mode). Set a higher value to require more
+# local refs before short-circuiting.
+_SAA_MIN_LOCAL_REFS = int(os.getenv("CHAR_RESEARCH_MIN_LOCAL_REFS", "5"))
 
 
 def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
@@ -1431,7 +1441,12 @@ def research_character(
     # 2026-04-26: SAA-first — ALWAYS gather local refs (incl. SAA thumb)
     # before any web call so external search becomes a true fallback.
     local_refs = _collect_local_refs(danbooru_tag, max_images=10)
-    skip_web_image_search = len(local_refs) >= _SAA_MIN_LOCAL_REFS
+    # When _SAA_MIN_LOCAL_REFS <= 0 (default) the cap is disabled — web
+    # search ALWAYS runs so the ref cache keeps growing. Set a positive
+    # int via CHAR_RESEARCH_MIN_LOCAL_REFS to opt back into capping.
+    skip_web_image_search = (
+        _SAA_MIN_LOCAL_REFS > 0 and len(local_refs) >= _SAA_MIN_LOCAL_REFS
+    )
 
     if not force_refresh:
         cached = _load_cached_research(danbooru_tag)

@@ -1021,6 +1021,7 @@ export class AnimePipeline {
         const cancelStage = bubble.dataset.apCancelStage || '';
         // Disarm the Stop hard-fallback timer set in _createInlineBubble.
         bubble.dataset.apFinalized = '1';
+        bubble.dataset.apState = wasCancelled ? 'cancelled' : 'done';
 
         // Mark every still-pending layer card as done (final stage emitted
         // before the bubble swap; nothing else will refresh them).
@@ -1199,40 +1200,12 @@ export class AnimePipeline {
                 });
             });
 
-            // Inject a per-image "📐 Upscale" overlay button on every
-            // candidate (single layout or batch grid). Clicking opens
-            // the lightbox for that image and auto-runs the configured
-            // upscale factor — re-runnable via the lightbox toolbar.
-            resultDiv.querySelectorAll('img[data-igv2-open]').forEach(img => {
-                const wrap = img.parentElement;
-                if (!wrap || wrap.querySelector('.ap-tile-upscale')) return;
-                if (getComputedStyle(wrap).position === 'static') {
-                    wrap.style.position = 'relative';
-                }
-                const btn = document.createElement('button');
-                btn.className = 'ap-tile-upscale';
-                btn.type = 'button';
-                btn.title = 'Phóng ảnh này (Upscale 2×)';
-                btn.textContent = '📐 Upscale';
-                Object.assign(btn.style, {
-                    position: 'absolute', bottom: '6px', right: '6px',
-                    background: 'rgba(0,0,0,0.65)', color: '#fff',
-                    border: '1px solid rgba(255,255,255,0.25)',
-                    fontSize: '11px', padding: '3px 8px',
-                    borderRadius: '6px', cursor: 'pointer', zIndex: '2',
-                });
-                btn.addEventListener('click', async (ev) => {
-                    ev.stopPropagation();
-                    if (window.openImagePreview) window.openImagePreview(img);
-                    // Auto-run a 2× pass via the existing lightbox handler
-                    // so the user does not have to click twice. Subsequent
-                    // re-upscales happen from the lightbox toolbar.
-                    if (window.upscalePreviewImage) {
-                        setTimeout(() => window.upscalePreviewImage(), 80);
-                    }
-                });
-                wrap.appendChild(btn);
-            });
+            // 2026-04-28: per-tile "📐 Upscale" overlay button removed by
+            // user request — the new orientation presets generate at
+            // native 2048×2048 (or 1536×2048 / 2048×1536) so a
+            // post-hoc upscale pass is no longer needed in the common
+            // case. The /api/anime-pipeline/upscale endpoint still
+            // exists for power users / CLI consumers.
 
             msgContent?.appendChild(resultDiv.firstElementChild);
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -1252,6 +1225,7 @@ export class AnimePipeline {
             return;
         }
         bubble.dataset.apFinalized = '1';
+        bubble.dataset.apState = 'error';
         const details = bubble?.querySelector('.ap-inline-progress');
         if (details) {
             details.open = true;

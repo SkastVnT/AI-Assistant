@@ -93,7 +93,7 @@ def _base_patches():
             return_value=_mock_chatbot(),
         ),
         "rag": patch(
-            "fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+            "fastapi_app.routers.chat.retrieve_rag_context",
             new_callable=AsyncMock,
             return_value=_mock_rag_result(),
         ),
@@ -162,7 +162,7 @@ class TestCouncilModeEnabled:
         council_dict = _council_result_dict()
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session") as mock_get_bot, \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council",
                    new_callable=AsyncMock, return_value=council_dict) as mock_council:
@@ -187,7 +187,7 @@ class TestCouncilModeEnabled:
         council_dict = _council_result_dict()
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session"), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council",
                    new_callable=AsyncMock, return_value=council_dict) as mock_council:
@@ -214,7 +214,7 @@ class TestCouncilModeEnabled:
         council_dict = _council_result_dict()
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session"), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council",
                    new_callable=AsyncMock, return_value=council_dict) as mock_council:
@@ -250,7 +250,7 @@ class TestCouncilModeDisabled:
         }
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session"), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council",
                    new_callable=AsyncMock, return_value=disabled_dict):
@@ -277,7 +277,7 @@ class TestUploadAgentMode:
         bot = _mock_chatbot()
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session", return_value=bot), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council") as mock_council:
             resp = client.post("/chat/upload", data={
@@ -293,7 +293,7 @@ class TestUploadAgentMode:
         council_dict = _council_result_dict()
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session"), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council",
                    new_callable=AsyncMock, return_value=council_dict) as mock_council:
@@ -332,7 +332,7 @@ class TestEdgeCases:
         bot = _mock_chatbot()
 
         with patch("fastapi_app.routers.chat.get_chatbot_for_session", return_value=bot), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.chat.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()), \
              patch("fastapi_app.routers.chat.run_council") as mock_council:
             resp = client.post("/chat", json={

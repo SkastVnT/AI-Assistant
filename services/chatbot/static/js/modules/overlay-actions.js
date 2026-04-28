@@ -108,9 +108,16 @@ export function initOverlayActions() {
 
             const imageEl = event.target.closest('.igv2-chat-image img[data-igv2-open]');
             if (imageEl) {
-                const targetUrl = imageEl.getAttribute('data-igv2-open');
-                if (targetUrl) {
-                    window.open(targetUrl, '_blank', 'noopener');
+                event.preventDefault();
+                event.stopPropagation();
+                // Open in the existing in-page lightbox (#imagePreviewModal)
+                // instead of a new browser tab. Falls back to window.open
+                // only if the lightbox wrapper hasn't been initialised yet.
+                if (typeof window.openImagePreview === 'function') {
+                    window.openImagePreview(imageEl);
+                } else {
+                    const targetUrl = imageEl.getAttribute('data-igv2-open');
+                    if (targetUrl) window.open(targetUrl, '_blank', 'noopener');
                 }
             }
         });

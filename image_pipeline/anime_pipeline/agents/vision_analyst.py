@@ -360,14 +360,34 @@ class VisionAnalystAgent:
         images_b64: list[str],
         language: str,
     ) -> Optional[VisionAnalysis]:
-        """Dispatch to the appropriate vision API."""
-        if model_name.startswith("gemini"):
+        """Dispatch to the appropriate vision API.
+
+        2026-04-29: Grok and StepFun added (NSFW-friendly, OpenAI-compat
+        chat-completions schema) so the priority list in vision_service
+        config is honoured end-to-end. Without these branches the agent
+        silently fell through to Gemini/GPT, defeating the NSFW chain.
+        """
+        name = model_name.lower()
+        if name.startswith("gemini"):
             return self._analyze_gemini(model_name, user_prompt, images_b64, language)
-        elif model_name.startswith("gpt"):
+        if name.startswith("gpt"):
             return self._analyze_openai(model_name, user_prompt, images_b64, language)
-        else:
-            logger.warning("[VisionAnalyst] Unknown model: %s", model_name)
-            return None
+        if name.startswith("grok"):
+            return self._analyze_openai_compat(
+                model_name, user_prompt, images_b64, language,
+                base_url="https://api.x.ai/v1/chat/completions",
+                api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
+                key_label="GROK_API_KEY",
+            )
+        if name.startswith("step-") or name.startswith("stepfun"):
+            return self._analyze_openai_compat(
+                model_name, user_prompt, images_b64, language,
+                base_url="https://api.stepfun.com/v1/chat/completions",
+                api_key=os.getenv("STEPFUN_API_KEY"),
+                key_label="STEPFUN_API_KEY",
+            )
+        logger.warning("[VisionAnalyst] Unknown model: %s", model_name)
+        return None
 
     def _analyze_gemini(
         self,
@@ -482,6 +502,69 @@ class VisionAnalystAgent:
         with httpx.Client(timeout=30) as client:
             resp = client.post(
                 "https://api.openai.com/v1/chat/completions",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            resp.raise_for_status()
+
+        data = resp.json()
+        text = data["choices"][0]["message"]["content"]
+        return self._parse_analysis(text)
+
+    def _analyze_openai_compat(
+        self,
+        model_name: str,
+        user_prompt: str,
+        images_b64: list[str],
+        language: str,
+        *,
+        base_url: str,
+        api_key: Optional[str],
+        key_label: str,
+    ) -> Optional[VisionAnalysis]:
+        """Analyze using any OpenAI-compatible chat-completions endpoint.
+
+        Used by Grok (api.x.ai) and StepFun (api.stepfun.com) which both
+        speak the same JSON schema as OpenAI but live on different hosts
+        and have NSFW-friendlier moderation. Mirrors :meth:`_analyze_openai`
+        with a configurable URL + API key source so the NSFW priority chain
+        in vision_service config is honoured end-to-end.
+        """
+        if not api_key:
+            raise RuntimeError(f"No {key_label} set")
+
+        import httpx
+
+        image_context = (
+            f"{len(images_b64)} reference image(s)" if images_b64
+            else "user prompt (no images)"
+        )
+        user_msg = _USER_PROMPT_TEMPLATE.format(
+            user_prompt=user_prompt, image_context=image_context
+        )
+
+        messages_content: list[dict] = [{"type": "text", "text": user_msg}]
+        for img_b64 in images_b64:
+            raw = img_b64.split(",", 1)[-1] if "," in img_b64 else img_b64
+            messages_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{raw}", "detail": "low"},
+            })
+
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": _VISION_SYSTEM_PROMPT},
+                {"role": "user", "content": messages_content},
+            ],
+            "max_tokens": self._config.vision_max_tokens,
+            "temperature": self._config.vision_temperature,
+            "response_format": {"type": "json_object"},
+        }
+
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(
+                base_url,
                 json=payload,
                 headers={"Authorization": f"Bearer {api_key}"},
             )

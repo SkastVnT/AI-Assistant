@@ -117,6 +117,58 @@ export class ImageGenV2 {
         });
     }
 
+    /**
+     * Read the active character pin from the picker (window.selectedCharacter)
+     * with a body[data-character-key] fallback. Returns
+     * { character_key, series_key } — both may be null when nothing is pinned.
+     * Used by every image-gen entry point so the picker selection flows
+     * through modal-triggered, chat-typed, and SSE flows uniformly.
+     */
+    _collectCharacterPin() {
+        const sel = window.selectedCharacter || null;
+        let character_key = null, series_key = null;
+        if (sel && sel.key) {
+            character_key = sel.key;
+            if (sel.series_key) series_key = sel.series_key;
+        } else {
+            character_key = document.body?.dataset?.characterKey || null;
+            series_key = document.body?.dataset?.seriesKey || null;
+        }
+        return { character_key, series_key };
+    }
+
+    /**
+     * Apply an orientation preset to the Width/Height selects.
+     *  - 'square'    → 2048×2048
+     *  - 'portrait'  → 1536×2048
+     *  - 'landscape' → 2048×1536
+     * Adds the option dynamically if it isn't in the dropdown so we
+     * don't depend on the template having every preset listed.
+     */
+    setOrientation(kind) {
+        const presets = {
+            square:    { w: 2048, h: 2048 },
+            portrait:  { w: 1536, h: 2048 },
+            landscape: { w: 2048, h: 1536 },
+        };
+        const p = presets[kind];
+        if (!p) return;
+        const setSelect = (id, value) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const v = String(value);
+            if (![...el.options].some(o => o.value === v)) {
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = v;
+                el.appendChild(opt);
+            }
+            el.value = v;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        setSelect('igv2Width', p.w);
+        setSelect('igv2Height', p.h);
+    }
+
     // ── Generate ───────────────────────────────────────────────────
 
     async generate() {
@@ -166,15 +218,7 @@ export class ImageGenV2 {
             // Mirror anime-pipeline.js: read window.selectedCharacter or
             // body data-attributes so the picker selection flows through
             // /api/image-gen/generate as well.
-            const _selChar = window.selectedCharacter || null;
-            let _characterKey = null, _seriesKey = null;
-            if (_selChar && _selChar.key) {
-                _characterKey = _selChar.key;
-                if (_selChar.series_key) _seriesKey = _selChar.series_key;
-            } else {
-                _characterKey = document.body?.dataset?.characterKey || null;
-                _seriesKey = document.body?.dataset?.seriesKey || null;
-            }
+            const { character_key: _characterKey, series_key: _seriesKey } = this._collectCharacterPin();
 
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
@@ -337,6 +381,7 @@ export class ImageGenV2 {
     async generateFromChat(message, conversationId) {
         this.conversationId = conversationId || this.conversationId;
         const useReasoning = this._readReasoningPreference();
+        const { character_key, series_key } = this._collectCharacterPin();
 
         try {
             const resp = await fetch('/api/image-gen/generate', {
@@ -349,6 +394,8 @@ export class ImageGenV2 {
                     conversation_id: this.conversationId,
                     num_images: 1,
                     use_reasoning_pipeline: useReasoning,
+                    character_key,
+                    series_key,
                 }),
             });
 
@@ -382,6 +429,7 @@ export class ImageGenV2 {
         const useReasoning = (typeof options.useReasoning === 'boolean')
             ? options.useReasoning
             : this._readReasoningPreference();
+        const { character_key, series_key } = this._collectCharacterPin();
 
         try {
             const resp = await fetch('/api/image-gen/stream', {
@@ -401,6 +449,8 @@ export class ImageGenV2 {
                     guidance: options.guidance || undefined,
                     negative_prompt: options.negativePrompt || undefined,
                     use_reasoning_pipeline: useReasoning,
+                    character_key,
+                    series_key,
                 }),
                 signal: abortSignal,
             });

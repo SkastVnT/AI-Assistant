@@ -1196,11 +1196,16 @@ def _get_cost_summary() -> dict:
 
 # ── LoRA & workflow preset endpoints ─────────────────────────────────────
 
-@image_gen_bp.route("/api/image-gen/loras", methods=["GET"])
-def list_loras():
+@image_gen_bp.route("/api/image-gen/loras/combined", methods=["GET"])
+def list_loras_combined():
     """
-    List available LoRA models.
-    Returns both the catalog (known presets) and live LoRAs from ComfyUI.
+    List available LoRA models — catalog + live ComfyUI inventory.
+
+    NOTE: the canonical ``GET /api/image-gen/loras`` endpoint is the
+    manifest-based ``list_loras`` defined earlier in this module. This
+    extra endpoint exposes the legacy combined-view payload for
+    consumers that need both curated catalog presets *and* the live
+    ComfyUI directory listing in one call.
     """
     try:
         from config.model_presets import LORA_CATALOG

@@ -45,6 +45,31 @@ def _enrich_with_character(data: dict) -> dict:
     Backward-compatible: if no character_key (or unresolved), returns input.
     """
     char_key = (data.get("character_key") or "").strip()
+
+    # ── NLU pass: auto-derive character_key from the prompt itself
+    # when the client didn't pre-select one. Lets users say
+    # "Tạo ảnh Hoshino trong Blue Archive..." and get the right LoRA
+    # without opening the character picker.
+    if not char_key:
+        prompt_text = (data.get("prompt") or "").strip()
+        if prompt_text:
+            try:
+                from image_pipeline.anime_pipeline.character_nlu import (
+                    extract_character_key,
+                )
+                derived = extract_character_key(prompt_text)
+            except Exception as exc:  # pragma: no cover — defensive
+                logger.debug("[anime_pipeline] character_nlu unavailable: %s", exc)
+                derived = None
+            if derived:
+                logger.info(
+                    "[anime_pipeline] NLU auto-derived character_key=%s from prompt",
+                    derived,
+                )
+                char_key = derived
+                data = dict(data)
+                data["character_key"] = derived
+
     if not char_key:
         return data
 
@@ -456,32 +481,10 @@ def upload_reference_images():
 
 # ── Upscale endpoint (re-runnable) ──────────────────────────────────────
 
-@anime_pipeline_bp.route("/api/anime-pipeline/upscale", methods=["POST"])
-def upscale_image():
-    """Upscale **and** fix-text in a single pass via Ultimate SD Upscale.
-
-    Combines two operations the user used to run separately:
-      1. ESRGAN-style upsampling to ``factor`` (1.5×–4×)
-      2. SDXL img2img tile redraw at moderate denoise to clean up
-         garbled letters / typography artifacts.
-
-    Re-runnable: feed the result back in for another pass. Each pass
-    refines text further at the cost of slight style drift.
-
-    Body (JSON):
-        image_url / image_b64  — same contract as before
-        factor: float          — upscale factor [1.0..4.0], default 2.0.
-                                 ``factor=1.0`` ⇒ no resize, pure
-                                 text-fix (replaces the old /fix-text
-                                 endpoint).
-        denoise: float         — img2img strength [0.10..0.55],
-                                 default 0.30. Higher = better text
-                                 repair but more style drift.
-        prompt: str            — optional extra context (character/scene)
-                                 to keep the redraw on-style.
-
-    Returns 200 ``{ ok, image_url, image_b64, width, height, factor,
-    denoise, model, processing_ms }`` on success.
+def run_upscale_payload(data: dict) -> tuple[dict, int]:
+    """Pure helper that runs the upscale workflow and returns
+    ``(response_dict, http_status)``. Independent of Flask request
+    state so the FastAPI mirror can call it via run_in_threadpool.
     """
     import base64
     import io
@@ -489,17 +492,9 @@ def upscale_image():
     from datetime import datetime
     from pathlib import Path
 
-    rate_err = _rate_check()
-    if rate_err:
-        return jsonify({"ok": False, "error": rate_err}), 429
-
-    data = request.get_json(force=True, silent=True) or {}
     image_url = (data.get("image_url") or "").strip()
     image_b64 = (data.get("image_b64") or "").strip()
 
-    # Resolve raw base64 from either source. ``/storage/images/<file>``
-    # is read directly off disk; remote URLs are not fetched (would
-    # require an outbound HTTP allowlist — out of scope).
     raw_b64: str | None = None
     if image_b64:
         raw_b64 = image_b64.split(",", 1)[1] if "," in image_b64 else image_b64
@@ -508,11 +503,10 @@ def upscale_image():
             raw_b64 = image_url.split(",", 1)[1] if "," in image_url else ""
         elif image_url.startswith("/storage/images/"):
             fname = image_url.rsplit("/", 1)[-1]
-            # Reuse the same path-traversal guard as serve_image.
             if "/" in fname or "\\" in fname or ".." in fname or "\0" in fname:
-                return jsonify({"ok": False, "error": "Invalid image_url"}), 400
+                return {"ok": False, "error": "Invalid image_url"}, 400
             if not re.match(r"^[A-Za-z0-9_\-\.]+$", fname):
-                return jsonify({"ok": False, "error": "Invalid image_url"}), 400
+                return {"ok": False, "error": "Invalid image_url"}, 400
             try:
                 from chatbot_main import IMAGE_STORAGE_DIR
             except Exception:
@@ -522,17 +516,16 @@ def upscale_image():
             try:
                 target.relative_to(allowed)
             except ValueError:
-                return jsonify({"ok": False, "error": "image_url outside storage"}), 400
+                return {"ok": False, "error": "image_url outside storage"}, 400
             if not target.is_file():
-                return jsonify({"ok": False, "error": "image not found"}), 404
+                return {"ok": False, "error": "image not found"}, 404
             raw_b64 = base64.b64encode(target.read_bytes()).decode("ascii")
         else:
-            return jsonify({"ok": False, "error": "Only /storage/images/ URLs or base64 supported"}), 400
+            return {"ok": False, "error": "Only /storage/images/ URLs or base64 supported"}, 400
 
     if not raw_b64:
-        return jsonify({"ok": False, "error": "image_url or image_b64 is required"}), 400
+        return {"ok": False, "error": "image_url or image_b64 is required"}, 400
 
-    # Validate raw_b64 is decodable PNG/JPEG before submitting to ComfyUI.
     try:
         img_bytes = base64.b64decode(raw_b64, validate=True)
         from PIL import Image
@@ -541,15 +534,13 @@ def upscale_image():
         with Image.open(io.BytesIO(img_bytes)) as im:
             src_w, src_h = im.size
     except Exception as exc:
-        return jsonify({"ok": False, "error": f"Invalid image data: {exc}"}), 400
+        return {"ok": False, "error": f"Invalid image data: {exc}"}, 400
 
-    # Safety cap: SDXL img2img at high factor is heavy. Refuse > 4 MP
-    # source so a 4× upscale stays under ~64 MP target.
     if src_w * src_h > 4_000_000:
-        return jsonify({
+        return {
             "ok": False,
             "error": f"Source too large ({src_w}×{src_h}={src_w*src_h:,} px). Max 4 MP.",
-        }), 413
+        }, 413
 
     factor = float(data.get("factor", 2.0))
     factor = max(1.0, min(4.0, factor))
@@ -567,38 +558,51 @@ def upscale_image():
         checkpoint = (cfg.beauty_model.checkpoint
                       or cfg.composition_model.checkpoint)
         if not checkpoint:
-            return jsonify({
-                "ok": False,
-                "error": "No SDXL checkpoint configured for upscale",
-            }), 503
+            return {"ok": False, "error": "No SDXL checkpoint configured for upscale"}, 503
         if not cfg.upscale_model:
-            return jsonify({
-                "ok": False,
-                "error": "No upscale model configured in ComfyUI",
-            }), 503
+            return {"ok": False, "error": "No upscale model configured in ComfyUI"}, 503
 
-        # Text-aware booster — kept short so it does not drown the
-        # caller's character/scene context.
         text_booster = (
             "clean readable english text, sharp clear letters, "
             "well-formed typography, high quality lettering, "
             "crisp letter shapes, accurate spelling"
         )
+        # Hires face/hand/body fix booster — the img2img redraw at
+        # higher resolution will regenerate these regions, so steering
+        # the SDXL model with explicit anatomy quality terms cleans up
+        # the most common artifacts (broken eyes, malformed hands,
+        # extra fingers, twisted limbs).
+        anatomy_booster = (
+            "perfect face, beautiful detailed eyes, detailed pupils, "
+            "symmetric eyes, clear sharp eyes, perfect hands, "
+            "anatomically correct hands, five fingers, detailed fingers, "
+            "perfect anatomy, well-proportioned body, perfect feet, "
+            "detailed skin texture"
+        )
         positive = ", ".join(filter(None, [
             text_booster,
+            anatomy_booster,
             cfg.quality_prefix or "masterpiece, best quality",
             extra_prompt,
         ]))
         negative = ", ".join(filter(None, [
             "garbled text, blurry text, illegible letters, scrambled "
             "letters, distorted typography, broken characters, "
-            "misspelled, gibberish, fake text, alien glyphs",
+            "misspelled, gibberish, fake text, alien glyphs, "
+            "bad anatomy, bad hands, malformed hands, mutated hands, "
+            "extra fingers, missing fingers, fused fingers, "
+            "deformed face, asymmetric eyes, cross-eyed, lazy eye, "
+            "extra limbs, missing limbs, deformed feet, mutated body",
             cfg.negative_base or "lowres, worst quality",
         ]))
 
         builder = WorkflowBuilder()
         client = ComfyClient(base_url=cfg.comfyui_url)
+        seed = int(_time.time()) & 0x7FFF_FFFF
+        target_w = int(src_w * factor)
+        target_h = int(src_h * factor)
 
+        # Try Ultimate SD Upscale first (tiled img2img; best quality).
         workflow = builder.build_ultimate_sd_upscale(
             image_b64=raw_b64,
             upscale_model=cfg.upscale_model,
@@ -606,7 +610,7 @@ def upscale_image():
             checkpoint=checkpoint,
             positive_prompt=positive,
             negative_prompt=negative,
-            seed=int(_time.time()) & 0x7FFF_FFFF,
+            seed=seed,
             steps=22,
             cfg=6.0,
             denoise=denoise,
@@ -619,23 +623,55 @@ def upscale_image():
             job_id=f"upscale_{_uuid.uuid4().hex[:8]}",
             pass_name="upscale",
         )
+
+        # Fallback: if Ultimate SD Upscale custom node is missing,
+        # rebuild with the built-in Hires.fix workflow (UpscaleModel
+        # → ImageScale → VAEEncode → KSampler → VAEDecode).
+        validation = (getattr(result, "validation_error", "") or "").lower()
+        node_missing = (
+            not result.success
+            and ("ultimatesdupscale" in validation
+                 or "does not exist" in validation
+                 or "ultimatesdupscale" in (result.error or "").lower())
+        )
+        if node_missing:
+            logger.info(
+                "[anime_pipeline] /upscale: UltimateSDUpscale unavailable, "
+                "falling back to built-in Hires.fix workflow"
+            )
+            workflow = builder.build_hires_fix_upscale(
+                image_b64=raw_b64,
+                upscale_model=cfg.upscale_model,
+                target_width=target_w,
+                target_height=target_h,
+                checkpoint=checkpoint,
+                positive_prompt=positive,
+                negative_prompt=negative,
+                seed=seed,
+                steps=22,
+                cfg=6.0,
+                denoise=denoise,
+            )
+            result = client.submit_workflow(
+                workflow,
+                job_id=f"upscale_hf_{_uuid.uuid4().hex[:8]}",
+                pass_name="upscale_hires_fix",
+            )
+
         if not result.success or not result.images_b64:
             err = (result.error or
                    getattr(result, "validation_error", None) or
                    "ComfyUI returned no images")
             logger.warning("[anime_pipeline] /upscale: %s", err)
-            return jsonify({"ok": False, "error": str(err)}), 502
+            return {"ok": False, "error": str(err)}, 502
 
         out_b64 = result.images_b64[0]
-        target_w = int(src_w * factor)
-        target_h = int(src_h * factor)
         model_name = cfg.upscale_model
 
     except Exception as exc:
         logger.exception("[anime_pipeline] /upscale failed")
-        return jsonify({"ok": False, "error": str(exc)}), 500
+        return {"ok": False, "error": str(exc)}, 500
 
-    # Persist to storage so the frontend can display via /storage URL.
     try:
         try:
             from chatbot_main import IMAGE_STORAGE_DIR
@@ -651,7 +687,7 @@ def upscale_image():
         out_url = ""
 
     elapsed_ms = int((_time.time() - t0) * 1000)
-    return jsonify({
+    return {
         "ok": True,
         "image_url": out_url,
         "image_b64": out_b64,
@@ -661,7 +697,25 @@ def upscale_image():
         "denoise": denoise,
         "model": model_name,
         "processing_ms": elapsed_ms,
-    })
+    }, 200
+
+
+@anime_pipeline_bp.route("/api/anime-pipeline/upscale", methods=["POST"])
+def upscale_image():
+    """Upscale **and** fix-text in a single pass via Ultimate SD Upscale.
+
+    Combines two operations the user used to run separately:
+      1. ESRGAN-style upsampling to ``factor`` (1.5×–4×)
+      2. SDXL img2img tile redraw at moderate denoise to clean up
+         garbled letters / typography artifacts.
+    """
+    rate_err = _rate_check()
+    if rate_err:
+        return jsonify({"ok": False, "error": rate_err}), 429
+
+    data = request.get_json(force=True, silent=True) or {}
+    body, status = run_upscale_payload(data)
+    return jsonify(body), status
 
 
 # ── Fix-text endpoint (kept as alias of /upscale with factor=1.0) ──────

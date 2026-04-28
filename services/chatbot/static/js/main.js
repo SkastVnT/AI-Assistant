@@ -3313,35 +3313,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
     window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
 
-    // Upscale + fix-text in a single pass via ComfyUI Ultimate SD
-    // Upscale (SDXL img2img tile redraw). Re-runnable: each call uses
-    // the *current* previewImg.src as the source, so the user can
-    // stack passes (1× → 2× → 4× …) or refine text further.
-    // ``factor=1`` ⇒ pure text-fix at original resolution.
+    // 2026-04-28: lightbox "Upscale" button removed by user request
+    // ("quá nặng"). Image-Gen V2 modal now exposes orientation
+    // presets that generate natively at 2048×2048 / 1536×2048 /
+    // 2048×1536, so a post-hoc upscale pass is no longer the default
+    // path. The backend ``/api/anime-pipeline/upscale`` endpoint is
+    // still reachable via direct API for power users.
     window.upscalePreviewImage = async () => {
-        const factorSel = document.getElementById('imagePreviewUpscaleFactor');
-        const factor = parseFloat(factorSel?.value || '2') || 2;
-        const isTextOnly = factor <= 1.05;
-        return _runPreviewOp({
-            endpoint: '/api/anime-pipeline/upscale',
-            extraBody: {
-                factor,
-                // Slightly higher denoise when at 1× (no resize) to
-                // give SDXL more room to redraw mangled glyphs.
-                denoise: isTextOnly ? 0.40 : 0.30,
-            },
-            btnId: 'imagePreviewUpscaleBtn',
-            label: '📐 Upscale + Fix text',
-            workingLabel: isTextOnly
-                ? '⏳ Fixing text…'
-                : `⏳ Upscaling ${factor}× + fixing text…`,
-            metaExtra: (j) => (
-                j.factor <= 1.05
-                    ? `text-fix · denoise ${j.denoise} · ${j.processing_ms}ms`
-                    : `${j.factor}× · denoise ${j.denoise} · ${j.processing_ms}ms`
-            ),
-            metaExtraLabel: 'Processed',
-        });
+        console.warn('[upscalePreviewImage] disabled — use orientation presets to generate at 2048×2048 directly.');
     };
 
     // Shared implementation for lightbox image-mutating ops. Reads
@@ -4093,16 +4072,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '';
 
                 info.innerHTML = `
-                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${m.prompt}</div>` : ''}
-                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${m.negative_prompt}</div>` : ''}
+                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${escapeHtml(m.prompt)}</div>` : ''}
+                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${escapeHtml(m.negative_prompt)}</div>` : ''}
                     <div class="lightbox__meta-grid">
                         ${metaItems.map(i => `
                             <div class="lightbox__meta-item">
-                                <span class="lightbox__meta-label">${i.label}</span>
-                                <span class="lightbox__meta-value">${i.value}</span>
+                                <span class="lightbox__meta-label">${escapeHtml(i.label)}</span>
+                                <span class="lightbox__meta-value">${escapeHtml(i.value)}</span>
                             </div>
                         `).join('')}
-                        ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${loraStr}</span></div>` : ''}
+                        ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${escapeHtml(loraStr)}</span></div>` : ''}
                     </div>
                 `;
             } else if (info) {
