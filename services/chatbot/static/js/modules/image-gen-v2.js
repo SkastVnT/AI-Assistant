@@ -269,6 +269,18 @@ export class ImageGenV2 {
                     promptP.className = 'text-sm mt-2';
                     promptP.textContent = 'Prompt used: ' + (data.prompt_used || prompt);
                     errorDiv.appendChild(promptP);
+                    // 2026-04-29: explicit retry button so failed gen
+                    // doesn't force the user to re-fill the form.
+                    const retryBtn = document.createElement('button');
+                    retryBtn.type = 'button';
+                    retryBtn.className = 'igv2-retry-btn';
+                    retryBtn.textContent = '🔁 Thử lại';
+                    retryBtn.style.cssText = 'margin-top:10px;padding:6px 14px;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:.9em;';
+                    retryBtn.addEventListener('click', () => {
+                        errorDiv.remove();
+                        this.generate();
+                    });
+                    errorDiv.appendChild(retryBtn);
                     resultArea.innerHTML = '';
                     resultArea.appendChild(errorDiv);
                 }
