@@ -139,7 +139,7 @@ export class ImageGenV2 {
 
     /**
      * Apply an orientation preset to the Width/Height selects.
-     *  - 'square'    → 2048×2048
+     *  - 'square'    → 1800×1800
      *  - 'portrait'  → 1536×2048
      *  - 'landscape' → 2048×1536
      * Adds the option dynamically if it isn't in the dropdown so we
@@ -147,7 +147,7 @@ export class ImageGenV2 {
      */
     setOrientation(kind) {
         const presets = {
-            square:    { w: 2048, h: 2048 },
+            square:    { w: 1800, h: 1800 },
             portrait:  { w: 1536, h: 2048 },
             landscape: { w: 2048, h: 1536 },
         };
