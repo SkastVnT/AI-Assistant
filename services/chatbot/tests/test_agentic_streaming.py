@@ -344,7 +344,7 @@ class TestCouncilStreamRoute:
             yield _sse("council_result", _council_result_dict())
 
         with patch("fastapi_app.routers.council_stream.run_council_stream", side_effect=fake_stream), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.council_stream.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()):
             resp = stream_client.post("/chat/council/stream", json={
                 "message": "Hello",
@@ -372,7 +372,7 @@ class TestCouncilStreamRoute:
             yield _sse("council_result", _disabled_response("casual", None))
 
         with patch("fastapi_app.routers.council_stream.run_council_stream", side_effect=fake_disabled_stream), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.council_stream.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()):
             resp = stream_client.post("/chat/council/stream", json={
                 "message": "Test",
@@ -401,7 +401,7 @@ class TestCouncilStreamRoute:
             yield _sse("council_result", _council_result_dict())
 
         with patch("fastapi_app.routers.council_stream.run_council_stream", side_effect=fake_stream), \
-             patch("fastapi_app.rag_helpers.RAGOrchestrator.retrieve_for_chat",
+             patch("fastapi_app.routers.council_stream.retrieve_rag_context",
                    new_callable=AsyncMock, return_value=_mock_rag_result()):
             resp = stream_client.post("/chat/council/stream", json={
                 "message": "Hello",

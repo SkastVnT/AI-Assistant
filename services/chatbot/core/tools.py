@@ -376,7 +376,13 @@ def serpapi_reverse_image(image_url: str) -> str:
 
     logger.info(f"[SERPAPI:REVERSE_IMAGE] URL: {image_url[:80]}")
 
+    # 2026-04-29: track which tiers we tried so the user can see the
+    # actual fallback chain (e.g. "Lens empty → Reverse hit") instead of
+    # a single opaque heading.
+    _attempted: list[str] = []
+
     # --- Attempt 1: Google Lens ---
+    _attempted.append("Google Lens")
     try:
         resp = requests.get(_SERPAPI_URL, params={
             "engine": "google_lens",
@@ -405,6 +411,7 @@ def serpapi_reverse_image(image_url: str) -> str:
                         f"🔗 [{link}]({link})"
                     )
                 return (
+                    f"🪜 _Cascade: Google Lens ✅_\n\n"
                     f"🔍 **Google Lens — Visual Matches** ({len(matches)} kết quả):\n\n"
                     + "\n\n---\n\n".join(parts)
                 )
@@ -412,6 +419,7 @@ def serpapi_reverse_image(image_url: str) -> str:
         logger.warning(f"[SERPAPI:GOOGLE_LENS] Failed: {e}")
 
     # --- Attempt 2: Google Reverse Image ---
+    _attempted.append("Google Reverse")
     try:
         resp = requests.get(_SERPAPI_URL, params={
             "engine": "google_reverse_image",
@@ -441,11 +449,13 @@ def serpapi_reverse_image(image_url: str) -> str:
                     f"🔗 [{link}]({link})"
                 )
             if parts:
-                return "🔍 **Google Reverse Image:**\n\n" + "\n\n---\n\n".join(parts)
+                _trail = " → ".join(_attempted)
+                return f"🪜 _Cascade: {_trail}_\n\n🔍 **Google Reverse Image:**\n\n" + "\n\n---\n\n".join(parts)
     except Exception as e:
         logger.warning(f"[SERPAPI:GOOGLE_REVERSE_IMAGE] Failed: {e}")
 
     # --- Attempt 3: Yandex Images ---
+    _attempted.append("Yandex")
     try:
         resp = requests.get(_SERPAPI_URL, params={
             "engine": "yandex_images",
@@ -471,11 +481,13 @@ def serpapi_reverse_image(image_url: str) -> str:
                         f"{image_md}"
                         f"🔗 [{link}]({link})"
                     )
-                return "🔍 **Yandex Images Reverse:**\n\n" + "\n\n---\n\n".join(parts)
+                _trail = " → ".join(_attempted)
+                return f"🪜 _Cascade: {_trail}_\n\n🔍 **Yandex Images Reverse:**\n\n" + "\n\n---\n\n".join(parts)
     except Exception as e:
         logger.warning(f"[SERPAPI:YANDEX_IMAGES] Failed: {e}")
 
-    return "🔍 Không tìm thấy kết quả reverse image từ bất kỳ nguồn nào."
+    _trail = " → ".join(_attempted) if _attempted else "(none)"
+    return f"🔍 Không tìm thấy kết quả reverse image. 🪜 Đã thử: {_trail}."
 
 
 def serpapi_image_search(query: str, engine: str = "google_images_light") -> str:

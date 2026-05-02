@@ -139,6 +139,189 @@ def _save_to_gallery(saved: dict, prompt: str, provider: str, model: str, conver
         pass
 
 
+# ── Cycle 7.6: reasoning-pipeline fast-path helpers (FastAPI mirror) ─────────
+# Same gating contract as the Flask routes: payload `use_reasoning_pipeline`
+# AND env `REASONING_PIPELINE_ENABLED`. Helpers are no-op when either is
+# false, so the URL map stays byte-identical with the flag off.
+
+def _reasoning_flag_enabled() -> bool:
+    try:
+        from core.config import REASONING_PIPELINE_ENABLED
+        return bool(REASONING_PIPELINE_ENABLED)
+    except Exception:
+        return False
+
+
+def _run_reasoning_fastpath_json(
+    *, prompt: str, data: dict, conversation_id: str, storage, img_session
+) -> Optional[dict]:
+    """Run the reasoning pipeline and return a /generate-shaped dict, or None
+    if the pipeline could not be invoked."""
+    try:
+        from routes.reasoning_image_gen import run_pipeline_for_prompt
+    except Exception as exc:
+        logger.warning(f"[image_gen] reasoning import failed: {exc}")
+        return {"success": False, "error": f"reasoning import failed: {exc}"}
+
+    pipeline = run_pipeline_for_prompt(
+        prompt,
+        layout=data.get("layout"),
+        attached_images=data.get("attached_images") or 0,
+        character_hint=data.get("character_hint"),
+    )
+    pipeline.pop("status_code", None)
+    if not pipeline.get("success") or not pipeline.get("image_b64"):
+        return {
+            "success": False,
+            "error": pipeline.get("error") or "reasoning pipeline failed",
+            "reasoning": pipeline,
+        }
+
+    saved = storage.save(
+        image_b64=pipeline["image_b64"],
+        prompt=prompt,
+        provider="reasoning",
+        model="comic-pipeline",
+        conversation_id=conversation_id,
+        metadata={
+            "reasoning_job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+        },
+    )
+    if saved.get("error"):
+        return {"success": False, "error": f"reasoning save failed: {saved['error']}"}
+
+    _save_to_gallery(saved, prompt, "reasoning", "comic-pipeline", conversation_id)
+
+    try:
+        from core.private_logger import log_image_generation
+        log_image_generation(
+            prompt=prompt, provider="reasoning", model="comic-pipeline",
+            image_url=saved.get("url", ""), image_path=saved.get("local_path", ""),
+            session_id=conversation_id, mode="txt2img",
+            extra={"reasoning_job_id": pipeline.get("job_id")},
+        )
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "images": [{
+            "url": saved.get("url", ""),
+            "image_id": saved.get("image_id", ""),
+            "local_path": saved.get("local_path", ""),
+        }],
+        "images_url": [],
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "prompt_used": prompt,
+        "original_prompt": prompt,
+        "latency_ms": 0.0,
+        "cost_usd": 0.0,
+        "style": data.get("style"),
+        "reasoning": {
+            "job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+            "panels": pipeline.get("panels"),
+        },
+    }
+
+
+def _stream_reasoning_fastpath(
+    *, prompt: str, data: dict, conversation_id: str, storage, img_session,
+):
+    """SSE generator that mirrors the Flask /stream fast-path."""
+    try:
+        from routes.reasoning_image_gen import run_pipeline_for_prompt
+    except Exception as exc:
+        logger.warning(f"[image_gen] reasoning stream import failed: {exc}")
+        yield _sse("error", {"error": f"reasoning import failed: {exc}"})
+        return
+
+    yield _sse("status", {
+        "step": "reasoning_pipeline", "phase": "start",
+        "message": "Routing through reasoning pipeline",
+    })
+    yield _sse("provider_try", {
+        "provider": "reasoning", "priority": 0, "attempt": 1,
+        "total_providers": 1,
+    })
+
+    pipeline = run_pipeline_for_prompt(
+        prompt,
+        layout=data.get("layout"),
+        attached_images=data.get("attached_images") or 0,
+        character_hint=data.get("character_hint"),
+    )
+    pipeline.pop("status_code", None)
+
+    if not pipeline.get("success") or not pipeline.get("image_b64"):
+        yield _sse("error", {
+            "error": pipeline.get("error") or "reasoning pipeline failed",
+            "provider": "reasoning",
+            "reasoning": pipeline,
+        })
+        return
+
+    saved = storage.save(
+        image_b64=pipeline["image_b64"],
+        prompt=prompt,
+        provider="reasoning",
+        model="comic-pipeline",
+        conversation_id=conversation_id,
+        metadata={
+            "reasoning_job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+        },
+    )
+    if saved.get("error"):
+        yield _sse("error", {
+            "error": f"reasoning save failed: {saved['error']}",
+            "provider": "reasoning",
+        })
+        return
+
+    _save_to_gallery(saved, prompt, "reasoning", "comic-pipeline", conversation_id)
+
+    try:
+        from core.private_logger import log_image_generation
+        log_image_generation(
+            prompt=prompt, provider="reasoning", model="comic-pipeline",
+            image_url=saved.get("url", ""), image_path=saved.get("local_path", ""),
+            session_id=conversation_id, mode="txt2img",
+            extra={"reasoning_job_id": pipeline.get("job_id"), "stream": True},
+        )
+    except Exception:
+        pass
+
+    yield _sse("provider_success", {
+        "provider": "reasoning", "model": "comic-pipeline", "latency_ms": 0.0,
+    })
+    yield _sse("result", {
+        "success": True,
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "prompt_used": prompt,
+        "images_url": [],
+        "images_b64": [],
+        "latency_ms": 0.0,
+        "cost_usd": 0.0,
+        "metadata": {"reasoning_job_id": pipeline.get("job_id")},
+        "reasoning": {
+            "job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+            "panels": pipeline.get("panels"),
+        },
+    })
+    yield _sse("saved", {
+        "images": [{
+            "url": saved.get("url", ""),
+            "image_id": saved.get("image_id", ""),
+            "local_path": saved.get("local_path", ""),
+        }],
+    })
+
+
 # ── POST /api/image-gen/stream  (SSE — primary endpoint) ─────────────────────
 
 @router.post("/stream")
@@ -151,6 +334,14 @@ async def generate_image_stream(request: Request):
         data = await request.json()
     except Exception:
         data = {}
+
+    # ── SAA character pin (parity with Flask /api/image-gen/stream) ──────
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover
+            logger.warning(f"[fastapi.image_gen.stream] character enrichment skipped: {_ce}")
 
     prompt = (data.get("prompt") or "").strip()
     if not prompt:
@@ -170,6 +361,21 @@ async def generate_image_stream(request: Request):
     storage = _get_storage()
     img_session = sessions.get_or_create(conversation_id)
     context = img_session.get_context_for_enhancement() if img_session.history else None
+
+    # ── Cycle 7.6: streaming reasoning fast-path (LOCAL, opt-in) ─────────
+    if data.get("use_reasoning_pipeline") and _reasoning_flag_enabled():
+        return StreamingResponse(
+            _stream_reasoning_fastpath(
+                prompt=prompt, data=data, conversation_id=conversation_id,
+                storage=storage, img_session=img_session,
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     from core.image_gen import QualityMode
 
@@ -320,6 +526,14 @@ async def generate_image(request: Request):
     except Exception:
         data = {}
 
+    # ── SAA character pin (parity with Flask /api/image-gen/generate) ────
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover
+            logger.warning(f"[fastapi.image_gen] character enrichment skipped: {_ce}")
+
     prompt = (data.get("prompt") or "").strip()
     if not prompt:
         return JSONResponse({"success": False, "error": "prompt is required"}, status_code=400)
@@ -334,6 +548,18 @@ async def generate_image(request: Request):
     storage = _get_storage()
     img_session = sessions.get_or_create(conversation_id)
     context = img_session.get_context_for_enhancement() if img_session.history else None
+
+    # ── Cycle 7.6: blocking reasoning fast-path (LOCAL, opt-in) ──────────
+    if data.get("use_reasoning_pipeline") and _reasoning_flag_enabled():
+        rp = _run_reasoning_fastpath_json(
+            prompt=prompt, data=data,
+            conversation_id=conversation_id,
+            storage=storage, img_session=img_session,
+        )
+        if rp is not None:
+            if not rp.get("success"):
+                return JSONResponse(rp, status_code=500)
+            return rp
 
     from core.image_gen import QualityMode
 

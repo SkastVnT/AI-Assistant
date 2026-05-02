@@ -207,6 +207,28 @@ Chatbot proxy qua `routes/mcp.py` (Flask) hoặc `fastapi_app/routers/mcp.py` (F
 |---|---|
 | `POST` | `/api/image-gen/generate`, `/api/image-gen/stream`, `/api/image-gen/edit` |
 
+### Reasoning Image Pipeline (opt-in, `REASONING_PIPELINE=true`)
+| Method | Path |
+|---|---|
+| `GET`  | `/api/reasoning-image-gen/status` |
+| `POST` | `/api/reasoning-image-gen/generate` |
+
+Local nano-banana-style multi-panel pipeline backed by ComfyUI. Disabled
+by default; the route is not registered when the flag is unset, so the
+URL map is byte-identical to the legacy runtime.
+
+When the flag is on, BOTH `POST /api/image-gen/generate` (JSON) AND
+`POST /api/image-gen/stream` (SSE) accept `use_reasoning_pipeline: true`
+in their JSON payload — that opt-in toggle short-circuits the regular
+provider router and returns the assembled comic via the standard
+image-gen response shape (`provider: "reasoning"`,
+`model: "comic-pipeline"`). The SSE variant emits the usual
+`status` → `provider_try` → `provider_success` → `result` → `saved`
+event sequence so the chat-typed flow needs no rendering changes. The
+toggle is exposed in the chat UI's Image Gen v2 modal as
+**🧠 Use Reasoning Pipeline** and is persisted to `localStorage` so
+chat-typed prompts inherit the last choice.
+
 ### Video (Sora 2)
 | Method | Path |
 |---|---|

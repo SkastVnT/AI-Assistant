@@ -118,8 +118,10 @@ def test_persist_creates_files_per_region(tmp_path, monkeypatch):
         assert parts[1] == "Genshin_Impact"
         assert parts[2] == entry["feature"]
         assert parts[4] == f"{entry['index']:02d}"
-        # session subdir
-        assert p.parent.name == "chat-abc"
+        # path layout: <session>/<char>__<series>__<job_id>/<source>/<file>
+        assert p.parent.name == "ai_gen"  # default source="generated"
+        assert p.parent.parent.name == "Klee__Genshin_Impact__job-001"
+        assert p.parent.parent.parent.name == "chat-abc"
 
 
 def test_persist_color_stats_present(tmp_path, monkeypatch):
@@ -161,4 +163,6 @@ def test_persist_falls_back_to_job_id_when_no_session(tmp_path, monkeypatch):
     assert len(out) == 1
     # session_id was empty → falls back to job_id ("job-001")
     assert out[0]["session_id"] == "job-001"
-    assert Path(out[0]["path"]).parent.name == "job-001"
+    # path layout: <session>/<char>__<series>__<job_id>/<source>/<file>
+    p = Path(out[0]["path"])
+    assert p.parent.parent.parent.name == "job-001"

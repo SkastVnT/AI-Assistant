@@ -308,6 +308,18 @@ def _start_character_select_if_needed() -> None:
 
     npm_cmd = 'npm.cmd' if os.name == 'nt' else 'npm'
 
+    # 2026-04-28: guard against silent FileNotFoundError when npm is not
+    # on PATH. Previously we'd spawn `npm.cmd` blindly and the user
+    # would only see a vague background failure in the log file. Skip
+    # cleanly with an actionable message instead.
+    import shutil
+    if shutil.which(npm_cmd) is None:
+        print(
+            f"[WARN] Character Select SAA autostart skipped: '{npm_cmd}' not found on PATH. "
+            f"Install Node.js (https://nodejs.org/) or set CHARACTER_SELECT_AUTO_START=false."
+        )
+        return
+
     # First-run install: SAA ships a package.json but no node_modules; without
     # Electron installed, `npm start` immediately fails with
     # "'electron' is not recognized". Install once on first launch.

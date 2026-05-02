@@ -243,6 +243,10 @@ class AnimePipelineOrchestrator:
                 "vision_analysis", self._vision, job, stage_num=1, total=8,
             )
 
+            # Snapshot ref count BEFORE character research so we can detect
+            # when web-research injects new references and re-run vision.
+            _refs_before_research = len(job.reference_images_b64 or [])
+
             # Emit vision reasoning event
             vision_reasoning = self._build_vision_reasoning(job)
             if vision_reasoning:
@@ -250,6 +254,34 @@ class AnimePipelineOrchestrator:
 
             # Stage 1.5: Character Research (web search + reference download)
             yield from self._run_character_research(job)
+
+            # ── Re-run vision analysis when fresh refs were injected ─────
+            # The first Stage 1 pass may have logged "No reference images"
+            # because character_research hadn't downloaded them yet. Now
+            # that refs exist, re-execute vision so the LLM actually
+            # tags the character art instead of hallucinating from prompt.
+            _refs_after_research = len(job.reference_images_b64 or [])
+            if (
+                _refs_after_research > _refs_before_research
+                and getattr(self._vision, "execute", None) is not None
+            ):
+                try:
+                    logger.info(
+                        "[AnimePipeline] Re-running vision_analysis on %d injected ref(s)",
+                        _refs_after_research - _refs_before_research,
+                    )
+                    self._vision.execute(job)
+                    yield self._event("vision_reanalyzed", {
+                        "ref_count": _refs_after_research,
+                        "tags_count": len(
+                            (job.vision_analysis.anime_tags if job.vision_analysis else [])
+                        ),
+                    })
+                except Exception as _re_exc:  # pragma: no cover — defensive
+                    logger.warning(
+                        "[AnimePipeline] Vision re-analysis failed (non-fatal): %s",
+                        _re_exc,
+                    )
 
             # Apply identity-derived overrides (solo enforcement +
             # homonym/collision negatives) to vision_analysis. Runs
@@ -339,6 +371,35 @@ class AnimePipelineOrchestrator:
                 })
                 return
 
+            # ── New flow (composition → upscale 2× → structure → YOLO → beauty
+            #   → critique loop → upscale 1.5×).
+            # Gate behind ``cfg.pipeline_v2_upscale_first`` (default True).
+            # When disabled, the legacy order (structure → beauty-loop-with-YOLO
+            #   → ESRGAN upscale) runs unchanged for backward compatibility.
+            v2 = getattr(self._config, "pipeline_v2_upscale_first", True)
+
+            # Stage 3.5 (v2 only): SDXL upscale 2× the composition.
+            # Tagged ``composition_pass`` so structure_lock / beauty /
+            # detection_inpaint pick it up via their existing
+            # ``reversed(intermediates)`` filter.
+            if v2:
+                yield self._event("stage_start", {
+                    "stage": "upscale_pre", "stage_num": 5.5, "total_stages": 9,
+                    "factor": 2.0,
+                    "vram_profile": self._config.vram.profile.value,
+                })
+                self._upscale.execute_sdxl_pass(
+                    job, factor=2.0, denoise=0.20,
+                    stage_name="composition_pass",
+                )
+                yield self._event("stage_complete", {
+                    "stage": "upscale_pre",
+                    "latency_ms": job.stage_timings_ms.get("composition_pass", 0),
+                })
+                if _is_cancel_requested(job.job_id):
+                    yield self._build_cancellation_event(job, "upscale_pre", t0)
+                    return
+
             # Stage 4: Structure Lock
             yield from self._run_stage(
                 "structure_lock", self._structure, job, stage_num=6, total=9,
@@ -351,8 +412,24 @@ class AnimePipelineOrchestrator:
                 yield self._build_cancellation_event(job, "structure_lock", t0)
                 return
 
+            # Stage 4.5 (v2 only): YOLO detection_inpaint runs HERE on the
+            # upscaled+structured composition, so beauty_pass redraws
+            # already-correct anatomy. Set a flag so the inline YOLO call
+            # inside _beauty_critique_loop skips itself.
+            if v2:
+                self._yolo_done_pre_beauty = True
+                yield from self._run_detection_inpaint(job)
+                if self._cancelled:
+                    return
+                if _is_cancel_requested(job.job_id):
+                    yield self._build_cancellation_event(job, "detection_inpaint", t0)
+                    return
+            else:
+                self._yolo_done_pre_beauty = False
+
             # Stage 5-8: Beauty + YOLO Detail Fix + Critique loop
-            # YOLO runs INSIDE the loop so Critique evaluates the
+            # In v2, YOLO already ran above; the loop's inline YOLO is skipped.
+            # In v1, YOLO runs INSIDE the loop so Critique evaluates the
             # YOLO-enhanced image, not raw Beauty output.
             yield from self._beauty_critique_loop(job)
             if self._cancelled:
@@ -404,8 +481,19 @@ class AnimePipelineOrchestrator:
                     if job.user_loras:
                         self._inject_user_loras(job)
 
+                    # Snapshot critique count BEFORE attempt 2 so we can tag
+                    # only the new ones (added during attempt 2 loop) below.
+                    _critiques_before_attempt2 = len(job.critique_results)
+
                     # Beauty loop attempt 2
                     yield from self._beauty_critique_loop(job)
+
+                    # Tag all new critiques as attempt-2 results
+                    for _c in job.critique_results[_critiques_before_attempt2:]:
+                        try:
+                            setattr(_c, "_attempt2", True)
+                        except Exception:
+                            pass
 
                 # If attempt 2 also didn't pass quality, emit dual output
                 attempt_2_passed = bool(
@@ -431,10 +519,26 @@ class AnimePipelineOrchestrator:
                         "Returning best of each."
                     )
 
-            # Stage 9: Upscale
-            yield from self._run_stage(
-                "upscale", self._upscale, job, stage_num=9, total=9,
-            )
+            # Stage 9: Upscale.
+            # v2: SDXL Ultimate-SD-Upscale at 1.5× with low denoise
+            #     (refines detail without changing pose/identity).
+            # v1: legacy ESRGAN single 4× pass.
+            if getattr(self._config, "pipeline_v2_upscale_first", True):
+                yield self._event("stage_start", {
+                    "stage": "upscale", "stage_num": 9, "total_stages": 9, "factor": 1.5,
+                    "vram_profile": self._config.vram.profile.value,
+                })
+                self._upscale.execute_sdxl_pass(
+                    job, factor=1.5, denoise=0.18, stage_name="upscale",
+                )
+                yield self._event("stage_complete", {
+                    "stage": "upscale",
+                    "latency_ms": job.stage_timings_ms.get("upscale", 0),
+                })
+            else:
+                yield from self._run_stage(
+                    "upscale", self._upscale, job, stage_num=9, total=9,
+                )
             if self._cancelled:
                 return
 
@@ -505,10 +609,9 @@ class AnimePipelineOrchestrator:
 
             # If we have any intermediate, use it as fallback
             if not job.final_image_b64:
-                for img in reversed(job.intermediates):
-                    if img.image_b64:
-                        job.final_image_b64 = img.image_b64
-                        break
+                fallback = job.latest_render_image()
+                if fallback:
+                    job.final_image_b64 = fallback
 
             yield self._event("pipeline_error", {
                 "job_id": job.job_id,
@@ -585,7 +688,9 @@ class AnimePipelineOrchestrator:
             # YOLO Detail Fix — runs BEFORE critique so that Critique
             # evaluates the YOLO-enhanced image, not raw beauty output.
             # Skips gracefully if YOLO unavailable or beauty failed.
-            if not beauty_failed:
+            # In v2 flow, YOLO already ran ONCE before beauty on the
+            # upscaled composition; do not re-run it inside refine rounds.
+            if not beauty_failed and not getattr(self, "_yolo_done_pre_beauty", False):
                 yield from self._run_detection_inpaint(job)
                 if self._cancelled:
                     return
@@ -680,9 +785,39 @@ class AnimePipelineOrchestrator:
                 else:
                     consecutive_fail_count = 0
 
-                # ── Re-plan trigger: 4 consecutive sub-threshold rounds ──
-                # Signal the orchestrator to re-plan with a fresh prompt.
-                _REPLAN_FAIL_LIMIT = 4
+                # ── Re-plan trigger: 2 consecutive sub-threshold rounds ──
+                # Lowered from 4 → 2: each round costs ~30s beauty + ~150s
+                # YOLO detail fix, so 4 wasted rounds = 12 minutes. Two
+                # consecutive fails is a strong enough signal to abandon
+                # the current seed/prompt and replan.
+                _REPLAN_FAIL_LIMIT = 2
+
+                # ── Catastrophic-score early abort ──
+                # If the very first critique scores < 5.0, the prompt or
+                # character mapping is fundamentally wrong; further refines
+                # cannot fix it (observed: 5 rounds × 28s beauty + 5 × 145s
+                # YOLO = 14 min producing score 3.8). Replan immediately.
+                _CATASTROPHIC_SCORE = 5.0
+                if (
+                    score < _CATASTROPHIC_SCORE
+                    and not self._replan_needed
+                    and self._replan_count < 1
+                    and round_num < max_rounds
+                ):
+                    self._replan_needed = True
+                    logger.info(
+                        "[AnimePipeline] Catastrophic score %.2f on round %d — replanning immediately",
+                        score, round_num,
+                    )
+                    yield self._event("replan_scheduled", {
+                        "consecutive_fails": consecutive_fail_count,
+                        "best_score": round(best_score, 2),
+                        "score_history": [round(s, 2) for s in score_history],
+                        "reason": f"Catastrophic score {score:.1f} < {_CATASTROPHIC_SCORE} — prompt/character mismatch likely",
+                        "catastrophic": True,
+                    })
+                    break
+
                 if (
                     consecutive_fail_count >= _REPLAN_FAIL_LIMIT
                     and not self._replan_needed
@@ -700,6 +835,50 @@ class AnimePipelineOrchestrator:
                         "reason": f"{consecutive_fail_count} consecutive rounds below {threshold_score:.1f}",
                     })
                     break  # exit loop; orchestrator will re-plan
+
+                # ── Hard cap re-plan trigger: N TOTAL rounds without a pass ──
+                # Prevents endless refine when score oscillates around threshold
+                # (e.g. 7.9/8.1/7.8 never tripping the consecutive-fail rule).
+                # After this many beauty rounds without latest_critique.passed,
+                # force re-plan → produces 2nd image via dual_output.
+                hard_cap_total = getattr(self._config, "force_replan_after_rounds", 5)
+                rounds_done = round_num + 1  # 1-indexed for human readability
+                if (
+                    rounds_done >= hard_cap_total
+                    and not latest_critique.passed
+                    and round_num < max_rounds
+                ):
+                    if (
+                        not self._replan_needed
+                        and self._replan_count < 1
+                    ):
+                        # Attempt 1: trigger replan
+                        self._replan_needed = True
+                        logger.info(
+                            "[AnimePipeline] Hard cap reached (attempt 1): %d rounds without pass (best=%.1f) — scheduling re-plan",
+                            rounds_done, best_score,
+                        )
+                        yield self._event("replan_scheduled", {
+                            "consecutive_fails": consecutive_fail_count,
+                            "best_score": round(best_score, 2),
+                            "score_history": [round(s, 2) for s in score_history],
+                            "reason": f"Reached {rounds_done} total beauty rounds without passing (hard cap {hard_cap_total})",
+                            "hard_cap": True,
+                        })
+                    else:
+                        # Attempt 2 (or beyond): plain hard stop, no further replan.
+                        # Dual output will be emitted by orchestrator using best images.
+                        logger.info(
+                            "[AnimePipeline] Hard cap reached (attempt 2): %d rounds without pass (best=%.1f) — stopping refine loop",
+                            rounds_done, best_score,
+                        )
+                        yield self._event("refine_hard_stop", {
+                            "rounds_done": rounds_done,
+                            "best_score": round(best_score, 2),
+                            "score_history": [round(s, 2) for s in score_history],
+                            "reason": f"Attempt 2 reached {rounds_done} rounds without passing (hard cap {hard_cap_total})",
+                        })
+                    break  # exit loop
 
                 # ── Stagnation detection: full restart ──────────────
                 if (
@@ -740,12 +919,29 @@ class AnimePipelineOrchestrator:
 
                 # Character-specific face/eye quality gate:
                 # Even if overall passes, force refine if face or eyes are weak.
-                # eye_reference_match_pct >= 95 required when reference images exist.
-                face_weak = has_character and latest_critique.face_score < 8
+                #
+                # Calibration history:
+                #  - face_score < 8 + eye_ref < 95% used to force refine even
+                #    when the image was already good enough (e.g. score=7.79
+                #    + eye_ref=85% looped 3 rounds without measurable gain,
+                #    adding ~10 minutes to total runtime).
+                #  - Real-world critique scores rarely cross 8.5 even on
+                #    excellent images, and eye_ref above 80% is already a
+                #    strong character match.
+                # New thresholds: face ≥ 7, eye ≥ 7, eye_ref ≥ 80%.
+                # If the user wants stricter behavior, raise via env:
+                #   ANIME_PIPELINE_GATE_FACE_MIN, ANIME_PIPELINE_GATE_EYE_MIN,
+                #   ANIME_PIPELINE_GATE_EYE_REF_MIN.
+                import os as _os
+                _gate_face_min = float(_os.getenv("ANIME_PIPELINE_GATE_FACE_MIN", "7"))
+                _gate_eye_min = float(_os.getenv("ANIME_PIPELINE_GATE_EYE_MIN", "7"))
+                _gate_eye_ref_min = float(_os.getenv("ANIME_PIPELINE_GATE_EYE_REF_MIN", "80"))
+
+                face_weak = has_character and latest_critique.face_score < _gate_face_min
                 eye_ref_pct = getattr(latest_critique, "eye_reference_match_pct", 0.0)
-                eye_ref_weak = eye_ref_pct > 0.0 and eye_ref_pct < 95.0
+                eye_ref_weak = eye_ref_pct > 0.0 and eye_ref_pct < _gate_eye_ref_min
                 eyes_weak = has_character and (
-                    latest_critique.eye_consistency_score < 8 or eye_ref_weak
+                    latest_critique.eye_consistency_score < _gate_eye_min or eye_ref_weak
                 )
 
                 # Eye-refine scheduling: run focused refine when eyes are weak
@@ -874,18 +1070,35 @@ class AnimePipelineOrchestrator:
         # logged but never fatal — the pipeline must still hand back the
         # main image even when crop persistence breaks.
         try:
-            from .feature_crop_storage import persist_feature_crops
+            from .feature_crop_storage import (
+                evaluate_reference_vs_generated,
+                persist_feature_crops,
+            )
             crops = persist_feature_crops(
                 job,
                 getattr(self._detection_inpaint, "last_result", None),
+                source="generated",
             )
             if crops:
                 job.metadata["feature_crops"] = crops
                 yield self._event("feature_crops_persisted", {
                     "stage": "detection_inpaint",
+                    "source": "generated",
                     "count": len(crops),
                     "feature_types": sorted({c["feature"] for c in crops}),
                 })
+            # 2026-04-26: face-priority ref-vs-gen evaluation.  Compares
+            # crops in original/ (reference) vs ai_gen/ for face, eyes,
+            # hair, mouth, nose.  Always best-effort; never fatal.
+            try:
+                eval_report = evaluate_reference_vs_generated(job)
+                if eval_report.get("compared"):
+                    job.metadata["feature_ref_evaluation"] = eval_report
+                    yield self._event("feature_ref_evaluation", eval_report)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(
+                    "[AnimePipeline] feature ref evaluation failed: %s", exc,
+                )
         except Exception as exc:  # noqa: BLE001
             logger.warning("[AnimePipeline] feature crop persistence failed: %s", exc)
 
@@ -1179,6 +1392,45 @@ class AnimePipelineOrchestrator:
                 latency = (time.time() - t0) * 1000
                 job.stage_timings_ms["character_research"] = latency
                 job.stages_executed.append("character_research")
+
+                # 2026-04-29: surface ref-source diagnostics so the chat
+                # UI can tell the user "Đã dùng N ảnh local cache, K ảnh
+                # web mới" instead of leaving the path opaque.
+                yield self._event("research_status", {
+                    "stage": "character_research",
+                    "danbooru_tag": result.danbooru_tag,
+                    "display_name": result.display_name,
+                    "local_refs": int(getattr(result, "local_refs_count", 0)),
+                    "web_refs": int(getattr(result, "web_refs_count", 0)),
+                    "web_search_skipped": bool(getattr(result, "web_search_skipped", False)),
+                    "nsfw_intent": bool(getattr(result, "nsfw_intent", False)),
+                    "cached": bool(getattr(result, "cached", False)),
+                    "confidence": float(getattr(result, "confidence", 0.0)),
+                    "latency_ms": latency,
+                })
+
+                # 2026-04-26: persist YOLO-detected feature crops from
+                # the reference images (SAA / cached / web) into
+                # storage/feature_layers/<session>/original/.  These
+                # become the ground-truth layers the post-pipeline
+                # face-priority evaluator diffs against the AI output.
+                try:
+                    ref_crops = self._persist_reference_feature_crops(
+                        job, result.reference_images_b64 or [],
+                    )
+                    if ref_crops:
+                        job.metadata["reference_feature_crops"] = ref_crops
+                        yield self._event("feature_crops_persisted", {
+                            "stage": "character_research",
+                            "source": "reference",
+                            "count": len(ref_crops),
+                            "feature_types": sorted({c["feature"] for c in ref_crops}),
+                        })
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug(
+                        "[AnimePipeline] reference feature crop persist failed: %s",
+                        exc,
+                    )
 
                 # SAA thumbnail lookup (best-effort, offline).
                 saa_thumbnail: Optional[str] = None
@@ -1727,6 +1979,11 @@ class AnimePipelineOrchestrator:
             "scene_description": getattr(va, "scene_description", ""),
             "style_tags": getattr(va, "style_tags", [])[:10],
             "quality_tags": getattr(va, "quality_tags", [])[:10],
+            # 2026-04-29: surface which provider in the priority chain
+            # actually answered (grok/step/gemini/gpt/prompt_only/...).
+            # Lets the UI explain why a particular vision result happened
+            # — especially after fallback through the NSFW chain.
+            "model_used": getattr(va, "model_used", "unknown"),
         }
 
     @staticmethod
@@ -1951,6 +2208,51 @@ class AnimePipelineOrchestrator:
             "crops_used": len(reference_crops),
         })
 
+    def _persist_reference_feature_crops(
+        self,
+        job: "AnimePipelineJob",
+        reference_images_b64: list[str],
+    ) -> list[dict[str, Any]]:
+        """YOLO-detect every feature on each reference image and write to
+        ``storage/feature_layers/<session>/original/``.
+
+        Implements the 2026-04-26 user spec: ground-truth (reference)
+        layers must live under ``original/`` so the post-pipeline
+        face-priority evaluator can diff them against ``ai_gen/``.
+
+        Returns the combined manifest (possibly empty); never raises.
+        """
+        if not reference_images_b64:
+            return []
+        detector = getattr(self._detection_inpaint, "_detector", None)
+        if detector is None or not detector.available():
+            logger.debug("[AnimePipeline] No YOLO detector for ref crops")
+            return []
+        from .feature_crop_storage import persist_feature_crops
+
+        manifest: list[dict[str, Any]] = []
+        # Limit ref-crop count to keep this fast \u2014 first 3 refs cover
+        # SAA thumb + 2 cached/web images, which is plenty for face eval.
+        for idx, ref_b64 in enumerate(reference_images_b64[:3]):
+            try:
+                detection = detector.detect(ref_b64)
+                if getattr(detection, "total_regions", 0) == 0:
+                    continue
+                crops = persist_feature_crops(
+                    job,
+                    detection,
+                    source_b64=ref_b64,
+                    source="reference",
+                    ref_index=idx,
+                )
+                manifest.extend(crops)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(
+                    "[AnimePipeline] ref crop persist failed for ref %d: %s",
+                    idx, exc,
+                )
+        return manifest
+
     def _crop_eye_regions_from_refs(self, reference_images_b64: list[str]) -> list[str]:
         """Crop eye/face region from reference images using YOLO detection.
 
@@ -2130,8 +2432,9 @@ class AnimePipelineOrchestrator:
             gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
             if gemini_key:
                 resp = httpx.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/"
-                    f"gemini-2.0-flash:generateContent?key={gemini_key}",
+                    "https://generativelanguage.googleapis.com/v1beta/models/"
+                    "gemini-2.0-flash:generateContent",
+                    headers={"X-goog-api-key": gemini_key},
                     json={
                         "contents": [{"parts": [{"text": system + "\n\n" + user_msg}]}],
                         "generationConfig": {"maxOutputTokens": 300, "temperature": 0.7},
@@ -2171,10 +2474,7 @@ class AnimePipelineOrchestrator:
         for img in reversed(job.intermediates):
             if img.stage.startswith("detail_") or img.stage == "beauty_pass":
                 return img.image_b64
-        for img in reversed(job.intermediates):
-            if img.image_b64:
-                return img.image_b64
-        return None
+        return job.latest_render_image()
 
     def _build_cancellation_event(
         self, job: AnimePipelineJob, stage: str, t0: float,

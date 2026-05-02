@@ -263,82 +263,103 @@
 /* ── Result Area ──────────────────────────────────────────────── */
 .igv2-image-result {
     margin-top: 12px;
+    animation: igv2-result-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes igv2-result-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .igv2-result-img {
     width: 100%;
-    max-height: 500px;
+    max-height: 520px;
     object-fit: contain;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: transform 0.2s;
-    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md, 12px);
+    cursor: zoom-in;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.25s ease;
+    background: color-mix(in srgb, var(--bg-primary, #000) 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-primary, #fff) 6%, transparent);
 }
 
 .igv2-result-img:hover {
-    transform: scale(1.01);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .igv2-result-meta {
-    margin-top: 10px;
-    padding: 12px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md, 10px);
+    background: color-mix(in srgb, var(--text-primary, #fff) 3%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-primary, #fff) 7%, transparent);
 }
 
 .igv2-meta-row {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     padding: 3px 0;
     font-size: 0.82rem;
+    align-items: baseline;
 }
 
 .igv2-meta-label {
     color: var(--text-secondary, #888);
     min-width: 70px;
     font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 .igv2-meta-value {
     color: var(--text-primary, #ddd);
+    font-variant-numeric: tabular-nums;
 }
 
 .igv2-prompt-text {
-    font-family: 'SF Mono', monospace;
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
     font-size: 0.78rem;
-    opacity: 0.8;
+    opacity: 0.85;
     word-break: break-word;
+    line-height: 1.5;
 }
 
 .igv2-result-actions {
     display: flex;
     gap: 8px;
-    margin-top: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
 }
 
 .igv2-action-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--text-primary, #fff) 10%, transparent);
+    background: color-mix(in srgb, var(--text-primary, #fff) 4%, transparent);
     color: var(--text-primary, #ddd);
     font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.18s, border-color 0.18s, transform 0.15s, box-shadow 0.18s;
 }
 
 .igv2-action-btn:hover {
-    background: rgba(168, 85, 247, 0.15);
-    border-color: rgba(168, 85, 247, 0.3);
+    background: color-mix(in srgb, var(--accent, #a855f7) 16%, transparent);
+    border-color: color-mix(in srgb, var(--accent, #a855f7) 35%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent, #a855f7) 22%, transparent);
 }
+.igv2-action-btn:active { transform: translateY(0); }
 
 /* ── Error Display ────────────────────────────────────────────── */
 .igv2-error {
     padding: 16px;
-    border-radius: 10px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md, 10px);
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    border: 1px solid color-mix(in srgb, #ef4444 22%, transparent);
     color: #f87171;
 }
 
@@ -346,27 +367,37 @@
 .igv2-gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px;
+    gap: 12px;
     margin-top: 10px;
 }
 
 .igv2-gallery-item {
     position: relative;
-    border-radius: 10px;
+    border-radius: var(--radius-md, 10px);
     overflow: hidden;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    transition: transform 0.2s;
+    border: 1px solid color-mix(in srgb, var(--text-primary, #fff) 6%, transparent);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.22s ease, border-color 0.22s;
+    aspect-ratio: 1;
+    background: color-mix(in srgb, var(--bg-primary, #000) 30%, transparent);
 }
 
 .igv2-gallery-item:hover {
-    transform: scale(1.03);
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    border-color: color-mix(in srgb, var(--accent, #a855f7) 40%, transparent);
 }
 
 .igv2-gallery-item img {
     width: 100%;
+    height: 100%;
     aspect-ratio: 1;
     object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.igv2-gallery-item:hover img {
+    transform: scale(1.04);
 }
 
 .igv2-gallery-meta {
@@ -374,9 +405,16 @@
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 6px 8px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 8px 10px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
     font-size: 0.7rem;
+    transform: translateY(40%);
+    opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.igv2-gallery-item:hover .igv2-gallery-meta {
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .igv2-gallery-prompt {
@@ -385,39 +423,74 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 500;
 }
 
 .igv2-gallery-info {
     display: block;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.65);
     font-size: 0.65rem;
+    margin-top: 2px;
 }
 
+/* Shared base for hover-revealed corner buttons (delete + open-in-tab).
+   Click on the gallery card itself opens the in-page lightbox via
+   global-image-viewer.js — these buttons are explicit secondary actions. */
+.igv2-gallery-action,
 .igv2-gallery-delete {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 26px;
-    height: 26px;
+    top: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.65);
     color: #fff;
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.2s;
+    transform: scale(0.85);
+    transition: opacity 0.2s, transform 0.2s, background 0.18s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
 }
 
-.igv2-gallery-item:hover .igv2-gallery-delete {
+.igv2-gallery-delete,
+.igv2-gallery-action.igv2-gallery-delete { right: 6px; }
+.igv2-gallery-newtab { right: 40px; }
+
+.igv2-gallery-item { cursor: zoom-in; }
+.igv2-gallery-item:hover .igv2-gallery-delete,
+.igv2-gallery-item:hover .igv2-gallery-action {
     opacity: 1;
+    transform: scale(1);
 }
+.igv2-gallery-delete:hover { background: #ef4444; }
+.igv2-gallery-newtab:hover { background: #2563eb; }
 
 .igv2-gallery-empty {
     text-align: center;
     padding: 30px;
     color: var(--text-secondary, #888);
     font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .igv2-image-result,
+    .igv2-result-img,
+    .igv2-action-btn,
+    .igv2-gallery-item,
+    .igv2-gallery-item img,
+    .igv2-gallery-meta,
+    .igv2-gallery-delete {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+    .igv2-result-img:hover,
+    .igv2-gallery-item:hover,
+    .igv2-action-btn:hover { transform: none; }
 }
 
 /* ── Stats ────────────────────────────────────────────────────── */

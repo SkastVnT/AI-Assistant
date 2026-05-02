@@ -285,13 +285,29 @@ class VisionService:
         user_msg: str,
         images_b64: list[str],
     ) -> Optional[VisionAnalysis]:
-        if model_name.startswith("gemini"):
+        # NSFW-friendly providers (xAI Grok, StepFun) come first; both speak
+        # the OpenAI chat-completions schema.
+        name = model_name.lower()
+        if name.startswith("grok"):
+            return self._openai_compat(
+                model_name, system_prompt, user_msg, images_b64,
+                base_url="https://api.x.ai/v1/chat/completions",
+                api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
+                key_label="GROK_API_KEY",
+            )
+        if name.startswith("step-") or name.startswith("stepfun"):
+            return self._openai_compat(
+                model_name, system_prompt, user_msg, images_b64,
+                base_url="https://api.stepfun.com/v1/chat/completions",
+                api_key=os.getenv("STEPFUN_API_KEY"),
+                key_label="STEPFUN_API_KEY",
+            )
+        if name.startswith("gemini"):
             return self._gemini(model_name, system_prompt, user_msg, images_b64)
-        elif model_name.startswith("gpt"):
+        if name.startswith("gpt"):
             return self._openai(model_name, system_prompt, user_msg, images_b64)
-        else:
-            logger.warning("[VisionService] Unknown model: %s", model_name)
-            return None
+        logger.warning("[VisionService] Unknown model: %s", model_name)
+        return None
 
     def _gemini(
         self,
@@ -322,7 +338,8 @@ class VisionService:
         with httpx.Client(timeout=30) as client:
             resp = client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/"
-                f"models/{model_name}:generateContent?key={api_key}",
+                f"models/{model_name}:generateContent",
+                headers={"X-goog-api-key": api_key},
                 json=payload,
             )
             resp.raise_for_status()
@@ -336,9 +353,27 @@ class VisionService:
         user_msg: str,
         images_b64: list[str],
     ) -> Optional[VisionAnalysis]:
-        api_key = os.getenv("OPENAI_API_KEY")
+        return self._openai_compat(
+            model_name, system_prompt, user_msg, images_b64,
+            base_url="https://api.openai.com/v1/chat/completions",
+            api_key=os.getenv("OPENAI_API_KEY"),
+            key_label="OPENAI_API_KEY",
+        )
+
+    def _openai_compat(
+        self,
+        model_name: str,
+        system_prompt: str,
+        user_msg: str,
+        images_b64: list[str],
+        *,
+        base_url: str,
+        api_key: Optional[str],
+        key_label: str,
+    ) -> Optional[VisionAnalysis]:
+        """OpenAI-compatible vision call (OpenAI, xAI/Grok, StepFun)."""
         if not api_key:
-            raise RuntimeError("No OPENAI_API_KEY set")
+            raise RuntimeError(f"No {key_label} set")
 
         user_content: list[dict] = [{"type": "text", "text": user_msg}]
         for img in images_b64[:4]:
@@ -363,7 +398,7 @@ class VisionService:
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
-                "https://api.openai.com/v1/chat/completions",
+                base_url,
                 json=payload,
                 headers={"Authorization": f"Bearer {api_key}"},
             )
@@ -504,11 +539,26 @@ class VisionService:
         images_b64: list[str],
     ) -> Optional[dict]:
         """Call cloud model and return parsed JSON dict (not VisionAnalysis)."""
-        if model_name.startswith("gemini"):
+        name = model_name.lower()
+        if name.startswith("grok"):
+            return self._openai_raw_compat(
+                model_name, system_prompt, user_msg, images_b64,
+                base_url="https://api.x.ai/v1/chat/completions",
+                api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
+                key_label="GROK_API_KEY",
+            )
+        if name.startswith("step-") or name.startswith("stepfun"):
+            return self._openai_raw_compat(
+                model_name, system_prompt, user_msg, images_b64,
+                base_url="https://api.stepfun.com/v1/chat/completions",
+                api_key=os.getenv("STEPFUN_API_KEY"),
+                key_label="STEPFUN_API_KEY",
+            )
+        if name.startswith("gemini"):
             return self._gemini_raw(
                 model_name, system_prompt, user_msg, images_b64,
             )
-        elif model_name.startswith("gpt"):
+        if name.startswith("gpt"):
             return self._openai_raw(
                 model_name, system_prompt, user_msg, images_b64,
             )
@@ -532,7 +582,8 @@ class VisionService:
         with httpx.Client(timeout=30) as client:
             resp = client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/"
-                f"models/{model_name}:generateContent?key={api_key}",
+                f"models/{model_name}:generateContent",
+                headers={"X-goog-api-key": api_key},
                 json={
                     "contents": [{"parts": parts}],
                     "generationConfig": {
@@ -549,9 +600,24 @@ class VisionService:
         self, model_name: str, system_prompt: str,
         user_msg: str, images_b64: list[str],
     ) -> Optional[dict]:
-        api_key = os.getenv("OPENAI_API_KEY")
+        return self._openai_raw_compat(
+            model_name, system_prompt, user_msg, images_b64,
+            base_url="https://api.openai.com/v1/chat/completions",
+            api_key=os.getenv("OPENAI_API_KEY"),
+            key_label="OPENAI_API_KEY",
+        )
+
+    def _openai_raw_compat(
+        self, model_name: str, system_prompt: str,
+        user_msg: str, images_b64: list[str],
+        *,
+        base_url: str,
+        api_key: Optional[str],
+        key_label: str,
+    ) -> Optional[dict]:
+        """OpenAI-compatible raw JSON call (OpenAI, xAI/Grok, StepFun)."""
         if not api_key:
-            raise RuntimeError("No OPENAI_API_KEY set")
+            raise RuntimeError(f"No {key_label} set")
 
         user_content: list[dict] = [{"type": "text", "text": user_msg}]
         for img in images_b64[:4]:
@@ -566,7 +632,7 @@ class VisionService:
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
-                "https://api.openai.com/v1/chat/completions",
+                base_url,
                 json={
                     "model": model_name,
                     "messages": [

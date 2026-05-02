@@ -104,7 +104,7 @@ services/chatbot/
       resolver.py           resolve_skill() — explicit > session > auto-route
       applicator.py         apply_skill_overrides() — merge skill into request
       session.py            SkillSessionStore (in-memory per-session binding)
-      builtin/              11 built-in YAML skill definitions
+      builtins/             12 built-in YAML skill definitions
   routes/
     stream.py               PRIMARY: POST /chat/stream (SSE)
     main.py                 /, /chat, /clear, /history, /api/generate-title
@@ -205,6 +205,8 @@ private/                    Internal data/submodule
 2. **Shared env** is loaded once per process. Do not add a second `load_dotenv` that overrides it. The one allowed exception is `run.py` loading `services/chatbot/.env` without override.
 
 3. **Primary streaming endpoint**: `routes/stream.py` → `POST /chat/stream`. FastAPI equivalent lives in `fastapi_app/`. Do not merge these paths.
+
+   **Flask-only blueprints (no FastAPI mirror, by design):** `auth`, `models`, `async_routes`, `user_auth`, `qr_payment`. These rely on Flask sessions / Jinja templates / form-encoded uploads and are not ported to FastAPI. If `USE_FASTAPI=true` is set, those endpoints are unavailable — the FastAPI path is API-first and assumes JWT/header auth. Do not "fix" the gap by silently mirroring; raise it as a separate task.
 
 4. **Adding a new tool**: update `core/tools.py`, `core/config.py` (for any new API key), tool-routing in `core/chatbot.py` or the relevant route handler, and the search tools table in `README.md`.
 

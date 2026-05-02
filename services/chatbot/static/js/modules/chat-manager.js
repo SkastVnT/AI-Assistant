@@ -366,10 +366,16 @@ export class ChatManager {
     }
 
     /**
-     * Smart auto-trim: cap sessions at 30, trim very long conversations to 150 messages
+     * Smart auto-trim: cap sessions at 500, trim very long conversations to 150 messages.
+     *
+     * Note: previously capped at 30 which silently deleted older chats. Bumped to
+     * 500 because localStorage budget is 200 MB and a typical session is well
+     * under 100 KB; users were losing history without any warning. If you need a
+     * hard ceiling for memory reasons, lower this value but DO NOT drop below
+     * what the user already has in storage or you will silently delete data.
      */
     _autoTrimSessions() {
-        const MAX_SESSIONS = 30;
+        const MAX_SESSIONS = 500;
         const MAX_MESSAGES = 150;
         const ids = Object.keys(this.chatSessions);
 

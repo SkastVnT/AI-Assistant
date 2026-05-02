@@ -261,37 +261,10 @@ def mcp_ocr_extract():
         return jsonify({'success': False, 'error': 'Failed to extract OCR text'}), 500
 
 
-@mcp_bp.route('/grep', methods=['GET'])
-def mcp_grep():
-    """Search file content by pattern (grep)"""
-    check = _check_mcp_available()
-    if check:
-        return check
-    try:
-        pattern = request.args.get('pattern', '')
-        file_type = request.args.get('type', 'all')
-        max_results = int(request.args.get('max_results', 30))
-        case_sensitive = request.args.get('case_sensitive', 'false').lower() == 'true'
-
-        if not pattern:
-            return jsonify({'success': False, 'error': 'Pattern is required'}), 400
-
-        results = mcp_client.grep_content(
-            pattern=pattern,
-            file_type=file_type,
-            max_results=max_results,
-            case_sensitive=case_sensitive
-        )
-
-        return jsonify({
-            'success': True,
-            'pattern': pattern,
-            'results': results,
-            'count': len(results)
-        })
-    except Exception as e:
-        logger.error(f"MCP grep error: {e}")
-        return jsonify({'success': False, 'error': 'Failed to grep files'}), 500
+# NOTE: a richer ``/grep`` route (with regex support) is registered
+# earlier in this module as ``mcp_grep_route``. The duplicate-URL view
+# function previously defined here was unreachable and has been removed
+# to keep the URL map clean (2026-04-28 audit fix).
 
 
 @mcp_bp.route('/warm-cache', methods=['POST'])

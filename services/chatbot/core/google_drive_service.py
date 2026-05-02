@@ -20,6 +20,7 @@ class GoogleDriveService:
     _service = None
     _folder_id = None
     _media_upload_cls = None
+    _quota_exceeded = False  # set after first storageQuotaExceeded — stops log spam
     
     def __new__(cls):
         if cls._instance is None:
@@ -93,6 +94,10 @@ class GoogleDriveService:
         if self._service is None:
             result['error'] = 'Google Drive service not initialized'
             return result
+
+        if self._quota_exceeded:
+            result['error'] = 'Google Drive quota exceeded (disabled for this session)'
+            return result
         
         try:
             # Clean base64 (remove data URL prefix if present)
@@ -142,7 +147,17 @@ class GoogleDriveService:
                 result['error'] = 'Upload succeeded but no file ID returned'
         
         except Exception as e:
-            result['error'] = str(e)
-            logger.error(f"[GoogleDrive] Upload failed: {e}")
+            err_str = str(e)
+            result['error'] = err_str
+            if 'storageQuotaExceeded' in err_str or 'quotaExceeded' in err_str:
+                if not self._quota_exceeded:
+                    self._quota_exceeded = True
+                    logger.warning(
+                        "[GoogleDrive] Service Account has no Drive quota. "
+                        "Disabling Drive uploads for this session. "
+                        "Set GOOGLE_DRIVE_ENABLED=false to silence this at startup."
+                    )
+            else:
+                logger.error(f"[GoogleDrive] Upload failed: {e}")
         
         return result

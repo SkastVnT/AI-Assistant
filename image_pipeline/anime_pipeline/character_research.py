@@ -120,7 +120,7 @@ def _save_seen_registry(danbooru_tag: str, reg: dict[str, dict[str, str]]) -> No
 
 
 def _url_hash(url: str) -> str:
-    return hashlib.md5(url.encode("utf-8", errors="ignore")).hexdigest()[:8]
+    return hashlib.md5(url.encode("utf-8", errors="ignore"), usedforsecurity=False).hexdigest()[:8]
 
 
 def _bytes_hash(data: bytes) -> str:
@@ -134,6 +134,108 @@ def _is_url_seen(url: str, reg: dict[str, dict[str, str]]) -> bool:
 def _reuse_cached_refs_enabled() -> bool:
     """User-overridable opt-in to reusing cached refs as the primary set."""
     return os.getenv("CHAR_RESEARCH_REUSE_REFS", "0") == "1"
+
+
+# ── SAA-first local reference collection ─────────────────────────────
+# 2026-04-26 user spec: SAA / cached refs MUST be checked BEFORE any
+# external web search.  This helper:
+#   1. Persists the WAI thumbnail (if available) into character_refs/
+#      so subsequent runs see it as a cached file.
+#   2. Returns base64 strings for every PNG/JPG already on disk.
+# The orchestrator/researcher calls this first; web search is only
+# invoked when the local count is below the minimum.
+
+# Threshold above which web image search is skipped because the local
+# cache already has "enough" reference images.
+# 2026-04-29: Default raised from 0 → 5 per user spec
+# ("nên đọc file đã tìm được ở đâu trước, sau đó mới tìm nơi khác").
+# Behaviour:
+#   * len(local) >= 5  → skip web image search, reuse cache.
+#   * len(local) <  5  → run web search to grow the cache.
+# Set CHAR_RESEARCH_MIN_LOCAL_REFS=0 to force unlimited web search
+# (legacy "Không giới hạn" mode). Set a higher value to require more
+# local refs before short-circuiting.
+_SAA_MIN_LOCAL_REFS = int(os.getenv("CHAR_RESEARCH_MIN_LOCAL_REFS", "5"))
+
+
+def _persist_saa_thumbnail(danbooru_tag: str) -> Optional[Path]:
+    """Save the SAA WAI thumbnail for ``danbooru_tag`` into character_refs/.
+
+    Returns the path on success, None when no thumbnail or already saved.
+    Never raises.
+    """
+    if not danbooru_tag:
+        return None
+    ref_dir = _REF_DIR / danbooru_tag
+    target = ref_dir / "saa_thumb.png"
+    if target.exists():
+        return target
+    try:
+        from .saa_character_db import get_character_thumbnail
+    except Exception:
+        return None
+    try:
+        # WAI keys use space-form tags.
+        b64 = (
+            get_character_thumbnail(danbooru_tag.replace("_", " "))
+            or get_character_thumbnail(danbooru_tag)
+        )
+        if not b64:
+            return None
+        if "," in b64 and b64.startswith("data:"):
+            b64 = b64.split(",", 1)[1]
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(base64.b64decode(b64))
+        logger.info(
+            "[CharResearch] Persisted SAA thumbnail for %s -> %s",
+            danbooru_tag, target.name,
+        )
+        return target
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[CharResearch] SAA thumbnail persist failed: %s", exc)
+        return None
+
+
+def _collect_local_refs(
+    danbooru_tag: str,
+    *,
+    max_images: int = 10,
+    include_saa: bool = True,
+) -> list[str]:
+    """Return base64 strings for every cached / SAA reference image.
+
+    Order of inclusion (highest priority first):
+      1. SAA thumbnail (persisted on first call) \u2014 always front of list.
+      2. Existing PNG/JPG files in storage/character_refs/<tag>/.
+    """
+    if not danbooru_tag:
+        return []
+    out: list[str] = []
+    ref_dir = _REF_DIR / danbooru_tag
+    saa_path = _persist_saa_thumbnail(danbooru_tag) if include_saa else None
+    seen: set[str] = set()
+    if saa_path and saa_path.exists():
+        try:
+            out.append(base64.b64encode(saa_path.read_bytes()).decode("ascii"))
+            seen.add(saa_path.name)
+        except Exception:
+            pass
+    if ref_dir.exists():
+        for p in sorted(ref_dir.glob("*.png")) + sorted(ref_dir.glob("*.jpg")):
+            if p.name in seen or p.name == "seen_urls.json":
+                continue
+            try:
+                out.append(base64.b64encode(p.read_bytes()).decode("ascii"))
+            except Exception:
+                continue
+            if len(out) >= max_images:
+                break
+    if out:
+        logger.info(
+            "[CharResearch] SAA-first local refs: %d found for %s (saa=%s)",
+            len(out), danbooru_tag, bool(saa_path),
+        )
+    return out
 
 
 @dataclass
@@ -178,6 +280,14 @@ class CharacterResearchResult:
     confidence: float = 0.0
     cached: bool = False
     research_time_ms: float = 0.0
+
+    # 2026-04-29: source diagnostics so the UI can tell the user where
+    # the reference images really came from. Filled in by the research
+    # path that built the final reference_images_b64 list.
+    local_refs_count: int = 0          # served from storage/character_refs/
+    web_refs_count: int = 0            # downloaded via image_search_character
+    web_search_skipped: bool = False   # short-circuit triggered (≥ min refs)
+    nsfw_intent: bool = False          # NSFW priority chain was used
 
     def build_positive_tags(self) -> list[str]:
         """Build ordered tag list: character > identity > layers."""
@@ -647,10 +757,19 @@ def _image_search_character(
         # NSFW: keep the strongest character-specific query only.
         queries = [f"{display_name} {series_name} official art"]
 
-    # Relevance filter tokens — every accepted SerpAPI hit must mention
-    # at least one of these in its title/source/url, otherwise we'd
-    # bring back generic franchise wallpapers.
-    name_tokens = {
+    # ── Relevance filter (2026-04-25 hardening) ─────────────────────
+    # Every accepted hit must:
+    #   (A) Match the character name as a WHOLE WORD (not substring) —
+    #       prevents "magic sparkle effect" from passing as Sparkle and
+    #       prevents misspellings like "Sparxie" from passing as Sparkle.
+    #   (B) Also match a SERIES token (franchise anchor) when the name
+    #       is a common English word (Sparkle, Robin, Sunday, March, …) —
+    #       prevents random off-franchise art from leaking in.
+    #   (C) NOT look like duo / multi-character art ("X and Y", "X & Y",
+    #       "X ft. Y", "X x Y", "X with Y") — those frames are bad refs
+    #       because the secondary character dominates a portion of the
+    #       canvas and pollutes the identity signal.
+    name_tokens: set[str] = {
         t.lower() for t in display_name.replace("-", " ").split() if len(t) > 1
     }
     name_tokens.add(display_name.lower())
@@ -658,13 +777,70 @@ def _image_search_character(
     base_tag = danbooru_tag.split("_(")[0]
     name_tokens.add(base_tag)
     name_tokens.add(base_tag.replace("_", " "))
-    name_tokens.add(base_tag.replace("_", ""))
+
+    # Series anchor tokens — split on punctuation/space and keep stems
+    # ≥ 4 chars (drops "of", "the", "no", "ga"). For "Honkai: Star Rail"
+    # → {"honkai", "star", "rail"}; for "Genshin Impact" → {"genshin",
+    # "impact"}; for "Blue Archive" → {"blue", "archive"}.
+    series_tokens: set[str] = {
+        t.lower()
+        for t in re.split(r"[\s\-:_/]+", series_name or "")
+        if len(t) >= 4
+    }
+    # Always add the joined no-punct form too so "honkaistarrail.fandom.com"
+    # passes when the series name is "Honkai: Star Rail".
+    if series_name:
+        series_tokens.add(re.sub(r"[^a-z0-9]", "", series_name.lower()))
+
+    # Common English words that would otherwise produce false-positives
+    # without a series anchor. Grow this list when audit finds new ones.
+    _AMBIGUOUS_NAMES: frozenset[str] = frozenset({
+        "sparkle", "robin", "sunday", "march", "moze", "boothill",
+        "bronya", "luna", "nicole", "yuki", "rei", "asuka",
+        "ruby", "amber", "diona", "sara", "lisa", "rosa",
+        "may", "june", "april", "noel", "noelle",
+    })
+    name_is_ambiguous = display_name.strip().lower() in _AMBIGUOUS_NAMES
+
+    # Pre-compile word-boundary patterns for the name tokens. Tokens with
+    # underscores/spaces get escaped for safety.
+    name_patterns = [
+        re.compile(r"\b" + re.escape(tok) + r"\b", re.IGNORECASE)
+        for tok in sorted(name_tokens) if tok
+    ]
+
+    # Duo / multi-character title heuristic. The secondary half is
+    # typically capitalised and follows one of these connectors.
+    # Note: deliberately omit "x" and "+" (too many false positives in
+    # urls/titles like "1500x2000" or hashtags). "&amp;" handled via "&".
+    _DUO_RE = re.compile(
+        r"\b(?:and|ft\.?|feat\.?|featuring|with|vs\.?)\b\s+[A-Z]"
+        r"|\s[&×]\s+[A-Z]",
+        re.IGNORECASE,
+    )
 
     def _is_relevant(item: dict) -> bool:
+        title = str(item.get("title", ""))
         haystack = " ".join(
             str(item.get(k, "")) for k in ("title", "source", "link", "original")
-        ).lower()
-        return any(tok in haystack for tok in name_tokens if tok)
+        )
+
+        # (A) Whole-word name match anywhere in title/source/url.
+        if not any(p.search(haystack) for p in name_patterns):
+            return False
+
+        # (B) Series anchor required for ambiguous names.
+        if name_is_ambiguous and series_tokens:
+            haystack_low = haystack.lower()
+            if not any(s in haystack_low for s in series_tokens):
+                return False
+
+        # (C) Duo / multi-character title rejection. Only inspect the
+        # title (URLs and source domains shouldn't trigger this).
+        if title and _DUO_RE.search(title):
+            return False
+
+        return True
 
     all_images: list[dict] = []
     seen_urls: set[str] = set()
@@ -1028,8 +1204,9 @@ def _llm_extract_gemini(prompt: str, api_key: str) -> Optional[dict]:
 
     try:
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={api_key}",
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            "gemini-2.0-flash:generateContent",
+            headers={"X-goog-api-key": api_key},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
@@ -1131,8 +1308,9 @@ def _analyze_reference_image(
 
     try:
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={gemini_key}",
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            "gemini-2.0-flash:generateContent",
+            headers={"X-goog-api-key": gemini_key},
             json={
                 "contents": [{
                     "parts": [
@@ -1268,40 +1446,68 @@ def research_character(
         )
 
     # Step 2: Check cache
+    # 2026-04-26: SAA-first — ALWAYS gather local refs (incl. SAA thumb)
+    # before any web call so external search becomes a true fallback.
+    local_refs = _collect_local_refs(danbooru_tag, max_images=10)
+    # When _SAA_MIN_LOCAL_REFS <= 0 (default) the cap is disabled — web
+    # search ALWAYS runs so the ref cache keeps growing. Set a positive
+    # int via CHAR_RESEARCH_MIN_LOCAL_REFS to opt back into capping.
+    skip_web_image_search = (
+        _SAA_MIN_LOCAL_REFS > 0 and len(local_refs) >= _SAA_MIN_LOCAL_REFS
+    )
+
     if not force_refresh:
         cached = _load_cached_research(danbooru_tag)
         if cached:
-            # 2026-04-23 user request: even when research metadata is
-            # cached, ALWAYS attempt a fresh image search so reference
-            # images don't get reused across runs. The downloader has
-            # its own seen-URL+byte-hash registry that guarantees no
-            # duplicate is ever returned.
-            try:
-                fresh_results = _image_search_character(
-                    display_name, series_name, danbooru_tag,
-                    nsfw_intent=nsfw_intent,
+            if skip_web_image_search:
+                logger.info(
+                    "[CharResearch] Cache+SAA path: %d local refs >= %d — "
+                    "skipping web image search for %s",
+                    len(local_refs), _SAA_MIN_LOCAL_REFS, danbooru_tag,
                 )
-            except Exception as e:
-                logger.warning(
-                    "[CharResearch] cache-path fresh search failed: %s", e,
-                )
-                fresh_results = [{"url": u} for u in cached.reference_image_urls]
+                cached.reference_images_b64 = local_refs[:10]
+            else:
+                # 2026-04-23 user request: even when research metadata is
+                # cached, ALWAYS attempt a fresh image search so reference
+                # images don't get reused across runs. The downloader has
+                # its own seen-URL+byte-hash registry that guarantees no
+                # duplicate is ever returned.
+                try:
+                    fresh_results = _image_search_character(
+                        display_name, series_name, danbooru_tag,
+                        nsfw_intent=nsfw_intent,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "[CharResearch] cache-path fresh search failed: %s", e,
+                    )
+                    fresh_results = [{"url": u} for u in cached.reference_image_urls]
 
-            cached.reference_images_b64 = _download_reference_images(
-                fresh_results, danbooru_tag, max_images=10,
-            )
-            # Refresh the cached URL list so subsequent runs see the new
-            # set rather than perpetually circling the original 5.
-            if fresh_results:
-                cached.reference_image_urls = [
-                    r.get("url", "") for r in fresh_results[:6] if r.get("url")
-                ]
+                cached.reference_images_b64 = (
+                    local_refs
+                    + _download_reference_images(
+                        fresh_results, danbooru_tag, max_images=10,
+                    )
+                )[:12]
+                # Refresh the cached URL list so subsequent runs see the new
+                # set rather than perpetually circling the original 5.
+                if fresh_results:
+                    cached.reference_image_urls = [
+                        r.get("url", "") for r in fresh_results[:6] if r.get("url")
+                    ]
             # Add user references
             if user_reference_images:
                 cached.reference_images_b64 = (
                     user_reference_images[:2] + cached.reference_images_b64
                 )[:12]
             cached.research_time_ms = (time.time() - t0) * 1000
+            cached.local_refs_count = len(local_refs)
+            cached.web_refs_count = max(
+                0, len(cached.reference_images_b64) - len(local_refs)
+                - (len(user_reference_images or []) if user_reference_images else 0)
+            )
+            cached.web_search_skipped = skip_web_image_search
+            cached.nsfw_intent = nsfw_intent
             return cached
 
     # Step 3: Web search
@@ -1309,11 +1515,26 @@ def research_character(
     search_results = _web_search_character(display_name, series_name)
 
     # Step 4: Image search + download
-    logger.info("[CharResearch] Searching for reference images...")
-    image_results = _image_search_character(
-        display_name, series_name, danbooru_tag, nsfw_intent=nsfw_intent,
-    )
-    ref_images = _download_reference_images(image_results, danbooru_tag, max_images=10)
+    if skip_web_image_search:
+        logger.info(
+            "[CharResearch] Fresh path: %d local refs satisfy minimum (%d) — "
+            "skipping web image search for %s",
+            len(local_refs), _SAA_MIN_LOCAL_REFS, danbooru_tag,
+        )
+        image_results = []
+        ref_images = list(local_refs)
+    else:
+        logger.info("[CharResearch] Searching for reference images...")
+        image_results = _image_search_character(
+            display_name, series_name, danbooru_tag, nsfw_intent=nsfw_intent,
+        )
+        # Local refs (incl. SAA thumb) come first; web fills the rest.
+        ref_images = (
+            local_refs
+            + _download_reference_images(
+                image_results, danbooru_tag, max_images=10,
+            )
+        )[:12]
 
     # Add user-uploaded references (highest priority)
     if user_reference_images:
@@ -1375,9 +1596,18 @@ def research_character(
     _save_research_cache(result)
 
     result.research_time_ms = (time.time() - t0) * 1000
+    result.local_refs_count = len(local_refs)
+    result.web_refs_count = max(
+        0, len(ref_images) - len(local_refs)
+        - (len(user_reference_images or []) if user_reference_images else 0)
+    )
+    result.web_search_skipped = skip_web_image_search
+    result.nsfw_intent = nsfw_intent
     logger.info(
-        "[CharResearch] Research complete: %s (conf=%.2f, %d refs, %.0fms)",
-        danbooru_tag, result.confidence, len(ref_images), result.research_time_ms,
+        "[CharResearch] Research complete: %s (conf=%.2f, %d refs [%d local + %d web], skip_web=%s, %.0fms)",
+        danbooru_tag, result.confidence, len(ref_images),
+        result.local_refs_count, result.web_refs_count,
+        result.web_search_skipped, result.research_time_ms,
     )
 
     return result

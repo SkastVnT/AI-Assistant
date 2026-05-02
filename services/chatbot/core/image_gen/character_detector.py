@@ -68,8 +68,15 @@ CHARACTER_ALIASES: dict[str, list[str]] = {
     "firefly": [
         "firefly", "fire fly", "hotaru", "đom đóm",
         "sam", "SAM",  # her other identity
+    ],    "huohuo": [
+        "huohuo", "huo huo", "hỏa hỏa",
     ],
-    "kafka": [
+    "stelle": [
+        "stelle", "trailblazer female", "khai phá giả nữ",
+    ],
+    "silver_wolf": [
+        "silver wolf", "silverwolf", "sói bạc",
+    ],    "kafka": [
         "kafka",
     ],
     "jingliu": [
@@ -215,6 +222,8 @@ CHARACTER_FRANCHISE: dict[str, str] = {
     "firefly": "hsr", "kafka": "hsr", "jingliu": "hsr",
     "seele": "hsr", "clara": "hsr", "march7th": "hsr",
     "bronya": "hsr", "trailblazer": "hsr",
+    "huohuo": "hsr", "stelle": "hsr", "silver_wolf": "hsr",
+    "firefly_pony": "hsr",
     "nahida": "genshin", "furina": "genshin", "eula": "genshin",
     "raiden": "genshin", "yae_miko": "genshin",
     "tatsumaki": "opm", "atri": "anime",

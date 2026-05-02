@@ -366,16 +366,16 @@ function viewGalleryImage(imagePath, metadata) {
                 : '';
 
             info.innerHTML = `
-                ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${m.prompt}</div>` : ''}
-                ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${m.negative_prompt}</div>` : ''}
+                ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${escapeHtml(m.prompt)}</div>` : ''}
+                ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${escapeHtml(m.negative_prompt)}</div>` : ''}
                 <div class="lightbox__meta-grid">
                     ${metaItems.map(i => `
                         <div class="lightbox__meta-item">
-                            <span class="lightbox__meta-label">${i.label}</span>
-                            <span class="lightbox__meta-value">${i.value}</span>
+                            <span class="lightbox__meta-label">${escapeHtml(i.label)}</span>
+                            <span class="lightbox__meta-value">${escapeHtml(i.value)}</span>
                         </div>
                     `).join('')}
-                    ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${loraStr}</span></div>` : ''}
+                    ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${escapeHtml(loraStr)}</span></div>` : ''}
                 </div>
             `;
         } else if (info) {

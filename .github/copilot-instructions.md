@@ -120,7 +120,7 @@ Prefer minimal, reversible edits. Include verification steps. Note likely impact
 
 ## Skill system
 
-This repository has 15 skills in `.github/skills/`. **Before starting work, read the matching skill file at `.github/skills/{name}/SKILL.md`.** Skills contain file monitors, checklists, and rules — not just descriptions.
+This repository has 16 skills in `.github/skills/`. **Before starting work, read the matching skill file at `.github/skills/{name}/SKILL.md`.** Skills contain file monitors, checklists, and rules — not just descriptions.
 
 | Task category | Read this skill first |
 |---|---|

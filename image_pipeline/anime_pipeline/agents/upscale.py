@@ -184,3 +184,122 @@ class UpscaleAgent:
         if not result.images_b64:
             raise RuntimeError("Upscale completed but no output image")
         return result.images_b64[0]
+
+    # ── New-pipeline SDXL Ultimate-SD-Upscale pass ──────────────────────
+    # Used by orchestrator's reordered flow:
+    #   composition → upscale_pre 2× → structure_lock → YOLO → beauty
+    #     → critique loop → upscale_final 1.5×
+    # Distinct from .execute() (which is the legacy single ESRGAN pass)
+    # so both can coexist while the new flow is on by default.
+
+    def execute_sdxl_pass(
+        self,
+        job: AnimePipelineJob,
+        *,
+        factor: float,
+        denoise: float,
+        stage_name: str,
+        steps: int = 20,
+        cfg: float = 5.5,
+    ) -> AnimePipelineJob:
+        """Run a SDXL Ultimate-SD-Upscale pass at ``factor`` & ``denoise``.
+
+        The result is appended to ``job.intermediates`` with the given
+        ``stage_name`` so downstream agents (which read the latest
+        intermediate by stage tag) pick up the upscaled image
+        transparently. ``job.final_image_b64`` is also updated.
+
+        Failure modes (no upscale model, no SDXL checkpoint, no source
+        image, ComfyUI error) all degrade gracefully — the job retains
+        whatever image it already had and the stage timing records 0.
+        """
+        from ..workflow_builder import WorkflowBuilder
+
+        t0 = time.time()
+        job.status = AnimePipelineStatus.UPSCALING
+
+        upscale_model = self._resolve_upscale_model()
+        if not upscale_model:
+            logger.warning("[UpscaleSDXL:%s] No upscale model — skipping", stage_name)
+            job.mark_stage(stage_name, 0.0)
+            return job
+
+        cfg_obj = self._config
+        checkpoint = (cfg_obj.beauty_model.checkpoint
+                      or cfg_obj.composition_model.checkpoint)
+        if not checkpoint:
+            logger.warning("[UpscaleSDXL:%s] No SDXL checkpoint — skipping", stage_name)
+            job.mark_stage(stage_name, 0.0)
+            return job
+
+        # Prefer the latest beauty/composition image; fall back to any
+        # intermediate so a re-run after detection_inpaint also works.
+        source_b64: Optional[str] = None
+        for img in reversed(job.intermediates):
+            if img.stage in ("beauty_pass", "composition_pass") or img.stage.startswith("detail_"):
+                source_b64 = img.image_b64
+                break
+        if not source_b64:
+            for img in reversed(job.intermediates):
+                if img.image_b64:
+                    source_b64 = img.image_b64
+                    break
+        if not source_b64:
+            logger.warning("[UpscaleSDXL:%s] No source image", stage_name)
+            job.mark_stage(stage_name, 0.0)
+            return job
+
+        # Build a positive prompt that preserves the user's text *and*
+        # the beauty pass prompt (if available) so NSFW vocalizations
+        # like ``english text "NGHHH~♥♥"`` survive the redraw.
+        beauty_positive = ""
+        beauty_negative = ""
+        if job.layer_plan and job.layer_plan.passes:
+            for p in reversed(job.layer_plan.passes):
+                if p.pass_name in ("beauty", "beauty_pass"):
+                    beauty_positive = p.positive_prompt or ""
+                    beauty_negative = p.negative_prompt or ""
+                    break
+        positive = ", ".join(filter(None, [
+            beauty_positive,
+            cfg_obj.quality_prefix or "masterpiece, best quality",
+            job.user_prompt,
+        ]))
+        negative = beauty_negative or (cfg_obj.negative_base or "lowres, worst quality")
+
+        try:
+            builder = WorkflowBuilder()
+            workflow = builder.build_ultimate_sd_upscale(
+                image_b64=source_b64,
+                upscale_model=upscale_model,
+                upscale_by=factor,
+                checkpoint=checkpoint,
+                positive_prompt=positive,
+                negative_prompt=negative,
+                seed=int(time.time()) & 0x7FFF_FFFF,
+                steps=steps,
+                cfg=cfg,
+                denoise=denoise,
+                tile_width=cfg_obj.upscale_tile_size,
+                tile_height=cfg_obj.upscale_tile_size,
+            )
+            result = self._client.submit_workflow(
+                workflow, job_id=stage_name, pass_name=stage_name,
+            )
+            if not result.success or not result.images_b64:
+                err = result.error or getattr(result, "validation_error", None) or "no images"
+                logger.warning("[UpscaleSDXL:%s] %s — keeping previous image", stage_name, err)
+                job.mark_stage(stage_name, (time.time() - t0) * 1000)
+                return job
+
+            out_b64 = result.images_b64[0]
+            job.add_intermediate(stage_name, out_b64, model=f"{upscale_model}+{checkpoint}")
+            job.final_image_b64 = out_b64
+
+        except Exception as exc:
+            logger.warning("[UpscaleSDXL:%s] Failed: %s — keeping previous image",
+                           stage_name, exc)
+
+        job.mark_stage(stage_name, (time.time() - t0) * 1000)
+        logger.info("[UpscaleSDXL:%s] Done factor=%.2f denoise=%.2f", stage_name, factor, denoise)
+        return job

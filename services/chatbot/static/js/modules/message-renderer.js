@@ -2426,24 +2426,44 @@ export class MessageRenderer {
         const modal = document.getElementById('imagePreviewModal');
         const previewImg = document.getElementById('imagePreviewContent');
         const previewInfo = document.getElementById('imagePreviewInfo');
-        
+
+        // Remember the originating chat <img> so a follow-up upscale can
+        // mirror the new src back into the conversation history.
+        this._lastPreviewSourceImg = imgElement || null;
+
         if (modal && previewImg) {
             if (window.resetPreviewZoom) window.resetPreviewZoom();
-            previewImg.src = imgElement.src;
-            previewImg.dataset.downloadUrl = imgElement.src;
+            // Avoid setting the same src twice (caused full re-decode of
+            // multi-MB base64 PNGs). Only update if it actually changed.
+            const newSrc = imgElement.src;
+            if (previewImg.src !== newSrc) {
+                previewImg.src = newSrc;
+            }
+            previewImg.dataset.downloadUrl = newSrc;
             modal.classList.add('open');
             document.body.style.overflow = 'hidden';
-            
+
             if (previewInfo) {
-                const img = new Image();
-                img.onload = () => {
+                // Read dimensions from the SAME <img> after it loads,
+                // instead of decoding a second hidden Image. For a 4 MB
+                // base64 PNG this halved memory pressure and removed the
+                // 1–2 s freeze on slow GPUs.
+                const showMeta = (w, h) => {
                     previewInfo.innerHTML = `
                         <div class="lightbox__meta-grid">
-                            <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${img.width} × ${img.height}</span></div>
+                            <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${w} × ${h}</span></div>
                         </div>
                     `;
                 };
-                img.src = imgElement.src;
+                if (previewImg.complete && previewImg.naturalWidth > 0) {
+                    showMeta(previewImg.naturalWidth, previewImg.naturalHeight);
+                } else {
+                    previewImg.addEventListener(
+                        'load',
+                        () => showMeta(previewImg.naturalWidth, previewImg.naturalHeight),
+                        { once: true },
+                    );
+                }
             }
         }
     }

@@ -26,6 +26,20 @@ const STAGES = [
     { key: 'upscale',          icon: '📐',  label: 'Upscale' },
 ];
 
+// Off-DOM full-resolution image cache for layer cards.
+//
+// Earlier versions stored the full-res src directly on
+// ``card.dataset.fullSrc``. When the src was a base64 PNG (composition
+// pass with no /storage URL yet) that meant injecting a 2–4 MB string
+// into a DOM attribute. Five layer cards × 3 MB = ~15 MB of HTML, which
+// pushed the browser into "very heavy" territory and stalled the image
+// viewer (every Lightbox open re-cloned the attribute).
+//
+// A WeakMap keyed by the card element keeps the heavy strings outside
+// the serialized DOM and lets the GC drop them when the bubble is
+// removed — no manual cleanup needed on Stop / new chat.
+const _layerFullSrcMap = new WeakMap();
+
 export class AnimePipeline {
     constructor() {
         /** @type {AbortController|null} */
@@ -163,6 +177,23 @@ export class AnimePipeline {
             image_only: imageOnly,
             batch_size: imageOnly ? batchSize : 1,
         };
+
+        // Pipe the character picker selection (if any) into the request.
+        // Backend ``_enrich_with_character`` resolves this against the local
+        // registry first, then falls back to the SAA WAI database (5149
+        // entries) so long-tail characters still get fully-qualified prompts.
+        try {
+            const sel = window.selectedCharacter || null;
+            if (sel && sel.key) {
+                body.character_key = sel.key;
+                if (sel.series_key) body.series_key = sel.series_key;
+            } else {
+                const dsKey = document.body.getAttribute('data-character-key');
+                const dsSeries = document.body.getAttribute('data-series-key');
+                if (dsKey) body.character_key = dsKey;
+                if (dsSeries) body.series_key = dsSeries;
+            }
+        } catch (_) { /* picker not loaded — ignore */ }
 
         // Stash the run options on the bubble so the regenerate /
         // edit-and-rerun buttons in _inlineShowResult can preserve
@@ -433,11 +464,17 @@ export class AnimePipeline {
      *  most recent layer thumbnail (gallery card) as the export.
      */
     _forceFinalizeAsCancelled(bubble, uid) {
-        // Pick the freshest layer thumbnail still in the DOM.
+        // Pick the freshest layer card and prefer its FULL-resolution
+        // source over the 64x64 thumbnail. Earlier versions used
+        // ``lastThumb.src`` which is only the cropped preview, so the
+        // "Đã ngưng" output came out pixelated. ``card.dataset.fullSrc``
+        // is set by ``_inlineAddLayerPreview`` to the local /storage URL
+        // when available, falling back to the full-res base64.
         const gallery = document.getElementById(`ap-layers-${uid}`);
-        const thumbs = gallery ? gallery.querySelectorAll('.ap-layer-thumb') : [];
-        const lastThumb = thumbs.length ? thumbs[thumbs.length - 1] : null;
-        const imgSrc = lastThumb?.src || '';
+        const cards = gallery ? gallery.querySelectorAll('.ap-layer-card') : [];
+        const lastCard = cards.length ? cards[cards.length - 1] : null;
+        const lastThumb = lastCard ? lastCard.querySelector('.ap-layer-thumb') : null;
+        const imgSrc = (lastCard && (_layerFullSrcMap.get(lastCard) || lastCard.dataset.fullSrc)) || lastThumb?.src || '';
 
         const details = bubble.querySelector('.ap-inline-progress');
         if (details) {
@@ -549,7 +586,7 @@ export class AnimePipeline {
                 // Use the stored full-resolution URL when available; fall
                 // back to the current thumb src otherwise.
                 const thumb = card.querySelector('.ap-layer-thumb');
-                const full = card.dataset.fullSrc || thumb?.src;
+                const full = _layerFullSrcMap.get(card) || card.dataset.fullSrc || thumb?.src;
                 if (!full) return;
                 // window.openImagePreview wants an <img> element. Build a
                 // detached one that points at the full-res source so the
@@ -572,7 +609,17 @@ export class AnimePipeline {
             if (thumb) thumb.src = thumbSrc;
         }
         if (fullSrc) {
-            card.dataset.fullSrc = fullSrc;
+            // Heavy base64 strings live in the WeakMap, NOT the DOM.
+            // Light /storage URLs can also live there — uniform access.
+            _layerFullSrcMap.set(card, fullSrc);
+            // Keep dataset only when src is a short URL (not base64),
+            // so devtools / right-click "copy URL" still works without
+            // bloating the HTML attribute when the src is multi-MB.
+            if (!fullSrc.startsWith('data:')) {
+                card.dataset.fullSrc = fullSrc;
+            } else if (card.dataset.fullSrc) {
+                delete card.dataset.fullSrc;
+            }
         }
         // Promote the previous layer card to ✓ Đã xong as soon as we
         // start drawing the next one. Also flip THIS card to done when
@@ -757,6 +804,90 @@ export class AnimePipeline {
                     crR.querySelector('.ap-score-badge')?.remove();
                 }
                 this._inlineSetCurrent(uid, `🔁 Full restart #${data.restart_num || 1}: ${data.reason || 'score stagnant'}`);
+                break;
+            }
+            case 'ap_vision_status': {
+                // 2026-04-29: surface which vision provider answered
+                // (NSFW chain may have routed through grok/step before
+                // gemini/gpt — the user deserves to know).
+                const model = data.model_used || 'unknown';
+                const isNsfwChain = /^(grok|step)/i.test(model);
+                const isPromptOnly = /^prompt_/i.test(model);
+                const tag = isPromptOnly ? '⚠️ prompt-only fallback' :
+                            isNsfwChain  ? '🔞 NSFW vision' :
+                                           '👁️ vision';
+                const conf = (data.confidence || 0).toFixed(2);
+                const charBit = data.character_detected
+                    ? ` · 🎭 ${data.character_name || 'character detected'}`
+                    : '';
+                this._inlineSetCurrent(
+                    uid,
+                    `${tag}: ${model} · conf ${conf} · ${data.tag_count} tags${charBit}`,
+                );
+                // Persist a small pill on the vision_analysis stage row.
+                const row = document.getElementById(`ap-stage-${uid}-vision_analysis`);
+                if (row) {
+                    let pill = row.querySelector('.ap-vision-model-pill');
+                    if (!pill) {
+                        pill = document.createElement('span');
+                        pill.className = 'ap-vision-model-pill';
+                        pill.style.cssText = 'margin-left:6px;padding:1px 6px;border-radius:8px;font-size:.7em;';
+                        const timeEl = row.querySelector('.ap-stage-time');
+                        if (timeEl) row.insertBefore(pill, timeEl); else row.appendChild(pill);
+                    }
+                    pill.textContent = model.length > 22 ? model.slice(0, 22) + '…' : model;
+                    pill.style.background = isPromptOnly
+                        ? 'rgba(251,191,36,.18)' :
+                          isNsfwChain ? 'rgba(244,114,182,.18)' :
+                                        'rgba(34,197,94,.18)';
+                    pill.style.color = isPromptOnly ? '#fbbf24' :
+                                       isNsfwChain ? '#f472b6' :
+                                                     '#22c55e';
+                    pill.title = `model=${model}, conf=${conf}, tags=${data.tag_count}`;
+                }
+                break;
+            }
+            case 'ap_research_status': {
+                // 2026-04-29: surface where reference images came from.
+                // Backend (orchestrator → anime_pipeline_service) emits
+                // this once character_research finishes — local cache
+                // hits, web downloads, NSFW chain, etc.
+                const local = data.local_refs || 0;
+                const web = data.web_refs || 0;
+                const skipped = !!data.web_search_skipped;
+                const cachedTag = data.cached ? ' (cache)' : '';
+                const nsfwTag = data.nsfw_intent ? ' · 🔞 NSFW chain' : '';
+                let msg;
+                if (skipped) {
+                    msg = `📚 Đã có đủ ${local} ảnh local, bỏ qua web search${cachedTag}${nsfwTag}`;
+                } else if (web > 0 && local > 0) {
+                    msg = `📚 Dùng ${local} local + ${web} web mới${cachedTag}${nsfwTag}`;
+                } else if (web > 0) {
+                    msg = `🌐 Tải ${web} ảnh tham chiếu từ web${cachedTag}${nsfwTag}`;
+                } else if (local > 0) {
+                    msg = `📚 Dùng ${local} ảnh local${cachedTag}${nsfwTag}`;
+                } else {
+                    msg = `🔍 Hoàn tất research${cachedTag}${nsfwTag}`;
+                }
+                this._inlineSetCurrent(uid, msg);
+                // Also annotate the character_research stage row with a
+                // tiny ref-source pill so the badge persists after the
+                // headline rolls over to the next stage.
+                const row = document.getElementById(`ap-stage-${uid}-character_research`);
+                if (row) {
+                    let pill = row.querySelector('.ap-ref-source-pill');
+                    if (!pill) {
+                        pill = document.createElement('span');
+                        pill.className = 'ap-ref-source-pill';
+                        pill.style.cssText = 'margin-left:6px;padding:1px 6px;border-radius:8px;background:rgba(99,102,241,.15);color:#818cf8;font-size:.7em;';
+                        const timeEl = row.querySelector('.ap-stage-time');
+                        if (timeEl) row.insertBefore(pill, timeEl); else row.appendChild(pill);
+                    }
+                    pill.textContent = skipped
+                        ? `📚 ${local} local`
+                        : `${local}📚 + ${web}🌐`;
+                    pill.title = `local=${local}, web=${web}, skipped=${skipped}, nsfw=${!!data.nsfw_intent}, conf=${(data.confidence||0).toFixed(2)}`;
+                }
                 break;
             }
             case 'ap_result':
@@ -974,6 +1105,7 @@ export class AnimePipeline {
         const cancelStage = bubble.dataset.apCancelStage || '';
         // Disarm the Stop hard-fallback timer set in _createInlineBubble.
         bubble.dataset.apFinalized = '1';
+        bubble.dataset.apState = wasCancelled ? 'cancelled' : 'done';
 
         // Mark every still-pending layer card as done (final stage emitted
         // before the bubble swap; nothing else will refresh them).
@@ -1152,6 +1284,13 @@ export class AnimePipeline {
                 });
             });
 
+            // 2026-04-28: per-tile "📐 Upscale" overlay button removed by
+            // user request — the new orientation presets generate at
+            // native 2048×2048 (or 1536×2048 / 2048×1536) so a
+            // post-hoc upscale pass is no longer needed in the common
+            // case. The /api/anime-pipeline/upscale endpoint still
+            // exists for power users / CLI consumers.
+
             msgContent?.appendChild(resultDiv.firstElementChild);
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -1170,6 +1309,7 @@ export class AnimePipeline {
             return;
         }
         bubble.dataset.apFinalized = '1';
+        bubble.dataset.apState = 'error';
         const details = bubble?.querySelector('.ap-inline-progress');
         if (details) {
             details.open = true;

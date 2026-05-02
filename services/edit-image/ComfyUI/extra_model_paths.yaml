@@ -2,7 +2,7 @@
 # Links to shared models stored in services/stable-diffusion and main ComfyUI
 
 a111:
-    base_path: C:\Users\Asus\Downloads\Compressed\AI-Assistant\services\stable-diffusion\
+    base_path: C:\Users\SkastVnT\Downloads\Compressed\AI-Assistant\services\stable-diffusion\
     checkpoints: models/Stable-diffusion
     configs: models/Stable-diffusion
     vae: models/VAE
@@ -14,7 +14,7 @@ a111:
     hypernetworks: models/hypernetworks
 
 main_comfyui:
-    base_path: C:\Users\Asus\Downloads\Compressed\AI-Assistant\ComfyUI\
+    base_path: C:\Users\SkastVnT\Downloads\Compressed\AI-Assistant\ComfyUI\
     checkpoints: models/checkpoints
     clip: models/clip
     clip_vision: models/clip_vision
@@ -29,5 +29,5 @@ main_comfyui:
     vae: models/vae
 
 edit_image_base:
-    base_path: C:\Users\Asus\Downloads\Compressed\AI-Assistant\services\edit-image\models\
+    base_path: C:\Users\SkastVnT\Downloads\Compressed\AI-Assistant\services\edit-image\models\
     checkpoints: base/sdxl-base

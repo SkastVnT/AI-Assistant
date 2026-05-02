@@ -62,6 +62,14 @@ LAST30DAYS_SCRIPT_PATH = os.getenv('LAST30DAYS_SCRIPT_PATH', '')
 LAST30DAYS_PYTHON_PATH = os.getenv('LAST30DAYS_PYTHON_PATH', '')
 LAST30DAYS_TIMEOUT = int(os.getenv('LAST30DAYS_TIMEOUT', '180'))
 
+# Reasoning Image Pipeline (Cycle 6) — opt-in local nano-banana-style multi-panel
+# pipeline. When false (default) the route is NOT registered, the import is
+# never executed, and the URL map is byte-identical to today's runtime.
+REASONING_PIPELINE_ENABLED = os.getenv('REASONING_PIPELINE', 'false').lower() == 'true'
+REASONING_PIPELINE_COMFY_URL = os.getenv('REASONING_PIPELINE_COMFY_URL', os.getenv('COMFYUI_URL', 'http://localhost:8188'))
+REASONING_PIPELINE_MAX_PANELS = int(os.getenv('REASONING_PIPELINE_MAX_PANELS', '9'))
+REASONING_PIPELINE_MAX_CORRECTION_PASSES = int(os.getenv('REASONING_PIPELINE_MAX_CORRECTION_PASSES', '0'))
+
 # Hermes Agent — advanced AI sidecar
 HERMES_ENABLED = os.getenv('HERMES_ENABLED', 'false').lower() == 'true'
 HERMES_API_URL = os.getenv('HERMES_API_URL', 'http://localhost:8080')
@@ -70,10 +78,13 @@ HERMES_TIMEOUT = int(os.getenv('HERMES_TIMEOUT', '120'))
 
 # Character Select SAA — Standalone Electron character picker sidecar
 # Source: https://github.com/mirabarukaso/character_select_stand_alone_app
-CHARACTER_SELECT_ENABLED = os.getenv('CHARACTER_SELECT_ENABLED', 'false').lower() == 'true'
+def _truthy(val: str | None) -> bool:
+    return (val or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+CHARACTER_SELECT_ENABLED = _truthy(os.getenv('CHARACTER_SELECT_ENABLED'))
 CHARACTER_SELECT_URL = os.getenv('CHARACTER_SELECT_URL', 'http://localhost:51028')
 CHARACTER_SELECT_PORT = int(os.getenv('CHARACTER_SELECT_PORT', '51028'))
-CHARACTER_SELECT_AUTO_START = os.getenv('CHARACTER_SELECT_AUTO_START', 'false').lower() == 'true'
+CHARACTER_SELECT_AUTO_START = _truthy(os.getenv('CHARACTER_SELECT_AUTO_START'))
 CHARACTER_SELECT_PATH = os.getenv('CHARACTER_SELECT_PATH', './character_select_stand_alone_app-main')
 CHARACTER_SELECT_TIMEOUT = int(os.getenv('CHARACTER_SELECT_TIMEOUT', '5'))
 

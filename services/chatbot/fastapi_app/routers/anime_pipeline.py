@@ -215,3 +215,45 @@ async def cancel_all_pipelines():
         logger.warning("[anime_pipeline] /cancel-all: comfy interrupt failed: %s", exc)
     logger.info("[anime_pipeline] /cancel-all: accepted=%d", len(accepted))
     return {"ok": True, "cancelled": accepted, "count": len(accepted)}
+
+
+# ── Upscale / fix-text mirrors ──────────────────────────────────────────
+# Without these, the /api/anime-pipeline/upscale POST from the lightbox
+# returns 404 under USE_FASTAPI=true (the Flask blueprint isn't mounted).
+# Both routes share the pure helper ``run_upscale_payload`` defined in
+# routes/anime_pipeline.py so logic stays in one place.
+
+@router.post("/upscale")
+async def upscale_image_fastapi(request: Request):
+    from fastapi.concurrency import run_in_threadpool
+    from routes.anime_pipeline import run_upscale_payload
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    body, status = await run_in_threadpool(run_upscale_payload, data)
+    return JSONResponse(body, status_code=status)
+
+
+@router.post("/fix-text")
+async def fix_text_fastapi(request: Request):
+    """Backward-compat alias: forwards to /upscale with factor=1.0
+    + denoise=0.40 (text-repair only, no resize)."""
+    from fastapi.concurrency import run_in_threadpool
+    from routes.anime_pipeline import run_upscale_payload
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    data["factor"] = 1.0
+    data.setdefault("denoise", 0.40)
+
+    body, status = await run_in_threadpool(run_upscale_payload, data)
+    return JSONResponse(body, status_code=status)

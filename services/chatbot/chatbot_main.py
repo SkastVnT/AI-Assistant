@@ -5509,6 +5509,21 @@ try:
 except ImportError as e:
     logger.warning(f"Could not register character_select blueprint: {e}")
 
+# Reasoning Image Pipeline (Cycle 6) — opt-in. The route module is imported
+# ONLY when REASONING_PIPELINE=true so the flag-off URL map stays byte-identical
+# to the legacy runtime.
+try:
+    from core.config import REASONING_PIPELINE_ENABLED
+except ImportError:
+    REASONING_PIPELINE_ENABLED = False
+if REASONING_PIPELINE_ENABLED:
+    try:
+        from routes.reasoning_image_gen import reasoning_image_gen_bp
+        app.register_blueprint(reasoning_image_gen_bp)
+        logger.info("Registered reasoning_image_gen blueprint (REASONING_PIPELINE=true)")
+    except ImportError as e:
+        logger.warning(f"Could not register reasoning_image_gen blueprint: {e}")
+
 try:
     from routes.anime_pipeline import anime_pipeline_bp
     app.register_blueprint(anime_pipeline_bp)

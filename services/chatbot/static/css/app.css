@@ -1346,19 +1346,21 @@ body.light-mode .message__content pre {
 /* Thinking process toggle */
 .thinking-container {
   margin-bottom: 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   overflow: hidden;
-  border: 1px solid rgba(124, 108, 240, 0.15);
-  background: linear-gradient(135deg, rgba(124, 108, 240, 0.04), rgba(99, 102, 241, 0.02));
-  transition: all 0.3s ease;
+  border: 1px solid color-mix(in srgb, var(--accent, #7c6cf0) 18%, transparent);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent, #7c6cf0) 5%, transparent),
+    color-mix(in srgb, var(--accent, #7c6cf0) 2%, transparent));
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .thinking-container.thinking--loading {
-  border-color: rgba(124, 108, 240, 0.3);
-  animation: thinkingGlow 2s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--accent, #7c6cf0) 35%, transparent);
+  animation: thinkingGlow 2.4s ease-in-out infinite;
 }
 @keyframes thinkingGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 108, 240, 0); }
-  50% { box-shadow: 0 0 12px 2px rgba(124, 108, 240, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #7c6cf0) 0%, transparent); }
+  50%      { box-shadow: 0 0 14px 2px color-mix(in srgb, var(--accent, #7c6cf0) 18%, transparent); }
 }
 .thinking-header {
   display: flex;
@@ -1370,7 +1372,7 @@ body.light-mode .message__content pre {
   transition: background 0.2s;
 }
 .thinking-header:hover {
-  background: rgba(124, 108, 240, 0.06);
+  background: color-mix(in srgb, var(--accent, #7c6cf0) 7%, transparent);
 }
 .thinking-header__left {
   display: flex;
@@ -1384,16 +1386,16 @@ body.light-mode .message__content pre {
 }
 .thinking-icon__pulse {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7c6cf0, #6366f1);
-  animation: thinkingPulse 1.2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(124, 108, 240, 0.5);
+  background: var(--accent-gradient, linear-gradient(135deg, var(--accent, #7c6cf0), #6366f1));
+  animation: thinkingPulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent, #7c6cf0) 50%, transparent);
 }
 @keyframes thinkingPulse {
-  0%, 100% { transform: scale(0.85); opacity: 0.7; }
-  50% { transform: scale(1.1); opacity: 1; }
+  0%, 100% { transform: scale(0.85); opacity: 0.65; }
+  50%      { transform: scale(1.05); opacity: 1; }
 }
 .thinking-title {
   font-size: 13px;
@@ -1403,16 +1405,17 @@ body.light-mode .message__content pre {
 .thinking-badge {
   font-size: 10px;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: 999px;
   font-weight: 600;
-  transition: all 0.3s;
+  letter-spacing: 0.3px;
+  transition: background 0.3s, color 0.3s;
 }
 .thinking-badge--loading {
-  background: rgba(124, 108, 240, 0.15);
-  color: #7c6cf0;
+  background: color-mix(in srgb, var(--accent, #7c6cf0) 16%, transparent);
+  color: var(--accent, #7c6cf0);
 }
 .thinking-badge--done {
-  background: rgba(16, 185, 129, 0.15);
+  background: color-mix(in srgb, #10b981 16%, transparent);
   color: #10b981;
 }
 .thinking-timer {
@@ -1424,28 +1427,35 @@ body.light-mode .message__content pre {
 .thinking-toggle-arrow {
   font-size: 12px;
   color: var(--text-tertiary);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/*
+ * Smooth open/close using grid-rows trick — works on any content height
+ * without measuring. Keeps existing `.thinking-content--open` toggle.
+ */
 .thinking-content {
-  overflow: hidden;
-  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.3s ease;
-  max-height: 0;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease, padding 0.3s ease;
   opacity: 0;
   padding: 0 14px;
+  overflow: hidden;
 }
+.thinking-content > * { min-height: 0; overflow: hidden; }
 .thinking-content--open {
-  max-height: 600px;
+  grid-template-rows: 1fr;
   opacity: 1;
   padding: 0 14px 12px;
-  overflow-y: auto;
 }
+.thinking-content--open > * { overflow-y: auto; max-height: 600px; }
 .thinking-content--collapsed {
-  max-height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
   padding: 0 14px;
 }
 
-.thinking-content.open { display: block; }
+.thinking-content.open { display: grid; }
 
 .thinking-steps {
   display: flex;
@@ -1457,7 +1467,7 @@ body.light-mode .message__content pre {
   line-height: 1.6;
   padding: 6px 10px;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: background 0.25s ease, color 0.25s ease, opacity 0.3s ease;
 }
 .thinking-step__title {
   font-weight: 700;
@@ -1473,15 +1483,15 @@ body.light-mode .message__content pre {
   line-height: 1.55;
 }
 .thinking-step--active {
-  color: #7c6cf0;
-  background: rgba(124, 108, 240, 0.06);
+  color: var(--accent, #7c6cf0);
+  background: color-mix(in srgb, var(--accent, #7c6cf0) 7%, transparent);
   animation: stepFadeIn 0.4s ease forwards;
 }
 .thinking-step--active .thinking-step__title {
-  color: #7c6cf0;
+  color: var(--accent, #7c6cf0);
 }
 .thinking-step--active .thinking-step__desc {
-  color: #9b8ff5;
+  color: color-mix(in srgb, var(--accent, #7c6cf0) 70%, var(--text-primary));
 }
 .thinking-step--done {
   color: var(--text-secondary);
@@ -1495,14 +1505,15 @@ body.light-mode .message__content pre {
   opacity: 0.7;
 }
 .thinking-step--reasoning {
-  color: #a78bfa;
-  background: rgba(167, 139, 250, 0.06);
+  color: color-mix(in srgb, var(--accent, #7c6cf0) 80%, var(--text-primary));
+  background: color-mix(in srgb, var(--accent, #7c6cf0) 6%, transparent);
   white-space: normal;
-  border-left: 2px solid rgba(167, 139, 250, 0.3);
+  border-left: 2px solid color-mix(in srgb, var(--accent, #7c6cf0) 35%, transparent);
   padding-left: 12px;
   margin: 4px 0;
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.55;
+  border-radius: 8px;
 }
 .thinking-step--reasoning.thinking-step--done {
   opacity: 0.85;
@@ -1520,31 +1531,37 @@ body.light-mode .message__content pre {
 .thinking-reasoning__label {
   font-weight: 600;
   font-size: 12.5px;
-  color: #a78bfa;
+  color: var(--accent, #7c6cf0);
 }
 .thinking-reasoning__toggle {
   font-size: 10px;
-  color: #a78bfa;
-  opacity: 0.7;
-  transition: transform 0.2s ease;
+  color: var(--accent, #7c6cf0);
+  opacity: 0.75;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.thinking-step--reasoning.thinking-step--collapsed .thinking-reasoning__toggle {
+  transform: rotate(-90deg);
 }
 .thinking-reasoning__body {
   font-size: 12.5px;
   line-height: 1.6;
-  color: #a78bfa;
-  transition: max-height 0.35s ease, opacity 0.25s ease;
+  color: color-mix(in srgb, var(--accent, #7c6cf0) 80%, var(--text-primary));
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
   overflow: hidden;
 }
+.thinking-reasoning__body > * { min-height: 0; }
 .thinking-reasoning__body p { margin: 4px 0; }
 .thinking-reasoning__body ul,
 .thinking-reasoning__body ol { margin: 4px 0; padding-left: 18px; }
 .thinking-reasoning__body pre {
-  background: rgba(0,0,0,0.2);
+  background: color-mix(in srgb, var(--bg-primary, #000) 60%, transparent);
   padding: 8px;
   border-radius: 6px;
   font-size: 12px;
   overflow-x: auto;
-  color: #c4b5fd;
+  color: color-mix(in srgb, var(--accent, #7c6cf0) 50%, var(--text-primary));
 }
 
 .thinking-reasoning-actions {
@@ -1554,26 +1571,32 @@ body.light-mode .message__content pre {
 }
 
 .thinking-reasoning-btn {
-  border: 1px solid rgba(167, 139, 250, 0.28);
-  background: rgba(167, 139, 250, 0.08);
-  color: #c4b5fd;
+  border: 1px solid color-mix(in srgb, var(--accent, #7c6cf0) 28%, transparent);
+  background: color-mix(in srgb, var(--accent, #7c6cf0) 8%, transparent);
+  color: color-mix(in srgb, var(--accent, #7c6cf0) 60%, var(--text-primary));
   border-radius: 999px;
   font-size: 11px;
   line-height: 1;
   padding: 6px 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
 }
 
 .thinking-reasoning-btn:hover {
-  background: rgba(167, 139, 250, 0.16);
-  border-color: rgba(167, 139, 250, 0.45);
+  background: color-mix(in srgb, var(--accent, #7c6cf0) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #7c6cf0) 50%, transparent);
+  transform: translateY(-1px);
 }
 
-/* Collapsed: show 2 lines with fade */
+/* Collapsed: show 2 lines with fade — uses theme bg, no light-mode leak */
 .thinking-step--reasoning.thinking-step--collapsed .thinking-reasoning__body {
-  max-height: 3em;
+  grid-template-rows: 0fr;
   position: relative;
+}
+.thinking-step--reasoning.thinking-step--collapsed .thinking-reasoning__header + .thinking-reasoning__body {
+  /* Show ~2 lines via min-height fallback when grid collapsed */
+  min-height: 3em;
+  grid-template-rows: 3em;
 }
 .thinking-step--reasoning.thinking-step--collapsed .thinking-reasoning__body::after {
   content: '';
@@ -1588,6 +1611,7 @@ body.light-mode .message__content pre {
 
 /* Expanded: full content */
 .thinking-step--reasoning.thinking-step--expanded .thinking-reasoning__body {
+  grid-template-rows: 1fr;
   max-height: 2000px;
   overflow-y: auto;
 }
@@ -1601,7 +1625,20 @@ body.light-mode .message__content pre {
 }
 @keyframes stepFadeIn {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-container,
+  .thinking-container.thinking--loading,
+  .thinking-icon__pulse,
+  .thinking-content,
+  .thinking-reasoning__body,
+  .thinking-reasoning__toggle,
+  .thinking-step,
+  .thinking-step--active {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 .thinking-steps__pre {
   white-space: pre-wrap;
