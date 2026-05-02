@@ -18,8 +18,10 @@ from __future__ import annotations
 
 import logging
 import base64
+import ipaddress
 import time as _time
 from functools import wraps
+from urllib.parse import urlparse
 from flask import Blueprint, request, jsonify, session, send_file, Response
 from io import BytesIO
 
@@ -853,13 +855,23 @@ def edit_image():
         source_b64 = img_session.last_image_b64
 
     if not source_b64:
-        # Try downloading from last URL — validate scheme to prevent SSRF
+        # Try downloading from last URL — validate scheme and block cloud-metadata
+        # link-local IPs (e.g. 169.254.169.254) to mitigate SSRF risk.
+        # follow_redirects is disabled to prevent redirect-based bypass.
         last_url = img_session.last_image_url
         if last_url and last_url.startswith(("http://", "https://")):
             try:
-                import httpx
-                resp = httpx.get(last_url, timeout=15, follow_redirects=True)
-                source_b64 = base64.b64encode(resp.content).decode()
+                _host = (urlparse(last_url).hostname or "").lower()
+                _blocked = False
+                try:
+                    _blocked = ipaddress.ip_address(_host).is_link_local
+                except ValueError:
+                    pass  # hostname (not raw IP) — proceed
+                if not _blocked:
+                    import httpx
+                    resp = httpx.get(last_url, timeout=15, follow_redirects=False)
+                    if resp.status_code == 200:
+                        source_b64 = base64.b64encode(resp.content).decode()
             except Exception:
                 pass
 
