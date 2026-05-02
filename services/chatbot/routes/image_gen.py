@@ -853,11 +853,12 @@ def edit_image():
         source_b64 = img_session.last_image_b64
 
     if not source_b64:
-        # Try downloading from last URL
-        if img_session.last_image_url:
+        # Try downloading from last URL — validate scheme to prevent SSRF
+        last_url = img_session.last_image_url
+        if last_url and last_url.startswith(("http://", "https://")):
             try:
                 import httpx
-                resp = httpx.get(img_session.last_image_url, timeout=15, follow_redirects=True)
+                resp = httpx.get(last_url, timeout=15, follow_redirects=True)
                 source_b64 = base64.b64encode(resp.content).decode()
             except Exception:
                 pass

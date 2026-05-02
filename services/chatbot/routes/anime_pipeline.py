@@ -440,6 +440,9 @@ def upload_reference_images():
         return jsonify({"error": "Maximum 4 reference images allowed"}), 400
 
     character_tag = request.form.get("character_tag", "").strip()
+    # Sanitize to prevent path traversal — only allow safe characters
+    import re as _re
+    character_tag = _re.sub(r"[^A-Za-z0-9_\-]", "_", character_tag)
     refs_b64 = []
 
     for f in files:

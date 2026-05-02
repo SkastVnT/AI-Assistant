@@ -386,6 +386,7 @@ class AnimePipelineOrchestrator:
                 yield self._event("stage_start", {
                     "stage": "upscale_pre", "stage_num": 5.5, "total_stages": 9,
                     "factor": 2.0,
+                    "vram_profile": self._config.vram.profile.value,
                 })
                 self._upscale.execute_sdxl_pass(
                     job, factor=2.0, denoise=0.20,
@@ -525,6 +526,7 @@ class AnimePipelineOrchestrator:
             if getattr(self._config, "pipeline_v2_upscale_first", True):
                 yield self._event("stage_start", {
                     "stage": "upscale", "stage_num": 9, "total_stages": 9, "factor": 1.5,
+                    "vram_profile": self._config.vram.profile.value,
                 })
                 self._upscale.execute_sdxl_pass(
                     job, factor=1.5, denoise=0.18, stage_name="upscale",

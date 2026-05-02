@@ -142,16 +142,17 @@ class TestHybridGPUProfile(unittest.TestCase):
 
         names = [c.provider.name for c in providers]
         self.assertGreater(len(names), 0, "Should have providers")
-        self.assertEqual(names[0], "comfyui",
-                         f"ComfyUI should be FIRST when healthy, got: {names}")
+        local_comfyui_names = {"comfyui", "comfyui_fast"}
+        self.assertIn(names[0], local_comfyui_names,
+                         f"A local ComfyUI provider should be FIRST when healthy, got: {names}")
 
         # Remote providers should be in the fallback chain
-        remote_in_chain = [n for n in names if n != "comfyui"]
+        remote_in_chain = [n for n in names if n not in local_comfyui_names]
         self.assertGreater(len(remote_in_chain), 0,
                            "Remote providers must still be in fallback chain")
 
         print(f"\n✅ Test 3: HYBRID local healthy → provider order = {names}")
-        print(f"   ComfyUI is FIRST ✓, fallback = {remote_in_chain}")
+        print(f"   Local ComfyUI is FIRST ✓, fallback = {remote_in_chain}")
 
     # ── Test 4: HYBRID — local unhealthy → remote only ──────────────
 

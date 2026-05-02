@@ -120,7 +120,7 @@ def _save_seen_registry(danbooru_tag: str, reg: dict[str, dict[str, str]]) -> No
 
 
 def _url_hash(url: str) -> str:
-    return hashlib.md5(url.encode("utf-8", errors="ignore")).hexdigest()[:8]
+    return hashlib.md5(url.encode("utf-8", errors="ignore"), usedforsecurity=False).hexdigest()[:8]
 
 
 def _bytes_hash(data: bytes) -> str:
