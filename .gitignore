@@ -333,3 +333,7 @@ cloudflared.exe
 /query_test.ps1
 /search_err.py
 /*.html
+
+# Local planning / notes (live in private/)
+/SKILL.md
+/skills.md

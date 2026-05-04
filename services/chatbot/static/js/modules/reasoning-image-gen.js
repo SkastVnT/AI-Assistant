@@ -45,10 +45,14 @@
             // no extra fields and the route behaves exactly as before.
             const opts = (window.imageGenOptions || {});
             const sel  = window.selectedCharacter || null;
+            const mp   = window.manualProfile || null;
             const body = { prompt: prompt.trim() };
             if (sel) body.selected_character = sel;
+            if (mp)  body.manual_profile = mp;
             if (opts.preflightOnly) body.preflight_only = true;
+            if (opts.requirePreflightPass) body.require_preflight_pass = true;
             if (opts.budgetMode === "fast") body.budget_mode = "fast";
+            if (opts.maxCostLevel) body.max_cost_level = opts.maxCostLevel;
             const res = await fetch(GENERATE_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
