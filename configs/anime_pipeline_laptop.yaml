@@ -1,0 +1,177 @@
+# ─────────────────────────────────────────────────────────────────────
+# Anime Multi-Pass Pipeline — Laptop / 8 GB VRAM Demo Config
+# ─────────────────────────────────────────────────────────────────────
+# Purpose : Prototype and test the same 7-stage pipeline flow on an
+#           8 GB VRAM GPU. Not a production-quality config.
+# Activate: ANIME_PIPELINE_CONFIG=configs/anime_pipeline_laptop.yaml
+#
+# Official 12 GB config: configs/anime_pipeline.yaml (do NOT modify)
+# ─────────────────────────────────────────────────────────────────────
+
+# ── VRAM Profile ────────────────────────────────────────────────────
+# profile: auto  → config.py will call nvidia-smi and pick lowvram automatically
+#                  for GPUs < 10 GB (e.g. RTX 3060 Laptop, 6 GB)
+# lowvram = 1024 px max, 25-step cap, cpu_vae_offload=true, 1.5× upscale
+vram:
+  profile: auto   # auto-detected: RTX 3060 Laptop 6 GB → lowvram
+
+# ── Model Strategy ──────────────────────────────────────────────────
+# Choose ONE of the three checkpoint options below.
+# The ComfyUI graph (CheckpointLoaderSimple → KSampler → VAEDecode) is
+# identical for all options — only the checkpoint filename changes.
+#
+# Option A — SDXL fp8 quantized (recommended, ~4 GB VRAM)
+#   Filename: waiIllustriousSDXL_v160_fp8.safetensors
+#   Style: same WAI series as production, fp8 quantization halves VRAM
+#   Steps: 18–22 adequate at fp8 quality level
+#
+# Option B — SD 1.5 anime (~2 GB VRAM, maximum headroom)
+#   Filename: anything-v5-PrtRE.safetensors
+#              counterfeitV30_v30.safetensors
+#              dreamshaper_8.safetensors
+#   Type: sd15   (must change `type:` field below to sd15)
+#   Steps: 20–25 typical for SD 1.5
+#   Note: SD 1.5 has 512–768 native resolution; use portrait 640×896
+#
+# Option C — SDXL base 1.0 fp8 (~4 GB VRAM, generic fallback)
+#   Filename: sd_xl_base_1.0_fp8.safetensors
+#   Use when WAI fp8 is not downloaded yet
+
+# ── Detected GPU: RTX 3060 Laptop — 6 GB VRAM ──────────────────────
+# Recommended: Option B (SD 1.5, ~2 GB) — leaves 4 GB headroom for
+#   KSampler, LoRAs, and VRAM spikes during beauty/upscale passes.
+# Option A (SDXL fp8, ~4 GB) is technically possible but very tight.
+
+models:
+  composition:
+    # ── 6 GB recommendation: Option B (SD 1.5) ────────────────────
+    # checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"  # Option A SDXL fp8, tight on 6 GB
+    checkpoint: "anything-v5-PrtRE.safetensors"               # Option B SD1.5 — recommended for 6 GB
+    # checkpoint: "sd_xl_base_1.0_fp8.safetensors"            # Option C SDXL base
+    type: sd15          # sd15 for Option B; sdxl for Options A/C
+    sampler: euler_ancestral
+    scheduler: karras
+    steps: 20           # 20 vs 28 production — fast enough for flow testing
+    cfg: 5.0
+    clip_skip: 2
+    vae: null
+
+  beauty:
+    # checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"  # Option A
+    checkpoint: "anything-v5-PrtRE.safetensors"               # Option B — 6 GB recommended
+    type: sd15          # sd15 for Option B
+    sampler: euler_ancestral
+    scheduler: karras
+    steps: 15           # 15 vs 30 production — beauty pass still detectable
+    cfg: 5.0
+    clip_skip: 2
+    vae: null
+    denoise_strength: 0.35
+
+  final:
+    # checkpoint: "waiIllustriousSDXL_v160_fp8.safetensors"  # Option A
+    checkpoint: "anything-v5-PrtRE.safetensors"               # Option B — 6 GB recommended
+    type: sd15          # sd15 for Option B
+    sampler: euler_ancestral
+    scheduler: karras
+    steps: 18
+    cfg: 5.0
+    clip_skip: 2
+    vae: null
+    denoise_strength: 0.30
+
+  # LoRAs: disable all on laptop — saves VRAM and speeds up load
+  loras:
+    defaults: []
+
+  upscale:
+    model: "RealESRGAN_x4plus_anime_6B"
+    scale_factor: 2
+    fallback_model: "RealESRGAN_x4plus"
+
+
+# ── Beauty Pass ─────────────────────────────────────────────────────
+beauty_pass:
+  strength: subtle      # subtle = fewer steps, less redraw
+
+
+# ── Resolutions (6 GB safe — SD1.5 native range) ────────────────────
+# SD1.5 native: 512–768px. 640×896 is safe and gives portrait aspect.
+# For SDXL fp8 (Option A): use 768×1024 instead.
+resolutions:
+  portrait:
+    width: 640
+    height: 896
+  landscape:
+    width: 896
+    height: 640
+  square:
+    width: 768
+    height: 768
+
+
+# ── Structure Lock (ControlNet) ─────────────────────────────────────
+# Disabled on laptop:
+#   - SD1.5 ControlNet models are architecturally incompatible with SDXL
+#   - SDXL-native ControlNet models require extra VRAM (2–4 GB)
+#   - Pipeline flow is fully exercised without ControlNet
+structure_lock:
+  max_simultaneous: 0
+  layers: []
+
+
+# ── Vision Analyst ──────────────────────────────────────────────────
+# These are API calls — unaffected by VRAM. Keep as-is or trim tokens.
+vision:
+  model_priority:
+    - gemini-2.0-flash
+    - gpt-4o-mini
+  max_tokens: 300
+  temperature: 0.2
+
+
+# ── Critique ────────────────────────────────────────────────────────
+# Lower bar + fewer rounds for fast prototyping iterations
+critique:
+  quality_threshold: 0.60   # 0.60 vs 0.80 production — passes more on first try
+  max_refine_rounds: 2      # 2 vs 8 production — exit quickly
+  dimensions:
+    - instruction_adherence
+    - identity_consistency
+  return_best_on_fail: true
+
+
+# ── Eye-Refine Micro Workflow ────────────────────────────────────────
+# Disabled: saves one extra beauty pass on laptop
+eye_refine:
+  enabled: false
+  trigger_score: 10         # unreachable threshold as safety net
+  max_steps: 1
+
+
+# ── Pipeline Behavior ───────────────────────────────────────────────
+pipeline:
+  timeouts:
+    vision_analysis: 20000
+    layer_planning: 10000
+    composition_pass: 180000   # fp8 loads slower than fp16
+    structure_lock: 30000
+    beauty_pass: 180000
+    detection_inpaint: 120000
+    critique: 20000
+    upscale: 90000
+
+  save_intermediates: true
+  intermediate_dir: "storage/intermediate"
+  stream_events: true
+  unload_between_passes: true   # critical on 8 GB — free model before loading next
+
+
+# ── Prompt Enhancement ──────────────────────────────────────────────
+prompts:
+  quality_prefix: "masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, highly detailed"
+  negative_base: >-
+    lowres, bad anatomy, bad hands, text, error, missing fingers,
+    extra digit, fewer digits, cropped, worst quality, low quality,
+    normal quality, jpeg artifacts, signature, watermark, username, blurry,
+    artist name, bad proportions, deformed, disfigured, ugly
