@@ -51,6 +51,13 @@ routes/stable_diffusion.py  SD proxy routes
 routes/async_routes.py  /chat/async — async SSE
 routes/qr_payment.py    QR payment routes
 routes/skills.py        /api/skills/* — runtime skill CRUD + session activation
+routes/characters.py    /api/characters/* — character registry + SAA augment
+routes/character_select.py  /api/character-select/* + /api/local-image-gen/*
+routes/jobs.py          /api/jobs/* — local image job queue
+routes/anime_pipeline.py    /api/anime-pipeline/* — 7-agent ComfyUI pipeline
+routes/reasoning_image_gen.py  /api/reasoning-image-gen/* — multi-panel pipeline (REASONING_PIPELINE=true)
+routes/hermes.py        /api/hermes/chat — Hermes sidecar proxy (HERMES_ENABLED=true)
+routes/last30days.py    /api/tools/last30days — social research (LAST30DAYS_ENABLED=true)
 core/chatbot.py         ChatbotAgent v1 — if/elif model routing
 core/chatbot_v2.py      ChatbotAgent v2 — ModelRegistry-based
 core/tools.py           Tool functions: web search, reverse image, SauceNAO
@@ -59,6 +66,10 @@ core/thinking_generator.py  Thinking modes + ThinkTagParser
 core/stream_contract.py SSE complete-event payload builder
 core/agentic/           Multi-thinking pipeline (4-agent council)
 core/image_gen/         Multi-provider image gen router
+core/character_registry.py  CharacterRegistry singleton — searchable alias-aware DB
+core/character_select_adapter.py  HTTP probe to SAA sidecar (CHARACTER_SELECT_ENABLED)
+core/job_queue.py       JobQueue singleton — local image job lifecycle
+core/hermes_adapter.py  HTTP proxy to Hermes Agent sidecar (HERMES_ENABLED)
 config/                 Service-level MongoDB config, model presets, features.json
 database/               Repository pattern DB access, query caching
 src/handlers/           Multimodal handler, advanced image gen handler
@@ -153,6 +164,8 @@ This repository has 16 skills in `.github/skills/`. **Before starting work, read
 | Startup / health | `service-health-check-audit` |
 | Docs drift | `docs-drift-sync` |
 | Test scope | `test-impact-mapper` |
+| Character picker, job queue, SAA | `character-picker-integration` |
+| Reasoning pipeline, anime pipeline | `character-picker-integration` + `core-chatbot-routing-audit` |
 | Bug, hard failure, silent error | `diagnose` |
 | Building feature/fix test-first | `tdd` |
 | Entering unfamiliar module | `zoom-out` |
@@ -168,3 +181,4 @@ This repository has 16 skills in `.github/skills/`. **Before starting work, read
 - Do not add HTTP transport to the MCP server.
 - Do not merge the Flask SSE path with the FastAPI path.
 - Do not update only code without updating docs when runtime behavior changes.
+- Do not bypass the Hermes↔Reasoning bridge contract: `core/image_intent.py` is the single import boundary between chatbot code and `image_pipeline.reasoning`. Do not add additional direct imports of `image_pipeline` anywhere else in `services/chatbot/`.

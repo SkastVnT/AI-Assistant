@@ -82,6 +82,15 @@ When behavior changes, update docs and identify the smallest sufficient validati
 
 **Run tests:** `cd services/chatbot && pytest tests/ -v` (venv-core activated).
 
+## Sidecar services (opt-in, do not touch for chatbot-only tasks)
+
+| Sidecar | Flag | Port | Entry |
+|---|---|---|---|
+| Hermes Agent | `HERMES_ENABLED=true` | 8080 | separate process — `NousResearch/hermes-agent` |
+| SAA character picker | `CHARACTER_SELECT_ENABLED=true` | 51028 | `character_select_stand_alone_app-main/` — `npm start` |
+
+**Hermes ↔ Reasoning pipeline are separate paths by default.** `POST /api/hermes/chat` is a chat proxy. `POST /api/reasoning-image-gen/generate` is a ComfyUI multi-panel pipeline (opt-in: `REASONING_PIPELINE=true`). A bridge (`core/image_intent.py`) activates only when **both** `HERMES_ENABLED=true` and `REASONING_PIPELINE=true` — it classifies the message and redirects image requests to the reasoning pipeline. Fails-safe: any import or classification error falls through to Hermes.
+
 ---
 
 ## Standard response shape

@@ -105,6 +105,12 @@ services/chatbot/
       applicator.py         apply_skill_overrides() — merge skill into request
       session.py            SkillSessionStore (in-memory per-session binding)
       builtins/             12 built-in YAML skill definitions
+    character_registry.py   CharacterRegistry singleton — searchable alias-aware DB
+    character_select_adapter.py  HTTP probe to SAA sidecar (status, reachability)
+    job_queue.py            JobQueue singleton — local image job lifecycle (queued→done)
+    image_pipeline_link.py  Bridge: enriches LLM asset records with live JobQueue state
+    hermes_adapter.py       HTTP proxy to Hermes Agent sidecar (POST /chat)
+    last30days_tool.py      Subprocess wrapper for last30days social-research CLI
   routes/
     stream.py               PRIMARY: POST /chat/stream (SSE)
     main.py                 /, /chat, /clear, /history, /api/generate-title
@@ -121,6 +127,13 @@ services/chatbot/
     qr_payment.py           QR payment routes (VietQR)
     skills.py               /api/skills/* — runtime skill management
     async_routes.py         /chat/async — async SSE streaming
+    characters.py           /api/characters/* — character registry search + SAA augment
+    character_select.py     /api/character-select/* + /api/local-image-gen/* — SAA sidecar
+    jobs.py                 /api/jobs/* — local image job queue (status, cancel, manifest)
+    anime_pipeline.py       /api/anime-pipeline/* — local ComfyUI 7-agent pipeline
+    reasoning_image_gen.py  /api/reasoning-image-gen/* — multi-panel reasoning pipeline (REASONING_PIPELINE=true)
+    hermes.py               /api/hermes/chat — Hermes sidecar proxy (HERMES_ENABLED=true)
+    last30days.py           /api/tools/last30days — social research (LAST30DAYS_ENABLED=true)
   config/                   Service-level config (NOT core/config.py)
     mongodb_config.py       MongoDB client setup
     mongodb_helpers.py      ConversationDB, MessageDB, MemoryDB, FileDB
@@ -173,6 +186,26 @@ services/mcp-server/
 app/config/                 Centralized config (.env, config.yml, model_config.py,
                             rate_limiter.py, response_cache.py, firebase_config.py)
 app/src/                    Shared modules (utils, database, cache, security, health)
+
+image_pipeline/             Local multi-stage image pipeline (image-only tasks)
+  reasoning/                Reasoning library: capability_router, prompt_parser,
+                            prompt_revision, schemas, state/, execution/
+  anime_pipeline/           7-agent ComfyUI anime pipeline (orchestrator, agents,
+                            lora_manager, saa_character_db, character_parser, ...)
+  workflow/                 Workflow orchestrator (ImageJob dataclass, stage runner)
+  evaluator/                LLM-as-judge scorer
+  planner/                  PromptLayerEngine
+  BLUEPRINT.md              Architecture reference (locked stack decisions)
+
+character_select_stand_alone_app-main/   SAA — Electron character picker sidecar
+  data/wai_characters.csv               5149 verified WAI SDXL characters
+  data/danbooru_e621_merged.csv         Tag autocomplete vocabulary
+  data/wai_character_thumbs.json        Character thumbnail index
+  (webserver runs on port 51028)
+
+storage/character_db/       Local character registry JSON (editable seed data)
+  characters.json           Registry entries (key, display_name, series, tags...)
+  series_aliases.json       Series key aliases (GI→genshin_impact, HSR→...)
 ```
 
 **Structural warning — two config directories:**
@@ -315,3 +348,19 @@ After making or proposing a change, summarize using:
 | MCP transport | stdio (FastMCP) |
 | Flask streaming | SSE via `routes/stream.py` |
 | FastAPI mode | Opt-in via `USE_FASTAPI=true` |
+| Hermes sidecar | HTTP at `HERMES_API_URL` (default 8080) — opt-in via `HERMES_ENABLED=true` |
+| SAA sidecar | Electron app at port 51028 — opt-in via `CHARACTER_SELECT_ENABLED=true` |
+| SAA data path | `character_select_stand_alone_app-main/data/` — read-only by `saa_character_db.py` |
+| Reasoning pipeline | Local ComfyUI multi-panel — opt-in via `REASONING_PIPELINE=true` |
+| Reasoning endpoint | `POST /api/reasoning-image-gen/generate` |
+| Hermes endpoint | `POST /api/hermes/chat` |
+| last30days endpoint | `POST /api/tools/last30days` — opt-in via `LAST30DAYS_ENABLED=true` |
+
+## Sidecar services (opt-in)
+
+| Sidecar | Default port | Enable flag | Entry point |
+|---|---|---|---|
+| Hermes Agent | 8080 | `HERMES_ENABLED=true` | `NousResearch/hermes-agent` — separate process |
+| SAA character picker | 51028 | `CHARACTER_SELECT_ENABLED=true` | `character_select_stand_alone_app-main/` — `npm start` |
+
+**Hermes ↔ Reasoning pipeline:** These are **separate, non-overlapping paths** by default. Hermes is a chat AI proxy. The reasoning pipeline is a ComfyUI-backed local image pipeline. A lightweight bridge exists in `core/image_intent.py` and is active only when **both** `HERMES_ENABLED=true` and `REASONING_PIPELINE=true`. When both flags are set, `POST /api/hermes/chat` runs `image_pipeline.reasoning.capability_router.classify()` before forwarding to Hermes; image-generation requests (confidence ≥ 0.75) are redirected to the reasoning pipeline transparently. The bridge fails-safe: if `image_pipeline` is not importable or classification fails, the request falls through to Hermes unchanged.
