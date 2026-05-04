@@ -42,11 +42,27 @@ logger = logging.getLogger(__name__)
 # ── Connection state (module-private, lazily initialized) ──────────────
 
 _LOCK = threading.Lock()
-_INITIALIZED = False
-_CLIENT: Any = None
-_DB: Any = None
-_DISABLED_REASON: str = ""
-_INDEXES_ENSURED = False
+
+
+class _MongoState:
+    """Container for MongoDB connection state.
+
+    Using a single mutable object avoids ``global`` declarations for
+    each individual state variable, which in turn makes the data-flow
+    clear to static-analysis tools.
+    """
+
+    __slots__ = ("initialized", "client", "db", "disabled_reason", "indexes_ensured")
+
+    def __init__(self) -> None:
+        self.initialized: bool = False
+        self.client: Any = None
+        self.db: Any = None
+        self.disabled_reason: str = ""
+        self.indexes_ensured: bool = False
+
+
+_state = _MongoState()
 
 SCHEMA_VERSION = 2
 _DEFAULT_DB_NAME = "ai_assistant_v2"
@@ -74,54 +90,53 @@ def _read_env() -> tuple[str, str]:
 
 def _init() -> None:
     """Lazy one-shot connection attempt. Idempotent."""
-    global _INITIALIZED, _CLIENT, _DB, _DISABLED_REASON
-    if _INITIALIZED:
+    if _state.initialized:
         return
     with _LOCK:
-        if _INITIALIZED:
+        if _state.initialized:
             return
-        _INITIALIZED = True
+        _state.initialized = True
         # Optional explicit kill-switch. When set falsy, do not even
         # attempt to connect.
         enabled_flag = (os.getenv("MONGODB_ENABLED") or "").strip().lower()
         if enabled_flag in ("0", "false", "no", "off"):
-            _DISABLED_REASON = "MONGODB_ENABLED is false"
-            logger.info("mongo_store disabled: %s", _DISABLED_REASON)
+            _state.disabled_reason = "MONGODB_ENABLED is false"
+            logger.info("mongo_store disabled: %s", _state.disabled_reason)
             return
         uri, db_name = _read_env()
         if not uri:
-            _DISABLED_REASON = "missing MONGODB_URI"
-            logger.info("mongo_store disabled: %s", _DISABLED_REASON)
+            _state.disabled_reason = "missing MONGODB_URI"
+            logger.info("mongo_store disabled: %s", _state.disabled_reason)
             return
         try:
             from pymongo import MongoClient  # noqa: PLC0415
         except Exception as exc:  # noqa: BLE001
-            _DISABLED_REASON = f"pymongo import failed: {exc}"
-            logger.warning("mongo_store disabled: %s", _DISABLED_REASON)
+            _state.disabled_reason = f"pymongo import failed: {exc}"
+            logger.warning("mongo_store disabled: %s", _state.disabled_reason)
             return
         try:
             client = MongoClient(uri, serverSelectionTimeoutMS=3000)
             client.admin.command("ping")
-            _CLIENT = client
-            _DB = client[db_name]
+            _state.client = client
+            _state.db = client[db_name]
             logger.info("mongo_store connected -> db=%s", db_name)
         except Exception as exc:  # noqa: BLE001
-            _DISABLED_REASON = f"connect/ping failed: {exc}"
-            logger.warning("mongo_store disabled: %s", _DISABLED_REASON)
-            _CLIENT = None
-            _DB = None
+            _state.disabled_reason = f"connect/ping failed: {exc}"
+            logger.warning("mongo_store disabled: %s", _state.disabled_reason)
+            _state.client = None
+            _state.db = None
 
 
 def is_mongo_enabled() -> bool:
     """Return True iff the client connected and a DB handle is available."""
     _init()
-    return _DB is not None
+    return _state.db is not None
 
 
 def get_mongo_db() -> Any:
     """Return the active database handle, or ``None`` when disabled."""
     _init()
-    return _DB
+    return _state.db
 
 
 def ensure_indexes() -> dict:
@@ -134,45 +149,44 @@ def ensure_indexes() -> dict:
 
 
 def _ensure_indexes_internal(*, force: bool = False) -> dict:
-    global _INDEXES_ENSURED
-    if _DB is None:
+    if _state.db is None:
         return {"ok": False, "disabled": True}
-    if _INDEXES_ENSURED and not force:
+    if _state.indexes_ensured and not force:
         return {"ok": True, "skipped": True}
-    _INDEXES_ENSURED = True  # mark up-front so failures don't retry forever
+    _state.indexes_ensured = True  # mark up-front so failures don't retry forever
     created: list[str] = []
     try:
         from pymongo import ASCENDING  # noqa: PLC0415
         # conversations
-        _DB["conversations"].create_index("conversation_id", unique=True)
+        _state.db["conversations"].create_index("conversation_id", unique=True)
         created.append("conversations.conversation_id")
         # messages
-        _DB["messages"].create_index("message_id", unique=True)
-        _DB["messages"].create_index([
+        _state.db["messages"].create_index("message_id", unique=True)
+        _state.db["messages"].create_index([
             ("conversation_id", ASCENDING), ("created_at", ASCENDING),
         ])
         created.append("messages.message_id+conversation_id+created_at")
         # tool_calls
-        _DB["tool_calls"].create_index("tool_call_id", unique=True)
-        _DB["tool_calls"].create_index("conversation_id")
+        _state.db["tool_calls"].create_index("tool_call_id", unique=True)
+        _state.db["tool_calls"].create_index("conversation_id")
         created.append("tool_calls.tool_call_id+conversation_id")
         # uploaded_files
-        _DB["uploaded_files"].create_index("file_id", unique=True)
+        _state.db["uploaded_files"].create_index("file_id", unique=True)
         created.append("uploaded_files.file_id")
         # character_profiles
-        _DB["character_profiles"].create_index("canonical_id", unique=True)
+        _state.db["character_profiles"].create_index("canonical_id", unique=True)
         created.append("character_profiles.canonical_id")
         # generation_jobs
-        _DB["generation_jobs"].create_index("job_id", unique=True)
-        _DB["generation_jobs"].create_index("character_result.canonical_id")
-        _DB["generation_jobs"].create_index("status")
-        _DB["generation_jobs"].create_index("created_at")
+        _state.db["generation_jobs"].create_index("job_id", unique=True)
+        _state.db["generation_jobs"].create_index("character_result.canonical_id")
+        _state.db["generation_jobs"].create_index("status")
+        _state.db["generation_jobs"].create_index("created_at")
         created.append("generation_jobs.job_id+character+status+created_at")
         # image_assets
-        _DB["image_assets"].create_index("image_id", unique=True)
-        _DB["image_assets"].create_index("job_id")
-        _DB["image_assets"].create_index("canonical_id")
-        _DB["image_assets"].create_index("sha256")
+        _state.db["image_assets"].create_index("image_id", unique=True)
+        _state.db["image_assets"].create_index("job_id")
+        _state.db["image_assets"].create_index("canonical_id")
+        _state.db["image_assets"].create_index("sha256")
         created.append("image_assets.image_id+job+canonical+sha256")
         return {"ok": True, "created": created}
     except Exception as exc:  # noqa: BLE001
@@ -181,7 +195,7 @@ def _ensure_indexes_internal(*, force: bool = False) -> dict:
 
 
 def _disabled_response() -> dict:
-    return {"ok": False, "disabled": True, "reason": _DISABLED_REASON}
+    return {"ok": False, "disabled": True, "reason": _state.disabled_reason}
 
 
 # Keys forbidden in any persisted document — defense-in-depth so callers
@@ -215,7 +229,7 @@ def save_conversation(doc: Mapping[str, Any]) -> dict:
     body["updated_at"] = now
     try:
         _ensure_indexes_internal()
-        _DB["conversations"].update_one(
+        _state.db["conversations"].update_one(
             {"conversation_id": conversation_id},
             {"$set": body, "$setOnInsert": {"created_at": now}},
             upsert=True,
@@ -235,7 +249,7 @@ def update_conversation(conversation_id: str, patch: Mapping[str, Any]) -> dict:
     update = _strip_forbidden(patch)
     update["updated_at"] = _utcnow_iso()
     try:
-        result = _DB["conversations"].update_one(
+        result = _state.db["conversations"].update_one(
             {"conversation_id": conversation_id}, {"$set": update}
         )
         return {
@@ -276,7 +290,7 @@ def save_message(doc: Mapping[str, Any]) -> dict:
     body["updated_at"] = now
     try:
         _ensure_indexes_internal()
-        _DB["messages"].update_one(
+        _state.db["messages"].update_one(
             {"message_id": message_id},
             {"$setOnInsert": body},
             upsert=True,
@@ -284,7 +298,7 @@ def save_message(doc: Mapping[str, Any]) -> dict:
         conv_id = (body.get("conversation_id") or "").strip()
         if conv_id:
             try:
-                _DB["conversations"].update_one(
+                _state.db["conversations"].update_one(
                     {"conversation_id": conv_id},
                     {"$set": {"last_message_at": now, "updated_at": now}},
                 )
@@ -318,7 +332,7 @@ def save_tool_call(doc: Mapping[str, Any]) -> dict:
     body["updated_at"] = now
     try:
         _ensure_indexes_internal()
-        _DB["tool_calls"].update_one(
+        _state.db["tool_calls"].update_one(
             {"tool_call_id": tool_call_id},
             {"$setOnInsert": body},
             upsert=True,
@@ -340,7 +354,7 @@ def update_tool_call(tool_call_id: str, patch: Mapping[str, Any]) -> dict:
     if update.get("status") in ("completed", "failed") and "completed_at" not in update:
         update["completed_at"] = update["updated_at"]
     try:
-        result = _DB["tool_calls"].update_one(
+        result = _state.db["tool_calls"].update_one(
             {"tool_call_id": tool_call_id}, {"$set": update}
         )
         return {
@@ -377,7 +391,7 @@ def save_uploaded_file(doc: Mapping[str, Any]) -> dict:
     body["updated_at"] = now
     try:
         _ensure_indexes_internal()
-        _DB["uploaded_files"].update_one(
+        _state.db["uploaded_files"].update_one(
             {"file_id": file_id},
             {"$setOnInsert": body},
             upsert=True,
@@ -425,7 +439,7 @@ def upsert_character_profile(profile: Mapping[str, Any]) -> dict:
     }
     try:
         _ensure_indexes_internal()
-        _DB["character_profiles"].update_one(
+        _state.db["character_profiles"].update_one(
             {"canonical_id": canonical_id},
             {"$set": doc, "$setOnInsert": {"created_at": now}},
             upsert=True,
@@ -443,7 +457,7 @@ def get_character_profile(canonical_id: str) -> dict | None:
     if not canonical_id:
         return None
     try:
-        doc = _DB["character_profiles"].find_one({"canonical_id": canonical_id})
+        doc = _state.db["character_profiles"].find_one({"canonical_id": canonical_id})
         if doc is not None and "_id" in doc:
             doc["_id"] = str(doc["_id"])
         return doc
@@ -474,7 +488,7 @@ def save_generation_job(job_doc: Mapping[str, Any]) -> dict:
     doc.setdefault("error", None)
     try:
         _ensure_indexes_internal()
-        _DB["generation_jobs"].update_one(
+        _state.db["generation_jobs"].update_one(
             {"job_id": job_id},
             {"$setOnInsert": doc},
             upsert=True,
@@ -494,7 +508,7 @@ def update_generation_job(job_id: str, patch: Mapping[str, Any]) -> dict:
     update = _strip_forbidden(patch)
     update["updated_at"] = _utcnow_iso()
     try:
-        result = _DB["generation_jobs"].update_one(
+        result = _state.db["generation_jobs"].update_one(
             {"job_id": job_id}, {"$set": update}
         )
         return {
@@ -533,7 +547,7 @@ def save_image_asset(asset_doc: Mapping[str, Any]) -> dict:
     doc.setdefault("needs_review", False)
     try:
         _ensure_indexes_internal()
-        _DB["image_assets"].update_one(
+        _state.db["image_assets"].update_one(
             {"image_id": image_id},
             {"$setOnInsert": doc},
             upsert=True,
@@ -549,13 +563,12 @@ def save_image_asset(asset_doc: Mapping[str, Any]) -> dict:
 
 def _reset_for_tests() -> None:
     """Reset module-level state. Intended for tests only."""
-    global _INITIALIZED, _CLIENT, _DB, _DISABLED_REASON, _INDEXES_ENSURED
     with _LOCK:
-        _INITIALIZED = False
-        _CLIENT = None
-        _DB = None
-        _DISABLED_REASON = ""
-        _INDEXES_ENSURED = False
+        _state.initialized = False
+        _state.client = None
+        _state.db = None
+        _state.disabled_reason = ""
+        _state.indexes_ensured = False
 
 
 __all__ = [

@@ -864,7 +864,6 @@ def extract_prompt_entities(prompt: str) -> dict:
             series_hint_raw = ""
             candidate_name = ""
             candidate_name_slug = ""
-            name_tokens = []
             raw_character_query = ""
             reason_parts.append(f"style={style_hint}")
 
@@ -1262,7 +1261,9 @@ def resolve_character(
             logger.debug(
                 "character_understanding: dropping SAA sentence match "
                 "(series_hint=%r, candidate=%s/%s)",
-                series_hint, result.best.canonical_id, result.best.series_slug,
+                series_hint.replace("\n", "\\n").replace("\r", "\\r"),
+                str(result.best.canonical_id).replace("\n", "\\n").replace("\r", "\\r"),
+                str(result.best.series_slug).replace("\n", "\\n").replace("\r", "\\r"),
             )
             result = CharacterUnderstandingResult(
                 query=original_query, resolved=False, ambiguous=False,

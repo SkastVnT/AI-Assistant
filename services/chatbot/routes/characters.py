@@ -215,7 +215,11 @@ def save_profile():
     payload = request.get_json(silent=True) or {}
     profile = payload.get("manual_profile") or payload
     force = bool(payload.get("force"))
-    return jsonify(save_manual_profile(profile, force=force))
+    try:
+        return jsonify(save_manual_profile(profile, force=force))
+    except Exception:
+        logger.exception("[characters] save_profile failed")
+        return jsonify({"saved": False, "reason": "Internal server error"}), 500
 
 
 @characters_bp.post("/resolve")

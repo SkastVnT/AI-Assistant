@@ -49,9 +49,9 @@ def fake_db(monkeypatch):
     from core import mongo_store
     db = MagicMock(name="fake_db")
     # Each collection is itself a MagicMock with the methods we use.
-    monkeypatch.setattr(mongo_store, "_INITIALIZED", True)
-    monkeypatch.setattr(mongo_store, "_DB", db)
-    monkeypatch.setattr(mongo_store, "_INDEXES_ENSURED", True)  # skip ensure
+    monkeypatch.setattr(mongo_store._state, "initialized", True)
+    monkeypatch.setattr(mongo_store._state, "db", db)
+    monkeypatch.setattr(mongo_store._state, "indexes_ensured", True)  # skip ensure
     return db
 
 

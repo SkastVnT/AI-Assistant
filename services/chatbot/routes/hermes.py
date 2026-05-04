@@ -75,7 +75,8 @@ def _has_image_keyword(message: str) -> bool:
     """
     if not message:
         return False
-    return _IMAGE_KEYWORD_RE.search(message) is not None
+    # Cap length to avoid ReDoS on adversarial inputs with many repeated spaces.
+    return _IMAGE_KEYWORD_RE.search(message[:2000]) is not None
 
 
 @hermes_bp.route('/api/hermes/chat', methods=['POST'])
@@ -144,7 +145,7 @@ def hermes_chat_route():
         logger.error("[HERMES-ROUTE] Unhandled error: %s", e)
         return jsonify({
             'success': False, 'result': '',
-            'error': f'Internal error: {e}',
+            'error': 'Internal server error',
         }), 500
 
     status_code = 200 if result.get('success') else 422
@@ -184,12 +185,12 @@ def _call_reasoning_pipeline(message: str, decision) -> tuple:
     # Pipeline returned a structured failure (e.g. parse failed, no panels).
     # Don't silently fall through — surface the error to the caller.
     if not pipeline_result.get("success"):
+        logger.warning("[HERMES-ROUTE] reasoning pipeline failure: %s", pipeline_result.get("error"))
         return jsonify({
             "success": False,
             "result": "",
-            "error": pipeline_result.get("error") or "reasoning pipeline failed",
+            "error": "reasoning pipeline failed",
             "source": "reasoning_pipeline",
-            "capability": decision.kind.value,
             "elapsed_s": elapsed_s,
         }), 422
 
@@ -206,7 +207,6 @@ def _call_reasoning_pipeline(message: str, decision) -> tuple:
         "result": markdown,
         "image_b64": image_b64,
         "source": "reasoning_pipeline",
-        "capability": decision.kind.value,
         "job_id": pipeline_result.get("job_id"),
         "elapsed_s": elapsed_s,
     }), 200

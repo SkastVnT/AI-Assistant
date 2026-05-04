@@ -28,7 +28,7 @@ import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from image_pipeline.reasoning.capability_router import CapabilityDecision, RequestKind
+    from image_pipeline.reasoning.capability_router import CapabilityDecision
 
 logger = logging.getLogger(__name__)
 

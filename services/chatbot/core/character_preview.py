@@ -16,6 +16,7 @@ Documented priority (see docs/CHARACTER_PROFILE_FALLBACK.md):
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -34,6 +35,14 @@ PLACEHOLDER_URL = (
 _CHATBOT_DIR = Path(__file__).resolve().parent.parent
 _LOCAL_CACHE_DIR = _CHATBOT_DIR / "static" / "cache" / "character_previews"
 _OVERRIDES_PATH = _CHATBOT_DIR / "config" / "character_overrides.json"
+
+# Only allow safe filename characters to prevent path traversal.
+_SAFE_KEY_RE = re.compile(r"[^A-Za-z0-9_\-]")
+
+
+def _safe_key(key: str) -> str:
+    """Sanitize a registry key so it is safe to use as a filename component."""
+    return _SAFE_KEY_RE.sub("_", key)
 
 
 @dataclass
@@ -229,13 +238,14 @@ def _lookup_override(*, key: str = "", query: str = "") -> Optional[dict]:
 
 def _saa_thumbnail_url(key: str) -> Optional[str]:
     """Return the chatbot-served thumbnail URL if SAA has data for this key."""
+    safe = _safe_key(key)
     try:
         from image_pipeline.anime_pipeline.saa_character_db import get_character_thumbnail
-        tag = key.replace("_", " ")
+        tag = safe.replace("_", " ")
         data_url = get_character_thumbnail(tag)
         if data_url and data_url.startswith("data:"):
             # Reuse the existing thumbnail route which decodes the data URL.
-            return f"/api/characters/{key}/thumbnail"
+            return f"/api/characters/{safe}/thumbnail"
     except Exception:  # pragma: no cover — image_pipeline optional
         return None
     return None
@@ -243,10 +253,11 @@ def _saa_thumbnail_url(key: str) -> Optional[str]:
 
 def _local_cached_url(key: str) -> Optional[str]:
     """Return a static URL if a manually-dropped preview exists on disk."""
+    safe = _safe_key(key)
     try:
         for ext in (".png", ".jpg", ".jpeg", ".webp"):
-            if (_LOCAL_CACHE_DIR / f"{key}{ext}").is_file():
-                return f"/static/cache/character_previews/{key}{ext}"
+            if (_LOCAL_CACHE_DIR / f"{safe}{ext}").is_file():
+                return f"/static/cache/character_previews/{safe}{ext}"
     except Exception:  # pragma: no cover — defensive
         return None
     return None
