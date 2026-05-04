@@ -277,6 +277,8 @@ def _local_cached_url(key: str) -> Optional[str]:
 
     Iterates the cache directory rather than constructing a path from user
     data, so no user-controlled value flows into a filesystem path expression.
+    The directory is a hand-curated preview cache (expected O(hundreds) of
+    files at most), so a linear scan is acceptable.
     """
     safe = _safe_key(key)
     if not _is_strict_safe_key(safe):
