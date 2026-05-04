@@ -279,7 +279,7 @@ class TestCharacterUnderstandingWiring:
         """Replace the pipeline function with a capture stub."""
         captured: dict = {}
 
-        def fake_run(prompt_text, *, layout=None, attached_images=0, character_hint=None):
+        def fake_run(prompt_text, *, layout=None, attached_images=0, character_hint=None, **_kwargs):
             captured["prompt"] = prompt_text
             captured["character_hint"] = character_hint
             return {

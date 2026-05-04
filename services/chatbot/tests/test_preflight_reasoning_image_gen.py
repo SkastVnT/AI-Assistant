@@ -285,3 +285,50 @@ class TestBackwardCompatibility:
         assert "preflight_assessment" in body
         assert body["preflight_assessment"]["risk_level"] == "high"
         assert stub.calls >= 1
+
+
+# -- provisional_id contract (additive) --------------------------------------
+
+
+class TestProvisionalId:
+    def test_unknown_with_traits_returns_provisional_id(self, monkeypatch):
+        from routes import reasoning_image_gen as route_mod
+        monkeypatch.setattr(
+            route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
+        )
+        client = _make_app().test_client()
+        # The understanding resolver builds an UnknownCharacterProfile
+        # for named-but-unresolvable subjects; the preflight payload must
+        # surface its ``provisional_id`` even when ``canonical_id`` is null.
+        res = client.post(
+            "/api/reasoning-image-gen/generate",
+            json={
+                "prompt": "Iroha trong Kaguya Cosmic Princess",
+                "preflight_only": True,
+            },
+        )
+        assert res.status_code == 200
+        body = res.get_json()
+        assert body["canonical_id"] in (None, "")
+        assert body["provisional_id"], body
+        assert body["provisional_id"].startswith("unknown:")
+        assert body["safe_to_attach_lora"] is False
+        assert "image_b64" not in body
+
+    def test_low_risk_default_has_no_provisional_id(self, monkeypatch):
+        from routes import reasoning_image_gen as route_mod
+        monkeypatch.setattr(
+            route_mod, "_default_comfy_client", lambda: _ExplodingComfyClient()
+        )
+        client = _make_app().test_client()
+        res = client.post(
+            "/api/reasoning-image-gen/generate",
+            json={
+                "prompt": "a peaceful mountain lake at sunset",
+                "preflight_only": True,
+            },
+        )
+        body = res.get_json()
+        # Field must be present (additive contract) but null for generic prompts.
+        assert "provisional_id" in body
+        assert body["provisional_id"] in (None, "")

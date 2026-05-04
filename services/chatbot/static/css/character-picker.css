@@ -301,3 +301,27 @@
   margin-top: 8px;
   justify-content: flex-end;
 }
+
+.character-chip-panel .chip-panel-result {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: var(--bg-base, #111);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 3px;
+  font-size: 11px;
+  max-height: 240px;
+  overflow: auto;
+}
+.character-chip-panel .chip-panel-result pre {
+  margin: 4px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 10px;
+}
+.character-chip-panel .chip-panel-result code {
+  font-size: 10px;
+}
+.character-chip-panel .chip-panel-result ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}

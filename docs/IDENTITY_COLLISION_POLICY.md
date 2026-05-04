@@ -46,4 +46,5 @@ live in
 - No web search, no crawler, no vision, no auto-training, no automatic
   promotion of references into the registry, no ComfyUI runtime
   optimisation. See
-  [CHARACTER_PROFILE_FALLBACK.md](CHARACTER_PROFILE_FALLBACK.md#what-is-intentionally-not-done).
+  [CHARACTER_PROFILE_FALLBACK.md](CHARACTER_PROFILE_FALLBACK.md#what-is-intentionally-not-done)
+  and [STORAGE_CURATION_ROADMAP.md](STORAGE_CURATION_ROADMAP.md#non-goals-intentionally-deferred).

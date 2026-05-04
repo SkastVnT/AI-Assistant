@@ -209,8 +209,11 @@
         </div>
         <div class="chip-panel-actions">
           <button type="button" id="mpApplyBtn" class="chip-action">Apply</button>
+          <button type="button" id="mpPreviewBtn" class="chip-action">Preview</button>
+          <button type="button" id="mpSaveBtn" class="chip-action">Save</button>
           <button type="button" id="mpClearBtn" class="chip-action chip-action--warn">Clear profile</button>
         </div>
+        <div class="chip-panel-result" id="mpResult" hidden></div>
       </div>
     `;
   }
@@ -264,7 +267,71 @@
     if ($('chipRequirePass')) $('chipRequirePass').onchange = (ev) => { STATE.options.requirePreflightPass = !!ev.target.checked; };
     if ($('chipMaxCost'))     $('chipMaxCost').onchange    = (ev) => { STATE.options.maxCostLevel = ev.target.value || ''; };
     if ($('mpApplyBtn'))      $('mpApplyBtn').onclick      = applyManualProfile;
+    if ($('mpPreviewBtn'))    $('mpPreviewBtn').onclick    = () => previewProfile(false);
+    if ($('mpSaveBtn'))       $('mpSaveBtn').onclick       = () => previewProfile(true);
     if ($('mpClearBtn'))      $('mpClearBtn').onclick      = clearManualProfile;
+  }
+
+  function _collectProfileFromForm() {
+    applyManualProfile();
+    return STATE.manualProfile || {};
+  }
+
+  async function previewProfile(doSave) {
+    const profile = _collectProfileFromForm();
+    const result = document.getElementById('mpResult');
+    if (!result) return;
+    if (!profile || Object.keys(profile).length === 0) {
+      result.hidden = false;
+      result.textContent = 'Fill at least display_name + visual_traits.';
+      return;
+    }
+    result.hidden = false;
+    result.textContent = doSave ? 'Saving…' : 'Previewing…';
+    try {
+      const url = doSave ? '/api/characters/profile/save'
+                         : '/api/characters/profile/preview';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manual_profile: profile }),
+        credentials: 'same-origin',
+      });
+      const data = await res.json();
+      result.innerHTML = renderProfileResult(data, doSave);
+    } catch (err) {
+      result.textContent = 'Request failed: ' + err.message;
+    }
+  }
+
+  function renderProfileResult(data, didSave) {
+    if (!data || typeof data !== 'object') return 'Empty response.';
+    const p = data.preview || data;
+    const warnings = (p.warnings || []).map((w) =>
+      `<li>${escapeHTML(w)}</li>`).join('');
+    const dupes = (p.duplicates || []).map((d) =>
+      `<li>${escapeHTML(d.source)}: ${escapeHTML(d.where)}</li>`).join('');
+    const head = didSave
+      ? (data.saved
+          ? `<strong>Saved</strong> to <code>${escapeHTML(data.target_path || '')}</code>.`
+          : `<strong>Not saved.</strong> ${escapeHTML(data.reason || '')}`)
+      : `<strong>Preview</strong> (no changes written).`;
+    const suggested = data.suggested_json
+      ? `<details><summary>Copy JSON for character_overrides.json</summary>
+          <pre>${escapeHTML(JSON.stringify(data.suggested_json, null, 2))}</pre></details>`
+      : '';
+    return `
+      ${head}
+      <div>canonical_id: <code>${escapeHTML(p.canonical_id || p.provisional_id || '')}</code></div>
+      <div>safe_to_attach_lora: <code>${p.safe_to_attach_lora ? 'true' : 'false'}</code>
+        · needs_review: <code>${p.needs_review ? 'true' : 'false'}</code></div>
+      ${warnings ? `<div>Warnings:<ul>${warnings}</ul></div>` : ''}
+      ${dupes ? `<div>Duplicates:<ul>${dupes}</ul></div>` : ''}
+      ${p.character_identity_block
+        ? `<details><summary>character_identity_block</summary><pre>${escapeHTML(p.character_identity_block)}</pre></details>`
+        : ''}
+      ${suggested}
+    `;
   }
 
   function triggerPicker(prefill) {

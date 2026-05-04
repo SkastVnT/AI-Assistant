@@ -187,6 +187,37 @@ def reload_registry():
     return jsonify({"reloaded": True, "count": len(reg.list_all())})
 
 
+@characters_bp.post("/profile/preview")
+def preview_profile():
+    """Preview a manual character profile (no side effects).
+
+    Body: ``{"manual_profile": {...}}`` — see
+    ``services/chatbot/config/character_overrides.example.json`` for the
+    field list. Returns the canonical_id, character_identity_block,
+    safe_to_attach_lora=False, needs_review=true, and validation
+    warnings. Pure / fail-safe.
+    """
+    from core.manual_profile import preview_manual_profile  # noqa: PLC0415
+    payload = request.get_json(silent=True) or {}
+    profile = payload.get("manual_profile") or payload
+    return jsonify(preview_manual_profile(profile))
+
+
+@characters_bp.post("/profile/save")
+def save_profile():
+    """Append a manual profile to character_overrides.json IF safe.
+
+    When the profile would silently overwrite an existing entry, the
+    response is ``{"saved": false, "reason": ..., "suggested_json": ...,
+    "target_path": ...}`` so the user can paste the JSON manually.
+    """
+    from core.manual_profile import save_manual_profile  # noqa: PLC0415
+    payload = request.get_json(silent=True) or {}
+    profile = payload.get("manual_profile") or payload
+    force = bool(payload.get("force"))
+    return jsonify(save_manual_profile(profile, force=force))
+
+
 @characters_bp.post("/resolve")
 def resolve_query():
     """Resolve a free-form query to a single character record."""

@@ -167,6 +167,9 @@ point Priority 1 short-circuits all further heuristics.
 
 ## What is intentionally not done
 
+See also [STORAGE_CURATION_ROADMAP.md](STORAGE_CURATION_ROADMAP.md) for
+the full non-goals list.
+
 - No network or web-search fallback.
 - No web crawler.
 - No vision / image classifier on uploaded references.
@@ -252,6 +255,129 @@ display the estimate even when nothing is gated.
 Frontend integration (Prompt 5 — `selected_character` picker) will
 further improve accuracy by short-circuiting the resolver entirely when
 the user has already pinned an identity.
+
+## Frontend surfaces
+
+These are documentation pointers — implementation lives in
+`services/chatbot/static/js/modules/`.
+
+### `selected_character` vs free-text prompt
+
+| Source | Trust | Resolver behaviour |
+|---|---|---|
+| `selected_character` (UI picker / chip) | **Trusted** — Priority 1, no heuristics run | `mode = resolved_known` and `safe_to_attach_lora` follow the picked entry's flags |
+| Prompt text only | Heuristic — runs the full priority chain | May land in `ambiguous`, `unresolved_unknown`, or empty mode |
+
+When the user picks a character via the chip / picker, the request body
+includes `selected_character: { canonical_id, character_slug, series_slug,
+display_name, thumbnail, ... }`. The route hands this to
+`resolve_character()` as the trusted-pin argument and **all later
+priorities are skipped** for that request. Free-text prompts go through
+the full chain and may need preflight to gate identity risk.
+
+### Compact character preview UI
+
+Rendered from `core.character_preview.build_preview()` and the
+`/api/characters/preview` endpoint. The preview is a UI-only artifact —
+it never causes generation, never writes to storage, and never decides
+LoRA attachment.
+
+Priority chain (also in the docstring of `core/character_preview.py`):
+
+1. `selected_character.thumbnail`
+2. `manual_profile.reference_images[0]`
+3. `character_overrides.json` `reference_images[0]`
+4. SAA offline thumbnail
+5. Local on-disk cache (`services/chatbot/static/cache/character_previews/`)
+6. Inline-SVG placeholder (data URI, no asset file required)
+
+Constraints:
+
+- **UI-only.** The preview URL is for display in the chip / picker. It
+  is **not** auto-attached as a reference image to any generation
+  request. (See "Request-only reference images" below for the explicit
+  opt-in path.)
+- **No auto-fetch.** External URLs are passed through unchanged. The
+  chatbot does not download remote previews to populate the local cache
+  on its own. Cache files are only created by curator workflows or by
+  the explicit thumbnail-generation script in
+  `character_select_stand_alone_app-main/scripts/python/thumb-generator/`.
+- **No vision.** The preview pipeline never opens or classifies any
+  image. It only resolves which URL to render.
+
+### Manual profile for characters missing from SAA
+
+When a character is not in the local registry, not in SAA, and not in
+the alias table, the user can either:
+
+1. **Add a permanent override** in
+   `services/chatbot/config/character_overrides.json` (the
+   `low_data_profile` path described above). Survives across requests
+   and chatbots.
+2. **Send a one-shot `manual_profile`** in the request body. The chip
+   surfaces this as the "Details" panel. Schema (all optional except
+   `display_name`):
+
+   ```json
+   {
+     "display_name": "Original Mage Aria",
+     "series_slug": "custom_setting",
+     "visual_traits": ["silver hair", "violet eyes"],
+     "outfit_traits": ["dark robe"],
+     "personality_traits": ["calm"],
+     "negative_identity_guard": ["no canon characters"],
+     "reference_images": ["https://example.com/aria.png", "..."]
+   }
+   ```
+
+   Same governance rule as overrides: a `manual_profile` **never** flips
+   `safe_to_attach_lora` on its own. It supplies trait text that the
+   prompt builder uses to anchor identity without a LoRA.
+
+### Request-only reference images
+
+The reasoning route accepts user-supplied reference images **as
+request-scope debug metadata only**. Source priority is:
+
+1. `manual_profile.reference_images`
+2. `selected_character.reference_images`
+3. top-level `payload.reference_images`
+
+When any of these are set, `POST /api/reasoning-image-gen/generate`
+echoes a `references` block in the response:
+
+```json
+{
+  "references": {
+    "reference_scope": "request_only",
+    "canonical_id": null,
+    "provisional_id": "unknown:aria@custom_setting",
+    "needs_review": true,
+    "count": 2,
+    "source": "manual_profile",
+    "items": ["https://example.com/aria.png", "..."],
+    "supported_by_pipeline": false
+  }
+}
+```
+
+Rules:
+
+- **Request-only.** Never auto-promoted, never moved into
+  `storage/references/`, never persisted globally. Each request is
+  independent.
+- **No vision.** The bytes (or URLs) are passed through; nothing
+  inspects them.
+- **`supported_by_pipeline: false`** is the explicit signal that the
+  reasoning runner does not yet ingest reference image bytes per
+  character. The metadata is round-tripped so a curator UI can show
+  what was attached, but it does not change generation output today.
+  A `TODO(reasoning-pipeline)` comment in
+  `services/chatbot/routes/reasoning_image_gen.py` names the exact
+  integration point for the future wire-up.
+- **Capped at 4** items per request to keep response payloads bounded.
+- Strings only (URLs, data URIs, opaque IDs). Non-string entries are
+  silently dropped.
 
 ## Verification
 

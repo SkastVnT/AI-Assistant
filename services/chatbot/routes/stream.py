@@ -38,6 +38,7 @@ from core.thinking_generator import (
 )
 from core.skills.resolver import resolve_skill
 from core.skills.applicator import apply_skill_overrides
+from core import mongo_store
 
 # Check MCP availability
 MCP_AVAILABLE = False
@@ -301,6 +302,36 @@ def chat_stream():
 
         if applied.was_applied:
             logger.info(f"[SSE:{request_id}] Skill applied: {applied.skill_id}")
+
+        # ── Mongo activity logging (schema v2) ────────────────────────
+        # Log the inbound user message + ensure parent conversation exists.
+        # Fail-safe: every call returns disabled when Mongo is unavailable
+        # and never raises. We do not block streaming on this.
+        user_message_id = (data.get('message_id') or '').strip() or f"msg-{uuid.uuid4().hex[:12]}"
+        try:
+            if conversation_id:
+                mongo_store.save_conversation({
+                    "conversation_id": conversation_id,
+                    "user_id": session.get('user_id') or session.get('username') or "",
+                    "session_id": session.get('session_id') or "",
+                })
+            mongo_store.save_message({
+                "message_id": user_message_id,
+                "conversation_id": conversation_id or "",
+                "role": "user",
+                "message_type": "chat",
+                "content": message,
+                "metadata": {
+                    "model": model,
+                    "context": context,
+                    "thinking_mode": thinking_mode,
+                    "skill_id": applied.skill_id,
+                    "request_id": request_id,
+                    "language": language,
+                },
+            })
+        except Exception as _me:  # noqa: BLE001 — never block streaming
+            logger.warning(f"[SSE:{request_id}] mongo log (user message) failed: {_me}")
 
         # Extract images for vision models (base64 data URLs from frontend)
         images = data.get('images', [])
@@ -881,6 +912,31 @@ def chat_stream():
                     f"[SSE:{request_id}] complete model={model} chunks={chunk_count} "
                     f"tokens={_est_tokens}/{_max_tokens} elapsed={_elapsed:.3f}s"
                 )
+
+                # Mongo activity log: assistant message summary (fail-safe).
+                try:
+                    mongo_store.save_message({
+                        "message_id": f"msg-{uuid.uuid4().hex[:12]}",
+                        "conversation_id": conversation_id or "",
+                        "role": "assistant",
+                        "message_type": "chat",
+                        "content": full_response,
+                        "metadata": {
+                            "model": model,
+                            "context": context,
+                            "thinking_mode": thinking_mode,
+                            "deep_thinking": deep_thinking,
+                            "chunk_count": chunk_count,
+                            "tokens": _est_tokens,
+                            "elapsed_ms": int(_elapsed * 1000),
+                            "in_reply_to_message_id": user_message_id,
+                            "request_id": request_id,
+                        },
+                    })
+                except Exception as _me:  # noqa: BLE001
+                    logger.warning(
+                        f"[SSE:{request_id}] mongo log (assistant message) failed: {_me}"
+                    )
                 
             except GeneratorExit:
                 logger.info(f"[SSE:{request_id}] Client disconnected")
