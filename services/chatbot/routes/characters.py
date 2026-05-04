@@ -158,6 +158,27 @@ def get_thumbnail(key: str):
     return send_file(str(thumb_path))
 
 
+@characters_bp.get("/preview")
+def get_character_preview():
+    """Return a compact CharacterPreview for the UI chip + tooltip.
+
+    Query params:
+        key: registry key (preferred when available).
+        q:   free-form query (fallback when no key).
+
+    The handler is read-only and never blocks on the network. Missing
+    sources degrade to a placeholder. See
+    ``core/character_preview.py`` for the full priority chain.
+    """
+    from core.character_preview import build_preview
+    key = (request.args.get("key", "", type=str) or "").strip()
+    q = (request.args.get("q", "", type=str) or "").strip()
+    if not key and not q:
+        return jsonify({"error": "key_or_q_required"}), 400
+    preview = build_preview(key=key, query=q)
+    return jsonify(preview.to_dict())
+
+
 @characters_bp.post("/reload")
 def reload_registry():
     """Force-reload the registry from disk (admin/dev convenience)."""

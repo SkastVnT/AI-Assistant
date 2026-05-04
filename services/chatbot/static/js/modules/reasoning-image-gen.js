@@ -39,14 +39,33 @@
         const btn = document.getElementById(BTN_ID);
         if (btn) { btn.disabled = true; btn.textContent = "🧠 …"; }
         try {
+            // Pull optional UI state set by character-chip.js. Both globals
+            // are intentionally additive — when the chip module is absent
+            // (or the user has not interacted with it) the payload contains
+            // no extra fields and the route behaves exactly as before.
+            const opts = (window.imageGenOptions || {});
+            const sel  = window.selectedCharacter || null;
+            const body = { prompt: prompt.trim() };
+            if (sel) body.selected_character = sel;
+            if (opts.preflightOnly) body.preflight_only = true;
+            if (opts.budgetMode === "fast") body.budget_mode = "fast";
             const res = await fetch(GENERATE_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: prompt.trim() }),
+                body: JSON.stringify(body),
             });
             const data = await res.json();
             if (data && data.success && data.image_b64) {
                 showResultImage(data.image_b64, data.comic);
+            } else if (data && data.preflight) {
+                // Preflight-only or preflight-blocked response — surface a
+                // compact summary instead of crying "failed".
+                const lines = [
+                    `Risk: ${data.risk_level || "?"}`,
+                    data.blocking_reason ? `Reason: ${data.blocking_reason}` : "",
+                    data.suggested_next_action ? `Next: ${data.suggested_next_action}` : "",
+                ].filter(Boolean);
+                window.alert("Preflight result:\n" + lines.join("\n"));
             } else {
                 console.warn("[reasoning-image-gen] failed", data);
                 window.alert(
