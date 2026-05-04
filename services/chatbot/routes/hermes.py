@@ -45,13 +45,21 @@ _IMAGE_KEYWORD_RE = re.compile(
     # Vietnamese phrases (require verb context so bare "ảnh" doesn't match)
     r"\btạo\s+(?:ảnh|tranh|hình)\b"
     r"|\bsinh\s+(?:ảnh|tranh|hình)\b"
-    r"|\bvẽ\s+(?:ảnh|tranh|hình|cho|một|cái|cảnh|nhân vật|người|chân dung)?\b"
+    # vẽ + specific object (required, not optional — avoids \s+X?\b backtracking)
+    r"|\bvẽ\s+(?:ảnh|tranh|hình|cho|một|cái|cảnh|nhân\s+vật|người|chân\s+dung)\b"
     r"|\bvẽ\s+\w+"   # "vẽ Hoshino", "vẽ landscape"
     r"|\b(?:làm|render|tạo)\s+(?:cho\s+\w+\s+)?(?:bức\s+)?(?:ảnh|tranh|hình|comic|truyện\s+tranh|webtoon)\b"
     r"|\b(?:bức\s+)?tranh\s+(?:vẽ|của|về)\b"
     r"|\btruyện\s+tranh\b"
-    # English phrases
-    r"|\b(?:generate|create|make|draw|paint|render|produce)\s+(?:an?|the|me|us|some)?\s*"
+    # English phrases — two explicit alternatives instead of \s+(?:article)?\s*
+    # to eliminate polynomial backtracking on repeated-space inputs.
+    # Alt 1: verb directly followed by noun (no article)
+    r"|\b(?:generate|create|make|draw|paint|render|produce)\s+"
+    r"(?:image|images|picture|pictures|pic|pics|illustration|illustrations|"
+    r"comic|comics|manga|webtoon|storyboard|panel|panels|scene|scenes|"
+    r"artwork|portrait|drawing|sketch|wallpaper)\b"
+    # Alt 2: verb + article + noun
+    r"|\b(?:generate|create|make|draw|paint|render|produce)\s+(?:an?|the|me|us|some)\s+"
     r"(?:image|images|picture|pictures|pic|pics|illustration|illustrations|"
     r"comic|comics|manga|webtoon|storyboard|panel|panels|scene|scenes|"
     r"artwork|portrait|drawing|sketch|wallpaper)\b"

@@ -269,25 +269,23 @@ def _saa_thumbnail_url(key: str) -> Optional[str]:
     return None
 
 
+_ALLOWED_PREVIEW_EXTS = frozenset({".png", ".jpg", ".jpeg", ".webp"})
+
+
 def _local_cached_url(key: str) -> Optional[str]:
-    """Return a static URL if a manually-dropped preview exists on disk."""
+    """Return a static URL if a manually-dropped preview exists on disk.
+
+    Iterates the cache directory rather than constructing a path from user
+    data, so no user-controlled value flows into a filesystem path expression.
+    """
     safe = _safe_key(key)
     if not _is_strict_safe_key(safe):
         return None
-    cache_dir = _LOCAL_CACHE_DIR.resolve()
     try:
-        for ext in (".png", ".jpg", ".jpeg", ".webp"):
-            candidate = (_LOCAL_CACHE_DIR / f"{safe}{ext}").resolve()
-            try:
-                candidate.relative_to(cache_dir)
-            except ValueError:
-                logger.warning(
-                    "character_preview: path traversal attempt blocked (key=%r)",
-                    _sanitize_for_log(key),
-                )
-                continue  # path traversal attempt — skip
-            if candidate.is_file():
-                return f"/static/cache/character_previews/{safe}{ext}"
+        for candidate in _LOCAL_CACHE_DIR.iterdir():
+            if (candidate.suffix.lower() in _ALLOWED_PREVIEW_EXTS
+                    and candidate.stem == safe):
+                return f"/static/cache/character_previews/{safe}{candidate.suffix.lower()}"
     except Exception:  # pragma: no cover — defensive
         return None
     return None
