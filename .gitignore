@@ -284,3 +284,4 @@ services/edit-image/.env
 services/edit-image/log/
 
 dry_run_output.txt
+.gitnexus
