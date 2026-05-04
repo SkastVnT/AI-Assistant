@@ -50,6 +50,12 @@ class _MongoState:
     Using a single mutable object avoids ``global`` declarations for
     each individual state variable, which in turn makes the data-flow
     clear to static-analysis tools.
+
+    Thread-safety: the ``_LOCK`` module-level lock guards the initialization
+    path in ``_init()``. After ``initialized`` is set to ``True``, the
+    ``client`` and ``db`` attributes are immutable for the lifetime of the
+    process (except in ``_reset_for_tests()`` which is never called from
+    production code). All other attributes are set only inside the lock.
     """
 
     __slots__ = ("initialized", "client", "db", "disabled_reason", "indexes_ensured")

@@ -41,7 +41,12 @@ _SAFE_KEY_RE = re.compile(r"[^A-Za-z0-9_\-]")
 
 
 def _safe_key(key: str) -> str:
-    """Sanitize a registry key so it is safe to use as a filename component."""
+    """Sanitize a registry key so it is safe to use as a filename component.
+
+    Returns an empty string if the key is empty or becomes empty after
+    sanitization (e.g. all-symbol input). Callers must guard against empty
+    return values before constructing paths.
+    """
     return _SAFE_KEY_RE.sub("_", key)
 
 
@@ -239,6 +244,8 @@ def _lookup_override(*, key: str = "", query: str = "") -> Optional[dict]:
 def _saa_thumbnail_url(key: str) -> Optional[str]:
     """Return the chatbot-served thumbnail URL if SAA has data for this key."""
     safe = _safe_key(key)
+    if not safe:
+        return None
     try:
         from image_pipeline.anime_pipeline.saa_character_db import get_character_thumbnail
         tag = safe.replace("_", " ")
@@ -254,6 +261,8 @@ def _saa_thumbnail_url(key: str) -> Optional[str]:
 def _local_cached_url(key: str) -> Optional[str]:
     """Return a static URL if a manually-dropped preview exists on disk."""
     safe = _safe_key(key)
+    if not safe:
+        return None
     try:
         for ext in (".png", ".jpg", ".jpeg", ".webp"):
             if (_LOCAL_CACHE_DIR / f"{safe}{ext}").is_file():

@@ -217,7 +217,7 @@ def save_profile():
     force = bool(payload.get("force"))
     try:
         return jsonify(save_manual_profile(profile, force=force))
-    except Exception:
+    except Exception:  # noqa: BLE001 — save_manual_profile can raise various types
         logger.exception("[characters] save_profile failed")
         return jsonify({"saved": False, "reason": "Internal server error"}), 500
 
