@@ -260,5 +260,149 @@ class TestRouteHygiene:
         )
 
 
+# ---------------------------------------------------------------------------
+# Character-understanding wiring (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+class TestCharacterUnderstandingWiring:
+    """Verify the understanding layer is called and its result is reflected
+    in metadata WITHOUT changing the existing pipeline contract.
+
+    The pipeline call itself is short-circuited — we monkeypatch
+    ``run_pipeline_for_prompt`` to capture the ``character_hint`` that the
+    route would have passed in. This keeps the test fast and free of
+    ComfyUI dependencies.
+    """
+
+    def _patch_pipeline(self, monkeypatch):
+        """Replace the pipeline function with a capture stub."""
+        captured: dict = {}
+
+        def fake_run(prompt_text, *, layout=None, attached_images=0, character_hint=None, **_kwargs):
+            captured["prompt"] = prompt_text
+            captured["character_hint"] = character_hint
+            return {
+                "success": True,
+                "job_id": "reason-test",
+                "parse": {},
+                "panels": [],
+                "comic": {},
+                "image_b64": "",
+                "status_code": 200,
+            }
+
+        from routes import reasoning_image_gen as route_mod
+        monkeypatch.setattr(route_mod, "run_pipeline_for_prompt", fake_run)
+        return captured
+
+    def test_unambiguous_alias_auto_fills_hint(self, monkeypatch):
+        captured = self._patch_pipeline(monkeypatch)
+        app = _make_flask_app(register=True)
+        res = app.test_client().post(
+            "/api/reasoning-image-gen/generate",
+            json={"prompt": "tạo ảnh Hutao mặc áo dài"},
+        )
+        assert res.status_code == 200
+        body = res.get_json()
+        # understanding block is always echoed.
+        assert "understanding" in body
+        assert body["understanding"]["resolved"] is True
+        assert body["understanding"]["ambiguous"] is False
+        ids = {c["canonical_id"] for c in body["understanding"]["candidates"]}
+        assert "hu_tao@genshin_impact" in ids
+        # And character_hint reaches the pipeline auto-filled.
+        assert captured["character_hint"] is not None
+        assert captured["character_hint"]["key"] == "hu_tao@genshin_impact"
+        assert captured["character_hint"]["source"].startswith("understanding:")
+
+    def test_ambiguous_name_does_not_auto_fill(self, monkeypatch):
+        captured = self._patch_pipeline(monkeypatch)
+        app = _make_flask_app(register=True)
+        res = app.test_client().post(
+            "/api/reasoning-image-gen/generate",
+            json={"prompt": "tạo ảnh Miko trong vườn hoa"},
+        )
+        assert res.status_code == 200
+        body = res.get_json()
+        # Ambiguous → flagged in metadata, multiple candidates returned.
+        assert body["understanding"]["ambiguous"] is True
+        assert len(body["understanding"]["candidates"]) >= 2
+        # Pipeline gets NO character_hint — caller must ask the user.
+        assert captured["character_hint"] is None
+
+    def test_explicit_character_key_wins_over_understanding(self, monkeypatch):
+        """A picker-supplied character_key must NOT be overwritten by the
+        understanding result, even when both would resolve."""
+        captured = self._patch_pipeline(monkeypatch)
+        # Force the registry to find the picker key.
+        from unittest.mock import MagicMock
+        rec = MagicMock()
+        rec.key = "raiden_shogun_genshin_impact"
+        rec.display_name = "Raiden Shogun"
+        rec.series = "Genshin Impact"
+        rec.series_key = "genshin_impact"
+        rec.character_tag = "raiden_shogun"
+        stub = MagicMock()
+        stub.get.return_value = rec
+        monkeypatch.setattr("core.character_registry.get_registry", lambda: stub)
+
+        app = _make_flask_app(register=True)
+        res = app.test_client().post(
+            "/api/reasoning-image-gen/generate",
+            json={
+                "prompt": "vẽ Hutao",
+                "character_key": "raiden_shogun_genshin_impact",
+            },
+        )
+        assert res.status_code == 200
+        # Hint comes from the picker (registry source), not understanding.
+        assert captured["character_hint"]["key"] == "raiden_shogun_genshin_impact"
+
+    def test_selected_character_payload_wins(self, monkeypatch):
+        captured = self._patch_pipeline(monkeypatch)
+        app = _make_flask_app(register=True)
+        res = app.test_client().post(
+            "/api/reasoning-image-gen/generate",
+            json={
+                "prompt": "draw Rem in the garden",  # ambiguous on its own
+                "selected_character": {
+                    "character_slug": "rem",
+                    "series_slug": "rezero",
+                    "display_name": "Rem",
+                    "series_name": "Re:Zero",
+                },
+            },
+        )
+        assert res.status_code == 200
+        body = res.get_json()
+        assert body["understanding"]["resolved"] is True
+        assert body["understanding"]["ambiguous"] is False
+        assert body["understanding"]["candidates"][0]["canonical_id"] == "rem@rezero"
+        # And the pipeline receives the auto-filled hint.
+        assert captured["character_hint"]["key"] == "rem@rezero"
+
+    def test_understanding_failure_does_not_break_route(self, monkeypatch):
+        captured = self._patch_pipeline(monkeypatch)
+
+        def boom(*a, **kw):
+            raise RuntimeError("understanding crashed")
+
+        monkeypatch.setattr(
+            "core.character_understanding.resolve_character_intent", boom
+        )
+        app = _make_flask_app(register=True)
+        res = app.test_client().post(
+            "/api/reasoning-image-gen/generate",
+            json={"prompt": "a quiet forest at dusk"},
+        )
+        assert res.status_code == 200
+        body = res.get_json()
+        # Route still succeeds; understanding block is omitted.
+        assert body["success"] is True
+        assert "understanding" not in body
+        assert captured["character_hint"] is None
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

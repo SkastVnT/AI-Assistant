@@ -1,0 +1,69 @@
+# GitNexus ignore file — controls which paths are skipped during indexing
+# Syntax: one glob pattern per line (same as .gitignore)
+
+# ============================================================
+# Python virtual environments (very large, no source code)
+# ============================================================
+venv-core/
+venv-image/
+venv/
+.venv/
+env/
+ENV/
+
+# ============================================================
+# External / third-party subtrees (not our code)
+# ============================================================
+ComfyUI/
+character_select_stand_alone_app-main/
+services/stable-diffusion/
+services/edit-image/
+
+# ============================================================
+# Generated / binary assets — too large, not navigable code
+# ============================================================
+LORA/
+local_data/
+storage/
+logs/
+app/local_data/
+app/logs/
+app/ComfyUI/
+
+# ============================================================
+# Node.js artifacts
+# ============================================================
+node_modules/
+
+# ============================================================
+# Python caches / compiled files
+# ============================================================
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.so
+
+# ============================================================
+# Model weights and large binary files
+# ============================================================
+*.bin
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.h5
+
+# ============================================================
+# Generated / runtime outputs
+# ============================================================
+app/uploads/
+services/chatbot/Storage/
+rag/
+.git/
+
+# ============================================================
+# GitNexus own index (avoid self-referential indexing)
+# ============================================================
+.gitnexus/

@@ -30,36 +30,154 @@
         document.body.appendChild(btn);
     }
 
+    function buildBody(promptText, { force } = {}) {
+        const opts = (window.imageGenOptions || {});
+        const sel  = window.selectedCharacter || null;
+        const mp   = window.manualProfile || null;
+        const body = { prompt: promptText };
+        if (sel) body.selected_character = sel;
+        if (mp)  body.manual_profile = mp;
+        // ``force`` (Generate anyway) clears the preflight gates so the
+        // pipeline runs on this attempt only — chip toggles stay set.
+        if (!force && opts.preflightOnly) body.preflight_only = true;
+        if (!force && opts.requirePreflightPass) body.require_preflight_pass = true;
+        if (opts.budgetMode === "fast") body.budget_mode = "fast";
+        if (opts.maxCostLevel) body.max_cost_level = opts.maxCostLevel;
+        return body;
+    }
+
+    async function postGenerate(body) {
+        const res = await fetch(GENERATE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        return res.json();
+    }
+
+    async function runWithPrompt(promptText, { force } = {}) {
+        const btn = document.getElementById(BTN_ID);
+        if (btn) { btn.disabled = true; btn.textContent = "🧠 …"; }
+        try {
+            const data = await postGenerate(buildBody(promptText, { force }));
+            handleResponse(data, promptText);
+        } catch (err) {
+            console.error("[reasoning-image-gen] error", err);
+            showWarning({
+                risk_level: "high",
+                blocking_reason: "request_failed",
+                suggested_next_action: err.message || "network error",
+            }, promptText, { allowRetry: true });
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = "🧠 Reason"; }
+        }
+    }
+
+    function handleResponse(data, promptText) {
+        if (data && data.success && data.image_b64) {
+            showResultImage(data.image_b64, data.comic);
+            return;
+        }
+        if (data && data.preflight) {
+            // Compact warning UI: only render the banner for medium/high.
+            // For ``low`` (typical preflight-only happy path) we silently
+            // do nothing — caller can re-click without preflight gating.
+            const risk = (data.risk_level || "low").toLowerCase();
+            if (risk === "low") {
+                showLowRiskHint(promptText);
+                return;
+            }
+            showWarning(data, promptText, { allowRetry: true });
+            return;
+        }
+        console.warn("[reasoning-image-gen] failed", data);
+        showWarning({
+            risk_level: "high",
+            blocking_reason: "pipeline_error",
+            suggested_next_action: (data && data.error) || "unknown error",
+        }, promptText, { allowRetry: false });
+    }
+
     async function openDialog() {
         const prompt = window.prompt(
             "Reasoning pipeline prompt (local ComfyUI):",
             ""
         );
         if (!prompt || !prompt.trim()) return;
-        const btn = document.getElementById(BTN_ID);
-        if (btn) { btn.disabled = true; btn.textContent = "🧠 …"; }
-        try {
-            const res = await fetch(GENERATE_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: prompt.trim() }),
-            });
-            const data = await res.json();
-            if (data && data.success && data.image_b64) {
-                showResultImage(data.image_b64, data.comic);
-            } else {
-                console.warn("[reasoning-image-gen] failed", data);
-                window.alert(
-                    "Reasoning pipeline failed: " +
-                    (data && data.error ? data.error : "unknown error")
-                );
+        await runWithPrompt(prompt.trim());
+    }
+
+    // ── Compact warning banner (no big technical panel) ───────────────
+    const BANNER_ID = "reasoningImageGenWarn";
+
+    function dismissBanner() {
+        const el = document.getElementById(BANNER_ID);
+        if (el) el.remove();
+    }
+
+    function showLowRiskHint(promptText) {
+        // Tiny non-blocking confirmation. Disappears in 3s.
+        dismissBanner();
+        const el = document.createElement("div");
+        el.id = BANNER_ID;
+        el.style.cssText =
+            "position:fixed;right:16px;bottom:170px;z-index:9999;max-width:320px;" +
+            "padding:8px 12px;border-radius:8px;border:1px solid #2e7d32;" +
+            "background:#13241a;color:#cfe9d4;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.4);";
+        el.textContent = "Preflight: low risk. Click Reason to generate.";
+        document.body.appendChild(el);
+        setTimeout(dismissBanner, 3000);
+    }
+
+    function showWarning(data, promptText, { allowRetry } = {}) {
+        dismissBanner();
+        const risk = (data.risk_level || "high").toLowerCase();
+        const isHigh = risk === "high";
+        const el = document.createElement("div");
+        el.id = BANNER_ID;
+        el.style.cssText =
+            "position:fixed;right:16px;bottom:170px;z-index:9999;max-width:360px;" +
+            "padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4;" +
+            "box-shadow:0 2px 8px rgba(0,0,0,0.4);" +
+            (isHigh
+                ? "border:1px solid #b00020;background:#2a0f12;color:#f3c0c4;"
+                : "border:1px solid #b8860b;background:#2a210a;color:#f3dfa6;");
+        const ident = data.canonical_id || data.provisional_id || "";
+        el.innerHTML =
+            `<div style="font-weight:600;margin-bottom:4px;">` +
+            `Preflight: ${escapeHTML(risk)} risk` +
+            (data.character_mode ? ` <span style="opacity:.7;">(${escapeHTML(data.character_mode)})</span>` : "") +
+            `</div>` +
+            (data.blocking_reason
+                ? `<div>Reason: ${escapeHTML(data.blocking_reason)}</div>` : "") +
+            (data.suggested_next_action
+                ? `<div>Next: ${escapeHTML(data.suggested_next_action)}</div>` : "") +
+            (ident
+                ? `<div style="opacity:.7;">id: <code>${escapeHTML(ident)}</code></div>` : "") +
+            `<div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;">` +
+            (allowRetry
+                ? `<button type="button" data-act="anyway" style="padding:4px 10px;border-radius:4px;border:1px solid #888;background:transparent;color:inherit;cursor:pointer;">Generate anyway</button>`
+                : "") +
+            `<button type="button" data-act="close" style="padding:4px 10px;border-radius:4px;border:1px solid #555;background:transparent;color:inherit;cursor:pointer;">Dismiss</button>` +
+            `</div>`;
+        el.addEventListener("click", (ev) => {
+            const t = ev.target;
+            if (!t || t.tagName !== "BUTTON") return;
+            const act = t.getAttribute("data-act");
+            if (act === "close") {
+                dismissBanner();
+            } else if (act === "anyway") {
+                dismissBanner();
+                runWithPrompt(promptText, { force: true });
             }
-        } catch (err) {
-            console.error("[reasoning-image-gen] error", err);
-            window.alert("Reasoning pipeline error: " + err.message);
-        } finally {
-            if (btn) { btn.disabled = false; btn.textContent = "🧠 Reason"; }
-        }
+        });
+        document.body.appendChild(el);
+    }
+
+    function escapeHTML(s) {
+        return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
     function showResultImage(b64, comic) {

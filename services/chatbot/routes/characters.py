@@ -158,12 +158,68 @@ def get_thumbnail(key: str):
     return send_file(str(thumb_path))
 
 
+@characters_bp.get("/preview")
+def get_character_preview():
+    """Return a compact CharacterPreview for the UI chip + tooltip.
+
+    Query params:
+        key: registry key (preferred when available).
+        q:   free-form query (fallback when no key).
+
+    The handler is read-only and never blocks on the network. Missing
+    sources degrade to a placeholder. See
+    ``core/character_preview.py`` for the full priority chain.
+    """
+    from core.character_preview import build_preview
+    key = (request.args.get("key", "", type=str) or "").strip()
+    q = (request.args.get("q", "", type=str) or "").strip()
+    if not key and not q:
+        return jsonify({"error": "key_or_q_required"}), 400
+    preview = build_preview(key=key, query=q)
+    return jsonify(preview.to_dict())
+
+
 @characters_bp.post("/reload")
 def reload_registry():
     """Force-reload the registry from disk (admin/dev convenience)."""
     reg = get_registry()
     reg.reload()
     return jsonify({"reloaded": True, "count": len(reg.list_all())})
+
+
+@characters_bp.post("/profile/preview")
+def preview_profile():
+    """Preview a manual character profile (no side effects).
+
+    Body: ``{"manual_profile": {...}}`` — see
+    ``services/chatbot/config/character_overrides.example.json`` for the
+    field list. Returns the canonical_id, character_identity_block,
+    safe_to_attach_lora=False, needs_review=true, and validation
+    warnings. Pure / fail-safe.
+    """
+    from core.manual_profile import preview_manual_profile  # noqa: PLC0415
+    payload = request.get_json(silent=True) or {}
+    profile = payload.get("manual_profile") or payload
+    return jsonify(preview_manual_profile(profile))
+
+
+@characters_bp.post("/profile/save")
+def save_profile():
+    """Append a manual profile to character_overrides.json IF safe.
+
+    When the profile would silently overwrite an existing entry, the
+    response is ``{"saved": false, "reason": ..., "suggested_json": ...,
+    "target_path": ...}`` so the user can paste the JSON manually.
+    """
+    from core.manual_profile import save_manual_profile  # noqa: PLC0415
+    payload = request.get_json(silent=True) or {}
+    profile = payload.get("manual_profile") or payload
+    force = bool(payload.get("force"))
+    try:
+        return jsonify(save_manual_profile(profile, force=force))
+    except Exception:  # noqa: BLE001 — save_manual_profile can raise various types
+        logger.exception("[characters] save_profile failed")
+        return jsonify({"saved": False, "reason": "Internal server error"}), 500
 
 
 @characters_bp.post("/resolve")

@@ -23,6 +23,15 @@ _REPO_ROOT = _THIS_DIR.parent.parent
 _CONFIG_PATH = _REPO_ROOT / "configs" / "anime_pipeline.yaml"
 
 
+def _get_config_path() -> Path:
+    """Return config YAML path, honoring ANIME_PIPELINE_CONFIG env var override."""
+    env_path = os.getenv("ANIME_PIPELINE_CONFIG")
+    if env_path:
+        p = Path(env_path)
+        return p if p.is_absolute() else _REPO_ROOT / p
+    return _CONFIG_PATH
+
+
 @dataclass
 class ModelConfig:
     checkpoint: str = ""
@@ -106,11 +115,36 @@ _VRAM_PROFILE_DEFAULTS: dict[VRAMProfile, dict[str, Any]] = {
 }
 
 
+def _detect_gpu_vram_gb() -> int | None:
+    """Query nvidia-smi for total VRAM in GB. Returns None if unavailable."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            mb = int(result.stdout.strip().splitlines()[0].strip())
+            return mb // 1024
+    except Exception:
+        pass
+    return None
+
+
+def _vram_gb_to_profile(vram_gb: int) -> VRAMProfile:
+    """Map detected VRAM (GB) to a VRAMProfile. Threshold: <10 GB → lowvram."""
+    if vram_gb >= 10:
+        return VRAMProfile.NORMALVRAM
+    return VRAMProfile.LOWVRAM
+
+
 def resolve_vram_profile(profile: VRAMProfile | str = VRAMProfile.AUTO) -> VRAMProfileConfig:
     """Resolve a VRAMProfile enum (or string) to concrete limits.
 
-    For ``auto``, reads ``ANIME_PIPELINE_VRAM_PROFILE`` env var, then
-    falls back to ``normalvram``.
+    For ``auto``, reads ``ANIME_PIPELINE_VRAM_PROFILE`` env var first.
+    If that is also ``auto`` or unset, queries nvidia-smi to detect VRAM
+    and selects: >= 10 GB → normalvram, < 10 GB → lowvram.
+    Falls back to ``normalvram`` when nvidia-smi is unavailable.
     """
     if isinstance(profile, str):
         try:
@@ -120,14 +154,23 @@ def resolve_vram_profile(profile: VRAMProfile | str = VRAMProfile.AUTO) -> VRAMP
             profile = VRAMProfile.NORMALVRAM
 
     if profile == VRAMProfile.AUTO:
-        env_val = os.getenv("ANIME_PIPELINE_VRAM_PROFILE", "normalvram").lower()
+        env_val = os.getenv("ANIME_PIPELINE_VRAM_PROFILE", "auto").lower()
         try:
             profile = VRAMProfile(env_val)
         except ValueError:
-            profile = VRAMProfile.NORMALVRAM
-        # auto can't remain auto after resolution
+            profile = VRAMProfile.AUTO
+
         if profile == VRAMProfile.AUTO:
-            profile = VRAMProfile.NORMALVRAM
+            vram_gb = _detect_gpu_vram_gb()
+            if vram_gb is not None:
+                profile = _vram_gb_to_profile(vram_gb)
+                logger.info(
+                    "[VRAMProfile] Auto-detected %d GB VRAM → profile=%s",
+                    vram_gb, profile.value,
+                )
+            else:
+                profile = VRAMProfile.NORMALVRAM
+                logger.warning("[VRAMProfile] nvidia-smi unavailable, defaulting to normalvram")
 
     defaults = _VRAM_PROFILE_DEFAULTS.get(
         profile, _VRAM_PROFILE_DEFAULTS[VRAMProfile.NORMALVRAM],
@@ -330,11 +373,12 @@ def load_config() -> AnimePipelineConfig:
 
 
 def _read_yaml() -> dict[str, Any]:
-    if not _CONFIG_PATH.exists():
-        logger.warning("[AnimePipeline] Config not found: %s", _CONFIG_PATH)
+    path = _get_config_path()
+    if not path.exists():
+        logger.warning("[AnimePipeline] Config not found: %s", path)
         return {}
     try:
-        with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except Exception as e:
         logger.error("[AnimePipeline] Failed to parse config: %s", e)
