@@ -109,6 +109,13 @@ Auto-trigger: activated when query contains real-time keywords (price, weather, 
 
 ## Working style
 
+### Think Before Coding
+Before implementing: state assumptions explicitly. If multiple interpretations exist, present them — don't pick silently. If something is unclear, stop, name what's confusing, and ask.
+
+### Simplicity First
+Minimum code that solves the problem. No speculative features, abstractions for single-use code, or "configurability" that wasn't requested.
+
+### Surgical Changes
 For chatbot tasks, trace the real request path before editing:
 1. UI / assets / templates
 2. Flask/FastAPI route entry point
@@ -116,7 +123,15 @@ For chatbot tasks, trace the real request path before editing:
 4. Response formatting
 5. Docs / tests / workflows
 
-Prefer minimal, reversible edits. Include verification steps. Note likely impacted workflows.
+Touch only what's needed. Every changed line must trace directly to the user's request. Prefer minimal, reversible edits.
+
+### Goal-Driven Execution
+For multi-step tasks, state a plan with verifiable steps:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+```
+Include verification steps. Note likely impacted workflows.
 
 ## Skill system
 
@@ -138,6 +153,9 @@ This repository has 16 skills in `.github/skills/`. **Before starting work, read
 | Startup / health | `service-health-check-audit` |
 | Docs drift | `docs-drift-sync` |
 | Test scope | `test-impact-mapper` |
+| Bug, hard failure, silent error | `diagnose` |
+| Building feature/fix test-first | `tdd` |
+| Entering unfamiliar module | `zoom-out` |
 | Uncertain | `skills-dispatch-map` |
 
 **Mandatory secondary skills:** After any behavior change, also read `docs-drift-sync` and `test-impact-mapper`. For cross-cutting changes, combine skills in the order listed by `skills-dispatch-map`.

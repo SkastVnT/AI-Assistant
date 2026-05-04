@@ -244,7 +244,34 @@ class OCRIntegration:
             return self._extract_from_docx(file_data, filename)
         if ext in ['.xlsx', '.xls']:
             return self._extract_from_excel(file_data, filename)
-        return {"success": False, "text": "", "error": f"Unsupported file type: {ext}"}
+        # Fallback: markitdown handles pptx, epub, html, zip, audio, youtube URLs, etc.
+        return self._extract_via_markitdown(file_data, filename)
+
+    def _extract_via_markitdown(self, file_data: bytes, filename: str) -> Dict[str, Any]:
+        """Fallback extraction via markitdown for unsupported formats (pptx, epub, html, zip, etc.)."""
+        try:
+            from markitdown import MarkItDown
+            import tempfile, os
+            ext = Path(filename).suffix.lower()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                tmp.write(file_data)
+                tmp_path = tmp.name
+            try:
+                md = MarkItDown()
+                result = md.convert(tmp_path)
+                text = result.text_content.strip() if result.text_content else ""
+            finally:
+                os.unlink(tmp_path)
+            if text:
+                logger.info(f"[OCR] markitdown extracted {len(text)} chars from {filename}")
+                return {"success": True, "text": text, "method": "markitdown", "file_type": ext[1:]}
+            return {"success": False, "text": "", "error": "markitdown returned empty content"}
+        except ImportError:
+            logger.warning("[OCR] markitdown not installed — run: pip install 'markitdown[all]'")
+            return {"success": False, "text": "", "error": f"Unsupported file type: {Path(filename).suffix}"}
+        except Exception as e:
+            logger.error(f"[OCR] markitdown failed for {filename}: {e}")
+            return {"success": False, "text": "", "error": str(e)}
 
     def _extract_from_docx(self, file_data: bytes, filename: str) -> Dict[str, Any]:
         """Extract text from Word documents."""

@@ -250,6 +250,9 @@ Skills live in `.github/skills/{name}/SKILL.md`. **Read the matching skill file 
 | CI impact, workflow, security scan | `workflow-impact-guard` |
 | Docs vs runtime drift | `docs-drift-sync` |
 | Which tests to run | `test-impact-mapper` |
+| Bug, hard failure, silent error | `diagnose` |
+| Building feature/fix test-first | `tdd` |
+| Entering unfamiliar module | `zoom-out` |
 | Uncertain which skill | `skills-dispatch-map` |
 
 **How to use skills:**
@@ -264,11 +267,22 @@ Skills live in `.github/skills/{name}/SKILL.md`. **Read the matching skill file 
 
 ## Working style
 
-1. Trace the full path before editing: UI → route → router/provider/tool → response formatting → docs/tests.
-2. Prefer minimal edits that preserve existing architecture.
-3. Treat response shapes and env loading as contracts.
-4. When behavior changes, update docs and identify verification steps.
-5. Always mention risks and affected workflows.
+### 1. Think Before Coding
+Before implementing: state assumptions explicitly. If multiple interpretations exist, present them — don't pick silently. If something is unclear, stop, name what's confusing, and ask.
+
+### 2. Simplicity First
+Minimum code that solves the problem. No speculative features, abstractions for single-use code, or "configurability" that wasn't requested. Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### 3. Surgical Changes
+Trace the full path before editing: UI → route → router/provider/tool → response formatting → docs/tests. Touch only what's needed — don't "improve" adjacent code, comments, or formatting unrelated to the request. Every changed line must trace directly to the user's request. Treat response shapes and env loading as contracts.
+
+### 4. Goal-Driven Execution
+For multi-step tasks, state a brief plan with verifiable steps:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+```
+When behavior changes, update docs and identify verification steps. Always mention risks and affected workflows.
 
 ## Standard response shape
 
