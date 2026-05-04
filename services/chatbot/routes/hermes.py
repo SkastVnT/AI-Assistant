@@ -75,8 +75,10 @@ def _has_image_keyword(message: str) -> bool:
     """
     if not message:
         return False
-    # Cap length to avoid ReDoS on adversarial inputs with many repeated spaces.
-    return _IMAGE_KEYWORD_RE.search(message[:2000]) is not None
+    # Normalize whitespace before applying the regex to prevent ReDoS via
+    # polynomial backtracking on inputs with many repeated spaces.
+    normalized = " ".join(message[:2000].split())
+    return _IMAGE_KEYWORD_RE.search(normalized) is not None
 
 
 @hermes_bp.route('/api/hermes/chat', methods=['POST'])

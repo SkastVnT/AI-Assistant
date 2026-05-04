@@ -263,9 +263,15 @@ def _local_cached_url(key: str) -> Optional[str]:
     safe = _safe_key(key)
     if not safe:
         return None
+    cache_dir = _LOCAL_CACHE_DIR.resolve()
     try:
         for ext in (".png", ".jpg", ".jpeg", ".webp"):
-            if (_LOCAL_CACHE_DIR / f"{safe}{ext}").is_file():
+            candidate = (_LOCAL_CACHE_DIR / f"{safe}{ext}").resolve()
+            try:
+                candidate.relative_to(cache_dir)
+            except ValueError:
+                continue  # path traversal attempt — skip
+            if candidate.is_file():
                 return f"/static/cache/character_previews/{safe}{ext}"
     except Exception:  # pragma: no cover — defensive
         return None

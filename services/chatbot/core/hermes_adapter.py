@@ -128,7 +128,7 @@ def hermes_chat(
         return {
             "success": False,
             "result": "",
-            "error": f"Hermes request failed: {e}",
+            "error": "Hermes request failed",
             "elapsed_s": elapsed,
         }
 
@@ -144,7 +144,7 @@ def hermes_chat(
         return {
             "success": False,
             "result": "",
-            "error": f"Hermes returned {resp.status_code}: {body_snippet}",
+            "error": f"Hermes returned HTTP {resp.status_code}",
             "elapsed_s": elapsed,
         }
 

@@ -324,7 +324,7 @@ def save_manual_profile(payload: dict, *, force: bool = False) -> dict:
         logger.warning("manual_profile: save failed (%s)", exc)
         return {
             "saved": False,
-            "reason": f"write failed: {exc}",
+            "reason": "write failed — check server logs",
             "preview": preview,
             "suggested_json": suggested,
             "target_path": str(OVERRIDES_PATH),
