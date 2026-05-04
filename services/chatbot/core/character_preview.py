@@ -38,6 +38,7 @@ _OVERRIDES_PATH = _CHATBOT_DIR / "config" / "character_overrides.json"
 
 # Only allow safe filename characters to prevent path traversal.
 _SAFE_KEY_RE = re.compile(r"[^A-Za-z0-9_\-]")
+_STRICT_SAFE_KEY_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 
 def _safe_key(key: str) -> str:
@@ -48,6 +49,11 @@ def _safe_key(key: str) -> str:
     return values before constructing paths.
     """
     return _SAFE_KEY_RE.sub("_", key)
+
+
+def _is_strict_safe_key(key: str) -> bool:
+    """Return True only for canonical cache key filename components."""
+    return bool(key and _STRICT_SAFE_KEY_RE.fullmatch(key))
 
 
 @dataclass
@@ -261,7 +267,7 @@ def _saa_thumbnail_url(key: str) -> Optional[str]:
 def _local_cached_url(key: str) -> Optional[str]:
     """Return a static URL if a manually-dropped preview exists on disk."""
     safe = _safe_key(key)
-    if not safe:
+    if not _is_strict_safe_key(safe):
         return None
     cache_dir = _LOCAL_CACHE_DIR.resolve()
     try:
