@@ -41,6 +41,11 @@ _SAFE_KEY_RE = re.compile(r"[^A-Za-z0-9_\-]")
 _STRICT_SAFE_KEY_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 
+def _sanitize_for_log(value: str) -> str:
+    """Remove line breaks from untrusted strings before logging."""
+    return (value or "").replace("\r", "").replace("\n", "")
+
+
 def _safe_key(key: str) -> str:
     """Sanitize a registry key so it is safe to use as a filename component.
 
@@ -277,7 +282,8 @@ def _local_cached_url(key: str) -> Optional[str]:
                 candidate.relative_to(cache_dir)
             except ValueError:
                 logger.warning(
-                    "character_preview: path traversal attempt blocked (key=%r)", key
+                    "character_preview: path traversal attempt blocked (key=%r)",
+                    _sanitize_for_log(key),
                 )
                 continue  # path traversal attempt — skip
             if candidate.is_file():
