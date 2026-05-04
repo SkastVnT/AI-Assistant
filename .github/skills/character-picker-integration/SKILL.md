@@ -117,6 +117,30 @@ description: "Maintain the character picker, character registry, and local job q
 6. **Series aliases are case-insensitive** but stored case-preserving; canonical values must match a `series_key` used by some character.
 7. **Thumbnail paths are repo-relative.** The `/thumbnail` route resolves against repo root and refuses paths that escape it.
 
+## SAA sidecar data path
+
+The SAA (Stand-Alone App, Electron) character picker sidecar is **opt-in** via `CHARACTER_SELECT_ENABLED=true`. It runs as a separate Electron process at port 51028.
+
+**Data files (read-only by chatbot — do not edit from Python):**
+
+| File | Contents | Loaded by |
+|---|---|---|
+| `character_select_stand_alone_app-main/data/wai_characters.csv` | 5149 verified WAI SDXL characters (key, display_name, series, tags) | `image_pipeline/anime_pipeline/saa_character_db.py` at import time |
+| `character_select_stand_alone_app-main/data/danbooru_e621_merged.csv` | Tag autocomplete vocabulary | `saa_character_db.py` at import time |
+| `character_select_stand_alone_app-main/data/wai_character_thumbs.json` | Character thumbnail index (key → URL/path) | `saa_character_db.py` at import time |
+
+**Integration levels:**
+
+1. `image_pipeline/anime_pipeline/saa_character_db.py` — reads the CSV/JSON files above at import time and builds in-memory indexes. Used by the 7-agent anime pipeline.
+2. `services/chatbot/core/character_select_adapter.py` — HTTP probe to the SAA sidecar for status/reachability. Mirrors `hermes_adapter` contract: gates on `CHARACTER_SELECT_ENABLED`, returns `{success, result, error, elapsed_s}`.
+3. `services/chatbot/routes/characters.py` — when `extended=true` param is present on `/api/characters`, augments local registry results with WAI characters from SAA database (5149 additional chars).
+4. `services/chatbot/routes/character_select.py` — `/api/character-select/status`, `/api/character-select/url`, and `/api/local-image-gen/recent` proxy endpoints for the sidecar.
+
+**Rules:**
+- `saa_character_db.py` loads at **import time** — any import failure silently degrades extended search (no hard crash).
+- SAA CSV/JSON files are owned by the SAA Electron app. Do not parse or modify them outside `saa_character_db.py`.
+- The SAA sidecar port (51028) is not configurable from the chatbot — it is hardcoded in the Electron app.
+
 ## File monitor
 
 | File | What to verify when changing |
@@ -125,9 +149,12 @@ description: "Maintain the character picker, character registry, and local job q
 | `storage/character_db/series_aliases.json` | Map of alias → canonical `series_key` that exists in characters.json. |
 | `core/character_registry.py` | Run `tests/test_character_registry.py`. |
 | `core/job_queue.py` | Run `tests/test_job_queue.py`. |
-| `routes/characters.py` | Smoke a `/api/characters` GET; check `count` matches registry. |
+| `core/character_select_adapter.py` | Verify probe URL uses env var; check `CHARACTER_SELECT_ENABLED` gate. |
+| `routes/characters.py` | Smoke a `/api/characters` GET; check `count` matches registry. Smoke `?extended=true` when SAA running. |
 | `routes/jobs.py` | Smoke `GET /api/jobs/stats` + `POST /api/jobs/<id>/cancel`. |
+| `routes/character_select.py` | Smoke `/api/character-select/status` returns `{enabled, reachable}`. |
 | `routes/anime_pipeline.py` | When changing `_enrich_with_character` or `_wrap_stream_with_queue`, re-test SSE flow. |
+| `image_pipeline/anime_pipeline/saa_character_db.py` | After CSV schema changes, verify indexes rebuild without exception. |
 | `chatbot_main.py` | After adding/removing blueprints in this subsystem, verify they appear in startup logs. |
 | `templates/index.html` | After changing topbar buttons, verify lucide icons re-render and event listeners attach. |
 | `static/js/modules/character-picker.js` | After API URL changes, sync with `routes/characters.py`. |
