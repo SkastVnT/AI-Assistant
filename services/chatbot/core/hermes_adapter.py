@@ -144,7 +144,7 @@ def hermes_chat(
         return {
             "success": False,
             "result": "",
-            "error": f"Hermes returned HTTP {resp.status_code}",
+            "error": "Hermes unavailable",
             "elapsed_s": elapsed,
         }
 

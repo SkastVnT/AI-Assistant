@@ -270,6 +270,9 @@ def _local_cached_url(key: str) -> Optional[str]:
             try:
                 candidate.relative_to(cache_dir)
             except ValueError:
+                logger.warning(
+                    "character_preview: path traversal attempt blocked (key=%r)", key
+                )
                 continue  # path traversal attempt — skip
             if candidate.is_file():
                 return f"/static/cache/character_previews/{safe}{ext}"
