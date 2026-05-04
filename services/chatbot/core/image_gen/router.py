@@ -19,8 +19,8 @@ from .providers.base import (
 )
 from .providers import (
     FalProvider, ReplicateProvider, BFLProvider,
-    OpenAIImageProvider, ComfyUIProvider, TogetherProvider,
-    StepFunProvider,
+    OpenAIImageProvider, ComfyUIProvider, ComfyUIFastProvider,
+    TogetherProvider, StepFunProvider,
 )
 from .providers.fal_provider import FAL_COST
 from .providers.replicate_provider import REPLICATE_COST
@@ -114,6 +114,13 @@ class ImageGenerationRouter:
                 self._providers["comfyui"] = ProviderConfig(
                     provider=ComfyUIProvider(base_url=comfyui_url),
                     priority=10,  # lowest priority unless explicitly requested or FREE mode
+                )
+                # Fast SAA-style provider (single-pass ~10s). Higher priority than
+                # the legacy multi-pass comfyui provider so QualityMode.FAST/FREE
+                # picks it first when no specific provider is requested.
+                self._providers["comfyui_fast"] = ProviderConfig(
+                    provider=ComfyUIFastProvider(base_url=comfyui_url),
+                    priority=15,
                 )
         except Exception as e:
             logger.warning(f"[ImageRouter] Failed to check runtime profile, skipping ComfyUI: {e}")
@@ -243,6 +250,7 @@ class ImageGenerationRouter:
         # 0b. Auto-detect characters → pick ComfyUI with character LoRA only
         #     (no extra quality LoRA stacking — checkpoint handles that)
         auto_detected = False
+        detected_char_keys: set[str] = set()
         if not resolved_loras and not preset_id and self._character_detector:
             detection = self._character_detector.detect(prompt)
             if detection.has_characters:
@@ -258,6 +266,7 @@ class ImageGenerationRouter:
                     for c in detection.characters
                     if c.lora_file  # skip trait-only characters
                 ]
+                detected_char_keys = {c.key for c in detection.characters if getattr(c, "key", None)}
                 if not resolved_checkpoint and detection.suggested_checkpoint:
                     resolved_checkpoint = detection.suggested_checkpoint
                 logger.info(
@@ -274,10 +283,36 @@ class ImageGenerationRouter:
                         f"{', '.join(detection.trait_tags)}"
                     )
 
-        # When LoRAs are specified, force ComfyUI (cloud providers don't support LoRAs)
+        # 0c. Text-driven LoRA resolver — picks up style / NSFW / extra
+        #     character triggers declared in LORA_CATALOG that the
+        #     CharacterDetector did not cover. Indirect text → LoRA stack.
+        if not preset_id:
+            try:
+                from .lora_resolver import resolve_loras_from_text
+                already = {l.name for l in resolved_loras}
+                extras = resolve_loras_from_text(
+                    prompt,
+                    exclude_keys=detected_char_keys,
+                    max_loras=max(1, 4 - len(resolved_loras)),
+                )
+                added: list[str] = []
+                for r in extras:
+                    if r.spec.name in already:
+                        continue
+                    resolved_loras.append(r.spec)
+                    already.add(r.spec.name)
+                    added.append(f"{r.catalog_key}({r.matched_phrase})")
+                if added:
+                    auto_detected = True
+                    logger.info("[ImageRouter] Text-resolver added LoRAs: %s", added)
+            except Exception as e:
+                logger.warning("[ImageRouter] lora_resolver skipped: %s", e)
+
+        # When LoRAs are specified, force the local fast ComfyUI provider
+        # (cloud providers don't support LoRAs; the legacy `comfyui` provider
+        # uses the slower multi-stage anime_pipeline workflow).
         if resolved_loras and not provider_name:
-            provider_name = "comfyui"
-            quality = QualityMode.FREE
+            provider_name = "comfyui_fast"
 
         # 1. Determine mode
         img_mode = self._resolve_mode(mode, source_image_b64, mask_b64)

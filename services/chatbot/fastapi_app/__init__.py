@@ -380,6 +380,23 @@ def create_app() -> FastAPI:
     app.include_router(characters.router)
     app.include_router(jobs.router)
 
+    # Reasoning Image Pipeline — flag-gated mirror of the Flask blueprint
+    # so the chat UI's reasoning-image-gen.js status probe + Generate
+    # action work under USE_FASTAPI=true. The JS module silently removes
+    # its button when the route is absent (Cycle 6 contract), so leaving
+    # this off when the flag is false keeps URL map byte-identical.
+    try:
+        from core.config import REASONING_PIPELINE_ENABLED as _RP_FLAG
+    except Exception:
+        _RP_FLAG = False
+    if _RP_FLAG:
+        try:
+            from fastapi_app.routers import reasoning_image_gen as _rig_router
+            app.include_router(_rig_router.router)
+            logger.info("Registered reasoning_image_gen FastAPI router (REASONING_PIPELINE=true)")
+        except Exception as _e:  # pragma: no cover — defensive
+            logger.warning(f"Could not register reasoning_image_gen FastAPI router: {_e}")
+
     # --- Root health check ---
     @app.get("/health")
     async def health():

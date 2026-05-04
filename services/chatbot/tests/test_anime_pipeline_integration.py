@@ -93,8 +93,11 @@ class TestValidateRequest:
         assert "required" in err.lower()
 
     def test_prompt_too_long(self):
-        from core.anime_pipeline_service import validate_request
-        req, err = validate_request({"prompt": "x" * 2001})
+        # 2026-04-29: prompt cap raised in prod from 2000 → 20000 chars
+        # (long character profiles + scene descriptions). Test mirrors the
+        # constant in core/anime_pipeline_service.py: _MAX_PROMPT.
+        from core.anime_pipeline_service import validate_request, _MAX_PROMPT
+        req, err = validate_request({"prompt": "x" * (_MAX_PROMPT + 1)})
         assert req is None
         assert "too long" in err.lower()
 

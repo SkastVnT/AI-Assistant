@@ -350,7 +350,7 @@ export class UIUtils {
                 </div>
                 <div class="storage-footer">
                     <span class="storage-percentage">${percentage}% Used</span>
-                    <button class="storage-cleanup-btn" data-action="storage:cleanup" title="Clear old chats (keep last 5)">
+                    <button class="storage-cleanup-btn" data-action="storage:cleanup" title="Dọn các cuộc trò chuyện cũ (chỉ chạy khi bạn bấm)">
                         <i data-lucide="trash-2" style="width:12px;height:12px;"></i> Clear
                     </button>
                 </div>

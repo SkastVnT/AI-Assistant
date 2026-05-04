@@ -155,6 +155,35 @@ def parse_character_identity(user_prompt: str) -> ParsedIdentity:
     result.solo_intent = _detect_solo_intent(lower)
 
     alias_matches = _find_alias_matches(lower)
+
+    # ── Step 1: explicit preposition pair via curated alias table ─────
+    # (kept FIRST so existing tag formats like "kafka_(honkai:_star_rail)"
+    # are preserved when the curated table already knows the character.)
+    explicit = _find_explicit_pair(lower, alias_matches) if alias_matches else None
+    if explicit is not None:
+        # Record candidates for collision_blocks below.
+        seen_tags: set[str] = set()
+        for _alias, info in alias_matches:
+            if info[0] not in seen_tags:
+                result.candidates.append(info)
+                seen_tags.add(info[0])
+        _assign(result, explicit, source="explicit_pattern")
+        _fill_collision_blocks(result, alias_matches)
+        return result
+
+    # ── Step 2: explicit "X from/of/in Y" via SAA database ───────────
+    # 2026-04-26 user request: when the user spells out the franchise
+    # but the curated alias table doesn't list the character (e.g.
+    # "Sparkle from Honkai: Star Rail"), reach into the 5149-char SAA
+    # DB. This also rescues prompts where an unrelated alias hides
+    # elsewhere (e.g. "sakura petals" → matou_sakura) — the SAA
+    # explicit pair takes priority over a stray alias_only fallback.
+    saa_explicit = _resolve_explicit_via_saa(user_prompt)
+    if saa_explicit is not None:
+        _assign(result, saa_explicit, source="explicit_saa")
+        _fill_collision_blocks(result, alias_matches)
+        return result
+
     if not alias_matches:
         # Fallback to the SAA 5149-char verified database before giving up.
         # This covers the long tail (Lynx, Castorice, Anaxa, ...) that the
@@ -174,14 +203,7 @@ def parse_character_identity(user_prompt: str) -> ParsedIdentity:
             result.candidates.append(info)
             seen_tags.add(info[0])
 
-    # ── Step 1: explicit preposition pair ─────────────────────────────
-    explicit = _find_explicit_pair(lower, alias_matches)
-    if explicit is not None:
-        _assign(result, explicit, source="explicit_pattern")
-        _fill_collision_blocks(result, alias_matches)
-        return result
-
-    # ── Step 2: series hint disambiguation ────────────────────────────
+    # ── Step 3: series hint disambiguation ────────────────────────────
     series_hint = _detect_series_hint(lower)
     if series_hint:
         for _alias, info in alias_matches:
@@ -190,7 +212,7 @@ def parse_character_identity(user_prompt: str) -> ParsedIdentity:
                 _fill_collision_blocks(result, alias_matches)
                 return result
 
-    # ── Step 3: fallback to first (longest alias) match ───────────────
+    # ── Step 4: fallback to first (longest alias) match ───────────────
     _alias, info = alias_matches[0]
     _assign(result, info, source="alias_only")
 
@@ -419,9 +441,12 @@ def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     # Try each candidate and keep the best high-confidence match.
     best = None
     best_score = 0.0
-    # Require strong score because this fallback runs only when the curated
-    # table failed; loose hits cause more harm than no hit.
-    threshold = 0.85
+    # Require an EXACT key match because this fallback runs only when the
+    # curated table failed AND no explicit franchise was named. Loose
+    # containment hits trigger false positives like ``landscape`` →
+    # ``justice_task_force_member_(blue_archive)`` or ``framework`` →
+    # random ``ram_*`` characters.
+    threshold = 1.0
     for phrase in candidates:
         try:
             hit = lookup_character(phrase)
@@ -443,3 +468,96 @@ def _resolve_via_saa(user_prompt: str) -> Optional[tuple[str, str, str, str]]:
     series_name = best.series_hint or "Unknown"
     display = best.display_name or best.tag.title()
     return (best.danbooru_tag, series_tag, display, series_name)
+
+
+def _resolve_explicit_via_saa(
+    user_prompt: str,
+) -> Optional[tuple[str, str, str, str]]:
+    """Resolve "<X> from/of/in/của/trong <Y>" patterns via the SAA DB.
+
+    For every preposition occurrence in the prompt, take up to ~4 words
+    before (the character candidate X) and ~6 words after (the franchise
+    candidate Y). Look X up in SAA. If the SAA series_hint shares any
+    significant token with Y, accept the match — this is the strongest
+    possible signal because the user spelled out the franchise.
+
+    Returns ``None`` when no explicit pair validates.
+    """
+    if not user_prompt:
+        return None
+    try:
+        from .saa_character_db import lookup_character
+    except Exception:
+        return None
+
+    text = user_prompt
+    lower = text.lower()
+
+    # Build prep finditer on the original-case text so we can preserve
+    # capitalisation when extracting the character candidate (helps SAA
+    # exact-match hit "Sparkle" vs lowercased noise).
+    prep_re = re.compile(
+        r"\b(?:from|of|in|trong|của|tại)\b",
+        re.IGNORECASE,
+    )
+
+    for m in prep_re.finditer(text):
+        prep_start = m.start()
+        prep_end = m.end()
+
+        # ── X candidate: up to 4 trailing words before the preposition.
+        head = text[:prep_start].rstrip(" ,.;:!?-")
+        head_words = re.findall(r"[A-Za-z][A-Za-z0-9'_-]*", head)
+        if not head_words:
+            continue
+
+        # ── Y candidate: up to 6 leading words after the preposition.
+        tail = text[prep_end:prep_end + 96]
+        tail_words = re.findall(r"[A-Za-z][A-Za-z0-9'_-]*", tail)
+        y_phrase = " ".join(tail_words[:6]).lower()
+        if not y_phrase:
+            continue
+
+        # Try X candidates from longest (4 words) down to 1 word.
+        for n in (4, 3, 2, 1):
+            if len(head_words) < n:
+                continue
+            x_phrase = " ".join(head_words[-n:])
+            try:
+                hit = lookup_character(x_phrase)
+            except Exception:
+                continue
+            if hit is None or hit.match_score < 0.85:
+                continue
+
+            # Validate Y matches SAA series_hint. Accept if any series
+            # token (≥3 chars) appears in y_phrase.
+            series_hint = (hit.series_hint or "").lower()
+            if series_hint:
+                series_tokens = {
+                    t for t in re.split(r"[\s\-:_/]+", series_hint)
+                    if len(t) >= 3
+                }
+                # Joined no-punct form too ("honkaistarrail").
+                series_tokens.add(re.sub(r"[^a-z0-9]", "", series_hint))
+                y_low_compact = re.sub(r"[^a-z0-9]", "", y_phrase)
+                matched = (
+                    any(tok in y_phrase for tok in series_tokens)
+                    or any(tok and tok in y_low_compact for tok in series_tokens)
+                )
+                if not matched:
+                    continue
+            else:
+                # No series_hint in SAA → require an exact (1.0) match
+                # to accept; otherwise we'd pick generic homonyms.
+                if hit.match_score < 1.0:
+                    continue
+
+            series_tag = (
+                series_hint.replace(" ", "_") if series_hint else "unknown"
+            )
+            series_name = hit.series_hint or "Unknown"
+            display = hit.display_name or hit.tag.title()
+            return (hit.danbooru_tag, series_tag, display, series_name)
+
+    return None

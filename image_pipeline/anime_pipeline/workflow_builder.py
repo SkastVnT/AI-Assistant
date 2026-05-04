@@ -22,6 +22,52 @@ if TYPE_CHECKING:
 
 _WORKFLOW_VERSION = "2.0.0"
 
+# Common upscale-model file extensions ComfyUI's UpscaleModelLoader accepts.
+_UPSCALE_MODEL_EXTS = (".pth", ".safetensors", ".bin", ".onnx", ".ckpt")
+
+
+def _normalize_upscale_model_name(name: str) -> str:
+    """Append a sensible extension if the model name has none.
+
+    ``UpscaleModelLoader`` requires the exact filename including
+    extension. Configs sometimes ship a bare basename (e.g.
+    ``"RealESRGAN_x4plus_anime_6B"``) which causes a generic
+    execution-time error. Probe the configured ComfyUI
+    ``models/upscale_models`` directory and resolve to the first
+    matching file. Falls back to ``<name>.pth`` if probing is not
+    possible.
+    """
+    if not name:
+        return name
+    lower = name.lower()
+    if lower.endswith(_UPSCALE_MODEL_EXTS):
+        return name
+    # Try to discover the real file on disk
+    try:
+        import os as _os
+        from pathlib import Path as _Path
+        # Search common ComfyUI install paths relative to repo root
+        candidates_roots = [
+            _os.environ.get("COMFYUI_DIR"),
+            "ComfyUI",
+            "app/ComfyUI",
+        ]
+        for root in candidates_roots:
+            if not root:
+                continue
+            p = _Path(root) / "models" / "upscale_models"
+            if not p.is_dir():
+                continue
+            for entry in p.iterdir():
+                if (entry.is_file()
+                        and entry.stem == name
+                        and entry.suffix.lower() in _UPSCALE_MODEL_EXTS):
+                    return entry.name
+    except Exception:
+        pass
+    # Last resort — assume .pth (most common for ESRGAN-family models)
+    return f"{name}.pth"
+
 
 class WorkflowBuilder:
     """Builds ComfyUI workflow JSON from PassConfig objects.
@@ -713,6 +759,7 @@ class WorkflowBuilder:
         """Upscale workflow: load image → upscale model → save."""
         self._reset()
         w: dict[str, Any] = {}
+        upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
         w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
@@ -748,6 +795,7 @@ class WorkflowBuilder:
         """
         self._reset()
         w: dict[str, Any] = {}
+        upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
         w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
@@ -804,6 +852,7 @@ class WorkflowBuilder:
         """
         self._reset()
         w: dict[str, Any] = {}
+        upscale_model = _normalize_upscale_model_name(upscale_model)
 
         load = self._nid()
         w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
@@ -856,6 +905,106 @@ class WorkflowBuilder:
         w[save] = {"class_type": "SaveImage", "inputs": {
             "filename_prefix": f"anime_pipeline/{pass_name}",
             "images": [ultimate, 0],
+        }}
+
+        return w
+
+    def build_hires_fix_upscale(
+        self,
+        image_b64: str,
+        upscale_model: str,
+        target_width: int,
+        target_height: int,
+        checkpoint: str,
+        positive_prompt: str,
+        negative_prompt: str,
+        seed: int,
+        *,
+        steps: int = 22,
+        cfg: float = 6.0,
+        sampler: str = "euler_ancestral",
+        scheduler: str = "normal",
+        denoise: float = 0.30,
+        pass_name: str = "upscale",
+    ) -> dict:
+        """Hires-fix style upscale using ONLY built-in ComfyUI nodes.
+
+        Fallback for when ``UltimateSDUpscale`` custom node is not
+        installed. Pipeline:
+
+            LoadImage → UpscaleModelLoader → ImageUpscaleWithModel
+            → ImageScale (target W×H) → VAEEncode
+            → KSampler (low-denoise img2img with quality-boost prompt)
+            → VAEDecode → SaveImage
+
+        The img2img KSampler pass at the higher resolution naturally
+        regenerates faces, eyes, hands, fingers and body anatomy with
+        the SDXL model — equivalent to A1111's "Hires.fix".
+        """
+        self._reset()
+        w: dict[str, Any] = {}
+        upscale_model = _normalize_upscale_model_name(upscale_model)
+
+        load = self._nid()
+        w[load] = {"class_type": "LoadImageFromBase64", "inputs": {"base64_image": image_b64}}
+
+        ckpt = self._nid()
+        w[ckpt] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": checkpoint}}
+
+        clip_pos = self._nid()
+        w[clip_pos] = {"class_type": "CLIPTextEncode", "inputs": {
+            "text": positive_prompt, "clip": [ckpt, 1],
+        }}
+        clip_neg = self._nid()
+        w[clip_neg] = {"class_type": "CLIPTextEncode", "inputs": {
+            "text": negative_prompt, "clip": [ckpt, 1],
+        }}
+
+        up_loader = self._nid()
+        w[up_loader] = {"class_type": "UpscaleModelLoader", "inputs": {"model_name": upscale_model}}
+
+        upscale = self._nid()
+        w[upscale] = {"class_type": "ImageUpscaleWithModel", "inputs": {
+            "upscale_model": [up_loader, 0], "image": [load, 0],
+        }}
+
+        rescale = self._nid()
+        w[rescale] = {"class_type": "ImageScale", "inputs": {
+            "image": [upscale, 0],
+            "width": int(target_width),
+            "height": int(target_height),
+            "upscale_method": "lanczos",
+            "crop": "disabled",
+        }}
+
+        encode = self._nid()
+        w[encode] = {"class_type": "VAEEncode", "inputs": {
+            "pixels": [rescale, 0], "vae": [ckpt, 2],
+        }}
+
+        sample = self._nid()
+        w[sample] = {"class_type": "KSampler", "inputs": {
+            "model": [ckpt, 0],
+            "positive": [clip_pos, 0],
+            "negative": [clip_neg, 0],
+            "latent_image": [encode, 0],
+            "seed": int(seed),
+            "steps": int(steps),
+            "cfg": float(cfg),
+            "sampler_name": sampler,
+            "scheduler": scheduler,
+            "denoise": float(denoise),
+        }}
+
+        decode = self._nid()
+        w[decode] = {"class_type": "VAEDecode", "inputs": {
+            "samples": [sample, 0], "vae": [ckpt, 2],
+        }}
+
+        save = self._nid()
+        w[save] = {"class_type": "SaveImage", "inputs": {
+            "filename_prefix": f"anime_pipeline/{pass_name}",
+            "images": [decode, 0],
         }}
 
         return w

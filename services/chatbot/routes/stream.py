@@ -133,8 +133,13 @@ def _run_web_search(query: str, engine: str = "google") -> str:
 
     serpapi_key = os.getenv("SERPAPI_API_KEY", "")
 
-    # ── SerpAPI (primary) ──────────────────────────────────────────────
+    # 2026-04-29: track which providers we tried so the user sees the
+    # actual cascade in the rendered tool result ("SerpAPI → Google CSE").
+    _attempted: list[str] = []
+
+    # ── SerpAPI (primary) ───────────────────────────────────────
     if serpapi_key:
+        _attempted.append(f"SerpAPI:{engine}")
         try:
             resp = _req.get("https://serpapi.com/search.json", params={
                 "engine": engine,
@@ -153,7 +158,7 @@ def _run_web_search(query: str, engine: str = "google") -> str:
                         snippet = item.get("snippet", item.get("description", ""))
                         link = item.get("link", "")
                         parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                    return f"🔍 **{label} Search — Kết quả thực tế:**\n\n" + "\n\n---\n\n".join(parts)
+                    return f"🪜 _Cascade: SerpAPI:{engine} ✅_\n\n🔍 **{label} Search — Kết quả thực tế:**\n\n" + "\n\n---\n\n".join(parts)
         except Exception as e:
             logger.warning(f"[WebSearch:SerpAPI] Error: {e}")
 
@@ -174,6 +179,7 @@ def _run_web_search(query: str, engine: str = "google") -> str:
     for api_key in [api_key_1, api_key_2]:
         if not api_key:
             continue
+        _attempted.append("GoogleCSE")
         try:
             resp = s.get(url, params={
                 "key": api_key, "cx": cse_id, "q": query, "num": 5,
@@ -188,7 +194,8 @@ def _run_web_search(query: str, engine: str = "google") -> str:
                         snippet = item.get("snippet", "")
                         link = item.get("link", "")
                         parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                    return "🔍 **Kết quả tìm kiếm web (real-time):**\n\n" + "\n\n---\n\n".join(parts)
+                    _trail = " → ".join(_attempted)
+                    return f"🪜 _Cascade: {_trail}_\n\n🔍 **Kết quả tìm kiếm web (real-time):**\n\n" + "\n\n---\n\n".join(parts)
             elif resp.status_code in (429, 403):
                 continue
             else:

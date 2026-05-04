@@ -18,8 +18,10 @@ from __future__ import annotations
 
 import logging
 import base64
+import ipaddress
 import time as _time
 from functools import wraps
+from urllib.parse import urlparse
 from flask import Blueprint, request, jsonify, session, send_file, Response
 from io import BytesIO
 
@@ -145,6 +147,243 @@ def _save_to_gallery(saved: dict, prompt: str, provider: str, model: str,
         logger.warning(f'[image_gen] gallery sync failed (non-fatal): {e}')
 
 
+def _run_reasoning_fastpath(
+    *,
+    prompt: str,
+    data: dict,
+    conversation_id: str,
+    storage,
+    username: str,
+    quota_db,
+):
+    """Cycle 7 LOCAL fast-path: route /generate to the reasoning pipeline.
+
+    Returns a Flask response (the route's full reply) on success/failure of
+    the pipeline. Returns ``None`` if the pipeline is structurally unable to
+    run (e.g. helper import failed) so the caller can fall back to the normal
+    router. Imports are lazy so the regular path stays untouched when the
+    REASONING_PIPELINE flag is off.
+    """
+    try:
+        from routes.reasoning_image_gen import run_pipeline_for_prompt
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(f"[image_gen] reasoning fastpath import failed: {exc}")
+        return None
+
+    pipeline = run_pipeline_for_prompt(
+        prompt,
+        layout=data.get("layout"),
+        attached_images=data.get("attached_images") or 0,
+        character_hint=data.get("character_hint"),
+    )
+    pipeline.pop("status_code", None)
+
+    if not pipeline.get("success") or not pipeline.get("image_b64"):
+        return jsonify({
+            "success": False,
+            "error": pipeline.get("error") or "reasoning pipeline failed",
+            "prompt_used": prompt,
+            "provider": "reasoning",
+            "model": "comic-pipeline",
+            "reasoning": pipeline,
+        }), 200
+
+    saved = storage.save(
+        image_b64=pipeline["image_b64"],
+        prompt=prompt,
+        provider="reasoning",
+        model="comic-pipeline",
+        conversation_id=conversation_id,
+        metadata={
+            "reasoning_job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+        },
+    )
+    if saved.get("error"):
+        return jsonify({
+            "success": False,
+            "error": f"reasoning save failed: {saved['error']}",
+            "prompt_used": prompt,
+            "provider": "reasoning",
+            "model": "comic-pipeline",
+        }), 500
+
+    _save_to_gallery(
+        saved, prompt, "reasoning", "comic-pipeline",
+        conversation_id, source="image_gen_v2_reasoning",
+    )
+
+    if username and quota_db is not None:
+        try:
+            from core.user_auth import increment_image_quota
+            increment_image_quota(quota_db, username, 1)
+        except Exception:
+            pass
+
+    try:
+        log_image_generation(
+            prompt=prompt, provider="reasoning", model="comic-pipeline",
+            image_url=saved.get("url", ""), image_path=saved.get("local_path", ""),
+            session_id=conversation_id, mode="txt2img",
+            extra={"reasoning_job_id": pipeline.get("job_id")},
+        )
+    except Exception:
+        pass
+
+    return jsonify({
+        "success": True,
+        "images": [{
+            "url": saved.get("url", ""),
+            "image_id": saved.get("image_id", ""),
+            "local_path": saved.get("local_path", ""),
+        }],
+        "images_url": [],
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "prompt_used": prompt,
+        "original_prompt": prompt,
+        "latency_ms": 0.0,
+        "cost_usd": 0.0,
+        "style": data.get("style"),
+        "reasoning": {
+            "job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+            "panels": pipeline.get("panels"),
+        },
+    })
+
+
+def _stream_reasoning_fastpath(
+    *,
+    prompt: str,
+    data: dict,
+    conversation_id: str,
+    storage,
+    img_session,
+    username: str,
+    quota_db,
+):
+    """Cycle 7.5 SSE variant of ``_run_reasoning_fastpath``.
+
+    Returns a Python generator that yields SSE-formatted strings, mirroring
+    the event vocabulary used by ``/api/image-gen/stream``: ``status``,
+    ``provider_try``, ``provider_success``, ``result``, ``saved``, ``error``.
+    The frontend's ``generateFromChatStream`` callbacks therefore work with
+    no rendering changes.
+
+    Like the JSON variant this is a no-op fall-through: callers that want to
+    bypass reasoning simply do not invoke this generator.
+    """
+    import json as _json
+
+    def _emit(event: str, payload: dict) -> str:
+        return f"event: {event}\ndata: {_json.dumps(payload)}\n\n"
+
+    try:
+        from routes.reasoning_image_gen import run_pipeline_for_prompt
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(f"[image_gen] reasoning stream import failed: {exc}")
+        yield _emit("error", {"error": f"reasoning import failed: {exc}"})
+        return
+
+    yield _emit("status", {
+        "step": "reasoning_pipeline",
+        "phase": "start",
+        "message": "Routing through reasoning pipeline",
+    })
+    yield _emit("provider_try", {
+        "provider": "reasoning",
+        "priority": 0,
+        "attempt": 1,
+        "total_providers": 1,
+    })
+
+    pipeline = run_pipeline_for_prompt(
+        prompt,
+        layout=data.get("layout"),
+        attached_images=data.get("attached_images") or 0,
+        character_hint=data.get("character_hint"),
+    )
+    pipeline.pop("status_code", None)
+
+    if not pipeline.get("success") or not pipeline.get("image_b64"):
+        yield _emit("error", {
+            "error": pipeline.get("error") or "reasoning pipeline failed",
+            "provider": "reasoning",
+            "reasoning": pipeline,
+        })
+        return
+
+    saved = storage.save(
+        image_b64=pipeline["image_b64"],
+        prompt=prompt,
+        provider="reasoning",
+        model="comic-pipeline",
+        conversation_id=conversation_id,
+        metadata={
+            "reasoning_job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+        },
+    )
+    if saved.get("error"):
+        yield _emit("error", {
+            "error": f"reasoning save failed: {saved['error']}",
+            "provider": "reasoning",
+        })
+        return
+
+    _save_to_gallery(
+        saved, prompt, "reasoning", "comic-pipeline",
+        conversation_id, source="image_gen_v2_reasoning_stream",
+    )
+
+    if username and quota_db is not None:
+        try:
+            from core.user_auth import increment_image_quota
+            increment_image_quota(quota_db, username, 1)
+        except Exception:
+            pass
+
+    try:
+        log_image_generation(
+            prompt=prompt, provider="reasoning", model="comic-pipeline",
+            image_url=saved.get("url", ""), image_path=saved.get("local_path", ""),
+            session_id=conversation_id, mode="txt2img",
+            extra={"reasoning_job_id": pipeline.get("job_id"), "stream": True},
+        )
+    except Exception:
+        pass
+
+    yield _emit("provider_success", {
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "latency_ms": 0.0,
+    })
+    yield _emit("result", {
+        "success": True,
+        "provider": "reasoning",
+        "model": "comic-pipeline",
+        "prompt_used": prompt,
+        "images_url": [],
+        "images_b64": [],
+        "latency_ms": 0.0,
+        "cost_usd": 0.0,
+        "metadata": {"reasoning_job_id": pipeline.get("job_id")},
+        "reasoning": {
+            "job_id": pipeline.get("job_id"),
+            "comic": pipeline.get("comic"),
+            "panels": pipeline.get("panels"),
+        },
+    })
+    yield _emit("saved", {
+        "images": [{
+            "url": saved.get("url", ""),
+            "image_id": saved.get("image_id", ""),
+            "local_path": saved.get("local_path", ""),
+        }],
+    })
+
+
 # â”€â”€ Main generation endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @image_gen_bp.route("/api/image-gen/generate", methods=["POST"])
@@ -184,6 +423,19 @@ def generate_image():
     # -----------------------------------------------------------------
 
     data = request.get_json(force=True, silent=True) or {}
+
+    # ── SAA character pin ────────────────────────────────────────────
+    # Honour ``character_key`` from the picker by prepending the
+    # fully-qualified ``Display Name in Series`` phrase to the prompt.
+    # Reuses the same resolver as the anime pipeline so behaviour is
+    # consistent across image-gen surfaces (local registry → SAA WAI fallback).
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover — defensive
+            logger.warning(f"[image_gen] character enrichment skipped: {_ce}")
+
     prompt = data.get("prompt", "").strip()
 
     if not prompt:
@@ -195,6 +447,28 @@ def generate_image():
 
     conversation_id = data.get("conversation_id", session.get("conversation_id", ""))
     img_session = sessions.get_or_create(conversation_id)
+
+    # ── Cycle 7: reasoning pipeline fast-path (LOCAL, opt-in) ────────────
+    # Activates only when BOTH: (a) REASONING_PIPELINE flag is on, and
+    # (b) the request payload sets ``use_reasoning_pipeline: true``. When
+    # either is false this branch is skipped and the regular router runs.
+    # This preserves the byte-identical flag-off behaviour from Cycle 6.
+    if data.get("use_reasoning_pipeline"):
+        try:
+            from core.config import REASONING_PIPELINE_ENABLED
+        except Exception:
+            REASONING_PIPELINE_ENABLED = False
+        if REASONING_PIPELINE_ENABLED:
+            reasoning_resp = _run_reasoning_fastpath(
+                prompt=prompt,
+                data=data,
+                conversation_id=conversation_id,
+                storage=storage,
+                username=_username,
+                quota_db=_quota_db,
+            )
+            if reasoning_resp is not None:
+                return reasoning_resp
 
     # Build context from session history
     context = img_session.get_context_for_enhancement() if img_session.history else None
@@ -333,6 +607,15 @@ def generate_image_stream():
     import json as _json
 
     data = request.get_json(force=True, silent=True) or {}
+
+    # ── SAA character pin (mirror /generate) ─────────────────────────
+    if data.get("character_key"):
+        try:
+            from routes.anime_pipeline import _enrich_with_character
+            data = _enrich_with_character(data)
+        except Exception as _ce:  # pragma: no cover
+            logger.warning(f"[image_gen.stream] character enrichment skipped: {_ce}")
+
     prompt = data.get("prompt", "").strip()
 
     if not prompt:
@@ -359,6 +642,47 @@ def generate_image_stream():
     conversation_id = data.get("conversation_id", session.get("conversation_id", ""))
     img_session = sessions.get_or_create(conversation_id)
     context = img_session.get_context_for_enhancement() if img_session.history else None
+
+    # ── Cycle 7.5: streaming reasoning fast-path (LOCAL, opt-in) ─────────
+    # Same gating semantics as ``/generate``: payload + env flag.
+    _use_reasoning_stream = bool(data.get("use_reasoning_pipeline"))
+    if _use_reasoning_stream:
+        try:
+            from core.config import REASONING_PIPELINE_ENABLED as _RP_FLAG
+        except Exception:
+            _RP_FLAG = False
+        if _RP_FLAG:
+            # Resolve quota context the same way ``/generate`` does so
+            # successful reasoning runs increment the user's image quota.
+            _r_username = session.get("username", "")
+            _r_quota_db = None
+            if _r_username:
+                try:
+                    from core.extensions import get_db as _get_qdb
+                    _r_quota_db = _get_qdb()
+                except Exception:
+                    _r_quota_db = None
+
+            def _reasoning_stream_wrapper():
+                yield from _stream_reasoning_fastpath(
+                    prompt=prompt,
+                    data=data,
+                    conversation_id=conversation_id,
+                    storage=storage,
+                    img_session=img_session,
+                    username=_r_username,
+                    quota_db=_r_quota_db,
+                )
+
+            return Response(
+                _reasoning_stream_wrapper(),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'X-Accel-Buffering': 'no',
+                },
+            )
 
     def _stream():
         try:
@@ -531,12 +855,23 @@ def edit_image():
         source_b64 = img_session.last_image_b64
 
     if not source_b64:
-        # Try downloading from last URL
-        if img_session.last_image_url:
+        # Try downloading from last URL — validate scheme and block cloud-metadata
+        # link-local IPs (e.g. 169.254.169.254) to mitigate SSRF risk.
+        # follow_redirects is disabled to prevent redirect-based bypass.
+        last_url = img_session.last_image_url
+        if last_url and last_url.startswith(("http://", "https://")):
             try:
-                import httpx
-                resp = httpx.get(img_session.last_image_url, timeout=15, follow_redirects=True)
-                source_b64 = base64.b64encode(resp.content).decode()
+                _host = (urlparse(last_url).hostname or "").lower()
+                _blocked = False
+                try:
+                    _blocked = ipaddress.ip_address(_host).is_link_local
+                except ValueError:
+                    pass  # hostname (not raw IP) — proceed
+                if not _blocked:
+                    import httpx
+                    resp = httpx.get(last_url, timeout=15, follow_redirects=False)
+                    if resp.status_code == 200:
+                        source_b64 = base64.b64encode(resp.content).decode()
             except Exception:
                 pass
 
@@ -737,6 +1072,117 @@ def stats():
     })
 
 
+# ── LoRA inventory ─────────────────────────────────────────────────────
+_LORA_INVENTORY_CACHE: dict | None = None
+_LORA_INVENTORY_MTIME: float = 0.0
+
+
+def _load_lora_inventory() -> dict:
+    """Load (and cache) `storage/lora_inventory.json` produced by
+    `scripts/scan_lora_inventory.py`. Re-reads when the file mtime changes.
+    """
+    global _LORA_INVENTORY_CACHE, _LORA_INVENTORY_MTIME
+    import os
+    import json as _json
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[3] / "storage" / "lora_inventory.json"
+    if not p.exists():
+        return {"items": [], "total_count": 0, "error": "inventory not generated; run scripts/scan_lora_inventory.py"}
+    mtime = p.stat().st_mtime
+    if _LORA_INVENTORY_CACHE is None or mtime != _LORA_INVENTORY_MTIME:
+        try:
+            _LORA_INVENTORY_CACHE = _json.loads(p.read_text(encoding="utf-8"))
+            _LORA_INVENTORY_MTIME = mtime
+        except Exception as e:
+            logger.warning("[image_gen] lora_inventory load failed: %s", e)
+            return {"items": [], "total_count": 0, "error": str(e)}
+    return _LORA_INVENTORY_CACHE or {"items": []}
+
+
+@image_gen_bp.route("/api/image-gen/loras", methods=["GET"])
+def list_loras():
+    """List all available LoRAs from the inventory manifest.
+
+    Query params:
+        q:       optional filter (substring, case-insensitive) on name
+        limit:   max items returned (default 200)
+        registered: "1" → only registered, "0" → only unregistered
+    """
+    data = _load_lora_inventory()
+    items = list(data.get("items", []))
+
+    q = (request.args.get("q") or "").strip().lower()
+    if q:
+        items = [i for i in items if q in i.get("name", "").lower()]
+
+    reg_filter = request.args.get("registered")
+    if reg_filter in ("0", "1"):
+        want = reg_filter == "1"
+        items = [i for i in items if bool(i.get("registered")) == want]
+
+    try:
+        limit = max(1, min(2000, int(request.args.get("limit", 200))))
+    except (ValueError, TypeError):
+        limit = 200
+
+    return jsonify({
+        "total_count": data.get("total_count", len(items)),
+        "total_size_mb": data.get("total_size_mb", 0),
+        "registered_count": data.get("registered_count", 0),
+        "unregistered_count": data.get("unregistered_count", 0),
+        "missing_on_disk": data.get("registry_entries_missing_on_disk", []),
+        "items": items[:limit],
+        "returned": min(limit, len(items)),
+    })
+
+
+@image_gen_bp.route("/api/image-gen/loras/suggest", methods=["GET", "POST"])
+def suggest_loras():
+    """Preview which LoRAs the text resolver would auto-inject for a prompt.
+
+    Lets the chatbot show users (or other tools) the indirect text→LoRA
+    mapping before actually generating. Accepts `text` or `prompt` via
+    query string or JSON body.
+    """
+    text = ""
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        text = (body.get("text") or body.get("prompt") or "").strip()
+    if not text:
+        text = (request.args.get("text") or request.args.get("prompt") or "").strip()
+    if not text:
+        return jsonify({"error": "missing text"}), 400
+
+    try:
+        from core.image_gen.lora_resolver import suggest_for_chat
+        return jsonify(suggest_for_chat(text))
+    except Exception as e:
+        logger.exception("[image_gen] suggest_loras failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@image_gen_bp.route("/api/image-gen/loras/stats", methods=["GET"])
+def loras_stats():
+    """Runtime LoRA catalog stats (curated vs auto-derived)."""
+    try:
+        from core.image_gen.lora_resolver import catalog_stats
+        return jsonify(catalog_stats())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@image_gen_bp.route("/api/image-gen/loras/reload", methods=["POST"])
+def loras_reload():
+    """Force-rebuild runtime catalog (after rescanning inventory)."""
+    try:
+        from core.image_gen.lora_resolver import reload_catalog
+        return jsonify(reload_catalog())
+    except Exception as e:
+        logger.exception("[image_gen] loras_reload failed")
+        return jsonify({"error": str(e)}), 500
+
+
 # â”€â”€ Cost tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _cost_log_v2: list = []  # [{type, provider, model, cost_usd, timestamp}]
@@ -763,11 +1209,16 @@ def _get_cost_summary() -> dict:
 
 # ── LoRA & workflow preset endpoints ─────────────────────────────────────
 
-@image_gen_bp.route("/api/image-gen/loras", methods=["GET"])
-def list_loras():
+@image_gen_bp.route("/api/image-gen/loras/combined", methods=["GET"])
+def list_loras_combined():
     """
-    List available LoRA models.
-    Returns both the catalog (known presets) and live LoRAs from ComfyUI.
+    List available LoRA models — catalog + live ComfyUI inventory.
+
+    NOTE: the canonical ``GET /api/image-gen/loras`` endpoint is the
+    manifest-based ``list_loras`` defined earlier in this module. This
+    extra endpoint exposes the legacy combined-view payload for
+    consumers that need both curated catalog presets *and* the live
+    ComfyUI directory listing in one call.
     """
     try:
         from config.model_presets import LORA_CATALOG

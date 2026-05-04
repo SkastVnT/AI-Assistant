@@ -80,3 +80,27 @@ async def local_image_gen_file(name: str):
         raise HTTPException(status_code=404, detail="not_found")
     return FileResponse(str(path), media_type=mime)
 
+
+# ── Tag autocomplete (Danbooru tag DB) ───────────────────────────────
+
+
+@router.get(
+    "/api/tags/autocomplete",
+    tags=["Tools"],
+    summary="Autocomplete Danbooru-style tags",
+)
+async def tags_autocomplete(
+    q: str = Query("", description="prefix or substring query"),
+    limit: int = Query(20, ge=1, le=50),
+):
+    q = (q or "").strip()
+    if len(q) < 1:
+        return {"ok": True, "tags": []}
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import autocomplete_tag
+        hits = autocomplete_tag(q, limit=limit)
+        return {"ok": True, "tags": hits}
+    except Exception as exc:
+        logger.warning("[TAGS-AUTOCOMPLETE] %s", exc)
+        return JSONResponse({"ok": False, "tags": [], "error": str(exc)}, status_code=200)
+

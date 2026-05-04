@@ -21,17 +21,22 @@ IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload'
 # Google Drive (now using Service Account instead of webhook)
 GOOGLE_DRIVE_FOLDER_ID = os.getenv('GOOGLE_DRIVE_FOLDER_ID', '')
 GOOGLE_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/' + GOOGLE_DRIVE_FOLDER_ID if GOOGLE_DRIVE_FOLDER_ID else None
+GOOGLE_DRIVE_ENABLED = os.getenv('GOOGLE_DRIVE_ENABLED', 'true').strip().lower() not in ('0', 'false', 'no', 'off', '')
 
-# Initialize Google Drive Service
-try:
-    from .google_drive_service import GoogleDriveService
-    drive_service = GoogleDriveService()
-    if GOOGLE_DRIVE_FOLDER_ID:
-        drive_service.set_folder_id(GOOGLE_DRIVE_FOLDER_ID)
-    logger.info("[ImageStorage] Google Drive service initialized")
-except Exception as e:
+# Initialize Google Drive Service (only when explicitly enabled)
+if GOOGLE_DRIVE_ENABLED:
+    try:
+        from .google_drive_service import GoogleDriveService
+        drive_service = GoogleDriveService()
+        if GOOGLE_DRIVE_FOLDER_ID:
+            drive_service.set_folder_id(GOOGLE_DRIVE_FOLDER_ID)
+        logger.info("[ImageStorage] Google Drive service initialized")
+    except Exception as e:
+        drive_service = None
+        logger.warning(f"[ImageStorage] Google Drive service init failed: {e}")
+else:
     drive_service = None
-    logger.warning(f"[ImageStorage] Google Drive service init failed: {e}")
+    logger.info("[ImageStorage] Google Drive disabled (GOOGLE_DRIVE_ENABLED=false)")
 
 # MongoDB (optional)
 try:
@@ -104,6 +109,20 @@ except Exception as e:
 # Firebase Realtime Database (REST API — no Admin SDK required)
 FIREBASE_RTDB_URL = os.getenv('FIREBASE_RTDB_URL', '').rstrip('/')
 FIREBASE_DB_SECRET = os.getenv('FIREBASE_DB_SECRET', '')
+# Disabled at runtime once we hit a 401/403 — saves writing the same noisy
+# warning on every image generation when the DB rules reject anonymous writes.
+_RTDB_DISABLED = False
+
+
+def _rtdb_mark_disabled(reason: str) -> None:
+    global _RTDB_DISABLED
+    if not _RTDB_DISABLED:
+        _RTDB_DISABLED = True
+        logger.warning(
+            "[RTDB] Disabling Firebase RTDB writes for this session: %s. "
+            "Set FIREBASE_DB_SECRET or relax security rules to re-enable.",
+            reason,
+        )
 
 
 def _utc_iso() -> str:
@@ -197,7 +216,7 @@ def rtdb_push(path: str, data: dict) -> Optional[str]:
     Works without a service account — uses DB Secret if set, otherwise
     relies on the RTDB security rules allowing writes.
     """
-    if not FIREBASE_RTDB_URL:
+    if not FIREBASE_RTDB_URL or _RTDB_DISABLED:
         return None
     try:
         url = f"{FIREBASE_RTDB_URL}/{path.strip('/')}.json"
@@ -207,7 +226,10 @@ def rtdb_push(path: str, data: dict) -> Optional[str]:
             key = (resp.json() or {}).get('name')
             logger.info(f"[RTDB] Push /{path} → key={key}")
             return key
-        logger.warning(f"[RTDB] Push failed {resp.status_code}: {resp.text[:200]}")
+        if resp.status_code in (401, 403):
+            _rtdb_mark_disabled(f"HTTP {resp.status_code} on push")
+        else:
+            logger.warning(f"[RTDB] Push failed {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         logger.warning(f"[RTDB] Push error: {e}")
     return None
@@ -215,7 +237,7 @@ def rtdb_push(path: str, data: dict) -> Optional[str]:
 
 def rtdb_set(path: str, data: dict) -> bool:
     """Set data at a specific RTDB path (PUT).  Returns True on success."""
-    if not FIREBASE_RTDB_URL:
+    if not FIREBASE_RTDB_URL or _RTDB_DISABLED:
         return False
     try:
         url = f"{FIREBASE_RTDB_URL}/{path.strip('/')}.json"
@@ -224,7 +246,10 @@ def rtdb_set(path: str, data: dict) -> bool:
         if resp.status_code == 200:
             logger.info(f"[RTDB] Set /{path}: OK")
             return True
-        logger.warning(f"[RTDB] Set failed {resp.status_code}: {resp.text[:200]}")
+        if resp.status_code in (401, 403):
+            _rtdb_mark_disabled(f"HTTP {resp.status_code} on set")
+        else:
+            logger.warning(f"[RTDB] Set failed {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         logger.warning(f"[RTDB] Set error: {e}")
     return False
@@ -232,7 +257,7 @@ def rtdb_set(path: str, data: dict) -> bool:
 
 def rtdb_get(path: str) -> Optional[dict]:
     """Read JSON object at a specific RTDB path (GET)."""
-    if not FIREBASE_RTDB_URL:
+    if not FIREBASE_RTDB_URL or _RTDB_DISABLED:
         return None
     try:
         url = f"{FIREBASE_RTDB_URL}/{path.strip('/')}.json"
@@ -240,7 +265,10 @@ def rtdb_get(path: str) -> Optional[dict]:
         resp = requests.get(url, params=params, timeout=10)
         if resp.status_code == 200:
             return resp.json()
-        logger.warning(f"[RTDB] Get failed {resp.status_code}: {resp.text[:200]}")
+        if resp.status_code in (401, 403):
+            _rtdb_mark_disabled(f"HTTP {resp.status_code} on get")
+        else:
+            logger.warning(f"[RTDB] Get failed {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         logger.warning(f"[RTDB] Get error: {e}")
     return None

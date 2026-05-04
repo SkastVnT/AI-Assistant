@@ -104,7 +104,7 @@ services/chatbot/
       resolver.py           resolve_skill() — explicit > session > auto-route
       applicator.py         apply_skill_overrides() — merge skill into request
       session.py            SkillSessionStore (in-memory per-session binding)
-      builtin/              11 built-in YAML skill definitions
+      builtins/             12 built-in YAML skill definitions
   routes/
     stream.py               PRIMARY: POST /chat/stream (SSE)
     main.py                 /, /chat, /clear, /history, /api/generate-title
@@ -206,6 +206,8 @@ private/                    Internal data/submodule
 
 3. **Primary streaming endpoint**: `routes/stream.py` → `POST /chat/stream`. FastAPI equivalent lives in `fastapi_app/`. Do not merge these paths.
 
+   **Flask-only blueprints (no FastAPI mirror, by design):** `auth`, `models`, `async_routes`, `user_auth`, `qr_payment`. These rely on Flask sessions / Jinja templates / form-encoded uploads and are not ported to FastAPI. If `USE_FASTAPI=true` is set, those endpoints are unavailable — the FastAPI path is API-first and assumes JWT/header auth. Do not "fix" the gap by silently mirroring; raise it as a separate task.
+
 4. **Adding a new tool**: update `core/tools.py`, `core/config.py` (for any new API key), tool-routing in `core/chatbot.py` or the relevant route handler, and the search tools table in `README.md`.
 
 5. **Adding a new MCP tool**: update `services/mcp-server/server.py` or `tools/advanced_tools.py`. MCP transport is `stdio` — do not add HTTP listeners.
@@ -248,6 +250,9 @@ Skills live in `.github/skills/{name}/SKILL.md`. **Read the matching skill file 
 | CI impact, workflow, security scan | `workflow-impact-guard` |
 | Docs vs runtime drift | `docs-drift-sync` |
 | Which tests to run | `test-impact-mapper` |
+| Bug, hard failure, silent error | `diagnose` |
+| Building feature/fix test-first | `tdd` |
+| Entering unfamiliar module | `zoom-out` |
 | Uncertain which skill | `skills-dispatch-map` |
 
 **How to use skills:**
@@ -262,11 +267,22 @@ Skills live in `.github/skills/{name}/SKILL.md`. **Read the matching skill file 
 
 ## Working style
 
-1. Trace the full path before editing: UI → route → router/provider/tool → response formatting → docs/tests.
-2. Prefer minimal edits that preserve existing architecture.
-3. Treat response shapes and env loading as contracts.
-4. When behavior changes, update docs and identify verification steps.
-5. Always mention risks and affected workflows.
+### 1. Think Before Coding
+Before implementing: state assumptions explicitly. If multiple interpretations exist, present them — don't pick silently. If something is unclear, stop, name what's confusing, and ask.
+
+### 2. Simplicity First
+Minimum code that solves the problem. No speculative features, abstractions for single-use code, or "configurability" that wasn't requested. Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### 3. Surgical Changes
+Trace the full path before editing: UI → route → router/provider/tool → response formatting → docs/tests. Touch only what's needed — don't "improve" adjacent code, comments, or formatting unrelated to the request. Every changed line must trace directly to the user's request. Treat response shapes and env loading as contracts.
+
+### 4. Goal-Driven Execution
+For multi-step tasks, state a brief plan with verifiable steps:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+```
+When behavior changes, update docs and identify verification steps. Always mention risks and affected workflows.
 
 ## Standard response shape
 

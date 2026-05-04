@@ -43,10 +43,13 @@
 
     <!-- App CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260429">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
+    <!-- Visual refinements (loaded LAST so they can override) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/parts/enhancements.css') }}?v=20260427">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/parts/ui-overhaul.css') }}?v=20260427b">
 
     <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
     <script>
@@ -216,44 +219,36 @@ try {
             <button class="sidebar__footer-btn" id="memoryBtn" title="AI Memory" data-lang-key="controls.memory">
                 <i data-lucide="brain" class="lucide"></i> <span>AI Memory</span>
             </button>
-            <div id="storageInfo" style="padding: 4px 12px; font-size: 11px; color: var(--text-tertiary);"></div>
+            <div id="storageInfo" class="sidebar__storage"></div>
 
             <!-- Quota + Video unlock bar (non-admin only) -->
-            <div id="quotaSection" style="display:none;padding:6px 10px 2px;">
+            <div id="quotaSection" class="sidebar__quota">
                 <!-- Image quota bar -->
-                <div id="imageQuotaWrap" style="margin-bottom:6px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-                        <span style="font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px;">
-                            <i data-lucide="image" style="width:11px;height:11px;"></i> Ảnh đã tạo
+                <div id="imageQuotaWrap">
+                    <div class="sidebar__quota-row">
+                        <span class="sidebar__quota-label">
+                            <i data-lucide="image"></i> Ảnh đã tạo
                         </span>
-                        <span id="quotaText" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0/5</span>
+                        <span id="quotaText" class="sidebar__quota-value">0/5</span>
                     </div>
-                    <div style="height:5px;border-radius:3px;background:var(--bg-active);overflow:hidden;">
-                        <div id="quotaBar" style="height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,#7c6cf0,#ab7df6);transition:width .4s;"></div>
+                    <div class="sidebar__quota-track">
+                        <div id="quotaBar" class="sidebar__quota-fill"></div>
                     </div>
                 </div>
                 <!-- Video unlock button -->
-                <button id="videoUnlockBtn" onclick="openVideoUnlockModal()" style="
-                    display:none;width:100%;padding:7px 10px;border:1px solid rgba(241,196,15,.35);
-                    border-radius:9px;background:rgba(241,196,15,.08);color:#f1c40f;
-                    font-size:12px;font-weight:500;font-family:var(--font-sans);cursor:pointer;
-                    display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;margin-bottom:4px;"
-                    onmouseover="this.style.background='rgba(241,196,15,.14)'" onmouseout="this.style.background='rgba(241,196,15,.08)'">
-                    <i data-lucide="lock" style="width:13px;height:13px;"></i>
+                <button id="videoUnlockBtn" onclick="openVideoUnlockModal()">
+                    <i data-lucide="lock"></i>
                     <span>Mở khóa tính năng Video</span>
                 </button>
-                <div id="videoUnlockedMsg" style="display:none;width:100%;padding:6px 10px;border:1px solid rgba(46,204,113,.3);border-radius:9px;background:rgba(46,204,113,.08);color:#2ecc71;font-size:11px;font-weight:500;text-align:center;margin-bottom:4px;">
+                <div id="videoUnlockedMsg" style="display:none;">
                     ✓ Video đã được mở khóa
                 </div>
             </div>
 
             <!-- User section -->
-            <div style="position:relative; margin-top:4px; border-top: 1px solid var(--border-primary); padding-top:6px;">
+            <div class="sidebar__user">
                 <!-- User dropdown panel -->
-                <div id="userDropdown" style="
-                    display:none; position:absolute; bottom:calc(100% + 4px); left:8px; right:8px;
-                    background:var(--bg-secondary); border:1px solid var(--border-primary);
-                    border-radius:12px; box-shadow:0 -8px 32px rgba(0,0,0,0.45); overflow:hidden; z-index:200;">
+                <div id="userDropdown" style="display:none;">
                     <!-- Header -->
                     <div style="padding:14px 14px 10px; border-bottom:1px solid var(--border-primary);">
                         <div style="display:flex;align-items:center;gap:10px;">
@@ -305,20 +300,13 @@ try {
                 </div>
 
                 <!-- Trigger row -->
-                <button id="userTrigger" onclick="toggleUserDropdown()" style="
-                    width:100%;display:flex;align-items:center;gap:10px;padding:6px 10px;
-                    background:transparent;border:none;cursor:pointer;border-radius:10px;
-                    transition:background 0.15s;text-align:left;font-family:var(--font-sans);"
-                    onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="if(!document.getElementById('userDropdown').style.display||document.getElementById('userDropdown').style.display==='none')this.style.background='transparent'">
-                    <div id="userAvatar" style="
-                        width:30px;height:30px;border-radius:50%;background:var(--accent-gradient);
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
-                    <div style="min-width:0;flex:1;">
-                        <div id="userName" style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
-                        <div id="userRoleLabel" style="font-size:10px;color:var(--text-tertiary);">{% if session.get('user_role') == 'admin' %}⭐ admin{% else %}member{% endif %}</div>
+                <button id="userTrigger" class="sidebar__user-trigger" onclick="toggleUserDropdown()">
+                    <div id="userAvatar" class="sidebar__user-avatar">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
+                    <div class="sidebar__user-info">
+                        <div id="userName" class="sidebar__user-name">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
+                        <div id="userRoleLabel" class="sidebar__user-role">{% if session.get('user_role') == 'admin' %}⭐ admin{% else %}member{% endif %}</div>
                     </div>
-                    <i data-lucide="chevrons-up-down" id="userChevron" style="width:14px;height:14px;color:var(--text-tertiary);flex-shrink:0;transition:transform 0.2s;"></i>
+                    <i data-lucide="chevrons-up-down" id="userChevron" class="sidebar__user-chevron"></i>
                 </button>
             </div>
 
@@ -644,10 +632,9 @@ try {
             function toggleUserDropdown() {
                 _dropOpen = !_dropOpen;
                 const dd = document.getElementById('userDropdown');
-                const chevron = document.getElementById('userChevron');
+                const trigger = document.getElementById('userTrigger');
                 dd.style.display = _dropOpen ? 'block' : 'none';
-                chevron.style.transform = _dropOpen ? 'rotate(180deg)' : '';
-                document.getElementById('userTrigger').style.background = _dropOpen ? 'var(--bg-tertiary)' : '';
+                trigger.classList.toggle('is-open', _dropOpen);
                 lucide.createIcons();
             }
 
@@ -655,8 +642,7 @@ try {
                 if(_dropOpen && !document.getElementById('userTrigger').contains(e.target) && !document.getElementById('userDropdown').contains(e.target)) {
                     _dropOpen = false;
                     document.getElementById('userDropdown').style.display = 'none';
-                    document.getElementById('userChevron').style.transform = '';
-                    document.getElementById('userTrigger').style.background = '';
+                    document.getElementById('userTrigger').classList.remove('is-open');
                 }
             });
 
@@ -971,10 +957,10 @@ try {
                 </a>
 
                 <!-- Thinking mode indicator -->
-                <div id="thinkingModeContainer" style="position: relative;">
-                    <button class="topbar__btn" id="thinkingModeBtn" title="Thinking mode" style="width: auto; gap: 4px; padding: 6px 10px; display: flex; font-size: 14px;">
+                <div id="thinkingModeContainer" class="topbar__group">
+                    <button class="topbar__btn topbar__btn--labelled" id="thinkingModeBtn" title="Thinking mode">
                         <span id="thinkingModeIcon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" class="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg></span>
-                        <span id="thinkingModeLabel" style="font-size: 13px; font-weight: 500;">4-Agents</span>
+                        <span id="thinkingModeLabel">4-Agents</span>
                     </button>
                     <div id="thinkingModeDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 260px; top: calc(100% + 4px);">
                         <div class="model-dropdown__group">
@@ -1000,10 +986,10 @@ try {
                 </div>
 
                 <!-- Skill selector -->
-                <div id="skillSelectorContainer" style="position: relative;">
-                    <button class="topbar__btn" id="skillSelectorBtn" title="Skill" style="width: auto; gap: 4px; padding: 6px 10px; display: flex; font-size: 14px;">
+                <div id="skillSelectorContainer" class="topbar__group">
+                    <button class="topbar__btn topbar__btn--labelled" id="skillSelectorBtn" title="Skill">
                         <span id="skillSelectorIcon"><i data-lucide="book-open" class="lucide"></i></span>
-                        <span id="skillSelectorLabel" style="font-size: 13px; font-weight: 500;">Skill</span>
+                        <span id="skillSelectorLabel">Skill</span>
                     </button>
                     <div id="skillSelectorDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 280px; top: calc(100% + 4px);">
                         <div class="model-dropdown__group">
@@ -1030,6 +1016,7 @@ try {
                 <button class="topbar__btn" id="characterPickerBtn" title="Chọn nhân vật" style="color: var(--success, #22c55e);"><i data-lucide="user-search" class="lucide"></i></button>
                 <button class="topbar__btn" id="jobQueueBtn" title="Hàng đợi tác vụ ảnh" style="color: var(--text-secondary);"><i data-lucide="list-ordered" class="lucide"></i></button>
                 <button class="topbar__btn" id="videoGenBtn" title="Video Sora2" style="color: var(--warning, #f59e0b);"><i data-lucide="video" class="lucide"></i></button>
+                <span class="topbar__sep" aria-hidden="true"></span>
                 <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
                 <button class="topbar__btn" id="darkModeBtn" title="Toggle theme"><i data-lucide="moon" class="lucide" id="darkModeIcon"></i></button>
 
@@ -1407,7 +1394,7 @@ try {
                         <select id="igv2Quality" class="form-select" style="width: 100%;">
                             <option value="auto">🤖 Auto</option>
                             <option value="quality">💎 Quality</option>
-                            <option value="fast">⚡ Fast</option>
+                            <option value="fast" selected>⚡ Fast (SAA-style ~10s)</option>
                             <option value="cheap">💰 Cheap</option>
                             <option value="free">🆓 Free (Local)</option>
                         </select>
@@ -1417,19 +1404,33 @@ try {
                         <select id="igv2Provider" class="form-select" style="width: 100%;"><option value="">🤖 Auto</option></select>
                     </div>
                 </div>
+                <div id="igv2ReasoningRow" style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="igv2UseReasoning" style="width: 16px; height: 16px;">
+                        <span style="font-size: 13px;">🧠 Use Reasoning Pipeline (LOCAL multi-panel)</span>
+                    </label>
+                    <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
+                        Requires <code>REASONING_PIPELINE=true</code>. Routes through parse → plan → run → assemble.
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                    <button type="button" class="btn btn--secondary btn--sm" onclick="window.imageGenV2?.setOrientation('square')" title="Vuông 2048×2048"><i data-lucide="square" class="lucide" style="width:14px;height:14px;"></i> Vuông 2048</button>
+                    <button type="button" class="btn btn--secondary btn--sm" onclick="window.imageGenV2?.setOrientation('portrait')" title="Dọc 1536×2048"><i data-lucide="rectangle-vertical" class="lucide" style="width:14px;height:14px;"></i> Dọc 1536×2048</button>
+                    <button type="button" class="btn btn--secondary btn--sm" onclick="window.imageGenV2?.setOrientation('landscape')" title="Ngang 2048×1536"><i data-lucide="rectangle-horizontal" class="lucide" style="width:14px;height:14px;"></i> Ngang 2048×1536</button>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div>
                         <label class="form-label">📐 Width</label>
                         <select id="igv2Width" class="form-select" style="width: 100%;">
                             <option value="512">512</option><option value="768">768</option>
-                            <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option>
+                            <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option><option value="1792">1792</option><option value="2048">2048</option>
                         </select>
                     </div>
                     <div>
                         <label class="form-label">📐 Height</label>
                         <select id="igv2Height" class="form-select" style="width: 100%;">
                             <option value="512">512</option><option value="768">768</option>
-                            <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option>
+                            <option value="1024" selected>1024</option><option value="1280">1280</option><option value="1536">1536</option><option value="1792">1792</option><option value="2048">2048</option>
                         </select>
                     </div>
                     <div>
@@ -2018,14 +2019,14 @@ try {
 
 <!-- ═══ Image Preview (Discord‑style) ═══ -->
 <div class="image-preview-overlay" id="imagePreviewModal">
-    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 310;">
-        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()">📥</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)">🔍-</button>
-        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)">🔍+</button>
-        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()">⟲</button>
+    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 4px; z-index: 310; align-items: center;">
+        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()" title="Download"><i data-lucide="download" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)" title="Zoom out"><i data-lucide="zoom-out" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)" title="Zoom in"><i data-lucide="zoom-in" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()" title="Reset zoom"><i data-lucide="rotate-ccw" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="closeImagePreview()" title="Close"><i data-lucide="x" class="lucide" style="width:16px;height:16px;"></i></button>
     </div>
-    <span style="position: fixed; top: 16px; left: 16px; font-size: 28px; cursor: pointer; color: white; z-index: 310;" onclick="closeImagePreview()">&times;</span>
-    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%; border-radius: var(--radius-md);">
+    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%;">
     <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
 </div>
 
@@ -2044,16 +2045,16 @@ try {
 
 <!-- ═══ Gallery Modal ═══ -->
 <div class="modal-overlay" id="galleryModal">
-    <div class="modal-panel" style="max-width: 900px;">
+    <div class="modal-panel">
         <div class="modal-panel__header">
-            <h2 class="modal-panel__title">🖼️ Image Gallery</h2>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn--sm btn--ghost" onclick="refreshGallery()">🔄</button>
-                <button class="modal-panel__close" onclick="closeGallery()">&times;</button>
+            <h2 class="modal-panel__title"><i data-lucide="images" class="lucide"></i> Image Gallery</h2>
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="modal-panel__close" onclick="refreshGallery()" title="Refresh"><i data-lucide="refresh-cw" class="lucide" style="width:16px;height:16px;"></i></button>
+                <button class="modal-panel__close" onclick="closeGallery()" title="Close">&times;</button>
             </div>
         </div>
-        <div id="galleryStats" style="padding: 12px 24px; font-size: 13px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-secondary);">Loading...</div>
-        <div id="galleryGrid" class="gallery-grid" style="max-height: 65vh; overflow-y: auto;"></div>
+        <div id="galleryStats"><i data-lucide="loader" class="lucide" style="width:14px;height:14px;"></i> Loading…</div>
+        <div id="galleryGrid" class="gallery-grid"></div>
     </div>
 </div>
 
@@ -2151,12 +2152,14 @@ try {
 </div>
 
 <!-- ═══ Scripts ═══ -->
-<script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260422"></script>
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260430"></script>
 <script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
 <script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
+<script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260424"></script>
 <script type="module" src="{{ url_for('static', filename='js/modules/tag-autocomplete.js') }}?v=20260423"></script>
+<script type="module" src="{{ url_for('static', filename='js/modules/global-image-viewer.js') }}?v=20260429"></script>
 <script>
     // Character picker + job queue topbar bindings
     (function () {

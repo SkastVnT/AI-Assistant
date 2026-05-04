@@ -75,6 +75,26 @@ def _resolve_storage_root() -> Path:
     return (Path(__file__).resolve().parents[2] / "storage" / "feature_layers").resolve()
 
 
+def _resolve_job_subdir(job: "AnimePipelineJob") -> str:
+    """Per-generation folder name under ``<session>/``.
+
+    User spec (2026-04-27): every distinct generation must land in its
+    own subdirectory so crops from different prompts never collide.
+    Folder name embeds character + series + job-id prefix for human
+    browsability:
+
+        ``<char>__<series>__<job_id_prefix>``
+
+    The job_id is truncated to 12 chars (uuid4 hex prefix) which keeps
+    the path short while staying unique within a session.
+    """
+    char = _slug(getattr(job, "character_name", "") or "character")
+    series = _slug(getattr(job, "series_name", "") or "unknown_series")
+    raw_id = str(getattr(job, "job_id", "") or "").strip()
+    job_id = _slug(raw_id, fallback="job", max_len=16)[:16] or "job"
+    return f"{char}__{series}__{job_id}"
+
+
 # ── Image decoding / colour stats ───────────────────────────────────
 
 def _decode_b64_png(b64: str):
@@ -121,6 +141,8 @@ def persist_feature_crops(
     *,
     source_b64: Optional[str] = None,
     padding_px: int = 8,
+    source: str = "generated",
+    ref_index: Optional[int] = None,
 ) -> list[dict[str, Any]]:
     """Crop every detected region and write it to disk.
 
@@ -140,6 +162,14 @@ def persist_feature_crops(
         crops reflect the inpainted output, not the raw beauty pass.
     padding_px: int
         Extra context kept around each bbox.  Defaults to 8 px.
+    source: str
+        Either ``"generated"`` (AI output) or ``"reference"`` (SAA / cached
+        ref images).  Crops are written to
+        ``storage/feature_layers/<session>/<original|ai_gen>/`` so the
+        reference vs generated layers can be diffed downstream.
+    ref_index: int | None
+        For ``source='reference'`` only — index of the reference image so
+        crops from different refs don't clobber each other.
     """
     if detection is None or getattr(detection, "total_regions", 0) == 0:
         return []
@@ -158,7 +188,15 @@ def persist_feature_crops(
     series = _slug(job.series_name or "unknown_series")
     ts = datetime.now().strftime("%H-%M_%d-%m-%Y")
 
-    storage_root = _resolve_storage_root() / session
+    # 2026-04-26 user spec: split into original/ (reference layers) and
+    # ai_gen/ (generated layers).  Existing flat-layout files remain
+    # readable but new writes always go through the source-aware subdir.
+    # 2026-04-27 user spec: each generation also gets its own job-id
+    # subdirectory under <session>/ so crops from different prompts no
+    # longer pile up in a single flat folder.
+    sub = "original" if source == "reference" else "ai_gen"
+    job_subdir = _resolve_job_subdir(job)
+    storage_root = _resolve_storage_root() / session / job_subdir / sub
     try:
         storage_root.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
@@ -180,13 +218,16 @@ def persist_feature_crops(
                     continue
                 crop = img.crop((x1, y1, x2, y2))
 
-                fname = f"{char}__{series}__{feat}__{ts}__{idx:02d}.png"
+                ref_part = f"__ref{ref_index:02d}" if ref_index is not None else ""
+                fname = f"{char}__{series}__{feat}__{ts}{ref_part}__{idx:02d}.png"
                 fpath = storage_root / fname
                 crop.save(fpath, format="PNG", optimize=True)
 
                 entry: dict[str, Any] = {
                     "feature": region_type,
                     "index": idx,
+                    "source": source,  # "reference" | "generated"
+                    "ref_index": ref_index,
                     "path": str(fpath),
                     "rel_path": str(fpath.relative_to(_resolve_storage_root().parent))
                         if fpath.is_relative_to(_resolve_storage_root().parent)
@@ -209,9 +250,111 @@ def persist_feature_crops(
 
     if manifest:
         logger.info(
-            "feature_crop: persisted %d crops across %d feature types under %s",
+            "feature_crop[%s]: persisted %d crops across %d feature types under %s",
+            source,
             len(manifest),
             len({m["feature"] for m in manifest}),
             storage_root,
         )
     return manifest
+
+
+# ── Reference vs generated evaluator ────────────────────────────────
+
+def evaluate_reference_vs_generated(
+    job: "AnimePipelineJob",
+    *,
+    feature_priority: Optional[list[str]] = None,
+) -> dict[str, Any]:
+    """Compare ``original/`` (reference) vs ``ai_gen/`` crops feature-by-feature.
+
+    User spec (2026-04-26): "thuc hien detection ref danh gia tu tat ca
+    dac trung tren co the chu yeu nhat la khuon mat" — face is highest
+    priority, then eyes, then the rest.
+
+    Comparison metric is mean-RGB Euclidean distance per feature type
+    (cheap, no LLM).  Lower delta = better preservation of the reference
+    appearance.  Always returns a dict; never raises.
+    """
+    feature_priority = feature_priority or [
+        "face", "full_face", "eyes", "full_eyes", "hair", "mouth", "nose",
+    ]
+
+    session = _slug(getattr(job, "session_id", "") or job.job_id, fallback="default")
+    job_subdir = _resolve_job_subdir(job)
+    base = _resolve_storage_root() / session / job_subdir
+    orig_dir = base / "original"
+    gen_dir = base / "ai_gen"
+
+    if not orig_dir.exists() or not gen_dir.exists():
+        # Backwards-compat: fall back to the legacy flat layout from
+        # before the per-job subdirectory split.
+        legacy = _resolve_storage_root() / session
+        legacy_orig = legacy / "original"
+        legacy_gen = legacy / "ai_gen"
+        if legacy_orig.exists() and legacy_gen.exists():
+            orig_dir, gen_dir = legacy_orig, legacy_gen
+        else:
+            return {"compared": 0, "reason": "missing_subdir"}
+
+    try:
+        from PIL import Image, ImageStat  # type: ignore
+    except Exception:
+        return {"compared": 0, "reason": "pillow_unavailable"}
+
+    def _mean_rgb_for(dir_: Path, feat: str) -> Optional[tuple[float, float, float]]:
+        # Filename pattern: <char>__<series>__<feat>__<ts>...
+        rs, gs, bs = [], [], []
+        for p in dir_.glob(f"*__{feat}__*.png"):
+            try:
+                with Image.open(p) as im:
+                    s = ImageStat.Stat(im.convert("RGB")).mean
+                rs.append(s[0]); gs.append(s[1]); bs.append(s[2])
+            except Exception:
+                continue
+        if not rs:
+            return None
+        return (sum(rs) / len(rs), sum(gs) / len(gs), sum(bs) / len(bs))
+
+    per_feature: list[dict[str, Any]] = []
+    weighted_sum = 0.0
+    weight_total = 0.0
+    for i, feat in enumerate(feature_priority):
+        weight = 1.0 / (i + 1)  # face heaviest
+        ref = _mean_rgb_for(orig_dir, feat)
+        gen = _mean_rgb_for(gen_dir, feat)
+        if ref is None or gen is None:
+            continue
+        delta = (
+            (ref[0] - gen[0]) ** 2
+            + (ref[1] - gen[1]) ** 2
+            + (ref[2] - gen[2]) ** 2
+        ) ** 0.5
+        per_feature.append({
+            "feature": feat,
+            "weight": round(weight, 3),
+            "ref_mean_rgb": [round(c, 1) for c in ref],
+            "gen_mean_rgb": [round(c, 1) for c in gen],
+            "delta_rgb": round(delta, 2),
+        })
+        weighted_sum += weight * delta
+        weight_total += weight
+
+    if not per_feature:
+        return {"compared": 0, "reason": "no_overlap"}
+
+    avg_delta = weighted_sum / weight_total if weight_total else 0.0
+    # Map delta (0..441 max for full-RGB swing) to 0..10 quality score.
+    score = max(0.0, min(10.0, 10.0 - (avg_delta / 441.0) * 10.0))
+    result = {
+        "compared": len(per_feature),
+        "weighted_avg_delta_rgb": round(avg_delta, 2),
+        "score": round(score, 2),  # 10 = identical, 0 = max divergence
+        "per_feature": per_feature,
+        "face_priority": feature_priority[:3],
+    }
+    logger.info(
+        "feature_crop: ref-vs-gen evaluation score=%.2f (%d features compared, face-priority)",
+        score, len(per_feature),
+    )
+    return result

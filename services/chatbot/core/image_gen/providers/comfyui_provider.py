@@ -87,7 +87,7 @@ MODEL_PROFILES: dict[str, dict] = {
     # -- SDXL ---------------------------------------------------------------
     "flatpiececorexl_a1818.safetensors": {
         "type": "sdxl", "style": "anime", "priority": 88,
-        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
         "steps": 30, "cfg": 5.0,
         "sampler": "dpmpp_2m_sde", "scheduler": "karras",
         "vae": None,
@@ -95,7 +95,7 @@ MODEL_PROFILES: dict[str, dict] = {
     },
     "realvisxlV50_v50LightningBakedvae.safetensors": {
         "type": "sdxl_lightning", "style": "realistic", "priority": 92,
-        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
         "steps": 6, "cfg": 1.8,
         "sampler": "euler", "scheduler": "sgm_uniform",
         "vae": None,
@@ -104,7 +104,7 @@ MODEL_PROFILES: dict[str, dict] = {
     # -- SDXL anime (downloaded via download_anime_models.ps1) -------------
     "animagine-xl-4.0-opt.safetensors": {
         "type": "sdxl", "style": "anime", "priority": 90,
-        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
         "steps": 28, "cfg": 6.0,
         "sampler": "euler_ancestral", "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
@@ -112,7 +112,7 @@ MODEL_PROFILES: dict[str, dict] = {
     },
     "noobaiXLVpred_v11.safetensors": {
         "type": "sdxl", "style": "anime", "priority": 98,
-        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
         "steps": 28, "cfg": 5.0,
         "sampler": "euler_ancestral", "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
@@ -120,7 +120,7 @@ MODEL_PROFILES: dict[str, dict] = {
     },
     "ChenkinNoob-XL-V0.2.safetensors": {
         "type": "sdxl", "style": "anime", "priority": 85,
-        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
         "steps": 28, "cfg": 5.0,
         "sampler": "euler_ancestral", "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
@@ -130,7 +130,7 @@ MODEL_PROFILES: dict[str, dict] = {
     # Best for portrait/character art; soft shading, high detail iris
     "kohakuXLDelta_rev1.safetensors": {
         "type": "sdxl", "style": "anime", "priority": 97,
-        "res_portrait": (832, 1216), "res_landscape": (1216, 832), "res_square": (1024, 1024),
+        "res_portrait": (1536, 2048), "res_landscape": (2048, 1536), "res_square": (1800, 1800),
         "steps": 28, "cfg": 5.5,
         "sampler": "euler_ancestral", "scheduler": "karras",
         "vae": "sdxl_vae.safetensors",
@@ -280,9 +280,64 @@ def _classify_style(prompt: str, style_preset: str | None) -> str:
     return "anime"
 
 
+def _saa_enrich_prompt(prompt: str) -> tuple[str, dict]:
+    """Apply SAA-style character lookup to enrich a LOCAL prompt.
+
+    Mirrors the prompt-assembly approach used by ``image_pipeline.anime_pipeline``:
+    if the user prompt mentions a character that exists in the WAI 5149-char
+    database (Stand-Alone-App), prepend the canonical SDXL tag plus a ``solo``
+    identity anchor. Stays **offline** (no web research) so LOCAL stays fast.
+
+    Returns ``(enriched_prompt, metadata)``. On any failure (missing module,
+    no match, empty prompt) returns the input prompt unchanged with empty
+    metadata. Never raises.
+    """
+    info: dict = {}
+    if not prompt or not prompt.strip():
+        return prompt, info
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import lookup_character
+    except Exception as e:  # pragma: no cover — defensive import guard
+        logger.debug("[ComfyUI/SAA] saa_character_db not available: %s", e)
+        return prompt, info
+    try:
+        match = lookup_character(prompt)
+    except Exception as e:  # pragma: no cover — defensive
+        logger.debug("[ComfyUI/SAA] lookup_character failed: %s", e)
+        return prompt, info
+    if match is None:
+        return prompt, info
+    tag = (match.tag or "").strip()
+    if not tag:
+        return prompt, info
+
+    info["saa_character"] = {
+        "tag": tag,
+        "display_name": match.display_name,
+        "series": match.series_hint,
+        "match_score": getattr(match, "match_score", None),
+    }
+    lower_prompt = prompt.lower()
+    has_tag = tag.lower() in lower_prompt
+    has_solo = "solo" in lower_prompt
+    if has_tag and has_solo:
+        return prompt, info
+    parts: list[str] = []
+    if not has_tag:
+        parts.append(tag)
+    if not has_solo:
+        parts.append("solo")
+    parts.append(prompt)
+    return ", ".join(parts), info
+
+
 def _pick_resolution(profile: dict, req_w: int, req_h: int) -> tuple[int, int]:
     # If user explicitly set non-default dimensions, honour them (align to 8 for latent space).
-    if req_w != 1024 or req_h != 1024:
+    # Guard: SD1.5 is trained at 512px native — anything above ~1024 produces
+    # duplications / OOM. For SD1.5 we always fall back to profile presets and
+    # rely on the hires-fix path to upscale if the user wants larger output.
+    is_sd15 = (profile.get("type") == "sd15")
+    if (req_w != 1024 or req_h != 1024) and not is_sd15:
         return (req_w // 8 * 8, req_h // 8 * 8)
     # Fall back to profile presets based on aspect ratio.
     ratio = req_w / max(req_h, 1)
@@ -588,7 +643,7 @@ class ComfyUIProvider(BaseImageProvider):
         self._available_controlnets: list[str] | None = None
 
         self._force_checkpoint: str = kwargs.get("checkpoint", os.getenv("COMFYUI_CHECKPOINT", ""))
-        self._upscale_factor: float = float(kwargs.get("upscale_factor", os.getenv("COMFYUI_UPSCALE_FACTOR", "1.5")))
+        self._upscale_factor: float = float(kwargs.get("upscale_factor", os.getenv("COMFYUI_UPSCALE_FACTOR", "3")))
         self._enable_loras: bool = str(kwargs.get("enable_loras", os.getenv("COMFYUI_ENABLE_LORAS", "true"))).lower() in ("true", "1", "yes")
         self._enable_hires: bool = str(kwargs.get("enable_hires", os.getenv("COMFYUI_ENABLE_HIRES", "true"))).lower() in ("true", "1", "yes")
 
@@ -625,8 +680,8 @@ class ComfyUIProvider(BaseImageProvider):
                     .get("required", {})
                     .get("vae_name", [[]])[0]
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("[ComfyUI] VAE list fetch failed: %s", e)
 
         try:
             r = self._http.get("/object_info/LoraLoader", timeout=5.0)
@@ -638,8 +693,8 @@ class ComfyUIProvider(BaseImageProvider):
                     .get("required", {})
                     .get("lora_name", [[]])[0]
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("[ComfyUI] LoRA list fetch failed: %s", e)
 
         try:
             r = self._http.get("/object_info/ControlNetLoader", timeout=5.0)
@@ -651,7 +706,8 @@ class ComfyUIProvider(BaseImageProvider):
                     .get("required", {})
                     .get("control_net_name", [[]])[0]
                 )
-        except Exception:
+        except Exception as e:
+            logger.warning("[ComfyUI] ControlNet list fetch failed: %s", e)
             self._available_controlnets = []
 
         logger.info(
@@ -787,6 +843,20 @@ class ComfyUIProvider(BaseImageProvider):
         seed = req.seed if req.seed is not None else int(time.time()) % (2**32)
         has_loras = bool(req.lora_models)
 
+        # ── SAA-style prompt enrichment (offline, character-tag anchor) ──
+        # Mirrors the prompt-assembly approach used by image_pipeline/anime_pipeline.
+        # Stays offline (no web research) so LOCAL stays fast and reliable.
+        # Skipped silently when saa_character_db is unavailable or no match found.
+        saa_meta: dict = {}
+        if req.prompt:
+            enriched, saa_meta = _saa_enrich_prompt(req.prompt)
+            if enriched != req.prompt:
+                logger.info(
+                    "[ComfyUI/SAA] enriched prompt with character tag: %s",
+                    saa_meta.get("saa_character", {}).get("tag"),
+                )
+                req.prompt = enriched
+
         # Profile-based variables (only populated in the profile routing branch)
         model_type: str = "unknown"
         native_w: int = req.width
@@ -902,6 +972,7 @@ class ComfyUIProvider(BaseImageProvider):
                         [{"name": l.name, "weight": l.weight} for l in req.lora_models]
                         if req.lora_models else [l[0] for l in loras]
                     ),
+                    **({"saa_character": saa_meta["saa_character"]} if saa_meta.get("saa_character") else {}),
                 },
             )
 

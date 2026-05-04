@@ -74,8 +74,9 @@ def _provider_gemini(query: str, api_key: str) -> list[dict]:
     )
     try:
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={api_key}",
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            "gemini-2.0-flash:generateContent",
+            headers={"X-goog-api-key": api_key},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "tools": [{"google_search": {}}],

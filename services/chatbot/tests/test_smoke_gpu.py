@@ -140,8 +140,8 @@ class TestSmokeGPU(unittest.TestCase):
                 QualityMode.AUTO, ImageMode.TEXT_TO_IMAGE,
             )
         names = [c.provider.name for c in provs]
-        self.assertEqual(names[0], "comfyui",
-                         f"ComfyUI should be first: {names}")
+        self.assertIn(names[0], ("comfyui", "comfyui_fast"),
+                         f"A local ComfyUI provider should be first: {names}")
         print(f"\n✅ 3: Provider order = {names}")
 
     # ── 2. Local provider selected when healthy ───────────────────────

@@ -51,6 +51,10 @@ def orch():
 def _fake_job(job_id="job_x"):
     """A bare AnimePipelineJob-shaped namespace with the fields
     _build_cancellation_event touches."""
+    # 2026-04-29: orchestrator.run_stream() now reads job.latest_render_image()
+    # in fallback paths (added when dual-output was introduced). The fixture
+    # must expose it as a callable returning None so cancellation tests can
+    # short-circuit without hitting AttributeError on the SimpleNamespace.
     return SimpleNamespace(
         job_id=job_id,
         intermediates=[],
@@ -60,6 +64,9 @@ def _fake_job(job_id="job_x"):
         total_latency_ms=0.0,
         layer_plan=None,
         stage_timings_ms={},
+        latest_render_image=lambda: None,
+        critique_results=[],
+        user_prompt="",
     )
 
 

@@ -55,10 +55,16 @@ def monitor():
 def legacy_chat():
     """Legacy chat endpoint - redirects to new API"""
     try:
-        data = request.get_json()
-        
+        data = request.get_json() or {}
+
+        # 2026-04-29: input validation — empty/missing message must 400.
+        # Previously fell through to controller and silently returned 200.
+        message = (data.get('message') or '').strip()
+        if not message:
+            return jsonify({'error': 'message is required'}), 400
+
         result = chat_controller.process_message(
-            message=data.get('message', ''),
+            message=message,
             model=data.get('model', 'grok'),
             context=data.get('context', 'casual'),
             deep_thinking=data.get('deep_thinking', False),

@@ -17,6 +17,20 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
+# Stages whose ``image_b64`` is a control hint (lineart / depth / canny /
+# mask), not a renderable color frame. Used by
+# ``AnimePipelineJob.latest_render_image`` to skip these when picking a
+# fallback source image. Keep in sync with ``add_intermediate`` callers
+# in ``agents/structure_lock.py`` and friends.
+_NON_RENDER_STAGES_EXACT: frozenset[str] = frozenset({
+    "lineart", "lineart_anime", "depth", "canny",
+    "pre_upscale", "upscale_hint",
+})
+_NON_RENDER_STAGE_PREFIXES: tuple[str, ...] = (
+    "structure_", "mask_", "hint_", "control_", "preprocess_",
+)
+
+
 # ═════════════════════════════════════════════════════════════════════
 # Enums
 # ═════════════════════════════════════════════════════════════════════
@@ -700,6 +714,27 @@ class AnimePipelineJob:
         model = metadata.get("model") or metadata.get("checkpoint")
         if model and model not in self.models_used:
             self.models_used.append(model)
+
+    def latest_render_image(self) -> Optional[str]:
+        """Return the most recent *renderable* intermediate image_b64.
+
+        Skips control-hint artifacts produced by ``structure_lock``
+        (lineart / depth / canny) and any non-render debug masks. Used
+        as a safe fallback when a stage has no specific source-stage
+        preference. Without this filter the lineart preprocessor output
+        gets picked as the working image and downstream passes turn the
+        final result into a black-and-white edge map.
+        """
+        for img in reversed(self.intermediates):
+            if not img.image_b64:
+                continue
+            stage = (img.stage or "").lower()
+            if stage in _NON_RENDER_STAGES_EXACT:
+                continue
+            if any(stage.startswith(p) for p in _NON_RENDER_STAGE_PREFIXES):
+                continue
+            return img.image_b64
+        return None
 
 
 # ═════════════════════════════════════════════════════════════════════

@@ -231,7 +231,9 @@ def _run_web_search(query: str) -> str:
                         snippet = item.get("snippet", "")
                         link = item.get("link", "")
                         parts.append(f"**{title}**\n{snippet}\n🔗 {link}")
-                    return "🔍 **Kết quả tìm kiếm web (real-time):**\n\n" + "\n\n---\n\n".join(parts)
+                    # 2026-04-29: surface cascade tier so user knows
+                    # which provider answered (matches Flask path).
+                    return "🪜 _Cascade: GoogleCSE ✅_\n\n🔍 **Kết quả tìm kiếm web (real-time):**\n\n" + "\n\n---\n\n".join(parts)
             elif resp.status_code in (429, 403):
                 continue  # try next key
             else:

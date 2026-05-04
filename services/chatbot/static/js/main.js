@@ -735,7 +735,7 @@ class ChatBotApp {
                                 <div class="igv2-choice-header">
                                     <span class="igv2-choice-icon">⚡</span>
                                     <span class="igv2-choice-title">Chọn phương thức tạo ảnh</span>
-                                    <span class="igv2-choice-timer">${TIMEOUT_SECONDS}s</span>
+                                    <span class="igv2-choice-timer" aria-live="polite" aria-atomic="true">${TIMEOUT_SECONDS}s</span>
                                 </div>
                                 <div class="igv2-choice-buttons">
                                     <button class="igv2-choice-btn igv2-choice-local" data-choice="local">
@@ -878,8 +878,18 @@ class ChatBotApp {
 
                 const countdownInterval = setInterval(() => {
                     remaining--;
-                    if (timerEl) timerEl.textContent = `${remaining}s`;
-                    if (progressBar) progressBar.style.width = `${(remaining / TIMEOUT_SECONDS) * 100}%`;
+                    if (timerEl) {
+                        timerEl.textContent = `${remaining}s`;
+                        // Color-shift via class state (CSS handles styling).
+                        timerEl.classList.toggle('is-warning', remaining <= 10 && remaining > 5);
+                        timerEl.classList.toggle('is-critical', remaining <= 5);
+                    }
+                    if (progressBar) {
+                        const ratio = Math.max(0, remaining / TIMEOUT_SECONDS);
+                        progressBar.style.width = `${ratio * 100}%`;
+                        // Expose ratio for any CSS that wants it.
+                        choiceContainer.style.setProperty('--igv2-time-left', ratio.toFixed(3));
+                    }
                     if (remaining <= 0) {
                         finalize('cancel');
                     }
@@ -3043,7 +3053,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initOverlayManager();
     registerOverlay('galleryModal',            { type: 'modal' });
     registerOverlay('galleryInfoModal',        { type: 'modal' });
-    registerOverlay('imagePreviewModal',       { type: 'modal', onClose: () => { document.body.style.overflow = ''; } });
+    // outsideClose:false — image preview is the only modal where the
+    // visible dark area IS the overlay (no inner content card), so a
+    // backdrop-click would close on every accidental tap near the image
+    // edge. Force users to use the × / Esc instead.
+    registerOverlay('imagePreviewModal',       { type: 'modal', outsideClose: false, onClose: () => { document.body.style.overflow = ''; } });
     registerOverlay('historyModal',            { type: 'modal' });
     registerOverlay('configAgentModal',        { type: 'modal' });
     registerOverlay('imageGenV2Modal',         { type: 'modal' });
@@ -3298,6 +3312,104 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openImagePreview = (img) => app.messageRenderer.openImagePreview(img);
     window.closeImagePreview = () => app.messageRenderer.closeImagePreview();
     window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
+
+    // 2026-04-28: lightbox "Upscale" button removed by user request
+    // ("quá nặng"). Image-Gen V2 modal now exposes orientation
+    // presets that generate natively at 2048×2048 / 1536×2048 /
+    // 2048×1536, so a post-hoc upscale pass is no longer the default
+    // path. The backend ``/api/anime-pipeline/upscale`` endpoint is
+    // still reachable via direct API for power users.
+    window.upscalePreviewImage = async () => {
+        console.warn('[upscalePreviewImage] disabled — use orientation presets to generate at 2048×2048 directly.');
+    };
+
+    // Shared implementation for lightbox image-mutating ops. Reads
+    // previewImg.src, posts {image_url|image_b64, ...extraBody} to
+    // ``endpoint``, swaps in the result, and mirrors back into the
+    // originating chat <img>.
+    async function _runPreviewOp({ endpoint, extraBody, btnId, label,
+                                   workingLabel, metaExtra, metaExtraLabel }) {
+        const previewImg = document.getElementById('imagePreviewContent');
+        const btn = document.getElementById(btnId);
+        const info = document.getElementById('imagePreviewInfo');
+        if (!previewImg || !previewImg.src) return;
+        const src = previewImg.src;
+        const body = { ...extraBody };
+        if (src.startsWith('data:')) {
+            body.image_b64 = src;
+        } else if (src.includes('/storage/images/')) {
+            const idx = src.indexOf('/storage/images/');
+            body.image_url = src.substring(idx);
+        } else {
+            alert('Chỉ hỗ trợ ảnh từ /storage/images/ hoặc base64 data URL.');
+            return;
+        }
+
+        // Surface the original generation prompt back to the backend so
+        // the SDXL re-render keeps NSFW vocalizations / character context
+        // (e.g. ``english text "NGHHH~♥♥"``) on the redrawn image.
+        // Source order:
+        //   1. ``data-prompt`` on the originating chat <img>'s parent
+        //      ``.igv2-chat-image`` container (set by anime-pipeline.js).
+        //   2. Direct ``data-prompt`` on the <img> itself (older code).
+        try {
+            const srcEl = app.messageRenderer?._lastPreviewSourceImg;
+            if (srcEl) {
+                const container = srcEl.closest?.('.igv2-chat-image');
+                const original = (container?.dataset?.prompt
+                                  || srcEl.dataset?.prompt
+                                  || '').trim();
+                if (original && !body.prompt) body.prompt = original;
+            }
+        } catch (_e) { /* non-fatal */ }
+
+        if (btn) { btn.disabled = true; btn.textContent = workingLabel; }
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok || !j.ok) {
+                const msg = j.error || `HTTP ${res.status}`;
+                if (info) {
+                    const errEl = document.createElement('div');
+                    errEl.style.color = '#ff6b6b';
+                    errEl.style.marginTop = '6px';
+                    errEl.textContent = `${label} lỗi: ${msg}`;
+                    info.appendChild(errEl);
+                    setTimeout(() => errEl.remove(), 6000);
+                } else {
+                    alert(`${label} lỗi: ${msg}`);
+                }
+                return;
+            }
+            const newSrc = j.image_url || ('data:image/png;base64,' + j.image_b64);
+            previewImg.src = newSrc;
+            previewImg.dataset.downloadUrl = newSrc;
+            if (window.resetPreviewZoom) window.resetPreviewZoom();
+            if (info) {
+                info.innerHTML = `
+                    <div class="lightbox__meta-grid">
+                        <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${j.width} × ${j.height}</span></div>
+                        <div class="lightbox__meta-item"><span class="lightbox__meta-label">${metaExtraLabel}</span><span class="lightbox__meta-value">${metaExtra(j)}</span></div>
+                    </div>
+                `;
+            }
+            try {
+                const srcEl = app.messageRenderer._lastPreviewSourceImg;
+                if (srcEl && srcEl.tagName === 'IMG') {
+                    srcEl.src = newSrc;
+                    srcEl.setAttribute('data-igv2-open', newSrc);
+                }
+            } catch (_e) { /* non-fatal */ }
+        } catch (err) {
+            alert(`${label} lỗi: ${err.message || err}`);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = label; }
+        }
+    }
     
     // Image preview zoom state
     let currentZoom = 1.0;
@@ -3960,16 +4072,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '';
 
                 info.innerHTML = `
-                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${m.prompt}</div>` : ''}
-                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${m.negative_prompt}</div>` : ''}
+                    ${m.prompt ? `<div class="lightbox__prompt"><span class="lightbox__meta-label">Prompt</span><br>${escapeHtml(m.prompt)}</div>` : ''}
+                    ${m.negative_prompt ? `<div class="lightbox__prompt" style="opacity:0.7;font-size:11px;"><span class="lightbox__meta-label">Negative</span><br>${escapeHtml(m.negative_prompt)}</div>` : ''}
                     <div class="lightbox__meta-grid">
                         ${metaItems.map(i => `
                             <div class="lightbox__meta-item">
-                                <span class="lightbox__meta-label">${i.label}</span>
-                                <span class="lightbox__meta-value">${i.value}</span>
+                                <span class="lightbox__meta-label">${escapeHtml(i.label)}</span>
+                                <span class="lightbox__meta-value">${escapeHtml(i.value)}</span>
                             </div>
                         `).join('')}
-                        ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${loraStr}</span></div>` : ''}
+                        ${loraStr ? `<div class="lightbox__meta-item" style="grid-column:1/-1"><span class="lightbox__meta-label">LoRA</span><span class="lightbox__meta-value">${escapeHtml(loraStr)}</span></div>` : ''}
                     </div>
                 `;
             } else if (info) {

@@ -35,17 +35,76 @@ def _enrich_with_character(data: dict) -> dict:
     ``Display Name in Series`` phrase to the prompt so the existing
     character_parser resolves identity reliably. Returns enriched dict.
 
+    Resolution order:
+      1. Local hand-curated registry (``storage/character_db/``) — preferred,
+         carries display_name + series + LoRA hints.
+      2. SAA WAI database (5149 entries from
+         ``character_select_stand_alone_app-main/data/wai_characters.csv``)
+         — long-tail fallback.
+
     Backward-compatible: if no character_key (or unresolved), returns input.
     """
     char_key = (data.get("character_key") or "").strip()
+
+    # ── NLU pass: auto-derive character_key from the prompt itself
+    # when the client didn't pre-select one. Lets users say
+    # "Tạo ảnh Hoshino trong Blue Archive..." and get the right LoRA
+    # without opening the character picker.
+    if not char_key:
+        prompt_text = (data.get("prompt") or "").strip()
+        if prompt_text:
+            try:
+                from image_pipeline.anime_pipeline.character_nlu import (
+                    extract_character_key,
+                )
+                derived = extract_character_key(prompt_text)
+            except Exception as exc:  # pragma: no cover — defensive
+                logger.debug("[anime_pipeline] character_nlu unavailable: %s", exc)
+                derived = None
+            if derived:
+                logger.info(
+                    "[anime_pipeline] NLU auto-derived character_key=%s from prompt",
+                    derived,
+                )
+                char_key = derived
+                data = dict(data)
+                data["character_key"] = derived
+
     if not char_key:
         return data
+
     rec = get_registry().get(char_key)
+
+    # Fallback: SAA WAI DB. The picker may surface keys (especially the
+    # autocomplete tag entries) that are not present in the curated local
+    # registry. Looking them up against SAA keeps the data flow intact.
     if rec is None:
-        logger.warning("[anime_pipeline] character_key %s not in registry", char_key)
-        return data
+        try:
+            from image_pipeline.anime_pipeline.saa_character_db import lookup_character
+            saa_hit = lookup_character(char_key)
+        except Exception as e:  # pragma: no cover — defensive import guard
+            logger.debug("[anime_pipeline] SAA fallback unavailable: %s", e)
+            saa_hit = None
+
+        if saa_hit is not None:
+            class _SAARecord:  # lightweight stand-in matching the queue contract
+                __slots__ = ("key", "display_name", "series", "series_key")
+                def __init__(self, key: str, display: str, series: str | None) -> None:
+                    self.key = key
+                    self.display_name = display
+                    self.series = series or ""
+                    self.series_key = (series or "").strip().lower().replace(" ", "_") or None
+            rec = _SAARecord(char_key, saa_hit.display_name, saa_hit.series_hint)
+            logger.info(
+                "[anime_pipeline] character_key %s resolved via SAA WAI DB (%s)",
+                char_key, saa_hit.display_name,
+            )
+        else:
+            logger.warning("[anime_pipeline] character_key %s not in registry or SAA", char_key)
+            return data
+
     prompt = (data.get("prompt") or "").strip()
-    qualified = f"{rec.display_name} in {rec.series}"
+    qualified = f"{rec.display_name} in {rec.series}" if rec.series else rec.display_name
     # Only prepend if the qualified phrase isn't already present
     if qualified.lower() not in prompt.lower():
         new_prompt = f"{qualified}, {prompt}" if prompt else qualified
@@ -381,6 +440,8 @@ def upload_reference_images():
         return jsonify({"error": "Maximum 4 reference images allowed"}), 400
 
     character_tag = request.form.get("character_tag", "").strip()
+    # Sanitize to prevent path traversal — only allow safe characters
+    character_tag = re.sub(r"[^A-Za-z0-9_\-]", "_", character_tag)
     refs_b64 = []
 
     for f in files:
@@ -418,6 +479,272 @@ def upload_reference_images():
         "count": len(refs_b64),
         "character_tag": character_tag or None,
     })
+
+
+# ── Upscale endpoint (re-runnable) ──────────────────────────────────────
+
+def run_upscale_payload(data: dict) -> tuple[dict, int]:
+    """Pure helper that runs the upscale workflow and returns
+    ``(response_dict, http_status)``. Independent of Flask request
+    state so the FastAPI mirror can call it via run_in_threadpool.
+    """
+    import base64
+    import io
+    import uuid as _uuid
+    from datetime import datetime
+    from pathlib import Path
+
+    image_url = (data.get("image_url") or "").strip()
+    image_b64 = (data.get("image_b64") or "").strip()
+
+    raw_b64: str | None = None
+    if image_b64:
+        raw_b64 = image_b64.split(",", 1)[1] if "," in image_b64 else image_b64
+    elif image_url:
+        if image_url.startswith("data:"):
+            raw_b64 = image_url.split(",", 1)[1] if "," in image_url else ""
+        elif image_url.startswith("/storage/images/"):
+            fname = image_url.rsplit("/", 1)[-1]
+            if "/" in fname or "\\" in fname or ".." in fname or "\0" in fname:
+                return {"ok": False, "error": "Invalid image_url"}, 400
+            if not re.match(r"^[A-Za-z0-9_\-\.]+$", fname):
+                return {"ok": False, "error": "Invalid image_url"}, 400
+            try:
+                from chatbot_main import IMAGE_STORAGE_DIR
+            except Exception:
+                IMAGE_STORAGE_DIR = Path(__file__).resolve().parents[1] / "Storage" / "Image_Gen"
+            allowed = Path(IMAGE_STORAGE_DIR).resolve()
+            target = (allowed / fname).resolve()
+            try:
+                target.relative_to(allowed)
+            except ValueError:
+                return {"ok": False, "error": "image_url outside storage"}, 400
+            if not target.is_file():
+                return {"ok": False, "error": "image not found"}, 404
+            raw_b64 = base64.b64encode(target.read_bytes()).decode("ascii")
+        else:
+            return {"ok": False, "error": "Only /storage/images/ URLs or base64 supported"}, 400
+
+    if not raw_b64:
+        return {"ok": False, "error": "image_url or image_b64 is required"}, 400
+
+    try:
+        img_bytes = base64.b64decode(raw_b64, validate=True)
+        from PIL import Image
+        with Image.open(io.BytesIO(img_bytes)) as im:
+            im.verify()
+        with Image.open(io.BytesIO(img_bytes)) as im:
+            src_w, src_h = im.size
+    except Exception as exc:
+        return {"ok": False, "error": f"Invalid image data: {exc}"}, 400
+
+    if src_w * src_h > 4_000_000:
+        return {
+            "ok": False,
+            "error": f"Source too large ({src_w}×{src_h}={src_w*src_h:,} px). Max 4 MP.",
+        }, 413
+
+    factor = float(data.get("factor", 2.0))
+    factor = max(1.0, min(4.0, factor))
+    denoise = float(data.get("denoise", 0.30))
+    denoise = max(0.10, min(0.55, denoise))
+    extra_prompt = (data.get("prompt") or "").strip()
+
+    t0 = _time.time()
+    try:
+        from image_pipeline.anime_pipeline.config import load_config
+        from image_pipeline.anime_pipeline.workflow_builder import WorkflowBuilder
+        from image_pipeline.anime_pipeline.comfy_client import ComfyClient
+
+        cfg = load_config()
+        checkpoint = (cfg.beauty_model.checkpoint
+                      or cfg.composition_model.checkpoint)
+        if not checkpoint:
+            return {"ok": False, "error": "No SDXL checkpoint configured for upscale"}, 503
+        if not cfg.upscale_model:
+            return {"ok": False, "error": "No upscale model configured in ComfyUI"}, 503
+
+        text_booster = (
+            "clean readable english text, sharp clear letters, "
+            "well-formed typography, high quality lettering, "
+            "crisp letter shapes, accurate spelling"
+        )
+        # Hires face/hand/body fix booster — the img2img redraw at
+        # higher resolution will regenerate these regions, so steering
+        # the SDXL model with explicit anatomy quality terms cleans up
+        # the most common artifacts (broken eyes, malformed hands,
+        # extra fingers, twisted limbs).
+        anatomy_booster = (
+            "perfect face, beautiful detailed eyes, detailed pupils, "
+            "symmetric eyes, clear sharp eyes, perfect hands, "
+            "anatomically correct hands, five fingers, detailed fingers, "
+            "perfect anatomy, well-proportioned body, perfect feet, "
+            "detailed skin texture"
+        )
+        positive = ", ".join(filter(None, [
+            text_booster,
+            anatomy_booster,
+            cfg.quality_prefix or "masterpiece, best quality",
+            extra_prompt,
+        ]))
+        negative = ", ".join(filter(None, [
+            "garbled text, blurry text, illegible letters, scrambled "
+            "letters, distorted typography, broken characters, "
+            "misspelled, gibberish, fake text, alien glyphs, "
+            "bad anatomy, bad hands, malformed hands, mutated hands, "
+            "extra fingers, missing fingers, fused fingers, "
+            "deformed face, asymmetric eyes, cross-eyed, lazy eye, "
+            "extra limbs, missing limbs, deformed feet, mutated body",
+            cfg.negative_base or "lowres, worst quality",
+        ]))
+
+        builder = WorkflowBuilder()
+        client = ComfyClient(base_url=cfg.comfyui_url)
+        seed = int(_time.time()) & 0x7FFF_FFFF
+        target_w = int(src_w * factor)
+        target_h = int(src_h * factor)
+
+        # Try Ultimate SD Upscale first (tiled img2img; best quality).
+        workflow = builder.build_ultimate_sd_upscale(
+            image_b64=raw_b64,
+            upscale_model=cfg.upscale_model,
+            upscale_by=factor,
+            checkpoint=checkpoint,
+            positive_prompt=positive,
+            negative_prompt=negative,
+            seed=seed,
+            steps=22,
+            cfg=6.0,
+            denoise=denoise,
+            tile_width=cfg.upscale_tile_size,
+            tile_height=cfg.upscale_tile_size,
+        )
+
+        result = client.submit_workflow(
+            workflow,
+            job_id=f"upscale_{_uuid.uuid4().hex[:8]}",
+            pass_name="upscale",
+        )
+
+        # Fallback: if Ultimate SD Upscale custom node is missing,
+        # rebuild with the built-in Hires.fix workflow (UpscaleModel
+        # → ImageScale → VAEEncode → KSampler → VAEDecode).
+        validation = (getattr(result, "validation_error", "") or "").lower()
+        node_missing = (
+            not result.success
+            and ("ultimatesdupscale" in validation
+                 or "does not exist" in validation
+                 or "ultimatesdupscale" in (result.error or "").lower())
+        )
+        if node_missing:
+            logger.info(
+                "[anime_pipeline] /upscale: UltimateSDUpscale unavailable, "
+                "falling back to built-in Hires.fix workflow"
+            )
+            workflow = builder.build_hires_fix_upscale(
+                image_b64=raw_b64,
+                upscale_model=cfg.upscale_model,
+                target_width=target_w,
+                target_height=target_h,
+                checkpoint=checkpoint,
+                positive_prompt=positive,
+                negative_prompt=negative,
+                seed=seed,
+                steps=22,
+                cfg=6.0,
+                denoise=denoise,
+            )
+            result = client.submit_workflow(
+                workflow,
+                job_id=f"upscale_hf_{_uuid.uuid4().hex[:8]}",
+                pass_name="upscale_hires_fix",
+            )
+
+        if not result.success or not result.images_b64:
+            err = (result.error or
+                   getattr(result, "validation_error", None) or
+                   "ComfyUI returned no images")
+            logger.warning("[anime_pipeline] /upscale: %s", err)
+            return {"ok": False, "error": str(err)}, 502
+
+        out_b64 = result.images_b64[0]
+        model_name = cfg.upscale_model
+
+    except Exception as exc:
+        logger.exception("[anime_pipeline] /upscale failed")
+        return {"ok": False, "error": str(exc)}, 500
+
+    try:
+        try:
+            from chatbot_main import IMAGE_STORAGE_DIR
+        except Exception:
+            IMAGE_STORAGE_DIR = Path(__file__).resolve().parents[1] / "Storage" / "Image_Gen"
+        Path(IMAGE_STORAGE_DIR).mkdir(parents=True, exist_ok=True)
+        fname = f"upscaled_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{_uuid.uuid4().hex[:8]}.png"
+        out_path = Path(IMAGE_STORAGE_DIR) / fname
+        out_path.write_bytes(base64.b64decode(out_b64))
+        out_url = f"/storage/images/{fname}"
+    except Exception as exc:
+        logger.warning("[anime_pipeline] /upscale: storage save failed: %s", exc)
+        out_url = ""
+
+    elapsed_ms = int((_time.time() - t0) * 1000)
+    return {
+        "ok": True,
+        "image_url": out_url,
+        "image_b64": out_b64,
+        "width": target_w,
+        "height": target_h,
+        "factor": factor,
+        "denoise": denoise,
+        "model": model_name,
+        "processing_ms": elapsed_ms,
+    }, 200
+
+
+@anime_pipeline_bp.route("/api/anime-pipeline/upscale", methods=["POST"])
+def upscale_image():
+    """Upscale **and** fix-text in a single pass via Ultimate SD Upscale.
+
+    Combines two operations the user used to run separately:
+      1. ESRGAN-style upsampling to ``factor`` (1.5×–4×)
+      2. SDXL img2img tile redraw at moderate denoise to clean up
+         garbled letters / typography artifacts.
+    """
+    rate_err = _rate_check()
+    if rate_err:
+        return jsonify({"ok": False, "error": rate_err}), 429
+
+    data = request.get_json(force=True, silent=True) or {}
+    body, status = run_upscale_payload(data)
+    return jsonify(body), status
+
+
+# ── Fix-text endpoint (kept as alias of /upscale with factor=1.0) ──────
+# The combined /upscale endpoint above now handles text repair too. This
+# alias is kept for backward compatibility with any external caller and
+# forwards to /upscale forcing factor=1.0 + denoise=0.40.
+
+@anime_pipeline_bp.route("/api/anime-pipeline/fix-text", methods=["POST"])
+def fix_text_image():
+    """Backward-compat alias: forwards to ``/upscale`` with
+    ``factor=1.0`` and ``denoise=0.40``. New callers should use
+    ``/api/anime-pipeline/upscale`` directly with the desired factor.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    data["factor"] = 1.0
+    if "denoise" not in data:
+        data["denoise"] = 0.40
+    # Reinject into the request context. Easiest: call the function and
+    # let it parse from a stub. We do a direct call by mutating
+    # request.json via a tiny shim.
+    from werkzeug.wrappers import Request as _WReq  # noqa: F401
+    # Simplest path: just call upscale_image — Flask's request is
+    # request-scoped and we cannot easily rebuild it; instead, replicate
+    # the body inline by passing through the JSON cache.
+    # Flask caches parsed JSON on the request object.
+    request._cached_json = (data, data)  # type: ignore[attr-defined]
+    return upscale_image()
 
 
 # ── Cancel endpoint ─────────────────────────────────────────────────────
@@ -500,8 +827,16 @@ def cancel_all_pipelines():
 
 
 def _interrupt_comfyui() -> None:
-    """Best-effort POST /interrupt to the active ComfyUI server.
+    """Best-effort halt of the active ComfyUI server.
 
+    Sends two requests in sequence:
+      1. ``POST /queue`` with ``{"clear": true}`` — drops every queued
+         prompt so the queued workflows do not start once the current
+         one ends. Without this, the user sees ComfyUI keep printing
+         ``got prompt`` for ~30 s after Stop while the queue drains.
+      2. ``POST /interrupt`` — aborts the currently running KSampler.
+
+    Both calls are best-effort; failures are logged but never raise.
     Uses the same env vars the pipeline ComfyClient honors so we always
     hit the same instance the orchestrator submitted to.
     """
@@ -514,6 +849,17 @@ def _interrupt_comfyui() -> None:
         or "http://127.0.0.1:8188"
     ).rstrip("/")
     with httpx.Client(timeout=3.0) as client:
+        # Clear pending queue FIRST, then interrupt the running prompt.
+        # Reverse order would let the next queued prompt grab the GPU
+        # in the gap between interrupt completing and clear arriving.
+        try:
+            qresp = client.post(f"{base}/queue", json={"clear": True})
+            logger.info(
+                "[anime_pipeline] /cancel: comfy queue clear -> %s (%s)",
+                base, qresp.status_code,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("[anime_pipeline] /cancel: comfy queue clear failed: %s", exc)
         resp = client.post(f"{base}/interrupt")
         logger.info(
             "[anime_pipeline] /cancel: comfy interrupt -> %s (%s)",

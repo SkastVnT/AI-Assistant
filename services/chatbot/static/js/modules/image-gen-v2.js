@@ -34,10 +34,23 @@ export class ImageGenV2 {
                 this.loadStyles(),
                 this.loadWorkflowPresets(),
             ]);
+            this._restoreReasoningCheckbox();
             console.log('[ImageGenV2] Initialized with', this.providers.length, 'providers,', this.styles.length, 'styles,', this.workflowPresets.length, 'presets');
         } catch (e) {
             console.warn('[ImageGenV2] Init partial:', e);
         }
+    }
+
+    /**
+     * Restore the reasoning-pipeline checkbox from localStorage so the
+     * preference is sticky across modal opens / page reloads.
+     */
+    _restoreReasoningCheckbox() {
+        const cb = document.getElementById('igv2UseReasoning');
+        if (!cb) return;
+        try {
+            cb.checked = window.localStorage?.getItem('igv2.useReasoning') === '1';
+        } catch (_) { /* ignore */ }
     }
 
     async loadProviders() {
@@ -104,6 +117,58 @@ export class ImageGenV2 {
         });
     }
 
+    /**
+     * Read the active character pin from the picker (window.selectedCharacter)
+     * with a body[data-character-key] fallback. Returns
+     * { character_key, series_key } — both may be null when nothing is pinned.
+     * Used by every image-gen entry point so the picker selection flows
+     * through modal-triggered, chat-typed, and SSE flows uniformly.
+     */
+    _collectCharacterPin() {
+        const sel = window.selectedCharacter || null;
+        let character_key = null, series_key = null;
+        if (sel && sel.key) {
+            character_key = sel.key;
+            if (sel.series_key) series_key = sel.series_key;
+        } else {
+            character_key = document.body?.dataset?.characterKey || null;
+            series_key = document.body?.dataset?.seriesKey || null;
+        }
+        return { character_key, series_key };
+    }
+
+    /**
+     * Apply an orientation preset to the Width/Height selects.
+     *  - 'square'    → 1800×1800
+     *  - 'portrait'  → 1536×2048
+     *  - 'landscape' → 2048×1536
+     * Adds the option dynamically if it isn't in the dropdown so we
+     * don't depend on the template having every preset listed.
+     */
+    setOrientation(kind) {
+        const presets = {
+            square:    { w: 1800, h: 1800 },
+            portrait:  { w: 1536, h: 2048 },
+            landscape: { w: 2048, h: 1536 },
+        };
+        const p = presets[kind];
+        if (!p) return;
+        const setSelect = (id, value) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const v = String(value);
+            if (![...el.options].some(o => o.value === v)) {
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = v;
+                el.appendChild(opt);
+            }
+            el.value = v;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        setSelect('igv2Width', p.w);
+        setSelect('igv2Height', p.h);
+    }
+
     // ── Generate ───────────────────────────────────────────────────
 
     async generate() {
@@ -136,9 +201,24 @@ export class ImageGenV2 {
             const enhance = document.getElementById('igv2Enhance')?.checked !== false;
             const steps = parseInt(document.getElementById('igv2Steps')?.value || '28');
             const guidance = parseFloat(document.getElementById('igv2Guidance')?.value || '3.5');
+            const useReasoning = document.getElementById('igv2UseReasoning')?.checked === true;
             const effectivePresetId = presetId || (provider === 'comfyui' ? 'lora_bulk_auto_chat' : '');
 
+            // Persist the reasoning toggle so chat-typed prompts (which run
+            // outside this modal) can read the same preference.
+            try {
+                window.localStorage?.setItem(
+                    'igv2.useReasoning', useReasoning ? '1' : '0',
+                );
+            } catch (_) { /* ignore quota / disabled storage */ }
+
             if (statusEl) statusEl.textContent = '🎨 Đang tạo ảnh...';
+
+            // ── Character pin (SAA / local registry) ─────────────────
+            // Mirror anime-pipeline.js: read window.selectedCharacter or
+            // body data-attributes so the picker selection flows through
+            // /api/image-gen/generate as well.
+            const { character_key: _characterKey, series_key: _seriesKey } = this._collectCharacterPin();
 
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
@@ -156,6 +236,9 @@ export class ImageGenV2 {
                     guidance,
                     conversation_id: this.conversationId,
                     num_images: 1,
+                    use_reasoning_pipeline: useReasoning,
+                    character_key: _characterKey,
+                    series_key: _seriesKey,
                 }),
             });
 
@@ -186,6 +269,18 @@ export class ImageGenV2 {
                     promptP.className = 'text-sm mt-2';
                     promptP.textContent = 'Prompt used: ' + (data.prompt_used || prompt);
                     errorDiv.appendChild(promptP);
+                    // 2026-04-29: explicit retry button so failed gen
+                    // doesn't force the user to re-fill the form.
+                    const retryBtn = document.createElement('button');
+                    retryBtn.type = 'button';
+                    retryBtn.className = 'igv2-retry-btn';
+                    retryBtn.textContent = '🔁 Thử lại';
+                    retryBtn.style.cssText = 'margin-top:10px;padding:6px 14px;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:.9em;';
+                    retryBtn.addEventListener('click', () => {
+                        errorDiv.remove();
+                        this.generate();
+                    });
+                    errorDiv.appendChild(retryBtn);
                     resultArea.innerHTML = '';
                     resultArea.appendChild(errorDiv);
                 }
@@ -297,7 +392,9 @@ export class ImageGenV2 {
      */
     async generateFromChat(message, conversationId) {
         this.conversationId = conversationId || this.conversationId;
-        
+        const useReasoning = this._readReasoningPreference();
+        const { character_key, series_key } = this._collectCharacterPin();
+
         try {
             const resp = await fetch('/api/image-gen/generate', {
                 method: 'POST',
@@ -308,6 +405,9 @@ export class ImageGenV2 {
                     enhance: true,
                     conversation_id: this.conversationId,
                     num_images: 1,
+                    use_reasoning_pipeline: useReasoning,
+                    character_key,
+                    series_key,
                 }),
             });
 
@@ -338,6 +438,11 @@ export class ImageGenV2 {
     async generateFromChatStream(message, conversationId, abortSignal = null, callbacks = {}, options = {}) {
         this.conversationId = conversationId || this.conversationId;
 
+        const useReasoning = (typeof options.useReasoning === 'boolean')
+            ? options.useReasoning
+            : this._readReasoningPreference();
+        const { character_key, series_key } = this._collectCharacterPin();
+
         try {
             const resp = await fetch('/api/image-gen/stream', {
                 method: 'POST',
@@ -355,6 +460,9 @@ export class ImageGenV2 {
                     height: options.height || undefined,
                     guidance: options.guidance || undefined,
                     negative_prompt: options.negativePrompt || undefined,
+                    use_reasoning_pipeline: useReasoning,
+                    character_key,
+                    series_key,
                 }),
                 signal: abortSignal,
             });
@@ -620,13 +728,14 @@ export class ImageGenV2 {
         }
 
         container.innerHTML = this.gallery.map(img => `
-            <div class="igv2-gallery-item" onclick="window.open('/api/image-gen/images/${img.image_id}', '_blank')">
+            <div class="igv2-gallery-item" data-image-id="${img.image_id}" data-image-url="/api/image-gen/images/${img.image_id}">
                 <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy">
                 <div class="igv2-gallery-meta">
                     <span class="igv2-gallery-prompt">${img.prompt?.substring(0, 40)}...</span>
                     <span class="igv2-gallery-info">${img.provider} | ${img.model}</span>
                 </div>
-                <button class="igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">🗑️</button>
+                <button class="igv2-gallery-action igv2-gallery-newtab" onclick="event.stopPropagation(); window.open('/api/image-gen/images/${img.image_id}', '_blank', 'noopener,noreferrer')" title="Open in new tab">↗️</button>
+                <button class="igv2-gallery-action igv2-gallery-delete" onclick="event.stopPropagation(); window.imageGenV2?.deleteImage('${img.image_id}')" title="Delete">🗑️</button>
             </div>
         `).join('');
     }
@@ -710,6 +819,21 @@ export class ImageGenV2 {
         if (!el) return;
         el.textContent = msg;
         el.className = `igv2-status igv2-status-${type}`;
+    }
+
+    /**
+     * Read the reasoning-pipeline preference. Priority:
+     *   1. Live checkbox in the modal (truth source while modal is open).
+     *   2. Persisted localStorage value (set by ``generate()`` when the
+     *      modal closes), so chat-typed prompts inherit the last choice.
+     *   3. Default false.
+     */
+    _readReasoningPreference() {
+        const live = document.getElementById('igv2UseReasoning');
+        if (live) return live.checked === true;
+        try {
+            return window.localStorage?.getItem('igv2.useReasoning') === '1';
+        } catch (_) { return false; }
     }
 
     // ── Utility ────────────────────────────────────────────────────

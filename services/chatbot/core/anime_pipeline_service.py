@@ -649,6 +649,38 @@ def _run_pipeline_inner(
                     "reason": edata.get("reason", ""),
                 })
 
+            elif etype == "anime_pipeline_research_status":
+                # 2026-04-29: relay character_research diagnostics to UI so
+                # the user sees "Đã dùng N ảnh local cache + K ảnh web" or
+                # "Bỏ qua web search (đủ ref local)" instead of a silent
+                # stage_done. Read by anime-pipeline.js → ap_research_status.
+                yield _sse_line("ap_research_status", {
+                    "stage": edata.get("stage", "character_research"),
+                    "danbooru_tag": edata.get("danbooru_tag", ""),
+                    "display_name": edata.get("display_name", ""),
+                    "local_refs": int(edata.get("local_refs", 0)),
+                    "web_refs": int(edata.get("web_refs", 0)),
+                    "web_search_skipped": bool(edata.get("web_search_skipped", False)),
+                    "nsfw_intent": bool(edata.get("nsfw_intent", False)),
+                    "cached": bool(edata.get("cached", False)),
+                    "confidence": float(edata.get("confidence", 0.0)),
+                    "latency_ms": float(edata.get("latency_ms", 0.0)),
+                })
+
+            elif etype == "anime_pipeline_vision_reasoning":
+                # 2026-04-29: surface which vision provider answered so
+                # the UI can show e.g. "Vision: grok-2-vision-1212 (NSFW
+                # chain)" instead of leaving the chain opaque.
+                yield _sse_line("ap_vision_status", {
+                    "stage": "vision_analysis",
+                    "model_used": edata.get("model_used", "unknown"),
+                    "confidence": float(edata.get("confidence", 0.0)),
+                    "nsfw_level": edata.get("nsfw_level", "unknown"),
+                    "character_detected": bool(edata.get("character_detected", False)),
+                    "character_name": edata.get("character_name") or "",
+                    "tag_count": len(edata.get("anime_tags", []) or []),
+                })
+
             elif etype == "anime_pipeline_stage_error":
                 yield _sse_line("ap_error", {
                     "stage": edata.get("stage", ""),

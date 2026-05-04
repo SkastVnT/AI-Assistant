@@ -469,13 +469,56 @@ class ComfyClient:
                 status_str = status_info.get("status_str", "")
                 if "error" in status_str.lower():
                     duration = (time.time() - t0) * 1000
+                    # Drill into status.messages to surface the real
+                    # node-level error. ComfyUI emits entries shaped as
+                    # ["execution_error", {node_id, node_type,
+                    #   exception_message, exception_type, traceback,...}].
+                    node_err: str | None = None
+                    node_type: str | None = None
+                    node_id: str | None = None
+                    exc_type: str | None = None
+                    traceback_lines: list[str] = []
+                    for msg in status_info.get("messages", []) or []:
+                        if (isinstance(msg, (list, tuple))
+                                and len(msg) >= 2
+                                and msg[0] == "execution_error"
+                                and isinstance(msg[1], dict)):
+                            data = msg[1]
+                            node_err = (data.get("exception_message")
+                                        or data.get("error") or node_err)
+                            node_type = data.get("node_type") or node_type
+                            node_id = str(data.get("node_id") or "") or node_id
+                            exc_type = data.get("exception_type") or exc_type
+                            tb = data.get("traceback") or []
+                            if isinstance(tb, list):
+                                traceback_lines = [str(x) for x in tb]
+                    # Also check top-level entry.error (older ComfyUI)
+                    if not node_err and isinstance(entry.get("error"), str):
+                        node_err = entry["error"]
+
+                    parts: list[str] = []
+                    if node_type:
+                        loc = f"node {node_id} ({node_type})" if node_id else node_type
+                        parts.append(loc)
+                    if exc_type:
+                        parts.append(exc_type)
+                    if node_err:
+                        parts.append(node_err)
+                    detail = ": ".join(parts) if parts else status_str
+
                     logger.error(
                         "[ComfyClient] job=%s pass=%s ComfyUI error: %s (%.0fms)",
-                        job_id, pass_name, status_str, duration,
+                        job_id, pass_name, detail, duration,
                     )
+                    if traceback_lines:
+                        logger.error(
+                            "[ComfyClient] job=%s pass=%s traceback:\n%s",
+                            job_id, pass_name,
+                            "".join(traceback_lines)[-2000:],
+                        )
                     return ComfyJobResult(
                         prompt_id=prompt_id,
-                        error=f"ComfyUI error: {status_str}",
+                        error=f"ComfyUI error: {detail}",
                         duration_ms=duration,
                     )
                 continue

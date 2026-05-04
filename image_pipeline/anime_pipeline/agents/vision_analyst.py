@@ -360,14 +360,34 @@ class VisionAnalystAgent:
         images_b64: list[str],
         language: str,
     ) -> Optional[VisionAnalysis]:
-        """Dispatch to the appropriate vision API."""
-        if model_name.startswith("gemini"):
+        """Dispatch to the appropriate vision API.
+
+        2026-04-29: Grok and StepFun added (NSFW-friendly, OpenAI-compat
+        chat-completions schema) so the priority list in vision_service
+        config is honoured end-to-end. Without these branches the agent
+        silently fell through to Gemini/GPT, defeating the NSFW chain.
+        """
+        name = model_name.lower()
+        if name.startswith("gemini"):
             return self._analyze_gemini(model_name, user_prompt, images_b64, language)
-        elif model_name.startswith("gpt"):
+        if name.startswith("gpt"):
             return self._analyze_openai(model_name, user_prompt, images_b64, language)
-        else:
-            logger.warning("[VisionAnalyst] Unknown model: %s", model_name)
-            return None
+        if name.startswith("grok"):
+            return self._analyze_openai_compat(
+                model_name, user_prompt, images_b64, language,
+                base_url="https://api.x.ai/v1/chat/completions",
+                api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
+                key_label="GROK_API_KEY",
+            )
+        if name.startswith("step-") or name.startswith("stepfun"):
+            return self._analyze_openai_compat(
+                model_name, user_prompt, images_b64, language,
+                base_url="https://api.stepfun.com/v1/chat/completions",
+                api_key=os.getenv("STEPFUN_API_KEY"),
+                key_label="STEPFUN_API_KEY",
+            )
+        logger.warning("[VisionAnalyst] Unknown model: %s", model_name)
+        return None
 
     def _analyze_gemini(
         self,
@@ -413,7 +433,7 @@ class VisionAnalystAgent:
 
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{api_model}:generateContent?key={api_key}"
+            f"{api_model}:generateContent"
         )
 
         payload = {
@@ -426,7 +446,7 @@ class VisionAnalystAgent:
         }
 
         with httpx.Client(timeout=30) as client:
-            resp = client.post(url, json=payload)
+            resp = client.post(url, headers={"X-goog-api-key": api_key}, json=payload)
             resp.raise_for_status()
 
         data = resp.json()
@@ -482,6 +502,69 @@ class VisionAnalystAgent:
         with httpx.Client(timeout=30) as client:
             resp = client.post(
                 "https://api.openai.com/v1/chat/completions",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            resp.raise_for_status()
+
+        data = resp.json()
+        text = data["choices"][0]["message"]["content"]
+        return self._parse_analysis(text)
+
+    def _analyze_openai_compat(
+        self,
+        model_name: str,
+        user_prompt: str,
+        images_b64: list[str],
+        language: str,
+        *,
+        base_url: str,
+        api_key: Optional[str],
+        key_label: str,
+    ) -> Optional[VisionAnalysis]:
+        """Analyze using any OpenAI-compatible chat-completions endpoint.
+
+        Used by Grok (api.x.ai) and StepFun (api.stepfun.com) which both
+        speak the same JSON schema as OpenAI but live on different hosts
+        and have NSFW-friendlier moderation. Mirrors :meth:`_analyze_openai`
+        with a configurable URL + API key source so the NSFW priority chain
+        in vision_service config is honoured end-to-end.
+        """
+        if not api_key:
+            raise RuntimeError(f"No {key_label} set")
+
+        import httpx
+
+        image_context = (
+            f"{len(images_b64)} reference image(s)" if images_b64
+            else "user prompt (no images)"
+        )
+        user_msg = _USER_PROMPT_TEMPLATE.format(
+            user_prompt=user_prompt, image_context=image_context
+        )
+
+        messages_content: list[dict] = [{"type": "text", "text": user_msg}]
+        for img_b64 in images_b64:
+            raw = img_b64.split(",", 1)[-1] if "," in img_b64 else img_b64
+            messages_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{raw}", "detail": "low"},
+            })
+
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": _VISION_SYSTEM_PROMPT},
+                {"role": "user", "content": messages_content},
+            ],
+            "max_tokens": self._config.vision_max_tokens,
+            "temperature": self._config.vision_temperature,
+            "response_format": {"type": "json_object"},
+        }
+
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(
+                base_url,
                 json=payload,
                 headers={"Authorization": f"Bearer {api_key}"},
             )
@@ -668,16 +751,19 @@ class VisionAnalystAgent:
                 pass
             return [], []
 
-        # Try Gemini first
-        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if gemini_key:
+        # Try Gemini first (rotate through key pool, skip exhausted keys).
+        from .._gemini_pool import get_active_key, mark_exhausted, is_quota_error
+        while True:
+            gemini_key = get_active_key()
+            if not gemini_key:
+                break
             try:
                 url = (
                     "https://generativelanguage.googleapis.com/v1beta/models/"
-                    f"gemini-2.0-flash:generateContent?key={gemini_key}"
+                    "gemini-2.0-flash:generateContent"
                 )
                 with httpx.Client(timeout=15) as client:
-                    resp = client.post(url, json={
+                    resp = client.post(url, headers={"X-goog-api-key": gemini_key}, json={
                         "contents": [{"parts": [{"text": msg}]}],
                         "generationConfig": {
                             "temperature": 0.1,
@@ -696,8 +782,13 @@ class VisionAnalystAgent:
                 char_t, scene_t = _parse_tags(text)
                 if char_t or scene_t:
                     return char_t, scene_t
+                break  # Empty response — give up on Gemini, fall through to OpenAI.
             except Exception as e:
+                if is_quota_error(e):
+                    mark_exhausted(gemini_key, "429 in vision_analyst")
+                    continue  # Try next key in pool.
                 logger.warning("[VisionAnalyst] Gemini translation failed: %s", e)
+                break
 
         # Fallback: OpenAI
         openai_key = os.getenv("OPENAI_API_KEY")

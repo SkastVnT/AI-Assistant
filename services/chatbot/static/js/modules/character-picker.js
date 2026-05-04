@@ -108,11 +108,17 @@
       const thumbUrl = `${API_BASE}/${encodeURIComponent(c.key)}/thumbnail`;
       const aliasText = (c.aliases && c.aliases.length)
         ? `<small class="cp-alias">${escapeHTML(c.aliases.slice(0, 3).join(', '))}</small>` : '';
+      // SAA-augmented entries (5149-char WAI fallback) get a small badge
+      // so users can tell them apart from the hand-curated local registry.
+      const sourceBadge = (c.source === 'saa')
+        ? `<span class="cp-source-badge" title="From SAA WAI database (5149 characters)">SAA</span>`
+        : '';
       return `
         <button type="button" class="cp-card" data-key="${escapeHTML(c.key)}" title="${escapeHTML(c.display_name)} — ${escapeHTML(c.series)}">
           <div class="cp-thumb">
             <img loading="lazy" src="${thumbUrl}" alt="${escapeHTML(c.display_name)}"
                  onerror="this.style.display='none';this.parentNode.classList.add('cp-no-thumb');this.parentNode.textContent='${escapeHTML(c.display_name.charAt(0))}';"/>
+            ${sourceBadge}
           </div>
           <div class="cp-meta">
             <strong>${escapeHTML(c.display_name)}</strong>

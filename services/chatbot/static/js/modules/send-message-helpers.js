@@ -208,7 +208,7 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         return;
     }
 
-    // ── API path ─────────────────────────────────────────────────
+    // ── API path (also handles LOCAL Fast → comfyui_fast provider) ──
     const imageGenOptions = {
         quality: 'auto',
         steps: dialogResult.steps,
@@ -216,6 +216,8 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         height: dialogResult.height,
         guidance: dialogResult.guidance,
         negativePrompt: dialogResult.negativePrompt || undefined,
+        // LOCAL Fast pins the provider to comfyui_fast (≈10s on RTX 5070).
+        provider: providerChoice === 'local-fast' ? 'comfyui_fast' : undefined,
     };
     // If user provided a prompt override, use it instead of the original message
     const effectiveMessage = dialogResult.promptOverride || message;
@@ -294,10 +296,15 @@ function showProviderChoiceDialog(elements) {
                             <span class="igv2-choice-timer">${TIMEOUT_SECONDS}s</span>
                         </div>
                         <div class="igv2-choice-buttons">
-                            <button class="igv2-choice-btn igv2-choice-local" data-choice="local">
+                            <button class="igv2-choice-btn igv2-choice-local" data-choice="local-fast">
                                 <span class="igv2-choice-btn-icon">🖥️</span>
-                                <span class="igv2-choice-btn-label">LOCAL</span>
-                                <span class="igv2-choice-btn-desc">ComfyUI · Miễn phí</span>
+                                <span class="igv2-choice-btn-label">LOCAL Fast</span>
+                                <span class="igv2-choice-btn-desc">ComfyUI Fast · ~10s</span>
+                            </button>
+                            <button class="igv2-choice-btn igv2-choice-heavy" data-choice="local">
+                                <span class="igv2-choice-btn-icon">🔥</span>
+                                <span class="igv2-choice-btn-label">LOCAL Heavy</span>
+                                <span class="igv2-choice-btn-desc">Anime Pipeline · ~90s</span>
                             </button>
                             <button class="igv2-choice-btn igv2-choice-api" data-choice="api">
                                 <span class="igv2-choice-btn-icon">☁️</span>
@@ -446,7 +453,10 @@ function showProviderChoiceDialog(elements) {
             });
             choiceContainer.querySelectorAll('.igv2-choice-chip').forEach(c => { c.disabled = true; });
             choiceContainer.querySelectorAll('.igv2-choice-textarea').forEach(ta => { ta.disabled = true; });
-            timerEl.textContent = choice === 'cancel' ? 'Đã hủy' : choice === 'local' ? 'LOCAL' : 'API';
+            timerEl.textContent = choice === 'cancel' ? 'Đã hủy'
+                : choice === 'local' ? 'LOCAL Heavy'
+                : choice === 'local-fast' ? 'LOCAL Fast'
+                : 'API';
             resolve({ choice, ...opts });
         };
 

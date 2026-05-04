@@ -109,10 +109,33 @@ class CritiqueService:
     def _call_model(
         self, model_name: str, image_b64: str, context: str,
     ) -> Optional[CritiqueReport]:
-        if model_name.startswith("gemini"):
+        # NSFW-friendly providers come first in the dispatch table.
+        # Grok (xAI) and StepFun do not apply Gemini/OpenAI-style image
+        # safety filters, so they survive critiques on explicit content.
+        name = model_name.lower()
+        if name.startswith("grok"):
+            return self._openai_compat(
+                model_name, image_b64, context,
+                base_url="https://api.x.ai/v1/chat/completions",
+                api_key=os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY"),
+                key_label="GROK_API_KEY",
+            )
+        if name.startswith("step-") or name.startswith("stepfun"):
+            return self._openai_compat(
+                model_name, image_b64, context,
+                base_url="https://api.stepfun.com/v1/chat/completions",
+                api_key=os.getenv("STEPFUN_API_KEY"),
+                key_label="STEPFUN_API_KEY",
+            )
+        if name.startswith("gemini"):
             return self._gemini(model_name, image_b64, context)
-        elif model_name.startswith("gpt"):
-            return self._openai(model_name, image_b64, context)
+        if name.startswith("gpt"):
+            return self._openai_compat(
+                model_name, image_b64, context,
+                base_url="https://api.openai.com/v1/chat/completions",
+                api_key=os.getenv("OPENAI_API_KEY"),
+                key_label="OPENAI_API_KEY",
+            )
         return None
 
     def _gemini(
@@ -133,24 +156,42 @@ class CritiqueService:
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent",
+                headers={"X-goog-api-key": api_key},
                 json=payload,
             )
             resp.raise_for_status()
             text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
             return self._parse(text)
 
-    def _openai(
-        self, model_name: str, image_b64: str, context: str,
+    def _openai_compat(
+        self,
+        model_name: str,
+        image_b64: str,
+        context: str,
+        *,
+        base_url: str,
+        api_key: Optional[str],
+        key_label: str,
     ) -> Optional[CritiqueReport]:
-        api_key = os.getenv("OPENAI_API_KEY")
+        """Generic OpenAI-compatible vision call.
+
+        Used by OpenAI, xAI/Grok, and StepFun. All three accept the same
+        chat-completions schema with ``image_url`` content parts.
+        """
         if not api_key:
-            raise RuntimeError("No OPENAI_API_KEY set")
+            raise RuntimeError(f"No {key_label} set")
 
         raw_img = image_b64.split(",", 1)[-1] if "," in image_b64 else image_b64
         user_content = [
             {"type": "text", "text": context},
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{raw_img}", "detail": "low"}},
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{raw_img}",
+                    "detail": "low",
+                },
+            },
         ]
         payload = {
             "model": model_name,
@@ -164,7 +205,7 @@ class CritiqueService:
 
         with httpx.Client(timeout=30) as client:
             resp = client.post(
-                "https://api.openai.com/v1/chat/completions",
+                base_url,
                 json=payload,
                 headers={"Authorization": f"Bearer {api_key}"},
             )

@@ -380,21 +380,28 @@ def classify_eye_state(
     """
     report = EyeStateReport(requested_state=requested_state or "open")
 
-    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
+    from ._gemini_pool import get_active_key as _gp_get, mark_exhausted as _gp_mark, is_quota_error as _gp_is_quota
     openai_key = os.getenv("OPENAI_API_KEY", "")
-    if not gemini_key and not openai_key:
+    if not _gp_get() and not openai_key:
         report.skipped = True
         report.notes = "no vision API key available"
         return report
 
     prompt = _EYE_STATE_PROMPT.format(requested=requested_state or "open")
 
-    # Prefer Gemini (cheaper, multimodal).
-    if gemini_key:
-        parsed = _classify_via_gemini(image_b64, prompt, gemini_key, vision_model)
+    # Prefer Gemini (cheaper, multimodal). Rotate on 429.
+    while True:
+        gemini_key = _gp_get()
+        if not gemini_key:
+            break
+        parsed, quota_err = _classify_via_gemini(image_b64, prompt, gemini_key, vision_model)
         if parsed is not None:
             _fill_report(report, parsed, requested_state)
             return report
+        if quota_err:
+            _gp_mark(gemini_key, "429 in eye classifier")
+            continue
+        break
 
     if openai_key:
         parsed = _classify_via_openai(image_b64, prompt, openai_key)
@@ -436,12 +443,15 @@ def _states_match(detected: str, requested: str) -> bool:
 
 def _classify_via_gemini(
     image_b64: str, prompt: str, api_key: str, model: str,
-) -> Optional[dict]:
+) -> tuple[Optional[dict], bool]:
+    """Returns (parsed_json or None, quota_error_flag)."""
     import httpx
+    from ._gemini_pool import is_quota_error
     try:
         resp = httpx.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent?key={api_key}",
+            f"{model}:generateContent",
+            headers={"X-goog-api-key": api_key},
             json={
                 "contents": [{
                     "parts": [
@@ -463,10 +473,12 @@ def _classify_via_gemini(
             .get("content", {}).get("parts", [{}])[0].get("text", "{}")
         )
         m = re.search(r"\{.*\}", text, re.DOTALL)
-        return json.loads(m.group(0)) if m else None
+        return (json.loads(m.group(0)) if m else None), False
     except Exception as e:
+        if is_quota_error(e):
+            return None, True
         logger.debug("[LayerPainter] Gemini eye classifier failed: %s", e)
-        return None
+        return None, False
 
 
 def _classify_via_openai(

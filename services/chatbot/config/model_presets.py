@@ -19,6 +19,12 @@ LORA_CATALOG = {
     "bronya":         {"file": "Bronya Rand.safetensors",               "trigger": ["bronya rand"],       "category": "character", "base": "sd15"},
     "trailblazer":    {"file": "TrailblazerHonkaiStarRail4.safetensors","trigger": ["trailblazer"],       "category": "character", "base": "sd15"},
 
+    # -- HSR characters discovered via inventory scan (Illustrious base) --
+    "huohuo":         {"file": "Huohuo-07.safetensors",                 "trigger": ["huohuo"],            "category": "character", "base": "ilxl", "weight": 0.8},
+    "stelle":         {"file": "StelleHSR-Aesthetic.safetensors",       "trigger": ["stelle", "trailblazer (female)"], "category": "character", "base": "ilxl", "weight": 0.75},
+    "silver_wolf":    {"file": "silver_wolf_starrail.safetensors",      "trigger": ["silver wolf"],       "category": "character", "base": "ilxl", "weight": 0.8},
+    "firefly_pony":   {"file": "firefly_V3_pony.safetensors",           "trigger": ["firefly"],           "category": "character", "base": "ponyxl", "weight": 0.8},
+
     # -- Character LoRAs (Genshin Impact) ---------------------------------
     "nahida":         {"file": "Nahida3.safetensors",                   "trigger": ["nahida"],            "category": "character", "base": "sd15"},
     "furina":         {"file": "furina-lora-nochekaiser.safetensors",   "trigger": ["furina"],            "category": "character", "base": "sdxl"},

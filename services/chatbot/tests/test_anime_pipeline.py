@@ -1284,7 +1284,13 @@ class TestVisionServiceCore:
         assert result.confidence == 0.85
         assert result.latency_ms >= 0
 
-    @patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"})
+    @patch.dict(os.environ, {
+        "GROK_API_KEY": "", "XAI_API_KEY": "",
+        "STEPFUN_API_KEY": "",
+        "GEMINI_API_KEY": "test-key", "GOOGLE_API_KEY": "",
+        "OPENAI_API_KEY": "",
+        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
+    })
     def test_analyze_reference_images_cache_hit(self):
         svc = self._make_service()
         mock_data = {
@@ -1323,15 +1329,31 @@ class TestVisionServiceCore:
         assert result.caption_short == "composition output"
         assert result.model_used == "gemini-2.0-flash"
 
+    @patch.dict(os.environ, {
+        "GROK_API_KEY": "", "XAI_API_KEY": "",
+        "STEPFUN_API_KEY": "",
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
+        "OPENAI_API_KEY": "",
+        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
+    })
     def test_prompt_only_fallback(self):
         svc = self._make_service()
-        # No env keys set → all models fail → prompt-only fallback
+        # All vision API keys cleared → every provider in vision_model_priority
+        # raises RuntimeError → prompt-only fallback. NSFW providers (Grok/
+        # StepFun) included since they sit in front of the chain.
         result = svc.analyze_reference_images([], "anime girl standing")
 
         assert result.model_used == "prompt_only"
         assert result.confidence == 0.3
         assert "anime girl" in result.caption_short
 
+    @patch.dict(os.environ, {
+        "GROK_API_KEY": "", "XAI_API_KEY": "",
+        "STEPFUN_API_KEY": "",
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
+        "OPENAI_API_KEY": "",
+        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
+    })
     def test_backward_compat_analyze(self):
         svc = self._make_service()
         result = svc.analyze("test prompt")
@@ -1364,8 +1386,12 @@ class TestVisionServiceCore:
         assert result.caption_short == "fenced"
 
     @patch.dict(os.environ, {
-        "GEMINI_API_KEY": "",
+        # Clear NSFW providers so the fallback drops down to OpenAI.
+        "GROK_API_KEY": "", "XAI_API_KEY": "",
+        "STEPFUN_API_KEY": "",
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
         "OPENAI_API_KEY": "test-openai",
+        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
     })
     def test_openai_fallback(self):
         svc = self._make_service()
@@ -1436,9 +1462,17 @@ class TestVisionServiceFlorence2:
         assert result.model_used == "florence-2"
         assert "blue hair" in result.caption_short
 
+    @patch.dict(os.environ, {
+        "GROK_API_KEY": "", "XAI_API_KEY": "",
+        "STEPFUN_API_KEY": "",
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "",
+        "OPENAI_API_KEY": "",
+        "FLORENCE2_ENDPOINT": "", "JOYCAPTION_ENDPOINT": "",
+    })
     def test_florence2_skipped_without_env(self):
         svc = self._make_service()
-        # No FLORENCE2_ENDPOINT → skip → fall through to prompt_only
+        # No FLORENCE2_ENDPOINT and no cloud keys → all providers skip →
+        # prompt-only fallback.
         result = svc.analyze_reference_images([], "test prompt")
         assert result.model_used == "prompt_only"
 

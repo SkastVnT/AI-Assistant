@@ -144,13 +144,40 @@ export class APIService {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // 2026-04-29: read body so the user sees the actual server
+            // error (rate limit, auth, validation) instead of a bare
+            // "HTTP 500". Body may be JSON or plain text.
+            let detail = '';
+            try {
+                const txt = await response.text();
+                if (txt) {
+                    try { detail = JSON.parse(txt).error || JSON.parse(txt).message || txt; }
+                    catch { detail = txt.slice(0, 500); }
+                }
+            } catch { /* ignore */ }
+            const err = new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
+            err.status = response.status;
+            throw err;
         }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let result = null;
+        // 2026-04-29: track accumulated assistant text so a mid-stream
+        // disconnect can hand the partial back to the UI instead of
+        // erasing what was already streamed.
+        let _streamedText = '';
+        const _wrapChunk = callbacks.onChunk;
+        if (_wrapChunk) {
+            callbacks.onChunk = (data) => {
+                try {
+                    if (data && typeof data.content === 'string') _streamedText += data.content;
+                    else if (data && typeof data.text === 'string') _streamedText += data.text;
+                } catch { /* ignore */ }
+                return _wrapChunk(data);
+            };
+        }
 
         try {
             while (true) {
@@ -197,7 +224,7 @@ export class APIService {
                                     break;
                             }
                         } catch (e) {
-                            // Skip invalid JSON
+                            console.warn('[SSE] Skipped malformed frame:', e?.message || e);
                         }
                         currentEvent = 'message'; // reset
                     }
@@ -207,11 +234,23 @@ export class APIService {
             if (e.name === 'AbortError') {
                 console.log('[SSE] Stream aborted by user');
             } else {
-                throw e;
+                console.error('[SSE] Stream broken:', e?.message || e,
+                    `(partial=${_streamedText.length} chars)`);
+                if (callbacks.onError) {
+                    callbacks.onError({
+                        error: `Connection lost: ${e?.message || e}`,
+                        recoverable: false,
+                        partial_text: _streamedText,
+                    });
+                }
+                // Don't re-throw if we surfaced via onError — caller
+                // already informed; throwing would also fire a generic
+                // catch and double-toast the user.
+                if (!callbacks.onError) throw e;
             }
         }
 
-        return result || {};
+        return result || (_streamedText ? { content: _streamedText, partial: true } : {});
     }
 
     /**
