@@ -89,7 +89,6 @@
     modal = document.createElement('div');
     modal.id = 'manualProfileModal';
     modal.className = 'modal-overlay';
-    modal.style.display = 'none';
     modal.innerHTML = `
       <div class="modal-content" role="dialog" aria-modal="true" aria-label="Manual character profile" style="max-width:560px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -141,12 +140,12 @@
     set('mpPersonality', (m.personality_traits || []).join('\n'));
     set('mpGuard', (m.negative_identity_guard || []).join('\n'));
     set('mpRefs', (m.reference_images || []).join('\n'));
-    modal.style.display = 'flex';
+    modal.classList.add('open');
   }
 
   function closeProfileModal() {
     const modal = document.getElementById('manualProfileModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('open');
   }
 
   function splitLines(txt) {

@@ -42,7 +42,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260505c">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260505e">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260505b">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
@@ -300,12 +300,12 @@ try {
 
                 <!-- Trigger row -->
                 <button id="userTrigger" class="sidebar__user-trigger" onclick="toggleUserDropdown()">
-                    <div id="userAvatar" class="sidebar__user-avatar">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
+                    <div id="userAvatar" class="sidebar__user-avatar">U</div>
                     <div class="sidebar__user-info">
-                        <div id="userName" class="sidebar__user-name">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
-                        <div id="userRoleLabel" class="sidebar__user-role">{% if session.get('user_role') == 'admin' %}⭐ admin{% else %}member{% endif %}</div>
+                        <div id="userName" class="sidebar__user-name">User</div>
+                        <div id="userRoleLabel" class="sidebar__user-role">member</div>
                     </div>
-                    <i data-lucide="chevrons-up-down" id="userChevron" class="sidebar__user-chevron"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevrons-up-down" id="userChevron" class="lucide lucide-chevrons-up-down sidebar__user-chevron"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
                 </button>
             </div>
 
@@ -2218,7 +2218,7 @@ try {
 <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260505b"></script>
 <script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
 <script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260504b"></script>
-<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260504e"></script>
+<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260505a"></script>
 <script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
 <script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260504c"></script>

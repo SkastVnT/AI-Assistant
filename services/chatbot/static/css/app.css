@@ -840,6 +840,10 @@ body {
   position: relative;
 }
 
+#thinkingModeContainer {
+  position: relative;
+}
+
 .topbar__model-btn {
   display: flex;
   align-items: center;
