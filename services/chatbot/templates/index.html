@@ -218,8 +218,10 @@ try {
             </button>
             <div id="storageInfo" class="sidebar__storage"></div>
 
-            <!-- Quota + Video unlock bar (non-admin only) -->
-            <div id="quotaSection" class="sidebar__quota">
+            <!-- Quota + Video unlock bar — hidden by default. Inline script
+                 below shows it only if /api/features says quota or payment
+                 gating is enabled. Single-user mode keeps it hidden. -->
+            <div id="quotaSection" class="sidebar__quota" style="display:none;">
                 <!-- Image quota bar -->
                 <div id="imageQuotaWrap">
                     <div class="sidebar__quota-row">
