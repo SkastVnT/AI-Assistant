@@ -46,6 +46,27 @@
   height: 16px !important;
   flex-shrink: 0;
 }
+/* Sidebar / quota / user / modal — clamp raw lucide SVGs that ship with
+   width="24" height="24" baked in. Inline style="width:Xpx" still wins via
+   :not() guard, so per-icon overrides (e.g. 11px storage chip) are preserved. */
+.sidebar__footer-btn svg:not([style*="width"]),
+.sidebar__footer svg.lucide:not([style*="width"]),
+.sidebar__quota svg:not([style*="width"]),
+.sidebar__user svg:not([style*="width"]),
+.sidebar__user-trigger svg:not([style*="width"]),
+#userDropdown svg:not([style*="width"]),
+#qrPayModal svg:not([style*="width"]),
+#changePwModal svg:not([style*="width"]),
+#editProfileModal svg:not([style*="width"]),
+.storage-display svg:not([style*="width"]) {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.sidebar__user-chevron:not([style*="width"]) {
+  width: 14px !important;
+  height: 14px !important;
+}
 /* Tools dropdown icon */
 .tools-dropdown__item-icon .lucide {
   width: 16px;

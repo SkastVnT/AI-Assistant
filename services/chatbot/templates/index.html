@@ -42,14 +42,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260505b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260505c">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260505b">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
-    <!-- Visual refinements (loaded LAST so they can override) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/parts/enhancements.css') }}?v=20260427">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/parts/ui-overhaul.css') }}?v=20260427b">
 
     <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
     <script>
