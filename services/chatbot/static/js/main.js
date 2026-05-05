@@ -780,6 +780,19 @@ class ChatBotApp {
                                         </label>
                                     </div>
                                 </div>
+                                <div class="igv2-choice-extra" style="margin-top:8px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg)); display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:13px;">
+                                    <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Chỉ chạy preflight (kiểm tra prompt + character match) — không sinh ảnh.">
+                                        <input type="checkbox" class="igv2-preflight-toggle" style="width:16px; height:16px;">
+                                        <span><strong>🛡️ Check first</strong> — chỉ chạy preflight</span>
+                                    </label>
+                                    <label style="display:inline-flex; align-items:center; gap:6px;">
+                                        <span><strong>⚡ Mode</strong></span>
+                                        <select class="igv2-mode-select" style="padding:4px 8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px;">
+                                            <option value="normal" selected>Normal</option>
+                                            <option value="fast">Fast</option>
+                                        </select>
+                                    </label>
+                                </div>
                                 <div class="igv2-choice-progress">
                                     <div class="igv2-choice-progress-bar"></div>
                                 </div>
@@ -841,11 +854,22 @@ class ChatBotApp {
                 });
 
                 // Stash on container so the resolver below can read them
-                choiceContainer._getImageOnlyOpts = () => ({
-                    imageOnly: _imageOnly,
-                    batchSize: Math.max(1, Math.min(parseInt(_batchSize, 10) || 1, 6)),
-                    continuous: _getContinuousOpts(),
-                });
+                choiceContainer._getImageOnlyOpts = () => {
+                    const preflightOnly = !!choiceContainer.querySelector('.igv2-preflight-toggle')?.checked;
+                    const budgetMode = choiceContainer.querySelector('.igv2-mode-select')?.value || 'normal';
+                    try {
+                        window.imageGenOptions = window.imageGenOptions || {};
+                        window.imageGenOptions.preflightOnly = preflightOnly;
+                        window.imageGenOptions.budgetMode = budgetMode;
+                    } catch (_) { /* ignore */ }
+                    return {
+                        imageOnly: _imageOnly,
+                        batchSize: Math.max(1, Math.min(parseInt(_batchSize, 10) || 1, 6)),
+                        continuous: _getContinuousOpts(),
+                        preflightOnly,
+                        budgetMode,
+                    };
+                };
 
                 // Continuous-generation toggle wiring (independent of image-only).
                 const contCb = choiceContainer.querySelector('.igv2-continuous-toggle');

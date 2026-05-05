@@ -7,7 +7,11 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request, send_file, abort
 
-from core.character_registry import get_registry
+from core.character_registry import (
+    get_registry,
+    resolve_thumbnail_path,
+    resolve_thumbnail_data_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,14 @@ def list_characters():
 
     reg = get_registry()
     local = reg.find(query=q, series_filter=series, limit=limit)
-    out = [{**r.to_dict(), "source": "local"} for r in local]
+    out = [
+        {
+            **r.to_dict(),
+            "source": "local",
+            "has_thumbnail": resolve_thumbnail_path(r) is not None,
+        }
+        for r in local
+    ]
 
     # Augment with SAA WAI matches when there is room and a query was provided.
     # Series filter is honored only for local results — SAA series_hint is a
@@ -81,6 +92,7 @@ def list_characters():
                         "solo_recommended": True,
                         "category": "character",
                         "source": "saa",
+                        "has_thumbnail": False,
                     })
                     seen_keys.add(char_key)
                     seen_tags.add(tag.lower())
@@ -143,19 +155,22 @@ def get_thumbnail(key: str):
         except Exception:
             pass
         abort(404)
-    if not rec.thumbnail:
-        abort(404)
-    # Resolve relative to repo root (4 levels up from this file)
-    repo_root = Path(__file__).resolve().parents[3]
-    thumb_path = (repo_root / rec.thumbnail).resolve()
-    # Security: ensure path stays under repo root
-    try:
-        thumb_path.relative_to(repo_root)
-    except ValueError:
-        abort(403)
-    if not thumb_path.exists() or not thumb_path.is_file():
-        abort(404)
-    return send_file(str(thumb_path))
+    thumb_path = resolve_thumbnail_path(rec)
+    if thumb_path is not None:
+        return send_file(str(thumb_path))
+    # Fallback — SAA WAI character DB (returns base64 data URL).
+    data_url = resolve_thumbnail_data_url(rec)
+    if data_url:
+        try:
+            header, payload = data_url.split(",", 1)
+            mime = header.split(":", 1)[1].split(";", 1)[0] or "image/png"
+            import base64 as _b64
+            raw = _b64.b64decode(payload)
+            from io import BytesIO as _BIO
+            return send_file(_BIO(raw), mimetype=mime)
+        except Exception:
+            pass
+    abort(404)
 
 
 @characters_bp.get("/preview")

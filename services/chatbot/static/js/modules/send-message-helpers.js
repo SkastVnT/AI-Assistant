@@ -367,6 +367,20 @@ function showProviderChoiceDialog(elements) {
                                     </div>
                                 </div>
                             </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">🛡️ Check first</span>
+                                <label class="igv2-choice-toggle" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;" title="Chỉ chạy preflight — không sinh ảnh.">
+                                    <input type="checkbox" data-field="preflight-only" style="width:16px;height:16px;cursor:pointer;">
+                                    <span>Chỉ chạy preflight</span>
+                                </label>
+                            </div>
+                            <div class="igv2-choice-option-group">
+                                <span class="igv2-choice-option-label">⚡ Mode</span>
+                                <select data-field="budget-mode" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);font-size:13px;">
+                                    <option value="normal" selected>Normal</option>
+                                    <option value="fast">Fast (rẻ + nhanh)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="igv2-choice-progress">
@@ -426,8 +440,16 @@ function showProviderChoiceDialog(elements) {
             const promptOverride = choiceContainer.querySelector('.igv2-choice-textarea[data-field="prompt"]')?.value.trim() || '';
             const negativePrompt = choiceContainer.querySelector('.igv2-choice-textarea[data-field="negative"]')?.value.trim() || '';
             const imageOnly = !!choiceContainer.querySelector('[data-field="image-only"]')?.checked;
+            const preflightOnly = !!choiceContainer.querySelector('[data-field="preflight-only"]')?.checked;
+            const budgetMode = choiceContainer.querySelector('[data-field="budget-mode"]')?.value || 'normal';
             const rawBatch = batchChip ? parseInt(batchChip.dataset.value, 10) : 4;
             const batchSize = Math.max(1, Math.min(rawBatch || 1, 6));
+            // Propagate to global options used by reasoning-image-gen.js.
+            try {
+                window.imageGenOptions = window.imageGenOptions || {};
+                window.imageGenOptions.preflightOnly = preflightOnly;
+                window.imageGenOptions.budgetMode = budgetMode;
+            } catch (_) { /* ignore */ }
             return {
                 steps: stepsChip ? parseInt(stepsChip.dataset.value, 10) : 30,
                 width: sizeChip ? parseInt(sizeChip.dataset.w, 10) : 1024,
@@ -437,6 +459,8 @@ function showProviderChoiceDialog(elements) {
                 promptOverride,
                 negativePrompt,
                 imageOnly,
+                preflightOnly,
+                budgetMode,
                 batchSize: imageOnly ? batchSize : 1,
             };
         };

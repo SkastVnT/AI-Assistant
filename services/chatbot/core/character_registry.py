@@ -202,4 +202,110 @@ def get_registry() -> CharacterRegistry:
     return CharacterRegistry.get_instance()
 
 
-__all__ = ["CharacterRegistry", "CharacterRecord", "get_registry"]
+# ── Thumbnail resolution ────────────────────────────────────────────────
+_CHAR_REFS_DIR = _REPO_ROOT / "storage" / "character_refs"
+_IMAGE_EXTS = {".webp", ".png", ".jpg", ".jpeg", ".gif"}
+
+
+def _normalize_token(s: str) -> str:
+    """Lowercase + strip punctuation so dirnames and tags can be compared
+    loosely (``hu_tao_(genshin_impact)`` ↔ ``hu_tao_genshin_impact``)."""
+    out = []
+    for ch in (s or "").lower():
+        if ch.isalnum():
+            out.append(ch)
+        elif ch in (" ", "_", "-"):
+            out.append("_")
+        # drop everything else (parens, colons, etc.)
+    return "".join(out).strip("_")
+
+
+def resolve_thumbnail_data_url(rec: CharacterRecord) -> Optional[str]:
+    """Try the SAA WAI character DB for a base64 data-URL thumbnail.
+
+    Used as a fallback when no on-disk image is found in
+    ``storage/character_refs/``. The WAI DB ships ~5000 SDXL character
+    thumbnails keyed by their tag (with spaces). We try several spellings
+    derived from the registry record: the SDXL ``character_tag``, a
+    ``"name (series)"`` form built from the tags, and the lowercase
+    display name. Returns ``None`` when SAA is unavailable or no match.
+    """
+    if rec is None:
+        return None
+    try:
+        from image_pipeline.anime_pipeline.saa_character_db import (
+            get_character_thumbnail,
+        )
+    except Exception:
+        return None
+    candidates: list[str] = []
+    if rec.character_tag:
+        candidates.append(rec.character_tag.replace("_", " "))
+    if rec.character_tag and rec.series_tag:
+        candidates.append(
+            f"{rec.character_tag} ({rec.series_tag})".replace("_", " ")
+        )
+    if rec.display_name and rec.series:
+        candidates.append(f"{rec.display_name} ({rec.series})".lower())
+    if rec.display_name:
+        candidates.append(rec.display_name.lower())
+    seen: set[str] = set()
+    for tag in candidates:
+        norm = tag.strip()
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        try:
+            data_url = get_character_thumbnail(norm)
+        except Exception:
+            continue
+        if data_url and data_url.startswith("data:"):
+            return data_url
+    return None
+
+
+def resolve_thumbnail_path(rec: CharacterRecord) -> Optional[Path]:
+    """Resolve a usable on-disk thumbnail for ``rec``.
+
+    Priority:
+        1. ``rec.thumbnail`` if the file exists.
+        2. First image found inside any ``storage/character_refs/<dir>``
+           whose normalized name matches ``character_tag`` or ``key``.
+
+    Returns an absolute :class:`Path` under the repo root, or ``None`` when
+    no candidate is found. Caller is responsible for serving the file.
+    """
+    if rec is None:
+        return None
+    # 1) Direct path from registry data.
+    if rec.thumbnail:
+        direct = (_REPO_ROOT / rec.thumbnail).resolve()
+        try:
+            direct.relative_to(_REPO_ROOT)
+        except ValueError:
+            return None
+        if direct.is_file():
+            return direct
+    # 2) Fallback — scan storage/character_refs for a matching dir.
+    if not _CHAR_REFS_DIR.is_dir():
+        return None
+    candidates = {_normalize_token(rec.character_tag), _normalize_token(rec.key)}
+    candidates.discard("")
+    for sub in _CHAR_REFS_DIR.iterdir():
+        if not sub.is_dir():
+            continue
+        norm = _normalize_token(sub.name)
+        if norm in candidates or any(norm.startswith(c) for c in candidates):
+            for f in sorted(sub.iterdir()):
+                if f.is_file() and f.suffix.lower() in _IMAGE_EXTS:
+                    return f.resolve()
+    return None
+
+
+__all__ = [
+    "CharacterRegistry",
+    "CharacterRecord",
+    "get_registry",
+    "resolve_thumbnail_path",
+    "resolve_thumbnail_data_url",
+]

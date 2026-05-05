@@ -7,7 +7,7 @@
     "character_tag": "raiden_shogun",
     "series_tag": "genshin_impact",
     "aliases": ["Ei", "Baal", "Raiden Ei"],
-    "thumbnail": "storage/character_refs/raiden_shogun/thumb.webp",
+    "thumbnail": null,
     "lora_hint": null,
     "solo_recommended": true,
     "category": "character"
@@ -20,7 +20,7 @@
     "character_tag": "hu_tao",
     "series_tag": "genshin_impact",
     "aliases": ["HuTao", "胡桃"],
-    "thumbnail": "storage/character_refs/hu_tao/thumb.webp",
+    "thumbnail": null,
     "lora_hint": null,
     "solo_recommended": true,
     "category": "character"
@@ -33,7 +33,7 @@
     "character_tag": "kafka_(honkai:_star_rail)",
     "series_tag": "honkai:_star_rail",
     "aliases": ["Kafka HSR"],
-    "thumbnail": "storage/character_refs/kafka_honkai_star_rail/thumb.webp",
+    "thumbnail": null,
     "lora_hint": null,
     "solo_recommended": true,
     "category": "character"
@@ -46,7 +46,7 @@
     "character_tag": "rem_(re:zero)",
     "series_tag": "re:zero_kara_hajimeru_isekai_seikatsu",
     "aliases": ["Rem (Re:Zero)"],
-    "thumbnail": "storage/character_refs/rem_re_zero/thumb.webp",
+    "thumbnail": null,
     "lora_hint": null,
     "solo_recommended": true,
     "category": "character"

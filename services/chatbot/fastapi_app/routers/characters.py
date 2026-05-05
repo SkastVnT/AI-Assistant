@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 # core.character_registry is a sync, read-mostly module — safe to
 # call from FastAPI handlers without going through asyncio.to_thread.
-from core.character_registry import get_registry
+from core.character_registry import get_registry, resolve_thumbnail_path
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,13 @@ def list_characters(
     reg = get_registry()
     results = reg.find(query=q, series_filter=series, limit=limit)
     return {
-        "characters": [r.to_dict() for r in results],
+        "characters": [
+            {
+                **r.to_dict(),
+                "has_thumbnail": resolve_thumbnail_path(r) is not None,
+            }
+            for r in results
+        ],
         "count": len(results),
         "query": q,
         "series_filter": series,
@@ -68,20 +74,22 @@ def get_character(key: str):
 def get_thumbnail(key: str):
     reg = get_registry()
     rec = reg.get(key)
-    if rec is None or not rec.thumbnail:
+    if rec is None:
         raise HTTPException(status_code=404)
-    # Resolve relative to repo root (4 levels up from this file:
-    # services/chatbot/fastapi_app/routers/characters.py -> repo root)
-    repo_root = Path(__file__).resolve().parents[4]
-    thumb_path = (repo_root / rec.thumbnail).resolve()
-    # Security: keep the resolved path under the repo root.
-    try:
-        thumb_path.relative_to(repo_root)
-    except ValueError:
-        raise HTTPException(status_code=403)
-    if not thumb_path.exists() or not thumb_path.is_file():
-        raise HTTPException(status_code=404)
-    return FileResponse(str(thumb_path))
+    thumb_path = resolve_thumbnail_path(rec)
+    if thumb_path is not None:
+        return FileResponse(str(thumb_path))
+    # Fallback — SAA WAI character DB (data URL).
+    data_url = resolve_thumbnail_data_url(rec)
+    if data_url:
+        try:
+            header, payload = data_url.split(",", 1)
+            mime = header.split(":", 1)[1].split(";", 1)[0] or "image/png"
+            import base64 as _b64
+            return Response(content=_b64.b64decode(payload), media_type=mime)
+        except Exception:
+            pass
+    raise HTTPException(status_code=404)
 
 
 @router.post("/reload")

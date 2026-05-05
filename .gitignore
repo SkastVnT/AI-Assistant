@@ -21,6 +21,7 @@ private copy/
 ./knowledge_base/
 /webui_csv/
 **/S.png
+**/saa-win32-x64
 
 # ============================================
 # VIRTUAL ENVIRONMENT
