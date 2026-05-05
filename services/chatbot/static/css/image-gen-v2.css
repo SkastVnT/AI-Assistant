@@ -590,3 +590,47 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
 }
+
+/* -- Choice modal: extra options strip (Check first / Mode) -- */
+.igv2-choice-extra {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px dashed var(--border-secondary, var(--border));
+    border-radius: 8px;
+    background: var(--bg-secondary, var(--bg));
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: 13px;
+}
+.igv2-choice-extra .igv2-extra__opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text-primary, var(--text));
+}
+.igv2-choice-extra .igv2-extra__icon {
+    width: 14px;
+    height: 14px;
+    color: var(--accent, #4a9eff);
+}
+.igv2-choice-extra input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent, #4a9eff);
+}
+.igv2-choice-extra .igv2-mode-select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-secondary, var(--border));
+    background: var(--bg-input, var(--bg));
+    color: var(--text-primary, var(--text));
+    font-size: 13px;
+    cursor: pointer;
+}
+.igv2-choice-extra .igv2-extra__hint {
+    color: var(--text-secondary, #888);
+    font-weight: 400;
+}

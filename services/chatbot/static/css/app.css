@@ -32,6 +32,19 @@
 .topbar__btn .lucide,
 .sidebar__footer-btn .lucide {
   pointer-events: none;
+  width: 18px;
+  height: 18px;
+}
+/* Force inline icons inside any topbar control (incl. wrapper spans like
+   #thinkingModeIcon) to a sane size so raw <svg width="24"...> from
+   lucide.createIcons() can't blow out the layout. */
+.topbar__btn svg,
+.topbar__btn .topbar__btn-icon svg,
+.topbar__btn span > svg,
+.topbar__more-item svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
 }
 /* Tools dropdown icon */
 .tools-dropdown__item-icon .lucide {
@@ -403,6 +416,84 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── Sidebar chat item polish (titlerow + time + badges + groups) ── */
+.sidebar__chat-titlerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding-right: 24px;
+  min-width: 0;
+}
+.sidebar__chat-titlerow .sidebar__chat-title {
+  padding-right: 0;
+  flex: 1;
+  min-width: 0;
+}
+.sidebar__chat-time {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar__chat-item:hover .sidebar__chat-time,
+.sidebar__chat-item.active .sidebar__chat-time {
+  color: var(--text-secondary);
+}
+.sidebar__chat-preview--empty {
+  font-style: italic;
+  opacity: 0.65;
+}
+.sidebar__chat-preview--asset {
+  color: var(--accent);
+  font-weight: 500;
+}
+.sidebar__chat-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.sidebar__chat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.sidebar__chat-badge .lucide,
+.sidebar__chat-badges .lucide,
+.sidebar__chat-context .lucide {
+  width: 10px !important;
+  height: 10px !important;
+}
+.sidebar__chat-badge--image {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--success, #22c55e);
+}
+.sidebar__chat-badge--video {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning, #f59e0b);
+}
+/* Day-group separator headers */
+.sidebar__chat-group {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  padding: 12px 12px 4px;
+  user-select: none;
+}
+.sidebar__chat-group:first-child {
+  padding-top: 4px;
 }
 
 /* Sidebar chat item layout */

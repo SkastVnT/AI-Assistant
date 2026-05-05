@@ -364,6 +364,101 @@ export class UIUtils {
     }
 
     /**
+     * Build a smart preview + asset counts from a session's HTML messages.
+     * Returns { preview, previewClass, imageCount, videoCount }.
+     */
+    _summarizeChatMessages(messages) {
+        const out = { preview: 'Chưa có tin nhắn', previewClass: 'sidebar__chat-preview--empty', imageCount: 0, videoCount: 0 };
+        if (!Array.isArray(messages) || messages.length === 0) return out;
+        // Tally generated assets across the whole session.
+        for (const m of messages) {
+            if (typeof m !== 'string') continue;
+            // Count <img> that are part of generated images (data URIs, blob,
+            // /static/uploads/, /images/, image-message wrappers). Conservative:
+            // count any <img> — most chat <img> tags ARE generated assets.
+            const imgs = m.match(/<img[\s>]/gi);
+            if (imgs) out.imageCount += imgs.length;
+            const vids = m.match(/<video[\s>]/gi);
+            if (vids) out.videoCount += vids.length;
+        }
+        // Pick a preview source: prefer the user prompt (msg 0 is usually
+        // user, msg 1 is assistant). Fall back to the last message.
+        const firstUser = typeof messages[0] === 'string' ? messages[0] : '';
+        const fallback = typeof messages[messages.length - 1] === 'string'
+            ? messages[messages.length - 1] : '';
+        const source = firstUser || fallback;
+        const text = String(source).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (text) {
+            out.preview = this.escapeHtml(text.length > 60 ? text.slice(0, 60) + '…' : text);
+            out.previewClass = '';
+        } else if (out.imageCount > 0 || out.videoCount > 0) {
+            const parts = [];
+            if (out.imageCount > 0) parts.push(`${out.imageCount} ảnh`);
+            if (out.videoCount > 0) parts.push(`${out.videoCount} video`);
+            out.preview = `Đã tạo ${parts.join(' + ')}`;
+            out.previewClass = 'sidebar__chat-preview--asset';
+        }
+        return out;
+    }
+
+    /**
+     * Compact relative timestamp: just now / 5m / 2h / Yesterday / 12 Mar.
+     */
+    _relativeTime(ts) {
+        if (!ts || typeof ts !== 'number') return '';
+        const now = Date.now();
+        const diff = Math.max(0, now - ts);
+        const m = Math.floor(diff / 60000);
+        if (m < 1) return 'vừa xong';
+        if (m < 60) return `${m}m`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h`;
+        const d = Math.floor(h / 24);
+        if (d === 1) return 'Hôm qua';
+        if (d < 7) return `${d}d`;
+        try {
+            return new Date(ts).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' });
+        } catch { return ''; }
+    }
+
+    /** Coarse day-bucket key used for separator headers in the sidebar. */
+    _dayGroupKey(ts) {
+        if (!ts) return 'earlier';
+        const now = Date.now();
+        const diffH = (now - ts) / 3600000;
+        if (diffH < 24) return 'today';
+        if (diffH < 48) return 'yesterday';
+        if (diffH < 24 * 7) return 'week';
+        return 'earlier';
+    }
+
+    /** Insert <h4> separators between day-group buckets. Idempotent. */
+    _injectDayGroupHeaders() {
+        const list = this.elements.chatList;
+        if (!list) return;
+        // Remove any old separators (re-render path).
+        list.querySelectorAll('.sidebar__chat-group').forEach(el => el.remove());
+        const labels = {
+            today: 'Hôm nay',
+            yesterday: 'Hôm qua',
+            week: 'Tuần này',
+            earlier: 'Trước đó',
+        };
+        let lastGroup = null;
+        const items = Array.from(list.querySelectorAll('.sidebar__chat-item'));
+        items.forEach(item => {
+            const g = item.dataset.dayGroup || 'earlier';
+            if (g !== lastGroup) {
+                const header = document.createElement('div');
+                header.className = `sidebar__chat-group sidebar__chat-group--${g}`;
+                header.textContent = labels[g] || g;
+                list.insertBefore(header, item);
+                lastGroup = g;
+            }
+        });
+    }
+
+    /**
      * Render chat list with drag & drop support
      */
     renderChatList(chatSessions, currentChatId, onSwitchChat, onDeleteChat, onReorder, onTogglePin) {
@@ -396,22 +491,44 @@ export class UIUtils {
             const isActive = id === currentChatId;
             const isPinned = session.pinned || false;
             const messages = Array.isArray(session.messages) ? session.messages : [];
-            const firstMsg = messages[1] || messages[0];
-            const preview = messages.length > 0 && typeof firstMsg === 'string'
-                ? firstMsg.replace(/<[^>]*>/g, '').substring(0, 50) + '...'
-                : 'No messages';
+            // Smart preview: detect generated assets (images/video) so the user
+            // can tell what was created at a glance, instead of "No messages".
+            const meta = this._summarizeChatMessages(messages);
+            const preview = meta.preview;
             const msgCount = messages.length;
             const isChecked = this._selectedIds.has(id);
-            
+            const tsLabel = this._relativeTime(session.updatedAt || session.createdAt || 0);
+            const groupKey = this._dayGroupKey(session.updatedAt || session.createdAt || 0);
+            const groupHeader = (window.chatManager && !window.chatManager.getSortedChatIds)
+                ? '' // Suppress headers when caller already fed an explicit ordering
+                : '';
+
+            const badges = [];
+            if (meta.imageCount > 0) {
+                badges.push(`<span class="sidebar__chat-badge sidebar__chat-badge--image" title="${meta.imageCount} ảnh đã tạo"><i data-lucide="image"></i> ${meta.imageCount}</span>`);
+            }
+            if (meta.videoCount > 0) {
+                badges.push(`<span class="sidebar__chat-badge sidebar__chat-badge--video" title="${meta.videoCount} video đã tạo"><i data-lucide="video"></i> ${meta.videoCount}</span>`);
+            }
+            if (msgCount > 0) {
+                badges.push(`<span class="sidebar__chat-context" title="${msgCount} tin nhắn"><i data-lucide="message-square"></i> ${msgCount}</span>`);
+            }
+            const badgeHtml = badges.length
+                ? `<div class="sidebar__chat-badges">${badges.join('')}</div>`
+                : '';
+
             return `
-                <div class="sidebar__chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${selectMode ? 'select-mode' : ''} ${isChecked ? 'selected' : ''}" 
-                     data-chat-id="${id}" draggable="${selectMode ? 'false' : 'true'}">
+                <div class="sidebar__chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${selectMode ? 'select-mode' : ''} ${isChecked ? 'selected' : ''}"
+                     data-chat-id="${id}" data-day-group="${groupKey}" draggable="${selectMode ? 'false' : 'true'}">
                     ${selectMode ? `<input type="checkbox" class="sidebar__chat-checkbox" data-chat-id="${id}" ${isChecked ? 'checked' : ''}>` : '<span class="drag-handle" title="Drag to reorder">⠿</span>'}
                     <div class="sidebar__chat-info">
-                        <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
-                        <div class="sidebar__chat-preview">${this.escapeHtml(preview)}</div>
+                        <div class="sidebar__chat-titlerow">
+                            <div class="sidebar__chat-title">${this.escapeHtml(session.title)}</div>
+                            ${tsLabel ? `<span class="sidebar__chat-time" title="${new Date(session.updatedAt || session.createdAt || 0).toLocaleString()}">${tsLabel}</span>` : ''}
+                        </div>
+                        <div class="sidebar__chat-preview ${meta.previewClass}">${preview}</div>
+                        ${badgeHtml}
                     </div>
-                    ${msgCount > 0 ? `<span class="sidebar__chat-context"><i data-lucide="message-square" style="width:10px;height:10px;"></i> ${msgCount}</span>` : ''}
                     <div class="sidebar__chat-actions">
                         ${isPinned ? '<span class="sidebar__chat-pin-indicator" title="Pinned"><i data-lucide="pin" style="width:11px;height:11px;"></i></span>' : ''}
                         <button class="sidebar__chat-menu-btn" data-chat-id="${id}" title="Menu">
@@ -423,6 +540,9 @@ export class UIUtils {
                 </div>
             `;
         }).join('');
+
+        // Inject day-group separators (Today / Yesterday / This week / Earlier)
+        this._injectDayGroupHeaders();
 
         // Refresh Lucide icons in chat list
         if (window.lucide) {

@@ -780,14 +780,16 @@ class ChatBotApp {
                                         </label>
                                     </div>
                                 </div>
-                                <div class="igv2-choice-extra" style="margin-top:8px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg)); display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:13px;">
-                                    <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Chỉ chạy preflight (kiểm tra prompt + character match) — không sinh ảnh.">
-                                        <input type="checkbox" class="igv2-preflight-toggle" style="width:16px; height:16px;">
-                                        <span><strong>🛡️ Check first</strong> — chỉ chạy preflight</span>
+                                <div class="igv2-choice-extra">
+                                    <label class="igv2-extra__opt" title="Chỉ chạy preflight (kiểm tra prompt + character match) — không sinh ảnh.">
+                                        <input type="checkbox" class="igv2-preflight-toggle">
+                                        <i data-lucide="shield-check" class="igv2-extra__icon"></i>
+                                        <span><strong>Check first</strong><span class="igv2-extra__hint"> — chỉ chạy preflight</span></span>
                                     </label>
-                                    <label style="display:inline-flex; align-items:center; gap:6px;">
-                                        <span><strong>⚡ Mode</strong></span>
-                                        <select class="igv2-mode-select" style="padding:4px 8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px;">
+                                    <label class="igv2-extra__opt">
+                                        <i data-lucide="zap" class="igv2-extra__icon"></i>
+                                        <span><strong>Mode</strong></span>
+                                        <select class="igv2-mode-select">
                                             <option value="normal" selected>Normal</option>
                                             <option value="fast">Fast</option>
                                         </select>
