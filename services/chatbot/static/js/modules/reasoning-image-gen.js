@@ -1,14 +1,10 @@
 /**
- * Reasoning Image Gen — UI bridge.
+ * Reasoning Image Gen — UI bridge (Cycle 6).
  *
- * Probes /api/reasoning-image-gen/status. When the route is missing
- * (REASONING_PIPELINE=false) nothing is rendered. When present:
- *   • A "Reasoning Pipeline" item is appended to the topbar More menu
- *     (#moreMenuDropdown) — matches existing topbar__more-item style.
- *   • Clicking opens a styled modal (textarea + Generate button) that
- *     POSTs to /api/reasoning-image-gen/generate.
- *   • Warnings render inline inside the modal; results render in a
- *     full-screen overlay.
+ * Self-registering button that probes /api/reasoning-image-gen/status. When
+ * the route is missing (REASONING_PIPELINE=false) the button is silently
+ * removed and no other UI is touched. When present, the button opens a
+ * minimal prompt dialog and POSTs to /api/reasoning-image-gen/generate.
  *
  * Additive only — does NOT touch image-gen-v2.js or any existing controls.
  */
@@ -17,119 +13,22 @@
 
     const STATUS_URL = "/api/reasoning-image-gen/status";
     const GENERATE_URL = "/api/reasoning-image-gen/generate";
-    const MENU_ITEM_ID = "reasoningImageGenMenuItem";
-    const MODAL_ID = "reasoningImageGenModal";
+    const BTN_ID = "reasoningImageGenBtn";
 
-    // ── Menu wiring ───────────────────────────────────────────────────
-
-    function injectMenuItem() {
-        if (document.getElementById(MENU_ITEM_ID)) return;
-        const menu = document.getElementById("moreMenuDropdown");
-        if (!menu) return;
-        const item = document.createElement("button");
-        item.id = MENU_ITEM_ID;
-        item.type = "button";
-        item.className = "topbar__more-item";
-        item.title = "Reasoning Image Pipeline (local, multi-panel)";
-        item.innerHTML =
-            '<i data-lucide="brain-circuit" class="lucide"></i> ' +
-            "<span>Reasoning Pipeline</span>";
-        item.addEventListener("click", () => {
-            const dropdown = document.getElementById("moreMenuDropdown");
-            if (dropdown) dropdown.classList.add("hidden");
-            openModal();
-        });
-        menu.appendChild(item);
-        if (window.lucide && typeof window.lucide.createIcons === "function") {
-            try { window.lucide.createIcons(); } catch (_e) { /* noop */ }
-        }
+    function injectButton() {
+        if (document.getElementById(BTN_ID)) return;
+        const btn = document.createElement("button");
+        btn.id = BTN_ID;
+        btn.type = "button";
+        btn.title = "Reasoning Image Pipeline (local, multi-panel)";
+        btn.textContent = "🧠 Reason";
+        btn.style.cssText =
+            "position:fixed;right:16px;bottom:120px;z-index:9999;padding:8px 12px;" +
+            "border-radius:18px;border:1px solid #6a5acd;background:#1e1e2f;color:#fff;" +
+            "font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);";
+        btn.addEventListener("click", openDialog);
+        document.body.appendChild(btn);
     }
-
-    // ── Modal ─────────────────────────────────────────────────────────
-
-    function ensureModal() {
-        let overlay = document.getElementById(MODAL_ID);
-        if (overlay) return overlay;
-
-        overlay = document.createElement("div");
-        overlay.id = MODAL_ID;
-        overlay.className = "modal-overlay";
-        overlay.innerHTML =
-            '<div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="reasoningImageGenTitle" style="max-width:560px;width:90vw;">' +
-                '<div class="modal-panel__header">' +
-                    '<h3 class="modal-panel__title" id="reasoningImageGenTitle">Reasoning Image Pipeline</h3>' +
-                    '<button type="button" class="modal-panel__close" data-act="close" aria-label="Close">&times;</button>' +
-                '</div>' +
-                '<div class="modal-panel__body">' +
-                    '<p style="margin:0 0 8px;font-size:13px;color:var(--text-secondary, #888);">' +
-                        'Local multi-panel pipeline (ComfyUI). Describe the scene; the planner will split it into panels and run preflight checks.' +
-                    '</p>' +
-                    '<textarea id="reasoningImageGenPrompt" rows="5" placeholder="e.g. A two-panel comic: hero entering a forest; closeup of their face under moonlight." ' +
-                        'style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid var(--border, #444);' +
-                        'background:var(--bg-secondary, #1a1a24);color:var(--text-primary, #eee);font:inherit;resize:vertical;"></textarea>' +
-                    '<div id="reasoningImageGenInlineMsg" style="margin-top:10px;font-size:12px;line-height:1.4;"></div>' +
-                '</div>' +
-                '<div class="modal-panel__footer">' +
-                    '<button type="button" class="btn btn--ghost" data-act="close">Cancel</button>' +
-                    '<button type="button" class="btn btn--primary" data-act="generate" id="reasoningImageGenSubmit">Generate</button>' +
-                '</div>' +
-            '</div>';
-
-        overlay.addEventListener("click", (ev) => {
-            const t = ev.target;
-            if (!(t instanceof HTMLElement)) return;
-            const act = t.getAttribute("data-act");
-            if (t === overlay || act === "close") {
-                closeModal();
-            } else if (act === "generate") {
-                submitPrompt();
-            }
-        });
-
-        document.body.appendChild(overlay);
-        return overlay;
-    }
-
-    function openModal(prefill) {
-        const overlay = ensureModal();
-        const ta = overlay.querySelector("#reasoningImageGenPrompt");
-        if (ta && typeof prefill === "string") ta.value = prefill;
-        clearInlineMsg();
-        overlay.classList.add("open");
-        setTimeout(() => { if (ta) ta.focus(); }, 50);
-    }
-
-    function closeModal() {
-        const overlay = document.getElementById(MODAL_ID);
-        if (overlay) overlay.classList.remove("open");
-    }
-
-    function setInlineMsg(html, kind) {
-        const el = document.querySelector("#reasoningImageGenInlineMsg");
-        if (!el) return;
-        const palette = {
-            warn: "color:#f3dfa6;border:1px solid #b8860b;background:#2a210a;",
-            err:  "color:#f3c0c4;border:1px solid #b00020;background:#2a0f12;",
-            ok:   "color:#cfe9d4;border:1px solid #2e7d32;background:#13241a;",
-        };
-        const style = palette[kind] || palette.warn;
-        el.style.cssText = "padding:8px 10px;border-radius:6px;" + style;
-        el.innerHTML = html;
-    }
-
-    function clearInlineMsg() {
-        const el = document.querySelector("#reasoningImageGenInlineMsg");
-        if (el) { el.textContent = ""; el.removeAttribute("style"); }
-    }
-
-    function setSubmitBusy(busy) {
-        const btn = document.querySelector("#reasoningImageGenSubmit");
-        if (!btn) return;
-        btn.disabled = !!busy;
-        btn.textContent = busy ? "Generating…" : "Generate";
-    }
-
-    // ── Request flow ──────────────────────────────────────────────────
 
     function buildBody(promptText, { force } = {}) {
         const opts = (window.imageGenOptions || {});
@@ -138,6 +37,8 @@
         const body = { prompt: promptText };
         if (sel) body.selected_character = sel;
         if (mp)  body.manual_profile = mp;
+        // ``force`` (Generate anyway) clears the preflight gates so the
+        // pipeline runs on this attempt only — chip toggles stay set.
         if (!force && opts.preflightOnly) body.preflight_only = true;
         if (!force && opts.requirePreflightPass) body.require_preflight_pass = true;
         if (opts.budgetMode === "fast") body.budget_mode = "fast";
@@ -154,71 +55,123 @@
         return res.json();
     }
 
-    async function submitPrompt({ force } = {}) {
-        const ta = document.querySelector("#reasoningImageGenPrompt");
-        const promptText = ta ? ta.value.trim() : "";
-        if (!promptText) {
-            setInlineMsg("Please enter a prompt.", "warn");
-            return;
-        }
-        setSubmitBusy(true);
-        clearInlineMsg();
+    async function runWithPrompt(promptText, { force } = {}) {
+        const btn = document.getElementById(BTN_ID);
+        if (btn) { btn.disabled = true; btn.textContent = "🧠 …"; }
         try {
             const data = await postGenerate(buildBody(promptText, { force }));
             handleResponse(data, promptText);
         } catch (err) {
             console.error("[reasoning-image-gen] error", err);
-            setInlineMsg(
-                "Request failed: " + escapeHTML(err && err.message || String(err)),
-                "err"
-            );
+            showWarning({
+                risk_level: "high",
+                blocking_reason: "request_failed",
+                suggested_next_action: err.message || "network error",
+            }, promptText, { allowRetry: true });
         } finally {
-            setSubmitBusy(false);
+            if (btn) { btn.disabled = false; btn.textContent = "🧠 Reason"; }
         }
     }
 
     function handleResponse(data, promptText) {
         if (data && data.success && data.image_b64) {
-            closeModal();
             showResultImage(data.image_b64, data.comic);
             return;
         }
         if (data && data.preflight) {
+            // Compact warning UI: only render the banner for medium/high.
+            // For ``low`` (typical preflight-only happy path) we silently
+            // do nothing — caller can re-click without preflight gating.
             const risk = (data.risk_level || "low").toLowerCase();
             if (risk === "low") {
-                setInlineMsg("Preflight: low risk. Click Generate again to run.", "ok");
+                showLowRiskHint(promptText);
                 return;
             }
-            renderWarning(data, promptText);
+            showWarning(data, promptText, { allowRetry: true });
             return;
         }
-        setInlineMsg(
-            "Pipeline error: " + escapeHTML((data && data.error) || "unknown"),
-            "err"
-        );
+        console.warn("[reasoning-image-gen] failed", data);
+        showWarning({
+            risk_level: "high",
+            blocking_reason: "pipeline_error",
+            suggested_next_action: (data && data.error) || "unknown error",
+        }, promptText, { allowRetry: false });
     }
 
-    function renderWarning(data, _promptText) {
+    async function openDialog() {
+        const prompt = window.prompt(
+            "Reasoning pipeline prompt (local ComfyUI):",
+            ""
+        );
+        if (!prompt || !prompt.trim()) return;
+        await runWithPrompt(prompt.trim());
+    }
+
+    // ── Compact warning banner (no big technical panel) ───────────────
+    const BANNER_ID = "reasoningImageGenWarn";
+
+    function dismissBanner() {
+        const el = document.getElementById(BANNER_ID);
+        if (el) el.remove();
+    }
+
+    function showLowRiskHint(promptText) {
+        // Tiny non-blocking confirmation. Disappears in 3s.
+        dismissBanner();
+        const el = document.createElement("div");
+        el.id = BANNER_ID;
+        el.style.cssText =
+            "position:fixed;right:16px;bottom:170px;z-index:9999;max-width:320px;" +
+            "padding:8px 12px;border-radius:8px;border:1px solid #2e7d32;" +
+            "background:#13241a;color:#cfe9d4;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.4);";
+        el.textContent = "Preflight: low risk. Click Reason to generate.";
+        document.body.appendChild(el);
+        setTimeout(dismissBanner, 3000);
+    }
+
+    function showWarning(data, promptText, { allowRetry } = {}) {
+        dismissBanner();
         const risk = (data.risk_level || "high").toLowerCase();
+        const isHigh = risk === "high";
+        const el = document.createElement("div");
+        el.id = BANNER_ID;
+        el.style.cssText =
+            "position:fixed;right:16px;bottom:170px;z-index:9999;max-width:360px;" +
+            "padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4;" +
+            "box-shadow:0 2px 8px rgba(0,0,0,0.4);" +
+            (isHigh
+                ? "border:1px solid #b00020;background:#2a0f12;color:#f3c0c4;"
+                : "border:1px solid #b8860b;background:#2a210a;color:#f3dfa6;");
         const ident = data.canonical_id || data.provisional_id || "";
-        const html =
-            '<div style="font-weight:600;margin-bottom:4px;">Preflight: ' +
-                escapeHTML(risk) + " risk" +
-                (data.character_mode
-                    ? ' <span style="opacity:.7;">(' + escapeHTML(data.character_mode) + ')</span>'
-                    : "") +
-            "</div>" +
-            (data.blocking_reason ? "<div>Reason: " + escapeHTML(data.blocking_reason) + "</div>" : "") +
-            (data.suggested_next_action ? "<div>Next: " + escapeHTML(data.suggested_next_action) + "</div>" : "") +
-            (ident ? '<div style="opacity:.7;">id: <code>' + escapeHTML(ident) + "</code></div>" : "") +
-            '<div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;">' +
-                '<button type="button" id="reasoningImageGenForceBtn" ' +
-                    'style="padding:4px 10px;border-radius:4px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;">' +
-                    "Generate anyway</button>" +
-            "</div>";
-        setInlineMsg(html, risk === "high" ? "err" : "warn");
-        const forceBtn = document.querySelector("#reasoningImageGenForceBtn");
-        if (forceBtn) forceBtn.addEventListener("click", () => submitPrompt({ force: true }));
+        el.innerHTML =
+            `<div style="font-weight:600;margin-bottom:4px;">` +
+            `Preflight: ${escapeHTML(risk)} risk` +
+            (data.character_mode ? ` <span style="opacity:.7;">(${escapeHTML(data.character_mode)})</span>` : "") +
+            `</div>` +
+            (data.blocking_reason
+                ? `<div>Reason: ${escapeHTML(data.blocking_reason)}</div>` : "") +
+            (data.suggested_next_action
+                ? `<div>Next: ${escapeHTML(data.suggested_next_action)}</div>` : "") +
+            (ident
+                ? `<div style="opacity:.7;">id: <code>${escapeHTML(ident)}</code></div>` : "") +
+            `<div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;">` +
+            (allowRetry
+                ? `<button type="button" data-act="anyway" style="padding:4px 10px;border-radius:4px;border:1px solid #888;background:transparent;color:inherit;cursor:pointer;">Generate anyway</button>`
+                : "") +
+            `<button type="button" data-act="close" style="padding:4px 10px;border-radius:4px;border:1px solid #555;background:transparent;color:inherit;cursor:pointer;">Dismiss</button>` +
+            `</div>`;
+        el.addEventListener("click", (ev) => {
+            const t = ev.target;
+            if (!t || t.tagName !== "BUTTON") return;
+            const act = t.getAttribute("data-act");
+            if (act === "close") {
+                dismissBanner();
+            } else if (act === "anyway") {
+                dismissBanner();
+                runWithPrompt(promptText, { force: true });
+            }
+        });
+        document.body.appendChild(el);
     }
 
     function escapeHTML(s) {
@@ -242,8 +195,8 @@
             "background:rgba(0,0,0,0.6);padding:4px 8px;border-radius:4px;";
         if (comic) {
             caption.textContent =
-                comic.layout + " — " + comic.panel_count + " panel(s) — " +
-                comic.width + "×" + comic.height;
+                `${comic.layout} — ${comic.panel_count} panel(s) — ` +
+                `${comic.width}×${comic.height}`;
         }
         overlay.appendChild(img);
         overlay.appendChild(caption);
@@ -251,21 +204,16 @@
         document.body.appendChild(overlay);
     }
 
-    // ── Init ──────────────────────────────────────────────────────────
-
     async function init() {
         try {
             const res = await fetch(STATUS_URL, { method: "GET" });
             if (!res.ok) return;
             const data = await res.json();
-            if (data && data.enabled) injectMenuItem();
+            if (data && data.enabled) injectButton();
         } catch (_err) {
             // Route absent — silent no-op.
         }
     }
-
-    // Public API for other modules / hotkeys.
-    window.openReasoningImageGen = openModal;
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);

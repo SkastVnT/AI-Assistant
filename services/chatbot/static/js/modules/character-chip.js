@@ -226,20 +226,13 @@
     const pickerBtn = document.getElementById('characterPickerBtn');
     if (pickerBtn) {
       pickerBtn.addEventListener('click', () => {
-        // Modal-only flow (UX choice 2026-05-05). The inline-card path
-        // remains exported as openCharacterPickerInline for any
-        // module that wants it explicitly, but the topbar button always
-        // opens the centred modal so the experience matches the
-        // Reasoning + Job-queue panels.
-        if (typeof window.openCharacterPicker === 'function') {
+        if (typeof window.openCharacterPickerInline === 'function') {
+          window.openCharacterPickerInline((rec) => onSelected(rec));
+        } else if (typeof window.openCharacterPicker === 'function') {
           window.openCharacterPicker((rec) => onSelected(rec));
         }
       });
     }
-    // Legacy More-menu entry (#manualProfileBtn) was removed — the
-    // Manual Profile flow is now a sub-action inside the picker modal,
-    // which calls window.openManualProfileModal() directly. We still
-    // wire the button defensively in case some build keeps it.
     const profileBtn = document.getElementById('manualProfileBtn');
     if (profileBtn) {
       profileBtn.addEventListener('click', openProfileModal);

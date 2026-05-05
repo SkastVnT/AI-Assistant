@@ -74,7 +74,6 @@
             <option value="">Tất cả series</option>
           </select>
           <button type="button" id="cpReloadBtn" class="cp-reload-btn" title="Reload registry">⟳</button>
-          <button type="button" id="cpManualProfileBtn" class="cp-reload-btn" title="Manual character profile" aria-label="Manual profile">✎</button>
         </div>
         <div class="character-picker-grid" id="cpGrid" aria-live="polite"></div>
         <div class="character-picker-footer">
@@ -195,7 +194,6 @@
     const closeBtn = document.getElementById('cpCloseBtn');
     const cancelBtn = document.getElementById('cpCancelBtn');
     const reloadBtn = document.getElementById('cpReloadBtn');
-    const manualBtn = document.getElementById('cpManualProfileBtn');
     const search = document.getElementById('cpSearchInput');
     const series = document.getElementById('cpSeriesFilter');
     if (closeBtn && !closeBtn._cpBound) { closeBtn.addEventListener('click', closePicker); closeBtn._cpBound = true; }
@@ -211,20 +209,6 @@
         } catch (e) { console.error('[character-picker] reload failed', e); }
       });
       reloadBtn._cpBound = true;
-    }
-    if (manualBtn && !manualBtn._cpBound) {
-      manualBtn.addEventListener('click', () => {
-        // Sub-action: open the Manual Profile modal (provided by
-        // character-chip.js). Closes the picker first so the two modals
-        // don't stack.
-        if (typeof window.openManualProfileModal === 'function') {
-          closePicker();
-          window.openManualProfileModal();
-        } else {
-          console.warn('[character-picker] openManualProfileModal not loaded');
-        }
-      });
-      manualBtn._cpBound = true;
     }
     if (search && !search._cpBound) {
       search.addEventListener('input', (ev) => { STATE.query = ev.target.value; debouncedRefresh(); });
