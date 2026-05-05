@@ -141,12 +141,13 @@
     set('mpPersonality', (m.personality_traits || []).join('\n'));
     set('mpGuard', (m.negative_identity_guard || []).join('\n'));
     set('mpRefs', (m.reference_images || []).join('\n'));
-    modal.style.display = 'flex';
+    modal.style.display = '';       // remove inline display:none so CSS display:flex applies
+    modal.classList.add('open');    // CSS .modal-overlay.open { opacity:1; visibility:visible }
   }
 
   function closeProfileModal() {
     const modal = document.getElementById('manualProfileModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('open');
   }
 
   function splitLines(txt) {
