@@ -1011,12 +1011,39 @@ try {
             <div class="topbar__right">
                 <!-- Primary actions -->
                 <!-- <button class="topbar__btn" id="splitViewBtn" title="Split view"><i data-lucide="columns-2" class="lucide"></i></button> -->
-                <button class="topbar__btn" id="imageGenV2Btn" title="AI Image (Multi-provider)" style="color: var(--accent);"><i data-lucide="sparkles" class="lucide"></i></button>
-                <button class="topbar__btn" id="animePipelineBtn" title="Layered Anime Pipeline" style="color: var(--info, #8b5cf6);"><i data-lucide="layers" class="lucide"></i></button>
-                <button class="topbar__btn" id="characterPickerBtn" title="Chọn nhân vật" style="color: var(--success, #22c55e);"><i data-lucide="user-search" class="lucide"></i></button>
-                <button class="topbar__btn" id="jobQueueBtn" title="Hàng đợi tác vụ ảnh" style="color: var(--text-secondary);"><i data-lucide="list-ordered" class="lucide"></i></button>
-                <button class="topbar__btn" id="videoGenBtn" title="Video Sora2" style="color: var(--warning, #f59e0b);"><i data-lucide="video" class="lucide"></i></button>
+
+                <!-- Tools dropdown (gathers AI Image / Anime / Character / Queue / Video) -->
+                <div class="topbar__more topbar__tools" style="position:relative;">
+                    <button class="topbar__btn topbar__btn--labelled" id="topbarToolsBtn" title="Creative tools" aria-haspopup="true" aria-expanded="false">
+                        <i data-lucide="wand-2" class="lucide"></i>
+                        <span>Tools</span>
+                    </button>
+                    <div class="topbar__more-dropdown topbar__tools-dropdown hidden" id="topbarToolsDropdown" role="menu">
+                        <button class="topbar__more-item topbar__more-item--accent" id="imageGenV2Btn" role="menuitem">
+                            <i data-lucide="sparkles" class="lucide"></i>
+                            <span>AI Image (Multi-provider)</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--info" id="animePipelineBtn" role="menuitem">
+                            <i data-lucide="layers" class="lucide"></i>
+                            <span>Layered Anime Pipeline</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--success" id="characterPickerBtn" role="menuitem">
+                            <i data-lucide="user-search" class="lucide"></i>
+                            <span>Chọn nhân vật</span>
+                        </button>
+                        <button class="topbar__more-item" id="jobQueueBtn" role="menuitem">
+                            <i data-lucide="list-ordered" class="lucide"></i>
+                            <span>Hàng đợi tác vụ ảnh</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--warning" id="videoGenBtn" role="menuitem">
+                            <i data-lucide="video" class="lucide"></i>
+                            <span>Video Sora2</span>
+                        </button>
+                    </div>
+                </div>
+
                 <span class="topbar__sep" aria-hidden="true"></span>
+                <button class="topbar__btn" id="rightSidebarToggleBtn" title="Status panel"><i data-lucide="panel-right" class="lucide"></i></button>
                 <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
                 <button class="topbar__btn" id="darkModeBtn" title="Toggle theme"><i data-lucide="moon" class="lucide" id="darkModeIcon"></i></button>
 
@@ -1131,10 +1158,15 @@ try {
                 </div>
             </div>
             <div class="input-area__wrapper">
-                <!-- Active skill badge -->
-                <div class="active-skill-badge" id="activeSkillBadge" style="display: none;"></div>
-                <!-- Active tools display -->
-                <div class="active-tools" id="activeToolsDisplay"></div>
+                <!-- Composer chip strip: skill badge + active tools + character chip -->
+                <div class="composer-chips" id="composerChips">
+                    <!-- Active skill badge -->
+                    <div class="active-skill-badge" id="activeSkillBadge" style="display: none;"></div>
+                    <!-- Active tools display -->
+                    <div class="active-tools" id="activeToolsDisplay"></div>
+                    <!-- Active character chip (rendered by composer-chips.js) -->
+                    <div class="active-character-chip" id="activeCharacterChip" style="display: none;"></div>
+                </div>
 
                 <div class="input-area__container">
                     <!-- File attachments -->
@@ -2147,6 +2179,37 @@ try {
     </div>
 </div>
 
+<!-- Right Status Sidebar (collapsible) -->
+<aside class="right-sidebar collapsed" id="rightSidebar" aria-label="Status panel">
+    <div class="right-sidebar__header">
+        <h3 class="right-sidebar__title">Status</h3>
+        <button class="right-sidebar__close" id="rightSidebarCloseBtn" aria-label="Close panel">×</button>
+    </div>
+    <div class="right-sidebar__body">
+        <section class="right-sidebar__section" id="rightSidebarCharacterSection">
+            <div class="right-sidebar__section-title">Active character</div>
+            <div id="rightSidebarCharacterBody" class="right-sidebar__character right-sidebar__placeholder">
+                Chưa chọn nhân vật. Mở <em>Tools → Chọn nhân vật</em> để chọn.
+            </div>
+        </section>
+        <section class="right-sidebar__section">
+            <div class="right-sidebar__section-title">Active skill</div>
+            <div id="rightSidebarSkillBody" class="right-sidebar__placeholder">
+                Không có skill nào đang bật.
+            </div>
+        </section>
+        <section class="right-sidebar__section">
+            <div class="right-sidebar__section-title">Job queue</div>
+            <div id="rightSidebarJobsSummary" class="right-sidebar__jobs">
+                <div class="right-sidebar__placeholder">Đang chờ dữ liệu…</div>
+            </div>
+            <button type="button" class="right-sidebar__action" id="rightSidebarOpenJobs">
+                <i data-lucide="external-link" class="lucide"></i> Mở chi tiết hàng đợi
+            </button>
+        </section>
+    </div>
+</aside>
+
 <!-- Hidden elements for backward compat -->
 <div class="hidden">
     <button id="clearBtn"></button>
@@ -2160,31 +2223,64 @@ try {
 <script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
 <script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260504c"></script>
+<script src="{{ url_for('static', filename='js/modules/composer-chips.js') }}?v=20260505a"></script>
+<script src="{{ url_for('static', filename='js/modules/right-sidebar.js') }}?v=20260505a"></script>
 <script type="module" src="{{ url_for('static', filename='js/modules/tag-autocomplete.js') }}?v=20260423"></script>
 <script type="module" src="{{ url_for('static', filename='js/modules/global-image-viewer.js') }}?v=20260429"></script>
 <script>
-    // Character picker + job queue topbar bindings
+    // Topbar Tools dropdown + character picker / job queue / local-img / anime
+    // bindings. Buttons use real IDs (imageGenV2Btn, animePipelineBtn,
+    // characterPickerBtn, jobQueueBtn, videoGenBtn) so existing JS listeners
+    // (main.js video-gen modal, image-gen-v2 init, character-chip glue) keep
+    // working without changes.
     (function () {
-        const pickBtn = document.getElementById('characterPickerBtn');
-        if (pickBtn) {
-            pickBtn.addEventListener('click', () => {
-                if (typeof window.openCharacterPicker !== 'function') {
-                    console.warn('[character-picker] module not loaded');
+        // ── Tools dropdown toggle ─────────────────────────────────────
+        const toolsBtn = document.getElementById('topbarToolsBtn');
+        const toolsDropdown = document.getElementById('topbarToolsDropdown');
+        if (toolsBtn && toolsDropdown) {
+            toolsBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const open = !toolsDropdown.classList.contains('hidden');
+                if (open) {
+                    toolsDropdown.classList.add('hidden');
+                    toolsBtn.setAttribute('aria-expanded', 'false');
+                } else {
+                    toolsDropdown.classList.remove('hidden');
+                    toolsBtn.setAttribute('aria-expanded', 'true');
+                }
+            });
+            // Close-on-outside-click + on item click.
+            document.addEventListener('click', (ev) => {
+                if (!toolsDropdown.classList.contains('hidden')
+                    && !toolsDropdown.contains(ev.target)
+                    && ev.target !== toolsBtn
+                    && !toolsBtn.contains(ev.target)) {
+                    toolsDropdown.classList.add('hidden');
+                    toolsBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+            toolsDropdown.addEventListener('click', (ev) => {
+                if (ev.target.closest('.topbar__more-item')) {
+                    toolsDropdown.classList.add('hidden');
+                    toolsBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        // ── Character picker entry-point.
+        // NOTE: character-chip.js wires the SAME #characterPickerBtn for the
+        // inline picker + preview enrichment. We only register a fallback
+        // here so a click still works if character-chip.js is missing or
+        // the inline flow is unavailable. character-chip.js's listener is
+        // registered first and stops propagation when it succeeds.
+        const localImgBtn = document.getElementById('localImageGenBtn');
+        if (localImgBtn) {
+            localImgBtn.addEventListener('click', () => {
+                if (typeof window.openLocalImageGen !== 'function') {
+                    console.warn('[local-image-gen] module not loaded');
                     return;
                 }
-                window.openCharacterPicker((rec) => {
-                    // Stash selection for downstream consumers (anime pipeline modal,
-                    // image-gen-v2 prompt builder, etc.).
-                    window.selectedCharacter = rec;
-                    document.body.setAttribute('data-character-key', rec.key);
-                    document.body.setAttribute('data-series-key', rec.series_key || '');
-                    // Surface a small toast/notice via existing UI helpers if present.
-                    if (window.showToast) {
-                        window.showToast(`Đã chọn: ${rec.display_name} (${rec.series})`, 'success');
-                    } else {
-                        console.info('[character-picker] selected', rec);
-                    }
-                });
+                window.openLocalImageGen();
             });
         }
         const queueBtn = document.getElementById('jobQueueBtn');
@@ -2197,20 +2293,8 @@ try {
                 window.openJobQueuePanel();
             });
         }
-        const localImgBtn = document.getElementById('localImageGenBtn');
-        if (localImgBtn) {
-            localImgBtn.addEventListener('click', () => {
-                if (typeof window.openLocalImageGen !== 'function') {
-                    console.warn('[local-image-gen] module not loaded');
-                    return;
-                }
-                window.openLocalImageGen();
-            });
-        }
-        // Anime Pipeline topbar button. Without this binding the layered-pipeline
-        // button is a no-op even though the module is fully wired in main.js.
-        // We kick off the inline chat flow (no separate modal) so the user sees
-        // the same ChatGPT-style reasoning pill + layer gallery as when the
+        // Anime Pipeline topbar entry — kicks off the inline chat flow so
+        // the user sees the same reasoning pill + layer gallery as when the
         // pipeline auto-triggers from a chat message.
         const apBtn = document.getElementById('animePipelineBtn');
         if (apBtn) {
@@ -2220,9 +2304,6 @@ try {
                     console.warn('[anime-pipeline] AnimePipeline not initialized yet');
                     return;
                 }
-                // Prefer the inline chat entry-point (openModal already routes
-                // there). The user can also pre-fill the prompt by typing in
-                // the chat input; we pass it through if present.
                 const inputEl = document.getElementById('messageInput');
                 const prefill = (inputEl?.value || '').trim();
                 if (prefill && typeof ap.openModalWithPrompt === 'function') {
