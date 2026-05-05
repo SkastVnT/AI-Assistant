@@ -1011,11 +1011,11 @@ try {
             <div class="topbar__right">
                 <!-- Primary actions -->
                 <!-- <button class="topbar__btn" id="splitViewBtn" title="Split view"><i data-lucide="columns-2" class="lucide"></i></button> -->
-                <button class="topbar__btn" id="imageGenV2Btn" title="AI Image (Multi-provider)" style="color: var(--accent);"><i data-lucide="sparkles" class="lucide"></i></button>
-                <button class="topbar__btn" id="animePipelineBtn" title="Layered Anime Pipeline" style="color: var(--info, #8b5cf6);"><i data-lucide="layers" class="lucide"></i></button>
-                <button class="topbar__btn" id="characterPickerBtn" title="Chọn nhân vật" style="color: var(--success, #22c55e);"><i data-lucide="user-search" class="lucide"></i></button>
-                <button class="topbar__btn" id="jobQueueBtn" title="Hàng đợi tác vụ ảnh" style="color: var(--text-secondary);"><i data-lucide="list-ordered" class="lucide"></i></button>
-                <button class="topbar__btn" id="videoGenBtn" title="Video Sora2" style="color: var(--warning, #f59e0b);"><i data-lucide="video" class="lucide"></i></button>
+                <button class="topbar__btn" id="imageGenV2Btn" title="AI Image (Multi-provider)"><i data-lucide="sparkles" class="lucide"></i></button>
+                <button class="topbar__btn" id="animePipelineBtn" title="Layered Anime Pipeline"><i data-lucide="layers" class="lucide"></i></button>
+                <button class="topbar__btn" id="characterPickerBtn" title="Chọn nhân vật"><i data-lucide="user-search" class="lucide"></i></button>
+                <button class="topbar__btn" id="jobQueueBtn" title="Hàng đợi tác vụ ảnh"><i data-lucide="list-ordered" class="lucide"></i></button>
+                <button class="topbar__btn" id="videoGenBtn" title="Video Sora2"><i data-lucide="video" class="lucide"></i></button>
                 <span class="topbar__sep" aria-hidden="true"></span>
                 <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
                 <button class="topbar__btn" id="darkModeBtn" title="Toggle theme"><i data-lucide="moon" class="lucide" id="darkModeIcon"></i></button>
@@ -1028,7 +1028,6 @@ try {
                         <button class="topbar__more-item" id="downloadBtn" data-lang-key="controls.download"><i data-lucide="download" class="lucide"></i> <span>Export Chat</span></button>
                         <button class="topbar__more-item" id="imageGenBtn"><i data-lucide="palette" class="lucide"></i> <span>Image Gen (ComfyUI)</span></button>
                         <button class="topbar__more-item" id="localImageGenBtn"><i data-lucide="image-plus" class="lucide"></i> <span>Local Image Gen (SAA)</span></button>
-                        <button class="topbar__more-item" id="manualProfileBtn"><i data-lucide="user-pen" class="lucide"></i> <span>Manual Character Profile</span></button>
 
                     </div>
                 </div>
@@ -2155,8 +2154,8 @@ try {
 <!-- ═══ Scripts ═══ -->
 <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260504a"></script>
 <script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
-<script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260504b"></script>
-<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260504e"></script>
+<script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260505b"></script>
+<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260505b"></script>
 <script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
 <script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260505a"></script>
@@ -2165,28 +2164,11 @@ try {
 <script>
     // Character picker + job queue topbar bindings
     (function () {
-        const pickBtn = document.getElementById('characterPickerBtn');
-        if (pickBtn) {
-            pickBtn.addEventListener('click', () => {
-                if (typeof window.openCharacterPicker !== 'function') {
-                    console.warn('[character-picker] module not loaded');
-                    return;
-                }
-                window.openCharacterPicker((rec) => {
-                    // Stash selection for downstream consumers (anime pipeline modal,
-                    // image-gen-v2 prompt builder, etc.).
-                    window.selectedCharacter = rec;
-                    document.body.setAttribute('data-character-key', rec.key);
-                    document.body.setAttribute('data-series-key', rec.series_key || '');
-                    // Surface a small toast/notice via existing UI helpers if present.
-                    if (window.showToast) {
-                        window.showToast(`Đã chọn: ${rec.display_name} (${rec.series})`, 'success');
-                    } else {
-                        console.info('[character-picker] selected', rec);
-                    }
-                });
-            });
-        }
+        // NOTE: #characterPickerBtn is wired by character-chip.js — it dispatches
+        // `character:selected`, fetches /api/characters/preview, and enriches
+        // window.selectedCharacter. Do NOT add a second listener here; that
+        // would overwrite the enriched record with the raw picker payload and
+        // break canonical_id / safe_to_attach_lora downstream.
         const queueBtn = document.getElementById('jobQueueBtn');
         if (queueBtn) {
             queueBtn.addEventListener('click', () => {
