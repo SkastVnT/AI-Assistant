@@ -34,6 +34,8 @@ from core.thinking_generator import (
     ThinkTagParser, detect_category,
     generate_thinking_summary, REASONING_PREFIX
 )
+from core.central_router import route_request
+from core.request_trace import RequestTrace, TRACE_STORE
 
 router = APIRouter()
 
@@ -386,6 +388,15 @@ async def chat_stream(body: StreamRequest, request: Request):
     memory_ids = body.memory_ids
     mcp_selected_files = body.mcp_selected_files
     history = body.history
+    router_decision = route_request(message)
+    trace = RequestTrace(
+        request_id=request_id,
+        conversation_id=get_session_id(request),
+        message_id=getattr(body, "message_id", "") or "",
+        selected_pipeline=router_decision.pipeline,
+        selected_model=model,
+        router_decision=router_decision.to_dict(),
+    )
 
     # ── Validate images for vision models ──
     MAX_IMAGES = 5
@@ -455,12 +466,15 @@ async def chat_stream(body: StreamRequest, request: Request):
 
     if _needs_web_search(body.message, tools):
         try:
+            trace.mark_tool("web_search", status="started")
             search_results = _run_web_search(body.message)
             if search_results:
                 tool_context = search_results
                 _search_performed = True
+                trace.mark_tool("web_search", status="completed")
                 logger.info(f"[Stream] Auto web search triggered for: {body.message[:60]}")
         except Exception as e:
+            trace.mark_tool("web_search", status="error", error=str(e))
             logger.warning(f"[Stream] Web search failed: {e}")
 
     # ── Explicit tool dispatch (saucenao, serpapi-*, github) ───────
@@ -602,6 +616,7 @@ async def chat_stream(body: StreamRequest, request: Request):
                 "streaming": True,
                 "timestamp": datetime.now().isoformat(),
             })
+            yield _emit("router.selected", router_decision.to_dict())
 
             full_response = ""
             chunk_count = 0
@@ -884,6 +899,8 @@ async def chat_stream(body: StreamRequest, request: Request):
                 max_tokens=_max_tokens,
                 fallback_used=_fallback_used,
             )
+            trace.finish()
+            TRACE_STORE.save(trace)
             logger.info(
                 f"[SSE:{request_id}] complete model={model} chunks={chunk_count} "
                 f"tokens={_est_tokens}/{_max_tokens} elapsed={_elapsed:.3f}s"
@@ -903,6 +920,8 @@ async def chat_stream(body: StreamRequest, request: Request):
         except GeneratorExit:
             logger.info(f"[SSE:{request_id}] Client disconnected")
         except Exception as e:
+            trace.finish(error=str(e))
+            TRACE_STORE.save(trace)
             logger.error(f"[SSE:{request_id}] Streaming error: {e}")
             record_stream_error(backend=stream_backend, request_id=request_id, error=str(e))
             yield _sse("error", {"error": str(e)}, request_id=request_id)

@@ -12,6 +12,8 @@ from typing import Dict, Any, List
 import ast
 import re
 
+from .guard import validate_workspace_path, validate_select_only, clamp_max_rows
+
 # ==================== GIT OPERATIONS ====================
 
 def git_status() -> Dict[str, Any]:
@@ -166,8 +168,7 @@ def query_sqlite_database(db_path: str, query: str, params: tuple = ()) -> Dict[
         Dict chá»©a query results
     """
     try:
-        base_dir = Path(__file__).parent.parent.parent
-        full_path = base_dir / db_path
+        full_path = validate_workspace_path(db_path)
         
         if not full_path.exists():
             return {"error": f"Database not found: {db_path}"}
@@ -176,11 +177,12 @@ def query_sqlite_database(db_path: str, query: str, params: tuple = ()) -> Dict[
         conn.row_factory = sqlite3.Row  # Enable column access by name
         cursor = conn.cursor()
         
+        validate_select_only(query)
         cursor.execute(query, params)
         
         # Check if it's a SELECT query
         if query.strip().upper().startswith('SELECT'):
-            rows = cursor.fetchall()
+            rows = cursor.fetchmany(clamp_max_rows(500))
             results = [dict(row) for row in rows]
             
             return {
@@ -217,8 +219,7 @@ def list_database_tables(db_path: str) -> Dict[str, Any]:
         Dict chá»©a danh sÃ¡ch tables
     """
     try:
-        base_dir = Path(__file__).parent.parent.parent
-        full_path = base_dir / db_path
+        full_path = validate_workspace_path(db_path)
         
         if not full_path.exists():
             return {"error": f"Database not found: {db_path}"}
