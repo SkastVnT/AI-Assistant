@@ -33,15 +33,30 @@ OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 LING26_ENABLED = os.getenv('LING26_ENABLED', 'false').lower() == 'true'
 STEPFUN_API_KEY = os.getenv('STEPFUN_API_KEY')
 
-# Gemini API Keys (rotation pool)
-GEMINI_API_KEYS = [
-    key for key in [
-        os.getenv('GEMINI_API_KEY_1'),
-        os.getenv('GEMINI_API_KEY_2'),
-        os.getenv('GEMINI_API_KEY_3'),
-        os.getenv('GEMINI_API_KEY_4'),
-    ] if key
-]
+# Gemini API Keys — only GEMINI_API_KEY_1 used
+GEMINI_API_KEYS = [k for k in [os.getenv('GEMINI_API_KEY_1')] if k]
+
+# Nano Banana (Gemini Image) — direct image generation surface.
+# Reuses GEMINI_API_KEYS for the request key rotation pool.
+# Only the two PRO-tier models are whitelisted by user request.
+NANO_BANANA_ENABLED = (os.getenv('NANO_BANANA_ENABLED', 'true').lower() == 'true')
+# Allowed (label â†’ Gemini model id):
+#   "Nano Banana Pro" -> gemini-3-pro-image-preview   (best quality, supports 2K/4K)
+#   "Nano Banana 2"   -> gemini-2.5-flash-image       (current Nano Banana production model)
+NANO_BANANA_ALLOWED_MODELS = {
+    'nano-banana-pro': 'gemini-3-pro-image-preview',
+    'nano-banana-2':   'gemini-2.5-flash-image',
+}
+NANO_BANANA_MODEL_LABELS = {
+    'nano-banana-pro': 'Nano Banana Pro (Gemini 3 Pro Image)',
+    'nano-banana-2':   'Nano Banana 2 (Gemini 2.5 Flash Image)',
+}
+NANO_BANANA_DEFAULT_ALIAS = os.getenv('NANO_BANANA_DEFAULT_ALIAS', 'nano-banana-pro')
+NANO_BANANA_MODEL = NANO_BANANA_ALLOWED_MODELS.get(NANO_BANANA_DEFAULT_ALIAS,
+                                                   NANO_BANANA_ALLOWED_MODELS['nano-banana-pro'])
+NANO_BANANA_MAX_IMAGES_PER_REQUEST = int(os.getenv('NANO_BANANA_MAX_IMAGES_PER_REQUEST', '4'))
+NANO_BANANA_MAX_REFERENCE_IMAGES = int(os.getenv('NANO_BANANA_MAX_REFERENCE_IMAGES', '6'))
+NANO_BANANA_DEFAULT_IMAGE_SIZE = os.getenv('NANO_BANANA_DEFAULT_IMAGE_SIZE', '2K')
 
 # Google Search API
 GOOGLE_SEARCH_API_KEY_1 = os.getenv('GOOGLE_SEARCH_API_KEY_1')

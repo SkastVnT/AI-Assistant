@@ -15,13 +15,14 @@ from .comfyui_provider import ComfyUIProvider
 from .comfyui_fast import ComfyUIFastProvider
 from .together_provider import TogetherProvider
 from .stepfun_provider import StepFunProvider
+from .nano_banana_provider import NanoBananaProvider
 
 __all__ = [
     "BaseImageProvider", "ImageRequest", "ImageResult",
     "ImageMode", "ProviderTier",
     "FalProvider", "ReplicateProvider", "BFLProvider",
     "OpenAIImageProvider", "ComfyUIProvider", "ComfyUIFastProvider",
-    "TogetherProvider", "StepFunProvider",
+    "TogetherProvider", "StepFunProvider", "NanoBananaProvider",
 ]
 
 # Registry: name â†’ class
@@ -34,4 +35,5 @@ PROVIDER_REGISTRY: dict[str, type[BaseImageProvider]] = {
     "comfyui_fast": ComfyUIFastProvider,
     "together":     TogetherProvider,
     "stepfun":      StepFunProvider,
+    "nano_banana":  NanoBananaProvider,
 }

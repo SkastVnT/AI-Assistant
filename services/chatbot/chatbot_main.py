@@ -1,4 +1,4 @@
-﻿"""
+"""
 ChatBot Flask Application - Modular Version
 ============================================
 
@@ -214,22 +214,14 @@ GOOGLE_CSE_ID = os.getenv('GOOGLE_CSE_ID')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 # â›” GEMINI DISABLED - Quota exhausted, use GROK/DeepSeek/OpenAI instead
-# Initialize Gemini client with new SDK (optional - fallback to None if no key)
+# Initialize Gemini client using GEMINI_API_KEY_1 only
 gemini_client = None
-# try:
-#     if GEMINI_API_KEY:
-#         gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-#         logger.info("âœ… Gemini API initialized with primary key")
-# except Exception as e:
-#     logger.warning(f"âš ï¸ Primary Gemini key failed: {e}")
-#     try:
-#         if GEMINI_API_KEY_2:
-#             gemini_client = genai.Client(api_key=GEMINI_API_KEY_2)
-#             logger.info("âœ… Gemini API initialized with backup key")
-#     except Exception as e2:
-#         logger.warning(f"âš ï¸ Backup Gemini key failed: {e2}")
-#         logger.warning("âš ï¸ Gemini API not available - Chat functionality will be limited")
-logger.warning("âš ï¸ Gemini API DISABLED to avoid quota errors")
+try:
+    if GEMINI_API_KEY:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        logger.info("✅ Gemini API initialized")
+except Exception as e:
+    logger.warning(f"⚠️ Gemini API init failed: {e}")
 
 # System prompts for different purposes (Vietnamese)
 SYSTEM_PROMPTS_VI = {
@@ -5666,6 +5658,15 @@ try:
     logger.info("âœ… Registered image_gen blueprint (multi-provider)")
 except ImportError as e:
     logger.warning(f"âš ï¸ Could not register image_gen blueprint: {e}")
+
+
+
+try:
+    from routes.nano_banana import nano_banana_bp
+    app.register_blueprint(nano_banana_bp)
+    logger.info("[OK] Registered nano_banana blueprint (Gemini 2.5 Flash Image)")
+except ImportError as e:
+    logger.warning(f"[WARN] Could not register nano_banana blueprint: {e}")
 
 try:
     from routes.models import models_bp
