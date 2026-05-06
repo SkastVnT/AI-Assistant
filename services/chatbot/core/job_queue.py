@@ -20,7 +20,7 @@ import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Any
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
