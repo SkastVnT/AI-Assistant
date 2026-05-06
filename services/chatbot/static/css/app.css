@@ -976,13 +976,6 @@ body {
   gap: 8px;
 }
 
-/* Relative wrapper for dropdown-bearing button groups */
-.topbar__group {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
 .topbar__right {
   display: flex;
   align-items: center;
