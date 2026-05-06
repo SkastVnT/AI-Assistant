@@ -128,7 +128,78 @@ class ModelRegistry:
                 supports_streaming=True,
                 fallback_model='deepseek'
             )
-        
+
+        # Gemma 4 31B IT via OpenRouter (FREE)
+        if OPENROUTER_API_KEY:
+            self._configs['gemma4'] = ModelConfig(
+                name='gemma4',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='google/gemma-4-31b-it:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='deepseek'
+            )
+
+        # Laguna XS.2 via OpenRouter (FREE - Coding & Tools)
+        if OPENROUTER_API_KEY:
+            self._configs['laguna'] = ModelConfig(
+                name='laguna',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='poolside/laguna-xs.2:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='deepseek'
+            )
+
+        # DeepSeek R1 via OpenRouter (FREE - Reasoning)
+        if OPENROUTER_API_KEY:
+            self._configs['r1-free'] = ModelConfig(
+                name='r1-free',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='deepseek/deepseek-r1:free',
+                max_tokens=4000,
+                max_tokens_deep=8000,
+                supports_streaming=True,
+                fallback_model='deepseek'
+            )
+
+        # Nous Hermes 3 405B Instruct via OpenRouter (FREE)
+        if OPENROUTER_API_KEY:
+            self._configs['hermes3'] = ModelConfig(
+                name='hermes3',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='nousresearch/hermes-3-llama-3.1-405b:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='deepseek'
+            )
+
+        # Google Lyria 3 Pro Preview via OpenRouter (FREE - Vision)
+        if OPENROUTER_API_KEY:
+            self._configs['lyria'] = ModelConfig(
+                name='lyria',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='google/lyria-3-pro-preview:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                supports_vision=True,
+                fallback_model='gemini'
+            )
+
         # Gemini via Google AI (FREE tier)
         if GEMINI_API_KEYS:
             self._configs['gemini'] = ModelConfig(

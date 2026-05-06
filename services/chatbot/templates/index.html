@@ -42,7 +42,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260506a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260505e">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260505b">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
@@ -904,6 +904,46 @@ try {
                                 </div>
                                 <span class="model-dropdown__item-badge free">Free</span>
                             </div>
+                            <div class="model-dropdown__item" data-model="gemma4">
+                                <span class="model-dropdown__item-icon">🟦</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Gemma 4 31B</div>
+                                    <div class="model-dropdown__item-desc">Google via OpenRouter — 32K</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="laguna">
+                                <span class="model-dropdown__item-icon">🛠️</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Laguna XS.2</div>
+                                    <div class="model-dropdown__item-desc">Poolside via OpenRouter — Coding</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="r1-free">
+                                <span class="model-dropdown__item-icon">🧠</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">DeepSeek R1</div>
+                                    <div class="model-dropdown__item-desc">DeepSeek via OpenRouter — Reasoning</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="hermes3">
+                                <span class="model-dropdown__item-icon">🔮</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Hermes 3 405B</div>
+                                    <div class="model-dropdown__item-desc">Nous via OpenRouter — 405B Instruct</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="lyria">
+                                <span class="model-dropdown__item-icon">👁️</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Lyria 3 Pro</div>
+                                    <div class="model-dropdown__item-desc">Google via OpenRouter — Vision</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
                             <div class="model-dropdown__item" data-model="bloomvn">
                                 <span class="model-dropdown__item-icon">🌸</span>
                                 <div class="model-dropdown__item-info">
@@ -941,6 +981,11 @@ try {
                         <option value="deepseek">DeepSeek Chat</option>
                         <option value="gemini">Gemini 2.0 Flash</option>
                         <option value="step-flash">Step-3.5 Flash</option>
+                        <option value="gemma4">Gemma 4 31B</option>
+                        <option value="laguna">Laguna XS.2</option>
+                        <option value="r1-free">DeepSeek R1 (Free)</option>
+                        <option value="hermes3">Hermes 3 405B</option>
+                        <option value="lyria">Lyria 3 Pro</option>
                         <option value="bloomvn">BloomVN-8B</option>
                         <option value="qwen">Qwen Turbo</option>
                         <option value="stepfun">StepFun Direct</option>
@@ -2218,7 +2263,7 @@ try {
 <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260505b"></script>
 <script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
 <script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260504b"></script>
-<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260506a"></script>
+<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260505a"></script>
 <script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
 <script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
 <script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260504c"></script>
@@ -2342,6 +2387,11 @@ try {
             'deepseek': 'DeepSeek Chat',
             'gemini': 'Gemini 2.0 Flash',
             'step-flash': 'Step-3.5 Flash',
+            'gemma4': 'Gemma 4 31B',
+            'laguna': 'Laguna XS.2',
+            'r1-free': 'DeepSeek R1 (Free)',
+            'hermes3': 'Hermes 3 405B',
+            'lyria': 'Lyria 3 Pro',
             'bloomvn': 'BloomVN-8B',
             'qwen': 'Qwen Turbo',
             'stepfun': 'StepFun Direct'

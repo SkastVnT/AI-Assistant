@@ -543,5 +543,10 @@ DEFAULT_FALLBACK_CHAIN = {
     'qwen': ['deepseek', 'step-flash', 'openai'],
     'bloomvn': ['qwen', 'deepseek', 'step-flash'],
     'step-flash': ['deepseek', 'grok', 'openai'],
+    'gemma4': ['deepseek', 'step-flash', 'openai'],
+    'laguna': ['deepseek', 'step-flash', 'openai'],
+    'r1-free': ['deepseek', 'step-flash', 'openai'],
+    'hermes3': ['deepseek', 'step-flash', 'openai'],
+    'lyria': ['gemini', 'openai', 'deepseek'],
     'gemini': ['grok', 'deepseek', 'step-flash'],
 }

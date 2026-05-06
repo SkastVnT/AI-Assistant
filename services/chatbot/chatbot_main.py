@@ -946,6 +946,200 @@ class ChatbotAgent:
             logger.error(f"[STEP-FLASH] Error: {e}")
             return f"âŒ Step-3.5-Flash error: {str(e)}"
     
+    def chat_with_gemma4(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with Gemma 4 31B IT via OpenRouter (FREE)"""
+        try:
+            openrouter_key = os.getenv('OPENROUTER_API_KEY')
+            if not openrouter_key:
+                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+            
+            client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url='https://openrouter.ai/api/v1'
+            )
+            
+            system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+            
+            temperature = 0.5 if deep_thinking else 0.7
+            max_tokens = 4000 if deep_thinking else 2000
+            
+            logger.info(f"[GEMMA4] Sending request via OpenRouter (FREE)")
+            response = client.chat.completions.create(
+                model='google/gemma-4-31b-it:free',
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                extra_headers={
+                    'HTTP-Referer': 'https://ai-assistant.local',
+                    'X-Title': 'AI Assistant'
+                }
+            )
+            
+            result = response.choices[0].message.content
+            logger.info(f"[GEMMA4] Response received: {len(result)} chars")
+            return result
+            
+        except Exception as e:
+            logger.error(f"[GEMMA4] Error: {e}")
+            return f"❌ Gemma 4 error: {str(e)}"
+
+    def chat_with_laguna(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with Laguna XS.2 via OpenRouter (FREE — Coding & Tools)"""
+        try:
+            openrouter_key = os.getenv('OPENROUTER_API_KEY')
+            if not openrouter_key:
+                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+
+            client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url='https://openrouter.ai/api/v1'
+            )
+
+            system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+
+            temperature = 0.3 if deep_thinking else 0.5
+            max_tokens = 4000 if deep_thinking else 2000
+
+            logger.info(f"[LAGUNA] Sending request via OpenRouter (FREE)")
+            response = client.chat.completions.create(
+                model='poolside/laguna-xs.2:free',
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                extra_headers={
+                    'HTTP-Referer': 'https://ai-assistant.local',
+                    'X-Title': 'AI Assistant'
+                }
+            )
+
+            result = response.choices[0].message.content
+            logger.info(f"[LAGUNA] Response received: {len(result)} chars")
+            return result
+
+        except Exception as e:
+            logger.error(f"[LAGUNA] Error: {e}")
+            return f"❌ Laguna XS.2 error: {str(e)}"
+
+    def chat_with_r1_free(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with DeepSeek R1 via OpenRouter (FREE — Reasoning)"""
+        try:
+            openrouter_key = os.getenv('OPENROUTER_API_KEY')
+            if not openrouter_key:
+                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+
+            client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url='https://openrouter.ai/api/v1'
+            )
+
+            system_prompt = self._build_system_prompt(context, True, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+
+            max_tokens = 8000 if deep_thinking else 4000
+
+            logger.info(f"[R1-FREE] Sending request via OpenRouter (FREE)")
+            response = client.chat.completions.create(
+                model='deepseek/deepseek-r1:free',
+                messages=messages,
+                temperature=0.6,
+                max_tokens=max_tokens,
+                extra_headers={
+                    'HTTP-Referer': 'https://ai-assistant.local',
+                    'X-Title': 'AI Assistant'
+                }
+            )
+
+            result = response.choices[0].message.content
+            # Surface reasoning_content if returned by OpenRouter
+            thinking_content = getattr(response.choices[0].message, 'reasoning_content', None)
+            if thinking_content:
+                result = f"🧠 **Thought Process:**\n{thinking_content}\n\n---\n\n📝 **Answer:**\n{result}"
+
+            logger.info(f"[R1-FREE] Response received: {len(result)} chars")
+            return result
+
+        except Exception as e:
+            logger.error(f"[R1-FREE] Error: {e}")
+            return f"❌ DeepSeek R1 (free) error: {str(e)}"
+
+    def chat_with_lyria(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with Google Lyria 3 Pro Preview via OpenRouter (FREE — Vision)"""
+        try:
+            openrouter_key = os.getenv('OPENROUTER_API_KEY')
+            if not openrouter_key:
+                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+
+            client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url='https://openrouter.ai/api/v1'
+            )
+
+            system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+
+            temperature = 0.5 if deep_thinking else 0.7
+            max_tokens = 4000 if deep_thinking else 2000
+
+            logger.info(f"[LYRIA] Sending request via OpenRouter (FREE)")
+            response = client.chat.completions.create(
+                model='google/lyria-3-pro-preview:free',
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                extra_headers={
+                    'HTTP-Referer': 'https://ai-assistant.local',
+                    'X-Title': 'AI Assistant'
+                }
+            )
+
+            result = response.choices[0].message.content
+            logger.info(f"[LYRIA] Response received: {len(result)} chars")
+            return result
+
+        except Exception as e:
+            logger.error(f"[LYRIA] Error: {e}")
+            return f"❌ Lyria 3 Pro error: {str(e)}"
+
+    def chat_with_hermes3(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with Nous Hermes 3 405B Instruct via OpenRouter (FREE)"""
+        try:
+            openrouter_key = os.getenv('OPENROUTER_API_KEY')
+            if not openrouter_key:
+                return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
+
+            client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url='https://openrouter.ai/api/v1'
+            )
+
+            system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
+            messages = self._build_messages(system_prompt, message, history)
+
+            temperature = 0.5 if deep_thinking else 0.7
+            max_tokens = 4000 if deep_thinking else 2000
+
+            logger.info(f"[HERMES3] Sending request via OpenRouter (FREE)")
+            response = client.chat.completions.create(
+                model='nousresearch/hermes-3-llama-3.1-405b:free',
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                extra_headers={
+                    'HTTP-Referer': 'https://ai-assistant.local',
+                    'X-Title': 'AI Assistant'
+                }
+            )
+
+            result = response.choices[0].message.content
+            logger.info(f"[HERMES3] Response received: {len(result)} chars")
+            return result
+
+        except Exception as e:
+            logger.error(f"[HERMES3] Error: {e}")
+            return f"❌ Hermes 3 405B error: {str(e)}"
+
     def chat_with_stepfun(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
         """Chat with StepFun direct API (requires balance)"""
         try:
@@ -1055,6 +1249,16 @@ class ChatbotAgent:
             result = self.chat_with_local_model(message, model, context, deep_thinking, language)
         elif model == 'step-flash':
             result = self.chat_with_step_flash(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'gemma4':
+            result = self.chat_with_gemma4(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'laguna':
+            result = self.chat_with_laguna(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'r1-free':
+            result = self.chat_with_r1_free(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'hermes3':
+            result = self.chat_with_hermes3(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'lyria':
+            result = self.chat_with_lyria(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'stepfun':
             result = self.chat_with_stepfun(message, context, deep_thinking, history, memories, language, custom_prompt)
         else:
