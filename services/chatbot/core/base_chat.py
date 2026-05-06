@@ -547,6 +547,7 @@ DEFAULT_FALLBACK_CHAIN = {
     'laguna': ['deepseek', 'step-flash', 'openai'],
     'r1-free': ['deepseek', 'step-flash', 'openai'],
     'hermes3': ['deepseek', 'step-flash', 'openai'],
+    'ling': ['deepseek', 'step-flash', 'openai'],
     'lyria': ['gemini', 'openai', 'deepseek'],
     'gemini': ['grok', 'deepseek', 'step-flash'],
 }

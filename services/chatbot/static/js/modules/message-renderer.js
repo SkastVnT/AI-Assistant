@@ -8,7 +8,7 @@ export class MessageRenderer {
     constructor() {
         this.modelNames = {
             'gemini': 'Gemini 2.0 Flash',
-            'grok': 'Grok-3',
+            'grok': 'Grok-3 Mini',
             'openai': 'GPT-4o-mini',
             'deepseek': 'DeepSeek Chat',
             'deepseek-reasoner': '🧠 DeepSeek R1',

@@ -190,7 +190,7 @@ class ChatbotAgent:
             messages.append({"role": "user", "content": message})
             
             response = client.chat.completions.create(
-                model="grok-3",
+                model="grok-3-mini",
                 messages=messages,
                 temperature=0.5 if deep_thinking else 0.7,
                 max_tokens=2000 if deep_thinking else 1000

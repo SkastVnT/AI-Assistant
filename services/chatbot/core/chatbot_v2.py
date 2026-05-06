@@ -87,7 +87,7 @@ class ModelRegistry:
                 provider=ModelProvider.GROK,
                 api_key=GROK_API_KEY,
                 base_url='https://api.x.ai/v1',
-                model_id='grok-3',
+                model_id='grok-3-mini',
                 supports_streaming=True,
                 fallback_model='deepseek'
             )
@@ -179,6 +179,20 @@ class ModelRegistry:
                 api_key=OPENROUTER_API_KEY,
                 base_url='https://openrouter.ai/api/v1',
                 model_id='nousresearch/hermes-3-llama-3.1-405b:free',
+                max_tokens=2000,
+                max_tokens_deep=4000,
+                supports_streaming=True,
+                fallback_model='deepseek'
+            )
+
+        # InclusionAI Ling-2.6-1T via OpenRouter (FREE)
+        if OPENROUTER_API_KEY:
+            self._configs['ling'] = ModelConfig(
+                name='ling',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='inclusionai/ling-2.6-1t:free',
                 max_tokens=2000,
                 max_tokens_deep=4000,
                 supports_streaming=True,
