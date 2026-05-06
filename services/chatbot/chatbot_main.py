@@ -1140,42 +1140,31 @@ class ChatbotAgent:
             logger.error(f"[HERMES3] Error: {e}")
             return f"❌ Hermes 3 405B error: {str(e)}"
 
-    def chat_with_ling(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
-        """Chat with InclusionAI Ling-2.6-1T via OpenRouter (FREE)"""
+    def chat_with_ling26(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
+        """Chat with InclusionAI Ling-2.6-1T via OpenRouter (FREE / TEMPORARY)."""
         try:
+            # WARNING: free endpoint can disappear; do not use as production default.
+            if os.getenv('LING26_ENABLED', 'false').lower() != 'true':
+                return "❌ Ling-2.6-1T is disabled. Set LING26_ENABLED=true to enable temporary access."
+
             openrouter_key = os.getenv('OPENROUTER_API_KEY')
             if not openrouter_key:
                 return "❌ OPENROUTER_API_KEY chưa được cấu hình. Lấy FREE key tại: https://openrouter.ai/keys"
 
-            client = openai.OpenAI(
-                api_key=openrouter_key,
-                base_url='https://openrouter.ai/api/v1'
-            )
-
+            client = openai.OpenAI(api_key=openrouter_key, base_url='https://openrouter.ai/api/v1')
             system_prompt = self._build_system_prompt(context, deep_thinking, memories, language, custom_prompt)
             messages = self._build_messages(system_prompt, message, history)
 
-            temperature = 0.5 if deep_thinking else 0.7
-            max_tokens = 4000 if deep_thinking else 2000
-
-            logger.info(f"[LING] Sending request via OpenRouter (FREE)")
             response = client.chat.completions.create(
                 model='inclusionai/ling-2.6-1t:free',
                 messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                extra_headers={
-                    'HTTP-Referer': 'https://ai-assistant.local',
-                    'X-Title': 'AI Assistant'
-                }
+                temperature=0.5 if deep_thinking else 0.7,
+                max_tokens=8000 if deep_thinking else 4000,
+                extra_headers={'HTTP-Referer': 'https://ai-assistant.local', 'X-Title': 'AI Assistant'},
             )
-
-            result = response.choices[0].message.content
-            logger.info(f"[LING] Response received: {len(result)} chars")
-            return result
-
+            return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"[LING] Error: {e}")
+            logger.error(f"[LING26] Error: {e}")
             return f"❌ Ling-2.6-1T error: {str(e)}"
 
     def chat_with_stepfun(self, message, context='casual', deep_thinking=False, history=None, memories=None, language='vi', custom_prompt=None):
@@ -1295,8 +1284,8 @@ class ChatbotAgent:
             result = self.chat_with_r1_free(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'hermes3':
             result = self.chat_with_hermes3(message, context, deep_thinking, history, memories, language, custom_prompt)
-        elif model == 'ling':
-            result = self.chat_with_ling(message, context, deep_thinking, history, memories, language, custom_prompt)
+        elif model == 'ling26':
+            result = self.chat_with_ling26(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'lyria':
             result = self.chat_with_lyria(message, context, deep_thinking, history, memories, language, custom_prompt)
         elif model == 'stepfun':
@@ -6041,6 +6030,5 @@ if __name__ == '__main__':
     
     logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
     app.run(debug=debug_mode, host=host, port=port, threaded=True)
-
 
 

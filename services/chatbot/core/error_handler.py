@@ -63,7 +63,7 @@ MODEL_FALLBACKS = {
     'laguna': ['deepseek', 'step-flash', 'openai'],
     'r1-free': ['deepseek', 'step-flash', 'gemini'],
     'hermes3': ['deepseek', 'step-flash', 'gemini'],
-    'ling': ['deepseek', 'step-flash', 'gemini'],
+    'ling26': ['hermes3', 'deepseek', 'step-flash'],
     'lyria': ['gemini', 'openai', 'deepseek'],
     'stepfun': ['step-flash', 'deepseek', 'gemini'],
     'qwen': ['deepseek', 'step-flash', 'gemini'],

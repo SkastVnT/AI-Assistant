@@ -39,6 +39,8 @@ from core.thinking_generator import (
 from core.skills.resolver import resolve_skill
 from core.skills.applicator import apply_skill_overrides
 from core import mongo_store
+from core.central_router import route_request
+from core.central_trace import RequestTrace, InMemoryTraceStore
 
 # Check MCP availability
 MCP_AVAILABLE = False
@@ -49,6 +51,7 @@ except ImportError:
     pass
 
 stream_bp = Blueprint('stream', __name__)
+TRACE_STORE = InMemoryTraceStore(max_items=2000)
 
 
 # ── Auto web-search detection ────────────────────────────────────────
@@ -302,6 +305,23 @@ def chat_stream():
 
         if applied.was_applied:
             logger.info(f"[SSE:{request_id}] Skill applied: {applied.skill_id}")
+
+        route_decision = route_request(message)
+        trace = RequestTrace(
+            conversation_id=conversation_id or "",
+            message_id=(data.get('message_id') or '').strip() or f"msg-{uuid.uuid4().hex[:12]}",
+            user_input=message,
+            selected_pipeline=route_decision.pipeline,
+            selected_model=model,
+            router_confidence=route_decision.confidence,
+        )
+        logger.info(
+            "[SSE:%s] router decision intent=%s pipeline=%s confidence=%.2f",
+            request_id,
+            route_decision.intent,
+            route_decision.pipeline,
+            route_decision.confidence,
+        )
 
         # ── Mongo activity logging (schema v2) ────────────────────────
         # Log the inbound user message + ensure parent conversation exists.
@@ -621,6 +641,7 @@ def chat_stream():
                     metadata_payload["skill_auto_score"] = skill_overrides.auto_route_score
                     metadata_payload["skill_auto_keywords"] = skill_overrides.auto_route_keywords
                 yield _emit("metadata", metadata_payload)
+                yield _emit("router.selected", route_decision.to_dict())
                 
                 # ── Thinking Phase ──
                 # Real AI reasoning via <think> tags or native reasoning_content
@@ -912,6 +933,8 @@ def chat_stream():
                     f"[SSE:{request_id}] complete model={model} chunks={chunk_count} "
                     f"tokens={_est_tokens}/{_max_tokens} elapsed={_elapsed:.3f}s"
                 )
+                trace.finish()
+                TRACE_STORE.save(trace)
 
                 # Mongo activity log: assistant message summary (fail-safe).
                 try:
@@ -941,6 +964,8 @@ def chat_stream():
             except GeneratorExit:
                 logger.info(f"[SSE:{request_id}] Client disconnected")
             except Exception as e:
+                trace.finish(error=str(e))
+                TRACE_STORE.save(trace)
                 logger.error(f"[SSE:{request_id}] Streaming error: {e}")
                 record_stream_error(backend=stream_backend, request_id=request_id, error=str(e))
                 yield StreamEvent(
