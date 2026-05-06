@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nano-banana.css') }}?v=20260506a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
 
     <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
@@ -1083,6 +1084,10 @@ try {
                             <i data-lucide="video" class="lucide"></i>
                             <span>Video Sora2</span>
                         </button>
+                        <button class="topbar__more-item topbar__more-item--accent" id="nanoBananaBtn" role="menuitem">
+                            <i data-lucide="banana" class="lucide"></i>
+                            <span>Nano Banana (Gemini)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -2097,6 +2102,111 @@ try {
     </div>
 </div>
 
+<!-- ═══ Nano Banana Modal (Gemini 2.5 Flash Image) ═══ -->
+<div class="modal-overlay" id="nanoBananaModal">
+    <div class="modal-panel">
+        <div class="nb-header">
+            <div class="nb-icon">
+                <i data-lucide="banana"></i>
+            </div>
+            <div class="nb-titles">
+                <h2>Nano Banana</h2>
+                <p>Google Gemini · Tạo & chỉnh sửa ảnh chất lượng 2K</p>
+            </div>
+            <span id="nbStatus" class="nb-status-pill">Đang kiểm tra…</span>
+            <button class="modal-panel__close" onclick="window.nanoBanana?.closeModal()" aria-label="Đóng">&times;</button>
+        </div>
+
+        <div class="nb-body">
+            <!-- Prompt -->
+            <div class="nb-section">
+                <div class="nb-label">
+                    <i data-lucide="message-square-text" style="width:13px;height:13px;"></i>
+                    Prompt
+                    <span class="nb-hint">tự động lấy từ ô chat khi mở</span>
+                </div>
+                <textarea id="nbPrompt" rows="5"
+                          placeholder="Mô tả ảnh muốn tạo… hỗ trợ tiếng Việt + tiếng Anh."></textarea>
+            </div>
+
+            <!-- Reference image dropzone -->
+            <div class="nb-section">
+                <div class="nb-label">
+                    <i data-lucide="images" style="width:13px;height:13px;"></i>
+                    Ảnh tham chiếu
+                    <span class="nb-hint">tối đa <span id="nbMaxRefs">6</span> ảnh · mỗi ảnh ≤ 10 MB</span>
+                </div>
+                <div id="nbDropzone">
+                    <i data-lucide="image-plus"></i>
+                    <div>Kéo &amp; thả ảnh, hoặc <strong>bấm để chọn</strong></div>
+                    <input type="file" id="nbFileInput" accept="image/png,image/jpeg,image/webp" multiple hidden>
+                </div>
+                <div id="nbThumbs"></div>
+            </div>
+
+            <!-- Settings -->
+            <div class="nb-section">
+                <div class="nb-label">
+                    <i data-lucide="sliders-horizontal" style="width:13px;height:13px;"></i>
+                    Cấu hình
+                </div>
+                <div class="nb-grid">
+                    <div class="nb-field">
+                        <label for="nbModel">Model</label>
+                        <select id="nbModel"><!-- runtime --></select>
+                    </div>
+                    <div class="nb-field">
+                        <label for="nbCount">Số ảnh</label>
+                        <select id="nbCount">
+                            <option value="1">1 ảnh</option>
+                            <option value="2">2 ảnh</option>
+                            <option value="3">3 ảnh</option>
+                            <option value="4" selected>4 ảnh</option>
+                        </select>
+                    </div>
+                    <div class="nb-field">
+                        <label for="nbAspect">Tỉ lệ</label>
+                        <select id="nbAspect">
+                            <option value="1:1">1:1 vuông</option>
+                            <option value="9:16" selected>9:16 dọc (manga)</option>
+                            <option value="16:9">16:9 ngang</option>
+                            <option value="3:4">3:4 dọc</option>
+                            <option value="4:3">4:3 ngang</option>
+                            <option value="2:3">2:3 dọc</option>
+                            <option value="3:2">3:2 ngang</option>
+                        </select>
+                    </div>
+                    <div class="nb-field">
+                        <label for="nbSize">Chất lượng</label>
+                        <select id="nbSize">
+                            <option value="1K">1K</option>
+                            <option value="2K" selected>2K (mặc định)</option>
+                            <option value="4K">4K</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action bar -->
+            <div class="nb-actions">
+                <button id="nbGenerateBtn" onclick="window.nanoBanana?.generate()" disabled>
+                    <i data-lucide="sparkles"></i>
+                    <span>Tạo ảnh</span>
+                </button>
+                <button class="nb-link-btn" onclick="window.nanoBanana?.useChatPrompt()" title="Lấy lại prompt từ ô chat">
+                    <i data-lucide="arrow-down-to-line"></i>
+                    <span>Đồng bộ với chat</span>
+                </button>
+                <div id="nbProgress"></div>
+            </div>
+
+            <!-- Results -->
+            <div id="nbResults"></div>
+            <div id="nbError" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
 <!-- ═══ Image Preview (Discord‑style) ═══ -->
 <div class="image-preview-overlay" id="imagePreviewModal">
     <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 4px; z-index: 310; align-items: center;">
@@ -2272,6 +2382,7 @@ try {
 <script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260504c"></script>
 <script src="{{ url_for('static', filename='js/modules/composer-chips.js') }}?v=20260505a"></script>
 <script src="{{ url_for('static', filename='js/modules/right-sidebar.js') }}?v=20260505a"></script>
+<script src="{{ url_for('static', filename='js/modules/nano-banana.js') }}?v=20260506e"></script>
 <script type="module" src="{{ url_for('static', filename='js/modules/tag-autocomplete.js') }}?v=20260423"></script>
 <script type="module" src="{{ url_for('static', filename='js/modules/global-image-viewer.js') }}?v=20260429"></script>
 <script>

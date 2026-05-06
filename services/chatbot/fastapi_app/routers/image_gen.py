@@ -699,10 +699,10 @@ async def gallery(limit: int = 20, conversation_id: str = ""):
 async def serve_image(image_id: str):
     try:
         storage = _get_storage()
-        path = storage.get_path(image_id)
-        if path and path.exists():
-            from fastapi.responses import FileResponse
-            return FileResponse(str(path))
+        data = storage.get(image_id)
+        if data:
+            from fastapi.responses import Response
+            return Response(content=data, media_type="image/png")
         return JSONResponse({"error": "Image not found"}, status_code=404)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

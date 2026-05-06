@@ -50,6 +50,7 @@ from fastapi_app.routers import (
     anime_pipeline,
     characters,
     jobs,
+    nano_banana,
 )
 
 logger = logging.getLogger("chatbot.fastapi")
@@ -379,6 +380,7 @@ def create_app() -> FastAPI:
     # /api/jobs/*, which makes both topbar buttons appear dead.
     app.include_router(characters.router)
     app.include_router(jobs.router)
+    app.include_router(nano_banana.router, tags=["Nano Banana"])
 
     # Reasoning Image Pipeline — flag-gated mirror of the Flask blueprint
     # so the chat UI's reasoning-image-gen.js status probe + Generate
