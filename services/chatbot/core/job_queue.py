@@ -15,13 +15,20 @@ For durable manifests use the existing ``ResultStore`` which writes to
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
+
+try:
+    from pymongo import MongoClient
+except Exception:  # optional dependency
+    MongoClient = None
+
 
 JOB_STATES = ("queued", "running", "completed", "failed", "cancelled")
 DEFAULT_HISTORY_LIMIT = 200
@@ -62,6 +69,7 @@ class JobQueue:
         self._lock = threading.RLock()
         self._jobs: OrderedDict[str, JobRecord] = OrderedDict()
         self._history_limit = history_limit
+        self._mongo_collection = self._try_init_mongo()
 
     @classmethod
     def get_instance(cls) -> "JobQueue":
@@ -99,6 +107,7 @@ class JobQueue:
             self._jobs.move_to_end(job_id)
             self._evict_locked()
             logger.info("job_queue: create %s preset=%s char=%s", job_id, preset, character_key)
+            self._persist(rec)
             return rec
 
     def transition(self, job_id: str, new_state: str, **fields) -> Optional[JobRecord]:
@@ -120,6 +129,7 @@ class JobQueue:
                     setattr(rec, k, v)
                 else:
                     rec.extra[k] = v
+            self._persist(rec)
             return rec
 
     def update_progress(self, job_id: str, stage: Optional[str] = None,
@@ -132,6 +142,7 @@ class JobQueue:
                 rec.progress_stage = stage
             if pct is not None:
                 rec.progress_pct = max(0.0, min(100.0, float(pct)))
+            self._persist(rec)
             return rec
 
     def request_cancel(self, job_id: str) -> bool:
@@ -143,6 +154,7 @@ class JobQueue:
                 return False
             rec.cancel_requested = True
             logger.info("job_queue: cancel requested for %s", job_id)
+            self._persist(rec)
             return True
 
     def request_cancel_all(self) -> list[str]:
@@ -192,6 +204,32 @@ class JobQueue:
                 counts[rec.state] = counts.get(rec.state, 0) + 1
             total = len(self._jobs)
         return {"total": total, "by_state": counts, "history_limit": self._history_limit}
+
+    def _persist(self, rec: JobRecord) -> None:
+        if self._mongo_collection is None:
+            return
+        try:
+            self._mongo_collection.update_one({"job_id": rec.job_id}, {"$set": rec.to_dict()}, upsert=True)
+        except Exception as exc:
+            logger.warning("job_queue: mongo persist failed for %s: %s", rec.job_id, exc)
+
+    def _try_init_mongo(self):
+        if MongoClient is None:
+            return None
+        uri = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
+        db_name = os.getenv("JOB_QUEUE_DB", "ai_assistant")
+        coll = os.getenv("JOB_QUEUE_COLLECTION", "jobs")
+        if not uri:
+            return None
+        try:
+            client = MongoClient(uri, serverSelectionTimeoutMS=500)
+            collection = client[db_name][coll]
+            client.admin.command("ping")
+            logger.info("job_queue: mongo persistence enabled (%s.%s)", db_name, coll)
+            return collection
+        except Exception as exc:
+            logger.warning("job_queue: mongo disabled (%s)", exc)
+            return None
 
     # --- internal ------------------------------------------------------
 

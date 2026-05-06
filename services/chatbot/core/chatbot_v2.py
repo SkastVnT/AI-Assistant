@@ -18,7 +18,7 @@ if str(CHATBOT_DIR) not in sys.path:
 from core.config import (
     OPENAI_API_KEY, DEEPSEEK_API_KEY, GROK_API_KEY,
     QWEN_API_KEY, HUGGINGFACE_API_KEY,
-    OPENROUTER_API_KEY, STEPFUN_API_KEY, GEMINI_API_KEYS,
+    OPENROUTER_API_KEY, STEPFUN_API_KEY, GEMINI_API_KEYS, LING26_ENABLED,
     SYSTEM_PROMPTS, get_system_prompts
 )
 from core.extensions import (
@@ -183,6 +183,22 @@ class ModelRegistry:
                 max_tokens_deep=4000,
                 supports_streaming=True,
                 fallback_model='deepseek'
+            )
+
+        # InclusionAI Ling-2.6-1T via OpenRouter (FREE / TEMPORARY)
+        # WARNING: Free model availability may disappear soon.
+        # Do not set as default production model.
+        if OPENROUTER_API_KEY and LING26_ENABLED:
+            self._configs['ling26'] = ModelConfig(
+                name='ling26',
+                provider=ModelProvider.OPENROUTER,
+                api_key=OPENROUTER_API_KEY,
+                base_url='https://openrouter.ai/api/v1',
+                model_id='inclusionai/ling-2.6-1t:free',
+                max_tokens=4000,
+                max_tokens_deep=8000,
+                supports_streaming=True,
+                fallback_model='hermes3'
             )
 
         # Google Lyria 3 Pro Preview via OpenRouter (FREE - Vision)

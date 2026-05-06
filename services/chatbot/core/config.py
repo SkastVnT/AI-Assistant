@@ -30,6 +30,7 @@ QWEN_API_KEY = os.getenv('QWEN_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 GROK_API_KEY = os.getenv('GROK_API_KEY')
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+LING26_ENABLED = os.getenv('LING26_ENABLED', 'false').lower() == 'true'
 STEPFUN_API_KEY = os.getenv('STEPFUN_API_KEY')
 
 # Gemini API Keys (rotation pool)
@@ -399,5 +400,4 @@ def get_system_prompts(language='vi'):
     if language == 'en':
         return SYSTEM_PROMPTS_EN
     return SYSTEM_PROMPTS_VI
-
 

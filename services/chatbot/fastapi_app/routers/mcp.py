@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from core.extensions import logger
+from core.url_safety import assert_safe_external_url
 
 router = APIRouter(prefix="/api/mcp", tags=["MCP"])
 
@@ -305,6 +306,10 @@ async def mcp_fetch_url(body: FetchUrlBody):
         raise HTTPException(400, "url is required")
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    try:
+        assert_safe_external_url(url)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
     from urllib.parse import urlparse
     parsed = urlparse(url)
@@ -323,6 +328,10 @@ async def mcp_fetch_url(body: FetchUrlBody):
             if resp.status_code == 403:
                 headers["User-Agent"] = random.choice(_USER_AGENTS)
                 resp = await client.get(url, headers=headers)
+            try:
+                assert_safe_external_url(str(resp.url))
+            except ValueError as exc:
+                raise HTTPException(400, f"Unsafe redirect target: {exc}")
             resp.raise_for_status()
 
         content_type = resp.headers.get("content-type", "").lower()
