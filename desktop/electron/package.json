@@ -1,0 +1,40 @@
+{
+  "name": "ai-assistant-desktop",
+  "productName": "AI Assistant",
+  "version": "0.1.0",
+  "description": "Electron desktop wrapper for the AI-Assistant chatbot. Spawns the existing Python backend (services/chatbot/run.py) and loads the existing web UI in a sandboxed BrowserWindow. Does not replace or modify the web app.",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "cross-env ELECTRON_DESKTOP=true ELECTRON_DEV=true electron .",
+    "start": "cross-env ELECTRON_DESKTOP=true electron .",
+    "package": "electron-builder --dir",
+    "make": "electron-builder"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.skastvnt.ai-assistant",
+    "productName": "AI Assistant",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  }
+}
