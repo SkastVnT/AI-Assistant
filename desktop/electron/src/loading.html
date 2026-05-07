@@ -19,6 +19,11 @@
         .err.show { display: block; }
         .err h3 { margin: 0 0 8px; color: #ff8a8a; font-size: 13px; }
         .log { margin-top: 10px; max-height: 28vh; overflow: auto; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11px; color: #d8b3b3; background: #1a0f10; padding: 8px 10px; border-radius: 6px; }
+        .actions { margin-top: 12px; display: flex; gap: 8px; }
+        .btn { background: #2a3142; color: #e8ecf2; border: 1px solid #3a4258; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+        .btn:hover { background: #353d52; }
+        .btn.primary { background: #2c5fa5; border-color: #3a73c2; }
+        .btn.primary:hover { background: #336cb8; }
     </style>
 </head>
 <body>
@@ -30,6 +35,10 @@
             <h3>Backend failed to start</h3>
             <div id="errMsg"></div>
             <div class="log" id="errLog"></div>
+            <div class="actions">
+                <button class="btn primary" id="retryBtn" type="button">Retry</button>
+                <button class="btn" id="copyBtn" type="button">Copy log</button>
+            </div>
         </div>
     </div>
     <script>
@@ -43,7 +52,20 @@
                 document.getElementById('errMsg').textContent = data.message || 'Unknown error.';
                 document.getElementById('errLog').textContent = (data.log || '').slice(-4000);
                 document.getElementById('err').classList.add('show');
+            } else if (data.type === 'retrying') {
+                document.getElementById('err').classList.remove('show');
+                document.getElementById('spin').style.display = '';
+                document.getElementById('title').textContent = 'Retrying backend start…';
+                document.getElementById('sub').textContent   = 'Spawning a fresh services/chatbot/run.py.';
             }
+        });
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            // The main process is watching the document title for this sentinel.
+            document.title = '__retry_backend__';
+        });
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const text = document.getElementById('errMsg').textContent + '\n\n' + document.getElementById('errLog').textContent;
+            navigator.clipboard && navigator.clipboard.writeText(text);
         });
     </script>
 </body>

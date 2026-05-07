@@ -11,7 +11,7 @@
  *   - webPreferences sandboxed: nodeIntegration:false, contextIsolation:true, sandbox:true.
  *   - No file:// access to repo internals from renderer.
  */
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell } = require('electron');
 const path = require('path');
 const { startBackend } = require('./backend-process');
 
@@ -52,6 +52,59 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'loading.html'));
     mainWindow.on('closed', () => { mainWindow = null; });
+
+    // Watch the loading splash for the "__retry_backend__" sentinel and re-run boot.
+    mainWindow.webContents.on('page-title-updated', (e, title) => {
+        if (title === '__retry_backend__') {
+            e.preventDefault();
+            killBackend();
+            mainWindow.webContents.executeJavaScript(
+                'window.postMessage({ type: "retrying" }, "*"); document.title = "AI-Assistant — Starting…";'
+            ).catch(() => {});
+            bootBackendAndLoad();
+        }
+    });
+}
+
+function buildMenu() {
+    const isMac = process.platform === 'darwin';
+    const template = [
+        ...(isMac ? [{ role: 'appMenu' }] : []),
+        { role: 'fileMenu' },
+        { role: 'editMenu' },
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { role: 'toggleDevTools' },
+                { type: 'separator' },
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' }
+            ]
+        },
+        {
+            label: 'Backend',
+            submenu: [
+                {
+                    label: 'Restart backend',
+                    accelerator: 'CmdOrCtrl+Shift+R',
+                    click: () => {
+                        if (!mainWindow) return;
+                        killBackend();
+                        mainWindow.loadFile(path.join(__dirname, 'loading.html'))
+                            .then(() => bootBackendAndLoad())
+                            .catch(() => {});
+                    }
+                }
+            ]
+        },
+        { role: 'windowMenu' }
+    ];
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 async function bootBackendAndLoad() {
@@ -80,6 +133,7 @@ function killBackend() {
 }
 
 app.whenReady().then(() => {
+    buildMenu();
     createWindow();
     bootBackendAndLoad();
 
