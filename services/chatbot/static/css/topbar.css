@@ -1,0 +1,56 @@
+/* topbar.css */
+
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0 var(--sp-3);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.topbar__title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 0 1 auto;
+    max-width: 50%;
+}
+
+.topbar__title:empty::before {
+    content: 'New chat';
+    color: var(--text-tertiary);
+    font-weight: 400;
+}
+
+.topbar__spacer { flex: 1; }
+
+.topbar__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    background: transparent;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.topbar__btn:hover {
+    background: var(--bg-surface-2);
+    color: var(--text-primary);
+}
+
+.topbar__btn--icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 16px;
+}
+
+@media (min-width: 769px) {
+    #sidebarToggleBtn { display: none; }
+}
