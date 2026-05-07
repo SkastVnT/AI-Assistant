@@ -96,6 +96,24 @@
         append('REJECT: ' + msg);
         show();
     });
+    // Wrap fetch to surface network failures and >=500 responses to the debug panel.
+    if (typeof window.fetch === 'function') {
+        var _origFetch = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            return _origFetch(input, init).then(function(res) {
+                if (res && res.status >= 500) {
+                    append('HTTP ' + res.status + ' ' + (res.statusText || '') + ' ' + url);
+                    show();
+                }
+                return res;
+            }).catch(function(err) {
+                append('FETCH ERR: ' + (err && err.message ? err.message : String(err)) + ' ' + url);
+                show();
+                throw err;
+            });
+        };
+    }
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
             e.preventDefault();
