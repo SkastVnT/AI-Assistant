@@ -653,13 +653,13 @@ try {
                                         <path d="M12 5v14M5 12h14"/>
                                     </svg>
                                 </button>
-                                <!-- Tools dropdown — tidied: 1-col list, 2 groups, "More" toggle for rare tools -->
+                                <!-- Tools dropdown — Phase 2: 4 groups, all tools preserved, "More" collapsibles for rare items -->
                                 <div class="tools-dropdown" id="toolsMenuDropdown">
                                     <div class="tools-dropdown__header">Tools</div>
 
-                                    <!-- Search & Research -->
+                                    <!-- Search -->
                                     <div class="tools-category">
-                                        <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search &amp; Research</div>
+                                        <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search</div>
                                         <div class="tools-list">
                                             <button class="tools-list__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
                                                 <i data-lucide="search" class="lucide"></i><span>Web Search</span>
@@ -667,18 +667,18 @@ try {
                                             <button class="tools-list__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
                                                 <i data-lucide="image" class="lucide"></i><span>Image Search</span>
                                             </button>
-                                            <button class="tools-list__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
-                                                <i data-lucide="telescope" class="lucide"></i><span>Deep Research</span>
+                                            <button class="tools-list__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
+                                                <i data-lucide="bar-chart-3" class="lucide"></i><span>Social Research</span>
                                             </button>
                                             <div class="tools-list__more" hidden data-more="search">
-                                                <button class="tools-list__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
-                                                    <i data-lucide="bar-chart-3" class="lucide"></i><span>Social Research</span>
-                                                </button>
                                                 <button class="tools-list__item" id="githubBtn" title="GitHub repository search">
                                                     <i data-lucide="github" class="lucide"></i><span>GitHub</span>
                                                 </button>
-                                                <button class="tools-list__item" id="configAgentBtn" title="Config Agent">
-                                                    <i data-lucide="settings" class="lucide"></i><span>Config Agent</span>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="googleSearchBtn" title="Bing falls back inside Web Search cascade">
+                                                    <i data-lucide="globe" class="lucide"></i><span>Bing</span><span class="tools-list__item-sub">via Web</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="googleSearchBtn" title="Baidu falls back inside Web Search cascade">
+                                                    <i data-lucide="globe-2" class="lucide"></i><span>Baidu</span><span class="tools-list__item-sub">via Web</span>
                                                 </button>
                                             </div>
                                             <button class="tools-list__more-toggle" type="button" data-target="search">More…</button>
@@ -689,8 +689,11 @@ try {
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
                                         <div class="tools-list">
-                                            <button class="tools-list__item" id="imageGenToolBtn" title="Tạo hình ảnh">
+                                            <button class="tools-list__item" id="imageGenToolBtn" title="Image Gen (multi-provider)">
                                                 <i data-lucide="sparkles" class="lucide"></i><span>Image Gen</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="nanoBananaBtn" title="Nano Banana (Gemini 2.5 image)">
+                                                <i data-lucide="banana" class="lucide"></i><span>Nano Banana</span>
                                             </button>
                                             <button class="tools-list__item" id="reverseImageBtn" title="Reverse Image — Google Lens + SauceNAO">
                                                 <i data-lucide="scan-search" class="lucide"></i><span>Reverse Image</span>
@@ -699,34 +702,72 @@ try {
                                                 <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
                                                     <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
                                                 </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="reverseImageBtn" title="Google Lens runs inside Reverse Image">
+                                                    <i data-lucide="aperture" class="lucide"></i><span>Google Lens</span><span class="tools-list__item-sub">via Reverse</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="reverseImageBtn" title="SauceNAO runs inside Reverse Image">
+                                                    <i data-lucide="image-down" class="lucide"></i><span>SauceNAO</span><span class="tools-list__item-sub">via Reverse</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="characterPickerBtn" title="Character Select (SAA)">
+                                                    <i data-lucide="user-search" class="lucide"></i><span>Character Select (SAA)</span>
+                                                </button>
                                             </div>
                                             <button class="tools-list__more-toggle" type="button" data-target="image">More…</button>
                                         </div>
                                     </div>
 
+                                    <!-- Reasoning -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="brain" class="lucide lucide-sm"></i> Reasoning</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
+                                                <i data-lucide="telescope" class="lucide"></i><span>Deep Research</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="thinkingModeBtn" title="Switch thinking mode (Instant / Multi-thinking)">
+                                                <i data-lucide="layers" class="lucide"></i><span>Thinking mode</span>
+                                            </button>
+                                            <button class="tools-list__item" id="configAgentBtn" title="Config Agent">
+                                                <i data-lucide="settings" class="lucide"></i><span>Config Agent</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div class="tools-dropdown__divider"></div>
 
-                                    <!-- Utility actions -->
-                                    <div class="tools-dropdown__actions">
-                                        <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files">
+                                    <!-- Files / Utility -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="folder" class="lucide lucide-sm"></i> Files &amp; Utility</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="uploadFilesBtn" title="Upload files">
+                                                <i data-lucide="paperclip" class="lucide"></i><span>Upload Files</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="branchConversationBtn" title="Branch conversation">
+                                                <i data-lucide="git-branch" class="lucide"></i><span>Branch conversation</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="memoryBtn" title="AI Memory">
+                                                <i data-lucide="brain-circuit" class="lucide"></i><span>Memory</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="galleryBtn" title="Image Gallery">
+                                                <i data-lucide="images" class="lucide"></i><span>Gallery</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
+                                    <div class="tools-dropdown__actions" hidden aria-hidden="true">
+                                        <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files" tabindex="-1">
                                             <span class="tools-dropdown__item-icon"><i data-lucide="paperclip" class="lucide"></i></span>
-                                            <div>
-                                                <div class="tools-dropdown__item-text">Upload Files</div>
-                                                <div class="tools-dropdown__item-sub">Attach images, docs, code</div>
-                                            </div>
+                                            <div><div class="tools-dropdown__item-text">Upload Files</div></div>
                                         </button>
-                                        <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch">
+                                        <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch" tabindex="-1">
                                             <span class="tools-dropdown__item-icon"><i data-lucide="git-branch" class="lucide"></i></span>
-                                            <div>
-                                                <div class="tools-dropdown__item-text">Branch conversation</div>
-                                                <div class="tools-dropdown__item-sub">Fork from current point</div>
-                                            </div>
+                                            <div><div class="tools-dropdown__item-text">Branch conversation</div></div>
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Inline quick tools — mirror state from the dropdown buttons above -->
+                            <!-- Inline quick tools — visible shortcuts (Phase 2: Web, Image Gen, Deep Research, Upload) -->
                             <div class="input-area__quick-tools" id="quickTools">
                                 <button class="quick-tool" type="button" data-target="googleSearchBtn" title="Web Search" aria-label="Web Search">
                                     <i data-lucide="search" class="lucide"></i>
@@ -736,6 +777,9 @@ try {
                                 </button>
                                 <button class="quick-tool" type="button" data-target="deepResearchToolBtn" title="Deep Research" aria-label="Deep Research">
                                     <i data-lucide="telescope" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="uploadFilesBtn" title="Upload Files" aria-label="Upload Files">
+                                    <i data-lucide="paperclip" class="lucide"></i>
                                 </button>
                             </div>
 
@@ -3227,6 +3271,19 @@ window.ThinkingPanel = (function() {
         var q = e.target.closest && e.target.closest('.quick-tool');
         if (!q) return;
         var id = q.dataset && q.dataset.target;
+        var target = id && document.getElementById(id);
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        target.click();
+    });
+
+    // 2b) Proxy buttons inside the tools dropdown delegate to the real wired button
+    //     elsewhere in the DOM (topbar/sidebar). Existing main.js bindings stay intact.
+    document.addEventListener('click', function (e) {
+        var p = e.target.closest && e.target.closest('.tools-list__item.is-proxy[data-proxy]');
+        if (!p) return;
+        var id = p.dataset && p.dataset.proxy;
         var target = id && document.getElementById(id);
         if (!target) return;
         e.preventDefault();
