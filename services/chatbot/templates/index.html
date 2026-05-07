@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
 
     <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
     <script>
@@ -58,63 +59,53 @@
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-<!-- JS ERROR OVERLAY — remove after debugging -->
-<div id="__jsDebugOverlay" style="display:none;position:fixed;bottom:12px;right:12px;z-index:99999;max-width:480px;background:#1e1e2e;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;box-shadow:0 4px 24px rgba(0,0,0,.6)">
-  <strong>⚠ JS Error:</strong><br><span id="__jsDebugMsg"></span>
+<!-- JS error overlay — hidden by default; press Ctrl+Shift+D to toggle. -->
+<div id="__jsDebugOverlay" hidden style="position:fixed;bottom:12px;right:12px;z-index:99999;max-width:480px;background:#1e1e2e;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;box-shadow:0 4px 24px rgba(0,0,0,.6)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <strong>JS errors</strong>
+    <button id="__jsDebugClose" type="button" aria-label="Close" style="background:none;border:none;color:#f38ba8;cursor:pointer;font-size:16px;line-height:1;">×</button>
+  </div>
+  <div id="__jsDebugMsg" style="white-space:pre-wrap;word-break:break-word;"></div>
 </div>
 <script>
-window.addEventListener('error', function(e) {
-  var d = document.getElementById('__jsDebugOverlay');
-  var m = document.getElementById('__jsDebugMsg');
-  if (d && m) {
-    m.textContent = (e.message || '') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
-    d.style.display = 'block';
-  }
-});
-window.addEventListener('unhandledrejection', function(e) {
-  var d = document.getElementById('__jsDebugOverlay');
-  var m = document.getElementById('__jsDebugMsg');
-  if (d && m) {
-    var prev = m.textContent;
-    m.textContent = prev + (prev ? '\n' : '') + 'Unhandled promise: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
-    d.style.display = 'block';
-  }
-});
-// Check init after 3 seconds
-setTimeout(function() {
-  if (!window.chatApp) {
-    var d = document.getElementById('__jsDebugOverlay');
-    var m = document.getElementById('__jsDebugMsg');
-    if (d && m) {
-      m.textContent = (m.textContent ? m.textContent + '\n' : '') + 'window.chatApp NOT INITIALIZED after 3s';
-      d.style.display = 'block';
-    }
-  }
-}, 3000);
-</script>
-<!-- CLICK DEBUG NOTICE — remove after debugging -->
-<div id="__clickToast" style="display:none;position:fixed;bottom:60px;right:12px;z-index:99999;background:#1e1e2e;color:#a6e3a1;border:1px solid #a6e3a1;border-radius:6px;padding:8px 14px;font-family:monospace;font-size:11px;pointer-events:none;max-width:320px;word-break:break-all;box-shadow:0 2px 12px rgba(0,0,0,.5)"></div>
-<script>
 (function() {
-  var toast = null;
-  var timer = null;
-  function showClickNotice(msg) {
-    if (!toast) toast = document.getElementById('__clickToast');
-    if (!toast) return;
-    clearTimeout(timer);
-    toast.textContent = '🖱 ' + msg;
-    toast.style.display = 'block';
-    timer = setTimeout(function() { toast.style.display = 'none'; }, 1800);
-  }
-  window.__showClickNotice = showClickNotice;
-  document.addEventListener('click', function(e) {
-    var el = e.target;
-    var tag = el.tagName.toLowerCase();
-    var id = el.id ? '#' + el.id : '';
-    var cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '';
-    var action = el.dataset && el.dataset.action ? '[data-action="' + el.dataset.action + '"]' : '';
-    showClickNotice((id || cls || action || tag).substring(0, 80));
-  }, true);
+    var entries = [];
+    function append(text) {
+        entries.push(text);
+        if (entries.length > 50) entries.shift();
+        var m = document.getElementById('__jsDebugMsg');
+        if (m) m.textContent = entries.join('\n');
+    }
+    function show() {
+        var d = document.getElementById('__jsDebugOverlay');
+        if (d) d.hidden = false;
+    }
+    function toggle() {
+        var d = document.getElementById('__jsDebugOverlay');
+        if (!d) return;
+        d.hidden = !d.hidden;
+    }
+    window.addEventListener('error', function(e) {
+        append('ERR: ' + (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0));
+        show();
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        var msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+        append('REJECT: ' + msg);
+        show();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+            e.preventDefault();
+            toggle();
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === '__jsDebugClose') {
+            var d = document.getElementById('__jsDebugOverlay');
+            if (d) d.hidden = true;
+        }
+    });
 })();
 </script>
 <!-- Sidebar visibility reset: one-time fix for stuck sidebar -->
@@ -1235,64 +1226,54 @@ try {
                                         <path d="M12 5v14M5 12h14"/>
                                     </svg>
                                 </button>
-                                <!-- Tools dropdown -->
+                                <!-- Tools dropdown — tidied: 1-col list, 2 groups, "More" toggle for rare tools -->
                                 <div class="tools-dropdown" id="toolsMenuDropdown">
                                     <div class="tools-dropdown__header">Tools</div>
 
-                                    <!-- Search (gộp web/social/image/github) -->
+                                    <!-- Search & Research -->
                                     <div class="tools-category">
-                                        <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
-                                                <span class="tools-grid__icon"><i data-lucide="search" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Web</span>
+                                        <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search &amp; Research</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
+                                                <i data-lucide="search" class="lucide"></i><span>Web Search</span>
                                             </button>
-                                            <button class="tools-grid__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
-                                                <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Images</span>
+                                            <button class="tools-list__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
+                                                <i data-lucide="image" class="lucide"></i><span>Image Search</span>
                                             </button>
-                                            <button class="tools-grid__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
-                                                <span class="tools-grid__icon"><i data-lucide="bar-chart-3" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Social</span>
+                                            <button class="tools-list__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
+                                                <i data-lucide="telescope" class="lucide"></i><span>Deep Research</span>
                                             </button>
-                                            <button class="tools-grid__item" id="githubBtn" title="GitHub repository search">
-                                                <span class="tools-grid__icon"><i data-lucide="github" class="lucide"></i></span>
-                                                <span class="tools-grid__label">GitHub</span>
-                                            </button>
+                                            <div class="tools-list__more" hidden data-more="search">
+                                                <button class="tools-list__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
+                                                    <i data-lucide="bar-chart-3" class="lucide"></i><span>Social Research</span>
+                                                </button>
+                                                <button class="tools-list__item" id="githubBtn" title="GitHub repository search">
+                                                    <i data-lucide="github" class="lucide"></i><span>GitHub</span>
+                                                </button>
+                                                <button class="tools-list__item" id="configAgentBtn" title="Config Agent">
+                                                    <i data-lucide="settings" class="lucide"></i><span>Config Agent</span>
+                                                </button>
+                                            </div>
+                                            <button class="tools-list__more-toggle" type="button" data-target="search">More…</button>
                                         </div>
                                     </div>
 
                                     <!-- Image -->
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="imageGenToolBtn" title="Tạo hình ảnh">
-                                                <span class="tools-grid__icon"><i data-lucide="sparkles" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Image Gen</span>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="imageGenToolBtn" title="Tạo hình ảnh">
+                                                <i data-lucide="sparkles" class="lucide"></i><span>Image Gen</span>
                                             </button>
-                                            <button class="tools-grid__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
-                                                <span class="tools-grid__icon"><i data-lucide="scan-eye" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Img2Img</span>
+                                            <button class="tools-list__item" id="reverseImageBtn" title="Reverse Image — Google Lens + SauceNAO">
+                                                <i data-lucide="scan-search" class="lucide"></i><span>Reverse Image</span>
                                             </button>
-                                            <button class="tools-grid__item" id="reverseImageBtn" title="Reverse Image — chạy song song Google Lens + SauceNAO">
-                                                <span class="tools-grid__icon"><i data-lucide="scan-search" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Reverse Image</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Reasoning -->
-                                    <div class="tools-category">
-                                        <div class="tools-category__label"><i data-lucide="brain" class="lucide lucide-sm"></i> Reasoning</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
-                                                <span class="tools-grid__icon"><i data-lucide="telescope" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Deep Research</span>
-                                            </button>
-                                            <button class="tools-grid__item" id="configAgentBtn" title="Config Agent">
-                                                <span class="tools-grid__icon"><i data-lucide="settings" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Config</span>
-                                            </button>
+                                            <div class="tools-list__more" hidden data-more="image">
+                                                <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
+                                                    <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
+                                                </button>
+                                            </div>
+                                            <button class="tools-list__more-toggle" type="button" data-target="image">More…</button>
                                         </div>
                                     </div>
 
@@ -1316,6 +1297,19 @@ try {
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Inline quick tools — mirror state from the dropdown buttons above -->
+                            <div class="input-area__quick-tools" id="quickTools">
+                                <button class="quick-tool" type="button" data-target="googleSearchBtn" title="Web Search" aria-label="Web Search">
+                                    <i data-lucide="search" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="imageGenToolBtn" title="Image Gen" aria-label="Image Gen">
+                                    <i data-lucide="sparkles" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="deepResearchToolBtn" title="Deep Research" aria-label="Deep Research">
+                                    <i data-lucide="telescope" class="lucide"></i>
+                                </button>
                             </div>
 
                             <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,.md,.ts,.tsx,.jsx,.xml,.yaml,.yml,.log,.sql,.sh,.bat,image/*,audio/*,video/*" multiple class="hidden">
@@ -3670,6 +3664,64 @@ window.ThinkingPanel = (function() {
     }
 
     return { open: open, close: close, onStep: onStep, onFinalize: onFinalize };
+})();
+</script>
+
+<!-- Tidied tools-dropdown glue: "More" disclosure + inline quick-tool mirroring. -->
+<script>
+(function () {
+    // 1) Toggle "More…" sections inside the tools dropdown.
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest && e.target.closest('.tools-list__more-toggle');
+        if (!t) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var list = t.parentElement;
+        var more = list && list.querySelector('.tools-list__more');
+        if (!more) return;
+        var open = !more.hasAttribute('hidden');
+        if (open) {
+            more.setAttribute('hidden', '');
+            t.textContent = 'More\u2026';
+        } else {
+            more.removeAttribute('hidden');
+            t.textContent = 'Less';
+        }
+    });
+
+    // 2) Inline quick-tool delegates clicks to the underlying dropdown button.
+    document.addEventListener('click', function (e) {
+        var q = e.target.closest && e.target.closest('.quick-tool');
+        if (!q) return;
+        var id = q.dataset && q.dataset.target;
+        var target = id && document.getElementById(id);
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        target.click();
+    });
+
+    // 3) Mirror `.active` class from the underlying button onto the quick-tool.
+    function syncQuickActive() {
+        document.querySelectorAll('.quick-tool').forEach(function (q) {
+            var target = document.getElementById(q.dataset.target);
+            if (!target) return;
+            q.classList.toggle('active', target.classList.contains('active'));
+        });
+    }
+    function wireMirroring() {
+        var observer = new MutationObserver(syncQuickActive);
+        document.querySelectorAll('.quick-tool').forEach(function (q) {
+            var target = document.getElementById(q.dataset.target);
+            if (target) observer.observe(target, { attributes: true, attributeFilter: ['class'] });
+        });
+        syncQuickActive();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', wireMirroring);
+    } else {
+        wireMirroring();
+    }
 })();
 </script>
 
