@@ -1,0 +1,124 @@
+/* tools-tidy.css — surgical visual cleanup for tools dropdown + inline quick tools.
+   Loaded after app.css to override the 3-column grid and add quick-tool styles.
+   Safe to remove this file + its <link> + the new HTML to fully revert. */
+
+/* Reduce overall dropdown chrome */
+.tools-dropdown { padding: 6px 0 !important; }
+.tools-dropdown__header {
+    padding: 6px 14px 4px !important;
+    font-size: 11px !important;
+}
+.tools-category { padding: 0 !important; }
+.tools-category__label {
+    padding: 6px 14px 2px !important;
+    font-size: 10px !important;
+}
+.tools-dropdown__divider { margin: 4px 8px !important; }
+
+/* List variant — replaces the 3-col grid for tool buttons */
+.tools-list {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 6px 4px;
+    gap: 1px;
+}
+.tools-list__more[hidden] { display: none; }
+.tools-list__more {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.tools-list__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+    position: relative;
+}
+.tools-list__item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+.tools-list__item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+.tools-list__item.active::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+}
+.tools-list__item .lucide {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+.tools-list__more-toggle {
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+.tools-list__more-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* Inline quick-tool buttons next to the "+" tools menu */
+.input-area__quick-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 2px;
+}
+.quick-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+.quick-tool:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+.quick-tool.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+.quick-tool .lucide { width: 16px; height: 16px; }
+
+/* Hide the quick-tool row on narrow screens to keep the input row uncluttered */
+@media (max-width: 640px) {
+    .input-area__quick-tools { display: none; }
+}

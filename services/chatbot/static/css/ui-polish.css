@@ -1,0 +1,143 @@
+/* ui-polish.css — surgical visual polish on top of legacy app.css.
+ * Loaded LAST (after app.css, image-gen-v2.css, anime-pipeline.css,
+ * character-picker.css, local-image-gen.css, nano-banana.css, tools-tidy.css).
+ * Goal: tighten spacing, soften borders, calm the composer/sidebar/topbar
+ * without rewriting the layout or removing any tool.
+ *
+ * Hard rules followed here:
+ * - No layout changes (grid/flex direction kept).
+ * - No element hidden permanently. ".more" is collapsible only.
+ * - No selector that depends on JS state added by main.js.
+ * - All tweaks are visual — IDs and class names of tools are never touched.
+ */
+
+/* ── Composer polish ── */
+.input-area {
+    padding-top: 6px;
+    padding-bottom: 8px;
+}
+.input-area__wrapper {
+    border-radius: 14px;
+    box-shadow: 0 1px 0 var(--border-secondary), 0 8px 28px -16px rgba(0, 0, 0, 0.45);
+    transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+.input-area__wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+}
+.input-area__container { padding: 8px 10px 10px; }
+.input-area__row { gap: 6px; }
+.input-area__tools { gap: 2px; }
+.input-area__tool-btn {
+    border-radius: 8px;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+.input-area__tool-btn:hover { background: var(--bg-hover); }
+
+/* Tighten the chip strip just above the textarea */
+.composer-chips {
+    gap: 6px;
+    padding: 4px 4px 0;
+}
+.composer-chips:empty { padding: 0; }
+
+/* ── Sidebar compactness ── */
+.sidebar { border-right: 1px solid var(--border-secondary); }
+.sidebar__header { padding: 10px 12px; }
+.sidebar__chats {
+    padding: 4px 6px;
+    gap: 1px;
+}
+.sidebar__chat-item {
+    padding: 7px 10px;
+    border-radius: 8px;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.sidebar__chat-item:hover { background: var(--bg-hover); }
+.sidebar__chat-item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.sidebar__footer {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border-secondary);
+}
+.sidebar__footer-btn {
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+/* ── Topbar visual consistency ── */
+.topbar {
+    border-bottom: 1px solid var(--border-secondary);
+}
+.topbar__btn {
+    border-radius: 8px;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+.topbar__btn:hover { background: var(--bg-hover); }
+.topbar__btn--labelled { gap: 6px; }
+.topbar__more-dropdown {
+    border-radius: 12px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+    padding: 6px 0;
+}
+.topbar__more-item {
+    padding: 8px 14px;
+    border-radius: 0;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.topbar__more-item:hover { background: var(--bg-hover); }
+
+/* ── Tools dropdown grouping (light additions on top of tools-tidy.css) ── */
+.tools-dropdown {
+    border-radius: 12px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+}
+.tools-list__item-sub {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.tools-list__item.is-proxy { color: var(--text-tertiary); }
+.tools-list__item.is-proxy:hover { color: var(--text-primary); }
+
+/* ── Quick tools spacing on the composer row ── */
+.input-area__quick-tools {
+    padding-left: 4px;
+    margin-left: 4px;
+    border-left: 1px solid var(--border-secondary);
+}
+
+/* ── Welcome screen breathing room ── */
+.welcome { padding: 40px 24px; }
+.welcome__title { letter-spacing: -0.01em; }
+
+/* ── Message bubbles, micro-cleanup ── */
+.message { padding: 10px 16px; }
+.message__body { line-height: 1.6; }
+
+/* ── Modal chrome (qrPay / changePw / editProfile use inline styles) ── */
+.modal-content,
+.modal__content {
+    border-radius: 14px;
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Debug overlay: ensure it stays out of the way until summoned ── */
+#__jsDebugOverlay {
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+}
+#__jsDebugOverlay[hidden] { display: none !important; }
+
+/* ── Responsive guards: keep quick tools out on narrow screens ── */
+@media (max-width: 720px) {
+    .input-area__quick-tools {
+        border-left: none;
+        margin-left: 0;
+        padding-left: 0;
+    }
+}

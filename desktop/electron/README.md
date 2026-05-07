@@ -1,145 +1,75 @@
-# AI-Assistant — Electron Desktop Wrapper
+# AI-Assistant — Electron desktop wrapper
 
-Thin Electron shell around the existing AI-Assistant chatbot. It does
-**not** replace the web app, rewrite the UI, or change `/chat/stream`.
-It only:
+This is a **wrapper only**. It does not replace the web deployment. The web app
+remains the canonical surface; Electron just spawns the existing
+`services/chatbot/run.py` and points a sandboxed `BrowserWindow` at
+`http://127.0.0.1:5000`.
 
-1. Spawns the existing Python backend (`services/chatbot/run.py`) in
-   FastAPI mode.
-2. Waits until the backend answers on `http://127.0.0.1:5000`.
-3. Loads that URL inside a sandboxed `BrowserWindow`.
-4. Stops the backend when the window closes.
+## What it does
 
-Web mode is unaffected — `python services/chatbot/run.py` still works
-exactly as before.
+1. Boots a `BrowserWindow` showing `src/loading.html` (dark splash).
+2. Spawns `python services/chatbot/run.py` with `cwd = repo root`.
+   - On Windows, prefers `venv-core/Scripts/python.exe`.
+   - On macOS / Linux, prefers `venv-core/bin/python`.
+3. Polls `GET /health` (and falls back to `/`) until it gets a `< 500` response.
+4. Calls `mainWindow.loadURL('http://127.0.0.1:5000')`.
+5. On window close / app quit, terminates the backend child process.
 
----
+## What it does NOT do
 
-## Layout
+- It does **not** call `loadFile` for any chatbot HTML. Renderer always talks
+  to the local HTTP server.
+- It does **not** enable `nodeIntegration`, disable `contextIsolation`, or
+  disable `sandbox`. These are locked off per repo policy.
+- It does **not** ship a Python runtime, ComfyUI, or the LoRA assets. You are
+  responsible for installing them via the existing `venv-core` instructions.
+- It does **not** auto-update.
 
+## Renderer bridge
+
+`preload.js` exposes a single readonly object:
+
+```js
+window.desktopAPI = { isDesktop: true, platform: process.platform };
 ```
-desktop/electron/
-  package.json
-  src/
-    main.js              # Electron main process
-    preload.js           # Sandboxed bridge (exposes only desktopAPI)
-    backend-process.js   # Spawns + supervises services/chatbot/run.py
-```
 
----
+That is the entire surface. No fs, no shell, no ipc.
 
-## Requirements
-
-- **Node.js 18+** (for Electron 31).
-- **Python** with the chatbot dependencies installed in `venv-core`
-  (or available on `PATH`). This wrapper does **not** install Python
-  packages.
-- A working `services/chatbot` setup (env files, API keys, etc.).
-
-`backend-process.js` auto-detects `venv-core/Scripts/python.exe`
-(Windows) or `venv-core/bin/python` (POSIX). Override with:
+## Setup
 
 ```powershell
-$env:PYTHON = "C:\path\to\python.exe"
-```
-
----
-
-## Run web mode (unchanged)
-
-```powershell
-cd services\chatbot
-python run.py
-```
-
----
-
-## Run desktop mode
-
-```powershell
-cd desktop\electron
+cd desktop/electron
 npm install
 npm run dev
 ```
 
-What happens:
+`npm run dev` is just `electron . --dev`. There is no bundler.
 
-1. Electron sets `USE_FASTAPI=true`, `FLASK_PORT=5000`,
-   `PYTHONIOENCODING=utf-8`, `ELECTRON_DESKTOP=true` and spawns
-   `python services/chatbot/run.py`.
-2. The main process polls `http://127.0.0.1:5000/health` (falls back
-   to `/`) until it responds.
-3. The `BrowserWindow` loads `http://127.0.0.1:5000` (the existing
-   web UI — `loadFile` is intentionally **not** used).
-4. On quit, the Python process tree is terminated
-   (`taskkill /T /F` on Windows, `SIGTERM`→`SIGKILL` elsewhere).
+## Packaging
 
----
-
-## Scripts
-
-| Script           | Purpose                                              |
-| ---------------- | ---------------------------------------------------- |
-| `npm run dev`    | Launch Electron with DevTools detached.              |
-| `npm start`      | Launch Electron without DevTools.                    |
-| `npm run package`| `electron-builder --dir` (unpacked build, for QA).   |
-| `npm run make`   | `electron-builder` (full installer / artifact).      |
-
----
-
-## Security contract
-
-The renderer is fully sandboxed:
-
-```js
-nodeIntegration: false
-contextIsolation: true
-sandbox: true
-webSecurity: true
-preload: src/preload.js
+```powershell
+npm run package   # creates an unpackaged build under desktop/electron/out
+npm run make      # builds installers (Squirrel on Windows, zip elsewhere)
 ```
 
-`preload.js` exposes **only**:
+Packaging the desktop wrapper does NOT bundle Python. The packaged app still
+expects `venv-core` to exist next to it (or `python` on PATH). For a true
+self-contained installer, see `docs/STORAGE_CURATION_ROADMAP.md` — that work
+is deferred.
 
-```js
-window.desktopAPI = {
-  isDesktop: true,
-  platform: process.platform,
-}
-```
+## Environment variables
 
-Not exposed: `fs`, `child_process`, `shell`, `ipcRenderer`, `require`,
-or any arbitrary file/command APIs. External links are routed to the
-default browser via `shell.openExternal`; in-page navigation away from
-`http://127.0.0.1:5000` is blocked.
-
-`child_process.spawn` is used **only** in the main process
-(`backend-process.js`) to launch the Python backend.
-
----
-
-## What this wrapper does NOT do
-
-- Does **not** replace, fork, or rewrite the web UI.
-- Does **not** modify `/chat/stream` or any backend route.
-- Does **not** touch `ComfyUI/` or `image_pipeline/`.
-- Does **not** add or change Python dependencies
-  (`requirements-core.txt`, `requirements-image.txt`,
-  `requirements.txt` are untouched).
-- Does **not** ship its own copy of `services/chatbot/templates/` or
-  `static/` — everything is served by Flask/FastAPI as in web mode.
-
----
+| Var | Default | Purpose |
+|---|---|---|
+| `AI_ASSISTANT_PORT` | `5000` | Port to probe and to set as `FLASK_PORT` for the spawned backend. |
+| `ELECTRON_DESKTOP` | `true` | Set automatically. Backend code may opt into desktop-only behaviour. |
 
 ## Troubleshooting
 
-- **`'electron' is not recognized`** — run `npm install` inside
-  `desktop/electron/` first.
-- **Window shows "Backend failed to start"** — open a terminal and run
-  `cd services/chatbot && python run.py` directly to see the Python
-  error. The desktop wrapper just spawns the same command.
-- **Port 5000 already in use** — stop the existing chatbot process or
-  set `FLASK_PORT` (and a matching `AI_ASSISTANT_HOST` if needed)
-  before launching Electron.
-- **Wrong Python interpreter** — set the `PYTHON` env var to the
-  absolute path of the interpreter you want to use.
+- **"Backend did not become ready…"** — `services/chatbot/run.py` failed to
+  start. The splash screen will display the last ~4 KB of stderr/stdout.
+  Inspect the terminal that launched Electron for the full log.
+- **Port already in use** — set `AI_ASSISTANT_PORT=5001` (or any free port)
+  before launching: `set AI_ASSISTANT_PORT=5001 && npm run dev`.
+- **Wrong Python** — activate `venv-core` before `npm run dev`, or symlink
+  `python` to a 3.11 interpreter on PATH.

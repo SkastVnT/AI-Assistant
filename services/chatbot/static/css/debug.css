@@ -1,0 +1,91 @@
+/* debug.css */
+
+.debug-panel {
+    position: fixed;
+    right: var(--sp-4);
+    bottom: var(--sp-4);
+    width: 380px;
+    max-height: 60vh;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: var(--z-debug);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.debug-panel[hidden] { display: none; }
+
+.debug-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--bg-surface-2);
+    border-bottom: 1px solid var(--border-primary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.debug-panel__close {
+    color: var(--text-tertiary);
+    padding: 0 var(--sp-2);
+}
+
+.debug-panel__state {
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-app);
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.debug-panel__state b {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.debug-panel__log {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--sp-2);
+    background: var(--bg-app);
+}
+
+.debug-panel__entry {
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 2px;
+    word-break: break-all;
+    border-left: 2px solid var(--text-tertiary);
+}
+
+.debug-panel__entry--error { border-left-color: var(--danger); color: var(--danger); }
+.debug-panel__entry--warn  { border-left-color: var(--warning); color: var(--warning); }
+.debug-panel__entry--info  { border-left-color: var(--info); }
+.debug-panel__entry--http  { border-left-color: var(--accent); }
+
+.debug-panel__time {
+    color: var(--text-tertiary);
+    font-size: 10px;
+    margin-right: var(--sp-2);
+}
+
+.debug-panel__footer {
+    padding: var(--sp-1) var(--sp-3);
+    border-top: 1px solid var(--border-primary);
+    text-align: right;
+}
+
+.debug-panel__clear {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    padding: 2px var(--sp-2);
+}
+.debug-panel__clear:hover { color: var(--text-primary); }

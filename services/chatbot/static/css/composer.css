@@ -1,0 +1,122 @@
+/* composer.css */
+
+.composer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-primary);
+}
+
+.composer__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    min-height: 0;
+}
+
+.composer__chips:empty { display: none; }
+
+.composer__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 12px;
+    border: 1px solid var(--border-primary);
+}
+
+.composer__chip-remove {
+    margin-left: var(--sp-1);
+    padding: 0 4px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    line-height: 1;
+}
+.composer__chip-remove:hover { color: var(--danger); }
+
+.composer__row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--sp-2);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-2);
+    transition: border-color var(--transition-fast);
+}
+
+body[data-state="streaming"] .composer__row,
+body[data-state="stopping"] .composer__row {
+    border-color: var(--accent);
+}
+
+.composer__input {
+    flex: 1;
+    min-height: 24px;
+    max-height: 240px;
+    resize: none;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.composer__input::placeholder { color: var(--text-tertiary); }
+
+.composer__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    min-width: 36px;
+    padding: 0 var(--sp-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.composer__btn:hover:not(:disabled) { background: var(--border-strong); }
+
+.composer__btn--icon {
+    padding: 0;
+    width: 36px;
+}
+
+.composer__btn--send {
+    background: var(--accent);
+    color: var(--text-inverse);
+    font-weight: 600;
+}
+.composer__btn--send:hover:not(:disabled) { background: var(--accent-hover); }
+
+.composer__btn--stop {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* Hide send/show stop while streaming */
+body[data-state="streaming"] #sendBtn,
+body[data-state="stopping"] #sendBtn { display: none; }
+body[data-state="streaming"] #stopBtn,
+body[data-state="stopping"] #stopBtn { display: inline-flex !important; }
+
+/* Disable composer while streaming/uploading */
+body[data-state="streaming"] .composer__input,
+body[data-state="stopping"] .composer__input,
+body[data-state="uploading"] .composer__input {
+    opacity: 0.7;
+}
+
+.composer__tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+}

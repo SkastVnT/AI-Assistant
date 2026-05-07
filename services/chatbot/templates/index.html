@@ -48,6 +48,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nano-banana.css') }}?v=20260506a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260507a">
 
     <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
     <script>
@@ -59,63 +61,71 @@
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-<!-- JS ERROR OVERLAY — remove after debugging -->
-<div id="__jsDebugOverlay" style="display:none;position:fixed;bottom:12px;right:12px;z-index:99999;max-width:480px;background:#1e1e2e;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;box-shadow:0 4px 24px rgba(0,0,0,.6)">
-  <strong>⚠ JS Error:</strong><br><span id="__jsDebugMsg"></span>
+<!-- JS error overlay — hidden by default; press Ctrl+Shift+D to toggle. -->
+<div id="__jsDebugOverlay" hidden style="position:fixed;bottom:12px;right:12px;z-index:99999;max-width:480px;background:#1e1e2e;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;box-shadow:0 4px 24px rgba(0,0,0,.6)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <strong>JS errors</strong>
+    <button id="__jsDebugClose" type="button" aria-label="Close" style="background:none;border:none;color:#f38ba8;cursor:pointer;font-size:16px;line-height:1;">×</button>
+  </div>
+  <div id="__jsDebugMsg" style="white-space:pre-wrap;word-break:break-word;"></div>
 </div>
 <script>
-window.addEventListener('error', function(e) {
-  var d = document.getElementById('__jsDebugOverlay');
-  var m = document.getElementById('__jsDebugMsg');
-  if (d && m) {
-    m.textContent = (e.message || '') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
-    d.style.display = 'block';
-  }
-});
-window.addEventListener('unhandledrejection', function(e) {
-  var d = document.getElementById('__jsDebugOverlay');
-  var m = document.getElementById('__jsDebugMsg');
-  if (d && m) {
-    var prev = m.textContent;
-    m.textContent = prev + (prev ? '\n' : '') + 'Unhandled promise: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
-    d.style.display = 'block';
-  }
-});
-// Check init after 3 seconds
-setTimeout(function() {
-  if (!window.chatApp) {
-    var d = document.getElementById('__jsDebugOverlay');
-    var m = document.getElementById('__jsDebugMsg');
-    if (d && m) {
-      m.textContent = (m.textContent ? m.textContent + '\n' : '') + 'window.chatApp NOT INITIALIZED after 3s';
-      d.style.display = 'block';
-    }
-  }
-}, 3000);
-</script>
-<!-- CLICK DEBUG NOTICE — remove after debugging -->
-<div id="__clickToast" style="display:none;position:fixed;bottom:60px;right:12px;z-index:99999;background:#1e1e2e;color:#a6e3a1;border:1px solid #a6e3a1;border-radius:6px;padding:8px 14px;font-family:monospace;font-size:11px;pointer-events:none;max-width:320px;word-break:break-all;box-shadow:0 2px 12px rgba(0,0,0,.5)"></div>
-<script>
 (function() {
-  var toast = null;
-  var timer = null;
-  function showClickNotice(msg) {
-    if (!toast) toast = document.getElementById('__clickToast');
-    if (!toast) return;
-    clearTimeout(timer);
-    toast.textContent = '🖱 ' + msg;
-    toast.style.display = 'block';
-    timer = setTimeout(function() { toast.style.display = 'none'; }, 1800);
-  }
-  window.__showClickNotice = showClickNotice;
-  document.addEventListener('click', function(e) {
-    var el = e.target;
-    var tag = el.tagName.toLowerCase();
-    var id = el.id ? '#' + el.id : '';
-    var cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '';
-    var action = el.dataset && el.dataset.action ? '[data-action="' + el.dataset.action + '"]' : '';
-    showClickNotice((id || cls || action || tag).substring(0, 80));
-  }, true);
+    var entries = [];
+    function append(text) {
+        entries.push(text);
+        if (entries.length > 50) entries.shift();
+        var m = document.getElementById('__jsDebugMsg');
+        if (m) m.textContent = entries.join('\n');
+    }
+    function show() {
+        var d = document.getElementById('__jsDebugOverlay');
+        if (d) d.hidden = false;
+    }
+    function toggle() {
+        var d = document.getElementById('__jsDebugOverlay');
+        if (!d) return;
+        d.hidden = !d.hidden;
+    }
+    window.addEventListener('error', function(e) {
+        append('ERR: ' + (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0));
+        show();
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        var msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+        append('REJECT: ' + msg);
+        show();
+    });
+    // Wrap fetch to surface network failures and >=500 responses to the debug panel.
+    if (typeof window.fetch === 'function') {
+        var _origFetch = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            return _origFetch(input, init).then(function(res) {
+                if (res && res.status >= 500) {
+                    append('HTTP ' + res.status + ' ' + (res.statusText || '') + ' ' + url);
+                    show();
+                }
+                return res;
+            }).catch(function(err) {
+                append('FETCH ERR: ' + (err && err.message ? err.message : String(err)) + ' ' + url);
+                show();
+                throw err;
+            });
+        };
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+            e.preventDefault();
+            toggle();
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === '__jsDebugClose') {
+            var d = document.getElementById('__jsDebugOverlay');
+            if (d) d.hidden = true;
+        }
+    });
 })();
 </script>
 <!-- Sidebar visibility reset: one-time fix for stuck sidebar -->
@@ -244,585 +254,6 @@ try {
                     ✓ Video đã được mở khóa
                 </div>
             </div>
-
-            <!-- User section -->
-            <div class="sidebar__user">
-                <!-- User dropdown panel -->
-                <div id="userDropdown" style="display:none;">
-                    <!-- Header -->
-                    <div style="padding:14px 14px 10px; border-bottom:1px solid var(--border-primary);">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <div id="dropAvatar" style="
-                                width:38px;height:38px;border-radius:50%;
-                                background:var(--accent-gradient);flex-shrink:0;
-                                display:flex;align-items:center;justify-content:center;
-                                font-size:15px;font-weight:700;color:#fff;">{{ (session.get('display_name') or session.get('username') or 'U')[0]|upper }}</div>
-                            <div style="min-width:0;">
-                                <div id="dropDisplayName" style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ session.get('display_name') or session.get('username') or 'User' }}</div>
-                                <div id="dropUsername" style="font-size:11px;color:var(--text-tertiary);">@{{ session.get('username') or 'username' }}</div>
-                            </div>
-                            <span id="dropRoleBadge" style="
-                                display:{% if session.get('user_role') == 'admin' %}inline-block{% else %}none{% endif %};margin-left:auto;flex-shrink:0;
-                                font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;
-                                background:rgba(124,108,240,0.2);color:#9488f4;border:1px solid rgba(124,108,240,0.3);">Admin</span>
-                        </div>
-                    </div>
-                    <!-- Menu items -->
-                    <div style="padding:6px;">
-                        <a href="/admin" id="dropAdminLink" style="display:{% if session.get('user_role') == 'admin' %}flex{% else %}none{% endif %};align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--text-secondary);font-size:13px;text-decoration:none;transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                            <i data-lucide="shield" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Admin Panel</span>
-                        </a>
-                        <button onclick="openEditProfile()" style="
-                            width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
-                            color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
-                            font-family:var(--font-sans);transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                            <i data-lucide="user-pen" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Chỉnh sửa hồ sơ</span>
-                        </button>
-                        <button onclick="openChangePassword()" style="
-                            width:100%;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
-                            color:var(--text-secondary);font-size:13px;background:transparent;border:none;cursor:pointer;text-align:left;
-                            font-family:var(--font-sans);transition:background 0.15s;"
-                           onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                            <i data-lucide="key-round" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Đổi mật khẩu</span>
-                        </button>
-                        <a href="/logout" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#e74c3c;font-size:13px;text-decoration:none;transition:background 0.15s;"
-                           onmouseover="this.style.background='rgba(231,76,60,0.08)'" onmouseout="this.style.background='transparent'"
-                           onclick="try{localStorage.removeItem('ai_session');}catch(e){}">  
-                            <i data-lucide="log-out" style="width:15px;height:15px;flex-shrink:0;"></i>
-                            <span>Đăng xuất</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Trigger row -->
-                <button id="userTrigger" class="sidebar__user-trigger" onclick="toggleUserDropdown()">
-                    <div id="userAvatar" class="sidebar__user-avatar">U</div>
-                    <div class="sidebar__user-info">
-                        <div id="userName" class="sidebar__user-name">User</div>
-                        <div id="userRoleLabel" class="sidebar__user-role">member</div>
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevrons-up-down" id="userChevron" class="lucide lucide-chevrons-up-down sidebar__user-chevron"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
-                </button>
-            </div>
-
-            <!-- QR Payment Modal -->
-            <div id="qrPayModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeVideoUnlockModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);"></div>
-                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:18px;padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.55);text-align:center;">
-                    <button onclick="closeVideoUnlockModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;border-radius:6px;display:flex;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='none'">
-                        <i data-lucide="x" style="width:18px;height:18px;"></i>
-                    </button>
-                    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎬 Mở khóa Video</div>
-                    <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:18px;">Quét mã QR để chuyển khoản và gửi yêu cầu mở khóa</p>
-                    <!-- QR Image -->
-                    <div id="qrImgWrap" style="margin:0 auto 16px;width:220px;height:220px;background:var(--bg-tertiary);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-                        <div id="qrLoading" style="font-size:12px;color:var(--text-tertiary);">Đang tải…</div>
-                        <img id="qrImg" src="" alt="QR" style="display:none;width:100%;height:100%;object-fit:contain;">
-                    </div>
-                    <!-- Bank info -->
-                    <div id="qrBankInfo" style="background:var(--bg-tertiary);border-radius:10px;padding:12px 16px;text-align:left;margin-bottom:16px;font-size:12px;line-height:1.9;">
-                        <div><span style="color:var(--text-tertiary)">Ngân hàng:</span> <strong id="qrBankName">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Số TK:</span> <strong id="qrAccountNo">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Chủ TK:</span> <strong id="qrAccountName">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Số tiền:</span> <strong id="qrAmount" style="color:#f1c40f;">—</strong></div>
-                        <div><span style="color:var(--text-tertiary)">Nội dung:</span> <strong id="qrDesc">—</strong></div>
-                    </div>
-                    <div id="qrRequestAlert" style="display:none;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
-                    <button onclick="submitVideoUnlockRequest()" id="qrSubmitBtn" style="
-                        width:100%;padding:11px;border:none;border-radius:12px;background:var(--accent-gradient);
-                        color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
-                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;"
-                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
-                        <i data-lucide="send" style="width:16px;height:16px;"></i>
-                        <span id="qrSubmitLbl">Đã chuyển khoản — Gửi yêu cầu</span>
-                    </button>
-                    <p style="font-size:11px;color:var(--text-tertiary);margin-top:10px;">Sau khi admin xác nhận, tính năng Video sẽ được mở khóa.</p>
-                </div>
-            </div>
-
-            <!-- Change Password Modal -->
-            <div id="changePwModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeChangePassword()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
-                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:360px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-                    <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="key-round" style="width:18px;height:18px;color:var(--accent);"></i> Đổi mật khẩu
-                    </h3>
-                    <div id="cpwError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
-                    <div id="cpwSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mật khẩu hiện tại</label>
-                        <input type="password" id="cpwCurrent" class="form-input" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="••••••••">
-                    </div>
-                    <div style="margin-bottom:20px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Mật khẩu mới</label>
-                        <input type="password" id="cpwNew" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;" placeholder="Ít nhất 6 ký tự">
-                    </div>
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="closeChangePassword()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
-                        <button onclick="submitChangePw()" id="cpwBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Xác nhận</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Edit Profile Modal -->
-            <div id="editProfileModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-                <div onclick="closeEditProfile()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"></div>
-                <div style="position:relative;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:16px;padding:28px;width:100%;max-width:390px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-                    <h3 style="font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="user-pen" style="width:18px;height:18px;color:var(--accent);"></i> Chỉnh sửa hồ sơ
-                    </h3>
-                    <!-- Avatar picker -->
-                    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;gap:10px;">
-                        <div id="epAvatarPreview" onclick="document.getElementById('epAvatarInput').click()" title="Nhấn để thay đổi ảnh" style="
-                            width:80px;height:80px;border-radius:50%;background:var(--accent-gradient);
-                            display:flex;align-items:center;justify-content:center;
-                            font-size:28px;font-weight:700;color:#fff;cursor:pointer;
-                            overflow:hidden;position:relative;border:2px solid var(--border-primary);flex-shrink:0;">
-                            <span id="epAvatarInitial" style="position:relative;z-index:1;">U</span>
-                            <img id="epAvatarImg" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
-                            <div id="epAvatarHover" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2;"
-                                 onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
-                                <i data-lucide="camera" style="width:22px;height:22px;color:#fff;"></i>
-                            </div>
-                        </div>
-                        <input type="file" id="epAvatarInput" accept="image/*" style="display:none;" onchange="handleEpAvatarFile(event)">
-                        <div style="display:flex;gap:6px;">
-                            <button onclick="document.getElementById('epAvatarInput').click()" style="font-size:11px;padding:5px 11px;border:1px solid var(--border-primary);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;">
-                                <i data-lucide="upload" style="width:11px;height:11px;"></i> Tải ảnh lên
-                            </button>
-                            <button id="epClearAvatarBtn" onclick="clearEpAvatar()" style="display:none;font-size:11px;padding:5px 11px;border:1px solid rgba(231,76,60,0.3);border-radius:8px;background:transparent;color:#e74c3c;cursor:pointer;font-family:var(--font-sans);">
-                                Xóa ảnh
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Display name -->
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Tên hiển thị</label>
-                        <input type="text" id="epDisplayName" maxlength="50" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:14px;font-family:var(--font-sans);outline:none;box-sizing:border-box;" placeholder="Nhập tên hiển thị...">
-                    </div>
-                    <!-- Bio -->
-                    <div style="margin-bottom:20px;">
-                        <label style="display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px;">Giới thiệu <span style="color:var(--text-tertiary)">(tuỳ chọn, tối đa 200 ký tự)</span></label>
-                        <textarea id="epBio" maxlength="200" rows="2" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:10px;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);outline:none;resize:none;box-sizing:border-box;" placeholder="Một vài dòng giới thiệu bản thân..."></textarea>
-                    </div>
-                    <div id="epError" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
-                    <div id="epSuccess" style="display:none;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="closeEditProfile()" style="flex:1;padding:10px;border:1px solid var(--border-primary);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);">Hủy</button>
-                        <button onclick="submitEditProfile()" id="epSaveBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Lưu thay đổi</button>
-                    </div>
-                </div>
-            </div>
-
-            <script>
-            // Avatar color palette — global so profile edit can reuse
-            const AVATAR_COLORS = ['#7c6cf0','#ab7df6','#3498db','#e74c3c','#2ecc71','#e67e22','#1abc9c','#9b59b6'];
-            function strColor(str) {
-                let h = 0;
-                for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff;
-                return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-            }
-            let _currentUser = null; // { username, display_name, avatar_data, bio }
-            function _applyAvatarToEl(el, user) {
-                if (user && user.avatar_data) {
-                    el.style.background = 'transparent';
-                    el.innerHTML = '';
-                    const img = document.createElement('img');
-                    img.src = user.avatar_data;
-                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
-                    el.appendChild(img);
-                } else {
-                    const initial = user ? (user.display_name || user.username)[0].toUpperCase() : 'U';
-                    const color   = user ? strColor(user.username) : '#7c6cf0';
-                    el.textContent = initial;
-                    el.style.background = color;
-                }
-            }
-
-            (function(){
-                fetch('/api/auth/me').then(r=>r.json()).then(d=>{
-                    if(d.authenticated && d.user) {
-                        const u = d.user;
-                        _currentUser = {
-                            username:     u.username,
-                            display_name: u.display_name || u.username,
-                            avatar_data:  u.avatar_data || '',
-                            bio:          u.bio || '',
-                        };
-
-                        // Trigger row
-                        _applyAvatarToEl(document.getElementById('userAvatar'), _currentUser);
-                        document.getElementById('userName').textContent = _currentUser.display_name;
-                        document.getElementById('userRoleLabel').textContent = u.role === 'admin' ? '⭐ admin' : 'member';
-
-                        // Dropdown header
-                        _applyAvatarToEl(document.getElementById('dropAvatar'), _currentUser);
-                        document.getElementById('dropDisplayName').textContent = _currentUser.display_name;
-                        document.getElementById('dropUsername').textContent = '@' + u.username;
-
-                        if(u.role === 'admin') {
-                            document.getElementById('dropAdminLink').style.display = 'flex';
-                            document.getElementById('dropRoleBadge').style.display = 'inline-block';
-                        }
-
-                        // Quota bar (non-admin only)
-                        if(u.role !== 'admin') {
-                            loadQuotaBar();
-                        }
-                    }
-                }).catch(()=>{});
-            })();
-
-            let _dropOpen = false;
-
-            /* ── Quota bar ── */
-            function loadQuotaBar() {
-                // First check if features are enabled at all
-                fetch('/api/features').then(r => r.json()).then(flags => {
-                    const quotaOn   = flags.quota   !== false;
-                    const videoOn   = flags.video   !== false;
-                    const paymentOn = flags.payment !== false;
-
-                    if (!quotaOn && !videoOn) {
-                        // Both off — hide entirely
-                        document.getElementById('quotaSection').style.display = 'none';
-                        return;
-                    }
-
-                    // Show the section then fill with real data
-                    document.getElementById('quotaSection').style.display = 'block';
-                    // Hide sub-sections that are off
-                    document.getElementById('imageQuotaWrap').style.display = quotaOn ? 'block' : 'none';
-
-                    fetch('/api/auth/quota').then(r => r.json()).then(d => {
-                        if (!d.success) return;
-                        const q = d.quota || {};
-                        if (quotaOn) {
-                            const used  = q.image_quota_used  || 0;
-                            const limit = q.image_quota_limit || 5;
-                            const pct   = Math.min(100, Math.round(used / limit * 100));
-                            const danger = pct >= 80;
-                            document.getElementById('quotaText').textContent = used + '/' + limit;
-                            const bar = document.getElementById('quotaBar');
-                            bar.style.width = pct + '%';
-                            bar.style.background = danger ? 'linear-gradient(90deg,#e74c3c,#c0392b)' : 'linear-gradient(90deg,#7c6cf0,#ab7df6)';
-                            document.getElementById('quotaText').style.color = danger ? '#e74c3c' : 'var(--text-secondary)';
-                        }
-                        if (videoOn) {
-                            if (q.video_unlocked) {
-                                document.getElementById('videoUnlockedMsg').style.display = 'block';
-                                document.getElementById('videoUnlockBtn').style.display = 'none';
-                            } else if (paymentOn && flags.video_requires_payment !== false) {
-                                document.getElementById('videoUnlockBtn').style.display = 'flex';
-                                document.getElementById('videoUnlockedMsg').style.display = 'none';
-                            } else {
-                                // Video on but no payment required — hide button
-                                document.getElementById('videoUnlockBtn').style.display = 'none';
-                                document.getElementById('videoUnlockedMsg').style.display = 'none';
-                            }
-                        } else {
-                            document.getElementById('videoUnlockBtn').style.display = 'none';
-                            document.getElementById('videoUnlockedMsg').style.display = 'none';
-                        }
-                        lucide.createIcons({ nodes: [document.getElementById('quotaSection')] });
-                    }).catch(() => {});
-                }).catch(() => {
-                    // If /api/features fails, fall back to showing the quota bar normally
-                    loadQuotaBarFallback();
-                });
-            }
-
-            /* fallback if /api/features unreachable */
-            function loadQuotaBarFallback() {
-                fetch('/api/auth/quota').then(r => r.json()).then(d => {
-                    if (!d.success) return;
-                    const q = d.quota || {};
-                    document.getElementById('quotaSection').style.display = 'block';
-                    const used  = q.image_quota_used  || 0;
-                    const limit = q.image_quota_limit || 5;
-                    const pct   = Math.min(100, Math.round(used / limit * 100));
-                    document.getElementById('quotaText').textContent = used + '/' + limit;
-                    document.getElementById('quotaBar').style.width = pct + '%';
-                    if (q.video_unlocked) {
-                        document.getElementById('videoUnlockedMsg').style.display = 'block';
-                        document.getElementById('videoUnlockBtn').style.display = 'none';
-                    } else {
-                        document.getElementById('videoUnlockBtn').style.display = 'flex';
-                        document.getElementById('videoUnlockedMsg').style.display = 'none';
-                    }
-                    lucide.createIcons({ nodes: [document.getElementById('quotaSection')] });
-                }).catch(() => {});
-            }
-
-            /* ── QR Modal ── */
-            function openVideoUnlockModal() {
-                const m = document.getElementById('qrPayModal');
-                m.style.display = 'flex';
-                document.getElementById('qrImg').style.display = 'none';
-                document.getElementById('qrLoading').style.display = 'block';
-                document.getElementById('qrRequestAlert').style.display = 'none';
-                document.getElementById('qrSubmitBtn').disabled = false;
-                document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
-                lucide.createIcons({ nodes: [m] });
-                // Fetch QR
-                fetch('/api/payment/qr', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({type: 'video_unlock'})
-                }).then(r => r.json()).then(d => {
-                    if (d.qr_url) {
-                        document.getElementById('qrImg').src = d.qr_url;
-                        document.getElementById('qrImg').style.display = 'block';
-                    }
-                    document.getElementById('qrLoading').style.display = 'none';
-                    document.getElementById('qrBankName').textContent = d.bank_name || '—';
-                    document.getElementById('qrAccountNo').textContent = d.account_no || '—';
-                    document.getElementById('qrAccountName').textContent = d.account_name || '—';
-                    document.getElementById('qrAmount').textContent = d.amount ? d.amount.toLocaleString('vi-VN') + ' đ' : '—';
-                    document.getElementById('qrDesc').textContent = d.description || '—';
-                }).catch(() => { document.getElementById('qrLoading').textContent = 'Không tải được QR code'; });
-            }
-
-            function closeVideoUnlockModal() {
-                document.getElementById('qrPayModal').style.display = 'none';
-            }
-
-            async function submitVideoUnlockRequest() {
-                const btn = document.getElementById('qrSubmitBtn');
-                const alertEl = document.getElementById('qrRequestAlert');
-                btn.disabled = true;
-                document.getElementById('qrSubmitLbl').textContent = 'Đang gửi…';
-                alertEl.style.display = 'none';
-                try {
-                    const res = await fetch('/api/auth/request-video-unlock', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({note: 'Yêu cầu mở khóa Video qua QR'})
-                    });
-                    const data = await res.json();
-                    alertEl.style.display = 'block';
-                    if (data.success) {
-                        alertEl.style.background = 'rgba(46,204,113,.12)';
-                        alertEl.style.border = '1px solid rgba(46,204,113,.3)';
-                        alertEl.style.color = '#2ecc71';
-                        alertEl.textContent = data.message || 'Yêu cầu đã được gửi. Vui lòng chờ admin xác nhận.';
-                        document.getElementById('qrSubmitBtn').style.display = 'none';
-                    } else {
-                        alertEl.style.background = 'rgba(231,76,60,.12)';
-                        alertEl.style.border = '1px solid rgba(231,76,60,.3)';
-                        alertEl.style.color = '#e74c3c';
-                        alertEl.textContent = data.message || 'Lỗi gửi yêu cầu';
-                        btn.disabled = false;
-                        document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
-                    }
-                } catch(e) {
-                    alertEl.style.display = 'block';
-                    alertEl.style.background = 'rgba(231,76,60,.12)';
-                    alertEl.style.border = '1px solid rgba(231,76,60,.3)';
-                    alertEl.style.color = '#e74c3c';
-                    alertEl.textContent = 'Lỗi kết nối server';
-                    btn.disabled = false;
-                    document.getElementById('qrSubmitLbl').textContent = 'Đã chuyển khoản — Gửi yêu cầu';
-                }
-            }
-
-            function toggleUserDropdown() {
-                _dropOpen = !_dropOpen;
-                const dd = document.getElementById('userDropdown');
-                const trigger = document.getElementById('userTrigger');
-                dd.style.display = _dropOpen ? 'block' : 'none';
-                trigger.classList.toggle('is-open', _dropOpen);
-                lucide.createIcons();
-            }
-
-            document.addEventListener('click', function(e) {
-                if(_dropOpen && !document.getElementById('userTrigger').contains(e.target) && !document.getElementById('userDropdown').contains(e.target)) {
-                    _dropOpen = false;
-                    document.getElementById('userDropdown').style.display = 'none';
-                    document.getElementById('userTrigger').classList.remove('is-open');
-                }
-            });
-
-            function openChangePassword() {
-                toggleUserDropdown();
-                const m = document.getElementById('changePwModal');
-                m.style.display = 'flex';
-                document.getElementById('cpwCurrent').value = '';
-                document.getElementById('cpwNew').value = '';
-                document.getElementById('cpwError').style.display = 'none';
-                document.getElementById('cpwSuccess').style.display = 'none';
-                lucide.createIcons();
-                setTimeout(() => document.getElementById('cpwCurrent').focus(), 100);
-            }
-            function closeChangePassword() {
-                document.getElementById('changePwModal').style.display = 'none';
-            }
-            async function submitChangePw() {
-                const btn = document.getElementById('cpwBtn');
-                const errEl = document.getElementById('cpwError');
-                const okEl = document.getElementById('cpwSuccess');
-                errEl.style.display = 'none'; okEl.style.display = 'none';
-                const current = document.getElementById('cpwCurrent').value;
-                const newpw = document.getElementById('cpwNew').value;
-                if(!current || !newpw) { errEl.textContent='Vui lòng điền đầy đủ'; errEl.style.display='block'; return; }
-                btn.disabled = true; btn.textContent = '...';
-                try {
-                    const res = await fetch('/api/auth/change-password', {
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({current_password: current, new_password: newpw})
-                    });
-                    const data = await res.json();
-                    if(data.success) { okEl.textContent = data.message; okEl.style.display='block'; setTimeout(closeChangePassword, 1800); }
-                    else { errEl.textContent = data.message; errEl.style.display='block'; }
-                } catch { errEl.textContent='Lỗi kết nối'; errEl.style.display='block'; }
-                finally { btn.disabled=false; btn.textContent='Xác nhận'; }
-            }
-
-            /* ── Edit Profile ── */
-            let _epAvatarData = null;  // null=unchanged, ''=clear, 'data:…'=new image
-
-            function openEditProfile() {
-                // Close dropdown first
-                if (_dropOpen) toggleUserDropdown();
-                const m = document.getElementById('editProfileModal');
-                m.style.display = 'flex';
-                document.getElementById('epError').style.display = 'none';
-                document.getElementById('epSuccess').style.display = 'none';
-                _epAvatarData = null;
-                // Pre-fill fields from current state
-                document.getElementById('epDisplayName').value = (_currentUser && _currentUser.display_name) || '';
-                document.getElementById('epBio').value = (_currentUser && _currentUser.bio) || '';
-                // Show avatar preview
-                const hasAvatar = _currentUser && _currentUser.avatar_data;
-                const epImg = document.getElementById('epAvatarImg');
-                const epInitial = document.getElementById('epAvatarInitial');
-                const epPreview = document.getElementById('epAvatarPreview');
-                if (hasAvatar) {
-                    epImg.src = _currentUser.avatar_data;
-                    epImg.style.display = 'block';
-                    epInitial.style.display = 'none';
-                    epPreview.style.background = 'transparent';
-                    document.getElementById('epClearAvatarBtn').style.display = 'inline-flex';
-                } else {
-                    epImg.style.display = 'none';
-                    epImg.src = '';
-                    epInitial.style.display = 'block';
-                    epInitial.textContent = _currentUser ? (_currentUser.display_name || _currentUser.username)[0].toUpperCase() : 'U';
-                    epPreview.style.background = _currentUser ? strColor(_currentUser.username) : 'var(--accent-gradient)';
-                    document.getElementById('epClearAvatarBtn').style.display = 'none';
-                }
-                lucide.createIcons({ nodes: [m] });
-                setTimeout(() => document.getElementById('epDisplayName').focus(), 80);
-            }
-
-            function closeEditProfile() {
-                document.getElementById('editProfileModal').style.display = 'none';
-                document.getElementById('epAvatarInput').value = '';
-            }
-
-            function handleEpAvatarFile(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                if (file.size > 5 * 1024 * 1024) {
-                    document.getElementById('epError').textContent = 'Ảnh quá lớn (tối đa 5MB)';
-                    document.getElementById('epError').style.display = 'block';
-                    return;
-                }
-                document.getElementById('epError').style.display = 'none';
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    const raw = new Image();
-                    raw.onload = function() {
-                        // Crop to square 220×220 JPEG
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 220; canvas.height = 220;
-                        const ctx = canvas.getContext('2d');
-                        const s = Math.min(raw.width, raw.height);
-                        const sx = (raw.width - s) / 2, sy = (raw.height - s) / 2;
-                        ctx.drawImage(raw, sx, sy, s, s, 0, 0, 220, 220);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-                        _epAvatarData = dataUrl;
-                        const epImg = document.getElementById('epAvatarImg');
-                        epImg.src = dataUrl;
-                        epImg.style.display = 'block';
-                        document.getElementById('epAvatarInitial').style.display = 'none';
-                        document.getElementById('epAvatarPreview').style.background = 'transparent';
-                        document.getElementById('epClearAvatarBtn').style.display = 'inline-flex';
-                    };
-                    raw.src = ev.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-
-            function clearEpAvatar() {
-                _epAvatarData = '';  // explicit clear signal
-                document.getElementById('epAvatarImg').style.display = 'none';
-                document.getElementById('epAvatarImg').src = '';
-                const epInitial = document.getElementById('epAvatarInitial');
-                epInitial.style.display = 'block';
-                epInitial.textContent = _currentUser ? (_currentUser.display_name || _currentUser.username)[0].toUpperCase() : 'U';
-                document.getElementById('epAvatarPreview').style.background = _currentUser ? strColor(_currentUser.username) : 'var(--accent-gradient)';
-                document.getElementById('epClearAvatarBtn').style.display = 'none';
-            }
-
-            async function submitEditProfile() {
-                const btn = document.getElementById('epSaveBtn');
-                const errEl = document.getElementById('epError');
-                const okEl = document.getElementById('epSuccess');
-                errEl.style.display = 'none'; okEl.style.display = 'none';
-
-                const displayName = document.getElementById('epDisplayName').value.trim();
-                const bio = document.getElementById('epBio').value.trim();
-
-                if (!displayName) {
-                    errEl.textContent = 'Tên hiển thị không được để trống';
-                    errEl.style.display = 'block';
-                    return;
-                }
-
-                const payload = { display_name: displayName, bio };
-                if (_epAvatarData !== null) payload.avatar_data = _epAvatarData;
-
-                btn.disabled = true; btn.textContent = 'Đang lưu...';
-                try {
-                    const res = await fetch('/api/auth/update-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        okEl.textContent = 'Đã cập nhật hồ sơ!';
-                        okEl.style.display = 'block';
-                        // Update global cache
-                        const u = data.user;
-                        if (_currentUser) {
-                            _currentUser.display_name = u.display_name;
-                            _currentUser.avatar_data  = u.avatar_data || '';
-                            _currentUser.bio          = u.bio || '';
-                        }
-                        // Reflect in sidebar
-                        document.getElementById('userName').textContent = u.display_name;
-                        document.getElementById('dropDisplayName').textContent = u.display_name;
-                        _applyAvatarToEl(document.getElementById('userAvatar'), _currentUser);
-                        _applyAvatarToEl(document.getElementById('dropAvatar'), _currentUser);
-                        setTimeout(closeEditProfile, 1600);
-                    } else {
-                        errEl.textContent = data.message || 'Lỗi cập nhật';
-                        errEl.style.display = 'block';
-                    }
-                } catch(e) {
-                    errEl.textContent = 'Lỗi kết nối server';
-                    errEl.style.display = 'block';
-                } finally {
-                    btn.disabled = false; btn.textContent = 'Lưu thay đổi';
-                }
-            }
-            </script>
-        </div>
     </aside>
 
     <!-- ═══ Main ═══ -->
@@ -1240,87 +671,134 @@ try {
                                         <path d="M12 5v14M5 12h14"/>
                                     </svg>
                                 </button>
-                                <!-- Tools dropdown -->
+                                <!-- Tools dropdown — Phase 2: 4 groups, all tools preserved, "More" collapsibles for rare items -->
                                 <div class="tools-dropdown" id="toolsMenuDropdown">
                                     <div class="tools-dropdown__header">Tools</div>
 
-                                    <!-- Search (gộp web/social/image/github) -->
+                                    <!-- Search -->
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
-                                                <span class="tools-grid__icon"><i data-lucide="search" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Web</span>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
+                                                <i data-lucide="search" class="lucide"></i><span>Web Search</span>
                                             </button>
-                                            <button class="tools-grid__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
-                                                <span class="tools-grid__icon"><i data-lucide="image" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Images</span>
+                                            <button class="tools-list__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
+                                                <i data-lucide="image" class="lucide"></i><span>Image Search</span>
                                             </button>
-                                            <button class="tools-grid__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
-                                                <span class="tools-grid__icon"><i data-lucide="bar-chart-3" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Social</span>
+                                            <button class="tools-list__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
+                                                <i data-lucide="bar-chart-3" class="lucide"></i><span>Social Research</span>
                                             </button>
-                                            <button class="tools-grid__item" id="githubBtn" title="GitHub repository search">
-                                                <span class="tools-grid__icon"><i data-lucide="github" class="lucide"></i></span>
-                                                <span class="tools-grid__label">GitHub</span>
-                                            </button>
+                                            <div class="tools-list__more" hidden data-more="search">
+                                                <button class="tools-list__item" id="githubBtn" title="GitHub repository search">
+                                                    <i data-lucide="github" class="lucide"></i><span>GitHub</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="googleSearchBtn" title="Bing falls back inside Web Search cascade">
+                                                    <i data-lucide="globe" class="lucide"></i><span>Bing</span><span class="tools-list__item-sub">via Web</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="googleSearchBtn" title="Baidu falls back inside Web Search cascade">
+                                                    <i data-lucide="globe-2" class="lucide"></i><span>Baidu</span><span class="tools-list__item-sub">via Web</span>
+                                                </button>
+                                            </div>
+                                            <button class="tools-list__more-toggle" type="button" data-target="search">More…</button>
                                         </div>
                                     </div>
 
                                     <!-- Image -->
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="imageGenToolBtn" title="Tạo hình ảnh">
-                                                <span class="tools-grid__icon"><i data-lucide="sparkles" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Image Gen</span>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="imageGenToolBtn" title="Image Gen (multi-provider)">
+                                                <i data-lucide="sparkles" class="lucide"></i><span>Image Gen</span>
                                             </button>
-                                            <button class="tools-grid__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
-                                                <span class="tools-grid__icon"><i data-lucide="scan-eye" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Img2Img</span>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="nanoBananaBtn" title="Nano Banana (Gemini 2.5 image)">
+                                                <i data-lucide="banana" class="lucide"></i><span>Nano Banana</span>
                                             </button>
-                                            <button class="tools-grid__item" id="reverseImageBtn" title="Reverse Image — chạy song song Google Lens + SauceNAO">
-                                                <span class="tools-grid__icon"><i data-lucide="scan-search" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Reverse Image</span>
+                                            <button class="tools-list__item" id="reverseImageBtn" title="Reverse Image — Google Lens + SauceNAO">
+                                                <i data-lucide="scan-search" class="lucide"></i><span>Reverse Image</span>
                                             </button>
+                                            <div class="tools-list__more" hidden data-more="image">
+                                                <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
+                                                    <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="reverseImageBtn" title="Google Lens runs inside Reverse Image">
+                                                    <i data-lucide="aperture" class="lucide"></i><span>Google Lens</span><span class="tools-list__item-sub">via Reverse</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="reverseImageBtn" title="SauceNAO runs inside Reverse Image">
+                                                    <i data-lucide="image-down" class="lucide"></i><span>SauceNAO</span><span class="tools-list__item-sub">via Reverse</span>
+                                                </button>
+                                                <button class="tools-list__item is-proxy" type="button" data-proxy="characterPickerBtn" title="Character Select (SAA)">
+                                                    <i data-lucide="user-search" class="lucide"></i><span>Character Select (SAA)</span>
+                                                </button>
+                                            </div>
+                                            <button class="tools-list__more-toggle" type="button" data-target="image">More…</button>
                                         </div>
                                     </div>
 
                                     <!-- Reasoning -->
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="brain" class="lucide lucide-sm"></i> Reasoning</div>
-                                        <div class="tools-grid tools-grid--3col">
-                                            <button class="tools-grid__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
-                                                <span class="tools-grid__icon"><i data-lucide="telescope" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Deep Research</span>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
+                                                <i data-lucide="telescope" class="lucide"></i><span>Deep Research</span>
                                             </button>
-                                            <button class="tools-grid__item" id="configAgentBtn" title="Config Agent">
-                                                <span class="tools-grid__icon"><i data-lucide="settings" class="lucide"></i></span>
-                                                <span class="tools-grid__label">Config</span>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="thinkingModeBtn" title="Switch thinking mode (Instant / Multi-thinking)">
+                                                <i data-lucide="layers" class="lucide"></i><span>Thinking mode</span>
+                                            </button>
+                                            <button class="tools-list__item" id="configAgentBtn" title="Config Agent">
+                                                <i data-lucide="settings" class="lucide"></i><span>Config Agent</span>
                                             </button>
                                         </div>
                                     </div>
 
                                     <div class="tools-dropdown__divider"></div>
 
-                                    <!-- Utility actions -->
-                                    <div class="tools-dropdown__actions">
-                                        <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files">
+                                    <!-- Files / Utility -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="folder" class="lucide lucide-sm"></i> Files &amp; Utility</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="uploadFilesBtn" title="Upload files">
+                                                <i data-lucide="paperclip" class="lucide"></i><span>Upload Files</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="branchConversationBtn" title="Branch conversation">
+                                                <i data-lucide="git-branch" class="lucide"></i><span>Branch conversation</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="memoryBtn" title="AI Memory">
+                                                <i data-lucide="brain-circuit" class="lucide"></i><span>Memory</span>
+                                            </button>
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="galleryBtn" title="Image Gallery">
+                                                <i data-lucide="images" class="lucide"></i><span>Gallery</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
+                                    <div class="tools-dropdown__actions" hidden aria-hidden="true">
+                                        <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files" tabindex="-1">
                                             <span class="tools-dropdown__item-icon"><i data-lucide="paperclip" class="lucide"></i></span>
-                                            <div>
-                                                <div class="tools-dropdown__item-text">Upload Files</div>
-                                                <div class="tools-dropdown__item-sub">Attach images, docs, code</div>
-                                            </div>
+                                            <div><div class="tools-dropdown__item-text">Upload Files</div></div>
                                         </button>
-                                        <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch">
+                                        <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch" tabindex="-1">
                                             <span class="tools-dropdown__item-icon"><i data-lucide="git-branch" class="lucide"></i></span>
-                                            <div>
-                                                <div class="tools-dropdown__item-text">Branch conversation</div>
-                                                <div class="tools-dropdown__item-sub">Fork from current point</div>
-                                            </div>
+                                            <div><div class="tools-dropdown__item-text">Branch conversation</div></div>
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Inline quick tools — visible shortcuts (Phase 2: Web, Image Gen, Deep Research, Upload) -->
+                            <div class="input-area__quick-tools" id="quickTools">
+                                <button class="quick-tool" type="button" data-target="googleSearchBtn" title="Web Search" aria-label="Web Search">
+                                    <i data-lucide="search" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="imageGenToolBtn" title="Image Gen" aria-label="Image Gen">
+                                    <i data-lucide="sparkles" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="deepResearchToolBtn" title="Deep Research" aria-label="Deep Research">
+                                    <i data-lucide="telescope" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="uploadFilesBtn" title="Upload Files" aria-label="Upload Files">
+                                    <i data-lucide="paperclip" class="lucide"></i>
+                                </button>
                             </div>
 
                             <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,.md,.ts,.tsx,.jsx,.xml,.yaml,.yml,.log,.sql,.sh,.bat,image/*,audio/*,video/*" multiple class="hidden">
@@ -2379,6 +1857,7 @@ try {
 </div>
 
 <!-- ═══ Scripts ═══ -->
+<script src="{{ url_for('static', filename='js/stream-guard.js') }}?v=20260507a"></script>
 <script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260505b"></script>
 <script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
 <script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260504b"></script>
@@ -3781,6 +3260,77 @@ window.ThinkingPanel = (function() {
     }
 
     return { open: open, close: close, onStep: onStep, onFinalize: onFinalize };
+})();
+</script>
+
+<!-- Tidied tools-dropdown glue: "More" disclosure + inline quick-tool mirroring. -->
+<script>
+(function () {
+    // 1) Toggle "More…" sections inside the tools dropdown.
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest && e.target.closest('.tools-list__more-toggle');
+        if (!t) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var list = t.parentElement;
+        var more = list && list.querySelector('.tools-list__more');
+        if (!more) return;
+        var open = !more.hasAttribute('hidden');
+        if (open) {
+            more.setAttribute('hidden', '');
+            t.textContent = 'More\u2026';
+        } else {
+            more.removeAttribute('hidden');
+            t.textContent = 'Less';
+        }
+    });
+
+    // 2) Inline quick-tool delegates clicks to the underlying dropdown button.
+    document.addEventListener('click', function (e) {
+        var q = e.target.closest && e.target.closest('.quick-tool');
+        if (!q) return;
+        var id = q.dataset && q.dataset.target;
+        var target = id && document.getElementById(id);
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        target.click();
+    });
+
+    // 2b) Proxy buttons inside the tools dropdown delegate to the real wired button
+    //     elsewhere in the DOM (topbar/sidebar). Existing main.js bindings stay intact.
+    document.addEventListener('click', function (e) {
+        var p = e.target.closest && e.target.closest('.tools-list__item.is-proxy[data-proxy]');
+        if (!p) return;
+        var id = p.dataset && p.dataset.proxy;
+        var target = id && document.getElementById(id);
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        target.click();
+    });
+
+    // 3) Mirror `.active` class from the underlying button onto the quick-tool.
+    function syncQuickActive() {
+        document.querySelectorAll('.quick-tool').forEach(function (q) {
+            var target = document.getElementById(q.dataset.target);
+            if (!target) return;
+            q.classList.toggle('active', target.classList.contains('active'));
+        });
+    }
+    function wireMirroring() {
+        var observer = new MutationObserver(syncQuickActive);
+        document.querySelectorAll('.quick-tool').forEach(function (q) {
+            var target = document.getElementById(q.dataset.target);
+            if (target) observer.observe(target, { attributes: true, attributeFilter: ['class'] });
+        });
+        syncQuickActive();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', wireMirroring);
+    } else {
+        wireMirroring();
+    }
 })();
 </script>
 

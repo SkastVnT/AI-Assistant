@@ -1,4 +1,10 @@
-# ChatBot JavaScript Modules
+# ChatBot JavaScript Modules — LEGACY
+
+> **Status (2026-05): legacy.** These modules are only loaded by the previous
+> monolithic UI at `templates/index_legacy.html`, which is no longer routed by
+> default. The active UI shell lives in `static/js/app/` and is loaded by
+> `templates/index.html`. Do not add new features here. New work goes to
+> `static/js/app/`. See `static/js/app/README.md`.
 
 Cấu trúc code đã được refactor theo chuẩn **Clean Code** và **Modular Design**.
 

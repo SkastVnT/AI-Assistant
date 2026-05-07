@@ -1,0 +1,90 @@
+/* modals.css — backdrop, lightbox, toast primitives */
+
+.modal-root, .toast-root {
+    position: fixed;
+    pointer-events: none;
+}
+
+.modal-root {
+    inset: 0;
+    z-index: var(--z-modal);
+}
+
+.modal-root:empty { display: none; }
+
+.modal {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(2px);
+}
+
+.modal__dialog {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-4);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.modal__dialog--lightbox {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.modal__dialog--lightbox img {
+    display: block;
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 60px rgba(0, 0, 0, 0.6);
+}
+
+.toast-root {
+    bottom: var(--sp-4);
+    right: var(--sp-4);
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    align-items: flex-end;
+    max-width: calc(100vw - var(--sp-5));
+}
+
+.toast {
+    pointer-events: auto;
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    border-left: 3px solid var(--accent);
+    font-size: 13px;
+    max-width: 380px;
+    cursor: pointer;
+    animation: toast-in 200ms ease-out;
+}
+
+.toast--info    { border-left-color: var(--info); }
+.toast--success { border-left-color: var(--success); }
+.toast--warn    { border-left-color: var(--warning); }
+.toast--error   { border-left-color: var(--danger); }
+
+.toast.is-leaving { animation: toast-out 200ms ease-in forwards; }
+
+@keyframes toast-in {
+    from { transform: translateX(20px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes toast-out {
+    to { transform: translateX(20px); opacity: 0; }
+}

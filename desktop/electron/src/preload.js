@@ -1,21 +1,14 @@
-// desktop/electron/src/preload.js
-//
-// Minimal preload bridge. Exposes ONLY the two read-only fields allowed
-// by the Electron desktop spec:
-//
-//   window.desktopAPI = {
-//     isDesktop: true,
-//     platform: <process.platform>,
-//   }
-//
-// Do NOT expose fs, child_process, shell, ipcRenderer, require, or any
-// arbitrary command/file APIs. Renderer is sandboxed and contextIsolated.
-
-'use strict';
-
+/* preload.js — runs in an isolated world, exposes a tiny readonly bridge.
+ *
+ * Per repo policy: nodeIntegration:false, contextIsolation:true, sandbox:true.
+ * The chatbot must work identically in browser and Electron. The only thing
+ * the desktop bridge does is announce itself so a future feature can light up
+ * desktop-only UI (e.g. an "open output folder" button). It deliberately
+ * exposes NO filesystem, NO shell, NO ipc method.
+ */
 const { contextBridge } = require('electron');
 
 contextBridge.exposeInMainWorld('desktopAPI', Object.freeze({
-  isDesktop: true,
-  platform: process.platform,
+    isDesktop: true,
+    platform: process.platform
 }));
