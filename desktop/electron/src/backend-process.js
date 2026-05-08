@@ -49,6 +49,14 @@ function pickPython() {
 
 function startBackend({ onLog } = {}) {
     return new Promise(async (resolve, reject) => {
+        // If something is already listening on the target port, skip spawning.
+        // This lets developers run `python run.py` manually and just open Electron on top.
+        const alreadyUp = await probeOnce('/health') || await probeOnce('/');
+        if (alreadyUp) {
+            process.stdout.write('[backend] port ' + PORT + ' already open — skipping spawn, reusing existing backend.\n');
+            return resolve({ child: null, baseUrl: 'http://' + HOST + ':' + PORT });
+        }
+
         const py = pickPython();
         const args = [path.join('services', 'chatbot', 'run.py')];
         const env = Object.assign({}, process.env, {

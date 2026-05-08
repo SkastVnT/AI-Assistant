@@ -131,7 +131,6 @@ function killBackend() {
     }
     backendChild = null;
 }
-
 app.whenReady().then(() => {
     buildMenu();
     createWindow();
