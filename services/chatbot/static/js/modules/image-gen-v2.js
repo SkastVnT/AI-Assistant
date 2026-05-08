@@ -544,7 +544,20 @@ export class ImageGenV2 {
      */
     static isImageRequest(message) {
         const lower = message.toLowerCase().trim();
-        
+
+        // Negative filter — document/file requests that mention "ảnh"/"hình"
+        // ("tạo PDF có hình ảnh") must NOT route to image generation.
+        const documentKeywords = [
+            'pdf', '.pdf', 'docx', '.docx', 'word document', 'file word',
+            'xlsx', '.xlsx', 'excel', 'spreadsheet', 'bảng tính',
+            'pptx', '.pptx', 'powerpoint', 'slide ',
+            'csv', '.csv', 'markdown', '.md', '.txt',
+            'báo cáo', 'tài liệu', 'document', 'report',
+            'export ', 'xuất file', 'xuất pdf', 'tạo file', 'tạo tài liệu',
+            'tạo báo cáo', 'tạo bảng', 'tạo biểu', 'tạo pdf'
+        ];
+        if (documentKeywords.some(k => lower.includes(k))) return false;
+
         // Command triggers (highest confidence — always match)
         const commandTriggers = ['/img ', '/image ', '/draw ', '/gen ', '/paint '];
         if (commandTriggers.some(t => lower.startsWith(t))) return true;
@@ -729,7 +742,8 @@ export class ImageGenV2 {
 
         container.innerHTML = this.gallery.map(img => `
             <div class="igv2-gallery-item" data-image-id="${img.image_id}" data-image-url="/api/image-gen/images/${img.image_id}">
-                <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy">
+                <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy"
+                     onerror="this.onerror=null;this.classList.add('igv2-thumb-broken');this.src='/static/icons/app-icon.png';">
                 <div class="igv2-gallery-meta">
                     <span class="igv2-gallery-prompt">${img.prompt?.substring(0, 40)}...</span>
                     <span class="igv2-gallery-info">${img.provider} | ${img.model}</span>

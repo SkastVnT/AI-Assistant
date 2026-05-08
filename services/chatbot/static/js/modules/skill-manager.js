@@ -17,11 +17,12 @@ export class SkillManager {
      * Initialize: fetch skills, sync active state, render dropdown, bind events.
      */
     async init() {
+        // Always wire the button so clicking it toggles the dropdown even on API failure
+        this.setupEventListeners();
         try {
             await this.loadSkills();
             await this.syncActiveSkill();
             this.renderDropdown();
-            this.setupEventListeners();
             this.updateUI();
             this.initialized = true;
             console.log('[SkillManager] Initialized with', this.skills.length, 'skills');

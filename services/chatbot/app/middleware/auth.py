@@ -22,30 +22,22 @@ def require_session(f):
 
 
 def require_login(f):
-    """Decorator to require authenticated user. Redirects to /login if not logged in."""
+    """No-op pass-through (auth UI removed in desktop-only build).
+
+    Kept as a decorator for backward compatibility with existing route handlers.
+    The chatbot is now packaged as a single-user Electron desktop app, so
+    login enforcement is no longer required.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('authenticated'):
-            # API requests get 401, browser requests get redirect
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'error': 'Unauthorized', 'message': 'Login required'}), 401
-            return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function
 
 
 def require_admin(f):
-    """Decorator to require admin role."""
+    """No-op pass-through (auth UI removed in desktop-only build)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('authenticated'):
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'error': 'Unauthorized', 'message': 'Login required'}), 401
-            return redirect('/login')
-        if session.get('user_role') != 'admin':
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'error': 'Forbidden', 'message': 'Admin access required'}), 403
-            return redirect('/')
         return f(*args, **kwargs)
     return decorated_function
 

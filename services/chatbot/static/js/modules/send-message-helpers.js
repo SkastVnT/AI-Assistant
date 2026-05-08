@@ -1,12 +1,12 @@
 /**
- * Send-message helpers — extracted from ChatBotApp.sendMessage()
+ * Send-message helpers â€” extracted from ChatBotApp.sendMessage()
  * Each function handles one stage of the send-message pipeline.
  * The orchestrator (sendMessage) calls them in sequence.
  */
 
 import { ImageGenV2 } from './image-gen-v2.js';
 
-// ─── Utility ──────────────────────────────────────────────────
+// â”€â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -24,7 +24,7 @@ function htmlAttrEsc(value) {
         .replace(/>/g, '&gt;');
 }
 
-// ─── 1. collectFormState ──────────────────────────────────────
+// â”€â”€â”€ 1. collectFormState â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Gathers input value, staged files, form controls, active tools.
@@ -64,7 +64,7 @@ export async function collectFormState(app) {
     return { elements, flushedFiles, formValues, message, sessionFiles, activeTools };
 }
 
-// ─── 2. routeByIntent ─────────────────────────────────────────
+// â”€â”€â”€ 2. routeByIntent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Decides which flow to execute: image-gen, img2img, or normal chat.
@@ -76,7 +76,7 @@ export function routeByIntent(message, activeTools) {
     return { isImageIntent, imageGenToolActive, isImg2Img };
 }
 
-// ─── 3. prepareOutgoingPayload ────────────────────────────────
+// â”€â”€â”€ 3. prepareOutgoingPayload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Builds the augmented message with file context, MCP context,
@@ -122,7 +122,7 @@ export function prepareOutgoingPayload(app, { message, formValues, sessionFiles 
 function injectQuotedContext(app, message) {
     const quotedCtx = app.messageRenderer.consumeQuotedContext();
     if (quotedCtx) {
-        return `[Ngữ cảnh được chọn — ưu tiên trả lời dựa trên đoạn này]\n> ${quotedCtx}\n\n${message}`;
+        return `[Ngá»¯ cáº£nh Ä‘Æ°á»£c chá»n â€” Æ°u tiÃªn tráº£ lá»i dá»±a trÃªn Ä‘oáº¡n nÃ y]\n> ${quotedCtx}\n\n${message}`;
     }
     return message;
 }
@@ -142,9 +142,9 @@ export function injectFileContext(app, message, sessionFiles) {
     if (fileContext || imageDataUrls.length > 0) {
         const textPart = fileContext ? `${fileContext}\n\n` : '';
         const imagePart = imageDataUrls.length > 0
-            ? `📷 ${imageDataUrls.length} image(s) attached for analysis.\n\n`
+            ? `ðŸ“· ${imageDataUrls.length} image(s) attached for analysis.\n\n`
             : '';
-        message = `${textPart}${imagePart}${message || 'Hãy phân tích các file được đính kèm.'}`;
+        message = `${textPart}${imagePart}${message || 'HÃ£y phÃ¢n tÃ­ch cÃ¡c file Ä‘Æ°á»£c Ä‘Ã­nh kÃ¨m.'}`;
     }
     return { message, imageDataUrls };
 }
@@ -156,17 +156,17 @@ export function injectMcpContext(app, message) {
         : '';
     let mcpIndicator = '';
     if (fullMcpContext) {
-        message = `[MCP Context được cung cấp - hãy sử dụng thông tin này để trả lời]\n\n${fullMcpContext}\n\n---\n\nUser question: ${message}`;
-        mcpIndicator = ' 📎 MCP';
+        message = `[MCP Context Ä‘Æ°á»£c cung cáº¥p - hÃ£y sá»­ dá»¥ng thÃ´ng tin nÃ y Ä‘á»ƒ tráº£ lá»i]\n\n${fullMcpContext}\n\n---\n\nUser question: ${message}`;
+        mcpIndicator = ' ðŸ“Ž MCP';
         console.log('[App] MCP context injected, length:', fullMcpContext.length);
     }
     return { message, mcpIndicator };
 }
 
-// ─── 4. runImageRequestFlow ───────────────────────────────────
+// â”€â”€â”€ 4. runImageRequestFlow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Full image-gen V2 flow: provider choice → generate → display result.
+ * Full image-gen V2 flow: provider choice â†’ generate â†’ display result.
  * Returns after completion (caller should return too).
  */
 export async function runImageRequestFlow(app, { message, formValues, elements, flushedFiles }) {
@@ -178,14 +178,14 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
     );
     app.uiUtils.clearInput();
 
-    // ── Provider choice dialog (LOCAL / API / CANCEL) + options ──
+    // â”€â”€ Provider choice dialog (LOCAL / API / CANCEL) + options â”€â”€
     const dialogResult = await showProviderChoiceDialog(elements);
     const providerChoice = dialogResult.choice;
 
     if (providerChoice === 'cancel') {
         app.messageRenderer.addMessage(
             elements.chatContainer,
-            '⏰ Đã hủy tạo ảnh — không có phản hồi hoặc người dùng chọn HỦY.',
+            'â° ÄÃ£ há»§y táº¡o áº£nh â€” khÃ´ng cÃ³ pháº£n há»“i hoáº·c ngÆ°á»i dÃ¹ng chá»n Há»¦Y.',
             false, formValues.model, formValues.context,
             app.uiUtils.formatTimestamp(new Date())
         );
@@ -194,7 +194,7 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         return;
     }
 
-    // ── LOCAL → open Anime Pipeline modal with prompt pre-filled ──
+    // â”€â”€ LOCAL â†’ open Anime Pipeline modal with prompt pre-filled â”€â”€
     if (providerChoice === 'local') {
         const effectivePrompt = dialogResult.promptOverride || message;
         // Forward image-only toggle + batch size + per-run negative
@@ -208,7 +208,7 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         return;
     }
 
-    // ── API path (also handles LOCAL Fast → comfyui_fast provider) ──
+    // â”€â”€ API path (also handles LOCAL Fast â†’ comfyui_fast provider) â”€â”€
     const imageGenOptions = {
         quality: 'auto',
         steps: dialogResult.steps,
@@ -216,14 +216,14 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
         height: dialogResult.height,
         guidance: dialogResult.guidance,
         negativePrompt: dialogResult.negativePrompt || undefined,
-        // LOCAL Fast pins the provider to comfyui_fast (≈10s on RTX 5070).
+        // LOCAL Fast pins the provider to comfyui_fast (â‰ˆ10s on RTX 5070).
         provider: providerChoice === 'local-fast' ? 'comfyui_fast' : undefined,
     };
     // If user provided a prompt override, use it instead of the original message
     const effectiveMessage = dialogResult.promptOverride || message;
     console.log('[App] Provider choice:', providerChoice, imageGenOptions);
 
-    // ── Streaming status UI ──
+    // â”€â”€ Streaming status UI â”€â”€
     const { statusContainer, addStep, updateStep, headerIcon } = createImageStreamStatus(elements);
 
     const conversationId = app.chatManager.getCurrentSession()?.id || '';
@@ -236,44 +236,44 @@ export async function runImageRequestFlow(app, { message, formValues, elements, 
             onStatus: (data) => {
                 if (data.phase === 'enhance') {
                     if (data.enhanced_prompt) {
-                        addStep('✨', 'Prompt enhanced', 'done');
-                        const pSnip = data.enhanced_prompt.length > 100 ? data.enhanced_prompt.slice(0, 100) + '…' : data.enhanced_prompt;
-                        addStep('📝', pSnip, 'done snippet');
+                        addStep('âœ¨', 'Prompt enhanced', 'done');
+                        const pSnip = data.enhanced_prompt.length > 100 ? data.enhanced_prompt.slice(0, 100) + 'â€¦' : data.enhanced_prompt;
+                        addStep('ðŸ“', pSnip, 'done snippet');
                         if (imageGenOptions.negativePrompt) {
-                            const nSnip = imageGenOptions.negativePrompt.length > 100 ? imageGenOptions.negativePrompt.slice(0, 100) + '…' : imageGenOptions.negativePrompt;
-                            addStep('🚫', nSnip, 'done snippet');
+                            const nSnip = imageGenOptions.negativePrompt.length > 100 ? imageGenOptions.negativePrompt.slice(0, 100) + 'â€¦' : imageGenOptions.negativePrompt;
+                            addStep('ðŸš«', nSnip, 'done snippet');
                         }
                     } else {
-                        addStep('✨', data.step, 'active');
+                        addStep('âœ¨', data.step, 'active');
                     }
                 } else if (data.phase === 'select') {
-                    data.providers ? addStep('📡', `Providers: ${data.providers.join(', ')}`, 'done') : addStep('🔍', data.step, 'active');
+                    data.providers ? addStep('ðŸ“¡', `Providers: ${data.providers.join(', ')}`, 'done') : addStep('ðŸ”', data.step, 'active');
                 } else {
-                    addStep('⚙️', data.step, 'active');
+                    addStep('âš™ï¸', data.step, 'active');
                 }
             },
             onProviderTry: (data) => {
-                providerStep = addStep('🔄', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
+                providerStep = addStep('ðŸ”„', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
             },
             onProviderFail: (data) => {
-                updateStep(providerStep, '❌', `${data.provider} failed: ${data.error}`, 'fail');
+                updateStep(providerStep, 'âŒ', `${data.provider} failed: ${data.error}`, 'fail');
                 providerStep = null;
             },
             onProviderSuccess: (data) => {
-                updateStep(providerStep, '✅', `${data.provider} / ${data.model} — ${Math.round(data.latency_ms)}ms`, 'done');
-                headerIcon.textContent = '✅';
+                updateStep(providerStep, 'âœ…', `${data.provider} / ${data.model} â€” ${Math.round(data.latency_ms)}ms`, 'done');
+                headerIcon.textContent = 'âœ…';
                 headerIcon.classList.remove('spinning');
             },
             onError: (data) => {
-                addStep('❌', data.error, 'fail');
-                headerIcon.textContent = '❌';
+                addStep('âŒ', data.error, 'fail');
+                headerIcon.textContent = 'âŒ';
                 headerIcon.classList.remove('spinning');
             },
         },
         imageGenOptions,
     );
 
-    // ── Display result ──
+    // â”€â”€ Display result â”€â”€
     displayImageGenResult(app, { result, providerChoice, message, formValues, elements, conversationId, imageGenOptions });
     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
     await app.saveCurrentSession(true);
@@ -286,49 +286,49 @@ function showProviderChoiceDialog(elements) {
         const choiceContainer = document.createElement('div');
         choiceContainer.className = 'message assistant';
         choiceContainer.innerHTML = `
-            <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+            <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
             <div class="message__body">
                 <div class="message-content">
                     <div class="igv2-provider-choice">
                         <div class="igv2-choice-header">
-                            <span class="igv2-choice-icon">⚡</span>
-                            <span class="igv2-choice-title">Chọn phương thức tạo ảnh</span>
+                            <span class="igv2-choice-icon">âš¡</span>
+                            <span class="igv2-choice-title">Chá»n phÆ°Æ¡ng thá»©c táº¡o áº£nh</span>
                             <span class="igv2-choice-timer">${TIMEOUT_SECONDS}s</span>
                         </div>
                         <div class="igv2-choice-buttons">
                             <button class="igv2-choice-btn igv2-choice-local" data-choice="local-fast">
-                                <span class="igv2-choice-btn-icon">🖥️</span>
+                                <span class="igv2-choice-btn-icon">ðŸ–¥ï¸</span>
                                 <span class="igv2-choice-btn-label">LOCAL Fast</span>
-                                <span class="igv2-choice-btn-desc">ComfyUI Fast · ~10s</span>
+                                <span class="igv2-choice-btn-desc">ComfyUI Fast Â· ~10s</span>
                             </button>
                             <button class="igv2-choice-btn igv2-choice-heavy" data-choice="local">
-                                <span class="igv2-choice-btn-icon">🔥</span>
+                                <span class="igv2-choice-btn-icon">ðŸ”¥</span>
                                 <span class="igv2-choice-btn-label">LOCAL Heavy</span>
-                                <span class="igv2-choice-btn-desc">Anime Pipeline · ~90s</span>
+                                <span class="igv2-choice-btn-desc">Anime Pipeline Â· ~90s</span>
                             </button>
                             <button class="igv2-choice-btn igv2-choice-api" data-choice="api">
-                                <span class="igv2-choice-btn-icon">☁️</span>
+                                <span class="igv2-choice-btn-icon">â˜ï¸</span>
                                 <span class="igv2-choice-btn-label">API</span>
-                                <span class="igv2-choice-btn-desc">Cloud · Nhanh & chất lượng</span>
+                                <span class="igv2-choice-btn-desc">Cloud Â· Nhanh & cháº¥t lÆ°á»£ng</span>
                             </button>
                             <button class="igv2-choice-btn igv2-choice-cancel" data-choice="cancel">
-                                <span class="igv2-choice-btn-icon">❌</span>
-                                <span class="igv2-choice-btn-label">HỦY</span>
-                                <span class="igv2-choice-btn-desc">Không tạo ảnh</span>
+                                <span class="igv2-choice-btn-icon">âŒ</span>
+                                <span class="igv2-choice-btn-label">Há»¦Y</span>
+                                <span class="igv2-choice-btn-desc">KhÃ´ng táº¡o áº£nh</span>
                             </button>
                         </div>
 
                         <div class="igv2-choice-options">
                             <div class="igv2-choice-option-group igv2-choice-option-full">
-                                <span class="igv2-choice-option-label">✏️ Prompt</span>
-                                <textarea class="igv2-choice-textarea" data-field="prompt" rows="2" placeholder="Thêm / ghi đè prompt (để trống = dùng prompt gốc)"></textarea>
+                                <span class="igv2-choice-option-label">âœï¸ Prompt</span>
+                                <textarea class="igv2-choice-textarea" data-field="prompt" rows="2" placeholder="ThÃªm / ghi Ä‘Ã¨ prompt (Ä‘á»ƒ trá»‘ng = dÃ¹ng prompt gá»‘c)"></textarea>
                             </div>
                             <div class="igv2-choice-option-group igv2-choice-option-full">
-                                <span class="igv2-choice-option-label">🚫 Negative</span>
-                                <textarea class="igv2-choice-textarea" data-field="negative" rows="2" placeholder="Những gì KHÔNG muốn xuất hiện trong ảnh"></textarea>
+                                <span class="igv2-choice-option-label">ðŸš« Negative</span>
+                                <textarea class="igv2-choice-textarea" data-field="negative" rows="2" placeholder="Nhá»¯ng gÃ¬ KHÃ”NG muá»‘n xuáº¥t hiá»‡n trong áº£nh"></textarea>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">🔧 Steps</span>
+                                <span class="igv2-choice-option-label">ðŸ”§ Steps</span>
                                 <div class="igv2-choice-chips" data-option="steps">
                                     <button class="igv2-choice-chip" data-value="20">20</button>
                                     <button class="igv2-choice-chip selected" data-value="30">30</button>
@@ -336,7 +336,7 @@ function showProviderChoiceDialog(elements) {
                                 </div>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">📐 Kích thước</span>
+                                <span class="igv2-choice-option-label">ðŸ“ KÃ­ch thÆ°á»›c</span>
                                 <div class="igv2-choice-chips" data-option="size">
                                     <button class="igv2-choice-chip" data-value="9:16" data-w="1152" data-h="2048">9:16</button>
                                     <button class="igv2-choice-chip selected" data-value="1:1" data-w="1024" data-h="1024">1:1</button>
@@ -344,7 +344,7 @@ function showProviderChoiceDialog(elements) {
                                 </div>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">🎛️ Guidance</span>
+                                <span class="igv2-choice-option-label">ðŸŽ›ï¸ Guidance</span>
                                 <div class="igv2-choice-chips" data-option="guidance">
                                     <button class="igv2-choice-chip" data-value="3">3</button>
                                     <button class="igv2-choice-chip selected" data-value="5">5</button>
@@ -354,11 +354,11 @@ function showProviderChoiceDialog(elements) {
                                 </div>
                             </div>
                             <div class="igv2-choice-option-group igv2-choice-option-full">
-                                <span class="igv2-choice-option-label">🎨 Chỉ tạo ảnh (LOCAL)</span>
+                                <span class="igv2-choice-option-label">ðŸŽ¨ Chá»‰ táº¡o áº£nh (LOCAL)</span>
                                 <div class="igv2-choice-image-only-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                                    <label class="igv2-choice-toggle" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;" title="Bỏ qua YOLO / beauty pass / critique — chỉ chạy tới composition rồi trả về nhiều ảnh.">
+                                    <label class="igv2-choice-toggle" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;" title="Bá» qua YOLO / beauty pass / critique â€” chá»‰ cháº¡y tá»›i composition rá»“i tráº£ vá» nhiá»u áº£nh.">
                                         <input type="checkbox" data-field="image-only" style="width:16px;height:16px;cursor:pointer;">
-                                        <span>Bỏ qua tinh chỉnh, trả về nhiều ảnh</span>
+                                        <span>Bá» qua tinh chá»‰nh, tráº£ vá» nhiá»u áº£nh</span>
                                     </label>
                                     <div class="igv2-choice-chips igv2-choice-batch-chips" data-option="batch" style="opacity:0.45;pointer-events:none;">
                                         <button class="igv2-choice-chip" data-value="2">2</button>
@@ -368,17 +368,17 @@ function showProviderChoiceDialog(elements) {
                                 </div>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">🛡️ Check first</span>
-                                <label class="igv2-choice-toggle" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;" title="Chỉ chạy preflight — không sinh ảnh.">
+                                <span class="igv2-choice-option-label">ðŸ›¡ï¸ Check first</span>
+                                <label class="igv2-choice-toggle" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;" title="Chá»‰ cháº¡y preflight â€” khÃ´ng sinh áº£nh.">
                                     <input type="checkbox" data-field="preflight-only" style="width:16px;height:16px;cursor:pointer;">
-                                    <span>Chỉ chạy preflight</span>
+                                    <span>Chá»‰ cháº¡y preflight</span>
                                 </label>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">⚡ Mode</span>
+                                <span class="igv2-choice-option-label">âš¡ Mode</span>
                                 <select data-field="budget-mode" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);font-size:13px;">
                                     <option value="normal" selected>Normal</option>
-                                    <option value="fast">Fast (rẻ + nhanh)</option>
+                                    <option value="fast">Fast (ráº» + nhanh)</option>
                                 </select>
                             </div>
                         </div>
@@ -393,7 +393,7 @@ function showProviderChoiceDialog(elements) {
         elements.chatContainer.appendChild(choiceContainer);
         elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
-        // ── Chip selection logic ──
+        // â”€â”€ Chip selection logic â”€â”€
         choiceContainer.querySelectorAll('.igv2-choice-chips').forEach(group => {
             group.querySelectorAll('.igv2-choice-chip').forEach(chip => {
                 chip.addEventListener('click', () => {
@@ -403,7 +403,7 @@ function showProviderChoiceDialog(elements) {
             });
         });
 
-        // ── Pause/resume countdown when user focuses a textarea ──
+        // â”€â”€ Pause/resume countdown when user focuses a textarea â”€â”€
         let paused = false;
         choiceContainer.querySelectorAll('.igv2-choice-textarea').forEach(ta => {
             ta.addEventListener('focus', () => { paused = true; });
@@ -477,7 +477,7 @@ function showProviderChoiceDialog(elements) {
             });
             choiceContainer.querySelectorAll('.igv2-choice-chip').forEach(c => { c.disabled = true; });
             choiceContainer.querySelectorAll('.igv2-choice-textarea').forEach(ta => { ta.disabled = true; });
-            timerEl.textContent = choice === 'cancel' ? 'Đã hủy'
+            timerEl.textContent = choice === 'cancel' ? 'ÄÃ£ há»§y'
                 : choice === 'local' ? 'LOCAL Heavy'
                 : choice === 'local-fast' ? 'LOCAL Fast'
                 : 'API';
@@ -504,12 +504,12 @@ function createImageStreamStatus(elements) {
     const statusContainer = document.createElement('div');
     statusContainer.className = 'message assistant';
     statusContainer.innerHTML = `
-        <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+        <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
         <div class="message__body">
             <div class="message-content">
                 <div class="igv2-stream-status">
                     <div class="igv2-stream-header">
-                        <span class="igv2-stream-icon spinning">⚙️</span>
+                        <span class="igv2-stream-icon spinning">âš™ï¸</span>
                         <span class="igv2-stream-title">Image Generation</span>
                     </div>
                     <div class="igv2-stream-steps"></div>
@@ -571,39 +571,39 @@ function createPostGenOptionsPanel(chatContainer, msgDiv, imageGenOptions) {
     const panelEl = document.createElement('div');
     panelEl.className = 'message assistant igv2-postgen-wrap';
     panelEl.innerHTML = `
-        <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+        <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
         <div class="message__body">
             <div class="message-content">
                 <div class="igv2-postgen-panel">
                     <button type="button" class="igv2-postgen-toggle">
-                        <span class="igv2-postgen-toggle-icon">⚙️</span>
-                        <span>Chỉnh sửa & Tạo lại</span>
-                        <span class="igv2-postgen-arrow">▸</span>
+                        <span class="igv2-postgen-toggle-icon">âš™ï¸</span>
+                        <span>Chá»‰nh sá»­a & Táº¡o láº¡i</span>
+                        <span class="igv2-postgen-arrow">â–¸</span>
                     </button>
                     <div class="igv2-postgen-body" style="display:none;">
                         <div class="igv2-choice-options">
                             <div class="igv2-choice-option-group igv2-choice-option-full">
-                                <span class="igv2-choice-option-label">✏️ Prompt mới</span>
-                                <textarea class="igv2-choice-textarea" data-field="prompt" rows="2" placeholder="Ghi đè prompt (để trống = dùng prompt gốc)">${htmlAttrEsc(promptOverride)}</textarea>
+                                <span class="igv2-choice-option-label">âœï¸ Prompt má»›i</span>
+                                <textarea class="igv2-choice-textarea" data-field="prompt" rows="2" placeholder="Ghi Ä‘Ã¨ prompt (Ä‘á»ƒ trá»‘ng = dÃ¹ng prompt gá»‘c)">${htmlAttrEsc(promptOverride)}</textarea>
                             </div>
                             <div class="igv2-choice-option-group igv2-choice-option-full">
-                                <span class="igv2-choice-option-label">🚫 Negative</span>
-                                <textarea class="igv2-choice-textarea" data-field="negative" rows="2" placeholder="Những gì KHÔNG muốn xuất hiện">${htmlAttrEsc(negativePrompt)}</textarea>
+                                <span class="igv2-choice-option-label">ðŸš« Negative</span>
+                                <textarea class="igv2-choice-textarea" data-field="negative" rows="2" placeholder="Nhá»¯ng gÃ¬ KHÃ”NG muá»‘n xuáº¥t hiá»‡n">${htmlAttrEsc(negativePrompt)}</textarea>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">🔧 Steps</span>
+                                <span class="igv2-choice-option-label">ðŸ”§ Steps</span>
                                 <div class="igv2-choice-chips" data-option="steps">${chipHtml(stepVals, steps, 'steps')}</div>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">📐 Kích thước</span>
+                                <span class="igv2-choice-option-label">ðŸ“ KÃ­ch thÆ°á»›c</span>
                                 <div class="igv2-choice-chips" data-option="size">${chipHtml(sizeMap, null, 'size', true)}</div>
                             </div>
                             <div class="igv2-choice-option-group">
-                                <span class="igv2-choice-option-label">🎛️ Guidance</span>
+                                <span class="igv2-choice-option-label">ðŸŽ›ï¸ Guidance</span>
                                 <div class="igv2-choice-chips" data-option="guidance">${chipHtml(guidanceVals, guidance, 'guidance')}</div>
                             </div>
                         </div>
-                        <button type="button" class="igv2-postgen-regen-btn">🔄 Tạo lại với tùy chọn mới</button>
+                        <button type="button" class="igv2-postgen-regen-btn">ðŸ”„ Táº¡o láº¡i vá»›i tÃ¹y chá»n má»›i</button>
                     </div>
                 </div>
             </div>
@@ -619,7 +619,7 @@ function createPostGenOptionsPanel(chatContainer, msgDiv, imageGenOptions) {
     toggleBtn.addEventListener('click', () => {
         const open = body.style.display !== 'none';
         body.style.display = open ? 'none' : 'block';
-        arrow.textContent = open ? '▸' : '▾';
+        arrow.textContent = open ? 'â–¸' : 'â–¾';
     });
 
     // Chip selection
@@ -674,16 +674,16 @@ function displayImageGenResult(app, { result, providerChoice, message, formValue
             imgSrc = result.images_url[0];
         }
 
-        const meta = `🎨 **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
-        const enhanced = result.prompt_used ? `\n📝 ${result.prompt_used.substring(0, 150)}` : '';
+        const meta = `ðŸŽ¨ **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
+        const enhanced = result.prompt_used ? `\nðŸ“ ${result.prompt_used.substring(0, 150)}` : '';
         const promptEsc = htmlAttrEsc(result.prompt_used || message);
         const imgSrcAttr = htmlAttrEsc(imgSrc);
         const imageIdAttr = htmlAttrEsc(imageId);
         const overlayButtons = `
             <div class="igv2-img-overlay">
-                <button type="button" class="igv2-img-btn" title="Tải ảnh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">⬇</button>
-                <button type="button" class="igv2-img-btn" title="Thông tin" data-igv2-action="info" data-image-id="${imageIdAttr}">ℹ</button>
-                ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="Lưu & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">☁</button>` : ''}
+                <button type="button" class="igv2-img-btn" title="Táº£i áº£nh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">â¬‡</button>
+                <button type="button" class="igv2-img-btn" title="ThÃ´ng tin" data-igv2-action="info" data-image-id="${imageIdAttr}">â„¹</button>
+                ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="LÆ°u & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">â˜</button>` : ''}
             </div>`;
         app.messageRenderer.addMessage(
             elements.chatContainer,
@@ -720,7 +720,7 @@ function displayImageGenResult(app, { result, providerChoice, message, formValue
     } else {
         app.messageRenderer.addMessage(
             elements.chatContainer,
-            `❌ Không thể tạo ảnh: ${result.error}`,
+            `âŒ KhÃ´ng thá»ƒ táº¡o áº£nh: ${result.error}`,
             false, formValues.model, formValues.context,
             app.uiUtils.formatTimestamp(new Date())
         );
@@ -738,7 +738,7 @@ function displayImageGenResult(app, { result, providerChoice, message, formValue
             lastErrMsg.dataset.igv2NegativePrompt = imageGenOptions?.negativePrompt ?? '';
         }
 
-        // Post-gen quick-edit panel (error case — user can tweak and retry)
+        // Post-gen quick-edit panel (error case â€” user can tweak and retry)
         const lastErrMsgForPanel = elements.chatContainer.querySelector('.message.assistant:last-child');
         if (lastErrMsgForPanel) {
             createPostGenOptionsPanel(elements.chatContainer, lastErrMsgForPanel, imageGenOptions);
@@ -751,18 +751,18 @@ async function renderImageThinkingAnalysis(app, { result, providerChoice, messag
     const thinkingSection = app.messageRenderer.createThinkingSection(null, true);
     const thinkMsgEl = document.createElement('div');
     thinkMsgEl.className = 'message assistant';
-    thinkMsgEl.innerHTML = '<div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div><div class="message__body"><div class="message-content"></div></div>';
+    thinkMsgEl.innerHTML = '<div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div><div class="message__body"><div class="message-content"></div></div>';
     thinkMsgEl.querySelector('.message-content').appendChild(thinkingSection);
     elements.chatContainer.appendChild(thinkMsgEl);
     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
     const analysisSteps = [
-        { icon: '🔍', text: `**Phân tích prompt** — "${(result.prompt_used || message).substring(0, 80)}..."` },
-        { icon: '🎨', text: `**Provider:** ${result.provider} / ${result.model}` },
-        { icon: '⚡', text: `**Hiệu suất:** ${Math.round(result.latency_ms)}ms · Chi phí: $${result.cost_usd}` },
-        { icon: '📐', text: `**Đánh giá bố cục:** Ảnh được tạo với kích thước ${result.metadata?.width || '?'}×${result.metadata?.height || '?'}` },
-        { icon: '✨', text: `**Chất lượng:** Cloud API — chất lượng cao, tốc độ nhanh` },
-        { icon: '✅', text: '**Kết luận:** Ảnh đã được tạo thành công. Bạn có thể yêu cầu chỉnh sửa thêm.' },
+        { icon: 'ðŸ”', text: `**PhÃ¢n tÃ­ch prompt** â€” "${(result.prompt_used || message).substring(0, 80)}..."` },
+        { icon: 'ðŸŽ¨', text: `**Provider:** ${result.provider} / ${result.model}` },
+        { icon: 'âš¡', text: `**Hiá»‡u suáº¥t:** ${Math.round(result.latency_ms)}ms Â· Chi phÃ­: $${result.cost_usd}` },
+        { icon: 'ðŸ“', text: `**ÄÃ¡nh giÃ¡ bá»‘ cá»¥c:** áº¢nh Ä‘Æ°á»£c táº¡o vá»›i kÃ­ch thÆ°á»›c ${result.metadata?.width || '?'}Ã—${result.metadata?.height || '?'}` },
+        { icon: 'âœ¨', text: `**Cháº¥t lÆ°á»£ng:** Cloud API â€” cháº¥t lÆ°á»£ng cao, tá»‘c Ä‘á»™ nhanh` },
+        { icon: 'âœ…', text: '**Káº¿t luáº­n:** áº¢nh Ä‘Ã£ Ä‘Æ°á»£c táº¡o thÃ nh cÃ´ng. Báº¡n cÃ³ thá»ƒ yÃªu cáº§u chá»‰nh sá»­a thÃªm.' },
     ];
 
     for (let i = 0; i < analysisSteps.length; i++) {
@@ -776,7 +776,7 @@ async function renderImageThinkingAnalysis(app, { result, providerChoice, messag
     }
 }
 
-// ─── 5. runImg2ImgFlow ────────────────────────────────────────
+// â”€â”€â”€ 5. runImg2ImgFlow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Img2Img flow: convert last image in conversation with a prompt.
@@ -803,7 +803,7 @@ export async function runImg2ImgFlow(app, { message, formValues, elements }) {
 
     app.messageRenderer.addMessage(
         elements.chatContainer,
-        '🖼️ Đang chuyển đổi ảnh (Img2Img)...',
+        'ðŸ–¼ï¸ Äang chuyá»ƒn Ä‘á»•i áº£nh (Img2Img)...',
         false, formValues.model, formValues.context,
         app.uiUtils.formatTimestamp(new Date())
     );
@@ -839,14 +839,14 @@ export async function runImg2ImgFlow(app, { message, formValues, elements }) {
                 : `data:image/png;base64,${result.images[0]}`;
             app.messageRenderer.addMessage(
                 elements.chatContainer,
-                `<div class="igv2-chat-image"><img src="${imgSrc}" alt="Img2Img Result"><div class="igv2-chat-meta">🖼️ Img2Img | Prompt: ${message.substring(0, 80)}</div></div>`,
+                `<div class="igv2-chat-image"><img src="${imgSrc}" alt="Img2Img Result"><div class="igv2-chat-meta">ðŸ–¼ï¸ Img2Img | Prompt: ${message.substring(0, 80)}</div></div>`,
                 false, formValues.model, formValues.context,
                 app.uiUtils.formatTimestamp(new Date())
             );
         } else {
             app.messageRenderer.addMessage(
                 elements.chatContainer,
-                `❌ Img2Img thất bại: ${result.error || 'Không nhận được ảnh'}`,
+                `âŒ Img2Img tháº¥t báº¡i: ${result.error || 'KhÃ´ng nháº­n Ä‘Æ°á»£c áº£nh'}`,
                 false, formValues.model, formValues.context,
                 app.uiUtils.formatTimestamp(new Date())
             );
@@ -856,7 +856,7 @@ export async function runImg2ImgFlow(app, { message, formValues, elements }) {
         if (lastAssistant) lastAssistant.remove();
         app.messageRenderer.addMessage(
             elements.chatContainer,
-            `❌ Img2Img lỗi: ${e.message}`,
+            `âŒ Img2Img lá»—i: ${e.message}`,
             false, formValues.model, formValues.context,
             app.uiUtils.formatTimestamp(new Date())
         );
@@ -867,7 +867,7 @@ export async function runImg2ImgFlow(app, { message, formValues, elements }) {
     return true;
 }
 
-// ─── 6. runStreamingChatFlow ──────────────────────────────────
+// â”€â”€â”€ 6. runStreamingChatFlow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * SSE streaming chat + fallback POST + finalize render + suggestions.
@@ -916,7 +916,7 @@ export async function runStreamingChatFlow(app, ctx) {
         const selectedMemories = app.memoryManager.getSelectedMemories();
         const agentConfig = window.getAgentConfig ? window.getAgentConfig() : null;
 
-        // ── SSE streaming ──
+        // â”€â”€ SSE streaming â”€â”€
         let fullResponse = '';
         let thinkingSteps = [];
         let thinkingData = {};
@@ -931,7 +931,7 @@ export async function runStreamingChatFlow(app, ctx) {
         const { streamMsgDiv, streamContentDiv, streamTextDiv } = createStreamingDiv(formValues, responseTimestamp);
         elements.chatContainer.appendChild(streamMsgDiv);
 
-        // Shared mutable state bag — callbacks write, caller reads after stream ends
+        // Shared mutable state bag â€” callbacks write, caller reads after stream ends
         const ss = {
             thinkingContainer, thinkingReceived, thinkingSteps, thinkingData,
             fullResponse, streamCompleteData, streamSuggestions, streamFailed,
@@ -969,7 +969,7 @@ export async function runStreamingChatFlow(app, ctx) {
             streamFailed = true;
         }
 
-        // ── Fallback to regular POST ──
+        // â”€â”€ Fallback to regular POST â”€â”€
         if (streamFailed) {
             streamMsgDiv.remove();
             const data = await app.apiService.sendMessage(
@@ -978,7 +978,7 @@ export async function runStreamingChatFlow(app, ctx) {
                 selectedMemories, app.currentAbortController.signal,
                 agentConfig ? agentConfig.systemPrompt : '', agentConfig
             );
-            fullResponse = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            fullResponse = data.error ? `âŒ **Lá»—i:** ${data.error}` : data.response;
 
             if (data.thinking_process) {
                 if (!thinkingContainer) {
@@ -987,11 +987,11 @@ export async function runStreamingChatFlow(app, ctx) {
                 }
                 app.messageRenderer.updateThinkingContent(thinkingContainer, data.thinking_process);
             } else if (thinkingContainer) {
-                app.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'Hoàn thành' });
+                app.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'HoÃ n thÃ nh' });
             }
         }
 
-        // ── Finalize display ──
+        // â”€â”€ Finalize display â”€â”€
         finalizeAssistantRender(app, {
             fullResponse, streamFailed, streamMsgDiv, streamContentDiv, streamTextDiv,
             imageLoadingPlaceholder, thinkingContainer, thinkingData, thinkingReceived,
@@ -999,13 +999,13 @@ export async function runStreamingChatFlow(app, ctx) {
             responseTimestamp,
         });
 
-        // ── Version history + session save ──
+        // â”€â”€ Version history + session save â”€â”€
         persistResponse(app, {
             fullResponse, formValues, elements,
             message, streamFailed,
         });
 
-        // ── Follow-up suggestions ──
+        // â”€â”€ Follow-up suggestions â”€â”€
         renderSuggestions(app, {
             streamFailed, streamSuggestions, fullResponse,
             message, formValues, elements, thinkingMode,
@@ -1032,7 +1032,7 @@ function createStreamingDiv(formValues, responseTimestamp) {
 
     const streamAvatar = document.createElement('div');
     streamAvatar.className = 'message__avatar message__avatar--agent';
-    streamAvatar.innerHTML = '<img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false">';
+    streamAvatar.innerHTML = '<img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false">';
     streamMsgDiv.appendChild(streamAvatar);
 
     const streamBody = document.createElement('div');
@@ -1053,13 +1053,13 @@ function createImageLoadingPlaceholder(elements) {
     const placeholder = document.createElement('div');
     placeholder.className = 'message assistant';
     placeholder.innerHTML = `
-        <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+        <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
         <div class="message__body">
             <div class="message-content">
                 <div class="image-gen-loading" id="imageGenLoadingPlaceholder">
                     <div class="loading-spinner"></div>
-                    <div class="loading-text">🎨 Đang tạo ảnh...</div>
-                    <div class="loading-progress" style="font-size:11px;color:var(--text-tertiary);">Analyzing prompt → Selecting provider → Generating</div>
+                    <div class="loading-text">ðŸŽ¨ Äang táº¡o áº£nh...</div>
+                    <div class="loading-progress" style="font-size:11px;color:var(--text-tertiary);">Analyzing prompt â†’ Selecting provider â†’ Generating</div>
                 </div>
             </div>
         </div>
@@ -1069,7 +1069,7 @@ function createImageLoadingPlaceholder(elements) {
     return placeholder;
 }
 
-// ─── SSE Callbacks ────────────────────────────────────────────
+// â”€â”€â”€ SSE Callbacks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Build SSE stream callbacks. All callbacks mutate the shared state
@@ -1155,7 +1155,7 @@ export function buildStreamCallbacks(app, s) {
     };
 }
 
-// ─── 7. finalizeAssistantRender ───────────────────────────────
+// â”€â”€â”€ 7. finalizeAssistantRender â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Finalize the assistant response display: handle image responses,
@@ -1241,7 +1241,7 @@ function buildImageResultDiv(app, responseContent, formValues, responseTimestamp
 
     const avatarDiv = document.createElement('div');
     avatarDiv.className = 'message__avatar message__avatar--agent';
-    avatarDiv.innerHTML = '<img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false">';
+    avatarDiv.innerHTML = '<img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false">';
     resultDiv.appendChild(avatarDiv);
 
     const bodyDiv = document.createElement('div');
@@ -1264,7 +1264,7 @@ function buildImageResultDiv(app, responseContent, formValues, responseTimestamp
     return resultDiv;
 }
 
-// ─── 8. persistResponse ───────────────────────────────────────
+// â”€â”€â”€ 8. persistResponse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Save response to version history, session, Firebase. Make images clickable. */
 function persistResponse(app, { fullResponse, formValues, elements, message, streamFailed }) {
@@ -1319,7 +1319,7 @@ function persistResponse(app, { fullResponse, formValues, elements, message, str
     setTimeout(makeClickable, 500);
 }
 
-// ─── 9. renderSuggestions ─────────────────────────────────────
+// â”€â”€â”€ 9. renderSuggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Follow-up suggestion chips + "Think Harder" button */
 function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse, message, formValues, elements, thinkingMode }) {
@@ -1353,7 +1353,7 @@ function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse,
         suggestions.forEach(text => {
             const chip = document.createElement('button');
             chip.className = 'suggestion-chip';
-            chip.innerHTML = `<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">${escapeHtml(text)}</span>`;
+            chip.innerHTML = `<span class="suggestion-chip__icon">â†—</span><span class="suggestion-chip__text">${escapeHtml(text)}</span>`;
             chip.onclick = () => {
                 suggestionsContainer.remove();
                 app.uiUtils.setInputValue(text);
@@ -1371,12 +1371,12 @@ function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse,
         for (let i = 0; i < 3; i++) {
             const s = document.createElement('span');
             s.className = 'suggestion-chip suggestion-chip--loading';
-            s.innerHTML = '<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">…</span>';
+            s.innerHTML = '<span class="suggestion-chip__icon">â†—</span><span class="suggestion-chip__text">â€¦</span>';
             suggestionsContainer.appendChild(s);
         }
         elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
-        const _lang = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüý]/i.test(fullResponse) ? 'vi' : 'en';
+        const _lang = /[Ã Ã¡Ã¢Ã£Ã¤Ã¥Ã¦Ã§Ã¨Ã©ÃªÃ«Ã¬Ã­Ã®Ã¯Ã°Ã±Ã²Ã³Ã´ÃµÃ¶Ã¸Ã¹ÃºÃ»Ã¼Ã½]/i.test(fullResponse) ? 'vi' : 'en';
         fetch('/api/chat/suggestions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1402,7 +1402,7 @@ function renderSuggestions(app, { streamFailed, streamSuggestions, fullResponse,
     }
 }
 
-// ─── 10. handleSendFailure ────────────────────────────────────
+// â”€â”€â”€ 10. handleSendFailure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Handle errors in the chat send flow */
 export function handleSendFailure(app, { error, elements, formValues, thinkingContainer, imageLoadingPlaceholder }) {
@@ -1418,7 +1418,7 @@ export function handleSendFailure(app, { error, elements, formValues, thinkingCo
     const customPromptUsed = window.customPromptEnabled === true;
     app.messageRenderer.addMessage(
         elements.chatContainer,
-        `❌ **Lỗi kết nối:** ${error.message}`,
+        `âŒ **Lá»—i káº¿t ná»‘i:** ${error.message}`,
         false, formValues.model, formValues.context, errorTimestamp,
         null, customPromptUsed
     );

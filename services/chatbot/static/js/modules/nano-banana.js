@@ -162,18 +162,36 @@
 
   // ── Modal ──────────────────────────────────────────────────────
   function openModal() {
+    // Use overlay manager when available (tracks in _stack for outside-click close).
+    if (window.openOverlay) {
+      window.openOverlay('nanoBananaModal');
+      // onOpen callback in main.js calls onOverlayOpen()
+    } else {
+      _showModal();
+    }
+  }
+
+  function _showModal() {
     const m = $('nanoBananaModal'); if (!m) return;
     m.classList.add('open');
-    m.style.display = '';
     showError('');
     useChatPrompt();
     if (!state.config) probeStatus();
     if (window.lucide?.createIcons) try { window.lucide.createIcons(); } catch (_) {}
   }
 
+  function onOverlayOpen() {
+    // Called by overlay manager's onOpen callback (registered in main.js).
+    _showModal();
+  }
+
   function closeModal() {
-    const m = $('nanoBananaModal'); if (!m) return;
-    m.classList.remove('open');
+    if (window.closeOverlay) {
+      window.closeOverlay('nanoBananaModal');
+    } else {
+      const m = $('nanoBananaModal'); if (!m) return;
+      m.classList.remove('open');
+    }
   }
 
   function useChatPrompt() {
@@ -288,6 +306,7 @@
     const btn = $('nanoBananaBtn');
     on(btn, 'click', (e) => {
       e.preventDefault();
+      e.stopPropagation(); // prevent same-click from triggering outside-close
       // Close the Tools dropdown if open.
       const dd = $('topbarToolsDropdown');
       if (dd) dd.classList.add('hidden');
@@ -306,7 +325,7 @@
       addFiles(e.dataTransfer?.files);
     });
 
-    // Close on overlay click & ESC
+    // Close on overlay backdrop click (fallback when overlay manager not ready)
     const modal = $('nanoBananaModal');
     on(modal, 'click', (e) => { if (e.target === modal) closeModal(); });
     document.addEventListener('keydown', (e) => {
@@ -320,5 +339,5 @@
     wire();
   }
 
-  window.nanoBanana = { openModal, closeModal, useChatPrompt, generate };
+  window.nanoBanana = { openModal, closeModal, useChatPrompt, generate, onOverlayOpen };
 })();

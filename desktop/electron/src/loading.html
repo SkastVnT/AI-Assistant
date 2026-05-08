@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>AI-Assistant — Starting…</title>
+    <style>
+        :root { color-scheme: dark; }
+        html, body { margin: 0; padding: 0; height: 100%; background: #0f1115; color: #e8ecf2; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+        .wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 18px; }
+        .title { font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+        .sub   { font-size: 13px; color: #9aa3b2; }
+        .spinner {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 3px solid #2a3142; border-top-color: #6aa6ff;
+            animation: spin .9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .err { display: none; max-width: 78%; padding: 16px 20px; background: #2a1416; border: 1px solid #8b3a3a; border-radius: 10px; color: #ffd6d6; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+        .err.show { display: block; }
+        .err h3 { margin: 0 0 8px; color: #ff8a8a; font-size: 13px; }
+        .log { margin-top: 10px; max-height: 28vh; overflow: auto; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11px; color: #d8b3b3; background: #1a0f10; padding: 8px 10px; border-radius: 6px; }
+        .actions { margin-top: 12px; display: flex; gap: 8px; }
+        .btn { background: #2a3142; color: #e8ecf2; border: 1px solid #3a4258; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+        .btn:hover { background: #353d52; }
+        .btn.primary { background: #2c5fa5; border-color: #3a73c2; }
+        .btn.primary:hover { background: #336cb8; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="spinner" id="spin"></div>
+        <div class="title" id="title">Starting AI-Assistant backend…</div>
+        <div class="sub" id="sub">Spawning <code>services/chatbot/run.py</code> and waiting for <code>/health</code>.</div>
+        <div class="err" id="err">
+            <h3>Backend failed to start</h3>
+            <div id="errMsg"></div>
+            <div class="log" id="errLog"></div>
+            <div class="actions">
+                <button class="btn primary" id="retryBtn" type="button">Retry</button>
+                <button class="btn" id="copyBtn" type="button">Copy log</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Receive error info from the main process via a one-shot postMessage.
+        window.addEventListener('message', (e) => {
+            const data = e.data || {};
+            if (data.type === 'error') {
+                document.getElementById('spin').style.display = 'none';
+                document.getElementById('title').textContent = 'Backend failed to start';
+                document.getElementById('sub').textContent   = 'See details below. Check logs in the terminal that launched Electron.';
+                document.getElementById('errMsg').textContent = data.message || 'Unknown error.';
+                document.getElementById('errLog').textContent = (data.log || '').slice(-4000);
+                document.getElementById('err').classList.add('show');
+            } else if (data.type === 'retrying') {
+                document.getElementById('err').classList.remove('show');
+                document.getElementById('spin').style.display = '';
+                document.getElementById('title').textContent = 'Retrying backend start…';
+                document.getElementById('sub').textContent   = 'Spawning a fresh services/chatbot/run.py.';
+            }
+        });
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            // The main process is watching the document title for this sentinel.
+            document.title = '__retry_backend__';
+        });
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const text = document.getElementById('errMsg').textContent + '\n\n' + document.getElementById('errLog').textContent;
+            navigator.clipboard && navigator.clipboard.writeText(text);
+        });
+    </script>
+</body>
+</html>

@@ -1,12 +1,11 @@
 """
 Chatbot Application Entry Point
 
-Modes (set via environment variables):
-  USE_FASTAPI=true        -> FastAPI + Uvicorn  (recommended, native async)
-  USE_NEW_STRUCTURE=true  -> Flask modular app factory
-  (default)               -> Legacy Flask monolith (chatbot_main.py)
+Desktop-only build: launches the Flask monolith (chatbot_main.py).
+FastAPI and modular-app-factory modes were removed.
 """
 
+import atexit
 import os
 import runpy
 import socket
@@ -15,6 +14,28 @@ import sys
 import logging
 from pathlib import Path
 from urllib.parse import urlparse
+
+# Tracks all background sidecar processes spawned by this session so they
+# can be killed when the chatbot exits (atexit handler below).
+_sidecar_processes: list[subprocess.Popen] = []
+
+
+def _kill_sidecars() -> None:
+    """Kill all tracked sidecar processes on Python interpreter exit."""
+    for proc in _sidecar_processes:
+        try:
+            if proc.poll() is None:
+                proc.kill()
+        except Exception as exc:
+            logging.warning(
+                "Failed to kill sidecar process pid=%s during shutdown: %s",
+                getattr(proc, "pid", "unknown"),
+                exc,
+                exc_info=True,
+            )
+
+
+atexit.register(_kill_sidecars)
 
 # Configure logging early — before any module imports so all loggers inherit this config.
 # NOTE: force=False (default) so that when uvicorn worker re-imports this module it does NOT
@@ -83,22 +104,29 @@ def _background_flags() -> int:
     return flags
 
 
-def _spawn_background_process(command: list[str], cwd: Path, log_name: str) -> bool:
+def _spawn_background_process(
+    command: list[str],
+    cwd: Path,
+    log_name: str,
+    env: dict | None = None,
+) -> bool:
     logs_dir = project_root / 'logs'
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_path = logs_dir / log_name
     log_handle = open(log_path, 'ab')
 
     try:
-        subprocess.Popen(
+        child = subprocess.Popen(
             command,
             cwd=str(cwd),
             stdout=log_handle,
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
+            env=env,
             creationflags=_background_flags(),
             close_fds=True,
         )
+        _sidecar_processes.append(child)
         print(f">> Started background process: {' '.join(command)}")
         print(f">> Logs: {log_path}")
         return True
@@ -202,16 +230,13 @@ def _start_comfyui_if_needed() -> None:
         comfyui_args.append('--cpu')
         print('>> ComfyUI autostart detected CUDA unavailable, using --cpu mode')
 
-    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true'):
-        comfyui_args_str = ' '.join(comfyui_args)
-        command_line = f'cd /d "{comfyui_dir}" && "{python_exe}" {comfyui_args_str}'
-        _spawn_windows_terminal(command_line, comfyui_dir, f'ComfyUI {port}')
-    else:
-        _spawn_background_process(
-            [str(python_exe), *comfyui_args],
-            comfyui_dir,
-            'comfyui-autostart.log',
-        )
+    # ComfyUI always runs as a hidden background process — no terminal window.
+    # Access it via the tray menu ("Open ComfyUI") which opens http://127.0.0.1:<port>.
+    _spawn_background_process(
+        [str(python_exe), *comfyui_args],
+        comfyui_dir,
+        'comfyui-autostart.log',
+    )
 
 
 def _start_stable_diffusion_if_needed() -> None:
@@ -326,7 +351,13 @@ def _start_character_select_if_needed() -> None:
     needs_install = not (saa_path / 'node_modules' / 'electron').exists()
     install_clause = f'{npm_cmd} install && ' if needs_install else ''
 
-    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true'):
+    # Build env for SAA process — inherit current env and add SHOW_ELECTRON_SAA.
+    # Default false: SAA runs as a headless webserver (no Electron window) unless
+    # the operator explicitly sets SHOW_ELECTRON_SAA=true.
+    saa_env = dict(os.environ)
+    saa_env['SHOW_ELECTRON_SAA'] = os.getenv('SHOW_ELECTRON_SAA', 'false')
+
+    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true') and _env_flag('SHOW_ELECTRON_SAA', 'false'):
         command_line = f'cd /d "{saa_path}" && {install_clause}{npm_cmd} start'
         _spawn_windows_terminal(command_line, saa_path, f'Character Select {port}')
     elif needs_install:
@@ -338,18 +369,21 @@ def _start_character_select_if_needed() -> None:
                 ['cmd.exe', '/c', shell_cmd],
                 saa_path,
                 'character-select-autostart.log',
+                env=saa_env,
             )
         else:
             _spawn_background_process(
                 ['sh', '-c', shell_cmd],
                 saa_path,
                 'character-select-autostart.log',
+                env=saa_env,
             )
     else:
         _spawn_background_process(
             [npm_cmd, 'start'],
             saa_path,
             'character-select-autostart.log',
+            env=saa_env,
         )
 
 
@@ -360,65 +394,14 @@ def _should_autostart_services() -> bool:
         return False
     return True
 
-USE_FASTAPI = os.getenv('USE_FASTAPI', 'false').lower() == 'true'
-USE_NEW_STRUCTURE = os.getenv('USE_NEW_STRUCTURE', 'false').lower() == 'true'
+USE_FASTAPI = False
+USE_NEW_STRUCTURE = False
 
-if USE_FASTAPI:
-    # -- FastAPI mode (recommended) --
-    from fastapi_app import create_app as _create_fastapi_app
+# -- Flask monolith (only supported mode) --
+if __name__ == '__main__':
+    if _should_autostart_services():
+        _autostart_image_services()
 
-    app = _create_fastapi_app()
+    app_py_path = service_dir / 'chatbot_main.py'
+    runpy.run_path(str(app_py_path), run_name='__main__')
 
-    if __name__ == '__main__':
-        import uvicorn
-
-        if _should_autostart_services():
-            _autostart_image_services()
-
-        port = int(os.getenv('FLASK_PORT', 5000))
-        reload = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
-
-        print(f">> Starting Chatbot (FastAPI) on port {port}")
-        uvicorn.run(
-            "run:app",
-            host=os.getenv('HOST', '0.0.0.0'),  # nosec B104  # Intentional: service needs external access
-            port=port,
-            reload=reload,
-            log_level='debug' if os.getenv('DEBUG', '0') == '1' else 'info',
-        )
-
-elif USE_NEW_STRUCTURE:
-    # -- Flask modular app factory --
-    import importlib.util
-
-    app_init_path = service_dir / 'app' / '__init__.py'
-    spec = importlib.util.spec_from_file_location("chatbot_app", app_init_path,
-                                                    submodule_search_locations=[str(service_dir / 'app')])
-    chatbot_app_module = importlib.util.module_from_spec(spec)
-    sys.modules["chatbot_app"] = chatbot_app_module
-    spec.loader.exec_module(chatbot_app_module)
-
-    create_app = chatbot_app_module.create_app
-    app = create_app(os.getenv('FLASK_ENV', 'development'))
-
-    if __name__ == '__main__':
-        if _should_autostart_services():
-            _autostart_image_services()
-
-        port = int(os.getenv('FLASK_PORT', 5000))
-        debug = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
-
-        print(f">> Starting Chatbot (Flask New Structure) on port {port}")
-        app.run(host=os.getenv('HOST', '0.0.0.0'), port=port, debug=debug, threaded=True)  # nosec B104  # Intentional: service needs external access
-
-else:
-    # -- Legacy Flask monolith --
-    print("[i] Using legacy application structure")
-    print("[*] Set USE_FASTAPI=true for async FastAPI mode")
-
-    if __name__ == '__main__':
-        if _should_autostart_services():
-            _autostart_image_services()
-
-        app_py_path = service_dir / 'chatbot_main.py'
-        runpy.run_path(str(app_py_path), run_name='__main__')

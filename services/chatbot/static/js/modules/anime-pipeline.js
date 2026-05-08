@@ -1,43 +1,43 @@
 /**
- * anime-pipeline.js — Layered Anime Pipeline frontend module.
+ * anime-pipeline.js â€” Layered Anime Pipeline frontend module.
  *
  * Manages the pipeline modal, SSE progress display, intermediate
  * debug previews, and final result rendering.
  *
  * SSE events consumed:
- *   ap_status       — pipeline initialised
- *   ap_stage_start  — stage begun
- *   ap_stage_done   — stage completed
- *   ap_preview      — intermediate image (debug only)
- *   ap_refine       — refine loop iteration
- *   ap_result       — final image + manifest
- *   ap_error        — error (recoverable or fatal)
- *   ap_done         — stream complete sentinel
+ *   ap_status       â€” pipeline initialised
+ *   ap_stage_start  â€” stage begun
+ *   ap_stage_done   â€” stage completed
+ *   ap_preview      â€” intermediate image (debug only)
+ *   ap_refine       â€” refine loop iteration
+ *   ap_result       â€” final image + manifest
+ *   ap_error        â€” error (recoverable or fatal)
+ *   ap_done         â€” stream complete sentinel
  */
 
 const STAGES = [
-    { key: 'vision_analysis',  icon: '👁️',  label: 'Vision Analysis' },
-    { key: 'layer_planning',   icon: '📋',  label: 'Layer Planning' },
-    { key: 'composition_pass', icon: '🎨',  label: 'Composition' },
-    { key: 'structure_lock',   icon: '🔒',  label: 'Structure Lock' },
-    { key: 'beauty_pass',      icon: '✨',  label: 'Beauty Pass' },
-    { key: 'detection_inpaint',icon: '🎯',  label: 'YOLO Detail Fix' },
-    { key: 'critique',         icon: '🔍',  label: 'Critique' },
-    { key: 'upscale',          icon: '📐',  label: 'Upscale' },
+    { key: 'vision_analysis',  icon: 'ðŸ‘ï¸',  label: 'Vision Analysis' },
+    { key: 'layer_planning',   icon: 'ðŸ“‹',  label: 'Layer Planning' },
+    { key: 'composition_pass', icon: 'ðŸŽ¨',  label: 'Composition' },
+    { key: 'structure_lock',   icon: 'ðŸ”’',  label: 'Structure Lock' },
+    { key: 'beauty_pass',      icon: 'âœ¨',  label: 'Beauty Pass' },
+    { key: 'detection_inpaint',icon: 'ðŸŽ¯',  label: 'YOLO Detail Fix' },
+    { key: 'critique',         icon: 'ðŸ”',  label: 'Critique' },
+    { key: 'upscale',          icon: 'ðŸ“',  label: 'Upscale' },
 ];
 
 // Off-DOM full-resolution image cache for layer cards.
 //
 // Earlier versions stored the full-res src directly on
 // ``card.dataset.fullSrc``. When the src was a base64 PNG (composition
-// pass with no /storage URL yet) that meant injecting a 2–4 MB string
-// into a DOM attribute. Five layer cards × 3 MB = ~15 MB of HTML, which
+// pass with no /storage URL yet) that meant injecting a 2â€“4 MB string
+// into a DOM attribute. Five layer cards Ã— 3 MB = ~15 MB of HTML, which
 // pushed the browser into "very heavy" territory and stalled the image
 // viewer (every Lightbox open re-cloned the attribute).
 //
 // A WeakMap keyed by the card element keeps the heavy strings outside
 // the serialized DOM and lets the GC drop them when the bubble is
-// removed — no manual cleanup needed on Stop / new chat.
+// removed â€” no manual cleanup needed on Stop / new chat.
 const _layerFullSrcMap = new WeakMap();
 
 export class AnimePipeline {
@@ -83,16 +83,20 @@ export class AnimePipeline {
         window.addEventListener('beforeunload', fireOrphanCancels);
     }
 
-    // ── Modal lifecycle ─────────────────────────────────────────────
+    // â”€â”€ Modal lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     openModal() {
-        // Modal removed — redirect toolbar button to inline chat mode.
+        // Modal removed â€” redirect toolbar button to inline chat mode.
         const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) {
-            const prompt = window.prompt('Mô tả anime scene bạn muốn tạo:');
-            if (prompt && prompt.trim()) {
-                this._runInlineChat(prompt.trim(), chatContainer);
-            }
+            const ask = (window.appPrompt
+                ? window.appPrompt('MÃ´ táº£ anime scene báº¡n muá»‘n táº¡o:', '')
+                : Promise.resolve(''));
+            ask.then((prompt) => {
+                if (prompt && String(prompt).trim()) {
+                    this._runInlineChat(String(prompt).trim(), chatContainer);
+                }
+            }).catch(() => {});
             return;
         }
         // If no chat container (edge case), do nothing gracefully.
@@ -101,7 +105,7 @@ export class AnimePipeline {
     /**
      * Open the modal and auto-start generation with the given prompt.
      * Called when the user picks LOCAL from the chat image-gen dialog.
-     * Runs inline in the chat (like a thinking box) — no modal popup.
+     * Runs inline in the chat (like a thinking box) â€” no modal popup.
      * Falls back to modal if chat container is not found.
      * @param {string} prompt
      * @param {{imageOnly?: boolean, batchSize?: number, negativePrompt?: string,
@@ -128,7 +132,7 @@ export class AnimePipeline {
         const promptEl = document.getElementById('apPrompt');
         if (promptEl && prompt) promptEl.value = prompt;
         const statusEl = document.getElementById('apStatus');
-        if (statusEl) statusEl.textContent = '🎨 Đang khởi động pipeline…';
+        if (statusEl) statusEl.textContent = 'ðŸŽ¨ Äang khá»Ÿi Ä‘á»™ng pipelineâ€¦';
         this._showSection('progress');
         setTimeout(() => this.generate(), 30);
     }
@@ -140,11 +144,11 @@ export class AnimePipeline {
      * @param {string} prompt
      * @param {HTMLElement} chatContainer
      * @param {{imageOnly?: boolean, batchSize?: number, negativePrompt?: string}} [opts]
-     *   imageOnly  — when true the backend stops after composition_pass
+     *   imageOnly  â€” when true the backend stops after composition_pass
      *                and returns N candidates (skips beauty / yolo / etc.).
-     *   batchSize  — number of candidates to emit (1-6, clamped server-side).
+     *   batchSize  â€” number of candidates to emit (1-6, clamped server-side).
      *                Only meaningful when imageOnly is true.
-     *   negativePrompt — optional; not yet wired into the backend request
+     *   negativePrompt â€” optional; not yet wired into the backend request
      *                schema but reserved so the choice-card payload survives
      *                the regenerate round-trip.
      */
@@ -193,7 +197,7 @@ export class AnimePipeline {
                 if (dsKey) body.character_key = dsKey;
                 if (dsSeries) body.series_key = dsSeries;
             }
-        } catch (_) { /* picker not loaded — ignore */ }
+        } catch (_) { /* picker not loaded â€” ignore */ }
 
         // Stash the run options on the bubble so the regenerate /
         // edit-and-rerun buttons in _inlineShowResult can preserve
@@ -259,7 +263,7 @@ export class AnimePipeline {
         const banner = document.createElement('div');
         banner.className = 'message assistant ap-continuous-banner';
         banner.style.cssText = 'padding:6px 10px; font-size:12px; color:var(--text-muted,#888);';
-        banner.innerHTML = `<div class="message__body"><div class="message-content">🔁 Tạo liên tục: <strong class="ap-cont-progress">1</strong>/${total} · nghỉ ${cont.sleepSeconds || 0}s · đổi nhân vật mỗi lượt</div></div>`;
+        banner.innerHTML = `<div class="message__body"><div class="message-content">ðŸ” Táº¡o liÃªn tá»¥c: <strong class="ap-cont-progress">1</strong>/${total} Â· nghá»‰ ${cont.sleepSeconds || 0}s Â· Ä‘á»•i nhÃ¢n váº­t má»—i lÆ°á»£t</div></div>`;
         chatContainer.appendChild(banner);
         const progressEl = banner.querySelector('.ap-cont-progress');
 
@@ -289,12 +293,12 @@ export class AnimePipeline {
                         const note = document.createElement('div');
                         note.className = 'message assistant ap-continuous-swap';
                         note.style.cssText = 'padding:4px 10px; font-size:12px; color:var(--text-muted,#888);';
-                        note.innerHTML = `<div class="message__body"><div class="message-content">↳ Lượt ${i + 1}: nhân vật mới · <strong>${display}</strong> <code style="font-size:11px;">${newTag || ''}</code></div></div>`;
+                        note.innerHTML = `<div class="message__body"><div class="message-content">â†³ LÆ°á»£t ${i + 1}: nhÃ¢n váº­t má»›i Â· <strong>${display}</strong> <code style="font-size:11px;">${newTag || ''}</code></div></div>`;
                         chatContainer.appendChild(note);
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
                 } catch (err) {
-                    // Swap failed — keep the original prompt and continue.
+                    // Swap failed â€” keep the original prompt and continue.
                     // eslint-disable-next-line no-console
                     console.warn('[anime-pipeline] swap-in-prompt failed:', err);
                 }
@@ -314,16 +318,16 @@ export class AnimePipeline {
 
             // Sleep between iterations (skipped after the last one).
             if (i < total - 1 && sleepMs > 0) {
-                if (progressEl) progressEl.textContent = `${i + 1} (nghỉ ${cont.sleepSeconds}s)`;
+                if (progressEl) progressEl.textContent = `${i + 1} (nghá»‰ ${cont.sleepSeconds}s)`;
                 await new Promise((r) => setTimeout(r, sleepMs));
             }
         }
 
         // Final banner update.
         if (banner.isConnected) {
-            const tail = this._continuousCancelled ? '⏹ đã ngưng' : '✅ hoàn thành';
+            const tail = this._continuousCancelled ? 'â¹ Ä‘Ã£ ngÆ°ng' : 'âœ… hoÃ n thÃ nh';
             const body = banner.querySelector('.message-content');
-            if (body) body.innerHTML = `🔁 Tạo liên tục: ${tail}`;
+            if (body) body.innerHTML = `ðŸ” Táº¡o liÃªn tá»¥c: ${tail}`;
         }
         this._continuousCancelled = false;
     }
@@ -331,15 +335,15 @@ export class AnimePipeline {
     /** Build the initial inline pipeline message bubble.
      *
      * Layout (ChatGPT-style):
-     *   ┌─────────────────────────────────────────┐
-     *   │ 🎨 Finalizing image adjustments  ›      │  ← reasoning pill
-     *   │   (expanded text · stage chips inside)  │
-     *   ├─────────────────────────────────────────┤
-     *   │ Đang tạo · Layer 1 · Bố cục   [thumb]  │  ← layer gallery
-     *   │ Đang tạo · Layer 2 · Khoá nét [thumb]  │     (grows as
-     *   │ Đang tạo · Layer 3 · Tô màu   [thumb]  │      previews
-     *   │ Đang tạo · Layer 4 · Tinh chỉnh [thumb] │      arrive)
-     *   └─────────────────────────────────────────┘
+     *   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+     *   â”‚ ðŸŽ¨ Finalizing image adjustments  â€º      â”‚  â† reasoning pill
+     *   â”‚   (expanded text Â· stage chips inside)  â”‚
+     *   â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+     *   â”‚ Äang táº¡o Â· Layer 1 Â· Bá»‘ cá»¥c   [thumb]  â”‚  â† layer gallery
+     *   â”‚ Äang táº¡o Â· Layer 2 Â· KhoÃ¡ nÃ©t [thumb]  â”‚     (grows as
+     *   â”‚ Äang táº¡o Â· Layer 3 Â· TÃ´ mÃ u   [thumb]  â”‚      previews
+     *   â”‚ Äang táº¡o Â· Layer 4 Â· Tinh chá»‰nh [thumb] â”‚      arrive)
+     *   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
      */
     _createInlineBubble(uid, prompt) {
         const stagesHtml = STAGES.map(s => `
@@ -355,13 +359,13 @@ export class AnimePipeline {
         div.setAttribute('data-ap-prompt', prompt);
         div.innerHTML = `
             <div class="message__avatar message__avatar--agent">
-                <img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false">
+                <img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false">
             </div>
             <div class="message__body">
                 <div class="message-content">
                     <details class="ap-inline-progress ap-reasoning-pill" open>
                         <summary class="ap-inline-summary ap-reasoning-summary">
-                            <span class="ap-reasoning-chevron">›</span>
+                            <span class="ap-reasoning-chevron">â€º</span>
                             <div class="thinking-pill__dots">
                                 <span></span><span></span><span></span>
                             </div>
@@ -371,10 +375,10 @@ export class AnimePipeline {
                                     class="ap-inline-stop-btn"
                                     id="ap-stop-${uid}"
                                     style="margin-left:8px; padding:2px 10px; font-size:12px; border:1px solid var(--border); background:var(--bg-secondary,var(--bg)); color:var(--text); border-radius:6px; cursor:pointer;"
-                                    title="Ngưng pipeline và xuất ảnh hiện tại">⏹ Ngưng & xuất ảnh</button>
+                                    title="NgÆ°ng pipeline vÃ  xuáº¥t áº£nh hiá»‡n táº¡i">â¹ NgÆ°ng & xuáº¥t áº£nh</button>
                         </summary>
                         <div class="ap-reasoning-body">
-                            <div class="ap-inline-current ap-reasoning-text" id="ap-current-${uid}">Khởi động…</div>
+                            <div class="ap-inline-current ap-reasoning-text" id="ap-current-${uid}">Khá»Ÿi Ä‘á»™ngâ€¦</div>
                             <div class="ap-inline-stages" id="ap-stages-${uid}">${stagesHtml}</div>
                         </div>
                     </details>
@@ -388,9 +392,9 @@ export class AnimePipeline {
         //   3. Schedule an 8-second hard fallback: if neither ap_cancelled
         //      nor ap_result has arrived by then (e.g. critique stuck on a
         //      blocked vision API call, or SSE socket dropped), force the
-        //      bubble into a finalized "Đã ngưng" state using the most
+        //      bubble into a finalized "ÄÃ£ ngÆ°ng" state using the most
         //      recent layer thumbnail. This guarantees the UI never sits
-        //      on "⏳ Đang ngưng…" forever — which is the exact symptom
+        //      on "â³ Äang ngÆ°ngâ€¦" forever â€” which is the exact symptom
         //      the user reported.
         const stopBtn = div.querySelector(`#ap-stop-${uid}`);
         if (stopBtn) {
@@ -399,7 +403,7 @@ export class AnimePipeline {
                 ev.stopPropagation();
                 const jobId = div.dataset.jobId || '';
                 stopBtn.disabled = true;
-                stopBtn.textContent = '⏳ Đang ngưng…';
+                stopBtn.textContent = 'â³ Äang ngÆ°ngâ€¦';
                 div.dataset.apHardStop = '1';
 
                 // Also break out of any active continuous-generation loop
@@ -434,7 +438,7 @@ export class AnimePipeline {
                     }).catch(() => { /* noop */ });
                 }
 
-                // 3. Nuclear cancel-all — always fires, regardless of
+                // 3. Nuclear cancel-all â€” always fires, regardless of
                 //    whether we captured a job_id. This was added after
                 //    users observed the pipeline keep running because
                 //    the Stop handler silently returned when jobId was
@@ -467,7 +471,7 @@ export class AnimePipeline {
         // Pick the freshest layer card and prefer its FULL-resolution
         // source over the 64x64 thumbnail. Earlier versions used
         // ``lastThumb.src`` which is only the cropped preview, so the
-        // "Đã ngưng" output came out pixelated. ``card.dataset.fullSrc``
+        // "ÄÃ£ ngÆ°ng" output came out pixelated. ``card.dataset.fullSrc``
         // is set by ``_inlineAddLayerPreview`` to the local /storage URL
         // when available, falling back to the full-res base64.
         const gallery = document.getElementById(`ap-layers-${uid}`);
@@ -486,7 +490,7 @@ export class AnimePipeline {
                 const stop = summary.querySelector('.ap-inline-stop-btn');
                 if (stop) stop.style.display = 'none';
                 const label = summary.querySelector('.ap-inline-label');
-                if (label) label.textContent = '⏸ Đã ngưng — đang dùng layer cuối làm output';
+                if (label) label.textContent = 'â¸ ÄÃ£ ngÆ°ng â€” Ä‘ang dÃ¹ng layer cuá»‘i lÃ m output';
             }
         }
         bubble.dataset.apFinalized = '1';
@@ -503,9 +507,9 @@ export class AnimePipeline {
                 wrap.innerHTML = `
                     <img src="${imgSrc}" data-igv2-open="${imgSrc}"
                          style="max-width:100%; border-radius:10px; cursor:pointer;"
-                         alt="Layer cuối — đã ngưng">
+                         alt="Layer cuá»‘i â€” Ä‘Ã£ ngÆ°ng">
                     <div style="margin-top:6px; font-size:11px; opacity:.6;">
-                        Output từ layer cuối cùng được tạo trước khi ngưng.
+                        Output tá»« layer cuá»‘i cÃ¹ng Ä‘Æ°á»£c táº¡o trÆ°á»›c khi ngÆ°ng.
                     </div>`;
                 wrap.querySelector('img').addEventListener('click', () => {
                     // window.openImagePreview expects an <img> element. Pass
@@ -522,14 +526,14 @@ export class AnimePipeline {
     }
 
     /** Append a new layer card to the gallery, or update the existing one
-     *  for the same layer slot. Cards show "Đang tạo · Layer N · {label}"
-     *  while the stage is running and animate to "✓ Đã xong" once a
+     *  for the same layer slot. Cards show "Äang táº¡o Â· Layer N Â· {label}"
+     *  while the stage is running and animate to "âœ“ ÄÃ£ xong" once a
      *  non-pending preview arrives for the same slot or a later layer
      *  starts.
      *
      *  Backend emits two ap_preview frames per layer stage:
-     *    1. on stage_start — { pending: true, local_url: <prev layer> }
-     *    2. on stage_done  — { local_url: <new image for this stage> }
+     *    1. on stage_start â€” { pending: true, local_url: <prev layer> }
+     *    2. on stage_done  â€” { local_url: <new image for this stage> }
      *  The same slotId is reused so the card refreshes in place.
      */
     _inlineAddLayerPreview(uid, data) {
@@ -541,7 +545,7 @@ export class AnimePipeline {
         const layerLabel = data.layer_label || data.label || data.stage || `Layer ${layerNum}`;
         const slotId = `ap-layer-${uid}-${data.stage || layerNum}`;
         const isPending = data.pending === true;
-        // Prefer inline thumb b64 — the /storage/images route stalls
+        // Prefer inline thumb b64 â€” the /storage/images route stalls
         // while the SSE worker is busy serving the pipeline stream, so
         // a normal <img src="/storage/..."> would never load.
         // local_url is still kept as the click-to-enlarge target.
@@ -574,9 +578,9 @@ export class AnimePipeline {
                 </div>
                 <div class="ap-layer-meta" style="flex:1; min-width:0;">
                     <div class="ap-layer-headline" style="font-size:13px; font-weight:600; color:var(--text);">
-                        <span class="ap-layer-status" style="opacity:.85;">Đang tạo</span>
-                        <span style="opacity:.45; margin:0 4px;">·</span>
-                        <span class="ap-layer-name">Layer ${layerNum} · ${layerLabel}</span>
+                        <span class="ap-layer-status" style="opacity:.85;">Äang táº¡o</span>
+                        <span style="opacity:.45; margin:0 4px;">Â·</span>
+                        <span class="ap-layer-name">Layer ${layerNum} Â· ${layerLabel}</span>
                     </div>
                     <div class="ap-layer-sub" style="font-size:11px; opacity:.55; margin-top:2px;">
                         ${data.stage || ''}
@@ -602,7 +606,7 @@ export class AnimePipeline {
         }
         // Refresh thumbnail and click-target when an image is supplied.
         // A pending frame may arrive without any image (b64 + persist
-        // both failed) — in that case keep whatever thumb is already
+        // both failed) â€” in that case keep whatever thumb is already
         // there.
         if (thumbSrc) {
             const thumb = card.querySelector('.ap-layer-thumb');
@@ -610,7 +614,7 @@ export class AnimePipeline {
         }
         if (fullSrc) {
             // Heavy base64 strings live in the WeakMap, NOT the DOM.
-            // Light /storage URLs can also live there — uniform access.
+            // Light /storage URLs can also live there â€” uniform access.
             _layerFullSrcMap.set(card, fullSrc);
             // Keep dataset only when src is a short URL (not base64),
             // so devtools / right-click "copy URL" still works without
@@ -621,7 +625,7 @@ export class AnimePipeline {
                 delete card.dataset.fullSrc;
             }
         }
-        // Promote the previous layer card to ✓ Đã xong as soon as we
+        // Promote the previous layer card to âœ“ ÄÃ£ xong as soon as we
         // start drawing the next one. Also flip THIS card to done when
         // the non-pending preview arrives.
         const status = card.querySelector('.ap-layer-status');
@@ -632,22 +636,22 @@ export class AnimePipeline {
             while (prev) {
                 const ps = prev.querySelector('.ap-layer-status');
                 const psp = prev.querySelector('.ap-layer-spinner');
-                if (ps && ps.textContent === 'Đang tạo') {
-                    ps.textContent = '✓ Đã xong';
+                if (ps && ps.textContent === 'Äang táº¡o') {
+                    ps.textContent = 'âœ“ ÄÃ£ xong';
                     ps.style.color = 'var(--accent, #4ade80)';
                 }
                 if (psp) psp.style.display = 'none';
                 prev = prev.previousElementSibling;
             }
             if (status) {
-                status.textContent = 'Đang tạo';
+                status.textContent = 'Äang táº¡o';
                 status.style.color = '';
             }
             if (spinner) spinner.style.display = '';
         } else {
             // Final preview for this slot: stop the spinner, mark done.
             if (status) {
-                status.textContent = '✓ Đã xong';
+                status.textContent = 'âœ“ ÄÃ£ xong';
                 status.style.color = 'var(--accent, #4ade80)';
             }
             if (spinner) spinner.style.display = 'none';
@@ -703,7 +707,7 @@ export class AnimePipeline {
                 // pick up the cancelled flag from the dataset.
                 bubble.dataset.apCancelled = '1';
                 bubble.dataset.apCancelStage = data.stage || '';
-                this._inlineSetCurrent(uid, `⏸ Đã ngưng tại ${data.stage || 'pipeline'} — đang xuất ảnh hiện tại…`);
+                this._inlineSetCurrent(uid, `â¸ ÄÃ£ ngÆ°ng táº¡i ${data.stage || 'pipeline'} â€” Ä‘ang xuáº¥t áº£nh hiá»‡n táº¡iâ€¦`);
                 const stopBtn = document.getElementById(`ap-stop-${uid}`);
                 if (stopBtn) stopBtn.style.display = 'none';
                 break;
@@ -783,11 +787,11 @@ export class AnimePipeline {
                 const reason = data.reason || '';
                 const worst = (data.worst_dimensions || []).map(d => `${d.name}:${d.score}`).join(', ');
                 const detail = worst ? `${reason} [${worst}]` : reason;
-                this._inlineSetCurrent(uid, `🧠 ${detail}`);
+                this._inlineSetCurrent(uid, `ðŸ§  ${detail}`);
                 break;
             }
             case 'ap_full_restart': {
-                // Full restart — reset all beauty/critique rows
+                // Full restart â€” reset all beauty/critique rows
                 const bpR = document.getElementById(`ap-stage-${uid}-beauty_pass`);
                 if (bpR) {
                     bpR.classList.remove('done', 'error', 'active');
@@ -803,26 +807,26 @@ export class AnimePipeline {
                     crR.classList.add('pending');
                     crR.querySelector('.ap-score-badge')?.remove();
                 }
-                this._inlineSetCurrent(uid, `🔁 Full restart #${data.restart_num || 1}: ${data.reason || 'score stagnant'}`);
+                this._inlineSetCurrent(uid, `ðŸ” Full restart #${data.restart_num || 1}: ${data.reason || 'score stagnant'}`);
                 break;
             }
             case 'ap_vision_status': {
                 // 2026-04-29: surface which vision provider answered
                 // (NSFW chain may have routed through grok/step before
-                // gemini/gpt — the user deserves to know).
+                // gemini/gpt â€” the user deserves to know).
                 const model = data.model_used || 'unknown';
                 const isNsfwChain = /^(grok|step)/i.test(model);
                 const isPromptOnly = /^prompt_/i.test(model);
-                const tag = isPromptOnly ? '⚠️ prompt-only fallback' :
-                            isNsfwChain  ? '🔞 NSFW vision' :
-                                           '👁️ vision';
+                const tag = isPromptOnly ? 'âš ï¸ prompt-only fallback' :
+                            isNsfwChain  ? 'ðŸ”ž NSFW vision' :
+                                           'ðŸ‘ï¸ vision';
                 const conf = (data.confidence || 0).toFixed(2);
                 const charBit = data.character_detected
-                    ? ` · 🎭 ${data.character_name || 'character detected'}`
+                    ? ` Â· ðŸŽ­ ${data.character_name || 'character detected'}`
                     : '';
                 this._inlineSetCurrent(
                     uid,
-                    `${tag}: ${model} · conf ${conf} · ${data.tag_count} tags${charBit}`,
+                    `${tag}: ${model} Â· conf ${conf} Â· ${data.tag_count} tags${charBit}`,
                 );
                 // Persist a small pill on the vision_analysis stage row.
                 const row = document.getElementById(`ap-stage-${uid}-vision_analysis`);
@@ -835,7 +839,7 @@ export class AnimePipeline {
                         const timeEl = row.querySelector('.ap-stage-time');
                         if (timeEl) row.insertBefore(pill, timeEl); else row.appendChild(pill);
                     }
-                    pill.textContent = model.length > 22 ? model.slice(0, 22) + '…' : model;
+                    pill.textContent = model.length > 22 ? model.slice(0, 22) + 'â€¦' : model;
                     pill.style.background = isPromptOnly
                         ? 'rgba(251,191,36,.18)' :
                           isNsfwChain ? 'rgba(244,114,182,.18)' :
@@ -849,25 +853,25 @@ export class AnimePipeline {
             }
             case 'ap_research_status': {
                 // 2026-04-29: surface where reference images came from.
-                // Backend (orchestrator → anime_pipeline_service) emits
-                // this once character_research finishes — local cache
+                // Backend (orchestrator â†’ anime_pipeline_service) emits
+                // this once character_research finishes â€” local cache
                 // hits, web downloads, NSFW chain, etc.
                 const local = data.local_refs || 0;
                 const web = data.web_refs || 0;
                 const skipped = !!data.web_search_skipped;
                 const cachedTag = data.cached ? ' (cache)' : '';
-                const nsfwTag = data.nsfw_intent ? ' · 🔞 NSFW chain' : '';
+                const nsfwTag = data.nsfw_intent ? ' Â· ðŸ”ž NSFW chain' : '';
                 let msg;
                 if (skipped) {
-                    msg = `📚 Đã có đủ ${local} ảnh local, bỏ qua web search${cachedTag}${nsfwTag}`;
+                    msg = `ðŸ“š ÄÃ£ cÃ³ Ä‘á»§ ${local} áº£nh local, bá» qua web search${cachedTag}${nsfwTag}`;
                 } else if (web > 0 && local > 0) {
-                    msg = `📚 Dùng ${local} local + ${web} web mới${cachedTag}${nsfwTag}`;
+                    msg = `ðŸ“š DÃ¹ng ${local} local + ${web} web má»›i${cachedTag}${nsfwTag}`;
                 } else if (web > 0) {
-                    msg = `🌐 Tải ${web} ảnh tham chiếu từ web${cachedTag}${nsfwTag}`;
+                    msg = `ðŸŒ Táº£i ${web} áº£nh tham chiáº¿u tá»« web${cachedTag}${nsfwTag}`;
                 } else if (local > 0) {
-                    msg = `📚 Dùng ${local} ảnh local${cachedTag}${nsfwTag}`;
+                    msg = `ðŸ“š DÃ¹ng ${local} áº£nh local${cachedTag}${nsfwTag}`;
                 } else {
-                    msg = `🔍 Hoàn tất research${cachedTag}${nsfwTag}`;
+                    msg = `ðŸ” HoÃ n táº¥t research${cachedTag}${nsfwTag}`;
                 }
                 this._inlineSetCurrent(uid, msg);
                 // Also annotate the character_research stage row with a
@@ -884,8 +888,8 @@ export class AnimePipeline {
                         if (timeEl) row.insertBefore(pill, timeEl); else row.appendChild(pill);
                     }
                     pill.textContent = skipped
-                        ? `📚 ${local} local`
-                        : `${local}📚 + ${web}🌐`;
+                        ? `ðŸ“š ${local} local`
+                        : `${local}ðŸ“š + ${web}ðŸŒ`;
                     pill.title = `local=${local}, web=${web}, skipped=${skipped}, nsfw=${!!data.nsfw_intent}, conf=${(data.confidence||0).toFixed(2)}`;
                 }
                 break;
@@ -895,12 +899,12 @@ export class AnimePipeline {
                 break;
             case 'ap_error':
                 if (!data.recoverable) {
-                    this._setInlineError(bubble, uid, data.error || 'Pipeline thất bại');
+                    this._setInlineError(bubble, uid, data.error || 'Pipeline tháº¥t báº¡i');
                 } else {
                     if (data.stage) {
                         this._inlineSetStage(uid, data.stage, 'error');
                     }
-                    this._inlineSetCurrent(uid, `⚠️ ${data.stage || ''}: ${data.error}`);
+                    this._inlineSetCurrent(uid, `âš ï¸ ${data.stage || ''}: ${data.error}`);
                 }
                 break;
         }
@@ -924,7 +928,7 @@ export class AnimePipeline {
         if (!passes.length) return;
 
         const chips = passes.map(p => {
-            const denoiseLabel = p.denoise < 1.0 ? ` ·${p.denoise}` : '';
+            const denoiseLabel = p.denoise < 1.0 ? ` Â·${p.denoise}` : '';
             return `<span class="ap-layer-chip" title="${p.name}: ${p.steps} steps${denoiseLabel}">${p.icon} ${p.name}</span>`;
         });
 
@@ -950,16 +954,16 @@ export class AnimePipeline {
     }
 
     /**
-     * Render a "cực xịn" character research card right under the
+     * Render a "cá»±c xá»‹n" character research card right under the
      * character_research stage row.
      *
      * Shows:
-     *   • 48×48 thumbnail (from SAA wai_character_thumbs.json when available)
-     *   • display_name + series
-     *   • provenance badge — "SAA DB", "alias table", "web", etc
-     *   • confidence bar (0–1) with a colored gradient
+     *   â€¢ 48Ã—48 thumbnail (from SAA wai_character_thumbs.json when available)
+     *   â€¢ display_name + series
+     *   â€¢ provenance badge â€” "SAA DB", "alias table", "web", etc
+     *   â€¢ confidence bar (0â€“1) with a colored gradient
      *
-     * This method is idempotent — calling twice replaces the previous card.
+     * This method is idempotent â€” calling twice replaces the previous card.
      */
     _inlineShowCharacterCard(uid, data) {
         const row = document.getElementById(`ap-stage-${uid}-character_research`);
@@ -997,7 +1001,7 @@ export class AnimePipeline {
         // Thumbnail: prefer SAA DB data URL; hide element when none.
         const thumbHtml = data.saa_thumbnail
             ? `<img class="ap-char-thumb" src="${data.saa_thumbnail}" alt="${data.character}">`
-            : `<div class="ap-char-thumb ap-char-thumb--placeholder">👤</div>`;
+            : `<div class="ap-char-thumb ap-char-thumb--placeholder">ðŸ‘¤</div>`;
 
         const charTag = data.character_tag || '';
         const tagHtml = charTag
@@ -1005,13 +1009,13 @@ export class AnimePipeline {
             : '';
 
         const refsHtml = data.ref_images_count
-            ? `<span class="ap-char-meta-item" title="Reference images">🖼 ${data.ref_images_count}</span>`
+            ? `<span class="ap-char-meta-item" title="Reference images">ðŸ–¼ ${data.ref_images_count}</span>`
             : '';
         const idTagsHtml = data.identity_tags_count
-            ? `<span class="ap-char-meta-item" title="Identity tags">🏷 ${data.identity_tags_count}</span>`
+            ? `<span class="ap-char-meta-item" title="Identity tags">ðŸ· ${data.identity_tags_count}</span>`
             : '';
         const cachedHtml = data.cached
-            ? `<span class="ap-char-meta-item" title="Loaded from local cache">⚡ cached</span>`
+            ? `<span class="ap-char-meta-item" title="Loaded from local cache">âš¡ cached</span>`
             : '';
 
         card.innerHTML = `
@@ -1112,8 +1116,8 @@ export class AnimePipeline {
         const gallery = document.getElementById(`ap-layers-${uid}`);
         if (gallery) {
             gallery.querySelectorAll('.ap-layer-status').forEach(el => {
-                if (el.textContent === 'Đang tạo') {
-                    el.textContent = '✓ Đã xong';
+                if (el.textContent === 'Äang táº¡o') {
+                    el.textContent = 'âœ“ ÄÃ£ xong';
                     el.style.color = 'var(--accent, #4ade80)';
                 }
             });
@@ -1136,15 +1140,15 @@ export class AnimePipeline {
             if (summary) {
                 if (wasCancelled) {
                     const stageLabel = cancelStage
-                        ? ` (ngưng tại ${cancelStage})`
+                        ? ` (ngÆ°ng táº¡i ${cancelStage})`
                         : '';
                     summary.innerHTML = `
-                        <span class="ap-inline-done-icon">⏸</span>
-                        <span class="ap-inline-label">Đã ngưng — ảnh hiện tại · ${elapsed}s${stageLabel}</span>`;
+                        <span class="ap-inline-done-icon">â¸</span>
+                        <span class="ap-inline-label">ÄÃ£ ngÆ°ng â€” áº£nh hiá»‡n táº¡i Â· ${elapsed}s${stageLabel}</span>`;
                 } else {
                     summary.innerHTML = `
-                        <span class="ap-inline-done-icon">🎨</span>
-                        <span class="ap-inline-label">✅ Anime Pipeline · ${elapsed}s</span>`;
+                        <span class="ap-inline-done-icon">ðŸŽ¨</span>
+                        <span class="ap-inline-label">âœ… Anime Pipeline Â· ${elapsed}s</span>`;
                 }
             }
         }
@@ -1154,8 +1158,8 @@ export class AnimePipeline {
             const msgContent = bubble.querySelector('.message-content');
             const resultDiv = document.createElement('div');
             const headerLabel = wasCancelled
-                ? `⏸ Anime Pipeline (đã ngưng) · ${elapsed}s`
-                : `🎨 Anime Pipeline · ${elapsed}s`;
+                ? `â¸ Anime Pipeline (Ä‘Ã£ ngÆ°ng) Â· ${elapsed}s`
+                : `ðŸŽ¨ Anime Pipeline Â· ${elapsed}s`;
 
             // Recover the run options so regenerate can stay in the
             // same mode (image-only + batch size). Fallback to defaults
@@ -1190,23 +1194,23 @@ export class AnimePipeline {
             }
 
             const metaSuffix = hasGallery
-                ? ` · ${galleryItems.length} ảnh`
-                : (data.local_url ? ' · 💾 saved' : '');
+                ? ` Â· ${galleryItems.length} áº£nh`
+                : (data.local_url ? ' Â· ðŸ’¾ saved' : '');
 
             resultDiv.innerHTML = `
                 <div class="igv2-chat-image" data-prompt="${promptAttr}">
                     ${mediaHtml}
                     <div class="igv2-chat-meta">${headerLabel}${metaSuffix}</div>
                     <div class="ap-inline-result-btns">
-                        <button class="ap-inline-btn" data-action="download" data-job="${jobId}" data-prompt="${promptAttr}" data-download-url="${data.local_url || ''}">📥 Tải ảnh</button>
-                        <button class="ap-inline-btn" data-action="regenerate" data-prompt="${promptAttr}">🔄 Tạo lại</button>
-                        <button class="ap-inline-btn" data-action="edit" data-prompt="${promptAttr}">✏️ Chỉnh sửa</button>
+                        <button class="ap-inline-btn" data-action="download" data-job="${jobId}" data-prompt="${promptAttr}" data-download-url="${data.local_url || ''}">ðŸ“¥ Táº£i áº£nh</button>
+                        <button class="ap-inline-btn" data-action="regenerate" data-prompt="${promptAttr}">ðŸ”„ Táº¡o láº¡i</button>
+                        <button class="ap-inline-btn" data-action="edit" data-prompt="${promptAttr}">âœï¸ Chá»‰nh sá»­a</button>
                     </div>
                     <div class="ap-inline-edit-box" style="display:none; margin-top:8px;">
                         <textarea class="ap-inline-edit-textarea" rows="3" style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:13px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary,var(--bg));color:var(--text);resize:vertical;">${prompt}</textarea>
                         <div style="display:flex;gap:6px;margin-top:6px;">
-                            <button class="ap-inline-btn ap-inline-btn--primary" data-action="edit-run">🎨 Tạo với prompt mới</button>
-                            <button class="ap-inline-btn" data-action="edit-cancel">✕ Hủy</button>
+                            <button class="ap-inline-btn ap-inline-btn--primary" data-action="edit-run">ðŸŽ¨ Táº¡o vá»›i prompt má»›i</button>
+                            <button class="ap-inline-btn" data-action="edit-cancel">âœ• Há»§y</button>
                         </div>
                     </div>
                 </div>`;
@@ -1235,7 +1239,7 @@ export class AnimePipeline {
                 });
             } catch (_e) { /* non-fatal */ }
 
-            // Tạo lại: re-run inline with same prompt — preserve the
+            // Táº¡o láº¡i: re-run inline with same prompt â€” preserve the
             // image-only / batch-size mode so a regenerate from a
             // 4-image batch produces another 4-image batch (with new
             // random seeds) instead of dropping back to the full
@@ -1247,7 +1251,7 @@ export class AnimePipeline {
                 });
             });
 
-            // Chỉnh sửa: toggle edit box
+            // Chá»‰nh sá»­a: toggle edit box
             const editBox = resultDiv.querySelector('.ap-inline-edit-box');
             resultDiv.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
                 editBox.style.display = editBox.style.display === 'none' ? 'block' : 'none';
@@ -1256,7 +1260,7 @@ export class AnimePipeline {
                 }
             });
 
-            // Run with edited prompt — also preserve the run mode.
+            // Run with edited prompt â€” also preserve the run mode.
             resultDiv.querySelector('[data-action="edit-run"]')?.addEventListener('click', () => {
                 const newPrompt = editBox.querySelector('textarea')?.value?.trim();
                 if (newPrompt) {
@@ -1284,9 +1288,9 @@ export class AnimePipeline {
                 });
             });
 
-            // 2026-04-28: per-tile "📐 Upscale" overlay button removed by
-            // user request — the new orientation presets generate at
-            // native 2048×2048 (or 1536×2048 / 2048×1536) so a
+            // 2026-04-28: per-tile "ðŸ“ Upscale" overlay button removed by
+            // user request â€” the new orientation presets generate at
+            // native 2048Ã—2048 (or 1536Ã—2048 / 2048Ã—1536) so a
             // post-hoc upscale pass is no longer needed in the common
             // case. The /api/anime-pipeline/upscale endpoint still
             // exists for power users / CLI consumers.
@@ -1314,7 +1318,7 @@ export class AnimePipeline {
         if (details) {
             details.open = true;
             const label = details.querySelector('.ap-inline-label');
-            if (label) label.textContent = '❌ ' + message;
+            if (label) label.textContent = 'âŒ ' + message;
             const current = document.getElementById(`ap-current-${uid}`);
             if (current) current.textContent = message;
         }
@@ -1336,7 +1340,7 @@ export class AnimePipeline {
         this._setGenerateEnabled(true);
     }
 
-    // ── Health check ────────────────────────────────────────────────
+    // â”€â”€ Health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     async _checkHealth() {
         const statusEl = document.getElementById('apStatus');
@@ -1345,20 +1349,20 @@ export class AnimePipeline {
             const data = await resp.json();
             this._available = data;
             if (data.available) {
-                if (statusEl) statusEl.textContent = '✅ Pipeline ready';
+                if (statusEl) statusEl.textContent = 'âœ… Pipeline ready';
             } else {
-                // Show warning but keep button enabled — user gets a real error on generate.
+                // Show warning but keep button enabled â€” user gets a real error on generate.
                 const msg = (data.errors || []).join('; ') || 'Pipeline unavailable';
-                if (statusEl) statusEl.textContent = '⚠️ ' + msg;
+                if (statusEl) statusEl.textContent = 'âš ï¸ ' + msg;
             }
         } catch (e) {
-            if (statusEl) statusEl.textContent = '⚠️ Health check failed — try generating anyway';
+            if (statusEl) statusEl.textContent = 'âš ï¸ Health check failed â€” try generating anyway';
         }
         // Always enable the button; failure is surfaced when the stream starts.
         this._setGenerateEnabled(true);
     }
 
-    // ── Generate (SSE) ──────────────────────────────────────────────
+    // â”€â”€ Generate (SSE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     async generate() {
         if (this._running) return;
@@ -1426,7 +1430,7 @@ export class AnimePipeline {
         }
     }
 
-    // ── SSE consumer ────────────────────────────────────────────────
+    // â”€â”€ SSE consumer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     async _consumeSSE(resp) {
         const reader = resp.body.getReader();
@@ -1440,7 +1444,7 @@ export class AnimePipeline {
         let timeoutId = setTimeout(() => {
             if (!gotResult) {
                 reader.cancel();
-                this._onError({ error: 'Mất kết nối (timeout 120s)', recoverable: false });
+                this._onError({ error: 'Máº¥t káº¿t ná»‘i (timeout 120s)', recoverable: false });
             }
         }, SSE_TIMEOUT_MS);
 
@@ -1449,7 +1453,7 @@ export class AnimePipeline {
             timeoutId = setTimeout(() => {
                 if (!gotResult) {
                     reader.cancel();
-                    this._onError({ error: 'Mất kết nối (timeout 120s)', recoverable: false });
+                    this._onError({ error: 'Máº¥t káº¿t ná»‘i (timeout 120s)', recoverable: false });
                 }
             }, SSE_TIMEOUT_MS);
         };
@@ -1484,7 +1488,7 @@ export class AnimePipeline {
 
         // If stream ended without ap_result, show error
         if (!gotResult) {
-            this._onError({ error: 'Stream kết thúc bất ngờ — không nhận được kết quả', recoverable: false });
+            this._onError({ error: 'Stream káº¿t thÃºc báº¥t ngá» â€” khÃ´ng nháº­n Ä‘Æ°á»£c káº¿t quáº£', recoverable: false });
         }
     }
 
@@ -1521,16 +1525,16 @@ export class AnimePipeline {
                 this._onError(data);
                 break;
             case 'ap_done':
-                // stream complete — nothing more to do
+                // stream complete â€” nothing more to do
                 break;
         }
     }
 
-    // ── Event handlers ──────────────────────────────────────────────
+    // â”€â”€ Event handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     _onStatus(data) {
         const el = document.getElementById('apCurrentAction');
-        if (el) el.textContent = data.message || 'Initialising…';
+        if (el) el.textContent = data.message || 'Initialisingâ€¦';
     }
 
     _onStageStart(data) {
@@ -1578,9 +1582,9 @@ export class AnimePipeline {
     _onRefine(data) {
         const el = document.getElementById('apCurrentAction');
         if (el) {
-            el.textContent = `Refining (round ${data.round}/${data.max_rounds}, score: ${(data.previous_score || 0).toFixed(1)})…`;
+            el.textContent = `Refining (round ${data.round}/${data.max_rounds}, score: ${(data.previous_score || 0).toFixed(1)})â€¦`;
         }
-        // Reset loop stages: beauty → YOLO → critique
+        // Reset loop stages: beauty â†’ YOLO â†’ critique
         this._setStageState('beauty_pass', 'pending');
         this._setStageState('detection_inpaint', 'pending');
         this._setStageState('critique', 'pending');
@@ -1592,14 +1596,14 @@ export class AnimePipeline {
         if (el) {
             const dims = (data.worst_dimensions || []).slice(0, 3).join(', ');
             const actionCount = (data.actions || []).length;
-            el.textContent = `🧠 Reasoning: ${dims || 'general'} — applying ${actionCount} fix(es)`;
+            el.textContent = `ðŸ§  Reasoning: ${dims || 'general'} â€” applying ${actionCount} fix(es)`;
         }
     }
 
     _onFullRestart(data) {
         const el = document.getElementById('apCurrentAction');
         if (el) {
-            el.textContent = `🔄 Full restart #${data.restart_num} (best score: ${(data.best_score || 0).toFixed(1)}) — regenerating from scratch`;
+            el.textContent = `ðŸ”„ Full restart #${data.restart_num} (best score: ${(data.best_score || 0).toFixed(1)}) â€” regenerating from scratch`;
         }
         // Reset all stages
         STAGES.forEach(s => this._setStageState(s.key, 'pending'));
@@ -1630,7 +1634,7 @@ export class AnimePipeline {
         this._showSection('result');
 
         const statusEl = document.getElementById('apStatus');
-        if (statusEl) statusEl.textContent = '✅ Hoàn thành!';
+        if (statusEl) statusEl.textContent = 'âœ… HoÃ n thÃ nh!';
 
         const imgEl = document.getElementById('apResultImage');
         if (imgEl) {
@@ -1649,11 +1653,11 @@ export class AnimePipeline {
         const metaEl = document.getElementById('apResultMeta');
         if (metaEl) {
             const lines = [];
-            if (data.total_latency_ms) lines.push(`⏱️ ${(data.total_latency_ms / 1000).toFixed(1)}s`);
-            if (data.refine_rounds) lines.push(`🔄 ${data.refine_rounds} vòng tinh chỉnh`);
-            if (data.models_used?.length) lines.push(`🧠 ${data.models_used.join(', ')}`);
-            if (data.stages_executed?.length) lines.push(`📋 ${data.stages_executed.length} stages`);
-            metaEl.innerHTML = lines.join(' &nbsp;·&nbsp; ');
+            if (data.total_latency_ms) lines.push(`â±ï¸ ${(data.total_latency_ms / 1000).toFixed(1)}s`);
+            if (data.refine_rounds) lines.push(`ðŸ”„ ${data.refine_rounds} vÃ²ng tinh chá»‰nh`);
+            if (data.models_used?.length) lines.push(`ðŸ§  ${data.models_used.join(', ')}`);
+            if (data.stages_executed?.length) lines.push(`ðŸ“‹ ${data.stages_executed.length} stages`);
+            metaEl.innerHTML = lines.join(' &nbsp;Â·&nbsp; ');
         }
 
         // Store result for download / send-to-chat
@@ -1664,18 +1668,18 @@ export class AnimePipeline {
         if (data.recoverable) {
             // Non-fatal: show inline warning in progress view
             const el = document.getElementById('apCurrentAction');
-            if (el) el.textContent = `⚠️ ${data.stage || ''}: ${data.error}`;
+            if (el) el.textContent = `âš ï¸ ${data.stage || ''}: ${data.error}`;
         } else {
             // Fatal: show error without jumping to form
             const statusEl = document.getElementById('apStatus');
-            if (statusEl) statusEl.textContent = '❌ Thất bại';
+            if (statusEl) statusEl.textContent = 'âŒ Tháº¥t báº¡i';
             const errEl = document.getElementById('apErrorBox');
             if (errEl) {
-                errEl.textContent = data.error || 'Pipeline thất bại';
+                errEl.textContent = data.error || 'Pipeline tháº¥t báº¡i';
                 errEl.style.display = '';
             }
             const actionEl = document.getElementById('apCurrentAction');
-            if (actionEl) actionEl.textContent = '❌ ' + (data.error || 'Pipeline thất bại');
+            if (actionEl) actionEl.textContent = 'âŒ ' + (data.error || 'Pipeline tháº¥t báº¡i');
         }
     }
 
@@ -1695,7 +1699,7 @@ export class AnimePipeline {
         const prompt = (document.getElementById('apPrompt')?.value || '').trim();
         const latency = result.total_latency_ms
             ? `${(result.total_latency_ms / 1000).toFixed(1)}s` : '';
-        const meta = `🎨 Anime Pipeline${latency ? ' · ' + latency : ''}`;
+        const meta = `ðŸŽ¨ Anime Pipeline${latency ? ' Â· ' + latency : ''}`;
         // Prefer local_url / cloud_url to avoid localStorage quota issues
         const imgSrc = result.local_url || result.cloud_url || (result.image_b64 ? 'data:image/png;base64,' + result.image_b64 : '');
         if (!imgSrc) return;
@@ -1717,7 +1721,7 @@ export class AnimePipeline {
         this.closeModal();
     }
 
-    // ── UI helpers ──────────────────────────────────────────────────
+    // â”€â”€ UI helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     _resetUI() {
         this._resetProgress();
@@ -1736,7 +1740,7 @@ export class AnimePipeline {
         STAGES.forEach(s => this._setStageState(s.key, 'pending'));
         this._setProgressPercent(0);
         const el = document.getElementById('apCurrentAction');
-        if (el) el.textContent = 'Starting…';
+        if (el) el.textContent = 'Startingâ€¦';
     }
 
     _showSection(which) {
@@ -1774,7 +1778,7 @@ export class AnimePipeline {
         this._showSection('form');
     }
 
-    // ── Download result ─────────────────────────────────────────────
+    // â”€â”€ Download result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     downloadResult() {
         const result = this._lastResult;
@@ -1792,7 +1796,7 @@ export class AnimePipeline {
         this._resetUI();
     }
 
-    // ── File helpers ────────────────────────────────────────────────
+    // â”€â”€ File helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     async _filesToB64(files) {
         const results = [];
@@ -1807,7 +1811,7 @@ export class AnimePipeline {
         return results;
     }
 
-    // ── F5 / Page-load recovery ─────────────────────────────────────
+    // â”€â”€ F5 / Page-load recovery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Called on page load to recover stuck pipeline bubbles and re-wire
@@ -1823,7 +1827,7 @@ export class AnimePipeline {
             const hasResult = bubble.querySelector('.igv2-chat-image img');
 
             if (hasResult) {
-                // Image exists — collapse progress, re-wire buttons
+                // Image exists â€” collapse progress, re-wire buttons
                 if (details) {
                     details.open = false;
                     const summary = details.querySelector('.ap-inline-summary');
@@ -1831,20 +1835,20 @@ export class AnimePipeline {
                         const dots = summary.querySelector('.thinking-pill__dots');
                         if (dots) dots.remove();
                         const label = summary.querySelector('.ap-inline-label');
-                        if (label && !label.textContent.includes('✅')) {
+                        if (label && !label.textContent.includes('âœ…')) {
                             const timer = summary.querySelector('.ap-inline-timer');
                             const elapsed = timer?.textContent || '';
-                            label.textContent = `✅ Anime Pipeline · ${elapsed}`;
+                            label.textContent = `âœ… Anime Pipeline Â· ${elapsed}`;
                             if (timer) timer.remove();
                         }
                     }
                 }
                 this._rewireInlineButtons(bubble);
             } else if (details) {
-                // No image — pipeline was interrupted mid-stream (network drop / F5).
+                // No image â€” pipeline was interrupted mid-stream (network drop / F5).
                 // Treat as broken: backend job (if any) is unreachable from here, so
                 // immediately fire-and-forget cancel (orphan cleanup) and switch the
-                // bubble into "retry" mode. The Stop button — if any — gets neutered
+                // bubble into "retry" mode. The Stop button â€” if any â€” gets neutered
                 // because there is no live stream to stop.
                 const orphanJobId = bubble.dataset.jobId || '';
                 if (orphanJobId) {
@@ -1857,31 +1861,31 @@ export class AnimePipeline {
                 }
                 details.open = true;
                 const label = details.querySelector('.ap-inline-label');
-                if (label) label.textContent = '⚠️ Pipeline bị gián đoạn (F5/mất kết nối)';
+                if (label) label.textContent = 'âš ï¸ Pipeline bá»‹ giÃ¡n Ä‘oáº¡n (F5/máº¥t káº¿t ná»‘i)';
                 const dots = details.querySelector('.thinking-pill__dots');
                 if (dots) dots.remove();
                 const timer = details.querySelector('.ap-inline-timer');
                 if (timer) timer.remove();
-                // Disable any leftover Stop button — its job is dead.
+                // Disable any leftover Stop button â€” its job is dead.
                 const stopBtn = details.querySelector('.ap-inline-stop-btn');
                 if (stopBtn) {
                     stopBtn.disabled = true;
                     stopBtn.style.display = 'none';
                 }
                 const current = bubble.querySelector('[id^="ap-current-"]');
-                if (current) current.textContent = 'Bấm "Tạo lại" để chạy lại pipeline';
+                if (current) current.textContent = 'Báº¥m "Táº¡o láº¡i" Ä‘á»ƒ cháº¡y láº¡i pipeline';
 
                 // Recovery button. We ALWAYS re-bind the click handler even if
                 // the .ap-recovery-btn element was restored from localStorage
                 // (in which case the original addEventListener is gone). Without
-                // this re-bind the button looks alive but does nothing — the
-                // exact "phế vật" symptom users hit after F5.
+                // this re-bind the button looks alive but does nothing â€” the
+                // exact "pháº¿ váº­t" symptom users hit after F5.
                 const msgContent = bubble.querySelector('.message-content');
                 let retryBtn = bubble.querySelector('.ap-recovery-btn');
                 if (!retryBtn && msgContent) {
                     const retryDiv = document.createElement('div');
                     retryDiv.style.cssText = 'margin-top:8px;';
-                    retryDiv.innerHTML = `<button class="ap-inline-btn ap-recovery-btn" style="padding:6px 14px;">🔄 Tạo lại</button>`;
+                    retryDiv.innerHTML = `<button class="ap-inline-btn ap-recovery-btn" style="padding:6px 14px;">ðŸ”„ Táº¡o láº¡i</button>`;
                     msgContent.appendChild(retryDiv);
                     retryBtn = retryDiv.querySelector('button');
                 }
@@ -1944,7 +1948,7 @@ export class AnimePipeline {
             const newBtn = bubble.querySelector('[data-action="download"]');
             newBtn?.addEventListener('click', () => {
                 if (!src || src.includes('R0lGODlhAQABAI')) {
-                    alert('Ảnh không còn khả dụng. Hãy tạo lại.');
+                    alert('áº¢nh khÃ´ng cÃ²n kháº£ dá»¥ng. HÃ£y táº¡o láº¡i.');
                     return;
                 }
                 const a = document.createElement('a');

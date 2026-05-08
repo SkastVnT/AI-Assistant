@@ -1524,8 +1524,6 @@ def is_mobile_device():
 @app.route('/')
 def index():
     """Home page - Responsive UI (works on both mobile and desktop)"""
-    if not session.get('authenticated'):
-        return redirect('/login')
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
     
@@ -1550,8 +1548,6 @@ def index_with_conversation(conversation_id):
     from localStorage (or via /conversations/<id> API for server-stored conversations).
     Allows ChatGPT-style shareable URLs and browser back/forward navigation.
     """
-    if not session.get('authenticated'):
-        return redirect('/login')
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
 
@@ -1578,16 +1574,6 @@ def index_with_conversation(conversation_id):
         "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "")
     })
     return render_template('index.html', firebase_config=firebase_config)
-
-
-@app.route('/new')
-def index_new():
-    """New Tailwind version (experimental)"""
-    if not session.get('authenticated'):
-        return redirect('/login')
-    if 'session_id' not in session:
-        session['session_id'] = str(uuid.uuid4())
-    return render_template('index_tailwind.html')
 
 
 @app.route('/mobile')
@@ -5595,6 +5581,62 @@ def app_generate_title():
     return jsonify({'title': fallback})
 
 
+@app.route('/api/chat/suggestions', methods=['POST'])
+def app_chat_suggestions():
+    """Generate 3 context-aware follow-up suggestions using the AI model."""
+    data = request.get_json(silent=True) or {}
+    user_msg = str(data.get('message', '')).strip()[:500]
+    bot_resp = str(data.get('response', '')).strip()[:1000]
+    language = str(data.get('language', 'vi')).strip()
+    model = str(data.get('model', '')).strip() or None
+
+    if not user_msg or not bot_resp:
+        return jsonify({'suggestions': []}), 400
+
+    vi = language != 'en'
+    if vi:
+        prompt = (
+            "Dựa trên cuộc trò chuyện dưới đây, hãy tạo ra ĐÚNG 3 câu hỏi tiếp theo "
+            "mà người dùng có thể muốn hỏi. Mỗi câu hỏi phải:\n"
+            "- Cụ thể, liên quan trực tiếp đến nội dung vừa trả lời\n"
+            "- Ngắn gọn (tối đa 12 từ)\n"
+            "- Khác nhau về góc nhìn (ví dụ: chi tiết hơn / ứng dụng thực tế / so sánh)\n"
+            "Chỉ trả về 3 câu, mỗi câu 1 dòng, không đánh số, không giải thích.\n\n"
+            f"Người dùng hỏi: {user_msg}\n"
+            f"AI trả lời: {bot_resp}"
+        )
+    else:
+        prompt = (
+            "Based on the conversation below, generate EXACTLY 3 follow-up questions "
+            "the user might want to ask. Each question must be:\n"
+            "- Specific and directly related to the answer\n"
+            "- Concise (max 12 words)\n"
+            "- Different angles (e.g. deeper detail / practical use / comparison)\n"
+            "Return only 3 questions, one per line, no numbering, no explanation.\n\n"
+            f"User asked: {user_msg}\n"
+            f"AI replied: {bot_resp}"
+        )
+
+    try:
+        session_id = session.get('session_id', 'default')
+        chatbot = get_chatbot(session_id)
+        response = chatbot.chat(
+            message=prompt,
+            model=model,
+            context='casual',
+            deep_thinking=False,
+        )
+        raw = response.get('text', '') if isinstance(response, dict) else str(response)
+        lines = [ln.strip().lstrip('•-\u2013\u2014').strip() for ln in raw.strip().splitlines() if ln.strip()]
+        suggestions = [ln for ln in lines if 5 < len(ln) < 150][:3]
+        if suggestions:
+            return jsonify({'suggestions': suggestions})
+    except Exception as e:
+        logger.warning('[chat/suggestions] AI call failed: %s', e)
+
+    return jsonify({'suggestions': []})
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -5694,26 +5736,8 @@ except ImportError as e:
 # â•â•â• External API v1 â€” Stateless API for extensions/.exe â•â•â•
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-try:
-    from routes.user_auth import user_auth_bp
-    app.register_blueprint(user_auth_bp)
-    logger.info("Registered user_auth blueprint")
-except ImportError as e:
-    logger.warning(f"Could not register user_auth blueprint: {e}")
-
-try:
-    from routes.admin import admin_bp
-    app.register_blueprint(admin_bp)
-    logger.info("Registered admin blueprint")
-except ImportError as e:
-    logger.warning(f"Could not register admin blueprint: {e}")
-
-try:
-    from routes.qr_payment import qr_bp
-    app.register_blueprint(qr_bp)
-    logger.info("Registered qr_payment blueprint")
-except ImportError as e:
-    logger.warning(f"Could not register qr_payment blueprint: {e}")
+# user_auth, admin, qr_payment blueprints removed in desktop-only build
+# (single-user Electron app no longer needs login / admin panel / billing)
 
 try:
     from routes.skills import skills_bp
@@ -6030,6 +6054,13 @@ if __name__ == '__main__':
     port = int(os.getenv('CHATBOT_PORT', '5000'))
     
     logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
-    app.run(debug=debug_mode, host=host, port=port, threaded=True)
+    # On Windows, the watchdog reloader causes WinError 10038 (socket closed before
+    # new one is ready).  Use the stat reloader instead, which polls rather than
+    # watching inotify/FSEvents.  When spawned by Electron, disable the reloader
+    # entirely — Electron handles restarts via the Backend menu.
+    _use_reloader = debug_mode and not bool(os.getenv('ELECTRON_DESKTOP'))
+    _reloader_type = 'stat' if os.name == 'nt' else 'auto'
+    app.run(debug=debug_mode, host=host, port=port, threaded=True,
+            use_reloader=_use_reloader, reloader_type=_reloader_type)
 
 

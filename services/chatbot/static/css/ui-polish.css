@@ -1,0 +1,400 @@
+/* ui-polish.css — surgical visual polish on top of legacy app.css.
+ * Loaded LAST (after app.css, image-gen-v2.css, anime-pipeline.css,
+ * character-picker.css, local-image-gen.css, nano-banana.css, tools-tidy.css).
+ * Goal: tighten spacing, soften borders, calm the composer/sidebar/topbar
+ * without rewriting the layout or removing any tool.
+ *
+ * Hard rules followed here:
+ * - No layout changes (grid/flex direction kept).
+ * - No element hidden permanently. ".more" is collapsible only.
+ * - No selector that depends on JS state added by main.js.
+ * - All tweaks are visual — IDs and class names of tools are never touched.
+ */
+
+/* ── Composer polish ── */
+.input-area {
+    padding-top: 6px;
+    padding-bottom: 8px;
+}
+.input-area__wrapper {
+    border-radius: 14px;
+    box-shadow: 0 1px 0 var(--border-secondary), 0 8px 28px -16px rgba(0, 0, 0, 0.45);
+    transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+.input-area__wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+}
+.input-area__container { padding: 8px 10px 10px; }
+.input-area__row { gap: 6px; }
+.input-area__tools { gap: 2px; }
+.input-area__tool-btn {
+    border-radius: 8px;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+.input-area__tool-btn:hover { background: var(--bg-hover); }
+
+/* Tighten the chip strip just above the textarea */
+.composer-chips {
+    gap: 6px;
+    padding: 4px 4px 0;
+}
+.composer-chips:empty { padding: 0; }
+
+/* ── Sidebar compactness ── */
+.sidebar { border-right: 1px solid var(--border-secondary); }
+.sidebar__header { padding: 10px 12px; }
+.sidebar__chats {
+    padding: 4px 6px;
+    gap: 1px;
+}
+.sidebar__chat-item {
+    padding: 7px 10px;
+    border-radius: 8px;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.sidebar__chat-item:hover { background: var(--bg-hover); }
+.sidebar__chat-item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.sidebar__footer {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border-secondary);
+}
+.sidebar__footer-btn {
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+/* ── Topbar visual consistency ── */
+.topbar {
+    border-bottom: 1px solid var(--border-secondary);
+}
+.topbar__btn {
+    border-radius: 8px;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+.topbar__btn:hover { background: var(--bg-hover); }
+.topbar__btn--labelled { gap: 6px; }
+.topbar__more-dropdown {
+    border-radius: 12px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+    padding: 6px 0;
+}
+.topbar__more-item {
+    padding: 8px 14px;
+    border-radius: 0;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.topbar__more-item:hover { background: var(--bg-hover); }
+
+/* ── Tools dropdown grouping (light additions on top of tools-tidy.css) ── */
+.tools-dropdown {
+    border-radius: 12px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+}
+.tools-list__item-sub {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.tools-list__item.is-proxy { color: var(--text-tertiary); }
+.tools-list__item.is-proxy:hover { color: var(--text-primary); }
+
+/* ── Quick tools spacing on the composer row ── */
+.input-area__quick-tools {
+    padding-left: 4px;
+    margin-left: 4px;
+    border-left: 1px solid var(--border-secondary);
+}
+
+/* ── Welcome screen breathing room ── */
+.welcome { padding: 40px 24px; }
+.welcome__title { letter-spacing: -0.01em; }
+
+/* ── Message bubbles, micro-cleanup ── */
+.message { padding: 10px 16px; }
+.message__body { line-height: 1.6; }
+
+/* ── Modal chrome (qrPay / changePw / editProfile use inline styles) ── */
+.modal-content,
+.modal__content {
+    border-radius: 14px;
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Debug overlay: ensure it stays out of the way until summoned ── */
+#__jsDebugOverlay {
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+}
+#__jsDebugOverlay[hidden] { display: none !important; }
+
+/* ── Responsive guards: keep quick tools out on narrow screens ── */
+@media (max-width: 720px) {
+    .input-area__quick-tools {
+        border-left: none;
+        margin-left: 0;
+        padding-left: 0;
+    }
+}
+
+
+/* -- Floating Panel Mode (Phase 3) ------------------------------------
+ * .modal-overlay--panel turns a full-screen modal into a draggable,
+ * resizable floating panel with no backdrop. Used for the 6 tool panels:
+ *   imageGenV2Modal, videoGenModal, nanoBananaModal,
+ *   animePipelineModal, characterPickerModal, jobQueuePanel
+ *
+ * Visibility still uses .open. State (form values, in-flight tasks) is
+ * preserved because the element stays mounted; only its visibility flips.
+ */
+.modal-overlay--panel {
+    position: fixed;
+    inset: auto; /* let inline top/left from drag take over */
+    background: transparent !important;
+    backdrop-filter: none !important;
+    pointer-events: none; /* overlay is invisible � only the panel catches clicks */
+    z-index: 250;
+    display: block;
+}
+.modal-overlay--panel.open {
+    pointer-events: none; /* keep the surrounding area click-through */
+}
+.modal-overlay--panel > .modal-panel,
+.modal-overlay--panel > #jobQueueWindow,
+.modal-overlay--panel > .character-picker-content {
+    position: absolute;
+    pointer-events: auto;
+    box-shadow: 0 18px 48px -12px rgba(0,0,0,0.55), 0 0 0 1px var(--border-primary);
+    transform: none; /* override scale-in transition baseline */
+    max-height: none;
+    resize: both;
+    overflow: auto;
+    min-width: 360px;
+    min-height: 240px;
+    width: var(--panel-w, 720px);
+    height: var(--panel-h, 560px);
+    top: var(--panel-top, 64px);
+    left: var(--panel-left, calc(50vw - 360px));
+}
+.modal-overlay--panel.open > .modal-panel,
+.modal-overlay--panel.open > #jobQueueWindow,
+.modal-overlay--panel.open > .character-picker-content {
+    transform: none;
+}
+
+/* Drag handle � header becomes grab cursor */
+.modal-overlay--panel .modal-panel__header,
+.modal-overlay--panel .character-picker-header,
+.modal-overlay--panel #jobQueueHeader {
+    cursor: grab;
+    user-select: none;
+}
+.modal-overlay--panel .modal-panel__header.is-dragging,
+.modal-overlay--panel .character-picker-header.is-dragging,
+.modal-overlay--panel #jobQueueHeader.is-dragging {
+    cursor: grabbing;
+}
+
+/* Visual hint that panel is floating, not full-screen */
+.modal-overlay--panel > .modal-panel::before,
+.modal-overlay--panel > #jobQueueWindow::before,
+.modal-overlay--panel > .character-picker-content::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid var(--border-primary);
+    border-bottom: 2px solid var(--border-primary);
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+
+/* Standalone panel mode: element itself is the panel (no overlay wrapper).
+ * Used by #jobQueuePanel which is a plain div appended to <body>. */
+.modal-overlay--panel.is-standalone-panel {
+    position: fixed;
+    pointer-events: auto;
+    background: var(--bg-modal, #1f1f29);
+    color: var(--text-primary);
+    border-radius: 12px;
+    box-shadow: 0 18px 48px -12px rgba(0,0,0,0.55), 0 0 0 1px var(--border-primary);
+    resize: both;
+    overflow: auto;
+    min-width: 360px;
+    min-height: 240px;
+    width: var(--panel-w, 480px);
+    height: var(--panel-h, 520px);
+    top: var(--panel-top, 80px);
+    left: var(--panel-left, calc(100vw - 520px));
+    z-index: 260;
+    display: flex;
+    flex-direction: column;
+}
+.modal-overlay--panel.is-standalone-panel::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid var(--border-primary);
+    border-bottom: 2px solid var(--border-primary);
+    opacity: 0.45;
+    pointer-events: none;
+}
+.modal-overlay--panel.is-standalone-panel .jq-header,
+.modal-overlay--panel.is-standalone-panel #jobQueueHeader {
+    cursor: grab;
+    user-select: none;
+}
+.modal-overlay--panel.is-standalone-panel .jq-header.is-dragging,
+.modal-overlay--panel.is-standalone-panel #jobQueueHeader.is-dragging {
+    cursor: grabbing;
+}
+
+
+/* Phase 5 polish: panels must stay above the topbar but below the
+ * Electron custom titlebar (z-index: 10000). */
+.modal-overlay--panel { z-index: 9000; }
+.modal-overlay--panel.is-standalone-panel { z-index: 9001; }
+
+/* When running in Electron, dropdowns from the topbar should clear the
+ * 36px-tall custom titlebar above. */
+body.is-desktop .topbar { top: 0; }
+/* ── App custom modal (Electron-safe replacement for confirm/prompt/alert) ── */
+.app-modal__overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 12000;
+  display: flex; align-items: center; justify-content: center;
+  animation: appModalFade 0.12s ease;
+}
+@keyframes appModalFade { from { opacity: 0 } to { opacity: 1 } }
+.app-modal__panel {
+  background: var(--bg-elevated, #1c1814);
+  color: var(--text-primary, #f0e9dd);
+  border: 1px solid var(--border-secondary, #3d342a);
+  border-radius: 12px;
+  min-width: 320px; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  padding: 22px 24px 18px;
+  font-size: 14px; line-height: 1.55;
+  animation: appModalPop 0.16s ease;
+}
+@keyframes appModalPop { from { transform: scale(0.96); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+.app-modal__body { margin-bottom: 16px; word-wrap: break-word; }
+.app-modal__input {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  background: var(--bg-secondary, #15110d);
+  border: 1px solid var(--border-secondary, #3d342a);
+  color: inherit; margin-bottom: 16px;
+  font-size: 14px;
+}
+.app-modal__input:focus { outline: 2px solid var(--accent, #d4a866); outline-offset: 0; }
+.app-modal__actions { display: flex; gap: 8px; justify-content: flex-end; }
+.app-modal__actions .btn { min-width: 80px; }
+.app-modal__panel .btn--danger {
+  background: #c2392f; color: #fff; border: 1px solid #a02d24;
+}
+.app-modal__panel .btn--danger:hover { background: #a02d24; }
+
+
+/* ── Batch B: opaque surfaces + header polish ─────────────────────────
+ * The manual character profile modal uses .modal-content (no rule
+ * existed previously → transparent). The job-queue floating panel and
+ * the inline tools-dropdown also need explicit opaque surfaces so they
+ * don't bleed the chat area through them in either theme.
+ */
+
+/* Manual character profile modal (and any other .modal-content child) */
+.modal-overlay > .modal-content {
+  background: var(--bg-modal, #1e1e1e);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary, #3d342a);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 18px 48px -12px rgba(0,0,0,0.55);
+  width: calc(100% - 32px);
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal-overlay > .modal-content input,
+.modal-overlay > .modal-content textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-secondary, #15110d);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary, #3d342a);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.modal-overlay > .modal-content input:focus,
+.modal-overlay > .modal-content textarea:focus {
+  outline: 2px solid var(--accent, #d4a866);
+  outline-offset: 0;
+}
+
+/* Floating job-queue panel — opaque even when stacked on chat */
+#jobQueuePanel.job-queue-panel,
+#jobQueuePanel.modal-overlay--panel.is-standalone-panel {
+  background: var(--bg-modal, #1e1e1e) !important;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary, #3d342a);
+  box-shadow: 0 20px 56px -16px rgba(0,0,0,0.6);
+}
+
+/* Tools dropdown — guarantee opaque background in both themes */
+.tools-dropdown {
+  background: var(--bg-tertiary, #212121) !important;
+  border: 1px solid var(--border-primary, #3d342a);
+}
+
+/* Modal panel header — align icon with title text + tidy action buttons */
+.modal-panel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-panel__title > .lucide,
+.modal-panel__title > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+.modal-panel__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.modal-panel__icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+.modal-panel__icon-btn:hover {
+  background: var(--bg-hover, rgba(255,255,255,0.08));
+  color: var(--text-primary);
+}
+.modal-panel__icon-btn .lucide {
+  width: 16px;
+  height: 16px;
+}

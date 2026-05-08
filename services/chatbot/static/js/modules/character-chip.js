@@ -1,17 +1,17 @@
 /**
- * character-chip.js â€” Headless character-state holder + inline-picker glue.
+ * character-chip.js — Headless character-state holder + inline-picker glue.
  *
  * No DOM is injected into the topbar. The chip used to live there but the
  * inline card-style picker (see character-picker.js openCharacterPickerInline)
  * replaces it. This file only:
  *
- *   1. Wires #characterPickerBtn â†’ opens the inline picker card in chat.
- *   2. Wires #manualProfileBtn (in the More menu) â†’ opens the manual-profile
+ *   1. Wires #characterPickerBtn → opens the inline picker card in chat.
+ *   2. Wires #manualProfileBtn (in the More menu) → opens the manual-profile
  *      modal (built lazily in DOM on first open).
  *   3. Listens for `character:selected` events from the picker, fetches
  *      `/api/characters/preview` for canonical metadata, and exposes the
  *      result on `window.selectedCharacter` for downstream image-gen flows.
- *   4. Tracks `window.imageGenOptions` (preflightOnly, budgetMode, â€¦) so the
+ *   4. Tracks `window.imageGenOptions` (preflightOnly, budgetMode, …) so the
  *      provider-choice card and reasoning-image-gen.js can read user prefs.
  *      Toggles for these now live inside the provider-choice card itself.
  */
@@ -81,7 +81,7 @@
     }));
   }
 
-  // â”€â”€ Manual profile modal (lazy-built, opened from More menu) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Manual profile modal (lazy-built, opened from More menu) ──────────
 
   function ensureProfileModal() {
     let modal = document.getElementById('manualProfileModal');
@@ -93,20 +93,20 @@
       <div class="modal-content" role="dialog" aria-modal="true" aria-label="Manual character profile" style="max-width:560px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <h3 style="margin:0;">Manual character profile</h3>
-          <button type="button" id="mpModalClose" aria-label="Close" style="background:transparent;border:0;font-size:22px;cursor:pointer;color:var(--text);">Ã—</button>
+          <button type="button" id="mpModalClose" aria-label="Close" style="background:transparent;border:0;font-size:22px;cursor:pointer;color:var(--text);">×</button>
         </div>
         <p style="margin:0 0 12px;color:var(--text-muted,#888);font-size:13px;">
-          Chá»‰ Ä‘iá»n khi muá»‘n ghi Ä‘Ã¨ thá»§ cÃ´ng. Bá» trá»‘ng = dÃ¹ng dá»¯ liá»‡u picker / SAA.
+          Chỉ điền khi muốn ghi đè thủ công. Bỏ trống = dùng dữ liệu picker / SAA.
         </p>
         <div style="display:grid;gap:8px;">
           <input id="mpDisplayName" placeholder="Display name"/>
           <input id="mpSeriesName" placeholder="Series name"/>
           <input id="mpSeriesSlug" placeholder="series_slug"/>
-          <textarea id="mpVisual" rows="2" placeholder="visual_traits â€” one per line"></textarea>
-          <textarea id="mpOutfit" rows="2" placeholder="outfit_traits â€” one per line"></textarea>
-          <textarea id="mpPersonality" rows="2" placeholder="personality_traits â€” one per line"></textarea>
-          <textarea id="mpGuard" rows="2" placeholder="negative_identity_guard â€” one per line"></textarea>
-          <textarea id="mpRefs" rows="2" placeholder="reference_images â€” one URL per line"></textarea>
+          <textarea id="mpVisual" rows="2" placeholder="visual_traits — one per line"></textarea>
+          <textarea id="mpOutfit" rows="2" placeholder="outfit_traits — one per line"></textarea>
+          <textarea id="mpPersonality" rows="2" placeholder="personality_traits — one per line"></textarea>
+          <textarea id="mpGuard" rows="2" placeholder="negative_identity_guard — one per line"></textarea>
+          <textarea id="mpRefs" rows="2" placeholder="reference_images — one URL per line"></textarea>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
           <button type="button" id="mpApplyBtn" class="btn btn--primary">Apply</button>
@@ -219,7 +219,7 @@
     showResult({ ok: true, cleared: true });
   }
 
-  // â”€â”€ Wire-up â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Wire-up ───────────────────────────────────────────────────────────
 
   function init() {
     document.addEventListener('character:selected', (ev) => onSelected(ev.detail));

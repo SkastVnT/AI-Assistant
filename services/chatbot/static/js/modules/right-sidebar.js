@@ -155,7 +155,9 @@
         const toggle = document.getElementById(TOGGLE_ID);
         if (toggle) toggle.addEventListener('click', () => setOpen(!isOpen()));
         const closeBtn = document.getElementById(CLOSE_ID);
-        if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+        if (closeBtn) closeBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation(); setOpen(false);
+        });
         const openJobs = document.getElementById('rightSidebarOpenJobs');
         if (openJobs) {
             openJobs.addEventListener('click', () => {
@@ -164,6 +166,22 @@
                 }
             });
         }
+        // Escape closes the panel.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isOpen()) {
+                setOpen(false);
+            }
+        });
+        // Click outside the panel (anywhere in document but not the sidebar
+        // itself or its toggle) closes it.
+        document.addEventListener('mousedown', (e) => {
+            if (!isOpen()) return;
+            const sidebar = document.getElementById(SIDEBAR_ID);
+            const toggleEl = document.getElementById(TOGGLE_ID);
+            if (sidebar && sidebar.contains(e.target)) return;
+            if (toggleEl && toggleEl.contains(e.target)) return;
+            setOpen(false);
+        }, true);
         watchSkillBadge();
         renderCharacter(window.selectedCharacter || null);
     }

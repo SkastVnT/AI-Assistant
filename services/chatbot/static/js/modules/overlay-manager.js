@@ -10,6 +10,8 @@
  *   modal    — centered, has backdrop, Escape closes, click-backdrop closes
  *   dropdown — positioned, no backdrop, Escape closes, outside-click closes
  *   drawer   — side panel, no backdrop, Escape closes (optional)
+ *   panel    — floating tool window, no backdrop, draggable+resizable,
+ *              outside-click closes, state preserved (DOM stays mounted)
  *
  * Usage:
  *   registerOverlay('galleryModal', { type: 'modal' });
@@ -184,8 +186,11 @@ export function initOverlayManager() {
                 if (e.target === el) {
                     closeOverlay(id);
                 }
-            } else if (entry.type === 'dropdown') {
-                // For dropdowns: close when clicking outside the element
+            } else if (entry.type === 'dropdown' || entry.type === 'panel') {
+                // For dropdowns / floating panels: close on outside click.
+                // The .modal-overlay--panel CSS makes the overlay click-through
+                // (pointer-events: none) so any click outside the panel content
+                // hits the document and ends up here.
                 if (!el.contains(e.target)) {
                     closeOverlay(id);
                 }
@@ -193,4 +198,151 @@ export function initOverlayManager() {
             // drawers: no auto-close on outside click by default
         }
     });
+}
+
+// ── Floating panel mode (drag + resize + persist) ──────────────────
+
+const PANEL_LS_PREFIX = 'panel-mode:';
+
+/**
+ * Promote a registered overlay to floating-panel mode.
+ * - Adds `.modal-overlay--panel` class for CSS positioning.
+ * - Wires drag-by-header and persists position+size in localStorage.
+ * - Safe to call multiple times (idempotent).
+ *
+ * @param {string} id          Overlay element id
+ * @param {Object} [opts]
+ * @param {string} [opts.handleSelector]  Selector for drag handle inside the panel
+ *                                        (default: '.modal-panel__header')
+ * @param {string} [opts.contentSelector] Selector for the panel content element
+ *                                        (default: first child of overlay)
+ */
+export function enablePanelMode(id, opts = {}) {
+    const overlay = document.getElementById(id);
+    if (!overlay) {
+        // Element not yet in DOM (lazy-built panels like characterPickerModal,
+        // jobQueuePanel). Watch for it once via MutationObserver — runs at most
+        // once per registered id.
+        if (opts._waiting) return;
+        const obs = new MutationObserver(() => {
+            if (document.getElementById(id)) {
+                obs.disconnect();
+                enablePanelMode(id, { ...opts, _waiting: false });
+            }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+        return;
+    }
+    if (overlay.dataset.panelMode === '1') return;
+    overlay.dataset.panelMode = '1';
+    overlay.classList.add('modal-overlay--panel');
+
+    const handleSel = opts.handleSelector || '.modal-panel__header, .character-picker-header, #jobQueueHeader, .jq-header';
+    const contentSel = opts.contentSelector || ':scope > .modal-panel, :scope > #jobQueueWindow, :scope > .character-picker-content';
+
+    // If the element itself IS the panel (no overlay wrapper, e.g. jobQueuePanel),
+    // mark it standalone so CSS treats it directly as the resizable surface.
+    const hasInnerPanel = overlay.querySelector(contentSel);
+    if (!hasInnerPanel) {
+        overlay.classList.add('is-standalone-panel');
+    }
+
+    const findContent = () => overlay.querySelector(contentSel) || overlay;
+    const findHandle = () => overlay.querySelector(handleSel);
+
+    // Restore persisted geometry
+    const saved = _loadPanelState(id);
+    const applyState = () => {
+        const content = findContent();
+        if (!content) return;
+        if (saved) {
+            content.style.setProperty('--panel-top', saved.top + 'px');
+            content.style.setProperty('--panel-left', saved.left + 'px');
+            content.style.setProperty('--panel-tx', '0px'); // clear centering transform
+            if (saved.w) content.style.setProperty('--panel-w', saved.w + 'px');
+            if (saved.h) content.style.setProperty('--panel-h', saved.h + 'px');
+        }
+    };
+    applyState();
+
+    // Persist size on resize (CSS resize handle)
+    const observeSize = () => {
+        const content = findContent();
+        if (!content) return;
+        const ro = new ResizeObserver(() => {
+            const rect = content.getBoundingClientRect();
+            _savePanelState(id, { ...(_loadPanelState(id) || {}), w: Math.round(rect.width), h: Math.round(rect.height) });
+        });
+        ro.observe(content);
+    };
+    observeSize();
+
+    // Drag-by-header
+    let dragging = false;
+    let startX = 0, startY = 0, startTop = 0, startLeft = 0;
+    let dragHandle = null;
+    let dragContent = null;
+
+    overlay.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest(handleSel);
+        if (!handle || !overlay.contains(handle)) return;
+        // Don't start a drag from clicks on close button / form controls inside the header
+        if (e.target.closest('button, input, select, textarea, a')) return;
+        const content = findContent();
+        if (!content) return;
+        dragging = true;
+        dragHandle = handle;
+        dragContent = content;
+        const rect = content.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startTop = rect.top;
+        startLeft = rect.left;
+        // Anchor the panel at its actual screen position before dragging
+        // (removes the default -50% centering transform).
+        content.style.setProperty('--panel-top', startTop + 'px');
+        content.style.setProperty('--panel-left', startLeft + 'px');
+        content.style.setProperty('--panel-tx', '0px');
+        handle.classList.add('is-dragging');
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+    });
+
+    overlay.addEventListener('pointermove', (e) => {
+        if (!dragging || !dragContent) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const top = Math.max(0, startTop + dy);
+        const left = Math.max(0, startLeft + dx);
+        dragContent.style.setProperty('--panel-top', top + 'px');
+        dragContent.style.setProperty('--panel-left', left + 'px');
+        dragContent.style.setProperty('--panel-tx', '0px');
+    });
+
+    const endDrag = (e) => {
+        if (!dragging) return;
+        dragging = false;
+        if (dragHandle) {
+            dragHandle.classList.remove('is-dragging');
+            try { dragHandle.releasePointerCapture(e.pointerId); } catch (_) {}
+        }
+        if (dragContent) {
+            const rect = dragContent.getBoundingClientRect();
+            _savePanelState(id, { ...(_loadPanelState(id) || {}), top: Math.round(rect.top), left: Math.round(rect.left) });
+        }
+        dragHandle = null;
+        dragContent = null;
+    };
+    overlay.addEventListener('pointerup', endDrag);
+    overlay.addEventListener('pointercancel', endDrag);
+}
+
+function _savePanelState(id, state) {
+    try { localStorage.setItem(PANEL_LS_PREFIX + id, JSON.stringify(state)); } catch (_) {}
+}
+function _loadPanelState(id) {
+    try {
+        const raw = localStorage.getItem(PANEL_LS_PREFIX + id);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
 }

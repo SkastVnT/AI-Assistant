@@ -99,12 +99,14 @@
     }
 
     async function openDialog() {
-        const prompt = window.prompt(
-            "Reasoning pipeline prompt (local ComfyUI):",
-            ""
-        );
-        if (!prompt || !prompt.trim()) return;
-        await runWithPrompt(prompt.trim());
+        let prompt;
+        try {
+            prompt = (typeof window.appPrompt === "function")
+                ? await window.appPrompt("Reasoning pipeline prompt (local ComfyUI):", "")
+                : window.prompt("Reasoning pipeline prompt (local ComfyUI):", "");
+        } catch (_) { prompt = null; }
+        if (!prompt || !String(prompt).trim()) return;
+        await runWithPrompt(String(prompt).trim());
     }
 
     // ── Compact warning banner (no big technical panel) ───────────────

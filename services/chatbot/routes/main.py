@@ -510,7 +510,35 @@ def generate_title():
     except Exception as e:
         logger.warning(f'[generate-title] Ollama unavailable: {e}')
 
-    # Fallback: truncate the raw message
+    # Fallback 1: xAI Grok (cloud) — uses GROK_API_KEY if available
+    try:
+        from core.config import GROK_API_KEY
+        if GROK_API_KEY:
+            r = _req.post(
+                'https://api.x.ai/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {GROK_API_KEY}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'model': 'grok-2-latest',
+                    'messages': [{'role': 'user', 'content': prompt}],
+                    'temperature': 0.5,
+                    'max_tokens': 30,
+                },
+                timeout=12,
+            )
+            r.raise_for_status()
+            content = (r.json().get('choices') or [{}])[0].get('message', {}).get('content', '')
+            title = content.strip().replace('"', '').replace("'", '').strip()
+            # Trim to first line and cap length.
+            title = title.split('\n', 1)[0][:60]
+            if title:
+                return jsonify({'title': title})
+    except Exception as e:
+        logger.warning(f'[generate-title] xAI fallback failed: {e}')
+
+    # Fallback 2: truncate the raw message
     fallback = user_message[:40] + ('...' if len(user_message) > 40 else '')
     return jsonify({'title': fallback})
 

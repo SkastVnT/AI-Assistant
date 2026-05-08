@@ -169,7 +169,8 @@
 
   function openPanel() {
     const panel = buildPanel();
-    panel.style.display = 'flex';
+    panel.style.display = '';
+    panel.classList.add('open');
     STATE.open = true;
     bindControls();
     refresh();
@@ -177,7 +178,10 @@
   }
   function closePanel() {
     const panel = document.getElementById('jobQueuePanel');
-    if (panel) panel.style.display = 'none';
+    if (panel) {
+      panel.classList.remove('open');
+      panel.style.display = 'none';
+    }
     STATE.open = false;
     stopPoll();
   }

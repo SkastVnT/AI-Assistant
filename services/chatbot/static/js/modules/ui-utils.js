@@ -77,93 +77,58 @@ export class UIUtils {
     }
 
     /**
-     * Initialize dark mode
-     * New CSS: dark is default (no class), light = body.light-mode, eye-care = body.eye-care-mode
+     * Initialize theme.
+     * Two themes only: 'dark' (default, no class) and 'eye-care' (body.eye-care-mode).
+     * Any legacy 'light' value in localStorage is migrated to 'dark'.
      */
     initDarkMode() {
-        const savedTheme = localStorage.getItem('theme') || 'dark';
+        let savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme !== 'eye-care') savedTheme = 'dark';
         this.theme = savedTheme;
-        
-        // Remove all theme classes first
+
         document.body.classList.remove('light-mode', 'eye-care-mode', 'dark-mode');
-        
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-mode');
-            if (this.elements.darkModeBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
-            }
-        } else if (savedTheme === 'eye-care') {
+
+        if (savedTheme === 'eye-care') {
             document.body.classList.add('eye-care-mode');
-            const eyeCareBtn = document.getElementById('eyeCareBtn');
-            if (eyeCareBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(eyeCareBtn, 'sun-dim');
-            }
-            if (this.elements.darkModeBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
-            }
-        } else {
-            // Dark mode (default) — no class needed
-            if (this.elements.darkModeBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(this.elements.darkModeBtn, 'sun');
-            }
         }
+
+        this._refreshThemeIcons();
+        localStorage.setItem('theme', this.theme);
     }
 
     /**
-     * Toggle dark mode
-     * Cycles: dark → light → dark
+     * Toggle between dark and eye-comfort themes.
      */
     toggleDarkMode() {
-        // Remove eye-care mode if active
-        document.body.classList.remove('eye-care-mode');
-        const eyeCareBtn = document.getElementById('eyeCareBtn');
-        if (eyeCareBtn && window.swapLucideIcon) window.swapLucideIcon(eyeCareBtn, 'eye');
-        
-        // Toggle: dark (no class) ↔ light (light-mode class)
-        const isCurrentlyLight = document.body.classList.contains('light-mode');
-        document.body.classList.remove('dark-mode'); // Remove legacy class
-        
-        if (isCurrentlyLight) {
-            // Switch to dark
-            document.body.classList.remove('light-mode');
-            this.theme = 'dark';
-        } else {
-            // Switch to light
-            document.body.classList.add('light-mode');
-            this.theme = 'light';
+        this.theme = (this.theme === 'eye-care') ? 'dark' : 'eye-care';
+        document.body.classList.remove('light-mode', 'dark-mode', 'eye-care-mode');
+        if (this.theme === 'eye-care') {
+            document.body.classList.add('eye-care-mode');
         }
-        
-        const isDark = this.theme === 'dark';
-        if (this.elements.darkModeBtn && window.swapLucideIcon) {
-            window.swapLucideIcon(this.elements.darkModeBtn, isDark ? 'sun' : 'moon');
-        }
-        
+        this._refreshThemeIcons();
         localStorage.setItem('theme', this.theme);
-        return isDark;
+        return this.theme === 'dark';
     }
-    
+
     /**
-     * Toggle Eye Care mode - reduces blue light with warm colors
+     * Eye-comfort toggle (alias for toggleDarkMode for backward-compat with eyeCareBtn).
      */
     toggleEyeCareMode() {
-        // Remove other theme classes
-        document.body.classList.remove('dark-mode', 'light-mode');
+        this.toggleDarkMode();
+        return this.theme === 'eye-care';
+    }
+
+    _refreshThemeIcons() {
+        const isEyeCare = this.theme === 'eye-care';
         if (this.elements.darkModeBtn && window.swapLucideIcon) {
-            window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
+            window.swapLucideIcon(this.elements.darkModeBtn, isEyeCare ? 'moon' : 'sun-dim');
+            this.elements.darkModeBtn.title = isEyeCare ? 'Switch to Dark theme' : 'Switch to Eye Comfort theme';
         }
-        
-        document.body.classList.toggle('eye-care-mode');
-        const isEyeCare = document.body.classList.contains('eye-care-mode');
-        
         const eyeCareBtn = document.getElementById('eyeCareBtn');
         if (eyeCareBtn && window.swapLucideIcon) {
             window.swapLucideIcon(eyeCareBtn, isEyeCare ? 'sun-dim' : 'eye');
-            eyeCareBtn.title = isEyeCare ? 'Turn off Eye Care Mode' : 'Turn on Eye Care Mode';
+            eyeCareBtn.title = isEyeCare ? 'Turn off Eye Comfort' : 'Turn on Eye Comfort';
         }
-        
-        this.theme = isEyeCare ? 'eye-care' : 'dark';
-        localStorage.setItem('theme', this.theme);
-        return isEyeCare;
     }
 
     /**
@@ -673,14 +638,19 @@ export class UIUtils {
         }
     }
 
-    /** Delete all selected chats */
-    deleteSelectedChats() {
+    /** Delete all selected chats — single confirmation for the whole batch. */
+    async deleteSelectedChats() {
         if (!this._selectedIds || this._selectedIds.size === 0) return;
         const ids = Array.from(this._selectedIds);
-        const currentId = window.chatManager?.currentChatId;
+        const ok = await this.showConfirmAsync(
+            `Xóa ${ids.length} cuộc trò chuyện đã chọn?`,
+            { danger: true, okText: 'Xóa', cancelText: 'Huỷ' }
+        );
+        if (!ok) return;
         ids.forEach(id => {
             if (this._chatCallbacks?.onDeleteChat) {
-                this._chatCallbacks.onDeleteChat(id);
+                // Pass a flag so handleDeleteChat doesn't re-confirm.
+                this._chatCallbacks.onDeleteChat(id, { skipConfirm: true });
             }
         });
         this._selectMode = false;
@@ -930,17 +900,104 @@ export class UIUtils {
     }
 
     /**
-     * Show alert message
+     * Show alert message (Electron-safe — uses inline modal, not window.alert).
+     * Returns a Promise that resolves when the user dismisses.
      */
     showAlert(message, type = 'info') {
-        alert(message);
+        return UIUtils._showModal({ message, kind: 'alert', type });
     }
 
     /**
-     * Show confirm dialog
+     * Synchronous-style confirm fallback. Prefer await showConfirmAsync(message).
+     * Returns boolean — but in Electron the inline modal is async, so we resolve
+     * immediately as `true` to keep legacy code paths from blocking. New code
+     * should use showConfirmAsync.
      */
     showConfirm(message) {
-        return confirm(message);
+        // Legacy callers expect a synchronous boolean. If `confirm` is unavailable
+        // (Electron sandbox), fall through to the async modal but return true so
+        // execution continues; new code paths should migrate to showConfirmAsync.
+        try {
+            if (typeof window.confirm === 'function') {
+                return window.confirm(message);
+            }
+        } catch (_) { /* sandboxed */ }
+        // No way to block — surface modal and assume confirmation.
+        UIUtils._showModal({ message, kind: 'confirm-info' }).catch(() => {});
+        return true;
+    }
+
+    /**
+     * Async confirm — Electron-safe. Resolves true/false.
+     */
+    showConfirmAsync(message, opts = {}) {
+        return UIUtils._showModal({ message, kind: 'confirm', ...opts });
+    }
+
+    /**
+     * Async prompt — Electron-safe replacement for window.prompt().
+     * Resolves with the entered string, or null on cancel.
+     */
+    showPromptAsync(message, defaultValue = '', opts = {}) {
+        return UIUtils._showModal({
+            message, kind: 'prompt', defaultValue, ...opts
+        });
+    }
+
+    /** Internal: render an inline modal and return a Promise. */
+    static _showModal({ message, kind, type = 'info', defaultValue = '',
+                       okText = 'OK', cancelText = 'Cancel', danger = false }) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'app-modal__overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+
+            const isPrompt = kind === 'prompt';
+            const isConfirm = kind === 'confirm' || kind === 'confirm-info';
+            const isAlert = kind === 'alert';
+
+            const safeMsg = String(message ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            overlay.innerHTML = `
+                <div class="app-modal__panel app-modal__panel--${type}" role="document">
+                    <div class="app-modal__body">${safeMsg.replace(/\n/g, '<br>')}</div>
+                    ${isPrompt ? `<input type="text" class="app-modal__input" id="appModalInput" />` : ''}
+                    <div class="app-modal__actions">
+                        ${(isConfirm || isPrompt) ? `<button type="button" class="btn btn--ghost" data-action="cancel">${cancelText}</button>` : ''}
+                        <button type="button" class="btn ${danger ? 'btn--danger' : 'btn--primary'}" data-action="ok">${okText}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const input = overlay.querySelector('#appModalInput');
+            if (input) { input.value = defaultValue || ''; setTimeout(() => input.focus(), 30); }
+
+            const cleanup = (val) => {
+                document.removeEventListener('keydown', onKey, true);
+                overlay.remove();
+                resolve(val);
+            };
+            const onKey = (e) => {
+                if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    cleanup(isPrompt ? null : false);
+                } else if (e.key === 'Enter' && (isPrompt || isConfirm || isAlert)) {
+                    if (e.target.tagName === 'TEXTAREA') return;
+                    e.preventDefault();
+                    cleanup(isPrompt ? (input?.value ?? '') : true);
+                }
+            };
+            document.addEventListener('keydown', onKey, true);
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay && !isAlert) cleanup(isPrompt ? null : false);
+                const action = e.target.closest('[data-action]')?.dataset?.action;
+                if (action === 'ok') cleanup(isPrompt ? (input?.value ?? '') : true);
+                else if (action === 'cancel') cleanup(isPrompt ? null : false);
+            });
+        });
     }
 
     /**

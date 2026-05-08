@@ -115,3 +115,47 @@ Add missing icon for `last30days-research`.
 - [ ] Dark mode: all category labels and status bar readable
 - [ ] Image generation inline loading placeholder still works
 - [ ] Stop generation button still works
+
+---
+
+
+## 5. 2026-05 Stable Shell Refresh
+
+**Goal:** Replace the unstable inline-script monolith with a small, modular,
+backend-faithful UI shell. **No** React/Vite migration. **No** new AI features.
+**No** changes to `/chat/stream` or any backend route.
+
+### What changed
+| Path | Change |
+|---|---|
+| `private/old_ALL_templates/` | Backup of previous UI (templates + 5 CSS + 36 JS files + manifest) |
+| `services/chatbot/templates/index_legacy.html` | Verbatim rename of original `index.html`. **Not currently routed.** |
+| `services/chatbot/templates/index.html` | New ~85-line shell. Loads 10 modular CSS files + `js/app/index.js`. |
+| `services/chatbot/static/css/{tokens,layout,sidebar,topbar,chat,composer,tools,gallery,modals,debug}.css` | New modular stylesheets. Two themes: `dark` (default) + `eye-comfort`. |
+| `services/chatbot/static/js/app/*.js` | 13 ES modules. See `js/app/README.md` for the architecture. |
+| `services/chatbot/static/js/modules/README.md` | Marked as legacy. |
+
+### Hard rules locked in
+- Mongo is the source of truth; localStorage (`ui2:` namespace) is fallback only.
+- No rendered HTML or base64 images are persisted.
+- Finite state machine: `idle | composing | uploading | streaming | stopping | error`. UI gating reads `body[data-state]` only.
+- Single in-flight stream. Each send gets a fresh `streamId`; late frames whose `streamId`/`conversation_id` mismatch the active context are dropped.
+- Hidden in this shell by design: auth/login, quota, payment, profile, admin panel, bulk delete, drag reorder, storage gauge.
+- Only two tool toggles: `web-search` (sends backend `google-search`) and `deep-research`.
+- Debug panel (`Ctrl+Shift+D` or top-bar ⚙) captures `window.error`, `unhandledrejection`, and non-2xx fetches; surfaces them via toast.
+
+### Backend untouched
+`routes/main.py` still does `render_template('index.html')`. Because we replaced the file in place, no Flask change is required. Old behavior can be restored at any time by serving `index_legacy.html` instead — assets are intact in `private/old_ALL_templates/`.
+
+### Verification
+- `python run.py` (no env flags) → Flask legacy monolith mode → `GET /` renders the new shell.
+- Boot order: dom verify → debug panel registers global hooks → controllers wire → conversation list loads → optional initial conversation from `/c/<id>` URL.
+- Failure mode: any missing required DOM id surfaces a red error block; backend down surfaces a warn toast and falls back to cached conversations.
+
+### Out of scope (deferred)
+- Advanced markdown/syntax highlighting in messages.
+- Thinking modes / reasoning visualization (events are received but not yet rendered).
+- Image-generation tools, MCP tools, multi-agent council UI.
+- Skill picker, character picker, job queue panel.
+
+These can be added one at a time inside `js/app/` without disturbing the state machine or stream contract.
