@@ -26,8 +26,13 @@ def _kill_sidecars() -> None:
         try:
             if proc.poll() is None:
                 proc.kill()
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.warning(
+                "Failed to kill sidecar process pid=%s during shutdown: %s",
+                getattr(proc, "pid", "unknown"),
+                exc,
+                exc_info=True,
+            )
 
 
 atexit.register(_kill_sidecars)
