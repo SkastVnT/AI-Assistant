@@ -1743,9 +1743,12 @@ export class MessageRenderer {
                 }
                 break;
             case 'delete':
-                if (confirm('Delete this message?')) {
-                    messageDiv.remove();
-                }
+                (async () => {
+                    const ok = (typeof window.appConfirm === 'function')
+                        ? await window.appConfirm('Delete this message?', { danger: true, okText: 'Delete' })
+                        : confirm('Delete this message?');
+                    if (ok) messageDiv.remove();
+                })();
                 break;
         }
     }

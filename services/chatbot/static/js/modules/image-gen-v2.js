@@ -729,7 +729,8 @@ export class ImageGenV2 {
 
         container.innerHTML = this.gallery.map(img => `
             <div class="igv2-gallery-item" data-image-id="${img.image_id}" data-image-url="/api/image-gen/images/${img.image_id}">
-                <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy">
+                <img src="/api/image-gen/images/${img.image_id}" alt="${img.prompt?.substring(0, 30)}" loading="lazy"
+                     onerror="this.onerror=null;this.classList.add('igv2-thumb-broken');this.src='/static/icons/app-icon.png';">
                 <div class="igv2-gallery-meta">
                     <span class="igv2-gallery-prompt">${img.prompt?.substring(0, 40)}...</span>
                     <span class="igv2-gallery-info">${img.provider} | ${img.model}</span>

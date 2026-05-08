@@ -69,6 +69,7 @@ function createWindow() {
         titleBarStyle: 'hidden',
         backgroundColor: '#0f1115',
         title: 'AI-Assistant',
+        icon: path.join(__dirname, 'tray-icon.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,

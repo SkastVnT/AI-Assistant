@@ -638,14 +638,19 @@ export class UIUtils {
         }
     }
 
-    /** Delete all selected chats */
-    deleteSelectedChats() {
+    /** Delete all selected chats — single confirmation for the whole batch. */
+    async deleteSelectedChats() {
         if (!this._selectedIds || this._selectedIds.size === 0) return;
         const ids = Array.from(this._selectedIds);
-        const currentId = window.chatManager?.currentChatId;
+        const ok = await this.showConfirmAsync(
+            `Xóa ${ids.length} cuộc trò chuyện đã chọn?`,
+            { danger: true, okText: 'Xóa', cancelText: 'Huỷ' }
+        );
+        if (!ok) return;
         ids.forEach(id => {
             if (this._chatCallbacks?.onDeleteChat) {
-                this._chatCallbacks.onDeleteChat(id);
+                // Pass a flag so handleDeleteChat doesn't re-confirm.
+                this._chatCallbacks.onDeleteChat(id, { skipConfirm: true });
             }
         });
         this._selectMode = false;
@@ -895,17 +900,104 @@ export class UIUtils {
     }
 
     /**
-     * Show alert message
+     * Show alert message (Electron-safe — uses inline modal, not window.alert).
+     * Returns a Promise that resolves when the user dismisses.
      */
     showAlert(message, type = 'info') {
-        alert(message);
+        return UIUtils._showModal({ message, kind: 'alert', type });
     }
 
     /**
-     * Show confirm dialog
+     * Synchronous-style confirm fallback. Prefer await showConfirmAsync(message).
+     * Returns boolean — but in Electron the inline modal is async, so we resolve
+     * immediately as `true` to keep legacy code paths from blocking. New code
+     * should use showConfirmAsync.
      */
     showConfirm(message) {
-        return confirm(message);
+        // Legacy callers expect a synchronous boolean. If `confirm` is unavailable
+        // (Electron sandbox), fall through to the async modal but return true so
+        // execution continues; new code paths should migrate to showConfirmAsync.
+        try {
+            if (typeof window.confirm === 'function') {
+                return window.confirm(message);
+            }
+        } catch (_) { /* sandboxed */ }
+        // No way to block — surface modal and assume confirmation.
+        UIUtils._showModal({ message, kind: 'confirm-info' }).catch(() => {});
+        return true;
+    }
+
+    /**
+     * Async confirm — Electron-safe. Resolves true/false.
+     */
+    showConfirmAsync(message, opts = {}) {
+        return UIUtils._showModal({ message, kind: 'confirm', ...opts });
+    }
+
+    /**
+     * Async prompt — Electron-safe replacement for window.prompt().
+     * Resolves with the entered string, or null on cancel.
+     */
+    showPromptAsync(message, defaultValue = '', opts = {}) {
+        return UIUtils._showModal({
+            message, kind: 'prompt', defaultValue, ...opts
+        });
+    }
+
+    /** Internal: render an inline modal and return a Promise. */
+    static _showModal({ message, kind, type = 'info', defaultValue = '',
+                       okText = 'OK', cancelText = 'Cancel', danger = false }) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'app-modal__overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+
+            const isPrompt = kind === 'prompt';
+            const isConfirm = kind === 'confirm' || kind === 'confirm-info';
+            const isAlert = kind === 'alert';
+
+            const safeMsg = String(message ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            overlay.innerHTML = `
+                <div class="app-modal__panel app-modal__panel--${type}" role="document">
+                    <div class="app-modal__body">${safeMsg.replace(/\n/g, '<br>')}</div>
+                    ${isPrompt ? `<input type="text" class="app-modal__input" id="appModalInput" />` : ''}
+                    <div class="app-modal__actions">
+                        ${(isConfirm || isPrompt) ? `<button type="button" class="btn btn--ghost" data-action="cancel">${cancelText}</button>` : ''}
+                        <button type="button" class="btn ${danger ? 'btn--danger' : 'btn--primary'}" data-action="ok">${okText}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const input = overlay.querySelector('#appModalInput');
+            if (input) { input.value = defaultValue || ''; setTimeout(() => input.focus(), 30); }
+
+            const cleanup = (val) => {
+                document.removeEventListener('keydown', onKey, true);
+                overlay.remove();
+                resolve(val);
+            };
+            const onKey = (e) => {
+                if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    cleanup(isPrompt ? null : false);
+                } else if (e.key === 'Enter' && (isPrompt || isConfirm || isAlert)) {
+                    if (e.target.tagName === 'TEXTAREA') return;
+                    e.preventDefault();
+                    cleanup(isPrompt ? (input?.value ?? '') : true);
+                }
+            };
+            document.addEventListener('keydown', onKey, true);
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay && !isAlert) cleanup(isPrompt ? null : false);
+                const action = e.target.closest('[data-action]')?.dataset?.action;
+                if (action === 'ok') cleanup(isPrompt ? (input?.value ?? '') : true);
+                else if (action === 'cancel') cleanup(isPrompt ? null : false);
+            });
+        });
     }
 
     /**

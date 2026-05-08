@@ -42,6 +42,10 @@ class ChatBotApp {
         // Expose chatManager and chatApp globally
         window.chatManager = this.chatManager;
         window.chatApp = this;
+        window.uiUtils = this.uiUtils;
+        window.appConfirm = (m, opts) => this.uiUtils.showConfirmAsync(m, opts);
+        window.appPrompt  = (m, defVal, opts) => this.uiUtils.showPromptAsync(m, defVal, opts);
+        window.appAlert   = (m, type) => this.uiUtils.showAlert(m, type);
         
         // State — no tools active by default
         this.activeTools = new Set();
@@ -2355,9 +2359,13 @@ class ChatBotApp {
     /**
      * Delete chat
      */
-    handleDeleteChat(chatId) {
-        if (!this.uiUtils.showConfirm('Bạn có chắc muốn xóa cuộc trò chuyện này?')) {
-            return;
+    async handleDeleteChat(chatId, opts = {}) {
+        if (!opts.skipConfirm) {
+            const ok = await this.uiUtils.showConfirmAsync(
+                'Bạn có chắc muốn xóa cuộc trò chuyện này?',
+                { danger: true, okText: 'Xóa', cancelText: 'Huỷ' }
+            );
+            if (!ok) return;
         }
 
         const wasCurrent = chatId === this.chatManager.currentChatId;

@@ -6,11 +6,9 @@
     <title>AI Assistant</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/favicon-180.png') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/app-icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/app-icon.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/app-icon.png') }}">
 
     <!-- PWA / browser chrome -->
     <meta name="theme-color" content="#0d0d0d">
@@ -22,7 +20,7 @@
     <!-- Open Graph (share preview) -->
     <meta property="og:title" content="AI Assistant">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="{{ url_for('static', filename='icons/favicon-180.png') }}">
+    <meta property="og:image" content="{{ url_for('static', filename='icons/app-icon.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,7 +47,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nano-banana.css') }}?v=20260506a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260507a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260601a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/titlebar.css') }}?v=20260508a">
 
     <!-- Lucide Icons -->
@@ -239,7 +237,7 @@ try {
             <button class="sidebar__footer-btn" id="galleryBtn" title="Image Gallery">
                 <i data-lucide="image" class="lucide"></i> <span>Image Gallery</span>
             </button>
-            <button class="sidebar__footer-btn" id="memoryBtn" title="AI Memory" data-lang-key="controls.memory">
+            <button class="sidebar__footer-btn" id="memoryBtn" title="AI Memory" data-lang-key="controls.memory" style="display:none;">
                 <i data-lucide="brain" class="lucide"></i> <span>AI Memory</span>
             </button>
             <div id="storageInfo" class="sidebar__storage"></div>
@@ -555,7 +553,6 @@ try {
                 <div class="topbar__more" style="position:relative;">
                     <button class="topbar__btn" id="moreMenuBtn" title="More options"><i data-lucide="ellipsis-vertical" class="lucide"></i></button>
                     <div class="topbar__more-dropdown hidden" id="moreMenuDropdown">
-                        <button class="topbar__more-item" id="eyeCareBtn"><i data-lucide="eye" class="lucide"></i> <span>Eye Care</span></button>
                         <button class="topbar__more-item" id="downloadBtn" data-lang-key="controls.download"><i data-lucide="download" class="lucide"></i> <span>Export Chat</span></button>
                         <button class="topbar__more-item" id="imageGenBtn"><i data-lucide="palette" class="lucide"></i> <span>Image Gen (ComfyUI)</span></button>
                         <button class="topbar__more-item" id="localImageGenBtn"><i data-lucide="image-plus" class="lucide"></i> <span>Local Image Gen (SAA)</span></button>
@@ -586,7 +583,7 @@ try {
         <div class="hidden" id="loading" style="display:none;">
             <div class="typing-indicator" style="max-width: 768px; margin: 0 auto; padding: 0 16px;">
                 <div class="message" style="animation: none;">
-                    <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+                    <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
                     <div class="message__body">
                         <div class="typing-indicator" style="padding: 0;">
                             <div class="typing-indicator__dot"></div>
@@ -777,7 +774,7 @@ try {
                                             <button class="tools-list__item is-proxy" type="button" data-proxy="branchConversationBtn" title="Branch conversation">
                                                 <i data-lucide="git-branch" class="lucide"></i><span>Branch conversation</span>
                                             </button>
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="memoryBtn" title="AI Memory">
+                                            <button class="tools-list__item is-proxy" type="button" data-proxy="memoryBtn" title="AI Memory" style="display:none;">
                                                 <i data-lucide="brain-circuit" class="lucide"></i><span>Memory</span>
                                             </button>
                                             <button class="tools-list__item is-proxy" type="button" data-proxy="galleryBtn" title="Image Gallery">
@@ -1999,16 +1996,12 @@ try {
             'deepseek-reasoner': 'DeepSeek R1',
             'openai': 'GPT-4o-mini',
             'deepseek': 'DeepSeek Chat',
-            'gemini': 'Gemini 2.0 Flash',
+            'gemini': 'Gemini 2.5 Flash',
             'step-flash': 'Step-3.5 Flash',
-            'gemma4': 'Gemma 4 31B',
             'laguna': 'Laguna XS.2',
             'r1-free': 'DeepSeek R1 (Free)',
             'hermes3': 'Hermes 3 405B',
-            'ling26': 'Ling-2.6-1T (Free / Temporary)',
             'lyria': 'Lyria 3 Pro',
-            'bloomvn': 'BloomVN-8B',
-            'qwen': 'Qwen Turbo',
             'stepfun': 'StepFun Direct'
         };
 

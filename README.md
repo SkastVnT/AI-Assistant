@@ -324,11 +324,11 @@ python -m venv venv-image
 pip install -r app/requirements/profile_image_ai_services.txt
 ```
 
-### 3. Cấu hình env
+### 3. Cấu hình env \ Setup ENV keys
 
 ```bash
 cp app/config/.env.example app/config/.env
-# Sửa app/config/.env, set ít nhất 1 LLM API key
+# Sửa app/config/.env, set ít nhất 1 LLM API key (Recommended: OpenRouter để có fallback chain đa dạng)
 ```
 
 Loader: `services/shared_env.py` → `load_shared_env(__file__)` → tìm `app/config/.env_{env}` rồi fallback `app/config/.env`. Mỗi service gọi **một lần** khi khởi động.
@@ -341,7 +341,7 @@ cd services\chatbot
 python run.py
 # mở http://127.0.0.1:5000
 
-# Desktop (Electron) — frameless + tray + auto backend spawn
+# Desktop (Electron) — frameless + tray + auto backend spawn (Recommended)
 cd desktop\electron
 npm install
 npm run dev

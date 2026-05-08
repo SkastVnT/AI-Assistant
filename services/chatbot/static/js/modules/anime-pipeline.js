@@ -89,10 +89,14 @@ export class AnimePipeline {
         // Modal removed — redirect toolbar button to inline chat mode.
         const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) {
-            const prompt = window.prompt('Mô tả anime scene bạn muốn tạo:');
-            if (prompt && prompt.trim()) {
-                this._runInlineChat(prompt.trim(), chatContainer);
-            }
+            const ask = (window.appPrompt
+                ? window.appPrompt('Mô tả anime scene bạn muốn tạo:', '')
+                : Promise.resolve(''));
+            ask.then((prompt) => {
+                if (prompt && String(prompt).trim()) {
+                    this._runInlineChat(String(prompt).trim(), chatContainer);
+                }
+            }).catch(() => {});
             return;
         }
         // If no chat container (edge case), do nothing gracefully.

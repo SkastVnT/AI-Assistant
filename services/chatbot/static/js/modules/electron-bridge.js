@@ -74,6 +74,75 @@ function init() {
     wireTitlebar();
     exposeNotifyHelper();
     startJobBadgePoller();
+    wireKeyboardShortcuts();
+    // Force a final lucide pass so titlebar SVGs render even if main.js init
+    // ran before the titlebar was visible.
+    setTimeout(() => {
+        try { window.lucide && window.lucide.createIcons(); } catch (_) {}
+    }, 50);
+}
+
+// ── Application keyboard shortcuts (in-window, all modes) ─────────
+function wireKeyboardShortcuts() {
+    const click = (id) => {
+        const el = document.getElementById(id);
+        if (el) { el.click(); return true; }
+        return false;
+    };
+    const togglePanel = (panelKey) => {
+        // overlay-manager exposes window.overlayManager.toggle for floating panels
+        if (window.overlayManager && typeof window.overlayManager.toggle === 'function') {
+            try { window.overlayManager.toggle(panelKey); return true; } catch (_) {}
+        }
+        return false;
+    };
+
+    document.addEventListener('keydown', (e) => {
+        // Skip if user is typing in an input/textarea, *unless* it's a global
+        // (Ctrl/Cmd combined) shortcut that should always work.
+        const tag = (e.target?.tagName || '').toLowerCase();
+        const inEditable = (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable);
+        const ctrl = e.ctrlKey || e.metaKey;
+
+        // Ctrl+Shift+N — New chat
+        if (ctrl && e.shiftKey && e.key.toLowerCase() === 'n') {
+            e.preventDefault(); click('newChatBtn'); return;
+        }
+        // Ctrl+K — Quick search (focus chat list filter or composer if absent)
+        if (ctrl && !e.shiftKey && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            const filter = document.getElementById('chatListFilter');
+            if (filter) { filter.focus(); filter.select?.(); }
+            else { document.getElementById('messageInput')?.focus(); }
+            return;
+        }
+        // Ctrl+/ — Focus composer
+        if (ctrl && !e.shiftKey && e.key === '/') {
+            e.preventDefault();
+            document.getElementById('messageInput')?.focus();
+            return;
+        }
+        // Ctrl+B — Toggle sidebar
+        if (ctrl && !e.shiftKey && e.key.toLowerCase() === 'b') {
+            e.preventDefault();
+            const btn = document.getElementById('sidebarToggleBtn');
+            if (btn) btn.click();
+            return;
+        }
+        // Ctrl+Shift+I — Toggle Image-Gen panel
+        if (ctrl && e.shiftKey && e.key.toLowerCase() === 'i') {
+            e.preventDefault();
+            if (!togglePanel('imageGenV2')) click('imageGenBtn') || click('imageGenV2Btn');
+            return;
+        }
+        // Ctrl+Shift+J — Toggle Job Queue panel
+        if (ctrl && e.shiftKey && e.key.toLowerCase() === 'j') {
+            e.preventDefault();
+            if (typeof window.openJobQueuePanel === 'function') window.openJobQueuePanel();
+            else if (!togglePanel('jobQueue')) click('jobQueueBtn');
+            return;
+        }
+    }, true);
 }
 
 if (document.readyState === 'loading') {

@@ -269,3 +269,39 @@
 /* When running in Electron, dropdowns from the topbar should clear the
  * 36px-tall custom titlebar above. */
 body.is-desktop .topbar { top: 0; }
+/* ── App custom modal (Electron-safe replacement for confirm/prompt/alert) ── */
+.app-modal__overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 12000;
+  display: flex; align-items: center; justify-content: center;
+  animation: appModalFade 0.12s ease;
+}
+@keyframes appModalFade { from { opacity: 0 } to { opacity: 1 } }
+.app-modal__panel {
+  background: var(--bg-elevated, #1c1814);
+  color: var(--text-primary, #f0e9dd);
+  border: 1px solid var(--border-secondary, #3d342a);
+  border-radius: 12px;
+  min-width: 320px; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  padding: 22px 24px 18px;
+  font-size: 14px; line-height: 1.55;
+  animation: appModalPop 0.16s ease;
+}
+@keyframes appModalPop { from { transform: scale(0.96); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+.app-modal__body { margin-bottom: 16px; word-wrap: break-word; }
+.app-modal__input {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  background: var(--bg-secondary, #15110d);
+  border: 1px solid var(--border-secondary, #3d342a);
+  color: inherit; margin-bottom: 16px;
+  font-size: 14px;
+}
+.app-modal__input:focus { outline: 2px solid var(--accent, #d4a866); outline-offset: 0; }
+.app-modal__actions { display: flex; gap: 8px; justify-content: flex-end; }
+.app-modal__actions .btn { min-width: 80px; }
+.app-modal__panel .btn--danger {
+  background: #c2392f; color: #fff; border: 1px solid #a02d24;
+}
+.app-modal__panel .btn--danger:hover { background: #a02d24; }
