@@ -6030,6 +6030,13 @@ if __name__ == '__main__':
     port = int(os.getenv('CHATBOT_PORT', '5000'))
     
     logger.info(f"ðŸš€ Starting ChatBot on {host}:{port} (debug={debug_mode})")
-    app.run(debug=debug_mode, host=host, port=port, threaded=True)
+    # On Windows, the watchdog reloader causes WinError 10038 (socket closed before
+    # new one is ready).  Use the stat reloader instead, which polls rather than
+    # watching inotify/FSEvents.  When spawned by Electron, disable the reloader
+    # entirely — Electron handles restarts via the Backend menu.
+    _use_reloader = debug_mode and not bool(os.getenv('ELECTRON_DESKTOP'))
+    _reloader_type = 'stat' if os.name == 'nt' else 'auto'
+    app.run(debug=debug_mode, host=host, port=port, threaded=True,
+            use_reloader=_use_reloader, reloader_type=_reloader_type)
 
 

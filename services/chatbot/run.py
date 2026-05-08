@@ -409,7 +409,12 @@ elif USE_NEW_STRUCTURE:
         debug = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
 
         print(f">> Starting Chatbot (Flask New Structure) on port {port}")
-        app.run(host=os.getenv('HOST', '0.0.0.0'), port=port, debug=debug, threaded=True)  # nosec B104  # Intentional: service needs external access
+        # On Windows, watchdog reloader triggers WinError 10038; use stat reloader.
+        # When spawned by Electron, disable reloader — Electron handles restarts.
+        _use_reloader = debug and not bool(os.getenv('ELECTRON_DESKTOP'))
+        _reloader_type = 'stat' if os.name == 'nt' else 'auto'
+        app.run(host=os.getenv('HOST', '0.0.0.0'), port=port, debug=debug, threaded=True,
+                use_reloader=_use_reloader, reloader_type=_reloader_type)  # nosec B104  # Intentional: service needs external access
 
 else:
     # -- Legacy Flask monolith --
