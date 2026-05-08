@@ -93,9 +93,7 @@ Critic       → Đánh giá, quyết định cần thêm round không
 Synthesizer  → Tổng hợp câu trả lời cuối
 ```
 
-Source: `services/chatbot/core/agentic/agents/{planner,researcher,critic,synthesizer}.py` + `orchestrator.py`. Dữ liệu chia sẻ qua `Blackboard`. SSE streaming tại `/council/stream` (FastAPI).
-
-**xAI Native Research**: endpoint `/xai-native/stream` dùng xAI Live Search.
+Source: `services/chatbot/core/agentic/agents/{planner,researcher,critic,synthesizer}.py` + `orchestrator.py`. Dữ liệu chia sẻ qua `Blackboard`. SSE streaming qua endpoint chính `/chat/stream` (Flask monolith).
 
 ---
 
@@ -195,8 +193,6 @@ Chatbot proxy qua `routes/mcp.py`.
 |---|---|---|
 | `POST` | `/chat/stream` | **Primary** — SSE streaming chat |
 | `POST` | `/chat/async` | Async SSE |
-| `POST` | `/council/stream` | Multi-thinking council SSE (FastAPI) |
-| `POST` | `/xai-native/stream` | xAI Live Search streaming (FastAPI) |
 | `GET` | `/c/<conversation_id>` | Trang chat với conversation cụ thể |
 
 ### Conversations
@@ -256,19 +252,6 @@ chat-typed prompts inherit the last choice.
 | `POST` | `/api/mcp/{enable,disable,add-folder,remove-folder,ocr-extract,warm-cache}` |
 | `GET` | `/api/mcp/{list-files,search-files,read-file,grep,status}` |
 
-### Auth & Quota
-| Method | Path |
-|---|---|
-| `POST` | `/api/auth/{login,register,change-password,update-profile,request-video-unlock}` |
-| `GET` | `/api/auth/{me,quota}`, `/api/features` |
-
-### Admin
-| Method | Path |
-|---|---|
-| `GET` | `/admin`, `/api/admin/{stats,users,sessions,images,memory,logs,payments}` |
-| `POST` | `/api/admin/users/<u>/{toggle,password,quota/reset,video/unlock,video/lock}` |
-| `POST` | `/api/admin/payments/<id>/{approve,reject}` |
-
 ### Stable Diffusion Proxy
 | Method | Path |
 |---|---|
@@ -280,7 +263,7 @@ chat-typed prompts inherit the last choice.
 |---|---|
 | `GET` | `/health`, `/api/health/databases` |
 
-> Flask blueprints (16 tổng) tại `services/chatbot/routes/`. The previous parallel `fastapi_app/` implementation was removed in May 2026 — only Flask remains.
+> Flask blueprints tại `services/chatbot/routes/`. Auth / admin / QR-payment blueprints removed May 2026. The parallel `fastapi_app/` package was also removed — only Flask monolith remains.
 
 ---
 
@@ -349,10 +332,14 @@ npm run dev
 
 `USE_FASTAPI` và `USE_NEW_STRUCTURE` env vars đã bỏ từ Phase 1 — chỉ còn Flask monolith.
 
-### 5. Authencation
+### 5. Electron keyboard shortcuts
 
-Username: admin
-Password: admin123
+| Phím | Tác dụng |
+|---|---|
+| `F12` | Bật / tắt DevTools |
+| `F5` | Reload trang (refresh renderer) |
+| `Ctrl+Shift+R` | Restart Python backend (kill + boot lại) |
+| `Ctrl+Shift+A` | Ẩn / hiện cửa sổ (global shortcut) |
 
 ### 6. Docker
 
@@ -544,4 +531,4 @@ CI: `.github/workflows/tests.yml` — chạy với `TESTING=True`, `MONGODB_ENAB
 
 - **menu.sh** advertise sai port: SD=7860 (đúng: 7861), Edit Image=7861 (đúng: 8100), MCP=8000 (đúng: stdio). Dùng `menu.bat` hoặc scripts trực tiếp.
 - **Gemini** có thể bị disable trong `chatbot_main.py` khi quota cạn — fallback sẽ dùng provider khác.
-- **Multiple venvs**: `venv/`, `venv-core/`, `venv-image/` cùng tồn tại. Default active là `venv-core` cho chatb
+- **Multiple venvs**: `venv/`, `venv-core/`, `venv-image/` cùng tồn tại. Default active là `venv-core` cho chatbot.

@@ -88,6 +88,39 @@ function createWindow() {
         return { action: 'deny' };
     });
 
+    // Dev / navigation keyboard shortcuts.
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.type !== 'keyDown') return;
+
+        // F12 → toggle DevTools
+        if (input.key === 'F12') {
+            if (mainWindow.webContents.isDevToolsOpened()) {
+                mainWindow.webContents.closeDevTools();
+            } else {
+                mainWindow.webContents.openDevTools();
+            }
+            event.preventDefault();
+            return;
+        }
+
+        // F5 → reload renderer (like browser refresh)
+        if (input.key === 'F5' && !input.control && !input.shift && !input.alt && !input.meta) {
+            mainWindow.reload();
+            event.preventDefault();
+            return;
+        }
+
+        // Ctrl+Shift+R → kill & restart the Python backend
+        if (input.key === 'R' && input.control && input.shift && !input.alt) {
+            killBackend();
+            mainWindow.loadFile(path.join(__dirname, 'loading.html'))
+                .then(() => bootBackendAndLoad())
+                .catch(() => {});
+            event.preventDefault();
+            return;
+        }
+    });
+
     mainWindow.loadFile(path.join(__dirname, 'loading.html'));
 
     // Closing the window minimises to tray instead of quitting.
