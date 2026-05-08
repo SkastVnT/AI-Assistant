@@ -5,6 +5,7 @@ Desktop-only build: launches the Flask monolith (chatbot_main.py).
 FastAPI and modular-app-factory modes were removed.
 """
 
+import atexit
 import os
 import runpy
 import socket
@@ -13,6 +14,23 @@ import sys
 import logging
 from pathlib import Path
 from urllib.parse import urlparse
+
+# Tracks all background sidecar processes spawned by this session so they
+# can be killed when the chatbot exits (atexit handler below).
+_sidecar_processes: list[subprocess.Popen] = []
+
+
+def _kill_sidecars() -> None:
+    """Kill all tracked sidecar processes on Python interpreter exit."""
+    for proc in _sidecar_processes:
+        try:
+            if proc.poll() is None:
+                proc.kill()
+        except Exception:
+            pass
+
+
+atexit.register(_kill_sidecars)
 
 # Configure logging early — before any module imports so all loggers inherit this config.
 # NOTE: force=False (default) so that when uvicorn worker re-imports this module it does NOT
@@ -81,22 +99,29 @@ def _background_flags() -> int:
     return flags
 
 
-def _spawn_background_process(command: list[str], cwd: Path, log_name: str) -> bool:
+def _spawn_background_process(
+    command: list[str],
+    cwd: Path,
+    log_name: str,
+    env: dict | None = None,
+) -> bool:
     logs_dir = project_root / 'logs'
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_path = logs_dir / log_name
     log_handle = open(log_path, 'ab')
 
     try:
-        subprocess.Popen(
+        child = subprocess.Popen(
             command,
             cwd=str(cwd),
             stdout=log_handle,
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
+            env=env,
             creationflags=_background_flags(),
             close_fds=True,
         )
+        _sidecar_processes.append(child)
         print(f">> Started background process: {' '.join(command)}")
         print(f">> Logs: {log_path}")
         return True
@@ -200,16 +225,13 @@ def _start_comfyui_if_needed() -> None:
         comfyui_args.append('--cpu')
         print('>> ComfyUI autostart detected CUDA unavailable, using --cpu mode')
 
-    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true'):
-        comfyui_args_str = ' '.join(comfyui_args)
-        command_line = f'cd /d "{comfyui_dir}" && "{python_exe}" {comfyui_args_str}'
-        _spawn_windows_terminal(command_line, comfyui_dir, f'ComfyUI {port}')
-    else:
-        _spawn_background_process(
-            [str(python_exe), *comfyui_args],
-            comfyui_dir,
-            'comfyui-autostart.log',
-        )
+    # ComfyUI always runs as a hidden background process — no terminal window.
+    # Access it via the tray menu ("Open ComfyUI") which opens http://127.0.0.1:<port>.
+    _spawn_background_process(
+        [str(python_exe), *comfyui_args],
+        comfyui_dir,
+        'comfyui-autostart.log',
+    )
 
 
 def _start_stable_diffusion_if_needed() -> None:
@@ -324,7 +346,13 @@ def _start_character_select_if_needed() -> None:
     needs_install = not (saa_path / 'node_modules' / 'electron').exists()
     install_clause = f'{npm_cmd} install && ' if needs_install else ''
 
-    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true'):
+    # Build env for SAA process — inherit current env and add SHOW_ELECTRON_SAA.
+    # Default false: SAA runs as a headless webserver (no Electron window) unless
+    # the operator explicitly sets SHOW_ELECTRON_SAA=true.
+    saa_env = dict(os.environ)
+    saa_env['SHOW_ELECTRON_SAA'] = os.getenv('SHOW_ELECTRON_SAA', 'false')
+
+    if os.name == 'nt' and _env_flag('IMAGE_SERVICE_VISIBLE_WINDOWS', 'true') and _env_flag('SHOW_ELECTRON_SAA', 'false'):
         command_line = f'cd /d "{saa_path}" && {install_clause}{npm_cmd} start'
         _spawn_windows_terminal(command_line, saa_path, f'Character Select {port}')
     elif needs_install:
@@ -336,12 +364,14 @@ def _start_character_select_if_needed() -> None:
                 ['cmd.exe', '/c', shell_cmd],
                 saa_path,
                 'character-select-autostart.log',
+                env=saa_env,
             )
         else:
             _spawn_background_process(
                 ['sh', '-c', shell_cmd],
                 saa_path,
                 'character-select-autostart.log',
+                env=saa_env,
             )
     else:
         _spawn_background_process(

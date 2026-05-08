@@ -303,6 +303,14 @@ try {
                                 </div>
                                 <span class="model-dropdown__item-badge pro">Default</span>
                             </div>
+                            <div class="model-dropdown__item" data-model="laguna">
+                                <span class="model-dropdown__item-icon">🛠️</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Laguna XS.2</div>
+                                    <div class="model-dropdown__item-desc">Poolside via OpenRouter — Coding</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
                             <div class="model-dropdown__item" data-model="deepseek-reasoner">
                                 <span class="model-dropdown__item-icon">🧪</span>
                                 <div class="model-dropdown__item-info">
@@ -349,22 +357,6 @@ try {
                                 </div>
                                 <span class="model-dropdown__item-badge free">Free</span>
                             </div>
-                            <div class="model-dropdown__item" data-model="gemma4">
-                                <span class="model-dropdown__item-icon">🟦</span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Gemma 4 31B</div>
-                                    <div class="model-dropdown__item-desc">Google via OpenRouter — 32K</div>
-                                </div>
-                                <span class="model-dropdown__item-badge free">Free</span>
-                            </div>
-                            <div class="model-dropdown__item" data-model="laguna">
-                                <span class="model-dropdown__item-icon">🛠️</span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Laguna XS.2</div>
-                                    <div class="model-dropdown__item-desc">Poolside via OpenRouter — Coding</div>
-                                </div>
-                                <span class="model-dropdown__item-badge free">Free</span>
-                            </div>
                             <div class="model-dropdown__item" data-model="r1-free">
                                 <span class="model-dropdown__item-icon">🧠</span>
                                 <div class="model-dropdown__item-info">
@@ -381,14 +373,6 @@ try {
                                 </div>
                                 <span class="model-dropdown__item-badge free">Free</span>
                             </div>
-                            <div class="model-dropdown__item" data-model="ling26">
-                                <span class="model-dropdown__item-icon">🧪</span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Ling-2.6-1T (Free / Temporary)</div>
-                                    <div class="model-dropdown__item-desc">InclusionAI via OpenRouter — temporary free tier</div>
-                                </div>
-                                <span class="model-dropdown__item-badge free">Free</span>
-                            </div>
                             <div class="model-dropdown__item" data-model="lyria">
                                 <span class="model-dropdown__item-icon">👁️</span>
                                 <div class="model-dropdown__item-info">
@@ -396,32 +380,6 @@ try {
                                     <div class="model-dropdown__item-desc">Google via OpenRouter — Vision</div>
                                 </div>
                                 <span class="model-dropdown__item-badge free">Free</span>
-                            </div>
-                            <div class="model-dropdown__item" data-model="bloomvn">
-                                <span class="model-dropdown__item-icon">🌸</span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">BloomVN-8B</div>
-                                    <div class="model-dropdown__item-desc">Vietnamese optimized</div>
-                                </div>
-                                <span class="model-dropdown__item-badge free">Free</span>
-                            </div>
-                        </div>
-
-                        <div class="model-dropdown__group">
-                            <div class="model-dropdown__group-label">Other</div>
-                            <div class="model-dropdown__item" data-model="qwen">
-                                <span class="model-dropdown__item-icon">🌙</span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">Qwen Turbo</div>
-                                    <div class="model-dropdown__item-desc">Alibaba Cloud</div>
-                                </div>
-                            </div>
-                            <div class="model-dropdown__item" data-model="stepfun">
-                                <span class="model-dropdown__item-icon">🚀</span>
-                                <div class="model-dropdown__item-info">
-                                    <div class="model-dropdown__item-name">StepFun Direct</div>
-                                    <div class="model-dropdown__item-desc">step-2-16k</div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -571,7 +529,7 @@ try {
             <div class="chat-area__messages" id="chatContainer">
                 <!-- Welcome screen (shown when empty) -->
                 <div class="welcome" id="welcomeScreen">
-                    <div class="welcome__logo"><i data-lucide="bot" class="lucide lucide-xl" style="width:64px;height:64px;stroke-width:1.5;"></i></div>
+                    <div class="welcome__logo"><img src="{{ url_for('static', filename='icons/app-icon.png') }}" alt="App" style="width:64px;height:64px;object-fit:contain;" draggable="false"></div>
                     <h1 class="welcome__title" data-lang-key="app.title">AI Assistant</h1>
                     <p class="welcome__subtitle" data-lang-key="app.subtitle">Chat, code, create images, and solve problems with AI</p>
                     <div class="welcome__suggestions" id="welcomeSuggestions"></div>
