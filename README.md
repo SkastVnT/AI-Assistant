@@ -349,19 +349,10 @@ npm run dev
 
 `USE_FASTAPI` và `USE_NEW_STRUCTURE` env vars đã bỏ từ Phase 1 — chỉ còn Flask monolith.
 
-### 5. Scripts (Windows / Linux)
+### 5. Authencation
 
-`app/scripts/` chứa các script khởi động:
-
-```bat
-app\scripts\start-chatbot.bat
-app\scripts\start-stable-diffusion.bat
-app\scripts\start-edit-image.bat
-app\scripts\start-mcp.bat
-app\scripts\start-all.bat
-app\scripts\stop-all.bat
-app\scripts\health-check-all.bat
-```
+Username: admin
+Password: admin123
 
 ### 6. Docker
 
@@ -403,7 +394,7 @@ HUGGINGFACE_API_KEY=
 
 # ── Database ──
 MONGODB_URI=mongodb://localhost:27017
-MONGODB_DB_NAME=chatbot_db
+MONGODB_DB_NAME=ai_assistant_v2
 
 # ── Image generation ──
 FAL_API_KEY=
@@ -553,4 +544,4 @@ CI: `.github/workflows/tests.yml` — chạy với `TESTING=True`, `MONGODB_ENAB
 
 - **menu.sh** advertise sai port: SD=7860 (đúng: 7861), Edit Image=7861 (đúng: 8100), MCP=8000 (đúng: stdio). Dùng `menu.bat` hoặc scripts trực tiếp.
 - **Gemini** có thể bị disable trong `chatbot_main.py` khi quota cạn — fallback sẽ dùng provider khác.
-- **Multiple venvs**: `venv/`, `venv-core/`, `venv-image/` cùng tồn tại. Default active là `venv-core` cho chatbot.
+- **Multiple venvs**: `venv/`, `venv-core/`, `venv-image/` cùng tồn tại. Default active là `venv-core` cho chatb
