@@ -17,10 +17,10 @@ import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
 import { AnimePipeline } from './modules/anime-pipeline.js';
 import { initOverlayActions } from './modules/overlay-actions.js';
-import { initOverlayManager, registerOverlay, enablePanelMode } from './modules/overlay-manager.js';
+import { initOverlayManager, registerOverlay, enablePanelMode, openOverlay, closeOverlay, toggleOverlay, isOpen } from './modules/overlay-manager.js';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
 import { buildHistoryFromTimeline } from './modules/timeline.js';
-// Electron bridge: side-effect import — tags <body class="is-desktop"|"is-browser">,
+// Electron bridge: side-effect import â€” tags <body class="is-desktop"|"is-browser">,
 // wires custom titlebar buttons, mirrors job count to system tray badge.
 import './modules/electron-bridge.js';
 
@@ -47,7 +47,7 @@ class ChatBotApp {
         window.appPrompt  = (m, defVal, opts) => this.uiUtils.showPromptAsync(m, defVal, opts);
         window.appAlert   = (m, type) => this.uiUtils.showAlert(m, type);
         
-        // State — no tools active by default
+        // State â€” no tools active by default
         this.activeTools = new Set();
         this.conversationActive = false;
         this.currentAbortController = null;
@@ -81,7 +81,7 @@ class ChatBotApp {
             this.renderChatList();
         });
 
-        // ── ChatGPT-style URL navigation: handle browser back/forward ──
+        // â”€â”€ ChatGPT-style URL navigation: handle browser back/forward â”€â”€
         // chat-manager.js already syncs the URL on newChat/switchChat/delete.
         window.addEventListener('popstate', (event) => {
             const path = window.location.pathname;
@@ -96,7 +96,7 @@ class ChatBotApp {
                     this.renderChatList();
                 }
             } else if (targetId) {
-                // URL points to an id we don't have locally — try backend recovery.
+                // URL points to an id we don't have locally â€” try backend recovery.
                 this.chatManager.restoreFromBackend(targetId).then((recovered) => {
                     if (recovered) {
                         this.chatManager.currentChatId = recovered;
@@ -104,7 +104,7 @@ class ChatBotApp {
                         this.loadCurrentChat();
                         this.renderChatList();
                     } else if (typeof window.showToast === 'function') {
-                        window.showToast('Cuộc trò chuyện không tồn tại trên thiết bị này', 'warn');
+                        window.showToast('Cuá»™c trÃ² chuyá»‡n khÃ´ng tá»“n táº¡i trÃªn thiáº¿t bá»‹ nÃ y', 'warn');
                     }
                 }).catch(() => { /* silent */ });
             } else if (path === '/' || path === '') {
@@ -160,7 +160,7 @@ class ChatBotApp {
         // Staged files waiting to be sent with the next message
         this._stagedFiles = [];
 
-        // Setup file handling — STAGING MODE (files wait until user sends message)
+        // Setup file handling â€” STAGING MODE (files wait until user sends message)
         const newFileInput = this.fileHandler.setupFileInput(elements.fileInput, async (files) => {
             try {
                 for (let file of files) {
@@ -192,20 +192,20 @@ class ChatBotApp {
             area.innerHTML = this._stagedFiles.map((f, i) => {
                 const isTable = !!(f.tableData && f.tableData.headers && f.tableData.headers.length > 0);
                 const isImage = f.type && f.type.startsWith('image/') && f.preview;
-                const icon = this.fileHandler.getFileIcon ? this.fileHandler.getFileIcon(f.type || '', f.name) : '📄';
+                const icon = this.fileHandler.getFileIcon ? this.fileHandler.getFileIcon(f.type || '', f.name) : 'ðŸ“„';
 
                 let iconOrPreview;
                 if (isImage) {
                     iconOrPreview = `<div class="file-staging__card-preview"><img src="${this.fileHandler.escapeHtml(f.preview)}" alt=""></div>`;
                 } else if (isTable) {
-                    iconOrPreview = `<div class="file-staging__card-icon">📊</div>`;
+                    iconOrPreview = `<div class="file-staging__card-icon">ðŸ“Š</div>`;
                 } else {
                     iconOrPreview = `<div class="file-staging__card-icon">${icon}</div>`;
                 }
 
                 const sizeStr = this.fileHandler.formatFileSize ? this.fileHandler.formatFileSize(f.size) : '';
                 const meta = isTable
-                    ? `${f.tableData.rows.length} hàng · ${f.tableData.headers.length} cột`
+                    ? `${f.tableData.rows.length} hÃ ng Â· ${f.tableData.headers.length} cá»™t`
                     : sizeStr;
 
                 return `<div class="file-staging__card file-staging__clickable${isTable ? ' file-staging__card--table' : ''}" data-idx="${i}" title="${this.fileHandler.escapeHtml(f.name)}">
@@ -214,7 +214,7 @@ class ChatBotApp {
                         <div class="file-staging__card-name">${this.fileHandler.escapeHtml(f.name)}</div>
                         <div class="file-staging__card-meta">${meta}</div>
                     </div>
-                    <button class="file-staging__remove" data-idx="${i}" title="Xóa">×</button>
+                    <button class="file-staging__remove" data-idx="${i}" title="XÃ³a">Ã—</button>
                 </div>`;
             }).join('');
 
@@ -303,7 +303,7 @@ class ChatBotApp {
                         const customPromptUsed = window.customPromptEnabled === true;
                         this.messageRenderer.addMessage(
                             elements.chatContainer,
-                            `❌ **Lỗi xử lý file "${file.name}":** ${error.message}`,
+                            `âŒ **Lá»—i xá»­ lÃ½ file "${file.name}":** ${error.message}`,
                             false,
                             'system',
                             'error',
@@ -332,7 +332,7 @@ class ChatBotApp {
                 const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    `✅ **Đã paste ${processedFiles.length} file.** Hỏi tôi bất kỳ điều gì về file! 💬`,
+                    `âœ… **ÄÃ£ paste ${processedFiles.length} file.** Há»i tÃ´i báº¥t ká»³ Ä‘iá»u gÃ¬ vá» file! ðŸ’¬`,
                     false,
                     'system',
                     'info',
@@ -347,7 +347,7 @@ class ChatBotApp {
                 const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    `❌ **Lỗi paste file:** ${error.message}`,
+                    `âŒ **Lá»—i paste file:** ${error.message}`,
                     false,
                     'system',
                     'error',
@@ -448,11 +448,11 @@ class ChatBotApp {
             const len = elements.messageInput.value.length;
             if (inputHint) {
                 if (len >= LONG_LIMIT) {
-                    inputHint.textContent = `Văn bản quá dài (${len} ký tự) — sẽ tự động chuyển thành file .txt khi gửi`;
+                    inputHint.textContent = `VÄƒn báº£n quÃ¡ dÃ i (${len} kÃ½ tá»±) â€” sáº½ tá»± Ä‘á»™ng chuyá»ƒn thÃ nh file .txt khi gá»­i`;
                     inputHint.style.display = 'block';
                     inputHint.className = 'message-input-hint message-input-hint--warn';
                 } else if (len >= LONG_WARN) {
-                    inputHint.textContent = `${len}/${LONG_LIMIT} ký tự — gần đến giới hạn`;
+                    inputHint.textContent = `${len}/${LONG_LIMIT} kÃ½ tá»± â€” gáº§n Ä‘áº¿n giá»›i háº¡n`;
                     inputHint.style.display = 'block';
                     inputHint.className = 'message-input-hint message-input-hint--info';
                 } else {
@@ -489,7 +489,7 @@ class ChatBotApp {
             });
         }
 
-        // Cancel select mode (×)
+        // Cancel select mode (Ã—)
         document.querySelectorAll('[data-action="storage:select-mode"]').forEach(btn => {
             if (btn.id !== 'chatSelectBtn') {
                 btn.addEventListener('click', () => this.uiUtils.toggleSelectMode());
@@ -534,7 +534,7 @@ class ChatBotApp {
             });
         }
 
-        // ── More menu (topbar overflow) ──
+        // â”€â”€ More menu (topbar overflow) â”€â”€
         const moreMenuBtn = document.getElementById('moreMenuBtn');
         const moreMenuDropdown = document.getElementById('moreMenuDropdown');
         if (moreMenuBtn && moreMenuDropdown) {
@@ -578,8 +578,10 @@ class ChatBotApp {
         // Image Generation V2 button (multi-provider)
         const igv2Btn = document.getElementById('imageGenV2Btn');
         if (igv2Btn) {
-            igv2Btn.addEventListener('click', () => {
-                this.imageGenV2.openModal();
+            igv2Btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openOverlay('imageGenV2Modal');
+                this.imageGenV2.init();
             });
         }
         // Expose V2 globally for onclick handlers
@@ -588,8 +590,9 @@ class ChatBotApp {
         // Video Generation (Sora 2) button
         const videoGenBtn = document.getElementById('videoGenBtn');
         if (videoGenBtn) {
-            videoGenBtn.addEventListener('click', () => {
-                this.videoGen.openModal();
+            videoGenBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openOverlay('videoGenModal');
             });
         }
         window.videoGen = this.videoGen;
@@ -703,7 +706,7 @@ class ChatBotApp {
     async sendMessage() {
         const elements = this.uiUtils.elements;
 
-        // ── Auto-convert very long input to a staged .txt file ──────────────
+        // â”€â”€ Auto-convert very long input to a staged .txt file â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Only kicks in for genuinely huge pastes (e.g. dumping an entire log
         // or document). Normal long anime image prompts (a few KB) must stay
         // as text so they can be detected as image requests.
@@ -736,10 +739,10 @@ class ChatBotApp {
             return;
         }
 
-        // Get active tools early — needed for routing
+        // Get active tools early â€” needed for routing
         const activeTools = window.getActiveTools ? window.getActiveTools() : Array.from(this.activeTools);
 
-        // ── Image Generation V2 — Tool-aware routing ─────────
+        // â”€â”€ Image Generation V2 â€” Tool-aware routing â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Route to image gen if: (1) tool is ON, OR (2) message looks like an image request
         const imageGenToolActive = activeTools.includes('image-generation');
         const isImageIntent = message && (imageGenToolActive || ImageGenV2.isImageRequest(message));
@@ -752,45 +755,45 @@ class ChatBotApp {
             );
             this.uiUtils.clearInput();
 
-            // ── Provider Choice Dialog (LOCAL / API / CANCEL) with 30s timeout ──
+            // â”€â”€ Provider Choice Dialog (LOCAL / API / CANCEL) with 30s timeout â”€â”€
             const providerChoice = await new Promise((resolve) => {
                 const TIMEOUT_SECONDS = 30;
                 const choiceContainer = document.createElement('div');
                 choiceContainer.className = 'message assistant';
                 choiceContainer.innerHTML = `
-                    <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+                    <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
                     <div class="message__body">
                         <div class="message-content">
                             <div class="igv2-provider-choice">
                                 <div class="igv2-choice-header">
-                                    <span class="igv2-choice-icon">⚡</span>
-                                    <span class="igv2-choice-title">Chọn phương thức tạo ảnh</span>
+                                    <span class="igv2-choice-icon">âš¡</span>
+                                    <span class="igv2-choice-title">Chá»n phÆ°Æ¡ng thá»©c táº¡o áº£nh</span>
                                     <span class="igv2-choice-timer" aria-live="polite" aria-atomic="true">${TIMEOUT_SECONDS}s</span>
                                 </div>
                                 <div class="igv2-choice-buttons">
                                     <button class="igv2-choice-btn igv2-choice-local" data-choice="local">
-                                        <span class="igv2-choice-btn-icon">🖥️</span>
+                                        <span class="igv2-choice-btn-icon">ðŸ–¥ï¸</span>
                                         <span class="igv2-choice-btn-label">LOCAL</span>
-                                        <span class="igv2-choice-btn-desc">ComfyUI · Miễn phí</span>
+                                        <span class="igv2-choice-btn-desc">ComfyUI Â· Miá»…n phÃ­</span>
                                     </button>
                                     <button class="igv2-choice-btn igv2-choice-api" data-choice="api">
-                                        <span class="igv2-choice-btn-icon">☁️</span>
+                                        <span class="igv2-choice-btn-icon">â˜ï¸</span>
                                         <span class="igv2-choice-btn-label">API</span>
-                                        <span class="igv2-choice-btn-desc">Cloud · Nhanh & chất lượng</span>
+                                        <span class="igv2-choice-btn-desc">Cloud Â· Nhanh & cháº¥t lÆ°á»£ng</span>
                                     </button>
                                     <button class="igv2-choice-btn igv2-choice-cancel" data-choice="cancel">
-                                        <span class="igv2-choice-btn-icon">❌</span>
-                                        <span class="igv2-choice-btn-label">HỦY</span>
-                                        <span class="igv2-choice-btn-desc">Không tạo ảnh</span>
+                                        <span class="igv2-choice-btn-icon">âŒ</span>
+                                        <span class="igv2-choice-btn-label">Há»¦Y</span>
+                                        <span class="igv2-choice-btn-desc">KhÃ´ng táº¡o áº£nh</span>
                                     </button>
                                 </div>
                                 <div class="igv2-choice-imageonly" style="margin-top:10px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg));">
                                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
                                         <input type="checkbox" class="igv2-imageonly-toggle" style="width:16px; height:16px;">
-                                        <span><strong>🎨 Chỉ tạo ảnh (LOCAL)</strong> — Bỏ qua tinh chỉnh, trả về nhiều ảnh</span>
+                                        <span><strong>ðŸŽ¨ Chá»‰ táº¡o áº£nh (LOCAL)</strong> â€” Bá» qua tinh chá»‰nh, tráº£ vá» nhiá»u áº£nh</span>
                                     </label>
                                     <div class="igv2-batch-row" style="margin-top:6px; display:flex; align-items:center; gap:6px; opacity:0.45; pointer-events:none; font-size:12px;">
-                                        <span style="color:var(--text-muted,#888);">Số lượng:</span>
+                                        <span style="color:var(--text-muted,#888);">Sá»‘ lÆ°á»£ng:</span>
                                         <button type="button" class="igv2-batch-chip" data-batch="2" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">2</button>
                                         <button type="button" class="igv2-batch-chip selected" data-batch="4" style="padding:3px 10px; border:1px solid var(--accent,#4a9eff); border-radius:12px; background:var(--accent,#4a9eff); color:#fff; cursor:pointer; font-size:12px;">4</button>
                                         <button type="button" class="igv2-batch-chip" data-batch="6" style="padding:3px 10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--text); cursor:pointer; font-size:12px;">6</button>
@@ -799,22 +802,22 @@ class ChatBotApp {
                                 <div class="igv2-choice-continuous" style="margin-top:8px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; background:var(--bg-secondary,var(--bg));">
                                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
                                         <input type="checkbox" class="igv2-continuous-toggle" style="width:16px; height:16px;">
-                                        <span><strong>🔁 Tạo liên tục</strong> — Giữ nguyên prompt, đổi nhân vật nữ mỗi lượt</span>
+                                        <span><strong>ðŸ” Táº¡o liÃªn tá»¥c</strong> â€” Giá»¯ nguyÃªn prompt, Ä‘á»•i nhÃ¢n váº­t ná»¯ má»—i lÆ°á»£t</span>
                                     </label>
                                     <div class="igv2-continuous-row" style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; opacity:0.45; pointer-events:none; font-size:12px;">
-                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Số lần:
+                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Sá»‘ láº§n:
                                             <input type="number" class="igv2-continuous-count" min="2" max="50" value="5" style="width:60px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text); font-size:12px;">
                                         </label>
-                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Nghỉ (giây):
+                                        <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted,#888);">Nghá»‰ (giÃ¢y):
                                             <input type="number" class="igv2-continuous-sleep" min="0" max="600" value="3" style="width:60px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text); font-size:12px;">
                                         </label>
                                     </div>
                                 </div>
                                 <div class="igv2-choice-extra">
-                                    <label class="igv2-extra__opt" title="Chỉ chạy preflight (kiểm tra prompt + character match) — không sinh ảnh.">
+                                    <label class="igv2-extra__opt" title="Chá»‰ cháº¡y preflight (kiá»ƒm tra prompt + character match) â€” khÃ´ng sinh áº£nh.">
                                         <input type="checkbox" class="igv2-preflight-toggle">
                                         <i data-lucide="shield-check" class="igv2-extra__icon"></i>
-                                        <span><strong>Check first</strong><span class="igv2-extra__hint"> — chỉ chạy preflight</span></span>
+                                        <span><strong>Check first</strong><span class="igv2-extra__hint"> â€” chá»‰ cháº¡y preflight</span></span>
                                     </label>
                                     <label class="igv2-extra__opt">
                                         <i data-lucide="zap" class="igv2-extra__icon"></i>
@@ -850,7 +853,7 @@ class ChatBotApp {
                         if (btn.dataset.choice === choice) btn.classList.add('selected');
                         else btn.classList.add('dimmed');
                     });
-                    timerEl.textContent = choice === 'cancel' ? 'Đã hủy' : choice === 'local' ? 'LOCAL' : 'API';
+                    timerEl.textContent = choice === 'cancel' ? 'ÄÃ£ há»§y' : choice === 'local' ? 'LOCAL' : 'API';
                     const opts = choiceContainer._getImageOnlyOpts
                         ? choiceContainer._getImageOnlyOpts()
                         : { imageOnly: false, batchSize: 1 };
@@ -957,7 +960,7 @@ class ChatBotApp {
             if (providerChoice.choice === 'cancel') {
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    '⏰ Đã hủy tạo ảnh — không có phản hồi hoặc người dùng chọn HỦY.',
+                    'â° ÄÃ£ há»§y táº¡o áº£nh â€” khÃ´ng cÃ³ pháº£n há»“i hoáº·c ngÆ°á»i dÃ¹ng chá»n Há»¦Y.',
                     false, formValues.model, formValues.context,
                     this.uiUtils.formatTimestamp(new Date())
                 );
@@ -966,7 +969,7 @@ class ChatBotApp {
                 return;
             }
 
-            // LOCAL → open Anime Pipeline modal with pre-filled prompt.
+            // LOCAL â†’ open Anime Pipeline modal with pre-filled prompt.
             // Forward the image-only / batch-size selection from the
             // choice card so the modal/inline run honors them.
             if (providerChoice.choice === 'local') {
@@ -986,12 +989,12 @@ class ChatBotApp {
             const statusContainer = document.createElement('div');
             statusContainer.className = 'message assistant';
             statusContainer.innerHTML = `
-                <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+                <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
                 <div class="message__body">
                     <div class="message-content">
                         <div class="igv2-stream-status">
                             <div class="igv2-stream-header">
-                                <span class="igv2-stream-icon spinning">⚙️</span>
+                                <span class="igv2-stream-icon spinning">âš™ï¸</span>
                                 <span class="igv2-stream-title">Image Generation</span>
                             </div>
                             <div class="igv2-stream-steps"></div>
@@ -1032,35 +1035,35 @@ class ChatBotApp {
                     onStatus: (data) => {
                         if (data.phase === 'enhance') {
                             if (data.enhanced_prompt) {
-                                addStep('✨', `Prompt enhanced`, 'done');
+                                addStep('âœ¨', `Prompt enhanced`, 'done');
                             } else {
-                                addStep('✨', data.step, 'active');
+                                addStep('âœ¨', data.step, 'active');
                             }
                         } else if (data.phase === 'select') {
                             if (data.providers) {
-                                addStep('📡', `Providers: ${data.providers.join(', ')}`, 'done');
+                                addStep('ðŸ“¡', `Providers: ${data.providers.join(', ')}`, 'done');
                             } else {
-                                addStep('🔍', data.step, 'active');
+                                addStep('ðŸ”', data.step, 'active');
                             }
                         } else {
-                            addStep('⚙️', data.step, 'active');
+                            addStep('âš™ï¸', data.step, 'active');
                         }
                     },
                     onProviderTry: (data) => {
-                        providerStep = addStep('🔄', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
+                        providerStep = addStep('ðŸ”„', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
                     },
                     onProviderFail: (data) => {
-                        updateStep(providerStep, '❌', `${data.provider} failed: ${data.error}`, 'fail');
+                        updateStep(providerStep, 'âŒ', `${data.provider} failed: ${data.error}`, 'fail');
                         providerStep = null;
                     },
                     onProviderSuccess: (data) => {
-                        updateStep(providerStep, '✅', `${data.provider} / ${data.model} — ${Math.round(data.latency_ms)}ms`, 'done');
-                        headerIcon.textContent = '✅';
+                        updateStep(providerStep, 'âœ…', `${data.provider} / ${data.model} â€” ${Math.round(data.latency_ms)}ms`, 'done');
+                        headerIcon.textContent = 'âœ…';
                         headerIcon.classList.remove('spinning');
                     },
                     onError: (data) => {
-                        addStep('❌', data.error, 'fail');
-                        headerIcon.textContent = '❌';
+                        addStep('âŒ', data.error, 'fail');
+                        headerIcon.textContent = 'âŒ';
                         headerIcon.classList.remove('spinning');
                     },
                 },
@@ -1077,8 +1080,8 @@ class ChatBotApp {
                     imgSrc = result.images_url[0];
                 }
 
-                const meta = `🎨 **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
-                const enhanced = result.prompt_used ? `\n📝 ${result.prompt_used.substring(0, 150)}` : '';
+                const meta = `ðŸŽ¨ **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
+                const enhanced = result.prompt_used ? `\nðŸ“ ${result.prompt_used.substring(0, 150)}` : '';
                 const htmlAttrEsc = (value) => String(value || '')
                     .replace(/&/g, '&amp;')
                     .replace(/"/g, '&quot;')
@@ -1090,9 +1093,9 @@ class ChatBotApp {
                 const imageIdAttr = htmlAttrEsc(imageId);
                 const overlayButtons = `
                     <div class="igv2-img-overlay">
-                        <button type="button" class="igv2-img-btn" title="Tải ảnh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">⬇</button>
-                        <button type="button" class="igv2-img-btn" title="Thông tin" data-igv2-action="info" data-image-id="${imageIdAttr}">ℹ</button>
-                        ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="Lưu & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">☁</button>` : ''}
+                        <button type="button" class="igv2-img-btn" title="Táº£i áº£nh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">â¬‡</button>
+                        <button type="button" class="igv2-img-btn" title="ThÃ´ng tin" data-igv2-action="info" data-image-id="${imageIdAttr}">â„¹</button>
+                        ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="LÆ°u & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">â˜</button>` : ''}
                     </div>`;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
@@ -1111,7 +1114,7 @@ class ChatBotApp {
                     lastAssistantMsg.dataset.igv2IsImage = 'true';
                 }
 
-                // ── Record into session for context-aware follow-ups ──
+                // â”€â”€ Record into session for context-aware follow-ups â”€â”€
                 // Forward any structured metadata the backend returned (job_id,
                 // preset, character_key, manifest_path, seed) so future LLM
                 // turns can reference what was generated, not just where it lives.
@@ -1134,23 +1137,23 @@ class ChatBotApp {
                     console.warn('[App] addGeneratedImage failed:', e);
                 }
 
-                // ── 4-Agents Deep Thinking Analysis (when multi-thinking mode) ──
+                // â”€â”€ 4-Agents Deep Thinking Analysis (when multi-thinking mode) â”€â”€
                 if (formValues.thinkingMode === 'multi-thinking' && result.success) {
                     const thinkingSection = this.messageRenderer.createThinkingSection(null, true);
                     const thinkMsgEl = document.createElement('div');
                     thinkMsgEl.className = 'message assistant';
-                    thinkMsgEl.innerHTML = '<div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div><div class="message__body"><div class="message-content"></div></div>';
+                    thinkMsgEl.innerHTML = '<div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div><div class="message__body"><div class="message-content"></div></div>';
                     thinkMsgEl.querySelector('.message-content').appendChild(thinkingSection);
                     elements.chatContainer.appendChild(thinkMsgEl);
                     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
                     const analysisSteps = [
-                        { icon: '🔍', text: `**Phân tích prompt** — "${(result.prompt_used || message).substring(0, 80)}..."` },
-                        { icon: '🎨', text: `**Provider:** ${result.provider} / ${result.model}` },
-                        { icon: '⚡', text: `**Hiệu suất:** ${Math.round(result.latency_ms)}ms · Chi phí: $${result.cost_usd}` },
-                        { icon: '📐', text: `**Đánh giá bố cục:** Ảnh được tạo với kích thước ${result.metadata?.width || '?'}×${result.metadata?.height || '?'}` },
-                        { icon: '✨', text: `**Chất lượng:** ${providerChoice.choice === 'local' ? 'ComfyUI local — miễn phí, tùy chỉnh tốt' : 'Cloud API — chất lượng cao, tốc độ nhanh'}` },
-                        { icon: '✅', text: '**Kết luận:** Ảnh đã được tạo thành công. Bạn có thể yêu cầu chỉnh sửa thêm.' },
+                        { icon: 'ðŸ”', text: `**PhÃ¢n tÃ­ch prompt** â€” "${(result.prompt_used || message).substring(0, 80)}..."` },
+                        { icon: 'ðŸŽ¨', text: `**Provider:** ${result.provider} / ${result.model}` },
+                        { icon: 'âš¡', text: `**Hiá»‡u suáº¥t:** ${Math.round(result.latency_ms)}ms Â· Chi phÃ­: $${result.cost_usd}` },
+                        { icon: 'ðŸ“', text: `**ÄÃ¡nh giÃ¡ bá»‘ cá»¥c:** áº¢nh Ä‘Æ°á»£c táº¡o vá»›i kÃ­ch thÆ°á»›c ${result.metadata?.width || '?'}Ã—${result.metadata?.height || '?'}` },
+                        { icon: 'âœ¨', text: `**Cháº¥t lÆ°á»£ng:** ${providerChoice.choice === 'local' ? 'ComfyUI local â€” miá»…n phÃ­, tÃ¹y chá»‰nh tá»‘t' : 'Cloud API â€” cháº¥t lÆ°á»£ng cao, tá»‘c Ä‘á»™ nhanh'}` },
+                        { icon: 'âœ…', text: '**Káº¿t luáº­n:** áº¢nh Ä‘Ã£ Ä‘Æ°á»£c táº¡o thÃ nh cÃ´ng. Báº¡n cÃ³ thá»ƒ yÃªu cáº§u chá»‰nh sá»­a thÃªm.' },
                     ];
 
                     for (let i = 0; i < analysisSteps.length; i++) {
@@ -1170,7 +1173,7 @@ class ChatBotApp {
             } else {
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    `❌ Không thể tạo ảnh: ${result.error}`,
+                    `âŒ KhÃ´ng thá»ƒ táº¡o áº£nh: ${result.error}`,
                     false, formValues.model, formValues.context,
                     this.uiUtils.formatTimestamp(new Date())
                 );
@@ -1188,9 +1191,9 @@ class ChatBotApp {
             await this.saveCurrentSession(true);
             return;  // Don't send to chat API
         }
-        // ── End Image Gen V2 ─────────────────────────────────
+        // â”€â”€ End Image Gen V2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        // ── Img2Img Tool — route to img2img API when active ──
+        // â”€â”€ Img2Img Tool â€” route to img2img API when active â”€â”€
         const img2imgToolActive = activeTools.includes('img2img');
         if (img2imgToolActive && message) {
             // Find the last generated image in the conversation to use as source
@@ -1208,7 +1211,7 @@ class ChatBotApp {
 
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    '🖼️ Đang chuyển đổi ảnh (Img2Img)...',
+                    'ðŸ–¼ï¸ Äang chuyá»ƒn Ä‘á»•i áº£nh (Img2Img)...',
                     false, formValues.model, formValues.context,
                     this.uiUtils.formatTimestamp(new Date())
                 );
@@ -1244,14 +1247,14 @@ class ChatBotApp {
                             : `data:image/png;base64,${result.images[0]}`;
                         this.messageRenderer.addMessage(
                             elements.chatContainer,
-                            `<div class="igv2-chat-image"><img src="${imgSrc}" alt="Img2Img Result"><div class="igv2-chat-meta">🖼️ Img2Img | Prompt: ${message.substring(0, 80)}</div></div>`,
+                            `<div class="igv2-chat-image"><img src="${imgSrc}" alt="Img2Img Result"><div class="igv2-chat-meta">ðŸ–¼ï¸ Img2Img | Prompt: ${message.substring(0, 80)}</div></div>`,
                             false, formValues.model, formValues.context,
                             this.uiUtils.formatTimestamp(new Date())
                         );
                     } else {
                         this.messageRenderer.addMessage(
                             elements.chatContainer,
-                            `❌ Img2Img thất bại: ${result.error || 'Không nhận được ảnh'}`,
+                            `âŒ Img2Img tháº¥t báº¡i: ${result.error || 'KhÃ´ng nháº­n Ä‘Æ°á»£c áº£nh'}`,
                             false, formValues.model, formValues.context,
                             this.uiUtils.formatTimestamp(new Date())
                         );
@@ -1261,7 +1264,7 @@ class ChatBotApp {
                     if (lastAssistant) lastAssistant.remove();
                     this.messageRenderer.addMessage(
                         elements.chatContainer,
-                        `❌ Img2Img lỗi: ${e.message}`,
+                        `âŒ Img2Img lá»—i: ${e.message}`,
                         false, formValues.model, formValues.context,
                         this.uiUtils.formatTimestamp(new Date())
                     );
@@ -1271,10 +1274,10 @@ class ChatBotApp {
                 await this.saveCurrentSession(true);
                 return;
             }
-            // No source image found → fall through to normal chat
+            // No source image found â†’ fall through to normal chat
             console.log('[App] Img2Img active but no source image found, falling through to chat');
         }
-        // ── End Img2Img ──────────────────────────────────────
+        // â”€â”€ End Img2Img â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         
         // Handle Auto mode - decide if deep thinking is needed
         let deepThinking = formValues.deepThinking;
@@ -1290,7 +1293,7 @@ class ChatBotApp {
         // Inject quoted context if any (select-and-reply feature)
         const quotedCtx = this.messageRenderer.consumeQuotedContext();
         if (quotedCtx) {
-            message = `[Ngữ cảnh được chọn — ưu tiên trả lời dựa trên đoạn này]\n> ${quotedCtx}\n\n${message}`;
+            message = `[Ngá»¯ cáº£nh Ä‘Æ°á»£c chá»n â€” Æ°u tiÃªn tráº£ lá»i dá»±a trÃªn Ä‘oáº¡n nÃ y]\n> ${quotedCtx}\n\n${message}`;
         }
 
         // Extract image base64 data URLs for vision API (sent separately from text)
@@ -1309,8 +1312,8 @@ class ChatBotApp {
             const fileContext = this.buildFileContext(textFiles);
             if (fileContext || imageDataUrls.length > 0) {
                 const textPart = fileContext ? `${fileContext}\n\n` : '';
-                const imagePart = imageDataUrls.length > 0 ? `📷 ${imageDataUrls.length} image(s) attached for analysis.\n\n` : '';
-                message = `${textPart}${imagePart}${message || 'Hãy phân tích các file được đính kèm.'}`;
+                const imagePart = imageDataUrls.length > 0 ? `ðŸ“· ${imageDataUrls.length} image(s) attached for analysis.\n\n` : '';
+                message = `${textPart}${imagePart}${message || 'HÃ£y phÃ¢n tÃ­ch cÃ¡c file Ä‘Æ°á»£c Ä‘Ã­nh kÃ¨m.'}`;
             }
             // Auto-enable deep thinking when files are attached for better analysis
             deepThinking = true;
@@ -1327,8 +1330,8 @@ class ChatBotApp {
         let mcpIndicator = '';
         if (mcpContextStr || mcpOcrContextStr) {
             const fullMcpContext = [mcpContextStr, mcpOcrContextStr].filter(Boolean).join('\n\n---\n\n');
-            message = `[MCP Context được cung cấp - hãy sử dụng thông tin này để trả lời]\n\n${fullMcpContext}\n\n---\n\nUser question: ${message}`;
-            mcpIndicator = ' 📎 MCP';
+            message = `[MCP Context Ä‘Æ°á»£c cung cáº¥p - hÃ£y sá»­ dá»¥ng thÃ´ng tin nÃ y Ä‘á»ƒ tráº£ lá»i]\n\n${fullMcpContext}\n\n---\n\nUser question: ${message}`;
+            mcpIndicator = ' ðŸ“Ž MCP';
             console.log('[App] MCP context injected, length:', fullMcpContext.length);
         }
         
@@ -1363,13 +1366,13 @@ class ChatBotApp {
             const placeholder = document.createElement('div');
             placeholder.className = 'message assistant';
             placeholder.innerHTML = `
-                <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+                <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
                 <div class="message__body">
                     <div class="message-content">
                         <div class="image-gen-loading" id="imageGenLoadingPlaceholder">
                             <div class="loading-spinner"></div>
-                            <div class="loading-text">🎨 Đang tạo ảnh...</div>
-                            <div class="loading-progress" style="font-size:11px;color:var(--text-tertiary);">Analyzing prompt → Selecting provider → Generating</div>
+                            <div class="loading-text">ðŸŽ¨ Äang táº¡o áº£nh...</div>
+                            <div class="loading-progress" style="font-size:11px;color:var(--text-tertiary);">Analyzing prompt â†’ Selecting provider â†’ Generating</div>
                         </div>
                     </div>
                 </div>
@@ -1400,7 +1403,7 @@ class ChatBotApp {
             // Get agent config if enabled
             const agentConfig = window.getAgentConfig ? window.getAgentConfig() : null;
 
-            // ── Use SSE streaming for live thinking + response ──
+            // â”€â”€ Use SSE streaming for live thinking + response â”€â”€
             let fullResponse = '';
             let thinkingSteps = [];
             let thinkingData = {};
@@ -1419,7 +1422,7 @@ class ChatBotApp {
             streamMsgDiv.style.display = 'none'; // Hidden until first chunk arrives
             const streamAvatar = document.createElement('div');
             streamAvatar.className = 'message__avatar message__avatar--agent';
-            streamAvatar.innerHTML = '<img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false">';
+            streamAvatar.innerHTML = '<img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false">';
             streamMsgDiv.appendChild(streamAvatar);
             const streamBody = document.createElement('div');
             streamBody.className = 'message__body';
@@ -1433,7 +1436,7 @@ class ChatBotApp {
             elements.chatContainer.appendChild(streamMsgDiv);
 
             try {
-                // ── Pull conversation context: id + recent generated images ──
+                // â”€â”€ Pull conversation context: id + recent generated images â”€â”€
                 const _currentSession = this.chatManager.getCurrentSession ? this.chatManager.getCurrentSession() : null;
                 const _conversationId = this.chatManager.currentChatId || '';
                 const _recentGenImages = (_currentSession && Array.isArray(_currentSession.generatedImages))
@@ -1551,7 +1554,7 @@ class ChatBotApp {
                 streamFailed = true;
             }
 
-            // ── Fallback to regular POST if streaming failed ──
+            // â”€â”€ Fallback to regular POST if streaming failed â”€â”€
             if (streamFailed) {
                 // Clean up streaming elements
                 streamMsgDiv.remove();
@@ -1569,7 +1572,7 @@ class ChatBotApp {
                     agentConfig ? agentConfig.systemPrompt : '',
                     agentConfig
                 );
-                fullResponse = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+                fullResponse = data.error ? `âŒ **Lá»—i:** ${data.error}` : data.response;
                 
                 // Update thinking with data from non-streaming response
                 if (data.thinking_process) {
@@ -1579,11 +1582,11 @@ class ChatBotApp {
                     }
                     this.messageRenderer.updateThinkingContent(thinkingContainer, data.thinking_process);
                 } else if (thinkingContainer) {
-                    this.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'Hoàn thành' });
+                    this.messageRenderer.finalizeThinking(thinkingContainer, { summary: 'HoÃ n thÃ nh' });
                 }
             }
 
-            // ── Finalize response display ──
+            // â”€â”€ Finalize response display â”€â”€
             const responseContent = fullResponse;
 
             // Handle image response
@@ -1595,7 +1598,7 @@ class ChatBotApp {
                 resultDiv.dataset.model = formValues.model || '';
                 const avatarDiv = document.createElement('div');
                 avatarDiv.className = 'message__avatar message__avatar--agent';
-                avatarDiv.innerHTML = '<img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false">';
+                avatarDiv.innerHTML = '<img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false">';
                 resultDiv.appendChild(avatarDiv);
                 const bodyDiv = document.createElement('div');
                 bodyDiv.className = 'message__body';
@@ -1642,7 +1645,7 @@ class ChatBotApp {
                     // Add action buttons to streaming message
                     this.messageRenderer.addMessageButtons(streamContentDiv, responseContent, false, streamMsgDiv);
 
-                    // ── Stats badge (time · model · tokens) ──
+                    // â”€â”€ Stats badge (time Â· model Â· tokens) â”€â”€
                     const _clientElapsed = ((performance.now() - _streamStartMs) / 1000);
                     const _serverElapsed = streamCompleteData.elapsed_time || _clientElapsed;
                     const _tokens = streamCompleteData.tokens || 0;
@@ -1730,7 +1733,7 @@ class ChatBotApp {
             setTimeout(makeClickable, 100);
             setTimeout(makeClickable, 500);
 
-            // ── Follow-up suggestions + Think Harder ──
+            // â”€â”€ Follow-up suggestions + Think Harder â”€â”€
             if (!streamFailed && this.messageRenderer.features?.suggestionChips !== false) {
                 const suggestionsContainer = document.createElement('div');
                 suggestionsContainer.className = 'follow-up-suggestions';
@@ -1765,7 +1768,7 @@ class ChatBotApp {
                     suggestions.forEach(text => {
                         const chip = document.createElement('button');
                         chip.className = 'suggestion-chip';
-                        chip.innerHTML = `<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">${this._escapeHtml(text)}</span>`;
+                        chip.innerHTML = `<span class="suggestion-chip__icon">â†—</span><span class="suggestion-chip__text">${this._escapeHtml(text)}</span>`;
                         chip.onclick = () => {
                             suggestionsContainer.remove();
                             this.uiUtils.setInputValue(text);
@@ -1777,20 +1780,20 @@ class ChatBotApp {
                 };
 
                 if (streamSuggestions.length > 0) {
-                    // Server already sent suggestions via SSE — render immediately
+                    // Server already sent suggestions via SSE â€” render immediately
                     _renderChips(streamSuggestions);
                 } else if (responseContent) {
                     // Show skeleton placeholders while we fetch AI-generated suggestions
                     for (let i = 0; i < 3; i++) {
                         const s = document.createElement('span');
                         s.className = 'suggestion-chip suggestion-chip--loading';
-                        s.innerHTML = '<span class="suggestion-chip__icon">↗</span><span class="suggestion-chip__text">…</span>';
+                        s.innerHTML = '<span class="suggestion-chip__icon">â†—</span><span class="suggestion-chip__text">â€¦</span>';
                         suggestionsContainer.appendChild(s);
                     }
                     elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 
                     // Detect language from response
-                    const _lang = /[àáâãäåæçèéêëìíîïðñòóôõöøùúûüý]/i.test(responseContent) ? 'vi' : 'en';
+                    const _lang = /[Ã Ã¡Ã¢Ã£Ã¤Ã¥Ã¦Ã§Ã¨Ã©ÃªÃ«Ã¬Ã­Ã®Ã¯Ã°Ã±Ã²Ã³Ã´ÃµÃ¶Ã¸Ã¹ÃºÃ»Ã¼Ã½]/i.test(responseContent) ? 'vi' : 'en';
                     fetch('/api/chat/suggestions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1832,7 +1835,7 @@ class ChatBotApp {
                 const customPromptUsed2 = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    `❌ **Lỗi kết nối:** ${error.message}`,
+                    `âŒ **Lá»—i káº¿t ná»‘i:** ${error.message}`,
                     false,
                     formValues.model,
                     formValues.context,
@@ -1857,13 +1860,13 @@ class ChatBotApp {
         const formValues = this.uiUtils.getFormValues();
         
         // Build analysis prompt
-        let analysisPrompt = `📎 **Phân tích file đã tải lên:**\n\n`;
-        analysisPrompt += `Có ${files.length} file được tải lên. Hãy phân tích chi tiết nội dung:\n\n`;
+        let analysisPrompt = `ðŸ“Ž **PhÃ¢n tÃ­ch file Ä‘Ã£ táº£i lÃªn:**\n\n`;
+        analysisPrompt += `CÃ³ ${files.length} file Ä‘Æ°á»£c táº£i lÃªn. HÃ£y phÃ¢n tÃ­ch chi tiáº¿t ná»™i dung:\n\n`;
         
         files.forEach((file, index) => {
             analysisPrompt += `**File ${index + 1}: ${file.name}**\n`;
-            analysisPrompt += `- Loại: ${file.type || 'unknown'}\n`;
-            analysisPrompt += `- Kích thước: ${this.messageRenderer.formatFileSize(file.size)}\n`;
+            analysisPrompt += `- Loáº¡i: ${file.type || 'unknown'}\n`;
+            analysisPrompt += `- KÃ­ch thÆ°á»›c: ${this.messageRenderer.formatFileSize(file.size)}\n`;
             
             // Include content for analysis
             if (file.content && typeof file.content === 'string') {
@@ -1873,19 +1876,19 @@ class ChatBotApp {
                     const content = file.content.length > maxLength 
                         ? file.content.substring(0, maxLength) + '\n...(truncated)'
                         : file.content;
-                    analysisPrompt += `\n**Nội dung:**\n\`\`\`\n${content}\n\`\`\`\n`;
+                    analysisPrompt += `\n**Ná»™i dung:**\n\`\`\`\n${content}\n\`\`\`\n`;
                 } else if (file.type.startsWith('image/')) {
-                    analysisPrompt += `\n(Đây là file ảnh)\n`;
+                    analysisPrompt += `\n(ÄÃ¢y lÃ  file áº£nh)\n`;
                 }
             }
             analysisPrompt += `\n---\n\n`;
         });
         
-        analysisPrompt += `\n**Yêu cầu phân tích:**\n`;
-        analysisPrompt += `1. Tóm tắt nội dung chính của từng file\n`;
-        analysisPrompt += `2. Phát hiện các vấn đề hoặc điểm đặc biệt\n`;
-        analysisPrompt += `3. Đưa ra nhận xét và đề xuất (nếu có)\n`;
-        analysisPrompt += `4. Trả lời các câu hỏi liên quan nếu cần\n`;
+        analysisPrompt += `\n**YÃªu cáº§u phÃ¢n tÃ­ch:**\n`;
+        analysisPrompt += `1. TÃ³m táº¯t ná»™i dung chÃ­nh cá»§a tá»«ng file\n`;
+        analysisPrompt += `2. PhÃ¡t hiá»‡n cÃ¡c váº¥n Ä‘á» hoáº·c Ä‘iá»ƒm Ä‘áº·c biá»‡t\n`;
+        analysisPrompt += `3. ÄÆ°a ra nháº­n xÃ©t vÃ  Ä‘á» xuáº¥t (náº¿u cÃ³)\n`;
+        analysisPrompt += `4. Tráº£ lá»i cÃ¡c cÃ¢u há»i liÃªn quan náº¿u cáº§n\n`;
         
         // Show loading
         this.uiUtils.showLoading();
@@ -1917,7 +1920,7 @@ class ChatBotApp {
             // Add AI analysis response
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
             const responseContent = data.error 
-                ? `❌ **Lỗi phân tích:** ${data.error}` 
+                ? `âŒ **Lá»—i phÃ¢n tÃ­ch:** ${data.error}` 
                 : data.response;
             
             const customPromptUsed = window.customPromptEnabled === true;
@@ -1948,7 +1951,7 @@ class ChatBotApp {
                 const customPromptUsed = window.customPromptEnabled === true;
                 this.messageRenderer.addMessage(
                     elements.chatContainer,
-                    `❌ **Lỗi phân tích file:** ${error.message}`,
+                    `âŒ **Lá»—i phÃ¢n tÃ­ch file:** ${error.message}`,
                     false,
                     formValues.model,
                     'programming',
@@ -1969,7 +1972,7 @@ class ChatBotApp {
     buildFileContext(files) {
         if (!files || files.length === 0) return '';
         
-        let context = '📎 **Attached Files Context:**\n\n';
+        let context = 'ðŸ“Ž **Attached Files Context:**\n\n';
         
         files.forEach((file, index) => {
             context += `**File ${index + 1}: ${file.name}**\n`;
@@ -1986,9 +1989,9 @@ class ChatBotApp {
                 context += `\nContent:\n\`\`\`\n${content}\n\`\`\`\n`;
             } else if (file.type && file.type.startsWith('image/')) {
                 // Images are sent via vision API separately, just note it here
-                context += `(Image file attached — sent to vision API)\n`;
+                context += `(Image file attached â€” sent to vision API)\n`;
             } else if (file.content && file.content.startsWith('data:')) {
-                context += `(Binary file — text extraction unavailable)\n`;
+                context += `(Binary file â€” text extraction unavailable)\n`;
             }
             context += '\n---\n\n';
         });
@@ -2018,7 +2021,7 @@ class ChatBotApp {
                 if (messageContent) {
                     const stoppedIndicator = document.createElement('div');
                     stoppedIndicator.className = 'message-stopped-indicator';
-                    stoppedIndicator.innerHTML = '⏹️ <em>Đã dừng bởi người dùng</em>';
+                    stoppedIndicator.innerHTML = 'â¹ï¸ <em>ÄÃ£ dá»«ng bá»Ÿi ngÆ°á»i dÃ¹ng</em>';
                     messageContent.appendChild(stoppedIndicator);
                 }
                 
@@ -2055,7 +2058,7 @@ class ChatBotApp {
      * the same timeline so the LLM sees them in chronological order.
      *
      * Falls back to DOM scraping for sessions that have neither structured
-     * messages nor legacy HTML — i.e. brand-new chats where the user just
+     * messages nor legacy HTML â€” i.e. brand-new chats where the user just
      * typed something but session state hasn't been saved yet.
      *
      * Caps at MAX_HISTORY_MESSAGES recent turns to bound token usage.
@@ -2092,7 +2095,7 @@ class ChatBotApp {
             if (!isUser && !isAssistant) return;
             let content = msgEl.querySelector('.message-text')?.textContent || '';
             if (content.length > MAX_CONTENT_CHARS) {
-                content = content.slice(0, MAX_CONTENT_CHARS) + '\n…(truncated)';
+                content = content.slice(0, MAX_CONTENT_CHARS) + '\nâ€¦(truncated)';
             }
             if (!content.trim()) return;
             history.push({
@@ -2109,28 +2112,28 @@ class ChatBotApp {
 
     /**
      * Strip large base64 data URIs from an HTML string before persisting to
-     * localStorage.  Images that already have a server-side URL (`/storage/…`)
-     * keep only that URL.  Pure-base64 images are replaced with a 1×1
+     * localStorage.  Images that already have a server-side URL (`/storage/â€¦`)
+     * keep only that URL.  Pure-base64 images are replaced with a 1Ã—1
      * transparent placeholder so the DOM structure stays intact on restore.
      */
     _stripBase64ForStorage(html) {
-        // 1. <img src="data:image/…;base64,…" data-igv2-open="/storage/…">
-        //    → keep only the server URL as src
+        // 1. <img src="data:image/â€¦;base64,â€¦" data-igv2-open="/storage/â€¦">
+        //    â†’ keep only the server URL as src
         html = html.replace(
             /(<img\s[^>]*?)src="data:image\/[^"]{50,}"([^>]*?data-igv2-open="([^"]+)")/gi,
             (_, before, after, url) => `${before}src="${url}"${after}`
         );
 
-        // 2. Any remaining <img src="data:image/…;base64,…"> without a server URL
-        //    → replace with tiny transparent gif to preserve layout
+        // 2. Any remaining <img src="data:image/â€¦;base64,â€¦"> without a server URL
+        //    â†’ replace with tiny transparent gif to preserve layout
         const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
         html = html.replace(
             /(<img\s[^>]*?)src="data:image\/[^"]{50,}"/gi,
             (_, before) => `${before}src="${PLACEHOLDER}"`
         );
 
-        // 3. <a href="data:image/…;base64,…"> (download links)
-        //    → strip the href (button will rewire on restore)
+        // 3. <a href="data:image/â€¦;base64,â€¦"> (download links)
+        //    â†’ strip the href (button will rewire on restore)
         html = html.replace(
             /(<a\s[^>]*?)href="data:image\/[^"]{50,}"/gi,
             (_, before) => `${before}href="#"`
@@ -2154,7 +2157,7 @@ class ChatBotApp {
             .filter(el => el.id !== 'welcomeScreen');
         const messages = messageElements.map(el => this._stripBase64ForStorage(el.outerHTML));
 
-        // Capture structured snapshot too — source of truth for the next
+        // Capture structured snapshot too â€” source of truth for the next
         // history build. Each render writes both legacy HTML (for fast restore)
         // and structured objects (for downstream consumers). Keeping both
         // sides for now to stay backward compatible with sessions that the
@@ -2281,8 +2284,8 @@ class ChatBotApp {
         const lang = localStorage.getItem('chatbot_language') || 'vi';
         this.showForkNotification(
             lang === 'vi'
-                ? '🔀 Đã tách nhánh! Bạn có thể tiếp tục chat từ đây.'
-                : '🔀 Forked! You can continue chatting from here.'
+                ? 'ðŸ”€ ÄÃ£ tÃ¡ch nhÃ¡nh! Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c chat tá»« Ä‘Ã¢y.'
+                : 'ðŸ”€ Forked! You can continue chatting from here.'
         );
     }
 
@@ -2305,7 +2308,7 @@ class ChatBotApp {
      * Clear chat
      */
     clearChat() {
-        if (!this.uiUtils.showConfirm('Bạn có chắc muốn xóa toàn bộ lịch sử chat này?')) {
+        if (!this.uiUtils.showConfirm('Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ lá»‹ch sá»­ chat nÃ y?')) {
             return;
         }
         // Close thinking side panel on clear
@@ -2362,8 +2365,8 @@ class ChatBotApp {
     async handleDeleteChat(chatId, opts = {}) {
         if (!opts.skipConfirm) {
             const ok = await this.uiUtils.showConfirmAsync(
-                'Bạn có chắc muốn xóa cuộc trò chuyện này?',
-                { danger: true, okText: 'Xóa', cancelText: 'Huỷ' }
+                'Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a cuá»™c trÃ² chuyá»‡n nÃ y?',
+                { danger: true, okText: 'XÃ³a', cancelText: 'Huá»·' }
             );
             if (!ok) return;
         }
@@ -2435,7 +2438,7 @@ class ChatBotApp {
                 elements.memoryListEl,
                 null,
                 async (memoryId) => {
-                    if (this.uiUtils.showConfirm('Xóa memory này?')) {
+                    if (this.uiUtils.showConfirm('XÃ³a memory nÃ y?')) {
                         await this.memoryManager.deleteMemory(memoryId);
                         this.memoryManager.renderMemoryList(elements.memoryListEl, null, null);
                     }
@@ -2452,7 +2455,7 @@ class ChatBotApp {
         const messages = Array.from(elements.chatContainer.children);
         
         if (messages.length === 0) {
-            this.uiUtils.showAlert('Không có nội dung để lưu!');
+            this.uiUtils.showAlert('KhÃ´ng cÃ³ ná»™i dung Ä‘á»ƒ lÆ°u!');
             return;
         }
         
@@ -2467,10 +2470,10 @@ class ChatBotApp {
         
         try {
             await this.memoryManager.saveMemory(title, content, images);
-            this.uiUtils.showAlert('✅ Đã lưu vào bộ nhớ AI!');
+            this.uiUtils.showAlert('âœ… ÄÃ£ lÆ°u vÃ o bá»™ nhá»› AI!');
             await this.toggleMemoryPanel(); // Refresh
         } catch (error) {
-            this.uiUtils.showAlert('❌ Lỗi khi lưu: ' + error.message);
+            this.uiUtils.showAlert('âŒ Lá»—i khi lÆ°u: ' + error.message);
         }
     }
 
@@ -2484,7 +2487,7 @@ class ChatBotApp {
         const customPromptUsed = window.customPromptEnabled === true;
         const loadingMsg = this.messageRenderer.addMessage(
             elements.chatContainer,
-            '🔄 Đang tạo PDF...',
+            'ðŸ”„ Äang táº¡o PDF...',
             false,
             'System',
             'casual',
@@ -2509,12 +2512,12 @@ class ChatBotApp {
      */
     async handleEditSave(messageDiv, newContent, originalContent) {
         if (!newContent.trim()) {
-            this.uiUtils.showAlert('Tin nhắn không được để trống!');
+            this.uiUtils.showAlert('Tin nháº¯n khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng!');
             return;
         }
         
         if (newContent === originalContent) {
-            this.uiUtils.showAlert('Nội dung không thay đổi!');
+            this.uiUtils.showAlert('Ná»™i dung khÃ´ng thay Ä‘á»•i!');
             return;
         }
         
@@ -2562,7 +2565,7 @@ class ChatBotApp {
             );
             
             const responseTimestamp = this.uiUtils.formatTimestamp(new Date());
-            const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            const responseContent = data.error ? `âŒ **Lá»—i:** ${data.error}` : data.response;
             const customPromptUsed = window.customPromptEnabled === true;
             
             this.messageRenderer.addMessage(
@@ -2602,7 +2605,7 @@ class ChatBotApp {
             await this.saveCurrentSession();
             
         } catch (error) {
-            this.uiUtils.showAlert('❌ Lỗi kết nối: ' + error.message);
+            this.uiUtils.showAlert('âŒ Lá»—i káº¿t ná»‘i: ' + error.message);
         } finally {
             this.uiUtils.hideLoading();
         }
@@ -2662,8 +2665,8 @@ class ChatBotApp {
                 const status = document.getElementById('mcpStatus');
                 if (status) {
                     status.innerHTML = enabled 
-                        ? '<span style="color: #10b981;">🟢 Đang bật</span>' 
-                        : '<span>⚪ Off</span>';
+                        ? '<span style="color: #10b981;">ðŸŸ¢ Äang báº­t</span>' 
+                        : '<span>âšª Off</span>';
                     status.classList.toggle('active', enabled);
                 }
                 
@@ -2699,7 +2702,7 @@ class ChatBotApp {
                 const folderName = firstPath.split('/')[0];
                 
                 // Show loading
-                selectFolderBtn.innerHTML = '⏳ Đang tải...';
+                selectFolderBtn.innerHTML = 'â³ Äang táº£i...';
                 selectFolderBtn.disabled = true;
                 
                 try {
@@ -2742,7 +2745,7 @@ class ChatBotApp {
                         folderList.style.display = 'block';
                         const tag = document.createElement('div');
                         tag.className = 'mcp-folder-tag';
-                        tag.innerHTML = `📁 ${this._escapeHtml(folderName)} (${folderData.files.length} files) <button class="mcp-remove-btn" data-type="folder" data-name="${this._escapeHtml(folderName)}">×</button>`;
+                        tag.innerHTML = `ðŸ“ ${this._escapeHtml(folderName)} (${folderData.files.length} files) <button class="mcp-remove-btn" data-type="folder" data-name="${this._escapeHtml(folderName)}">Ã—</button>`;
                         tag.querySelector('button').addEventListener('click', (e) => {
                             this.mcpContext.folders = this.mcpContext.folders.filter(f => f.name !== folderName);
                             tag.remove();
@@ -2758,9 +2761,9 @@ class ChatBotApp {
                     
                 } catch (error) {
                     console.error('[MCP] Folder read error:', error);
-                    alert('Lỗi đọc folder');
+                    alert('Lá»—i Ä‘á»c folder');
                 } finally {
-                    selectFolderBtn.innerHTML = '📁 <span>Select Folder</span>';
+                    selectFolderBtn.innerHTML = 'ðŸ“ <span>Select Folder</span>';
                     selectFolderBtn.disabled = false;
                     folderInput.value = '';
                 }
@@ -2776,7 +2779,7 @@ class ChatBotApp {
                 if (!url) return;
                 
                 fetchUrlBtn.disabled = true;
-                fetchUrlBtn.innerHTML = '⏳...';
+                fetchUrlBtn.innerHTML = 'â³...';
                 
                 try {
                     const response = await fetch('/api/mcp/fetch-url', {
@@ -2800,7 +2803,7 @@ class ChatBotApp {
                             const tag = document.createElement('div');
                             tag.className = 'mcp-folder-tag';
                             const hostname = new URL(url.startsWith('http') ? url : 'https://' + url).hostname;
-                            tag.innerHTML = `🌐 ${this._escapeHtml(hostname)} <button class="mcp-remove-btn">×</button>`;
+                            tag.innerHTML = `ðŸŒ ${this._escapeHtml(hostname)} <button class="mcp-remove-btn">Ã—</button>`;
                             tag.querySelector('button').addEventListener('click', () => {
                                 this.mcpContext.urls = this.mcpContext.urls.filter(u => u.url !== url);
                                 tag.remove();
@@ -2811,14 +2814,14 @@ class ChatBotApp {
                         urlInput.value = '';
                         this.updateMcpIndicator();
                     } else {
-                        alert('Lỗi fetch URL: ' + (data.error || 'Unknown error'));
+                        alert('Lá»—i fetch URL: ' + (data.error || 'Unknown error'));
                     }
                 } catch (error) {
                     console.error('[MCP] URL fetch error:', error);
-                    alert('Lỗi kết nối');
+                    alert('Lá»—i káº¿t ná»‘i');
                 } finally {
                     fetchUrlBtn.disabled = false;
-                    fetchUrlBtn.innerHTML = '🔍 Fetch';
+                    fetchUrlBtn.innerHTML = 'ðŸ” Fetch';
                 }
             });
         }
@@ -2834,7 +2837,7 @@ class ChatBotApp {
                 if (!files.length) return;
                 
                 const uploadList = document.getElementById('mcpUploadList');
-                uploadBtn.innerHTML = '⏳ Đang xử lý...';
+                uploadBtn.innerHTML = 'â³ Äang xá»­ lÃ½...';
                 uploadBtn.disabled = true;
                 
                 for (const file of files) {
@@ -2860,7 +2863,7 @@ class ChatBotApp {
                             if (uploadList) {
                                 const tag = document.createElement('div');
                                 tag.className = 'mcp-folder-tag';
-                                tag.innerHTML = `📄 ${this._escapeHtml(file.name)} <button class="mcp-remove-btn">×</button>`;
+                                tag.innerHTML = `ðŸ“„ ${this._escapeHtml(file.name)} <button class="mcp-remove-btn">Ã—</button>`;
                                 tag.querySelector('button').addEventListener('click', () => {
                                     this.mcpContext.uploads = this.mcpContext.uploads.filter(u => u.filename !== file.name);
                                     tag.remove();
@@ -2874,7 +2877,7 @@ class ChatBotApp {
                     }
                 }
                 
-                uploadBtn.innerHTML = '📤 <span>Upload Files (OCR)</span>';
+                uploadBtn.innerHTML = 'ðŸ“¤ <span>Upload Files (OCR)</span>';
                 uploadBtn.disabled = false;
                 fileUpload.value = '';
                 this.updateMcpIndicator();
@@ -2904,23 +2907,23 @@ class ChatBotApp {
         // Add folder files
         this.mcpContext.folders.forEach(folder => {
             folder.files.forEach(file => {
-                allFiles.push({ type: 'folder', icon: '📄', name: file.path });
+                allFiles.push({ type: 'folder', icon: 'ðŸ“„', name: file.path });
             });
         });
         
         // Add URLs
         this.mcpContext.urls.forEach(url => {
-            allFiles.push({ type: 'url', icon: '🌐', name: url.title || url.url });
+            allFiles.push({ type: 'url', icon: 'ðŸŒ', name: url.title || url.url });
         });
         
         // Add uploads
         this.mcpContext.uploads.forEach(upload => {
-            allFiles.push({ type: 'upload', icon: '📎', name: upload.filename });
+            allFiles.push({ type: 'upload', icon: 'ðŸ“Ž', name: upload.filename });
         });
         
         if (allFiles.length === 0) {
             fileList.innerHTML = `<div class="mcp-empty-state">
-                <p>📂</p>
+                <p>ðŸ“‚</p>
                 <p style="font-size: 13px; font-weight: 600; color: #667eea;">No context loaded</p>
                 <p style="font-size: 11px; color: #888;">Enable MCP and select a source</p>
             </div>`;
@@ -2965,7 +2968,7 @@ class ChatBotApp {
         const session = this.chatManager.getCurrentSession();
         if (!session) return;
         const lang = localStorage.getItem('chatbot_language') || 'vi';
-        const defaults = ['Cuộc trò chuyện mới', 'New conversation', 'Untitled'];
+        const defaults = ['Cuá»™c trÃ² chuyá»‡n má»›i', 'New conversation', 'Untitled'];
         if (!defaults.includes(session.title)) return; // already has a meaningful title
         try {
             const title = await this.chatManager.generateTitle(rawUserMessage);
@@ -2993,7 +2996,7 @@ class ChatBotApp {
     }
 }
 
-// ── Image overlay button handlers (global) ──────────────────────────────────
+// â”€â”€ Image overlay button handlers (global) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 window._igv2Download = function(imgSrc, imageId) {
     const a = document.createElement('a');
@@ -3012,7 +3015,7 @@ window._igv2Info = async function(imageId, triggerEl) {
 
     const popup = document.createElement('div');
     popup.className = 'igv2-info-popup';
-    popup.textContent = 'Đang tải…';
+    popup.textContent = 'Äang táº£iâ€¦';
     triggerEl.closest('.igv2-chat-image').appendChild(popup);
 
     try {
@@ -3029,7 +3032,7 @@ window._igv2Info = async function(imageId, triggerEl) {
         ].filter(Boolean).join('<br>');
         popup.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
     } catch {
-        popup.textContent = 'Không tải được thông tin.';
+        popup.textContent = 'KhÃ´ng táº£i Ä‘Æ°á»£c thÃ´ng tin.';
     }
 
     // Close on outside click
@@ -3040,13 +3043,13 @@ window._igv2Info = async function(imageId, triggerEl) {
 window._igv2Save = async function(imageId, triggerEl) {
     if (!imageId) return;
     triggerEl.disabled = true;
-    triggerEl.textContent = '⏳';
+    triggerEl.textContent = 'â³';
     try {
         const resp = await fetch(`/api/image-gen/save/${imageId}`, { method: 'POST' });
         const data = await resp.json();
         if (data.success) {
-            triggerEl.textContent = '✅';
-            triggerEl.title = data.drive_url ? `Drive: ${data.drive_url}` : 'Đã lưu!';
+            triggerEl.textContent = 'âœ…';
+            triggerEl.title = data.drive_url ? `Drive: ${data.drive_url}` : 'ÄÃ£ lÆ°u!';
             if (data.drive_url) {
                 const a = document.createElement('a');
                 a.href = data.drive_url;
@@ -3055,14 +3058,14 @@ window._igv2Save = async function(imageId, triggerEl) {
                 // Don't auto-open; just update tooltip
             }
         } else {
-            triggerEl.textContent = '❌';
-            triggerEl.title = data.error || 'Lỗi khi lưu';
-            setTimeout(() => { triggerEl.textContent = '☁'; triggerEl.disabled = false; }, 3000);
+            triggerEl.textContent = 'âŒ';
+            triggerEl.title = data.error || 'Lá»—i khi lÆ°u';
+            setTimeout(() => { triggerEl.textContent = 'â˜'; triggerEl.disabled = false; }, 3000);
         }
     } catch (e) {
-        triggerEl.textContent = '❌';
+        triggerEl.textContent = 'âŒ';
         triggerEl.title = String(e);
-        setTimeout(() => { triggerEl.textContent = '☁'; triggerEl.disabled = false; }, 3000);
+        setTimeout(() => { triggerEl.textContent = 'â˜'; triggerEl.disabled = false; }, 3000);
     }
 };
 
@@ -3098,7 +3101,7 @@ if (!window.__igv2OverlayDelegationBound) {
     });
 }
 
-// ── Image overlay actions (zoom, preview — runs at module load) ──────────────
+// â”€â”€ Image overlay actions (zoom, preview â€” runs at module load) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 initOverlayActions();
 
 // Initialize app when DOM is ready
@@ -3109,28 +3112,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose to window for global access
     window.chatBotApp = app;
 
-    // ── Overlay manager — unified Escape / outside-click handling ──
+    // â”€â”€ Overlay manager â€” unified Escape / outside-click handling â”€â”€
     initOverlayManager();
+
+    // Expose overlay helpers globally so non-module scripts (nano-banana.js etc.)
+    // can call openOverlay / closeOverlay without an ES-module import.
+    window.openOverlay   = openOverlay;
+    window.closeOverlay  = closeOverlay;
+    window.toggleOverlay = toggleOverlay;
+    window.isOverlayOpen = isOpen;
+
     registerOverlay('galleryModal',            { type: 'modal' });
     registerOverlay('galleryInfoModal',        { type: 'modal' });
-    // outsideClose:false — image preview is the only modal where the
+    // outsideClose:false â€” image preview is the only modal where the
     // visible dark area IS the overlay (no inner content card), so a
     // backdrop-click would close on every accidental tap near the image
-    // edge. Force users to use the × / Esc instead.
+    // edge. Force users to use the Ã— / Esc instead.
     registerOverlay('imagePreviewModal',       { type: 'modal', outsideClose: false, onClose: () => { document.body.style.overflow = ''; } });
     registerOverlay('historyModal',            { type: 'modal' });
     registerOverlay('configAgentModal',        { type: 'modal' });
-    // ── Floating tool panels (Phase 3) ──
+    // â”€â”€ Floating tool panels (Phase 3) â”€â”€
     // Tool windows that should NOT block the chat: draggable, resizable,
     // dismissed by clicking outside. State (form values, in-flight jobs)
-    // is preserved — the element stays mounted, only visibility flips.
+    // is preserved â€” the element stays mounted, only visibility flips.
     registerOverlay('imageGenV2Modal',         { type: 'panel' });
     registerOverlay('animePipelineModal',      { type: 'panel' });
-    registerOverlay('videoGenModal',           { type: 'panel' });
-    registerOverlay('nanoBananaModal',         { type: 'panel' });
+    registerOverlay('videoGenModal',           { type: 'panel',
+        onOpen:  () => { app.videoGen._updateCostEstimate(); app.videoGen._bindCostListeners(); app.videoGen._setupDragDrop(); },
+        onClose: () => { app.videoGen._stopPolling(); },
+    });
+    registerOverlay('nanoBananaModal',         { type: 'panel',
+        onOpen:  () => { if (window.nanoBanana) window.nanoBanana.onOverlayOpen(); },
+    });
     registerOverlay('characterPickerModal',    { type: 'panel' });
     // jobQueuePanel is a standalone div (no .modal-overlay class), so closing
-    // by class alone is not enough — also clear its inline display.
+    // by class alone is not enough â€” also clear its inline display.
     registerOverlay('jobQueuePanel',           { type: 'panel', onClose: (el) => { el.style.display = 'none'; if (window.closeJobQueuePanel) window.closeJobQueuePanel(); } });
     enablePanelMode('imageGenV2Modal');
     enablePanelMode('animePipelineModal');
@@ -3167,9 +3183,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Category icons
         const categoryIcons = {
-            hair: '💇', eyes: '👀', face: '😊', clothing: '👗',
-            accessories: '💍', body: '🧘', pose: '🤸', background: '🌄',
-            character: '👤', style: '🎨', quality: '⭐', other: '🏷️'
+            hair: 'ðŸ’‡', eyes: 'ðŸ‘€', face: 'ðŸ˜Š', clothing: 'ðŸ‘—',
+            accessories: 'ðŸ’', body: 'ðŸ§˜', pose: 'ðŸ¤¸', background: 'ðŸŒ„',
+            character: 'ðŸ‘¤', style: 'ðŸŽ¨', quality: 'â­', other: 'ðŸ·ï¸'
         };
         
         // Initialize selectedTags if not exists (all selected by default)
@@ -3183,14 +3199,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const catTags = categories[catName];
             if (!catTags || catTags.length === 0) return;
             
-            const icon = categoryIcons[catName] || '🏷️';
+            const icon = categoryIcons[catName] || 'ðŸ·ï¸';
             const catTitle = catName.charAt(0).toUpperCase() + catName.slice(1);
             
             html += `
                 <div class="tag-category">
                     <div class="category-header" onclick="toggleCategory('${catName}')">
                         ${icon} <strong>${catTitle}</strong> (${catTags.length})
-                        <span class="category-toggle">▼</span>
+                        <span class="category-toggle">â–¼</span>
                     </div>
                     <div class="category-tags" id="cat-${catName}">
                         ${catTags.map(tag => {
@@ -3198,7 +3214,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return `
                             <span class="tag-item ${isSelected ? 'tag-selected' : 'tag-unselected'}" 
                                   onclick="toggleImageTag('${tag.name.replace(/'/g, "\\'")}', this)" 
-                                  title="${isSelected ? 'Click để bỏ chọn' : 'Click để chọn'} (Confidence: ${(tag.confidence * 100).toFixed(1)}%)">
+                                  title="${isSelected ? 'Click Ä‘á»ƒ bá» chá»n' : 'Click Ä‘á»ƒ chá»n'} (Confidence: ${(tag.confidence * 100).toFixed(1)}%)">
                                 ${tag.name} <small>(${(tag.confidence * 100).toFixed(0)}%)</small>
                             </span>
                         `}).join('')}
@@ -3237,14 +3253,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const originalText = btn.textContent;
         btn.disabled = true;
-        btn.textContent = '⏳ Đang tạo ảnh...';
+        btn.textContent = 'â³ Äang táº¡o áº£nh...';
         
         try {
             await app.imageGen.generateText2Img();
-            // Ảnh sẽ tự động hiện trong chat, không cần alert
+            // áº¢nh sáº½ tá»± Ä‘á»™ng hiá»‡n trong chat, khÃ´ng cáº§n alert
         } catch (error) {
             console.error('[Generate Image] Error:', error);
-            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+            app.uiUtils.showAlert('âŒ Lá»—i: ' + error.message);
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -3257,14 +3273,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const originalText = btn.textContent;
         btn.disabled = true;
-        btn.textContent = '⏳ Đang tạo ảnh...';
+        btn.textContent = 'â³ Äang táº¡o áº£nh...';
         
         try {
             await app.imageGen.generateImg2Img();
-            // Ảnh sẽ tự động hiện trong chat, không cần alert
+            // áº¢nh sáº½ tá»± Ä‘á»™ng hiá»‡n trong chat, khÃ´ng cáº§n alert
         } catch (error) {
             console.error('[Generate Img2Img] Error:', error);
-            app.uiUtils.showAlert('❌ Lỗi: ' + error.message);
+            app.uiUtils.showAlert('âŒ Lá»—i: ' + error.message);
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -3277,7 +3293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const originalText = btn.textContent;
         btn.disabled = true;
-        btn.textContent = '⏳ Đang trích xuất...';
+        btn.textContent = 'â³ Äang trÃ­ch xuáº¥t...';
         
         try {
             const data = await app.imageGen.extractFeatures();
@@ -3285,11 +3301,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data && data.tags) {
                 // Display tags in UI
                 displayExtractedTags(data.tags, data.categories || {});
-                alert(`✅ Đã trích xuất ${data.tags.length} tags!`);
+                alert(`âœ… ÄÃ£ trÃ­ch xuáº¥t ${data.tags.length} tags!`);
             }
         } catch (error) {
             console.error('[Extract Features] Error:', error);
-            alert('❌ Lỗi: ' + error.message);
+            alert('âŒ Lá»—i: ' + error.message);
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -3302,7 +3318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const originalText = btn.textContent;
         btn.disabled = true;
-        btn.textContent = '🤖 Đang tạo prompt & chọn best options...';
+        btn.textContent = 'ðŸ¤– Äang táº¡o prompt & chá»n best options...';
         
         try {
             const result = await app.imageGen.generatePromptFromTags();
@@ -3333,14 +3349,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     promptTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
                 
-                const modelVal = document.getElementById('img2imgModelSelect')?.value || '—';
+                const modelVal = document.getElementById('img2imgModelSelect')?.value || 'â€”';
                 const vaeVal = document.getElementById('img2imgVaeSelect')?.value || 'Default';
                 const promptPreview = result.prompt.substring(0, 60);
-                alert(`✅ Auto-configured!\n\n📝 Prompt: ${promptPreview}...\n🎨 Model: ${modelVal}\n🔧 VAE: ${vaeVal}\n🎯 LoRA + params đã tự động chọn`);
+                alert(`âœ… Auto-configured!\n\nðŸ“ Prompt: ${promptPreview}...\nðŸŽ¨ Model: ${modelVal}\nðŸ”§ VAE: ${vaeVal}\nðŸŽ¯ LoRA + params Ä‘Ã£ tá»± Ä‘á»™ng chá»n`);
             }
         } catch (error) {
             console.error('[Auto-Generate Prompt] Error:', error);
-            alert('❌ Lỗi: ' + error.message + '\n\n💡 Kiểm tra GROK_API_KEY trong file .env');
+            alert('âŒ Lá»—i: ' + error.message + '\n\nðŸ’¡ Kiá»ƒm tra GROK_API_KEY trong file .env');
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -3389,13 +3405,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadPreviewImage = () => app.messageRenderer.downloadPreviewImage();
 
     // 2026-04-28: lightbox "Upscale" button removed by user request
-    // ("quá nặng"). Image-Gen V2 modal now exposes orientation
-    // presets that generate natively at 2048×2048 / 1536×2048 /
-    // 2048×1536, so a post-hoc upscale pass is no longer the default
+    // ("quÃ¡ náº·ng"). Image-Gen V2 modal now exposes orientation
+    // presets that generate natively at 2048Ã—2048 / 1536Ã—2048 /
+    // 2048Ã—1536, so a post-hoc upscale pass is no longer the default
     // path. The backend ``/api/anime-pipeline/upscale`` endpoint is
     // still reachable via direct API for power users.
     window.upscalePreviewImage = async () => {
-        console.warn('[upscalePreviewImage] disabled — use orientation presets to generate at 2048×2048 directly.');
+        console.warn('[upscalePreviewImage] disabled â€” use orientation presets to generate at 2048Ã—2048 directly.');
     };
 
     // Shared implementation for lightbox image-mutating ops. Reads
@@ -3416,13 +3432,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const idx = src.indexOf('/storage/images/');
             body.image_url = src.substring(idx);
         } else {
-            alert('Chỉ hỗ trợ ảnh từ /storage/images/ hoặc base64 data URL.');
+            alert('Chá»‰ há»— trá»£ áº£nh tá»« /storage/images/ hoáº·c base64 data URL.');
             return;
         }
 
         // Surface the original generation prompt back to the backend so
         // the SDXL re-render keeps NSFW vocalizations / character context
-        // (e.g. ``english text "NGHHH~♥♥"``) on the redrawn image.
+        // (e.g. ``english text "NGHHH~â™¥â™¥"``) on the redrawn image.
         // Source order:
         //   1. ``data-prompt`` on the originating chat <img>'s parent
         //      ``.igv2-chat-image`` container (set by anime-pipeline.js).
@@ -3452,11 +3468,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const errEl = document.createElement('div');
                     errEl.style.color = '#ff6b6b';
                     errEl.style.marginTop = '6px';
-                    errEl.textContent = `${label} lỗi: ${msg}`;
+                    errEl.textContent = `${label} lá»—i: ${msg}`;
                     info.appendChild(errEl);
                     setTimeout(() => errEl.remove(), 6000);
                 } else {
-                    alert(`${label} lỗi: ${msg}`);
+                    alert(`${label} lá»—i: ${msg}`);
                 }
                 return;
             }
@@ -3467,7 +3483,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (info) {
                 info.innerHTML = `
                     <div class="lightbox__meta-grid">
-                        <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${j.width} × ${j.height}</span></div>
+                        <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${j.width} Ã— ${j.height}</span></div>
                         <div class="lightbox__meta-item"><span class="lightbox__meta-label">${metaExtraLabel}</span><span class="lightbox__meta-value">${metaExtra(j)}</span></div>
                     </div>
                 `;
@@ -3480,7 +3496,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (_e) { /* non-fatal */ }
         } catch (err) {
-            alert(`${label} lỗi: ${err.message || err}`);
+            alert(`${label} lá»—i: ${err.message || err}`);
         } finally {
             if (btn) { btn.disabled = false; btn.textContent = label; }
         }
@@ -3582,7 +3598,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isSwiping) return;
             isSwiping = false;
             if (swipeDeltaY > 120) {
-                // Swipe far enough → close
+                // Swipe far enough â†’ close
                 if (lightboxEl) {
                     lightboxEl.style.transition = 'transform 0.2s, opacity 0.2s';
                     lightboxEl.style.transform = 'translateY(100%)';
@@ -3655,13 +3671,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.selectedImageTags.delete(tagName);
             element.classList.remove('tag-selected');
             element.classList.add('tag-unselected');
-            element.title = `Click để chọn (${element.querySelector('small').textContent})`;
+            element.title = `Click Ä‘á»ƒ chá»n (${element.querySelector('small').textContent})`;
         } else {
             // Select
             window.selectedImageTags.add(tagName);
             element.classList.remove('tag-unselected');
             element.classList.add('tag-selected');
-            element.title = `Click để bỏ chọn (${element.querySelector('small').textContent})`;
+            element.title = `Click Ä‘á»ƒ bá» chá»n (${element.querySelector('small').textContent})`;
         }
         
         console.log('[Tag Toggle]', tagName, window.selectedImageTags.has(tagName) ? 'SELECTED' : 'UNSELECTED');
@@ -3678,7 +3694,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadChatAsJSON = () => app.exportHandler.downloadChatAsJSON(app.currentSession, app.chatManager.sessions);
     window.downloadChatAsText = () => app.exportHandler.downloadChatAsText(app.currentSession, app.chatManager.sessions);
 
-    // ── Advanced Model Settings panel ───────────────────────────────
+    // â”€â”€ Advanced Model Settings panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     (() => {
         const ADV_STORAGE_KEY = 'adv_model_params';
         const DEFAULTS = { temperature: 0.7, temperatureDeep: 0.5, maxTokensDeep: 4096, topP: null };
@@ -3796,7 +3812,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modal) return;
         
         modal.classList.add('active', 'open');
-        grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">⏳ Đang tải ảnh...</div>';
+        grid.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">â³ Äang táº£i áº£nh...</div>';
         
         try {
             const url = '/api/gallery/images?all=true';
@@ -3804,8 +3820,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             if (data.success && data.images.length > 0) {
-                const sourceText = data.source === 'mongodb' ? ' ☁️' : ' 💾';
-                stats.textContent = `📊 Tổng số: ${data.total} ảnh (Tất cả)${sourceText}`;
+                const sourceText = data.source === 'mongodb' ? ' â˜ï¸' : ' ðŸ’¾';
+                stats.textContent = `ðŸ“Š Tá»•ng sá»‘: ${data.total} áº£nh (Táº¥t cáº£)${sourceText}`;
                 
                 grid.innerHTML = data.images.map(img => {
                     const metadataStr = JSON.stringify(img.metadata).replace(/"/g, '&quot;');
@@ -3836,22 +3852,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     return `
                         <div class="gallery-item" data-path="${displayUrl}" data-filename="${filename}" data-metadata="${metadataStr}">
                             <img src="${displayUrl}" alt="${filename}" loading="lazy" onerror="this.src='${safeFallback}'">
-                            ${isCloud ? '<span class="gallery-cloud-badge" title="Stored in cloud">☁️</span>' : ''}
-                            ${hasDrive ? '<span class="gallery-drive-badge" title="Saved to Drive">📁</span>' : ''}
+                            ${isCloud ? '<span class="gallery-cloud-badge" title="Stored in cloud">â˜ï¸</span>' : ''}
+                            ${hasDrive ? '<span class="gallery-drive-badge" title="Saved to Drive">ðŸ“</span>' : ''}
                             <div class="gallery-item-info">
-                                <div style="font-size:10px;opacity:0.7;">📅 ${safeCreated}</div>
+                                <div style="font-size:10px;opacity:0.7;">ðŸ“… ${safeCreated}</div>
                                 <div class="gallery-item-prompt" title="${safePrompt}">
-                                    ${escapeHtml((img.prompt || '').substring(0, 60))}${(img.prompt || '').length > 60 ? '…' : ''}
+                                    ${escapeHtml((img.prompt || '').substring(0, 60))}${(img.prompt || '').length > 60 ? 'â€¦' : ''}
                                 </div>
                             </div>
-                            <button class="gallery-info-btn" onclick="event.stopPropagation(); showGalleryImageInfo('${jsFilename}', '${jsImgId}', '${imageDataStr}')" title="Thông tin ảnh">
-                                ℹ️
+                            <button class="gallery-info-btn" onclick="event.stopPropagation(); showGalleryImageInfo('${jsFilename}', '${jsImgId}', '${imageDataStr}')" title="ThÃ´ng tin áº£nh">
+                                â„¹ï¸
                             </button>
-                            <button class="gallery-upload-btn" onclick="event.stopPropagation(); uploadGalleryImageToDB('${jsFilename}')" title="Upload metadata + ảnh lên MongoDB/Firebase/Drive">
-                                ⬆️
+                            <button class="gallery-upload-btn" onclick="event.stopPropagation(); uploadGalleryImageToDB('${jsFilename}')" title="Upload metadata + áº£nh lÃªn MongoDB/Firebase/Drive">
+                                â¬†ï¸
                             </button>
-                            <button class="gallery-delete-btn" onclick="event.stopPropagation(); deleteGalleryImage('${jsFilename}')" title="Xóa ảnh">
-                                🗑️
+                            <button class="gallery-delete-btn" onclick="event.stopPropagation(); deleteGalleryImage('${jsFilename}')" title="XÃ³a áº£nh">
+                                ðŸ—‘ï¸
                             </button>
                         </div>
                     `;
@@ -3872,13 +3888,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
             } else {
-                const emptyMsg = showAll ? '🖼️ No pictures yet' : '🖼️ No pictures';
+                const emptyMsg = showAll ? 'ðŸ–¼ï¸ No pictures yet' : 'ðŸ–¼ï¸ No pictures';
                 grid.innerHTML = `<div class="gallery-empty">${emptyMsg}</div>`;
-                stats.textContent = '📊 Total: 0 Pictures';
+                stats.textContent = 'ðŸ“Š Total: 0 Pictures';
             }
         } catch (error) {
             console.error('[Gallery] Error:', error);
-            grid.innerHTML = '<div class="gallery-empty">❌ Error while loading images</div>';
+            grid.innerHTML = '<div class="gallery-empty">âŒ Error while loading images</div>';
         }
     };
 
@@ -3903,7 +3919,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modal || !body) return;
 
         modal.classList.add('active', 'open');
-        body.innerHTML = '<div style="padding:12px 0; color: var(--text-tertiary);">⏳ Đang tải thông tin ảnh...</div>';
+        body.innerHTML = '<div style="padding:12px 0; color: var(--text-tertiary);">â³ Äang táº£i thÃ´ng tin áº£nh...</div>';
 
         let fromCard = {};
         if (encodedImageData) {
@@ -4001,8 +4017,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="gallery-info-actions">
-                    <button class="btn btn--sm btn--primary" onclick="uploadGalleryImageToDB('${escapeHtml(filename)}')">⬆️ Upload len DB</button>
-                    ${(links.share_url || fromCard.share_url) ? `<button class="btn btn--sm btn--ghost" onclick="copyGalleryShareLink('${escapeHtml(links.share_url || fromCard.share_url)}')">🔗 Copy Share Link</button>` : ''}
+                    <button class="btn btn--sm btn--primary" onclick="uploadGalleryImageToDB('${escapeHtml(filename)}')">â¬†ï¸ Upload len DB</button>
+                    ${(links.share_url || fromCard.share_url) ? `<button class="btn btn--sm btn--ghost" onclick="copyGalleryShareLink('${escapeHtml(links.share_url || fromCard.share_url)}')">ðŸ”— Copy Share Link</button>` : ''}
                 </div>
             `;
         };
@@ -4031,7 +4047,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.copyGalleryShareLink = async (url) => {
         try {
             await navigator.clipboard.writeText(url || '');
-            alert('✅ Đã copy share link');
+            alert('âœ… ÄÃ£ copy share link');
         } catch (_) {
             prompt('Copy link:', url || '');
         }
@@ -4083,16 +4099,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || (data.success === false)) {
                 throw new Error(data.error || `Upload failed (${response.status})`);
             }
-            alert('✅ Đã upload lên MongoDB/Firebase/Drive (nếu cấu hình Drive endpoint hợp lệ).');
+            alert('âœ… ÄÃ£ upload lÃªn MongoDB/Firebase/Drive (náº¿u cáº¥u hÃ¬nh Drive endpoint há»£p lá»‡).');
             await refreshGallery();
         } catch (error) {
             console.error('[Gallery] upload-db error:', error);
-            alert('❌ Upload DB lỗi: ' + (error.message || 'Unknown error'));
+            alert('âŒ Upload DB lá»—i: ' + (error.message || 'Unknown error'));
         }
     };
     
     window.deleteGalleryImage = async (filename) => {
-        if (!confirm(`Bạn có chắc muốn xóa ảnh "${filename}"?`)) return;
+        if (!confirm(`Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a áº£nh "${filename}"?`)) return;
         
         try {
             const response = await fetch(`/api/delete-image/${filename}`, {
@@ -4105,11 +4121,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Refresh gallery
                 await refreshGallery();
             } else {
-                alert('Lỗi: ' + (data.error || 'Không thể xóa ảnh'));
+                alert('Lá»—i: ' + (data.error || 'KhÃ´ng thá»ƒ xÃ³a áº£nh'));
             }
         } catch (error) {
             console.error('[Gallery] Delete error:', error);
-            alert('Lỗi khi xóa ảnh');
+            alert('Lá»—i khi xÃ³a áº£nh');
         }
     };
     
@@ -4136,7 +4152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     m.sampler && { label: 'Sampler', value: m.sampler },
                     m.steps && { label: 'Steps', value: m.steps },
                     m.cfg_scale && { label: 'CFG', value: m.cfg_scale },
-                    (m.width && m.height) && { label: 'Size', value: `${m.width}×${m.height}` },
+                    (m.width && m.height) && { label: 'Size', value: `${m.width}Ã—${m.height}` },
                     m.denoising_strength && { label: 'Denoise', value: m.denoising_strength },
                     m.vae && { label: 'VAE', value: m.vae },
                     m.seed && { label: 'Seed', value: m.seed },

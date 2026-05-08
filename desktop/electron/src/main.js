@@ -158,12 +158,18 @@ function createWindow() {
 }
 
 function buildTrayMenu() {
+    const comfyuiUrl = 'http://127.0.0.1:' + (process.env.COMFYUI_PORT || '8188');
     return Menu.buildFromTemplate([
         {
             label: mainWindow && mainWindow.isVisible() ? 'Hide window' : 'Show window',
             click: () => toggleWindow()
         },
         { label: 'Active jobs: ' + activeJobs, enabled: false },
+        { type: 'separator' },
+        {
+            label: 'Open ComfyUI',
+            click: () => shell.openExternal(comfyuiUrl)
+        },
         { type: 'separator' },
         {
             label: 'Restart backend',

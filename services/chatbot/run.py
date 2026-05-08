@@ -378,6 +378,7 @@ def _start_character_select_if_needed() -> None:
             [npm_cmd, 'start'],
             saa_path,
             'character-select-autostart.log',
+            env=saa_env,
         )
 
 

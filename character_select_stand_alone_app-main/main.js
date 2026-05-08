@@ -24,6 +24,11 @@ import { setupTagger } from './scripts/main/imageTagger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// When SHOW_ELECTRON_SAA=false (default when launched by AI-Assistant backend),
+// the SAA runs headlessly as a webserver only — no Electron window is shown.
+// Set SHOW_ELECTRON_SAA=true to restore the full windowed UI.
+const SHOW_ELECTRON_WINDOW = process.env.SHOW_ELECTRON_SAA !== 'false';
+
 let mainWindow; // Main browser window instance
 
 function replaceMisspelling(word) {
@@ -91,15 +96,19 @@ async function initializeApp() {
   setupGenerateBackendWebUI();  
   setupTagger();
 
-  if (downloadSuccess && cacheSuccess && tacSuccess) {   
-    createWindow();
-    mainWindow.setTitle(`Wai Character Select SAA ${version}`);
+  if (downloadSuccess && cacheSuccess && tacSuccess) {
+    if (SHOW_ELECTRON_WINDOW) {
+      createWindow();
+      mainWindow.setTitle(`Wai Character Select SAA ${version}`);
 
-    app.on('activate', function () {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    })
+      app.on('activate', function () {
+        // On macOS it's common to re-create a window in the app when the
+        // dock icon is clicked and there are no other windows open.
+        if (BrowserWindow.getAllWindows().length === 0) createWindow()
+      });
+    } else {
+      console.log(`[SAA] Running headless (SHOW_ELECTRON_SAA=false). WebSocket server active on port ${SETTINGS.ws_port}.`);
+    }
   } else {
     console.error('[Main] Failed to download required files. Exiting...');
     app.quit();
@@ -132,12 +141,14 @@ async function initializeApp() {
   });
 })();
 
-// Quit when all windows are closed
+// Quit when all windows are closed.
+// In headless mode (SHOW_ELECTRON_WINDOW=false) no window is ever created, so
+// this event never fires — the process stays alive serving the webserver.
 app.on('window-all-closed', function () {
-  // close the WebSocket server
   closeWebSocketServer();
-
-  app.quit()
+  if (SHOW_ELECTRON_WINDOW) {
+    app.quit();
+  }
 })
 
 

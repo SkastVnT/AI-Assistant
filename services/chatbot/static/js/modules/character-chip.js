@@ -1,17 +1,17 @@
 /**
- * character-chip.js â€” Headless character-state holder + inline-picker glue.
+ * character-chip.js — Headless character-state holder + inline-picker glue.
  *
  * No DOM is injected into the topbar. The chip used to live there but the
  * inline card-style picker (see character-picker.js openCharacterPickerInline)
  * replaces it. This file only:
  *
- *   1. Wires #characterPickerBtn â†’ opens the inline picker card in chat.
- *   2. Wires #manualProfileBtn (in the More menu) â†’ opens the manual-profile
+ *   1. Wires #characterPickerBtn → opens the inline picker card in chat.
+ *   2. Wires #manualProfileBtn (in the More menu) → opens the manual-profile
  *      modal (built lazily in DOM on first open).
  *   3. Listens for `character:selected` events from the picker, fetches
  *      `/api/characters/preview` for canonical metadata, and exposes the
  *      result on `window.selectedCharacter` for downstream image-gen flows.
- *   4. Tracks `window.imageGenOptions` (preflightOnly, budgetMode, â€¦) so the
+ *   4. Tracks `window.imageGenOptions` (preflightOnly, budgetMode, …) so the
  *      provider-choice card and reasoning-image-gen.js can read user prefs.
  *      Toggles for these now live inside the provider-choice card itself.
  */
@@ -81,7 +81,7 @@
     }));
   }
 
-  // â”€â”€ Manual profile modal (lazy-built, opened from More menu) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Manual profile modal (lazy-built, opened from More menu) ──────────
 
   function ensureProfileModal() {
     let modal = document.getElementById('manualProfileModal');
@@ -219,7 +219,7 @@
     showResult({ ok: true, cleared: true });
   }
 
-  // â”€â”€ Wire-up â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Wire-up ───────────────────────────────────────────────────────────
 
   function init() {
     document.addEventListener('character:selected', (ev) => onSelected(ev.detail));

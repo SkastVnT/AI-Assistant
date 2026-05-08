@@ -25,9 +25,14 @@ export class VideoGen {
     // ── Modal Control ──────────────────────────────────────────────
 
     openModal() {
-        const modal = document.getElementById('videoGenModal');
-        if (modal) {
-            modal.classList.add('active', 'open');
+        // Delegate to overlay manager so the panel is tracked in _stack
+        // (outside-click close, Escape close). onOpen callback handles init.
+        if (window.openOverlay) {
+            window.openOverlay('videoGenModal');
+        } else {
+            // fallback before overlay manager is ready
+            const modal = document.getElementById('videoGenModal');
+            if (modal) modal.classList.add('open');
             this._updateCostEstimate();
             this._bindCostListeners();
             this._setupDragDrop();
@@ -35,9 +40,11 @@ export class VideoGen {
     }
 
     closeModal() {
-        const modal = document.getElementById('videoGenModal');
-        if (modal) {
-            modal.classList.remove('active', 'open');
+        if (window.closeOverlay) {
+            window.closeOverlay('videoGenModal');
+        } else {
+            const modal = document.getElementById('videoGenModal');
+            if (modal) modal.classList.remove('active', 'open');
         }
         this._stopPolling();
     }

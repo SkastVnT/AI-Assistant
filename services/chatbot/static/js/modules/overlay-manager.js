@@ -258,6 +258,7 @@ export function enablePanelMode(id, opts = {}) {
         if (saved) {
             content.style.setProperty('--panel-top', saved.top + 'px');
             content.style.setProperty('--panel-left', saved.left + 'px');
+            content.style.setProperty('--panel-tx', '0px'); // clear centering transform
             if (saved.w) content.style.setProperty('--panel-w', saved.w + 'px');
             if (saved.h) content.style.setProperty('--panel-h', saved.h + 'px');
         }
@@ -297,6 +298,11 @@ export function enablePanelMode(id, opts = {}) {
         startY = e.clientY;
         startTop = rect.top;
         startLeft = rect.left;
+        // Anchor the panel at its actual screen position before dragging
+        // (removes the default -50% centering transform).
+        content.style.setProperty('--panel-top', startTop + 'px');
+        content.style.setProperty('--panel-left', startLeft + 'px');
+        content.style.setProperty('--panel-tx', '0px');
         handle.classList.add('is-dragging');
         try { handle.setPointerCapture(e.pointerId); } catch (_) {}
         e.preventDefault();
@@ -310,6 +316,7 @@ export function enablePanelMode(id, opts = {}) {
         const left = Math.max(0, startLeft + dx);
         dragContent.style.setProperty('--panel-top', top + 'px');
         dragContent.style.setProperty('--panel-left', left + 'px');
+        dragContent.style.setProperty('--panel-tx', '0px');
     });
 
     const endDrag = (e) => {

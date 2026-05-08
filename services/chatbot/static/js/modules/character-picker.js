@@ -1,5 +1,5 @@
 /**
- * character-picker.js — Searchable character picker modal.
+ * character-picker.js â€” Searchable character picker modal.
  *
  * Public API (exposed on window):
  *   window.openCharacterPicker(onSelect)
@@ -66,20 +66,20 @@
     modal.innerHTML = `
       <div class="modal-content character-picker-content" role="dialog" aria-modal="true" aria-label="Character picker">
         <div class="character-picker-header">
-          <h3>Chọn nhân vật</h3>
-          <button type="button" class="cp-close-btn" id="cpCloseBtn" aria-label="Close">×</button>
+          <h3>Chá»n nhÃ¢n váº­t</h3>
+          <button type="button" class="cp-close-btn" id="cpCloseBtn" aria-label="Close">Ã—</button>
         </div>
         <div class="character-picker-controls">
-          <input type="search" id="cpSearchInput" placeholder="Tìm theo tên, tag, alias…" autocomplete="off"/>
+          <input type="search" id="cpSearchInput" placeholder="TÃ¬m theo tÃªn, tag, aliasâ€¦" autocomplete="off"/>
           <select id="cpSeriesFilter">
-            <option value="">Tất cả series</option>
+            <option value="">Táº¥t cáº£ series</option>
           </select>
-          <button type="button" id="cpReloadBtn" class="cp-reload-btn" title="Reload registry">⟳</button>
+          <button type="button" id="cpReloadBtn" class="cp-reload-btn" title="Reload registry">âŸ³</button>
         </div>
         <div class="character-picker-grid" id="cpGrid" aria-live="polite"></div>
         <div class="character-picker-footer">
-          <span id="cpCount" class="cp-count">0 nhân vật</span>
-          <button type="button" id="cpCancelBtn" class="cp-cancel-btn">Hủy</button>
+          <span id="cpCount" class="cp-count">0 nhÃ¢n váº­t</span>
+          <button type="button" id="cpCancelBtn" class="cp-cancel-btn">Há»§y</button>
         </div>
       </div>
     `;
@@ -91,7 +91,7 @@
     const sel = document.getElementById('cpSeriesFilter');
     if (!sel) return;
     const current = sel.value;
-    sel.innerHTML = '<option value="">Tất cả series</option>' +
+    sel.innerHTML = '<option value="">Táº¥t cáº£ series</option>' +
       seriesList.map(s => `<option value="${escapeHTML(s.key)}">${escapeHTML(s.name)}</option>`).join('');
     sel.value = current;
   }
@@ -100,9 +100,9 @@
     const grid = document.getElementById('cpGrid');
     const count = document.getElementById('cpCount');
     if (!grid) return;
-    if (count) count.textContent = `${chars.length} nhân vật`;
+    if (count) count.textContent = `${chars.length} nhÃ¢n váº­t`;
     if (chars.length === 0) {
-      grid.innerHTML = '<div class="cp-empty">Không tìm thấy nhân vật phù hợp.</div>';
+      grid.innerHTML = '<div class="cp-empty">KhÃ´ng tÃ¬m tháº¥y nhÃ¢n váº­t phÃ¹ há»£p.</div>';
       return;
     }
     grid.innerHTML = chars.map(c => {
@@ -114,7 +114,7 @@
         ? `<span class="cp-source-badge" title="From SAA WAI database (5149 characters)">SAA</span>`
         : '';
       // Skip the <img> entirely when the backend told us no thumbnail is
-      // resolvable — avoids a guaranteed 404 + log noise. Render the letter
+      // resolvable â€” avoids a guaranteed 404 + log noise. Render the letter
       // avatar directly. ``has_thumbnail`` may be undefined on legacy
       // responses; in that case fall back to the original onerror flow.
       const letter = escapeHTML(c.display_name.charAt(0));
@@ -123,7 +123,7 @@
         : `<img loading="lazy" src="${API_BASE}/${encodeURIComponent(c.key)}/thumbnail" alt="${escapeHTML(c.display_name)}"
                  onerror="this.style.display='none';this.parentNode.classList.add('cp-no-thumb');this.parentNode.textContent='${letter}';"/>`;
       return `
-        <button type="button" class="cp-card" data-key="${escapeHTML(c.key)}" title="${escapeHTML(c.display_name)} — ${escapeHTML(c.series)}">
+        <button type="button" class="cp-card" data-key="${escapeHTML(c.key)}" title="${escapeHTML(c.display_name)} â€” ${escapeHTML(c.series)}">
           <div class="cp-thumb${c.has_thumbnail === false ? ' cp-no-thumb' : ''}">
             ${thumbInner}
             ${sourceBadge}
@@ -161,7 +161,7 @@
     } catch (e) {
       console.error('[character-picker] refresh failed', e);
       const grid = document.getElementById('cpGrid');
-      if (grid) grid.innerHTML = `<div class="cp-error">Lỗi tải dữ liệu: ${escapeHTML(e.message)}</div>`;
+      if (grid) grid.innerHTML = `<div class="cp-error">Lá»—i táº£i dá»¯ liá»‡u: ${escapeHTML(e.message)}</div>`;
     }
   }
 
@@ -235,7 +235,7 @@
   window.openCharacterPicker = openPicker;
   window.closeCharacterPicker = closePicker;
 
-  // ── Inline-card mode (preferred) ──────────────────────────────────────
+  // â”€â”€ Inline-card mode (preferred) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Renders the picker as a chat message bubble using the same
   // `igv2-provider-choice` aesthetic so it lives *inside* the conversation
   // instead of as a centred modal. One inline picker at a time; opening a
@@ -250,28 +250,28 @@
     wrap.id = INLINE_ID;
     wrap.className = 'message assistant';
     wrap.innerHTML = `
-      <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+      <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
       <div class="message__body">
         <div class="message-content">
           <div class="igv2-provider-choice character-picker-inline">
             <div class="igv2-choice-header">
-              <span class="igv2-choice-icon">🎭</span>
-              <span class="igv2-choice-title">Chọn nhân vật</span>
-              <button type="button" class="cp-inline-close" aria-label="Close" style="margin-left:auto;background:transparent;border:0;font-size:18px;cursor:pointer;color:var(--text);">×</button>
+              <span class="igv2-choice-icon">ðŸŽ­</span>
+              <span class="igv2-choice-title">Chá»n nhÃ¢n váº­t</span>
+              <button type="button" class="cp-inline-close" aria-label="Close" style="margin-left:auto;background:transparent;border:0;font-size:18px;cursor:pointer;color:var(--text);">Ã—</button>
             </div>
             <div class="igv2-choice-options">
               <div class="igv2-choice-option-group igv2-choice-option-full" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <input type="search" id="cpInlineSearch" placeholder="Tìm tên / tag / alias…" autocomplete="off" style="flex:1 1 200px;min-width:160px;padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);"/>
+                <input type="search" id="cpInlineSearch" placeholder="TÃ¬m tÃªn / tag / aliasâ€¦" autocomplete="off" style="flex:1 1 200px;min-width:160px;padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);"/>
                 <select id="cpInlineSeries" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);">
-                  <option value="">Tất cả series</option>
+                  <option value="">Táº¥t cáº£ series</option>
                 </select>
-                <button type="button" id="cpInlineReload" title="Reload registry" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);cursor:pointer;">⟳</button>
-                <button type="button" id="cpInlineClear" title="Clear selection" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);cursor:pointer;">Bỏ chọn</button>
+                <button type="button" id="cpInlineReload" title="Reload registry" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);cursor:pointer;">âŸ³</button>
+                <button type="button" id="cpInlineClear" title="Clear selection" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:var(--text);cursor:pointer;">Bá» chá»n</button>
               </div>
             </div>
             <div id="cpInlineGrid" class="character-picker-grid character-picker-grid--inline" aria-live="polite" style="margin-top:8px;max-height:340px;overflow:auto;"></div>
             <div class="igv2-choice-header" style="border-top:1px solid var(--border,#eee);margin-top:8px;padding-top:6px;">
-              <span id="cpInlineCount" class="cp-count" style="font-size:12px;opacity:0.75;">0 nhân vật</span>
+              <span id="cpInlineCount" class="cp-count" style="font-size:12px;opacity:0.75;">0 nhÃ¢n váº­t</span>
             </div>
           </div>
         </div>
@@ -284,12 +284,12 @@
     const grid = document.getElementById('cpInlineGrid');
     const count = document.getElementById('cpInlineCount');
     if (!grid) return;
-    grid.innerHTML = '<div style="padding:14px;text-align:center;opacity:0.7;">Đang tải…</div>';
+    grid.innerHTML = '<div style="padding:14px;text-align:center;opacity:0.7;">Äang táº£iâ€¦</div>';
     try {
       const chars = await loadCharacters(STATE.query, STATE.series);
       if (!chars.length) {
-        grid.innerHTML = '<div style="padding:14px;text-align:center;opacity:0.7;">Không có kết quả</div>';
-        if (count) count.textContent = '0 nhân vật';
+        grid.innerHTML = '<div style="padding:14px;text-align:center;opacity:0.7;">KhÃ´ng cÃ³ káº¿t quáº£</div>';
+        if (count) count.textContent = '0 nhÃ¢n váº­t';
         return;
       }
       grid.innerHTML = chars.map((c) => {
@@ -298,13 +298,13 @@
           ? `<img src="${escapeHTML(c.thumbnail)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cp-no-thumb',textContent:(this.dataset.letter||'?')}));" data-letter="${escapeHTML((c.display_name||'?')[0])}"/>`
           : `<div class="cp-no-thumb">${escapeHTML((c.display_name || '?')[0])}</div>`;
         return `
-          <button type="button" class="character-card" data-key="${escapeHTML(c.key)}" title="${escapeHTML(c.display_name)} — ${escapeHTML(c.series || '')}">
+          <button type="button" class="character-card" data-key="${escapeHTML(c.key)}" title="${escapeHTML(c.display_name)} â€” ${escapeHTML(c.series || '')}">
             ${thumb}
             <div class="cp-name">${escapeHTML(c.display_name)}</div>
             <div class="cp-series">${escapeHTML(c.series || '')}</div>
           </button>`;
       }).join('');
-      if (count) count.textContent = `${chars.length} nhân vật`;
+      if (count) count.textContent = `${chars.length} nhÃ¢n váº­t`;
       // Bind click on cards.
       grid.querySelectorAll('.character-card').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -317,7 +317,7 @@
         });
       });
     } catch (e) {
-      grid.innerHTML = `<div style="padding:14px;color:#c00;">Lỗi: ${escapeHTML(e.message || e)}</div>`;
+      grid.innerHTML = `<div style="padding:14px;color:#c00;">Lá»—i: ${escapeHTML(e.message || e)}</div>`;
     }
   }
 
@@ -349,7 +349,7 @@
     const sel = document.getElementById('cpInlineSeries');
     if (sel) {
       const list = STATE.cache.series || [];
-      sel.innerHTML = '<option value="">Tất cả series</option>' +
+      sel.innerHTML = '<option value="">Táº¥t cáº£ series</option>' +
         list.map((s) => `<option value="${escapeHTML(s.key)}">${escapeHTML(s.name)}</option>`).join('');
       sel.value = STATE.series || '';
       sel.addEventListener('change', (ev) => { STATE.series = ev.target.value; refreshInline(); });
@@ -369,7 +369,7 @@
           await loadSeries();
           if (sel) {
             const list = STATE.cache.series || [];
-            sel.innerHTML = '<option value="">Tất cả series</option>' +
+            sel.innerHTML = '<option value="">Táº¥t cáº£ series</option>' +
               list.map((s) => `<option value="${escapeHTML(s.key)}">${escapeHTML(s.name)}</option>`).join('');
           }
           refreshInline();

@@ -145,34 +145,48 @@
   --transition-slow: 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* Eye Comfort theme — warm low-blue palette for long sessions */
-body.eye-care-mode {
-  --bg-primary: #1c1814;
-  --bg-secondary: #25201a;
-  --bg-tertiary: #2e2820;
-  --bg-hover: #3a3328;
-  --bg-active: #45392b;
-  --bg-message-user: #322a20;
+/* Light theme */
+body.light-mode {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f8;
+  --bg-tertiary: #efefef;
+  --bg-hover: #e8e8e8;
+  --bg-active: #dedede;
+  --bg-message-user: #f0f0f0;
   --bg-message-ai: transparent;
-  --bg-input: #2a241c;
-  --bg-sidebar: #25201a;
-  --bg-modal: #28221b;
+  --bg-input: #f0f0f0;
+  --bg-sidebar: #f9f9f9;
+  --bg-modal: #ffffff;
 
-  --border-primary: #4a3f30;
-  --border-secondary: #382f23;
-  --border-focus: #d4a866;
+  --border-primary: #e0e0e0;
+  --border-secondary: #eaeaea;
+  --border-focus: #7c6cf0;
 
-  --text-primary: #f0e6d2;
-  --text-secondary: #c8b896;
-  --text-tertiary: #998668;
-  --text-placeholder: #6e5f48;
-  --text-inverse: #1c1814;
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --text-tertiary: #8a8a8a;
+  --text-placeholder: #aaa;
+  --text-inverse: #fff;
 
-  --accent: #d4a866;
-  --accent-hover: #e6bb78;
-  --accent-soft: rgba(212, 168, 102, 0.15);
-  --accent-gradient: linear-gradient(135deg, #d4a866 0%, #e6bb78 100%);
-  --shadow-glow: 0 0 20px rgba(212, 168, 102, 0.18);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+}
+
+/* Eye Care mode */
+body.eye-care-mode {
+  --bg-primary: #faf4e8;
+  --bg-secondary: #f2e8d5;
+  --bg-tertiary: #e8dcc8;
+  --bg-hover: #dfd2bc;
+  --bg-message-user: #ece3d2;
+  --bg-input: #ece3d2;
+  --bg-sidebar: #f2e8d5;
+  --text-primary: #3d3222;
+  --text-secondary: #6b5d4a;
+  --text-tertiary: #9a8b74;
+  --border-primary: #d4c6ab;
+  --accent: #9b7d4d;
 }
 
 /* ── Reset & Base ──────────────────────────────────────────── */
@@ -1574,6 +1588,10 @@ body {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
+}
+
+body.light-mode .message__content pre {
+  background: #1e1e2e;
 }
 
 .message__content pre code {

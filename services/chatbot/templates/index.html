@@ -421,14 +421,14 @@ try {
                     <div id="thinkingModeDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 260px; top: calc(100% + 4px);">
                         <div class="model-dropdown__group">
                             <div class="model-dropdown__group-label">Thinking Mode</div>
-                            <div class="thinking-mode-option model-dropdown__item" data-mode="instant" data-icon="zap" data-label="Instant">
+                            <div class="thinking-mode-option model-dropdown__item active" data-mode="instant" data-icon="zap" data-label="Instant">
                                 <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg></span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">Instant</div>
                                     <div class="model-dropdown__item-desc">Trả lời tức thời</div>
                                 </div>
                             </div>
-                            <div class="thinking-mode-option model-dropdown__item active" data-mode="multi-thinking" data-icon="layers" data-label="4-Agents">
+                            <div class="thinking-mode-option model-dropdown__item" data-mode="multi-thinking" data-icon="layers" data-label="4-Agents">
                                 <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" class="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg></span>
                                 <div class="model-dropdown__item-info">
                                     <div class="model-dropdown__item-name">4-Agents</div>
@@ -438,11 +438,11 @@ try {
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" id="thinkingModeValue" value="multi-thinking">
+                    <input type="hidden" id="thinkingModeValue" value="instant">
                 </div>
 
                 <!-- Skill selector -->
-                <div id="skillSelectorContainer" class="topbar__group">
+                <div id="skillSelectorContainer" class="topbar__group" style="position:relative;">
                     <button class="topbar__btn topbar__btn--labelled" id="skillSelectorBtn" title="Skill">
                         <span id="skillSelectorIcon"><i data-lucide="book-open" class="lucide"></i></span>
                         <span id="skillSelectorLabel">Skill</span>
@@ -1968,7 +1968,7 @@ try {
     // THINKING MODE
     // ════════════════════════════════════════════════════════════
     const _savedMode = localStorage.getItem('thinkingMode');
-    let currentThinkingMode = (_savedMode === 'instant' || _savedMode === 'multi-thinking') ? _savedMode : 'multi-thinking';
+    let currentThinkingMode = (_savedMode === 'instant' || _savedMode === 'multi-thinking') ? _savedMode : 'instant';
 
     function initThinkingMode() {
         const btn = document.getElementById('thinkingModeBtn');

@@ -11,7 +11,7 @@ export class MessageRenderer {
             'grok': 'Grok-3 Mini',
             'openai': 'GPT-4o-mini',
             'deepseek': 'DeepSeek Chat',
-            'deepseek-reasoner': '🧠 DeepSeek R1',
+            'deepseek-reasoner': 'ðŸ§  DeepSeek R1',
             'qwen': 'Qwen Turbo',
             'bloomvn': 'BloomVN-8B',
             'step-flash': 'Step-3.5 Flash',
@@ -22,24 +22,24 @@ export class MessageRenderer {
         };
         
         this.modelIcons = {
-            'grok': '🤖',
-            'deepseek-reasoner': '🧪',
-            'openai': '🧠',
-            'deepseek': '🔍',
-            'gemini': '💎',
-            'step-flash': '⚡',
-            'bloomvn': '🌸',
-            'qwen': '🌙',
-            'stepfun': '🚀'
+            'grok': 'ðŸ¤–',
+            'deepseek-reasoner': 'ðŸ§ª',
+            'openai': 'ðŸ§ ',
+            'deepseek': 'ðŸ”',
+            'gemini': 'ðŸ’Ž',
+            'step-flash': 'âš¡',
+            'bloomvn': 'ðŸŒ¸',
+            'qwen': 'ðŸŒ™',
+            'stepfun': 'ðŸš€'
         };
         
         this.contextNames = {
-            'casual': '💬 Casual Chat',
-            'psychological': '🧘 Psychology',
-            'lifestyle': '🌟 Lifestyle',
-            'programming': '💻 Programming',
-            'creative': '🎨 Creative',
-            'research': '🔬 Research'
+            'casual': 'ðŸ’¬ Casual Chat',
+            'psychological': 'ðŸ§˜ Psychology',
+            'lifestyle': 'ðŸŒŸ Lifestyle',
+            'programming': 'ðŸ’» Programming',
+            'creative': 'ðŸŽ¨ Creative',
+            'research': 'ðŸ”¬ Research'
         };
 
         this.messageHistory = new Map(); // Store message edit history
@@ -100,7 +100,7 @@ export class MessageRenderer {
         block.classList.toggle('thinking-step--expanded', expanded);
         block.classList.toggle('thinking-step--collapsed', !expanded);
         const icon = block.querySelector('.thinking-reasoning__toggle');
-        if (icon) icon.textContent = expanded ? '▼' : '▶';
+        if (icon) icon.textContent = expanded ? 'â–¼' : 'â–¶';
     }
 
     _createReasoningBlock(stepText, tid = '_default', expanded = false) {
@@ -113,8 +113,8 @@ export class MessageRenderer {
 
         const tidMatch = tid.match(/^r(\d+)_t(\d+)$/);
         const labelText = tidMatch
-            ? `🔍 Direction ${parseInt(tidMatch[2], 10) + 1} (round ${parseInt(tidMatch[1], 10) + 1})`
-            : '🔍 Reasoning';
+            ? `ðŸ” Direction ${parseInt(tidMatch[2], 10) + 1} (round ${parseInt(tidMatch[1], 10) + 1})`
+            : 'ðŸ” Reasoning';
 
         const labelSpan = document.createElement('span');
         labelSpan.className = 'thinking-reasoning__label';
@@ -122,7 +122,7 @@ export class MessageRenderer {
 
         const toggleSpan = document.createElement('span');
         toggleSpan.className = 'thinking-reasoning__toggle';
-        toggleSpan.textContent = '▶';
+        toggleSpan.textContent = 'â–¶';
 
         header.appendChild(labelSpan);
         header.appendChild(toggleSpan);
@@ -133,12 +133,12 @@ export class MessageRenderer {
             const rendered = marked.parse(stepText);
             // SECURITY: never insert un-sanitized markdown HTML. If DOMPurify
             // failed to load (CDN blocked, offline, CSP violation) we fall back
-            // to plain text instead of rendering raw HTML — markdown content
+            // to plain text instead of rendering raw HTML â€” markdown content
             // can come from LLM output that quotes user input.
             if (typeof DOMPurify !== 'undefined') {
                 body.innerHTML = DOMPurify.sanitize(rendered);
             } else {
-                console.warn('[security] DOMPurify missing — rendering thinking step as plain text');
+                console.warn('[security] DOMPurify missing â€” rendering thinking step as plain text');
                 body.textContent = stepText;
             }
         } else {
@@ -227,7 +227,7 @@ export class MessageRenderer {
         // Floating reply button (created once, reused)
         this._replyPopup = document.createElement('div');
         this._replyPopup.className = 'select-reply-popup';
-        this._replyPopup.innerHTML = '<button class="select-reply-btn"><i data-lucide="reply" class="lucide" style="width:14px;height:14px"></i> Trả lời đoạn này</button>';
+        this._replyPopup.innerHTML = '<button class="select-reply-btn"><i data-lucide="reply" class="lucide" style="width:14px;height:14px"></i> Tráº£ lá»i Ä‘oáº¡n nÃ y</button>';
         this._replyPopup.style.display = 'none';
         document.body.appendChild(this._replyPopup);
 
@@ -242,7 +242,7 @@ export class MessageRenderer {
             this._replyPopup.style.display = 'none';
         });
 
-        // On mouseup anywhere — show/hide the floating button
+        // On mouseup anywhere â€” show/hide the floating button
         document.addEventListener('mouseup', (e) => {
             // Delay to allow selection to finalize
             setTimeout(() => {
@@ -295,7 +295,7 @@ export class MessageRenderer {
             preview.className = 'quote-preview';
             inputContainer.insertBefore(preview, inputContainer.firstChild);
         }
-        const truncated = text.length > 200 ? text.substring(0, 200) + '…' : text;
+        const truncated = text.length > 200 ? text.substring(0, 200) + 'â€¦' : text;
         preview.innerHTML = `<div class="quote-preview__bar"></div>
             <div class="quote-preview__text">${this._escapeHtml(truncated)}</div>
             <button class="quote-preview__close" title="Remove quote">&times;</button>`;
@@ -432,7 +432,7 @@ export class MessageRenderer {
             }
         } else {
             avatarDiv.className = 'message__avatar message__avatar--agent';
-            avatarDiv.innerHTML = '<img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false">';
+            avatarDiv.innerHTML = '<img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false">';
         }
         messageDiv.appendChild(avatarDiv);
 
@@ -464,7 +464,7 @@ export class MessageRenderer {
                 if (typeof DOMPurify !== 'undefined') {
                     textDiv.innerHTML = DOMPurify.sanitize(rawHtml);
                 } else {
-                    console.warn('[security] DOMPurify missing — rendering assistant message as plain text');
+                    console.warn('[security] DOMPurify missing â€” rendering assistant message as plain text');
                     textDiv.textContent = content;
                 }
                 
@@ -502,7 +502,7 @@ export class MessageRenderer {
                 const info = document.createElement('div');
                 info.className = 'file-message-info';
                 const meta = file.tableData
-                    ? `${file.tableData.rows.length} hàng · ${file.tableData.headers.length} cột`
+                    ? `${file.tableData.rows.length} hÃ ng Â· ${file.tableData.headers.length} cá»™t`
                     : this.formatFileSize(file.size);
                 info.innerHTML = `<div class="file-message-name" title="${this.escapeHtml(file.name)}">${this.escapeHtml(file.name)}</div><div class="file-message-meta">${meta}</div>`;
                 card.appendChild(info);
@@ -528,7 +528,7 @@ export class MessageRenderer {
             infoDiv.className = 'message-info';
             
             // Determine prompt/config type indicator
-            let configIndicator = '📝 Base Prompt';
+            let configIndicator = 'ðŸ“ Base Prompt';
             let configDetails = '';
             
             if (agentConfig && agentConfig.enabled) {
@@ -536,20 +536,20 @@ export class MessageRenderer {
                 const temp = agentConfig.temperature || 0.7;
                 
                 if (thinkingMode === 'advanced') {
-                    configIndicator = '🚀 Config Agent (Advanced)';
-                    configDetails = ` • T:${temp}`;
+                    configIndicator = 'ðŸš€ Config Agent (Advanced)';
+                    configDetails = ` â€¢ T:${temp}`;
                 } else if (thinkingMode === 'on') {
-                    configIndicator = '⚡ Config Agent (Thinking)';
-                    configDetails = ` • T:${temp}`;
+                    configIndicator = 'âš¡ Config Agent (Thinking)';
+                    configDetails = ` â€¢ T:${temp}`;
                 } else {
-                    configIndicator = '⚡ Config Agent';
-                    configDetails = ` • T:${temp}`;
+                    configIndicator = 'âš¡ Config Agent';
+                    configDetails = ` â€¢ T:${temp}`;
                 }
             } else if (customPromptUsed) {
-                configIndicator = '🛠️ Custom Prompt';
+                configIndicator = 'ðŸ› ï¸ Custom Prompt';
             }
             
-            infoDiv.textContent = `${this.modelNames[model] || model} • ${this.contextNames[context] || context} • ${configIndicator}${configDetails}`;
+            infoDiv.textContent = `${this.modelNames[model] || model} â€¢ ${this.contextNames[context] || context} â€¢ ${configIndicator}${configDetails}`;
             contentDiv.appendChild(infoDiv);
         }
         
@@ -565,7 +565,7 @@ export class MessageRenderer {
             timestampDiv.appendChild(versionBadge);
             
             const separator = document.createElement('span');
-            separator.textContent = ' • ';
+            separator.textContent = ' â€¢ ';
             timestampDiv.appendChild(separator);
         }
         
@@ -609,7 +609,7 @@ export class MessageRenderer {
         
         const headerDiv = document.createElement('div');
         headerDiv.className = 'file-message-header';
-        headerDiv.innerHTML = `📎 <strong>Đã tải lên ${files.length} file${files.length > 1 ? 's' : ''}</strong>`;
+        headerDiv.innerHTML = `ðŸ“Ž <strong>ÄÃ£ táº£i lÃªn ${files.length} file${files.length > 1 ? 's' : ''}</strong>`;
         contentDiv.appendChild(headerDiv);
         
         // Create file cards grid
@@ -673,20 +673,20 @@ export class MessageRenderer {
      * Get file icon emoji
      */
     getFileIcon(type, name) {
-        if (type.startsWith('image/')) return '🖼️';
-        if (type.startsWith('video/')) return '🎥';
-        if (type.startsWith('audio/')) return '🎵';
-        if (name.endsWith('.csv') || name.endsWith('.tsv')) return '📊';
-        if (type === 'application/pdf') return '📕';
-        if (type === 'application/msword' || type.includes('wordprocessing')) return '📘';
-        if (type.includes('spreadsheet') || name.endsWith('.xlsx')) return '📊';
-        if (type === 'application/json') return '📋';
-        if (name.endsWith('.py')) return '🐍';
-        if (name.endsWith('.js')) return '📜';
-        if (name.endsWith('.html')) return '🌐';
-        if (name.endsWith('.css')) return '🎨';
-        if (type.startsWith('text/')) return '📄';
-        return '📎';
+        if (type.startsWith('image/')) return 'ðŸ–¼ï¸';
+        if (type.startsWith('video/')) return 'ðŸŽ¥';
+        if (type.startsWith('audio/')) return 'ðŸŽµ';
+        if (name.endsWith('.csv') || name.endsWith('.tsv')) return 'ðŸ“Š';
+        if (type === 'application/pdf') return 'ðŸ“•';
+        if (type === 'application/msword' || type.includes('wordprocessing')) return 'ðŸ“˜';
+        if (type.includes('spreadsheet') || name.endsWith('.xlsx')) return 'ðŸ“Š';
+        if (type === 'application/json') return 'ðŸ“‹';
+        if (name.endsWith('.py')) return 'ðŸ';
+        if (name.endsWith('.js')) return 'ðŸ“œ';
+        if (name.endsWith('.html')) return 'ðŸŒ';
+        if (name.endsWith('.css')) return 'ðŸŽ¨';
+        if (type.startsWith('text/')) return 'ðŸ“„';
+        return 'ðŸ“Ž';
     }
 
     /**
@@ -712,8 +712,8 @@ export class MessageRenderer {
         const headerBar = document.createElement('div');
         headerBar.className = 'inline-table-header';
         headerBar.innerHTML = `
-            <span class="inline-table-title">📊 ${this.escapeHtml(filename)}</span>
-            <span class="inline-table-stats">${rows.length} hàng · ${headers.length} cột</span>
+            <span class="inline-table-title">ðŸ“Š ${this.escapeHtml(filename)}</span>
+            <span class="inline-table-stats">${rows.length} hÃ ng Â· ${headers.length} cá»™t</span>
         `;
         container.appendChild(headerBar);
 
@@ -728,14 +728,14 @@ export class MessageRenderer {
         thead.innerHTML = `<tr>${headers.map(h => `<th>${this.escapeHtml(h)}</th>`).join('')}</tr>`;
         table.appendChild(thead);
 
-        // Tbody — show first maxRows
+        // Tbody â€” show first maxRows
         const displayRows = rows.slice(0, maxRows);
         const tbody = document.createElement('tbody');
         tbody.innerHTML = displayRows.map(row =>
             `<tr>${headers.map(h => {
                 const val = row[h] ?? '';
                 const str = String(val);
-                const display = str.length > 60 ? str.substring(0, 60) + '…' : str;
+                const display = str.length > 60 ? str.substring(0, 60) + 'â€¦' : str;
                 return `<td>${this.escapeHtml(display)}</td>`;
             }).join('')}</tr>`
         ).join('');
@@ -747,10 +747,10 @@ export class MessageRenderer {
         if (rows.length > maxRows) {
             const footer = document.createElement('div');
             footer.className = 'inline-table-footer';
-            footer.innerHTML = `<span class="inline-table-truncated">Hiển thị ${maxRows}/${rows.length} hàng</span>`;
+            footer.innerHTML = `<span class="inline-table-truncated">Hiá»ƒn thá»‹ ${maxRows}/${rows.length} hÃ ng</span>`;
             const viewBtn = document.createElement('button');
             viewBtn.className = 'inline-table-view-btn';
-            viewBtn.textContent = '📋 Xem đầy đủ bảng';
+            viewBtn.textContent = 'ðŸ“‹ Xem Ä‘áº§y Ä‘á»§ báº£ng';
             viewBtn.addEventListener('click', () => {
                 csvPreview.show(tableData, filename);
             });
@@ -802,22 +802,22 @@ export class MessageRenderer {
             // Toolbar
             const toolbar = document.createElement('div');
             toolbar.className = 'enhanced-table-toolbar';
-            toolbar.innerHTML = `<span class="enhanced-table-info">${rows.length} hàng · ${headers.length} cột</span>`;
+            toolbar.innerHTML = `<span class="enhanced-table-info">${rows.length} hÃ ng Â· ${headers.length} cá»™t</span>`;
 
             // Copy button
             const copyBtn = document.createElement('button');
             copyBtn.className = 'enhanced-table-btn';
-            copyBtn.textContent = '📋 Copy';
+            copyBtn.textContent = 'ðŸ“‹ Copy';
             copyBtn.addEventListener('click', () => this.copyTableToClipboard(table, copyBtn));
             toolbar.appendChild(copyBtn);
 
-            // Expand button — open in full viewer
+            // Expand button â€” open in full viewer
             if (headers.length > 0 && rows.length > 0) {
                 const expandBtn = document.createElement('button');
                 expandBtn.className = 'enhanced-table-btn';
-                expandBtn.textContent = '🔍 Xem đầy đủ';
+                expandBtn.textContent = 'ðŸ” Xem Ä‘áº§y Ä‘á»§';
                 expandBtn.addEventListener('click', () => {
-                    csvPreview.show({ headers, rows }, 'Bảng từ AI');
+                    csvPreview.show({ headers, rows }, 'Báº£ng tá»« AI');
                 });
                 toolbar.appendChild(expandBtn);
             }
@@ -852,9 +852,9 @@ export class MessageRenderer {
      *   - fenced code blocks (```...```)
      *   - inline code (`...`)
      *   - ordered lists (1. / a. / I.)
-     *   - unordered lists (- / * / •)
-     *   - arrows (->  →  ==>  ⟹)
-     *   - blank lines → paragraph breaks
+     *   - unordered lists (- / * / â€¢)
+     *   - arrows (->  â†’  ==>  âŸ¹)
+     *   - blank lines â†’ paragraph breaks
      */
     _renderUserText(container, rawText) {
         const text = this._normalisePaste(rawText);
@@ -872,12 +872,12 @@ export class MessageRenderer {
             .replace(/\r/g, '\n')
             // Remove BOM and zero-width spaces
             .replace(/[\u200B-\u200D\uFEFF]/g, '')
-            // Word "smart" quotes → standard
+            // Word "smart" quotes â†’ standard
             .replace(/[\u2018\u2019]/g, "'")
             .replace(/[\u201C\u201D]/g, '"')
-            // Word em/en dash → hyphen (preserve intent)
+            // Word em/en dash â†’ hyphen (preserve intent)
             .replace(/[\u2013\u2014]/g, '-')
-            // Non-breaking spaces → regular space
+            // Non-breaking spaces â†’ regular space
             .replace(/\u00A0/g, ' ')
             // Remove lone carriage-returns and form-feeds
             .replace(/[\f\v]/g, '\n')
@@ -900,7 +900,7 @@ export class MessageRenderer {
         while (i < lines.length) {
             const raw = lines[i];
 
-            // ── Fenced code block (``` or ~~~) ──────────────
+            // â”€â”€ Fenced code block (``` or ~~~) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             const fenceMatch = raw.match(/^(`{3,}|~{3,})([\w\-+#]*)$/);
             if (fenceMatch) {
                 const fence = fenceMatch[1];
@@ -917,23 +917,23 @@ export class MessageRenderer {
                 continue;
             }
 
-            // ── Blank line → paragraph break ────────────────
+            // â”€â”€ Blank line â†’ paragraph break â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (raw.trim() === '') {
                 out.push('<br>');
                 i++;
                 continue;
             }
 
-            // ── Detect list context ──────────────────────────
-            // Unordered: - / * / • and first char after whitespace
-            const ulMatch = raw.match(/^(\s*)([-*•])\s+(.*)$/);
+            // â”€â”€ Detect list context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Unordered: - / * / â€¢ and first char after whitespace
+            const ulMatch = raw.match(/^(\s*)([-*â€¢])\s+(.*)$/);
             if (ulMatch) {
                 const indent = ulMatch[1].length;
                 out.push(`<ul class="user-list" style="margin-left:${indent > 0 ? 16 : 0}px"><li>${this._inlineFormat(esc(ulMatch[3]))}</li>`);
                 // Consume consecutive UL items at same or deeper indent
                 i++;
                 while (i < lines.length) {
-                    const next = lines[i].match(/^(\s*)([-*•])\s+(.*)$/);
+                    const next = lines[i].match(/^(\s*)([-*â€¢])\s+(.*)$/);
                     if (!next) break;
                     out.push(`<li>${this._inlineFormat(esc(next[3]))}</li>`);
                     i++;
@@ -958,7 +958,7 @@ export class MessageRenderer {
                 continue;
             }
 
-            // ── Regular line ─────────────────────────────────
+            // â”€â”€ Regular line â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             out.push(`<span class="user-line">${this._inlineFormat(esc(raw))}</span><br>`);
             i++;
         }
@@ -971,8 +971,8 @@ export class MessageRenderer {
         return escaped
             // Inline code: `code`
             .replace(/`([^`]+)`/g, '<code class="user-inline-code">$1</code>')
-            // Arrow variants: ->, =>, ==>, -->, →, ⟹
-            .replace(/(==&gt;|--&gt;|-&gt;|=&gt;|→|⟹|➜|➡)/g, '<span class="user-arrow">$1</span>');
+            // Arrow variants: ->, =>, ==>, -->, â†’, âŸ¹
+            .replace(/(==&gt;|--&gt;|-&gt;|=&gt;|â†’|âŸ¹|âžœ|âž¡)/g, '<span class="user-arrow">$1</span>');
     }
 
 
@@ -993,7 +993,7 @@ export class MessageRenderer {
                 <div class="thinking-pill__dots">
                     <span></span><span></span><span></span>
                 </div>
-                <span class="thinking-pill__label">Đang suy nghĩ</span>
+                <span class="thinking-pill__label">Äang suy nghÄ©</span>
                 <span class="thinking-pill__timer"></span>
             `;
             pill._timerInterval = setInterval(() => {
@@ -1009,10 +1009,10 @@ export class MessageRenderer {
             }, 100);
         } else {
             pill.innerHTML = `
-                <span class="thinking-pill__done-icon">🧠</span>
-                <span class="thinking-pill__label">Đã suy nghĩ xong</span>
+                <span class="thinking-pill__done-icon">ðŸ§ </span>
+                <span class="thinking-pill__label">ÄÃ£ suy nghÄ© xong</span>
                 <span class="thinking-pill__timer"></span>
-                <span class="thinking-pill__chevron">›</span>
+                <span class="thinking-pill__chevron">â€º</span>
             `;
             if (thinkingProcess) {
                 if (typeof thinkingProcess === 'string') {
@@ -1062,7 +1062,7 @@ export class MessageRenderer {
     }
 
     /**
-     * Finalize thinking pill — stop timer, update label to "Đã suy nghĩ xong (Xs)".
+     * Finalize thinking pill â€” stop timer, update label to "ÄÃ£ suy nghÄ© xong (Xs)".
      */
     finalizeThinking(container, data = {}) {
         if (!container) return;
@@ -1087,19 +1087,19 @@ export class MessageRenderer {
             ? (container._durationMs / 1000).toFixed(1) + 's'
             : '';
 
-        // Rebuild inner HTML cleanly — no surgical querySelector patching
+        // Rebuild inner HTML cleanly â€” no surgical querySelector patching
         container.innerHTML = `
-            <span class="thinking-pill__done-icon">🧠</span>
-            <span class="thinking-pill__label">Đã suy nghĩ xong</span>
+            <span class="thinking-pill__done-icon">ðŸ§ </span>
+            <span class="thinking-pill__label">ÄÃ£ suy nghÄ© xong</span>
             ${durationText ? `<span class="thinking-pill__timer">${durationText}</span>` : ''}
-            <span class="thinking-pill__chevron">›</span>
+            <span class="thinking-pill__chevron">â€º</span>
         `;
 
         if (window.ThinkingPanel) window.ThinkingPanel.onFinalize(container, data);
     }
 
     /**
-     * Update thinking content (non-streaming fallback) — populate pill from static data.
+     * Update thinking content (non-streaming fallback) â€” populate pill from static data.
      */
     updateThinkingContent(container, thinkingProcess) {
         if (!container) return;
@@ -1167,14 +1167,14 @@ export class MessageRenderer {
 
     /**
      * Add response stats badge after action buttons
-     * Shows: elapsed time · model name · token count · speed label
+     * Shows: elapsed time Â· model name Â· token count Â· speed label
      */
     addResponseStats(contentDiv, stats = {}) {
         const { elapsed, model, tokens, maxTokens, speedLabel, thinkingMode } = stats;
         const statsDiv = document.createElement('div');
         statsDiv.className = 'response-stats';
 
-        // ── Token circle gauge ──
+        // â”€â”€ Token circle gauge â”€â”€
         if (this.features.tokenGauge && tokens && maxTokens) {
             const pct = Math.min(tokens / maxTokens, 1);
             const r = 11, stroke = 2.5;
@@ -1195,7 +1195,7 @@ export class MessageRenderer {
             statsDiv.appendChild(gauge);
         }
 
-        // ── Text info ──
+        // â”€â”€ Text info â”€â”€
         const textSpan = document.createElement('span');
         const parts = [];
         if (elapsed != null) parts.push(`${elapsed < 10 ? elapsed.toFixed(1) : Math.round(elapsed)}s`);
@@ -1206,7 +1206,7 @@ export class MessageRenderer {
             parts.push(`${tokens} tokens`);
         }
         if (speedLabel) parts.push(speedLabel);
-        textSpan.textContent = parts.join(' · ');
+        textSpan.textContent = parts.join(' Â· ');
         statsDiv.appendChild(textSpan);
 
         // Tooltip
@@ -1225,7 +1225,7 @@ export class MessageRenderer {
     }
 
     /**
-     * Create action button — uses Lucide icons for iOS bubble look
+     * Create action button â€” uses Lucide icons for iOS bubble look
      */
     createActionButton(className, iconName, title) {
         const button = document.createElement('button');
@@ -1264,7 +1264,7 @@ export class MessageRenderer {
      * Regenerate response
      */
     regenerateResponse(messageDiv) {
-        // ── Image generation: detect and redirect ──
+        // â”€â”€ Image generation: detect and redirect â”€â”€
         if (messageDiv.dataset.igv2IsImage === 'true') {
             return this.regenerateImageResponse(messageDiv);
         }
@@ -1344,7 +1344,7 @@ export class MessageRenderer {
             
             // Add response
             const responseTimestamp = window.chatApp.uiUtils.formatTimestamp(new Date());
-            const responseContent = data.error ? `❌ **Lỗi:** ${data.error}` : data.response;
+            const responseContent = data.error ? `âŒ **Lá»—i:** ${data.error}` : data.response;
             
             window.chatApp.messageRenderer.addMessage(
                 chatContainer,
@@ -1392,7 +1392,7 @@ export class MessageRenderer {
                 console.error('[Regenerate] Error:', error);
                 const errorMsg = window.chatApp.messageRenderer.addMessage(
                     chatContainer,
-                    `❌ **Lỗi:** ${error.message || 'Không thể tạo lại response'}`,
+                    `âŒ **Lá»—i:** ${error.message || 'KhÃ´ng thá»ƒ táº¡o láº¡i response'}`,
                     false,
                     formValues.model,
                     formValues.context,
@@ -1403,7 +1403,7 @@ export class MessageRenderer {
     }
 
     /**
-     * Regenerate image response — re-runs image generation with same provider.
+     * Regenerate image response â€” re-runs image generation with same provider.
      * Local (ComfyUI): unlimited retries, always uses 'free' quality.
      * API (Cloud): max 1 retry, uses 'auto' quality.
      */
@@ -1417,7 +1417,7 @@ export class MessageRenderer {
 
         // API provider: limit to 1 retry
         if (provider === 'api' && regenCount >= 1) {
-            alert('API chỉ cho phép thử lại 1 lần. Hãy dùng LOCAL để tạo không giới hạn.');
+            alert('API chá»‰ cho phÃ©p thá»­ láº¡i 1 láº§n. HÃ£y dÃ¹ng LOCAL Ä‘á»ƒ táº¡o khÃ´ng giá»›i háº¡n.');
             return;
         }
 
@@ -1474,12 +1474,12 @@ export class MessageRenderer {
         const statusContainer = document.createElement('div');
         statusContainer.className = 'message assistant';
         statusContainer.innerHTML = `
-            <div class="message__avatar message__avatar--agent"><img src="/static/icons/favicon.svg" class="avatar-img" alt="" draggable="false"></div>
+            <div class="message__avatar message__avatar--agent"><img src="/static/icons/app-icon.png" class="avatar-img" alt="" draggable="false"></div>
             <div class="message__body">
                 <div class="message-content">
                     <div class="igv2-stream-status">
                         <div class="igv2-stream-header">
-                            <span class="igv2-stream-icon spinning">⚙️</span>
+                            <span class="igv2-stream-icon spinning">âš™ï¸</span>
                             <span class="igv2-stream-title">Image Regeneration</span>
                         </div>
                         <div class="igv2-stream-steps"></div>
@@ -1517,37 +1517,37 @@ export class MessageRenderer {
                     onStatus: (data) => {
                         if (data.phase === 'enhance') {
                             if (data.enhanced_prompt) {
-                                addStep('✨', 'Prompt enhanced', 'done');
-                                const pSnip = data.enhanced_prompt.length > 100 ? data.enhanced_prompt.slice(0, 100) + '…' : data.enhanced_prompt;
-                                addStep('📝', pSnip, 'done snippet');
+                                addStep('âœ¨', 'Prompt enhanced', 'done');
+                                const pSnip = data.enhanced_prompt.length > 100 ? data.enhanced_prompt.slice(0, 100) + 'â€¦' : data.enhanced_prompt;
+                                addStep('ðŸ“', pSnip, 'done snippet');
                                 if (imageGenOptions.negativePrompt) {
-                                    const nSnip = imageGenOptions.negativePrompt.length > 100 ? imageGenOptions.negativePrompt.slice(0, 100) + '…' : imageGenOptions.negativePrompt;
-                                    addStep('🚫', nSnip, 'done snippet');
+                                    const nSnip = imageGenOptions.negativePrompt.length > 100 ? imageGenOptions.negativePrompt.slice(0, 100) + 'â€¦' : imageGenOptions.negativePrompt;
+                                    addStep('ðŸš«', nSnip, 'done snippet');
                                 }
                             } else {
-                                addStep('✨', data.step, 'active');
+                                addStep('âœ¨', data.step, 'active');
                             }
                         } else if (data.phase === 'select') {
-                            addStep(data.providers ? '📡' : '🔍', data.providers ? `Providers: ${data.providers.join(', ')}` : data.step, data.providers ? 'done' : 'active');
+                            addStep(data.providers ? 'ðŸ“¡' : 'ðŸ”', data.providers ? `Providers: ${data.providers.join(', ')}` : data.step, data.providers ? 'done' : 'active');
                         } else {
-                            addStep('⚙️', data.step, 'active');
+                            addStep('âš™ï¸', data.step, 'active');
                         }
                     },
                     onProviderTry: (data) => {
-                        providerStep = addStep('🔄', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
+                        providerStep = addStep('ðŸ”„', `Trying ${data.provider} (${data.attempt}/${data.total_providers})...`, 'active');
                     },
                     onProviderFail: (data) => {
-                        updateStep(providerStep, '❌', `${data.provider} failed: ${data.error}`, 'fail');
+                        updateStep(providerStep, 'âŒ', `${data.provider} failed: ${data.error}`, 'fail');
                         providerStep = null;
                     },
                     onProviderSuccess: (data) => {
-                        updateStep(providerStep, '✅', `${data.provider} / ${data.model} — ${Math.round(data.latency_ms)}ms`, 'done');
-                        headerIcon.textContent = '✅';
+                        updateStep(providerStep, 'âœ…', `${data.provider} / ${data.model} â€” ${Math.round(data.latency_ms)}ms`, 'done');
+                        headerIcon.textContent = 'âœ…';
                         headerIcon.classList.remove('spinning');
                     },
                     onError: (data) => {
-                        addStep('❌', data.error, 'fail');
-                        headerIcon.textContent = '❌';
+                        addStep('âŒ', data.error, 'fail');
+                        headerIcon.textContent = 'âŒ';
                         headerIcon.classList.remove('spinning');
                     },
                 },
@@ -1567,17 +1567,17 @@ export class MessageRenderer {
                     imgSrc = result.images_url[0];
                 }
 
-                const meta = `🎨 **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
-                const enhanced = result.prompt_used ? `\n📝 ${result.prompt_used.substring(0, 150)}` : '';
+                const meta = `ðŸŽ¨ **${result.provider}** / ${result.model} | ${Math.round(result.latency_ms)}ms | $${result.cost_usd}`;
+                const enhanced = result.prompt_used ? `\nðŸ“ ${result.prompt_used.substring(0, 150)}` : '';
                 const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const promptEsc = esc(result.prompt_used || userPrompt);
                 const imgSrcAttr = esc(imgSrc);
                 const imageIdAttr = esc(imageId);
                 const overlayButtons = `
                     <div class="igv2-img-overlay">
-                        <button type="button" class="igv2-img-btn" title="Tải ảnh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">⬇</button>
-                        <button type="button" class="igv2-img-btn" title="Thông tin" data-igv2-action="info" data-image-id="${imageIdAttr}">ℹ</button>
-                        ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="Lưu & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">☁</button>` : ''}
+                        <button type="button" class="igv2-img-btn" title="Táº£i áº£nh" data-igv2-action="download" data-img-src="${imgSrcAttr}" data-image-id="${imageIdAttr}">â¬‡</button>
+                        <button type="button" class="igv2-img-btn" title="ThÃ´ng tin" data-igv2-action="info" data-image-id="${imageIdAttr}">â„¹</button>
+                        ${imageId ? `<button type="button" class="igv2-img-btn igv2-save-btn" title="LÆ°u & Upload Drive" data-igv2-action="save" data-image-id="${imageIdAttr}">â˜</button>` : ''}
                     </div>`;
 
                 const content = `<div class="igv2-chat-image" data-image-id="${imageIdAttr}" data-prompt="${promptEsc}">${overlayButtons}<img src="${imgSrc}" alt="Generated" data-igv2-open="${imgSrcAttr}"><div class="igv2-chat-meta">${meta}${enhanced}</div></div>`;
@@ -1611,7 +1611,7 @@ export class MessageRenderer {
                     window._createPostGenOptionsPanel(chatContainer, newMsgDiv, imageGenOptions);
                 }
             } else {
-                const errContent = `❌ Không thể tạo ảnh: ${result.error}`;
+                const errContent = `âŒ KhÃ´ng thá»ƒ táº¡o áº£nh: ${result.error}`;
                 const newMsgDiv = this.addMessage(chatContainer, errContent, false, formValues.model, formValues.context, timestamp);
                 newMsgDiv.dataset.igv2Provider = provider;
                 newMsgDiv.dataset.igv2Prompt = userPrompt;
@@ -1626,7 +1626,7 @@ export class MessageRenderer {
 
                 this.addMessageVersion(messageId, userPrompt, errContent, new Date().toISOString());
 
-                // Post-gen quick-edit panel (error — user can tweak and retry)
+                // Post-gen quick-edit panel (error â€” user can tweak and retry)
                 if (window._createPostGenOptionsPanel) {
                     window._createPostGenOptionsPanel(chatContainer, newMsgDiv, imageGenOptions);
                 }
@@ -1643,9 +1643,9 @@ export class MessageRenderer {
             if (window.chatApp) window.chatApp.saveCurrentSession(true);
         } catch (error) {
             console.error('[RegenImage] Error:', error);
-            headerIcon.textContent = '❌';
+            headerIcon.textContent = 'âŒ';
             headerIcon.classList.remove('spinning');
-            addStep('❌', error.message || 'Unknown error', 'fail');
+            addStep('âŒ', error.message || 'Unknown error', 'fail');
         }
     }
 
@@ -1664,18 +1664,18 @@ export class MessageRenderer {
         const lang = localStorage.getItem('chatbot_language') || 'vi';
         menu.innerHTML = `
             <button class="option-item" data-action="copy">
-                <span>📋</span> Copy message
+                <span>ðŸ“‹</span> Copy message
             </button>
             ${!isUser ? `
             <button class="option-item" data-action="export">
-                <span>📤</span> Export to file
+                <span>ðŸ“¤</span> Export to file
             </button>
             ` : ''}
             <button class="option-item" data-action="fork">
-                <span>🔀</span> ${lang === 'vi' ? 'Tách nhánh từ đây' : 'Fork from here'}
+                <span>ðŸ”€</span> ${lang === 'vi' ? 'TÃ¡ch nhÃ¡nh tá»« Ä‘Ã¢y' : 'Fork from here'}
             </button>
             <button class="option-item" data-action="delete">
-                <span>🗑️</span> Delete message
+                <span>ðŸ—‘ï¸</span> Delete message
             </button>
         `;
 
@@ -1779,7 +1779,7 @@ export class MessageRenderer {
             
             if (button) {
                 const originalHTML = button.innerHTML;
-                button.innerHTML = '✅';
+                button.innerHTML = 'âœ…';
                 button.classList.add('copied');
                 
                 setTimeout(() => {
@@ -1790,13 +1790,13 @@ export class MessageRenderer {
                 // Show temporary notification
                 const notification = document.createElement('div');
                 notification.className = 'copy-notification';
-                notification.textContent = '✅ Copied to clipboard!';
+                notification.textContent = 'âœ… Copied to clipboard!';
                 document.body.appendChild(notification);
                 setTimeout(() => notification.remove(), 2000);
             }
         } catch (err) {
             console.error('Failed to copy:', err);
-            alert('Không thể copy. Vui lòng thử lại!');
+            alert('KhÃ´ng thá»ƒ copy. Vui lÃ²ng thá»­ láº¡i!');
         }
     }
 
@@ -1820,7 +1820,7 @@ export class MessageRenderer {
         try {
             await navigator.clipboard.writeText(tsv);
             const originalText = button.textContent;
-            button.textContent = '✅ Đã copy!';
+            button.textContent = 'âœ… ÄÃ£ copy!';
             button.classList.add('copied');
             
             setTimeout(() => {
@@ -1829,7 +1829,7 @@ export class MessageRenderer {
             }, 2000);
         } catch (err) {
             console.error('Failed to copy:', err);
-            alert('Không thể copy bảng. Vui lòng thử lại.');
+            alert('KhÃ´ng thá»ƒ copy báº£ng. Vui lÃ²ng thá»­ láº¡i.');
         }
     }
 
@@ -1901,14 +1901,14 @@ export class MessageRenderer {
         }
         modelWrap.appendChild(modelSelect);
 
-        // ── Rich Agent dropdown (thinkingMode-style) ──
+        // â”€â”€ Rich Agent dropdown (thinkingMode-style) â”€â”€
         const agentMeta = [
-            { value: 'casual',        icon: 'message-circle', label: 'Casual Chat',  desc: 'Trò chuyện tự nhiên', emoji: '💬' },
-            { value: 'programming',   icon: 'code-2',         label: 'Programming',  desc: 'Hỗ trợ lập trình',    emoji: '💻' },
-            { value: 'creative',      icon: 'palette',        label: 'Creative',     desc: 'Sáng tạo nội dung',   emoji: '🎨' },
-            { value: 'research',      icon: 'search',         label: 'Research',     desc: 'Nghiên cứu chuyên sâu',emoji: '🔬' },
-            { value: 'psychological', icon: 'heart-handshake',label: 'Psychology',   desc: 'Tâm lý & tư vấn',     emoji: '🧘' },
-            { value: 'lifestyle',     icon: 'sparkles',       label: 'Lifestyle',    desc: 'Phong cách sống',      emoji: '🌟' },
+            { value: 'casual',        icon: 'message-circle', label: 'Casual Chat',  desc: 'TrÃ² chuyá»‡n tá»± nhiÃªn', emoji: 'ðŸ’¬' },
+            { value: 'programming',   icon: 'code-2',         label: 'Programming',  desc: 'Há»— trá»£ láº­p trÃ¬nh',    emoji: 'ðŸ’»' },
+            { value: 'creative',      icon: 'palette',        label: 'Creative',     desc: 'SÃ¡ng táº¡o ná»™i dung',   emoji: 'ðŸŽ¨' },
+            { value: 'research',      icon: 'search',         label: 'Research',     desc: 'NghiÃªn cá»©u chuyÃªn sÃ¢u',emoji: 'ðŸ”¬' },
+            { value: 'psychological', icon: 'heart-handshake',label: 'Psychology',   desc: 'TÃ¢m lÃ½ & tÆ° váº¥n',     emoji: 'ðŸ§˜' },
+            { value: 'lifestyle',     icon: 'sparkles',       label: 'Lifestyle',    desc: 'Phong cÃ¡ch sá»‘ng',      emoji: 'ðŸŒŸ' },
         ];
 
         const currentAgent = messageDiv.dataset.context || (contextSelectSource ? contextSelectSource.value : 'casual');
@@ -2007,14 +2007,14 @@ export class MessageRenderer {
         const textarea = document.createElement('textarea');
         textarea.className = 'edit-chat-tool__textarea';
         textarea.value = originalContent;
-        textarea.placeholder = 'Chỉnh sửa tin nhắn...';
+        textarea.placeholder = 'Chá»‰nh sá»­a tin nháº¯n...';
         
         const buttonsDiv = document.createElement('div');
         buttonsDiv.className = 'edit-form-buttons';
         
         const saveBtn = document.createElement('button');
         saveBtn.className = 'edit-save-btn';
-        saveBtn.textContent = '💾 Lưu & Tạo lại response';
+        saveBtn.textContent = 'ðŸ’¾ LÆ°u & Táº¡o láº¡i response';
         saveBtn.onclick = () => {
             const newContent = textarea.value.trim();
             console.log('[Edit] Save clicked', {
@@ -2101,7 +2101,7 @@ export class MessageRenderer {
         
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'edit-cancel-btn';
-        cancelBtn.textContent = '❌ Hủy';
+        cancelBtn.textContent = 'âŒ Há»§y';
         cancelBtn.onclick = () => editForm.remove();
         
         buttonsDiv.appendChild(saveBtn);
@@ -2130,7 +2130,7 @@ export class MessageRenderer {
         
         this.messageHistory.get(messageId).push({
             userContent: userContent,
-            assistantContent: assistantContent,   // raw API response — null for DOM-captured versions
+            assistantContent: assistantContent,   // raw API response â€” null for DOM-captured versions
             assistantResponse: assistantResponse,  // HTML cache / legacy field
             timestamp: timestamp
         });
@@ -2160,7 +2160,7 @@ export class MessageRenderer {
             timestampDiv.insertBefore(versionBadge, timestampDiv.firstChild);
             
             const separator = document.createElement('span');
-            separator.textContent = ' • ';
+            separator.textContent = ' â€¢ ';
             timestampDiv.insertBefore(separator, versionBadge.nextSibling);
         }
         
@@ -2209,7 +2209,7 @@ export class MessageRenderer {
         const oldIndex = parseInt(messageDiv.dataset.currentVersion || '0');
         const direction = newIndex > oldIndex ? 1 : -1; // 1 = forward, -1 = back
         
-        // ── Smooth user-message crossfade ──
+        // â”€â”€ Smooth user-message crossfade â”€â”€
         const textDiv = messageDiv.querySelector('.message-text');
         if (textDiv) {
             textDiv.style.transition = 'none';
@@ -2231,7 +2231,7 @@ export class MessageRenderer {
             }, 200);
         }
         
-        // ── Smooth assistant-message crossfade ──
+        // â”€â”€ Smooth assistant-message crossfade â”€â”€
         let assistantMsg = messageDiv.nextElementSibling;
         while (assistantMsg && !assistantMsg.classList.contains('assistant')) {
             assistantMsg = assistantMsg.nextElementSibling;
@@ -2450,11 +2450,11 @@ export class MessageRenderer {
                 // Read dimensions from the SAME <img> after it loads,
                 // instead of decoding a second hidden Image. For a 4 MB
                 // base64 PNG this halved memory pressure and removed the
-                // 1–2 s freeze on slow GPUs.
+                // 1â€“2 s freeze on slow GPUs.
                 const showMeta = (w, h) => {
                     previewInfo.innerHTML = `
                         <div class="lightbox__meta-grid">
-                            <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${w} × ${h}</span></div>
+                            <div class="lightbox__meta-item"><span class="lightbox__meta-label">Dimensions</span><span class="lightbox__meta-value">${w} Ã— ${h}</span></div>
                         </div>
                     `;
                 };
