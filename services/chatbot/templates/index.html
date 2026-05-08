@@ -680,9 +680,6 @@ try {
                                             <button class="tools-list__item" id="imageGenToolBtn" title="Image Gen (multi-provider)">
                                                 <i data-lucide="sparkles" class="lucide"></i><span>Image Gen</span>
                                             </button>
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="nanoBananaBtn" title="Nano Banana (Gemini 2.5 image)">
-                                                <i data-lucide="banana" class="lucide"></i><span>Nano Banana</span>
-                                            </button>
                                             <button class="tools-list__item" id="reverseImageBtn" title="Reverse Image — Google Lens + SauceNAO">
                                                 <i data-lucide="scan-search" class="lucide"></i><span>Reverse Image</span>
                                             </button>
@@ -711,9 +708,6 @@ try {
                                             <button class="tools-list__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
                                                 <i data-lucide="telescope" class="lucide"></i><span>Deep Research</span>
                                             </button>
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="thinkingModeBtn" title="Switch thinking mode (Instant / Multi-thinking)">
-                                                <i data-lucide="layers" class="lucide"></i><span>Thinking mode</span>
-                                            </button>
                                             <button class="tools-list__item" id="configAgentBtn" title="Config Agent">
                                                 <i data-lucide="settings" class="lucide"></i><span>Config Agent</span>
                                             </button>
@@ -721,25 +715,6 @@ try {
                                     </div>
 
                                     <div class="tools-dropdown__divider"></div>
-
-                                    <!-- Files / Utility -->
-                                    <div class="tools-category">
-                                        <div class="tools-category__label"><i data-lucide="folder" class="lucide lucide-sm"></i> Files &amp; Utility</div>
-                                        <div class="tools-list">
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="uploadFilesBtn" title="Upload files">
-                                                <i data-lucide="paperclip" class="lucide"></i><span>Upload Files</span>
-                                            </button>
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="branchConversationBtn" title="Branch conversation">
-                                                <i data-lucide="git-branch" class="lucide"></i><span>Branch conversation</span>
-                                            </button>
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="memoryBtn" title="AI Memory" style="display:none;">
-                                                <i data-lucide="brain-circuit" class="lucide"></i><span>Memory</span>
-                                            </button>
-                                            <button class="tools-list__item is-proxy" type="button" data-proxy="galleryBtn" title="Image Gallery">
-                                                <i data-lucide="images" class="lucide"></i><span>Gallery</span>
-                                            </button>
-                                        </div>
-                                    </div>
 
                                     <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
                                     <div class="tools-dropdown__actions" hidden aria-hidden="true">
@@ -1691,9 +1666,9 @@ try {
 <div class="modal-overlay" id="galleryModal">
     <div class="modal-panel">
         <div class="modal-panel__header">
-            <h2 class="modal-panel__title"><i data-lucide="images" class="lucide"></i> Image Gallery</h2>
-            <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="modal-panel__close" onclick="refreshGallery()" title="Refresh"><i data-lucide="refresh-cw" class="lucide" style="width:16px;height:16px;"></i></button>
+            <h2 class="modal-panel__title"><i data-lucide="images" class="lucide"></i> <span>Image Gallery</span></h2>
+            <div class="modal-panel__header-actions">
+                <button class="modal-panel__icon-btn" onclick="refreshGallery()" title="Refresh"><i data-lucide="refresh-cw" class="lucide"></i></button>
                 <button class="modal-panel__close" onclick="closeGallery()" title="Close">&times;</button>
             </div>
         </div>

@@ -157,7 +157,7 @@
     inset: auto; /* let inline top/left from drag take over */
     background: transparent !important;
     backdrop-filter: none !important;
-    pointer-events: none; /* overlay is invisible � only the panel catches clicks */
+    pointer-events: none; /* overlay is invisible � only the panel catches clicks */
     z-index: 250;
     display: block;
 }
@@ -187,7 +187,7 @@
     transform: none;
 }
 
-/* Drag handle � header becomes grab cursor */
+/* Drag handle � header becomes grab cursor */
 .modal-overlay--panel .modal-panel__header,
 .modal-overlay--panel .character-picker-header,
 .modal-overlay--panel #jobQueueHeader {
@@ -305,3 +305,96 @@ body.is-desktop .topbar { top: 0; }
   background: #c2392f; color: #fff; border: 1px solid #a02d24;
 }
 .app-modal__panel .btn--danger:hover { background: #a02d24; }
+
+
+/* ── Batch B: opaque surfaces + header polish ─────────────────────────
+ * The manual character profile modal uses .modal-content (no rule
+ * existed previously → transparent). The job-queue floating panel and
+ * the inline tools-dropdown also need explicit opaque surfaces so they
+ * don't bleed the chat area through them in either theme.
+ */
+
+/* Manual character profile modal (and any other .modal-content child) */
+.modal-overlay > .modal-content {
+  background: var(--bg-modal, #1e1e1e);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary, #3d342a);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 18px 48px -12px rgba(0,0,0,0.55);
+  width: calc(100% - 32px);
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal-overlay > .modal-content input,
+.modal-overlay > .modal-content textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-secondary, #15110d);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary, #3d342a);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.modal-overlay > .modal-content input:focus,
+.modal-overlay > .modal-content textarea:focus {
+  outline: 2px solid var(--accent, #d4a866);
+  outline-offset: 0;
+}
+
+/* Floating job-queue panel — opaque even when stacked on chat */
+#jobQueuePanel.job-queue-panel,
+#jobQueuePanel.modal-overlay--panel.is-standalone-panel {
+  background: var(--bg-modal, #1e1e1e) !important;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary, #3d342a);
+  box-shadow: 0 20px 56px -16px rgba(0,0,0,0.6);
+}
+
+/* Tools dropdown — guarantee opaque background in both themes */
+.tools-dropdown {
+  background: var(--bg-tertiary, #212121) !important;
+  border: 1px solid var(--border-primary, #3d342a);
+}
+
+/* Modal panel header — align icon with title text + tidy action buttons */
+.modal-panel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-panel__title > .lucide,
+.modal-panel__title > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+.modal-panel__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.modal-panel__icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+.modal-panel__icon-btn:hover {
+  background: var(--bg-hover, rgba(255,255,255,0.08));
+  color: var(--text-primary);
+}
+.modal-panel__icon-btn .lucide {
+  width: 16px;
+  height: 16px;
+}
