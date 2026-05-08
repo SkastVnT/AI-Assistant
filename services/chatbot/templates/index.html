@@ -50,17 +50,32 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nano-banana.css') }}?v=20260506a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260507a">
-
-    <!-- Tailwind Play CDN — preflight disabled to avoid overriding existing styles -->
-    <script>
-      tailwind = { config: { corePlugins: { preflight: false } } };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/titlebar.css') }}?v=20260508a">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
+<!-- ═══ Custom titlebar (Electron only — hidden in browser via CSS) ═══ -->
+<div class="app-titlebar" id="appTitlebar" role="toolbar" aria-label="Window title bar">
+    <span class="app-titlebar__brand">
+        <i data-lucide="bot" class="lucide"></i>
+        <span>AI-Assistant</span>
+    </span>
+    <span class="app-titlebar__spacer"></span>
+    <div class="app-titlebar__controls">
+        <button type="button" class="app-titlebar__btn" id="titlebarMinBtn" title="Minimize" aria-label="Minimize">
+            <i data-lucide="minus" class="lucide"></i>
+        </button>
+        <button type="button" class="app-titlebar__btn" id="titlebarMaxBtn" title="Maximize" aria-label="Maximize">
+            <i data-lucide="square" class="lucide"></i>
+        </button>
+        <button type="button" class="app-titlebar__btn app-titlebar__btn--close" id="titlebarCloseBtn" title="Close" aria-label="Close">
+            <i data-lucide="x" class="lucide"></i>
+        </button>
+    </div>
+</div>
+
 <!-- JS error overlay — hidden by default; press Ctrl+Shift+D to toggle. -->
 <div id="__jsDebugOverlay" hidden style="position:fixed;bottom:12px;right:12px;z-index:99999;max-width:480px;background:#1e1e2e;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;box-shadow:0 4px 24px rgba(0,0,0,.6)">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -534,7 +549,7 @@ try {
                 <span class="topbar__sep" aria-hidden="true"></span>
                 <button class="topbar__btn" id="rightSidebarToggleBtn" title="Status panel"><i data-lucide="panel-right" class="lucide"></i></button>
                 <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
-                <button class="topbar__btn" id="darkModeBtn" title="Toggle theme"><i data-lucide="moon" class="lucide" id="darkModeIcon"></i></button>
+                <button class="topbar__btn" id="darkModeBtn" title="Toggle theme (Dark / Eye Comfort)"><i data-lucide="sun-dim" class="lucide" id="darkModeIcon"></i></button>
 
                 <!-- More menu -->
                 <div class="topbar__more" style="position:relative;">

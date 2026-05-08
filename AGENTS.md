@@ -23,15 +23,14 @@ A Python microservices platform with four active services. The chatbot is the pr
 
 ---
 
-## Startup modes (chatbot only)
+## Startup
 
-| Env flag | Mode |
-|---|---|
-| *(none set)* | Flask legacy monolith — entry via `chatbot_main.py` |
-| `USE_NEW_STRUCTURE=true` | Flask modular app factory — entry via `run.py` |
-| `USE_FASTAPI=true` | FastAPI + uvicorn — entry via `run.py` |
+| Mode | Command | Notes |
+|---|---|---|
+| Browser (default) | `python services/chatbot/run.py` | Single Flask monolith on port 5000 |
+| Desktop (Electron) | `cd desktop/electron && npm run dev` | Frameless + tray, auto-spawns the backend |
 
-`run.py` is the universal dispatcher. `chatbot_main.py` is the Flask monolith that also works as a direct entry point.
+`run.py` is the universal dispatcher. `chatbot_main.py` is the Flask monolith and also works as a direct entry point. The previous `USE_FASTAPI` and `USE_NEW_STRUCTURE` modes (and the `fastapi_app/` package) were removed in May 2026 — only the Flask monolith remains.
 
 ---
 
@@ -81,7 +80,6 @@ services/chatbot/
     db_helpers.py           Database helpers
     error_handler.py        Centralized error handling
     feature_flags.py        Runtime feature flags
-    user_auth.py            User auth logic (passwords, quotas)
     http_logging.py         HTTP request/response logging
     private_logger.py       Private activity logger
     image_storage.py        Image storage helpers
@@ -119,14 +117,8 @@ services/chatbot/
     image_gen.py            /api/image-gen/* — multi-provider image gen
     images.py               /images/* — image storage
     memory.py               /memory/* — AI memory
-    models.py               Model list and status
-    auth.py                 Auth endpoints
     stable_diffusion.py     SD proxy routes (sd_bp)
-    admin.py                /admin — admin panel + user management
-    user_auth.py            Login/register/quota endpoints
-    qr_payment.py           QR payment routes (VietQR)
     skills.py               /api/skills/* — runtime skill management
-    async_routes.py         /chat/async — async SSE streaming
     characters.py           /api/characters/* — character registry search + SAA augment
     character_select.py     /api/character-select/* + /api/local-image-gen/* — SAA sidecar
     jobs.py                 /api/jobs/* — local image job queue (status, cancel, manifest)
@@ -151,19 +143,11 @@ services/chatbot/
     handlers/               Multimodal + advanced image gen handlers
     utils/                  Utility modules (imgbb, SD client, MCP, etc.)
     rag/                    RAG subsystem (ingest, embeddings, service, etc.)
-  fastapi_app/              FastAPI mode (USE_FASTAPI=true only)
-    routers/                chat, stream, conversations, memory, images,
-                            video, rag, council_stream, xai_native_stream,
-                            skills
-  app/                      Nested Flask app (modular mode)
-    middleware/             auth.py, rate_limiter.py
-    routes/                 Modular route files (chat, video, memory, etc.)
-    controllers/            Business logic controllers
+  app/                      Nested Flask app (services + middleware only after Phase 1 cleanup)
+    middleware/             auth.py (require_login is a no-op pass-through), rate_limiter.py
     services/               Service layer
   templates/
-    index.html              Chat UI
-    admin.html              Admin panel
-    login.html              Login page
+    index.html              Chat UI — sole template (login/admin removed May 2026)
   static/
     css/app.css             Main stylesheet
     css/image-gen-v2.css    Image gen modal styles
@@ -237,9 +221,9 @@ private/                    Internal data/submodule
 
 2. **Shared env** is loaded once per process. Do not add a second `load_dotenv` that overrides it. The one allowed exception is `run.py` loading `services/chatbot/.env` without override.
 
-3. **Primary streaming endpoint**: `routes/stream.py` → `POST /chat/stream`. FastAPI equivalent lives in `fastapi_app/`. Do not merge these paths.
+3. **Primary streaming endpoint**: `routes/stream.py` → `POST /chat/stream`. The Flask monolith is now the **only** path — the parallel `fastapi_app/` package was removed in May 2026 (Phase 1 of the Electron overhaul). If you need an API-first variant, raise it as a separate task; do not silently re-introduce a parallel framework.
 
-   **Flask-only blueprints (no FastAPI mirror, by design):** `auth`, `models`, `async_routes`, `user_auth`, `qr_payment`. These rely on Flask sessions / Jinja templates / form-encoded uploads and are not ported to FastAPI. If `USE_FASTAPI=true` is set, those endpoints are unavailable — the FastAPI path is API-first and assumes JWT/header auth. Do not "fix" the gap by silently mirroring; raise it as a separate task.
+   **Removed blueprints (May 2026):** `auth`, `models` (already removed earlier), `async_routes`, `user_auth`, `admin`, `qr_payment`. Login / admin / QR-payment routes and templates are gone. Electron is the canonical surface and assumes a single trusted local user; `app/middleware/auth.require_login` is a no-op pass-through.
 
 4. **Adding a new tool**: update `core/tools.py`, `core/config.py` (for any new API key), tool-routing in `core/chatbot.py` or the relevant route handler, and the search tools table in `README.md`.
 
@@ -340,6 +324,7 @@ After making or proposing a change, summarize using:
 | Shared env loader | `services/shared_env.py` — one call per service |
 | Core venv | `venv-core` |
 | Image venv | `venv-image` |
+| Desktop wrapper | `desktop/electron/` (frameless, tray, single-instance) |
 | Thinking modes | `instant`, `think`, `deep-think`, `multi-thinking` |
 | Web search stack | SerpAPI (primary) → Google CSE (fallback) |
 | Reverse image stack | Google Lens → Google Reverse → Yandex |

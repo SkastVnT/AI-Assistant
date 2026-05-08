@@ -26,10 +26,9 @@ Do **not** edit `ComfyUI/`, `image_pipeline/`, `services/stable-diffusion/`, or 
 | Stable Diffusion | 7861 | `services/stable-diffusion/` |
 | Edit Image | 8100 | `services/edit-image/` |
 
-Chatbot startup modes (set via env before launching `run.py`):
-- *(none)* → Flask legacy monolith
-- `USE_NEW_STRUCTURE=true` → Flask modular app factory
-- `USE_FASTAPI=true` → FastAPI + uvicorn
+Chatbot startup:
+- `python services/chatbot/run.py` → Flask monolith on port 5000 (the only supported mode since May 2026; `USE_FASTAPI` / `USE_NEW_STRUCTURE` were removed).
+- `cd desktop/electron && npm run dev` → Frameless Electron desktop (tray, single-instance, auto-spawns backend).
 
 ## Environment loading contract
 
@@ -45,11 +44,7 @@ Chatbot startup modes (set via env before launching `run.py`):
 routes/stream.py        PRIMARY: SSE endpoint POST /chat/stream
 routes/main.py          /, /chat, /clear, /history, /api/generate-title
 routes/image_gen.py     /api/image-gen/* — multi-provider image gen
-routes/admin.py         /admin — admin panel
-routes/user_auth.py     Login/register/quota
 routes/stable_diffusion.py  SD proxy routes
-routes/async_routes.py  /chat/async — async SSE
-routes/qr_payment.py    QR payment routes
 routes/skills.py        /api/skills/* — runtime skill CRUD + session activation
 routes/characters.py    /api/characters/* — character registry + SAA augment
 routes/character_select.py  /api/character-select/* + /api/local-image-gen/*
@@ -75,13 +70,13 @@ database/               Repository pattern DB access, query caching
 src/handlers/           Multimodal handler, advanced image gen handler
 src/utils/              Utility modules (imgbb, SD client, MCP integration)
 src/rag/                RAG subsystem (ingest, embeddings, retrieval)
-fastapi_app/            FastAPI path (USE_FASTAPI=true) — separate from Flask
-app/                    Nested Flask modular app (USE_NEW_STRUCTURE=true)
+app/                    Nested Flask modular helper (services + middleware only)
+desktop/electron/       Frameless Electron desktop wrapper (tray, IPC, single-instance)
 ```
 
 **Warning — two config layers:** `core/config.py` (API keys from env) vs `config/mongodb_config.py` + `config/mongodb_helpers.py` (MongoDB setup, imported by `chatbot_main.py` via importlib). Do not confuse `services/chatbot/config/` with `app/config/`.
 
-The Flask SSE path (`routes/stream.py`) and the FastAPI path (`fastapi_app/`) are parallel implementations. Do not merge them.
+The parallel FastAPI implementation (`fastapi_app/`) and the auth/admin/qr_payment blueprints were removed in May 2026 (Electron overhaul Phase 1). The Flask SSE path (`routes/stream.py`) is now the single canonical entry. Do not re-introduce a parallel framework; raise it as a separate task.
 
 ## MCP server
 
@@ -179,6 +174,6 @@ This repository has 16 skills in `.github/skills/`. **Before starting work, read
 - Do not touch image pipeline or ComfyUI for chatbot-only tasks.
 - Do not add a `load_dotenv` call that overrides the shared env loader.
 - Do not add HTTP transport to the MCP server.
-- Do not merge the Flask SSE path with the FastAPI path.
+- Do not merge the Flask SSE path with any other framework. The previous parallel FastAPI implementation was removed; do not re-introduce one.
 - Do not update only code without updating docs when runtime behavior changes.
 - Do not bypass the Hermes↔Reasoning bridge contract: `core/image_intent.py` is the single import boundary between chatbot code and `image_pipeline.reasoning`. Do not add additional direct imports of `image_pipeline` anywhere else in `services/chatbot/`.

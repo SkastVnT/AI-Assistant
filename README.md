@@ -17,17 +17,27 @@ Nền tảng microservices Python tích hợp các dịch vụ AI: chatbot đa m
 
 ---
 
-## Chatbot Startup Modes
+## Chatbot Startup
 
-`services/chatbot/run.py` là dispatcher cho 3 mode:
+`services/chatbot/run.py` boots a single Flask monolith (port `FLASK_PORT`, default `5000`).
 
-| Env Flag | Mode | Engine |
-|---|---|---|
-| `USE_FASTAPI=true` | **FastAPI** (khuyến nghị) | uvicorn + ASGI |
-| `USE_NEW_STRUCTURE=true` | Flask modular | App factory pattern |
-| *(không set)* | Flask monolith | `chatbot_main.py` (legacy) |
+Prior parallel modes (`USE_FASTAPI`, `USE_NEW_STRUCTURE`) and the `fastapi_app/` package were removed during the Electron desktop overhaul (May 2026); only the Flask monolith path is supported now. Login / admin / QR-payment blueprints were also removed — Electron is the canonical surface and assumes a single trusted local user.
 
-Tất cả đều listen trên port `FLASK_PORT` (default `5000`).
+Desktop launch:
+
+```powershell
+cd desktop\electron
+npm install
+npm run dev      # frameless window + tray + auto-spawned backend
+```
+
+Browser launch (legacy, still works):
+
+```powershell
+cd services\chatbot
+python run.py
+# open http://127.0.0.1:5000
+```
 
 ---
 
@@ -174,7 +184,7 @@ Entry: `services/mcp-server/server.py`. Tools (`@mcp.tool()`):
 
 Plus `@mcp.resource()` (config, docs) và `@mcp.prompt()` (code review, debug, explain templates).
 
-Chatbot proxy qua `routes/mcp.py` (Flask) hoặc `fastapi_app/routers/mcp.py` (FastAPI).
+Chatbot proxy qua `routes/mcp.py`.
 
 ---
 
@@ -270,7 +280,7 @@ chat-typed prompts inherit the last choice.
 |---|---|
 | `GET` | `/health`, `/api/health/databases` |
 
-> Flask blueprints (19 tổng) tại `services/chatbot/routes/`. FastAPI routers tại `services/chatbot/fastapi_app/routers/` — **parallel implementations**, không merge.
+> Flask blueprints (16 tổng) tại `services/chatbot/routes/`. The previous parallel `fastapi_app/` implementation was removed in May 2026 — only Flask remains.
 
 ---
 
@@ -326,20 +336,18 @@ Loader: `services/shared_env.py` → `load_shared_env(__file__)` → tìm `app/c
 ### 4. Chạy chatbot
 
 ```powershell
-# FastAPI mode (khuyến nghị)
-$env:USE_FASTAPI="true"
+# Browser mode
 cd services\chatbot
 python run.py
+# mở http://127.0.0.1:5000
 
-# Flask modular
-$env:USE_NEW_STRUCTURE="true"
-python run.py
-
-# Flask monolith (mặc định)
-python run.py
-# hoặc trực tiếp:
-python chatbot_main.py
+# Desktop (Electron) — frameless + tray + auto backend spawn
+cd desktop\electron
+npm install
+npm run dev
 ```
+
+`USE_FASTAPI` và `USE_NEW_STRUCTURE` env vars đã bỏ từ Phase 1 — chỉ còn Flask monolith.
 
 ### 5. Scripts (Windows / Linux)
 
@@ -430,8 +438,6 @@ CHARACTER_SELECT_PORT=51028
 CHARACTER_SELECT_AUTO_START=false
 
 # ── Runtime flags ──
-USE_FASTAPI=true                     # Khuyến nghị
-USE_NEW_STRUCTURE=false
 AUTO_START_IMAGE_SERVICES=true       # Auto-launch SD + Edit Image
 FLASK_PORT=5000
 env=dev                              # Chọn .env_dev / .env_prod
@@ -460,22 +466,25 @@ services/
       image_gen/             7 providers + orchestrator
       skills/                Registry, Router, Resolver, Session
         builtins/            12 YAML skill definitions
-    routes/                  19 Flask blueprints
-    fastapi_app/             FastAPI routers (parallel implementation)
-      routers/               18 router files
+    routes/                  16 Flask blueprints (auth/admin/qr removed May 2026)
     src/
       audio_transcription.py Whisper STT
       ocr_integration.py     Vision OCR
       video_generation.py    Sora 2
       handlers/, utils/, rag/
-    templates/               index.html, admin.html, login.html
-    static/js/modules/       Vanilla JS (chat-manager, api-service, ...)
+    templates/               index.html (sole template; login/admin removed)
+    static/js/modules/       Vanilla JS (chat-manager, api-service, electron-bridge, ...)
+    static/css/              app.css, ui-polish.css, titlebar.css, panel/tool css
     config/                  mongodb_config.py, model_presets.py
     tests/                   40+ test modules
   mcp-server/
     server.py                FastMCP stdio server
   stable-diffusion/          SDXL service (port 7861)
   edit-image/                ComfyUI-based service (port 8100)
+
+desktop/
+  electron/                  Frameless Electron wrapper (tray, IPC, single-instance)
+    src/{main.js,preload.js,backend-process.js,loading.html}
 
 app/
   config/                    .env, config.yml, model_config.py

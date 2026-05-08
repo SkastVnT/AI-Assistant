@@ -141,3 +141,131 @@
         padding-left: 0;
     }
 }
+
+
+/* -- Floating Panel Mode (Phase 3) ------------------------------------
+ * .modal-overlay--panel turns a full-screen modal into a draggable,
+ * resizable floating panel with no backdrop. Used for the 6 tool panels:
+ *   imageGenV2Modal, videoGenModal, nanoBananaModal,
+ *   animePipelineModal, characterPickerModal, jobQueuePanel
+ *
+ * Visibility still uses .open. State (form values, in-flight tasks) is
+ * preserved because the element stays mounted; only its visibility flips.
+ */
+.modal-overlay--panel {
+    position: fixed;
+    inset: auto; /* let inline top/left from drag take over */
+    background: transparent !important;
+    backdrop-filter: none !important;
+    pointer-events: none; /* overlay is invisible — only the panel catches clicks */
+    z-index: 250;
+    display: block;
+}
+.modal-overlay--panel.open {
+    pointer-events: none; /* keep the surrounding area click-through */
+}
+.modal-overlay--panel > .modal-panel,
+.modal-overlay--panel > #jobQueueWindow,
+.modal-overlay--panel > .character-picker-content {
+    position: absolute;
+    pointer-events: auto;
+    box-shadow: 0 18px 48px -12px rgba(0,0,0,0.55), 0 0 0 1px var(--border-primary);
+    transform: none; /* override scale-in transition baseline */
+    max-height: none;
+    resize: both;
+    overflow: auto;
+    min-width: 360px;
+    min-height: 240px;
+    width: var(--panel-w, 720px);
+    height: var(--panel-h, 560px);
+    top: var(--panel-top, 64px);
+    left: var(--panel-left, calc(50vw - 360px));
+}
+.modal-overlay--panel.open > .modal-panel,
+.modal-overlay--panel.open > #jobQueueWindow,
+.modal-overlay--panel.open > .character-picker-content {
+    transform: none;
+}
+
+/* Drag handle — header becomes grab cursor */
+.modal-overlay--panel .modal-panel__header,
+.modal-overlay--panel .character-picker-header,
+.modal-overlay--panel #jobQueueHeader {
+    cursor: grab;
+    user-select: none;
+}
+.modal-overlay--panel .modal-panel__header.is-dragging,
+.modal-overlay--panel .character-picker-header.is-dragging,
+.modal-overlay--panel #jobQueueHeader.is-dragging {
+    cursor: grabbing;
+}
+
+/* Visual hint that panel is floating, not full-screen */
+.modal-overlay--panel > .modal-panel::before,
+.modal-overlay--panel > #jobQueueWindow::before,
+.modal-overlay--panel > .character-picker-content::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid var(--border-primary);
+    border-bottom: 2px solid var(--border-primary);
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+
+/* Standalone panel mode: element itself is the panel (no overlay wrapper).
+ * Used by #jobQueuePanel which is a plain div appended to <body>. */
+.modal-overlay--panel.is-standalone-panel {
+    position: fixed;
+    pointer-events: auto;
+    background: var(--bg-modal, #1f1f29);
+    color: var(--text-primary);
+    border-radius: 12px;
+    box-shadow: 0 18px 48px -12px rgba(0,0,0,0.55), 0 0 0 1px var(--border-primary);
+    resize: both;
+    overflow: auto;
+    min-width: 360px;
+    min-height: 240px;
+    width: var(--panel-w, 480px);
+    height: var(--panel-h, 520px);
+    top: var(--panel-top, 80px);
+    left: var(--panel-left, calc(100vw - 520px));
+    z-index: 260;
+    display: flex;
+    flex-direction: column;
+}
+.modal-overlay--panel.is-standalone-panel::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid var(--border-primary);
+    border-bottom: 2px solid var(--border-primary);
+    opacity: 0.45;
+    pointer-events: none;
+}
+.modal-overlay--panel.is-standalone-panel .jq-header,
+.modal-overlay--panel.is-standalone-panel #jobQueueHeader {
+    cursor: grab;
+    user-select: none;
+}
+.modal-overlay--panel.is-standalone-panel .jq-header.is-dragging,
+.modal-overlay--panel.is-standalone-panel #jobQueueHeader.is-dragging {
+    cursor: grabbing;
+}
+
+
+/* Phase 5 polish: panels must stay above the topbar but below the
+ * Electron custom titlebar (z-index: 10000). */
+.modal-overlay--panel { z-index: 9000; }
+.modal-overlay--panel.is-standalone-panel { z-index: 9001; }
+
+/* When running in Electron, dropdowns from the topbar should clear the
+ * 36px-tall custom titlebar above. */
+body.is-desktop .topbar { top: 0; }

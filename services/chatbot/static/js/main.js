@@ -17,9 +17,12 @@ import { SplitViewManager } from './modules/split-view.js';
 import { initLanguage } from './language-switcher.js';
 import { AnimePipeline } from './modules/anime-pipeline.js';
 import { initOverlayActions } from './modules/overlay-actions.js';
-import { initOverlayManager, registerOverlay } from './modules/overlay-manager.js';
+import { initOverlayManager, registerOverlay, enablePanelMode } from './modules/overlay-manager.js';
 import { domToStructured, legacyHtmlToStructured } from './modules/message-model.js';
 import { buildHistoryFromTimeline } from './modules/timeline.js';
+// Electron bridge: side-effect import — tags <body class="is-desktop"|"is-browser">,
+// wires custom titlebar buttons, mirrors job count to system tray badge.
+import './modules/electron-bridge.js';
 
 class ChatBotApp {
     constructor() {
@@ -463,6 +466,29 @@ class ChatBotApp {
             // Close sidebar on mobile
             if (window.innerWidth <= 768) {
                 this.uiUtils.closeSidebar();
+            }
+        });
+
+        // Sidebar select-mode toggle
+        const chatSelectBtn = document.getElementById('chatSelectBtn');
+        if (chatSelectBtn) {
+            chatSelectBtn.addEventListener('click', () => {
+                this.uiUtils.toggleSelectMode();
+            });
+        }
+
+        // Sidebar delete-selected button
+        const chatDeleteSelectedBtn = document.getElementById('chatDeleteSelectedBtn');
+        if (chatDeleteSelectedBtn) {
+            chatDeleteSelectedBtn.addEventListener('click', () => {
+                this.uiUtils.deleteSelectedChats();
+            });
+        }
+
+        // Cancel select mode (×)
+        document.querySelectorAll('[data-action="storage:select-mode"]').forEach(btn => {
+            if (btn.id !== 'chatSelectBtn') {
+                btn.addEventListener('click', () => this.uiUtils.toggleSelectMode());
             }
         });
 
@@ -3086,9 +3112,24 @@ document.addEventListener('DOMContentLoaded', () => {
     registerOverlay('imagePreviewModal',       { type: 'modal', outsideClose: false, onClose: () => { document.body.style.overflow = ''; } });
     registerOverlay('historyModal',            { type: 'modal' });
     registerOverlay('configAgentModal',        { type: 'modal' });
-    registerOverlay('imageGenV2Modal',         { type: 'modal' });
-    registerOverlay('animePipelineModal',      { type: 'modal' });
-    registerOverlay('videoGenModal',           { type: 'modal' });
+    // ── Floating tool panels (Phase 3) ──
+    // Tool windows that should NOT block the chat: draggable, resizable,
+    // dismissed by clicking outside. State (form values, in-flight jobs)
+    // is preserved — the element stays mounted, only visibility flips.
+    registerOverlay('imageGenV2Modal',         { type: 'panel' });
+    registerOverlay('animePipelineModal',      { type: 'panel' });
+    registerOverlay('videoGenModal',           { type: 'panel' });
+    registerOverlay('nanoBananaModal',         { type: 'panel' });
+    registerOverlay('characterPickerModal',    { type: 'panel' });
+    // jobQueuePanel is a standalone div (no .modal-overlay class), so closing
+    // by class alone is not enough — also clear its inline display.
+    registerOverlay('jobQueuePanel',           { type: 'panel', onClose: (el) => { el.style.display = 'none'; if (window.closeJobQueuePanel) window.closeJobQueuePanel(); } });
+    enablePanelMode('imageGenV2Modal');
+    enablePanelMode('animePipelineModal');
+    enablePanelMode('videoGenModal');
+    enablePanelMode('nanoBananaModal');
+    enablePanelMode('characterPickerModal');
+    enablePanelMode('jobQueuePanel');
     registerOverlay('generatedImageContainer', { type: 'modal' });
     registerOverlay('qrPayModal',              { type: 'modal' });
     registerOverlay('changePwModal',           { type: 'modal' });

@@ -61,6 +61,7 @@
     modal = document.createElement('div');
     modal.id = 'characterPickerModal';
     modal.className = 'modal-overlay character-picker-modal';
+    // Hidden by default; openPicker() switches to .open class.
     modal.style.display = 'none';
     modal.innerHTML = `
       <div class="modal-content character-picker-content" role="dialog" aria-modal="true" aria-label="Character picker">
@@ -176,7 +177,8 @@
       try { await loadSeries(); } catch (e) { console.warn('[character-picker] series load failed', e); }
     }
     renderSeries(STATE.cache.series || []);
-    modal.style.display = 'flex';
+    modal.style.display = '';
+    modal.classList.add('open');
     STATE.open = true;
     const input = document.getElementById('cpSearchInput');
     if (input) { input.value = STATE.query; setTimeout(() => input.focus(), 50); }
@@ -186,7 +188,10 @@
 
   function closePicker() {
     const modal = document.getElementById('characterPickerModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.classList.remove('open');
+      modal.style.display = 'none';
+    }
     STATE.open = false;
   }
 

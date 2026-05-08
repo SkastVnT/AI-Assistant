@@ -1,10 +1,8 @@
 """
 Chatbot Application Entry Point
 
-Modes (set via environment variables):
-  USE_FASTAPI=true        -> FastAPI + Uvicorn  (recommended, native async)
-  USE_NEW_STRUCTURE=true  -> Flask modular app factory
-  (default)               -> Legacy Flask monolith (chatbot_main.py)
+Desktop-only build: launches the Flask monolith (chatbot_main.py).
+FastAPI and modular-app-factory modes were removed.
 """
 
 import os
@@ -360,70 +358,14 @@ def _should_autostart_services() -> bool:
         return False
     return True
 
-USE_FASTAPI = os.getenv('USE_FASTAPI', 'false').lower() == 'true'
-USE_NEW_STRUCTURE = os.getenv('USE_NEW_STRUCTURE', 'false').lower() == 'true'
+USE_FASTAPI = False
+USE_NEW_STRUCTURE = False
 
-if USE_FASTAPI:
-    # -- FastAPI mode (recommended) --
-    from fastapi_app import create_app as _create_fastapi_app
+# -- Flask monolith (only supported mode) --
+if __name__ == '__main__':
+    if _should_autostart_services():
+        _autostart_image_services()
 
-    app = _create_fastapi_app()
+    app_py_path = service_dir / 'chatbot_main.py'
+    runpy.run_path(str(app_py_path), run_name='__main__')
 
-    if __name__ == '__main__':
-        import uvicorn
-
-        if _should_autostart_services():
-            _autostart_image_services()
-
-        port = int(os.getenv('FLASK_PORT', 5000))
-        reload = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
-
-        print(f">> Starting Chatbot (FastAPI) on port {port}")
-        uvicorn.run(
-            "run:app",
-            host=os.getenv('HOST', '0.0.0.0'),  # nosec B104  # Intentional: service needs external access
-            port=port,
-            reload=reload,
-            log_level='debug' if os.getenv('DEBUG', '0') == '1' else 'info',
-        )
-
-elif USE_NEW_STRUCTURE:
-    # -- Flask modular app factory --
-    import importlib.util
-
-    app_init_path = service_dir / 'app' / '__init__.py'
-    spec = importlib.util.spec_from_file_location("chatbot_app", app_init_path,
-                                                    submodule_search_locations=[str(service_dir / 'app')])
-    chatbot_app_module = importlib.util.module_from_spec(spec)
-    sys.modules["chatbot_app"] = chatbot_app_module
-    spec.loader.exec_module(chatbot_app_module)
-
-    create_app = chatbot_app_module.create_app
-    app = create_app(os.getenv('FLASK_ENV', 'development'))
-
-    if __name__ == '__main__':
-        if _should_autostart_services():
-            _autostart_image_services()
-
-        port = int(os.getenv('FLASK_PORT', 5000))
-        debug = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
-
-        print(f">> Starting Chatbot (Flask New Structure) on port {port}")
-        # On Windows, watchdog reloader triggers WinError 10038; use stat reloader.
-        # When spawned by Electron, disable reloader — Electron handles restarts.
-        _use_reloader = debug and not bool(os.getenv('ELECTRON_DESKTOP'))
-        _reloader_type = 'stat' if os.name == 'nt' else 'auto'
-        app.run(host=os.getenv('HOST', '0.0.0.0'), port=port, debug=debug, threaded=True,
-                use_reloader=_use_reloader, reloader_type=_reloader_type)  # nosec B104  # Intentional: service needs external access
-
-else:
-    # -- Legacy Flask monolith --
-    print("[i] Using legacy application structure")
-    print("[*] Set USE_FASTAPI=true for async FastAPI mode")
-
-    if __name__ == '__main__':
-        if _should_autostart_services():
-            _autostart_image_services()
-
-        app_py_path = service_dir / 'chatbot_main.py'
-        runpy.run_path(str(app_py_path), run_name='__main__')

@@ -77,93 +77,58 @@ export class UIUtils {
     }
 
     /**
-     * Initialize dark mode
-     * New CSS: dark is default (no class), light = body.light-mode, eye-care = body.eye-care-mode
+     * Initialize theme.
+     * Two themes only: 'dark' (default, no class) and 'eye-care' (body.eye-care-mode).
+     * Any legacy 'light' value in localStorage is migrated to 'dark'.
      */
     initDarkMode() {
-        const savedTheme = localStorage.getItem('theme') || 'dark';
+        let savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme !== 'eye-care') savedTheme = 'dark';
         this.theme = savedTheme;
-        
-        // Remove all theme classes first
+
         document.body.classList.remove('light-mode', 'eye-care-mode', 'dark-mode');
-        
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-mode');
-            if (this.elements.darkModeBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
-            }
-        } else if (savedTheme === 'eye-care') {
+
+        if (savedTheme === 'eye-care') {
             document.body.classList.add('eye-care-mode');
-            const eyeCareBtn = document.getElementById('eyeCareBtn');
-            if (eyeCareBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(eyeCareBtn, 'sun-dim');
-            }
-            if (this.elements.darkModeBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
-            }
-        } else {
-            // Dark mode (default) — no class needed
-            if (this.elements.darkModeBtn && window.swapLucideIcon) {
-                window.swapLucideIcon(this.elements.darkModeBtn, 'sun');
-            }
         }
+
+        this._refreshThemeIcons();
+        localStorage.setItem('theme', this.theme);
     }
 
     /**
-     * Toggle dark mode
-     * Cycles: dark → light → dark
+     * Toggle between dark and eye-comfort themes.
      */
     toggleDarkMode() {
-        // Remove eye-care mode if active
-        document.body.classList.remove('eye-care-mode');
-        const eyeCareBtn = document.getElementById('eyeCareBtn');
-        if (eyeCareBtn && window.swapLucideIcon) window.swapLucideIcon(eyeCareBtn, 'eye');
-        
-        // Toggle: dark (no class) ↔ light (light-mode class)
-        const isCurrentlyLight = document.body.classList.contains('light-mode');
-        document.body.classList.remove('dark-mode'); // Remove legacy class
-        
-        if (isCurrentlyLight) {
-            // Switch to dark
-            document.body.classList.remove('light-mode');
-            this.theme = 'dark';
-        } else {
-            // Switch to light
-            document.body.classList.add('light-mode');
-            this.theme = 'light';
+        this.theme = (this.theme === 'eye-care') ? 'dark' : 'eye-care';
+        document.body.classList.remove('light-mode', 'dark-mode', 'eye-care-mode');
+        if (this.theme === 'eye-care') {
+            document.body.classList.add('eye-care-mode');
         }
-        
-        const isDark = this.theme === 'dark';
-        if (this.elements.darkModeBtn && window.swapLucideIcon) {
-            window.swapLucideIcon(this.elements.darkModeBtn, isDark ? 'sun' : 'moon');
-        }
-        
+        this._refreshThemeIcons();
         localStorage.setItem('theme', this.theme);
-        return isDark;
+        return this.theme === 'dark';
     }
-    
+
     /**
-     * Toggle Eye Care mode - reduces blue light with warm colors
+     * Eye-comfort toggle (alias for toggleDarkMode for backward-compat with eyeCareBtn).
      */
     toggleEyeCareMode() {
-        // Remove other theme classes
-        document.body.classList.remove('dark-mode', 'light-mode');
+        this.toggleDarkMode();
+        return this.theme === 'eye-care';
+    }
+
+    _refreshThemeIcons() {
+        const isEyeCare = this.theme === 'eye-care';
         if (this.elements.darkModeBtn && window.swapLucideIcon) {
-            window.swapLucideIcon(this.elements.darkModeBtn, 'moon');
+            window.swapLucideIcon(this.elements.darkModeBtn, isEyeCare ? 'moon' : 'sun-dim');
+            this.elements.darkModeBtn.title = isEyeCare ? 'Switch to Dark theme' : 'Switch to Eye Comfort theme';
         }
-        
-        document.body.classList.toggle('eye-care-mode');
-        const isEyeCare = document.body.classList.contains('eye-care-mode');
-        
         const eyeCareBtn = document.getElementById('eyeCareBtn');
         if (eyeCareBtn && window.swapLucideIcon) {
             window.swapLucideIcon(eyeCareBtn, isEyeCare ? 'sun-dim' : 'eye');
-            eyeCareBtn.title = isEyeCare ? 'Turn off Eye Care Mode' : 'Turn on Eye Care Mode';
+            eyeCareBtn.title = isEyeCare ? 'Turn off Eye Comfort' : 'Turn on Eye Comfort';
         }
-        
-        this.theme = isEyeCare ? 'eye-care' : 'dark';
-        localStorage.setItem('theme', this.theme);
-        return isEyeCare;
     }
 
     /**

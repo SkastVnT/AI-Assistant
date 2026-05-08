@@ -7,13 +7,19 @@ remains the canonical surface; Electron just spawns the existing
 
 ## What it does
 
-1. Boots a `BrowserWindow` showing `src/loading.html` (dark splash).
+1. Boots a **frameless** `BrowserWindow` showing `src/loading.html` (dark splash).
 2. Spawns `python services/chatbot/run.py` with `cwd = repo root`.
    - On Windows, prefers `venv-core/Scripts/python.exe`.
    - On macOS / Linux, prefers `venv-core/bin/python`.
 3. Polls `GET /health` (and falls back to `/`) until it gets a `< 500` response.
 4. Calls `mainWindow.loadURL('http://127.0.0.1:5000')`.
-5. On window close / app quit, terminates the backend child process.
+5. Holds a single-instance lock (a 2nd launch focuses the existing window).
+6. Installs a **system tray icon** with Show/Hide/Restart-backend/Quit menu.
+7. Polls `/api/jobs/stats` every 5 s from the renderer and mirrors the running
+   job count to the tray tooltip + Windows taskbar overlay.
+8. Registers global shortcut `Ctrl+Shift+A` to toggle window visibility.
+9. On window close → hides to tray (does NOT quit). Tray → Quit actually exits.
+10. Quitting kills the backend child process.
 
 ## What it does NOT do
 
@@ -27,13 +33,21 @@ remains the canonical surface; Electron just spawns the existing
 
 ## Renderer bridge
 
-`preload.js` exposes a single readonly object:
+`preload.js` exposes a frozen object:
 
 ```js
-window.desktopAPI = { isDesktop: true, platform: process.platform };
+window.desktopAPI = {
+  isDesktop: true,
+  platform: 'win32' | 'darwin' | 'linux',
+  window: { minimize, maximize, close, isMaximized, onMaximizedChanged },
+  tray:   { setBadge },
+  notify: { show({ title, body, silent }) }
+};
 ```
 
-That is the entire surface. No fs, no shell, no ipc.
+No `fs`, no `shell`, no arbitrary `ipc`. The chatbot frontend uses this from
+`services/chatbot/static/js/modules/electron-bridge.js` to wire the custom
+titlebar buttons and the tray-badge poller.
 
 ## Setup
 
@@ -56,6 +70,12 @@ Packaging the desktop wrapper does NOT bundle Python. The packaged app still
 expects `venv-core` to exist next to it (or `python` on PATH). For a true
 self-contained installer, see `docs/STORAGE_CURATION_ROADMAP.md` — that work
 is deferred.
+
+## Tray icon asset
+
+The tray defaults to a 1×1 transparent PNG fallback shipped inline. Drop a
+proper square PNG (16 / 24 / 32 px) at `desktop/electron/src/tray-icon.png`
+and it will be picked up automatically.
 
 ## Environment variables
 

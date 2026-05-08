@@ -1524,8 +1524,6 @@ def is_mobile_device():
 @app.route('/')
 def index():
     """Home page - Responsive UI (works on both mobile and desktop)"""
-    if not session.get('authenticated'):
-        return redirect('/login')
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
     
@@ -1550,8 +1548,6 @@ def index_with_conversation(conversation_id):
     from localStorage (or via /conversations/<id> API for server-stored conversations).
     Allows ChatGPT-style shareable URLs and browser back/forward navigation.
     """
-    if not session.get('authenticated'):
-        return redirect('/login')
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
 
@@ -1578,16 +1574,6 @@ def index_with_conversation(conversation_id):
         "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "")
     })
     return render_template('index.html', firebase_config=firebase_config)
-
-
-@app.route('/new')
-def index_new():
-    """New Tailwind version (experimental)"""
-    if not session.get('authenticated'):
-        return redirect('/login')
-    if 'session_id' not in session:
-        session['session_id'] = str(uuid.uuid4())
-    return render_template('index_tailwind.html')
 
 
 @app.route('/mobile')
@@ -5750,26 +5736,8 @@ except ImportError as e:
 # â•â•â• External API v1 â€” Stateless API for extensions/.exe â•â•â•
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-try:
-    from routes.user_auth import user_auth_bp
-    app.register_blueprint(user_auth_bp)
-    logger.info("Registered user_auth blueprint")
-except ImportError as e:
-    logger.warning(f"Could not register user_auth blueprint: {e}")
-
-try:
-    from routes.admin import admin_bp
-    app.register_blueprint(admin_bp)
-    logger.info("Registered admin blueprint")
-except ImportError as e:
-    logger.warning(f"Could not register admin blueprint: {e}")
-
-try:
-    from routes.qr_payment import qr_bp
-    app.register_blueprint(qr_bp)
-    logger.info("Registered qr_payment blueprint")
-except ImportError as e:
-    logger.warning(f"Could not register qr_payment blueprint: {e}")
+# user_auth, admin, qr_payment blueprints removed in desktop-only build
+# (single-user Electron app no longer needs login / admin panel / billing)
 
 try:
     from routes.skills import skills_bp

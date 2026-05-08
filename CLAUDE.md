@@ -72,7 +72,7 @@ When behavior changes, update docs and identify the smallest sufficient validati
 
 **Env loading:** `services/shared_env.py` → `load_shared_env(__file__)` once per service. Never add a second `load_dotenv` that overrides it.
 
-**Primary streaming endpoint:** `routes/stream.py` → `POST /chat/stream`. Flask and FastAPI paths are parallel — do not merge.
+**Primary streaming endpoint:** `routes/stream.py` → `POST /chat/stream`. The Flask monolith is the **only** path — `fastapi_app/` was removed in May 2026. Login/admin/QR-payment blueprints were removed too; Electron is the canonical surface.
 
 **MCP transport:** `stdio` (FastMCP). Do not add HTTP listeners.
 
