@@ -12,10 +12,10 @@
     },
     "license": "MIT",
     "devDependencies": {
-        "electron": "^32.0.0",
         "@electron-forge/cli": "^7.4.0",
         "@electron-forge/maker-squirrel": "^7.4.0",
-        "@electron-forge/maker-zip": "^7.4.0"
+        "@electron-forge/maker-zip": "^7.4.0",
+        "electron": "^42.0.0"
     },
     "config": {
         "forge": {
@@ -30,7 +30,11 @@
             "makers": [
                 {
                     "name": "@electron-forge/maker-zip",
-                    "platforms": ["win32", "darwin", "linux"]
+                    "platforms": [
+                        "win32",
+                        "darwin",
+                        "linux"
+                    ]
                 },
                 {
                     "name": "@electron-forge/maker-squirrel",
