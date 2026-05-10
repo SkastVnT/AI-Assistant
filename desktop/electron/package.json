@@ -2,47 +2,26 @@
     "name": "ai-assistant-desktop",
     "version": "0.1.0",
     "private": true,
-    "description": "Electron desktop wrapper for AI-Assistant chatbot. Spawns services/chatbot/run.py and loads http://127.0.0.1:5000.",
+    "description": "Electron desktop wrapper for AI-Assistant. Spawns Python backend + ComfyUI and loads http://127.0.0.1:5000.",
     "main": "src/main.js",
     "scripts": {
         "dev": "electron . --dev",
         "start": "electron .",
-        "package": "electron-forge package",
-        "make": "electron-forge make"
+        "prepare-payload": "node scripts/prepare-payload.js",
+        "prepare-payload-lite": "node scripts/prepare-payload-lite.js",
+        "build:installer": "node scripts/prepare-payload.js && electron-builder --win nsis --x64 --publish never",
+        "build:installer-lite": "node scripts/prepare-payload-lite.js && electron-builder --win nsis --x64 --config electron-builder-lite.yml --publish never",
+        "build:dir": "node scripts/prepare-payload.js && electron-builder --win --dir --x64 --publish never",
+        "build:dir-lite": "node scripts/prepare-payload-lite.js && electron-builder --win --dir --x64 --config electron-builder-lite.yml --publish never",
+        "build:local": "electron-builder --win dir --x64 --config electron-builder-local.yml --publish never"
     },
     "license": "MIT",
-    "devDependencies": {
-        "@electron-forge/cli": "^7.4.0",
-        "@electron-forge/maker-squirrel": "^7.4.0",
-        "@electron-forge/maker-zip": "^7.4.0",
-        "electron": "^42.0.0"
+    "dependencies": {
+        "electron-updater": "^6.3.9"
     },
-    "config": {
-        "forge": {
-            "packagerConfig": {
-                "name": "AI-Assistant",
-                "asar": true,
-                "ignore": [
-                    "^/\\.git$",
-                    "^/README\\.md$"
-                ]
-            },
-            "makers": [
-                {
-                    "name": "@electron-forge/maker-zip",
-                    "platforms": [
-                        "win32",
-                        "darwin",
-                        "linux"
-                    ]
-                },
-                {
-                    "name": "@electron-forge/maker-squirrel",
-                    "config": {
-                        "name": "ai_assistant_desktop"
-                    }
-                }
-            ]
-        }
+    "devDependencies": {
+        "electron": "^42.0.0",
+        "electron-builder": "^24.13.3",
+        "fs-extra": "^11.2.0"
     }
 }

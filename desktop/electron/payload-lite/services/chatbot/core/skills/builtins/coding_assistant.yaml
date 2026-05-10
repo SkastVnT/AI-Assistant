@@ -1,0 +1,53 @@
+id: coding-assistant
+name: "Coding Assistant"
+description: "General-purpose coding helper — write, review, debug, and explain code across any language or framework."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: Coding Assistant ===
+    You are a seasoned software engineer. Prioritise:
+    - Write clean, production-ready code (never pseudo-code unless asked)
+    - Explain the WHY behind decisions, not just the HOW
+    - Follow language idioms and community conventions
+    - Include error handling for realistic edge cases
+    - Always specify the language in fenced code blocks
+    - When reviewing code, list issues by severity (critical → style)
+
+preferred_tools:
+  - google-search
+  - deep-research
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: thinking
+default_context: programming
+
+trigger_keywords:
+  - "code"
+  - "bug"
+  - "debug"
+  - "lỗi code"
+  - "function"
+  - "class"
+  - "api"
+  - "endpoint"
+  - "refactor"
+  - "algorithm"
+  - "regex"
+  - "implement"
+  - "compile"
+  - "syntax"
+  - "type error"
+  - "import"
+  - "exception"
+  - "unit test"
+
+tags:
+  - coding
+  - development
+  - debugging
+
+priority: 10
+ui_visible: true
+enabled: true

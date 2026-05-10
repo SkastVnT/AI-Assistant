@@ -1,0 +1,246 @@
+# ═══════════════════════════════════════════════════════════════════
+# models.yaml — Model registry for the Nano Banana-like pipeline
+# ═══════════════════════════════════════════════════════════════════
+#
+# Every model the pipeline can invoke is declared here.
+# capability_router.py reads this at startup to build routing tables.
+#
+# Fields:
+#   provider     — which provider wrapper to use (fal, bfl, comfyui, vps, stepfun, etc.)
+#   endpoint     — model identifier within that provider
+#   location     — local | vps | api
+#   vram_gb      — VRAM needed for local/vps models (null for API)
+#   cost_usd     — estimated cost per image at default resolution
+#   tier         — ultra | high | fast | local | free
+#   capabilities — list of supported task types
+#   max_refs     — max reference images (0 = text-only)
+#   notes        — deployment notes / caveats
+
+models:
+
+  # ── Semantic editing brain (§5.1) ─────────────────────────────────
+
+  qwen-image-edit:
+    provider: vps
+    endpoint: "Qwen/Qwen-Image-Edit-2511"
+    location: vps
+    vram_gb: 40          # bf16; ~22 GB fp8 quantized
+    cost_usd: 0.0        # self-hosted
+    tier: ultra
+    capabilities: [semantic_edit, multi_turn_edit, instruction_edit, t2i, i2i]
+    max_refs: 4
+    notes: "Primary editing brain. Requires VPS ≥40GB VRAM (bf16) or ≥24GB (fp8). Served via vLLM."
+
+  # ── Multi-reference / composition (§5.2) ──────────────────────────
+
+  flux2-pro:
+    provider: bfl
+    endpoint: "flux-2-pro"
+    location: api
+    vram_gb: null
+    cost_usd: 0.040
+    tier: ultra
+    capabilities: [t2i, multi_ref]
+    max_refs: 8
+    notes: "Official BFL API. Up to 8 reference images. No i2i/inpaint."
+
+  flux2-max:
+    provider: bfl
+    endpoint: "flux-2-max"
+    location: api
+    vram_gb: null
+    cost_usd: 0.080
+    tier: ultra
+    capabilities: [t2i, multi_ref, grounding]
+    max_refs: 8
+    notes: "BFL top tier. Grounding search. $0.08/img."
+
+  flux2-dev:
+    provider: fal
+    endpoint: "fal-ai/flux-2-dev"
+    location: api
+    vram_gb: null
+    cost_usd: 0.025
+    tier: high
+    capabilities: [t2i, i2i]
+    max_refs: 0
+    notes: "Good quality, moderate cost. Via fal.ai."
+
+  # ── Surgical patch / inpainting (§5.3) ────────────────────────────
+
+  flux1-fill:
+    provider: fal
+    endpoint: "fal-ai/flux-pro/v1/fill"
+    location: api
+    vram_gb: null
+    cost_usd: 0.050
+    tier: high
+    capabilities: [inpaint, fill, surgical_fix]
+    max_refs: 0
+    notes: "FLUX.1 [pro] Fill. Mask-based precision inpainting. Up to 4 variations."
+
+  # ── Fast preview / cheap generation ───────────────────────────────
+
+  flux2-klein-4b:
+    provider: fal
+    endpoint: "fal-ai/flux-2-klein-4b"
+    location: api
+    vram_gb: null         # API mode; ~10GB fp8 if running local
+    cost_usd: 0.003
+    tier: fast
+    capabilities: [t2i]
+    max_refs: 0
+    notes: "Sub-second inference. $0.003/img. Good for preview."
+
+  flux1-schnell:
+    provider: fal
+    endpoint: "fal-ai/flux/schnell"
+    location: api
+    vram_gb: null
+    cost_usd: 0.003
+    tier: fast
+    capabilities: [t2i]
+    max_refs: 0
+    notes: "4-step distilled. Cheapest FLUX."
+
+  # ── Instruction-based editing (fallback semantic editor) ──────────
+
+  flux1-kontext:
+    provider: fal
+    endpoint: "fal-ai/flux-kontext/dev"
+    location: api
+    vram_gb: null
+    cost_usd: 0.025
+    tier: high
+    capabilities: [i2i, instruction_edit, semantic_edit]
+    max_refs: 1
+    notes: "FLUX.1 Kontext. Instruction-based editing. Day-1 fallback for Qwen."
+
+  step1x-edit:
+    provider: stepfun
+    endpoint: "step1x-edit"
+    location: api
+    vram_gb: null
+    cost_usd: 0.020
+    tier: high
+    capabilities: [i2i, instruction_edit, semantic_edit]
+    max_refs: 1
+    notes: "StepFun instruction-based editing. Fallback chain member."
+
+  step1x-fill:
+    provider: stepfun
+    endpoint: "step1x-fill"
+    location: api
+    vram_gb: null
+    cost_usd: 0.020
+    tier: high
+    capabilities: [inpaint, fill]
+    max_refs: 0
+    notes: "StepFun inpainting. Fallback for FLUX Fill."
+
+  # ── Nano Banana models (reference target) ─────────────────────────
+
+  nano-banana-2:
+    provider: fal
+    endpoint: "fal-ai/nano-banana-2"
+    location: api
+    vram_gb: null
+    cost_usd: 0.005
+    tier: high
+    capabilities: [t2i, i2i]
+    max_refs: 0
+    notes: "Google Nano Banana 2. Fast, cheap. Fallback for quick gen."
+
+  # ── Local models (§5.4 — refinement stack) ────────────────────────
+
+  comfyui-flux-schnell:
+    provider: comfyui
+    endpoint: "flux1-schnell-fp8.safetensors"
+    location: local
+    vram_gb: 10
+    cost_usd: 0.0
+    tier: local
+    capabilities: [t2i, i2i, preview]
+    max_refs: 0
+    notes: "Local FLUX.1 Schnell fp8. ~10GB VRAM. Free preview engine."
+
+  comfyui-sdxl:
+    provider: comfyui
+    endpoint: "sd_xl_base_1.0.safetensors"
+    location: local
+    vram_gb: 8
+    cost_usd: 0.0
+    tier: local
+    capabilities: [t2i, i2i, inpaint]
+    max_refs: 0
+    notes: "Local SDXL base. 8GB VRAM. Ecosystem fallback."
+
+  comfyui-adetailer:
+    provider: comfyui
+    endpoint: "adetailer"
+    location: local
+    vram_gb: 2            # Incremental on top of base model
+    cost_usd: 0.0
+    tier: local
+    capabilities: [face_fix, hand_fix, detail_patch]
+    max_refs: 0
+    notes: "ADetailer auto-detect + re-inpaint. Requires custom node."
+
+  comfyui-ipadapter:
+    provider: comfyui
+    endpoint: "ipadapter"
+    location: local
+    vram_gb: 4            # Incremental on top of base model
+    cost_usd: 0.0
+    tier: local
+    capabilities: [identity_preserve, style_transfer]
+    max_refs: 1
+    notes: "IP-Adapter Plus. Identity injection. Requires cubiq/ComfyUI_IPAdapter_plus."
+
+  # ── Ultra-tier API (expensive, special cases) ─────────────────────
+
+  gpt-image-1:
+    provider: openai
+    endpoint: "gpt-image-1"
+    location: api
+    vram_gb: null
+    cost_usd: 0.040
+    tier: ultra
+    capabilities: [t2i, i2i, inpaint, text_rendering]
+    max_refs: 0
+    notes: "OpenAI GPT-Image-1. Best text rendering. Expensive."
+
+  nano-banana:
+    provider: fal
+    endpoint: "fal-ai/nano-banana"
+    location: api
+    vram_gb: null
+    cost_usd: 0.011
+    tier: ultra
+    capabilities: [t2i, i2i, instruction_edit]
+    max_refs: 0
+    notes: "Google Nano Banana Pro. Reference target for quality benchmarks."
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Location defaults
+# ═══════════════════════════════════════════════════════════════════
+
+locations:
+  local:
+    comfyui_url: "http://127.0.0.1:8188"
+    comfyui_edit_url: "http://127.0.0.1:8100"
+    gpu_vram_gb: 12
+    max_concurrent_local: 1
+
+  vps:
+    # Populated at runtime from environment
+    base_url: "${VPS_IMAGE_URL:-http://localhost:8000}"
+    health_endpoint: "/health"
+    timeout_connect_s: 10
+    timeout_read_s: 120
+
+  api:
+    # API keys loaded from environment (FAL_API_KEY, BFL_API_KEY, etc.)
+    timeout_connect_s: 8
+    timeout_read_s: 120

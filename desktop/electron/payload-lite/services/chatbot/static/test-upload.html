@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test File Upload</title>
+</head>
+<body>
+    <h1>Test File Upload</h1>
+    
+    <label>
+        📎 Click here to upload
+        <input type="file" id="testFileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css" multiple>
+    </label>
+    
+    <div id="output"></div>
+    
+    <script>
+        console.log('Script loaded!');
+        
+        const fileInput = document.getElementById('testFileInput');
+        const output = document.getElementById('output');
+        
+        console.log('File input element:', fileInput);
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                console.log('CHANGE EVENT FIRED!');
+                console.log('Files:', e.target.files);
+                console.log('Files count:', e.target.files.length);
+                
+                if (e.target.files.length > 0) {
+                    let html = '<h2>Files selected:</h2><ul>';
+                    for (let file of e.target.files) {
+                        html += `<li>${file.name} (${file.size} bytes)</li>`;
+                        console.log('File:', file.name, file.size, file.type);
+                    }
+                    html += '</ul>';
+                    output.innerHTML = html;
+                } else {
+                    output.innerHTML = '<p>No files selected</p>';
+                }
+            });
+            
+            console.log('Event listener attached successfully!');
+        } else {
+            console.error('File input not found!');
+        }
+    </script>
+</body>
+</html>

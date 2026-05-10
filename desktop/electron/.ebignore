@@ -1,0 +1,16 @@
+# electron-builder ignore — keep packaged Electron app tiny.
+# The heavy payload is shipped via `extraResources` (see electron-builder.yml),
+# NOT via the asar archive. This file controls only what goes INTO app.asar.
+node_modules/.cache
+node_modules/.bin
+scripts/
+build/
+payload/
+payload-lite/
+README.md
+.ebignore
+.gitignore
+electron-builder.yml
+electron-builder-lite.yml
+*.log
+*.map

@@ -1,0 +1,45 @@
+id: mcp-file-helper
+name: "MCP File Helper"
+description: "Leverage MCP file context to answer questions about local project files, documentation, and code."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: MCP File Helper ===
+    You have access to local file context via MCP. Prioritise:
+    - Read and understand file content provided through MCP context injection
+    - Answer questions about specific files, functions, or configuration
+    - Cross-reference multiple files when tracing dependencies or data flow
+    - Summarise long files by section before diving into details
+    - When asked to modify a file, show a minimal diff (before/after)
+    - If file content is missing, ask the user to select files in the MCP panel
+
+preferred_tools: []
+
+blocked_tools:
+  - saucenao
+  - serpapi-reverse-image
+
+default_model: null
+default_thinking_mode: thinking
+default_context: programming
+
+trigger_keywords:
+  - "file"
+  - "mcp"
+  - "local file"
+  - "tệp"
+  - "đọc file"
+  - "read file"
+  - "config file"
+  - "log file"
+  - ".env"
+  - "cấu hình"
+
+tags:
+  - mcp
+  - files
+  - local
+
+priority: 6
+ui_visible: true
+enabled: true

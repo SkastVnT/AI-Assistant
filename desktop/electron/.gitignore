@@ -2,3 +2,7 @@ node_modules/
 out/
 .npm/
 *.log
+payload/
+dist-installer/
+# installer output now goes to <repo-root>/private/install (already in repo .gitignore via private/)
+build/icon.ico

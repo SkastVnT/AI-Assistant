@@ -1,0 +1,11 @@
+{
+  "_comment": "Example request payload for POST /api/anime-pipeline/stream",
+
+  "prompt": "1girl, silver hair, blue eyes, school uniform, standing under cherry blossom tree, wind blowing petals, detailed eyes, soft light, anime style",
+  "quality": "high",
+  "preset": "anime_quality",
+  "source_image": null,
+  "reference_images": [],
+  "orientation": "portrait",
+  "debug": false
+}

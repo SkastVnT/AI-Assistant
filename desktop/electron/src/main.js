@@ -23,7 +23,12 @@ const {
     ipcMain, globalShortcut, shell, Notification
 } = require('electron');
 const path = require('path');
-const { startBackend } = require('./backend-process');
+const { startBackend, REPO_ROOT } = require('./backend-process');
+const { startComfyUI, stopComfyUI } = require('./comfyui-process');
+
+// Auto-updater is optional: only loaded if installed (production builds).
+let autoUpdater = null;
+try { autoUpdater = require('electron-updater').autoUpdater; } catch (_) { /* dev mode */ }
 
 // ── Single-instance lock ──────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
@@ -34,6 +39,8 @@ if (!gotLock) {
 let mainWindow = null;
 let tray = null;
 let backendChild = null;
+let comfyuiChild = null;
+let comfyuiStatus = 'stopped'; // 'stopped' | 'starting' | 'running' | 'failed'
 let recentLog = '';
 let activeJobs = 0;
 let isQuitting = false;
@@ -41,6 +48,13 @@ let isQuitting = false;
 function rememberLog(stream, text) {
     recentLog += '[' + stream + '] ' + text;
     if (recentLog.length > 8000) recentLog = recentLog.slice(-8000);
+    // Push to loading screen (if it is still displayed).
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        const safe = JSON.stringify({ stream, text });
+        mainWindow.webContents.executeJavaScript(
+            'if (typeof window.__appendLog === "function") window.__appendLog(' + safe + ');'
+        ).catch(() => {});
+    }
 }
 
 // 1×1 transparent PNG fallback used when no tray-icon.png is shipped.
@@ -165,6 +179,7 @@ function buildTrayMenu() {
             click: () => toggleWindow()
         },
         { label: 'Active jobs: ' + activeJobs, enabled: false },
+        { label: 'ComfyUI: ' + comfyuiStatus, enabled: false },
         { type: 'separator' },
         {
             label: 'Open ComfyUI',
@@ -232,6 +247,9 @@ async function bootBackendAndLoad() {
         backendChild = child;
         if (!mainWindow) return;
         await mainWindow.loadURL(baseUrl);
+
+        // Fire-and-forget ComfyUI: failure must NOT block the chatbot UI.
+        bootComfyUI();
     } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         process.stderr.write('[electron] backend boot failed: ' + msg + '\n');
@@ -243,11 +261,53 @@ async function bootBackendAndLoad() {
     }
 }
 
+async function bootComfyUI() {
+    comfyuiStatus = 'starting';
+    refreshTray();
+    try {
+        const { child } = await startComfyUI({ payloadRoot: REPO_ROOT, onLog: rememberLog });
+        comfyuiChild = child;
+        comfyuiStatus = 'running';
+    } catch (err) {
+        comfyuiStatus = 'failed';
+        process.stderr.write('[electron] ComfyUI boot failed: ' + (err && err.message ? err.message : err) + '\n');
+    } finally {
+        refreshTray();
+    }
+}
+
 function killBackend() {
     if (backendChild && !backendChild.killed) {
         try { backendChild.kill(); } catch (_) {}
     }
     backendChild = null;
+}
+
+function killComfyUI() {
+    stopComfyUI(comfyuiChild);
+    comfyuiChild = null;
+    comfyuiStatus = 'stopped';
+}
+
+function setupAutoUpdater() {
+    if (!autoUpdater || !app.isPackaged) return;
+    autoUpdater.autoDownload = true;
+    autoUpdater.on('error', (err) => {
+        process.stderr.write('[updater] ' + (err && err.message ? err.message : err) + '\n');
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+        try {
+            const n = new Notification({
+                title: 'AI-Assistant update ready',
+                body: 'Version ' + (info && info.version) + ' will be installed on quit.',
+            });
+            n.show();
+        } catch (_) {}
+    });
+    // Delay first check so the user gets a responsive UI immediately.
+    setTimeout(() => {
+        try { autoUpdater.checkForUpdates(); } catch (_) {}
+    }, 30_000);
 }
 
 // ── IPC bridge for renderer-driven window/tray controls ───────────
@@ -303,6 +363,7 @@ app.whenReady().then(() => {
     createWindow();
     createTray();
     bootBackendAndLoad();
+    setupAutoUpdater();
 
     try { globalShortcut.register('CommandOrControl+Shift+A', toggleWindow); } catch (_) {}
 
@@ -312,7 +373,7 @@ app.whenReady().then(() => {
     });
 });
 
-app.on('before-quit', () => { isQuitting = true; killBackend(); });
+app.on('before-quit', () => { isQuitting = true; killBackend(); killComfyUI(); });
 app.on('will-quit', () => { try { globalShortcut.unregisterAll(); } catch (_) {} });
 app.on('window-all-closed', () => {
     // Frameless + tray app: stay alive when the window is hidden.

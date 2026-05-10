@@ -116,6 +116,7 @@
 
   --accent: #7c6cf0;
   --accent-hover: #9488f4;
+  --accent-text: #9088f5; /* accessible text variant — ≥4.5:1 on dark bg */
   --accent-soft: rgba(124,108,240,0.12);
   --accent-gradient: linear-gradient(135deg, #7c6cf0 0%, #ab7df6 100%);
   --success: #2ecc71;
@@ -209,6 +210,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background var(--transition), color var(--transition);
+}
+
+/* Accessible link color — overrides browser default #0000ee on dark bg */
+a:not([class]) {
+  color: var(--accent-text, #9088f5);
+}
+a:not([class]):visited {
+  color: var(--accent-text, #9088f5);
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
@@ -470,7 +479,7 @@ body {
   opacity: 0.65;
 }
 .sidebar__chat-preview--asset {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 500;
 }
 .sidebar__chat-badges {
@@ -1534,49 +1543,121 @@ body {
 
 .message__content {
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.8;
   color: var(--text-primary);
   word-wrap: break-word;
   overflow-wrap: break-word;
+  max-width: 72ch;
 }
 
-.message__content p { margin-bottom: 12px; }
+/* ─ Paragraphs ──────────────────────────────────────── */
+.message__content p { margin: 0 0 16px; }
 .message__content p:last-child { margin-bottom: 0; }
 
-.message__content ul, .message__content ol {
-  margin: 8px 0;
-  padding-left: 24px;
+/* Bold-only paragraph → visual section heading (e.g. **1. Title**) */
+.message__content p:has(> strong:only-child),
+.message__content p:has(> strong:first-child:last-child) {
+  font-size: 15.5px;
+  font-weight: 600;
+  margin-top: 28px;
+  margin-bottom: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-secondary);
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.message__content p:has(> strong:only-child):first-child,
+.message__content p:has(> strong:first-child:last-child):first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
-.message__content li { margin-bottom: 4px; }
+/* ─ Headings ──────────────────────────────────────── */
+.message__content h1,
+.message__content h2,
+.message__content h3,
+.message__content h4,
+.message__content h5,
+.message__content h6 {
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 20px 0 8px;
+  color: var(--text-primary);
+}
+.message__content h1:first-child,
+.message__content h2:first-child,
+.message__content h3:first-child,
+.message__content h4:first-child { margin-top: 4px; }
+.message__content h1 { font-size: 20px; border-bottom: 1px solid var(--border-secondary); padding-bottom: 7px; }
+.message__content h2 { font-size: 17px; }
+.message__content h3 { font-size: 15.5px; }
+.message__content h4 { font-size: 14.5px; font-weight: 600; color: var(--text-secondary); }
+.message__content h5,
+.message__content h6 { font-size: 13.5px; font-weight: 600; color: var(--text-tertiary); }
 
+/* ─ Lists ────────────────────────────────────────── */
+.message__content ul, .message__content ol {
+  margin: 10px 0 16px;
+  padding-left: 24px;
+}
+.message__content ul { list-style-type: disc; }
+.message__content ol { list-style-type: decimal; }
+.message__content li {
+  margin-bottom: 10px;
+  line-height: 1.75;
+}
+.message__content li:last-child { margin-bottom: 0; }
+.message__content li > p { margin-bottom: 6px; }
+/* Nested lists — less gap */
+.message__content li ul,
+.message__content li ol { margin: 6px 0 4px; }
+
+/* ─ Links ───────────────────────────────────────── */
 .message__content a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
 }
 .message__content a:hover { text-decoration: underline; }
 
-.message__content strong { font-weight: 600; }
+/* ─ Inline emphasis ─────────────────────────────── */
+.message__content strong { font-weight: 650; }
+.message__content em { font-style: italic; opacity: 0.92; }
 
+/* ─ Horizontal rule ─────────────────────────────── */
+.message__content hr {
+  border: none;
+  border-top: 1px solid var(--border-secondary);
+  margin: 18px 0;
+}
+
+/* ─ Blockquote ──────────────────────────────────── */
 .message__content blockquote {
   border-left: 3px solid var(--accent);
-  padding: 8px 16px;
-  margin: 12px 0;
+  padding: 10px 16px;
+  margin: 14px 0;
   background: var(--accent-soft);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   color: var(--text-secondary);
+  font-style: italic;
 }
+.message__content blockquote p { margin-bottom: 6px; }
+.message__content blockquote p:last-child { margin-bottom: 0; }
 
+/* ─ Images ──────────────────────────────────────── */
 .message__content img {
   max-width: 100%;
+  height: auto; /* fix Lighthouse unsized-images */
+  aspect-ratio: auto;
+  display: block;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: transform var(--transition);
-  margin: 8px 0;
+  margin: 10px 0;
 }
 
 .message__content img:hover {
-  transform: scale(1.02);
+  transform: scale(1.015);
 }
 
 /* Code blocks */
@@ -1691,7 +1772,7 @@ body.light-mode .message__content pre {
   background: var(--bg-secondary);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-primary);
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: 18px 18px 18px 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
@@ -3041,7 +3122,8 @@ body.light-mode .message__content pre {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: all var(--transition);
+  /* Only animate compositable properties — avoids non-composited z-index repaints */
+  transition: opacity var(--transition), visibility var(--transition);
 }
 
 .modal-overlay.open {

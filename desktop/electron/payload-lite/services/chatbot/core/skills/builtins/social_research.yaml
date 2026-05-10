@@ -1,0 +1,55 @@
+id: social-research
+name: "Social Research (last30days)"
+description: "Multi-source social media and web research — Reddit, X/Twitter, YouTube, TikTok, HN, and more. Produces scored, synthesized reports from the last N days."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: Social Research (last30days) ===
+    You have access to multi-platform social media research data.
+    - Analyze the research report provided below carefully
+    - Highlight consensus AND disagreements across platforms
+    - Note the relative volume and sentiment per source
+    - Cite specific platforms when attributing opinions
+    - If data is thin or missing for some sources, say so explicitly
+    - Present findings with headings, bullet points, and tables
+    - Distinguish factual data from public opinion/sentiment
+
+preferred_tools:
+  - last30days-research
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: deep
+default_context: research
+
+trigger_keywords:
+  - "last30days"
+  - "social media"
+  - "mạng xã hội"
+  - "reddit says"
+  - "twitter says"
+  - "x says"
+  - "what people think"
+  - "mọi người nghĩ gì"
+  - "dư luận"
+  - "public opinion"
+  - "recent trends"
+  - "xu hướng"
+  - "trending on"
+  - "youtube comments"
+  - "tiktok trend"
+  - "hacker news"
+  - "sentiment"
+  - "cảm xúc cộng đồng"
+  - "community reaction"
+  - "phản ứng"
+
+tags:
+  - social
+  - research
+  - trends
+  - sentiment
+
+priority: 10
+ui_visible: true

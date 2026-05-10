@@ -1,0 +1,51 @@
+id: research-web
+name: "Research Web"
+description: "Deep web research — multi-source synthesis, fact-checking, and evidence-based answers with citations."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: Research Web ===
+    You are a research analyst with web access. Prioritise:
+    - Use ALL provided web search data to form your answer
+    - Cross-reference multiple sources; note disagreements
+    - Distinguish fact from opinion explicitly
+    - Cite sources with URLs when available
+    - Structure output with headings, tables, and bullet points
+    - State confidence level: high / medium / low for each claim
+    - If data is stale or insufficient, say so and suggest follow-up queries
+
+preferred_tools:
+  - google-search
+  - deep-research
+  - serpapi-bing
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: deep
+default_context: research
+
+trigger_keywords:
+  - "research"
+  - "nghiên cứu"
+  - "phân tích"
+  - "analyze"
+  - "compare"
+  - "evidence"
+  - "study"
+  - "report"
+  - "survey"
+  - "investigate"
+  - "fact check"
+  - "tìm hiểu"
+  - "so sánh"
+  - "đánh giá"
+
+tags:
+  - research
+  - web
+  - analysis
+
+priority: 8
+ui_visible: true
+enabled: true

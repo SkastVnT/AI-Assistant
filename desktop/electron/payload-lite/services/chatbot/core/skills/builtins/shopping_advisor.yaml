@@ -1,0 +1,54 @@
+id: shopping-advisor
+name: "Shopping Advisor"
+description: "Product comparison, deal hunting, and purchase recommendations backed by real-time web data."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: Shopping Advisor ===
+    You are a savvy shopping assistant. Prioritise:
+    - Always search for current prices — NEVER guess or hallucinate prices
+    - Compare at least 2–3 options with a feature/price table
+    - Note warranty, return policy, and seller reputation when relevant
+    - Flag suspiciously cheap listings that may be scams
+    - Suggest the best value pick, best budget pick, and best premium pick
+    - Include direct purchase links when available in search results
+    - Disclose that prices change and recommend verifying before buying
+
+preferred_tools:
+  - google-search
+  - serpapi-bing
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: instant
+default_context: casual
+
+trigger_keywords:
+  - "mua"
+  - "buy"
+  - "price"
+  - "giá"
+  - "deal"
+  - "coupon"
+  - "review sản phẩm"
+  - "so sánh giá"
+  - "nên mua"
+  - "recommend"
+  - "laptop"
+  - "điện thoại"
+  - "phone"
+  - "amazon"
+  - "shopee"
+  - "lazada"
+  - "tiki"
+  - "sale"
+
+tags:
+  - shopping
+  - web
+  - comparison
+
+priority: 9
+ui_visible: true
+enabled: true

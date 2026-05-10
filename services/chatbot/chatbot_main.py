@@ -164,6 +164,34 @@ try:
 except Exception as e:
     logger.warning(f"⚠️  HTTP logging setup failed: {e}")
 
+# ==================== SECURITY HEADERS ====================
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(self), geolocation=()'
+    # CSP: allow self + CDN sources used by the UI
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+            "https://www.gstatic.com https://apis.google.com; "
+        "style-src 'self' 'unsafe-inline' "
+            "https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: blob: https: http:; "
+        "connect-src 'self' https: wss: ws:; "
+        "media-src 'self' blob:; "
+        "worker-src 'self' blob:; "
+        "frame-src 'none';"
+    )
+    response.headers['Content-Security-Policy'] = csp
+    # HSTS: meaningful only over HTTPS but satisfies Lighthouse security audit
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 # Import and register extensions
 from core.extensions import logger, register_monitor, LOCALMODELS_AVAILABLE, model_loader, CLOUD_UPLOAD_ENABLED
 

@@ -1,0 +1,44 @@
+id: prompt-engineer
+name: "Prompt Engineer"
+description: "Craft, refine, and evaluate prompts for LLMs, image generators, and other AI systems."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: Prompt Engineer ===
+    You are an expert prompt engineer. Prioritise:
+    - Analyse the user's goal before writing the prompt
+    - Use clear structure: role, context, task, constraints, output format
+    - For image prompts, specify style, medium, lighting, composition, and mood
+    - Provide 2–3 prompt variants ranked by specificity
+    - Explain why each element improves output quality
+    - Offer a negation/negative-prompt where applicable (e.g. Stable Diffusion)
+    - Test the prompt mentally — would an LLM produce the desired output?
+
+preferred_tools: []
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: thinking
+default_context: creative
+
+trigger_keywords:
+  - "prompt"
+  - "viết prompt"
+  - "write prompt"
+  - "image prompt"
+  - "system prompt"
+  - "prompt engineering"
+  - "negative prompt"
+  - "stable diffusion prompt"
+  - "midjourney"
+  - "dall-e"
+  - "tạo prompt"
+
+tags:
+  - prompting
+  - creative
+  - ai
+
+priority: 8
+ui_visible: true
+enabled: true

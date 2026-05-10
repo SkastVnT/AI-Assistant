@@ -1,0 +1,70 @@
+{
+  "name": "rag_core_v1",
+  "description": "Core evaluation dataset for RAG pipeline quality. Tests retriever context relevance, generator groundedness, and answer relevance across diverse query types.",
+  "cases": [
+    {
+      "id": "factoid_001",
+      "query": "What is the default chunk size used by the ingestion pipeline?",
+      "context": "The chunking configuration uses CHUNK_SIZE=512 tokens with an overlap of CHUNK_OVERLAP=64 tokens. These defaults balance context preservation with retrieval granularity. The chunker splits normalized text at sentence boundaries when possible.",
+      "answer": "The default chunk size is 512 tokens, with an overlap of 64 tokens [Source 1]. The chunker attempts to split at sentence boundaries to preserve context.",
+      "expected_answer": "512 tokens",
+      "tags": ["factoid", "configuration"]
+    },
+    {
+      "id": "factoid_002",
+      "query": "Which embedding model is used by default?",
+      "context": "The embedding service is configured with EMBEDDING_MODEL=text-embedding-3-small from OpenAI, producing 1536-dimensional vectors. Embeddings are generated in batches of 100 texts, with up to 3 retries on failure.",
+      "answer": "The default embedding model is text-embedding-3-small from OpenAI [Source 1], which produces 1536-dimensional vectors.",
+      "expected_answer": "text-embedding-3-small",
+      "tags": ["factoid", "embedding"]
+    },
+    {
+      "id": "process_003",
+      "query": "What are the stages of the ingestion pipeline?",
+      "context": "The ingestion pipeline processes documents through six stages: (1) Fetch/Load from MinIO storage, (2) Parse using format-specific adapters (Markdown, HTML, PDF, TXT), (3) Normalize text and unicode, (3.5) Guardrail sanitization to detect hidden text and PII, (4) Extract metadata including title, word count, and page count, (5) Persist raw text and structured parse result, (6) Chunk text and create embeddings for vector indexing.",
+      "answer": "The ingestion pipeline has six main stages plus a guardrail step [Source 1]: 1. Fetch/Load from MinIO, 2. Parse with format adapters, 3. Normalize text, 3.5. Guardrail sanitization, 4. Extract metadata, 5. Persist content, 6. Chunk and index with embeddings.",
+      "expected_answer": "Fetch, Parse, Normalize, Guardrail sanitization, Extract metadata, Persist, Chunk & Index",
+      "tags": ["process", "ingestion"]
+    },
+    {
+      "id": "reasoning_004",
+      "query": "How does the hybrid retrieval pipeline improve search quality over dense-only search?",
+      "context": "The hybrid retrieval pipeline combines dense vector search with BM25 lexical search. Dense search excels at semantic similarity but can miss exact keyword matches. Lexical search catches precise terms but lacks semantic understanding. Results from both are fused using Reciprocal Rank Fusion (RRF) with configurable weights. After fusion, a cross-encoder reranker re-scores the top candidates for final selection. The pipeline reports dense_count, lexical_count, fused_count, and reranked_count for diagnostics.",
+      "answer": "Hybrid retrieval improves over dense-only search by combining semantic similarity (dense/vector) with exact keyword matching (BM25/lexical) [Source 1]. The two result sets are merged using Reciprocal Rank Fusion (RRF), then refined by a cross-encoder reranker that re-scores the top candidates. This catches both semantic matches that dense search finds and precise keyword matches that only lexical search detects.",
+      "expected_answer": "Combines dense semantic search with BM25 lexical search via RRF fusion, then applies cross-encoder reranking",
+      "tags": ["reasoning", "retrieval"]
+    },
+    {
+      "id": "no_context_005",
+      "query": "What is the capital of France?",
+      "context": "The retrieval system uses HNSW indexes with m=16 and ef_construction=64 for approximate nearest neighbor search. The vector column stores 1536-dimensional embeddings with cosine similarity. Tenant isolation is enforced at the row level.",
+      "answer": "I don't have enough evidence in the provided sources to answer this question. The available context covers the retrieval system's vector indexing configuration, not geography.",
+      "expected_answer": "",
+      "tags": ["no_context", "should_abstain"]
+    },
+    {
+      "id": "security_006",
+      "query": "How does the system protect against prompt injection in retrieved documents?",
+      "context": "The guardrail layer scans retrieved chunks for prompt injection patterns before they reach the LLM. Each chunk is scored 0.0-1.0 using 14 weighted pattern detectors across 7 categories: instruction override, role injection, prompt extraction, delimiter abuse, output manipulation, data exfiltration, and HTML injection. Chunks scoring above the threshold (default 0.7) are removed from the evidence. Untrusted sources are additionally wrapped in isolation markers that instruct the LLM to treat them with skepticism.",
+      "answer": "The system uses a multi-layered approach to prevent prompt injection [Source 1]: (1) Each retrieved chunk is scored against 14 weighted patterns across 7 categories including instruction override and delimiter abuse. (2) Chunks exceeding a 0.7 threshold are removed from evidence. (3) Untrusted sources are wrapped in isolation markers that tell the LLM to treat them skeptically.",
+      "expected_answer": "Pattern-based injection scoring, chunk removal above threshold, untrusted source isolation",
+      "tags": ["security", "guardrails"]
+    },
+    {
+      "id": "comparison_007",
+      "query": "What are the differences between concise, standard, and detailed answer modes?",
+      "context": "The answer generation service supports three modes with different system prompts and token budgets. Concise mode produces the shortest correct answer in 1-3 sentences with max_tokens=256. Standard mode gives a clear, well-structured answer in a few paragraphs with max_tokens=1024. Detailed mode provides a comprehensive answer with explanations, examples, and organized sections with max_tokens=4096. All modes share the same base grounding rules: answer only from evidence, cite as [Source N], say 'I don't have enough evidence' when appropriate.",
+      "answer": "The three answer modes differ in verbosity and token budget [Source 1]: Concise mode targets 1-3 sentences (256 tokens), Standard mode produces a few structured paragraphs (1024 tokens), and Detailed mode provides comprehensive explanations with examples (4096 tokens). All modes share the same grounding rules requiring evidence-based citations.",
+      "expected_answer": "Concise (1-3 sentences, 256 tokens), Standard (paragraphs, 1024 tokens), Detailed (comprehensive with examples, 4096 tokens)",
+      "tags": ["comparison", "answer_generation"]
+    },
+    {
+      "id": "multi_hop_008",
+      "query": "If a document contains PII and malicious hidden text, what happens during ingestion?",
+      "context": "During ingestion, Stage 3.5 runs guardrail checks. First, the sanitizer scans for 6 pattern categories: control characters, ANSI escapes, bidi overrides, invisible characters, Cyrillic homoglyphs, and base64 blobs. Critical patterns like bidi overrides cause immediate rejection. If sanitization passes, PII detection runs next, scanning for emails, phone numbers, SSNs, credit cards, and IP addresses. The PII action can be 'redact' (replace with [EMAIL_REDACTED] etc.), 'flag' (log but keep), or 'block' (reject document). By default, PII is redacted and the cleaned text continues through the pipeline. Security events are logged for both sanitization findings and PII detections.",
+      "answer": "When a document contains both PII and hidden text, the ingestion guardrails process them sequentially [Source 1]: First, the sanitizer checks for malicious patterns. If it finds critical issues like bidi overrides, the document is rejected immediately. If sanitization passes (e.g., only minor issues found), PII detection runs next and redacts sensitive data by default (replacing emails with [EMAIL_REDACTED], etc.). Both findings are logged as security events. The cleaned, redacted text then continues through the remaining ingestion stages.",
+      "expected_answer": "Sanitizer runs first (may reject on critical patterns), then PII is redacted, both logged as security events",
+      "tags": ["multi_hop", "guardrails", "ingestion"]
+    }
+  ]
+}

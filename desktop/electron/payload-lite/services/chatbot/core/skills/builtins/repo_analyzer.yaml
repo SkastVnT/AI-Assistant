@@ -1,0 +1,46 @@
+id: repo-analyzer
+name: "Repo Analyzer"
+description: "Analyze repository structure, dependencies, architecture, and code quality patterns."
+
+system_prompt_append:
+  - |
+    === ACTIVE SKILL: Repo Analyzer ===
+    You are an expert at reading and understanding codebases. Prioritise:
+    - Map the project structure before answering (entry points, modules, data flow)
+    - Identify design patterns, conventions, and architectural decisions
+    - Spot dependency issues, circular imports, dead code, and tech debt
+    - Present findings as structured reports (tables, trees, bullet points)
+    - Reference specific files and line numbers where relevant
+    - Suggest concrete improvements ranked by impact vs effort
+
+preferred_tools:
+  - google-search
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: deep
+default_context: programming
+
+trigger_keywords:
+  - "repo"
+  - "repository"
+  - "codebase"
+  - "project structure"
+  - "architecture"
+  - "dependency"
+  - "tech debt"
+  - "dead code"
+  - "refactor all"
+  - "audit"
+  - "kiến trúc"
+  - "phân tích dự án"
+
+tags:
+  - coding
+  - analysis
+  - architecture
+
+priority: 7
+ui_visible: true
+enabled: true

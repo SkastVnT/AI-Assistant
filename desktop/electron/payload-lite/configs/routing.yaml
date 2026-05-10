@@ -1,0 +1,145 @@
+# ═══════════════════════════════════════════════════════════════════
+# routing.yaml — Task-type → model chain mapping
+# ═══════════════════════════════════════════════════════════════════
+#
+# For each task type, defines:
+#   primary   — first model to try
+#   fallbacks — ordered fallback chain
+#   location  — where to execute
+#   notes     — routing rationale
+#
+# capability_router.py reads this to decide which model handles which job.
+
+task_routes:
+
+  # ── Text-to-image (fresh generation) ─────────────────────────────
+  t2i:
+    primary: flux2-pro
+    fallbacks: [flux2-dev, nano-banana-2, flux2-klein-4b, comfyui-flux-schnell]
+    location: api
+    notes: "Best quality API gen. Klein for preview. Local FLUX for free tier."
+
+  # ── Semantic editing (instruction-based) ─────────────────────────
+  semantic_edit:
+    primary: qwen-image-edit
+    fallbacks: [flux1-kontext, step1x-edit, nano-banana]
+    location: vps
+    notes: "Qwen is the brain (§5.1). Kontext/Step1X as day-1 API fallbacks."
+
+  # ── Multi-turn editing ───────────────────────────────────────────
+  multi_turn_edit:
+    primary: qwen-image-edit
+    fallbacks: [flux1-kontext, step1x-edit]
+    location: vps
+    notes: "Qwen handles conversation context natively. Kontext supports i2i chains."
+
+  # ── Mask-based inpainting ────────────────────────────────────────
+  inpaint:
+    primary: flux1-fill
+    fallbacks: [step1x-fill, gpt-image-1, comfyui-sdxl]
+    location: api
+    notes: "FLUX Fill for precision. GPT-Image-1 fallback. Local SDXL last resort."
+
+  # ── Multi-reference composition ──────────────────────────────────
+  multi_ref:
+    primary: flux2-max
+    fallbacks: [flux2-pro]
+    location: api
+    notes: "BFL FLUX.2 max/pro — up to 8 refs. No local/VPS alternative."
+
+  # ── Face/identity swap ───────────────────────────────────────────
+  face_swap:
+    primary: comfyui-ipadapter
+    fallbacks: [flux1-kontext, qwen-image-edit]
+    location: local
+    notes: "IP-Adapter locally (free). Kontext for API-based identity edit."
+
+  # ── Style transfer ──────────────────────────────────────────────
+  style_transfer:
+    primary: comfyui-ipadapter
+    fallbacks: [flux1-kontext, nano-banana]
+    location: local
+    notes: "IP-Adapter style mode locally. Kontext for API route."
+
+  # ── Text rendering in image ─────────────────────────────────────
+  text_rendering:
+    primary: gpt-image-1
+    fallbacks: [qwen-image-edit, flux2-pro]
+    location: api
+    notes: "GPT-Image-1 has best text fidelity. Qwen handles bilingual text."
+
+  # ── Upscale / super-resolution ──────────────────────────────────
+  upscale:
+    primary: comfyui-sdxl
+    fallbacks: [flux2-dev]
+    location: local
+    notes: "Local SDXL + RealESRGAN pipeline. Free, no API cost."
+
+  # ── Object removal ──────────────────────────────────────────────
+  remove_object:
+    primary: flux1-fill
+    fallbacks: [step1x-fill, qwen-image-edit]
+    location: api
+    notes: "Fill with empty prompt for removal. Qwen for semantic removal."
+
+  # ── Detail fix (face/hands/eyes) ────────────────────────────────
+  detail_fix:
+    primary: comfyui-adetailer
+    fallbacks: [flux1-fill, qwen-image-edit]
+    location: local
+    notes: "ADetailer auto-detects and re-inpaints. Free, local-first."
+
+  # ── Preview / draft ─────────────────────────────────────────────
+  preview:
+    primary: flux2-klein-4b
+    fallbacks: [flux1-schnell, comfyui-flux-schnell]
+    location: api
+    notes: "Sub-second preview. $0.003/img. Local FLUX as free fallback."
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Quality tier overrides
+# ═══════════════════════════════════════════════════════════════════
+#
+# When the user requests a specific quality mode, override the primary model.
+
+quality_overrides:
+  fast:
+    t2i: flux2-klein-4b
+    semantic_edit: flux1-kontext
+    inpaint: step1x-fill
+  quality:
+    t2i: flux2-pro
+    semantic_edit: qwen-image-edit
+    inpaint: flux1-fill
+  free:
+    t2i: comfyui-flux-schnell
+    semantic_edit: comfyui-sdxl         # Limited capability
+    inpaint: comfyui-sdxl
+  cheap:
+    t2i: nano-banana-2
+    semantic_edit: step1x-edit
+    inpaint: step1x-fill
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Location routing rules
+# ═══════════════════════════════════════════════════════════════════
+
+location_rules:
+  # If VPS is down, reroute VPS tasks to API fallbacks
+  vps_unavailable_reroute:
+    semantic_edit: flux1-kontext      # fal API
+    multi_turn_edit: flux1-kontext
+    evaluation: gpt-4o                # OpenAI API
+
+  # If local ComfyUI is down, reroute local tasks to API
+  local_unavailable_reroute:
+    face_swap: flux1-kontext
+    style_transfer: flux1-kontext
+    detail_fix: flux1-fill
+    upscale: flux2-dev
+    preview: flux2-klein-4b
+
+  # Cost ceiling per job (USD) — abort if exceeded
+  max_cost_per_job: 0.50

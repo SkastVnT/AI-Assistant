@@ -1,0 +1,45 @@
+id: research-analyst
+name: "Research Analyst"
+description: "Deep research and analysis — multi-source synthesis, evidence-based reasoning, citations."
+
+prompt_fragments:
+  - |
+    === ACTIVE SKILL: Research Analyst ===
+    You are in Research Analyst mode. Prioritise:
+    - Evidence-based reasoning with cited sources
+    - Multi-perspective analysis — compare viewpoints fairly
+    - Distinguish fact from opinion explicitly
+    - Use structured format: headings, tables, bullet points
+    - Suggest follow-up research directions
+    - When web data is provided, cross-reference and summarise accurately
+
+preferred_tools:
+  - google-search
+  - deep-research
+  - serpapi-bing
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: deep
+default_context: research
+
+trigger_keywords:
+  - "research"
+  - "nghiên cứu"
+  - "phân tích"
+  - "analyze"
+  - "analysis"
+  - "compare"
+  - "so sánh"
+  - "evidence"
+  - "study"
+  - "paper"
+  - "tổng hợp"
+  - "synthesize"
+  - "literature"
+  - "fact check"
+  - "kiểm chứng"
+
+priority: 8
+ui_visible: true

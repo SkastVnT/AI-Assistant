@@ -1,0 +1,67 @@
+# electron-builder config — LITE Windows NSIS installer for AI-Assistant.
+# No bundled models, no bundled Python, no wheel cache. The installer auto-
+# installs prerequisites (Python 3.11, Node, Git, VC++ redist) on demand and
+# pip-installs requirements ONLINE during postinstall.
+#
+# Output: <repo-root>/private/pre-installer/
+appId: com.skastvnt.ai-assistant.lite
+productName: AI-Assistant-Lite
+copyright: Copyright © 2026 SkastVnT
+artifactName: AI-Assistant-Lite-Setup-${version}.exe
+
+directories:
+  output: ../../private/pre-installer
+  buildResources: build
+
+files:
+  - "src/**/*"
+  - "package.json"
+  - "!**/*.map"
+  - "!**/*.md"
+
+# Lite payload: source code + .env + bootstrap scripts. No model weights.
+extraResources:
+  - from: "payload-lite"
+    to: "app-payload"
+    filter:
+      - "**/*"
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  publisherName: SkastVnT
+  # asInvoker so the installer can run without UAC prompts when installing
+  # to %LOCALAPPDATA%. perMachine=false in nsis section enforces user-scope.
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: AI-Assistant
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  deleteAppDataOnUninstall: false
+  include: build/installer-lite.nsh
+  # Default install dir for per-user install. Overridable on the wizard page.
+  # NSIS resolves $LOCALAPPDATA at install time.
+
+# Auto-update via internal HTTP server. Replace with your LAN/VPN URL.
+publish:
+  - provider: generic
+    url: http://updates.local/ai-assistant-lite/
+    channel: latest
+
+compression: maximum
+buildDependenciesFromSource: false
+nodeGypRebuild: false
+npmRebuild: false

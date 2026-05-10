@@ -1,0 +1,61 @@
+{
+  "_comment": "Sample output manifest from a completed pipeline run",
+
+  "job_id": "ap-20250101-abc123",
+  "status": "completed",
+  "preset": "anime_quality",
+  "vram_profile": "normalvram",
+
+  "passes": [
+    {
+      "name": "composition_pass",
+      "duration_ms": 2150.3,
+      "model": "animagine-xl-4.0-opt.safetensors",
+      "output": "01_composition.png"
+    },
+    {
+      "name": "structure_lock",
+      "duration_ms": 340.1,
+      "output": "02_structure.png"
+    },
+    {
+      "name": "cleanup_pass",
+      "duration_ms": 1820.5,
+      "model": "noobai-xl-1.1.safetensors",
+      "output": "03_cleanup.png"
+    },
+    {
+      "name": "beauty_pass",
+      "duration_ms": 1650.2,
+      "model": "noobai-xl-1.1.safetensors",
+      "output": "04_beauty.png"
+    },
+    {
+      "name": "upscale",
+      "duration_ms": 820.4,
+      "output": "05_upscaled.png"
+    }
+  ],
+
+  "critique_rounds": 1,
+  "refine_rounds": 0,
+  "models_used": [
+    "animagine-xl-4.0-opt.safetensors",
+    "noobai-xl-1.1.safetensors",
+    "RealESRGAN_x4plus_anime_6B"
+  ],
+  "total_latency_ms": 6781.5,
+
+  "selected_final": "upscale",
+
+  "winner": {
+    "image_b64": "<base64 encoded PNG>",
+    "stage": "upscale",
+    "composite_score": 8.12,
+    "face_quality": 8.5,
+    "clarity": 8.0,
+    "style_consistency": 8.0,
+    "artifact_count": 0
+  },
+  "total_candidates": 3
+}

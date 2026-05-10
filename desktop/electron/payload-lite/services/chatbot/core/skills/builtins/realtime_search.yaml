@@ -1,0 +1,49 @@
+id: realtime-search
+name: "Realtime Search"
+description: "Auto-search for real-time data — prices, weather, news, scores, stocks."
+
+prompt_fragments:
+  - |
+    === ACTIVE SKILL: Realtime Search ===
+    You MUST use the web search data provided below to answer.
+    - NEVER fabricate numbers, prices, dates, or statistics
+    - Cite the source URL for every factual claim
+    - If search data is missing or insufficient, say so clearly
+    - Present data in structured tables when comparing items
+    - Include the data's recency (date/time) when available
+
+preferred_tools:
+  - google-search
+  - serpapi-bing
+  - deep-research
+
+blocked_tools: []
+
+default_model: null
+default_thinking_mode: instant
+default_context: casual
+
+trigger_keywords:
+  - "giá"
+  - "price"
+  - "tỷ giá"
+  - "exchange rate"
+  - "thời tiết"
+  - "weather"
+  - "tin tức"
+  - "news"
+  - "mới nhất"
+  - "latest"
+  - "hôm nay"
+  - "today"
+  - "chứng khoán"
+  - "stock"
+  - "bitcoin"
+  - "crypto"
+  - "xổ số"
+  - "kết quả"
+  - "score"
+  - "trending"
+
+priority: 12
+ui_visible: true

@@ -1,0 +1,44 @@
+id: creative-writer
+name: "Creative Writer"
+description: "Creative content generation — stories, poetry, brainstorming, marketing copy."
+
+prompt_fragments:
+  - |
+    === ACTIVE SKILL: Creative Writer ===
+    You are in Creative Writer mode. Prioritise:
+    - Rich, vivid language with strong imagery
+    - Original ideas — avoid clichés
+    - Match the requested tone (humorous, serious, poetic, casual)
+    - Brainstorm multiple concepts before committing to one
+    - For image prompts, include style, lighting, composition, mood details
+    - Marketing copy should be concise, punchy, and audience-aware
+
+preferred_tools: []
+blocked_tools:
+  - google-search
+  - deep-research
+
+default_model: null
+default_thinking_mode: thinking
+default_context: creative
+
+trigger_keywords:
+  - "viết truyện"
+  - "write story"
+  - "creative"
+  - "sáng tạo"
+  - "thơ"
+  - "poem"
+  - "poetry"
+  - "brainstorm"
+  - "ý tưởng"
+  - "idea"
+  - "kịch bản"
+  - "script"
+  - "marketing"
+  - "slogan"
+  - "copywriting"
+  - "image prompt"
+
+priority: 7
+ui_visible: true

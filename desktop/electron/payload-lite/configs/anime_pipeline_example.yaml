@@ -1,0 +1,133 @@
+# Anime Pipeline — Example Configuration
+#
+# Copy to configs/anime_pipeline.yaml and adjust for your setup.
+# All values can be overridden by ANIME_PIPELINE_* environment variables.
+
+# ── VRAM Profile ──────────────────────────────────────────────────
+# auto: detect from ANIME_PIPELINE_VRAM_PROFILE env, default normalvram
+# normalvram: 12+ GB GPU — full resolution, all features
+# lowvram: 8 GB GPU — reduced resolution, CPU VAE offload
+vram:
+  profile: auto
+
+# ── Model Slots ───────────────────────────────────────────────────
+models:
+  composition:
+    checkpoint: "animagine-xl-4.0-opt.safetensors"
+    type: sdxl
+    sampler: euler_a
+    scheduler: normal
+    steps: 28
+    cfg: 5.0
+    clip_skip: 2
+    vae: ""                           # empty = use checkpoint's built-in VAE
+
+  beauty:
+    checkpoint: "noobai-xl-1.1.safetensors"
+    type: sdxl
+    sampler: dpmpp_2m_sde
+    scheduler: karras
+    steps: 28
+    cfg: 5.5
+    clip_skip: 2
+    vae: ""
+    denoise_strength: 0.30
+
+  final:
+    checkpoint: "noobai-xl-1.1.safetensors"
+    type: sdxl
+    sampler: dpmpp_2m_sde
+    scheduler: karras
+    steps: 25
+    cfg: 5.0
+    clip_skip: 2
+    denoise_strength: 0.25
+
+# ── Upscale ───────────────────────────────────────────────────────
+upscale:
+  model: "RealESRGAN_x4plus_anime_6B"
+  factor: 2
+  tile_size: 512
+  denoise: 0.2
+
+# ── Beauty Preset ─────────────────────────────────────────────────
+# subtle / balanced / aggressive
+beauty_strength: balanced
+
+# ── Resolutions ───────────────────────────────────────────────────
+# Auto-detected from prompt keywords. These are the base sizes.
+resolutions:
+  portrait:  [832, 1216]
+  landscape: [1216, 832]
+  square:    [1024, 1024]
+
+# ── Structure Lock Layers ─────────────────────────────────────────
+structure_layers:
+  - layer_type: lineart_anime
+    preprocessor: AnimeLineArtPreprocessor
+    controlnet_model: "control_v11p_sd15_lineart_anime"
+    strength: 0.80
+    start_percent: 0.0
+    end_percent: 0.80
+    priority: 1
+    enabled: true
+
+  - layer_type: depth
+    preprocessor: DepthAnythingV2Preprocessor
+    controlnet_model: "control_v11f1p_sd15_depth"
+    strength: 0.45
+    start_percent: 0.0
+    end_percent: 0.60
+    priority: 2
+    enabled: true
+
+# ── Vision Models ─────────────────────────────────────────────────
+vision:
+  model_priority:
+    - "gemini-2.0-flash"
+    - "gpt-4o-mini"
+    - "gpt-4o"
+  max_tokens: 500
+  temperature: 0.2
+
+# ── Critique / Refine ────────────────────────────────────────────
+critique:
+  quality_threshold: 0.70
+  max_refine_rounds: 2
+  dimensions:
+    - instruction_adherence
+    - detail_handling
+    - identity_consistency
+  return_best_on_fail: true
+
+refine:
+  score_threshold: 7.0
+  denoise_step_up: 0.05
+  denoise_step_down: 0.03
+  denoise_floor: 0.12
+  denoise_ceiling: 0.55
+  control_boost: 0.10
+  control_reduce: 0.05
+  artifact_accumulation_limit: 8
+
+# ── Pipeline Behavior ────────────────────────────────────────────
+pipeline:
+  save_intermediates: true
+  intermediate_dir: "storage/intermediate"
+  stream_events: true
+  unload_between_passes: true
+
+# ── Prompt Defaults ──────────────────────────────────────────────
+prompts:
+  quality_prefix: "masterpiece, best quality, very aesthetic, absurdres"
+  negative_base: >-
+    lowres, bad anatomy, bad hands, text, error, missing fingers,
+    extra digit, fewer digits, cropped, worst quality, low quality,
+    normal quality, jpeg artifacts, signature, watermark, username,
+    blurry, artist name, bad proportions, deformed, disfigured, ugly
+
+# ── ComfyUI Connection ──────────────────────────────────────────
+# Leave empty to use COMFYUI_URL or ANIME_PIPELINE_COMFYUI_URL env var
+# Default: http://localhost:8188
+comfyui:
+  url: ""

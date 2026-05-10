@@ -5,68 +5,336 @@
     <title>AI-Assistant — Starting…</title>
     <style>
         :root { color-scheme: dark; }
-        html, body { margin: 0; padding: 0; height: 100%; background: #0f1115; color: #e8ecf2; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
-        .wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 18px; }
-        .title { font-size: 18px; font-weight: 600; letter-spacing: .2px; }
-        .sub   { font-size: 13px; color: #9aa3b2; }
-        .spinner {
-            width: 38px; height: 38px; border-radius: 50%;
-            border: 3px solid #2a3142; border-top-color: #6aa6ff;
-            animation: spin .9s linear infinite;
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0; height: 100%;
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+            overflow: hidden;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .err { display: none; max-width: 78%; padding: 16px 20px; background: #2a1416; border: 1px solid #8b3a3a; border-radius: 10px; color: #ffd6d6; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-        .err.show { display: block; }
-        .err h3 { margin: 0 0 8px; color: #ff8a8a; font-size: 13px; }
-        .log { margin-top: 10px; max-height: 28vh; overflow: auto; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11px; color: #d8b3b3; background: #1a0f10; padding: 8px 10px; border-radius: 6px; }
-        .actions { margin-top: 12px; display: flex; gap: 8px; }
-        .btn { background: #2a3142; color: #e8ecf2; border: 1px solid #3a4258; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
-        .btn:hover { background: #353d52; }
-        .btn.primary { background: #2c5fa5; border-color: #3a73c2; }
-        .btn.primary:hover { background: #336cb8; }
+
+        /* ── layout ─────────────────────────────────────── */
+        .layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 28px 32px 20px;
+            gap: 0;
+        }
+
+        /* ── header ─────────────────────────────────────── */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 22px;
+            flex-shrink: 0;
+        }
+        .dot-cluster {
+            display: flex;
+            gap: 6px;
+        }
+        .dot {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #3a3f47;
+        }
+        .dot.red    { background: #ff5f57; }
+        .dot.yellow { background: #febc2e; }
+        .dot.green  { background: #28c840; animation: pulse-green 1.8s ease-in-out infinite; }
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.45; }
+        }
+        .app-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #8b949e;
+            letter-spacing: .4px;
+            flex: 1;
+        }
+        .status-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: #1c2128;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            transition: all .3s;
+        }
+        .status-badge.ready  { border-color: #238636; color: #3fb950; background: #0d1f0f; }
+        .status-badge.error  { border-color: #8b3a3a; color: #f85149; background: #1a0d0d; }
+
+        /* ── progress bar ────────────────────────────────── */
+        .progress-wrap {
+            height: 3px;
+            background: #1c2128;
+            border-radius: 2px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #1f6feb, #58a6ff, #1f6feb);
+            background-size: 200% 100%;
+            border-radius: 2px;
+            transition: width .4s ease;
+            animation: shimmer 1.5s linear infinite;
+        }
+        .progress-bar.done  { background: #238636; animation: none; width: 100% !important; }
+        .progress-bar.error { background: #da3633; animation: none; }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ── phase line ──────────────────────────────────── */
+        .phase {
+            font-size: 12px;
+            color: #58a6ff;
+            margin-bottom: 12px;
+            min-height: 18px;
+            flex-shrink: 0;
+            transition: color .2s;
+        }
+        .phase.err { color: #f85149; }
+
+        /* ── terminal ────────────────────────────────────── */
+        .terminal {
+            flex: 1;
+            background: #010409;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 12px 14px;
+            overflow-y: auto;
+            font-family: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+            font-size: 11.5px;
+            line-height: 1.65;
+            scroll-behavior: smooth;
+        }
+        .terminal::-webkit-scrollbar { width: 6px; }
+        .terminal::-webkit-scrollbar-track { background: transparent; }
+        .terminal::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+        .log-line { white-space: pre-wrap; word-break: break-all; }
+        .log-line.out  { color: #c9d1d9; }
+        .log-line.err  { color: #e3b341; }
+        .log-line.sys  { color: #8b949e; font-style: italic; }
+        .log-line.ok   { color: #3fb950; }
+        .log-line.fail { color: #f85149; }
+        .log-line .ts  { color: #3d444d; margin-right: 6px; font-size: 10.5px; }
+
+        /* ── footer ──────────────────────────────────────── */
+        .footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 14px;
+            flex-shrink: 0;
+        }
+        .footer-info {
+            flex: 1;
+            font-size: 11px;
+            color: #3d444d;
+        }
+        .btn {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 5px 14px;
+            font-size: 11.5px;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn:hover { background: #30363d; }
+        .btn.primary { background: #1f6feb; border-color: #388bfd; color: #fff; }
+        .btn.primary:hover { background: #388bfd; }
+        .btn:disabled { opacity: .45; cursor: default; }
+        .btn-group { display: none; gap: 8px; }
+        .btn-group.show { display: flex; }
     </style>
 </head>
 <body>
-    <div class="wrap">
-        <div class="spinner" id="spin"></div>
-        <div class="title" id="title">Starting AI-Assistant backend…</div>
-        <div class="sub" id="sub">Spawning <code>services/chatbot/run.py</code> and waiting for <code>/health</code>.</div>
-        <div class="err" id="err">
-            <h3>Backend failed to start</h3>
-            <div id="errMsg"></div>
-            <div class="log" id="errLog"></div>
-            <div class="actions">
-                <button class="btn primary" id="retryBtn" type="button">Retry</button>
-                <button class="btn" id="copyBtn" type="button">Copy log</button>
-            </div>
+<div class="layout">
+
+    <!-- header -->
+    <div class="header">
+        <div class="dot-cluster">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green" id="dotGreen"></div>
+        </div>
+        <div class="app-name">AI-Assistant</div>
+        <div class="status-badge" id="badge">starting</div>
+    </div>
+
+    <!-- progress -->
+    <div class="progress-wrap">
+        <div class="progress-bar" id="bar" style="width:8%"></div>
+    </div>
+
+    <!-- phase -->
+    <div class="phase" id="phase">Spawning services/chatbot/run.py …</div>
+
+    <!-- terminal log -->
+    <div class="terminal" id="term"></div>
+
+    <!-- footer -->
+    <div class="footer">
+        <div class="footer-info" id="footInfo">Waiting for /health …</div>
+        <div class="btn-group" id="actions">
+            <button class="btn primary" id="retryBtn" type="button">Retry</button>
+            <button class="btn"         id="copyBtn"  type="button">Copy log</button>
         </div>
     </div>
-    <script>
-        // Receive error info from the main process via a one-shot postMessage.
-        window.addEventListener('message', (e) => {
-            const data = e.data || {};
-            if (data.type === 'error') {
-                document.getElementById('spin').style.display = 'none';
-                document.getElementById('title').textContent = 'Backend failed to start';
-                document.getElementById('sub').textContent   = 'See details below. Check logs in the terminal that launched Electron.';
-                document.getElementById('errMsg').textContent = data.message || 'Unknown error.';
-                document.getElementById('errLog').textContent = (data.log || '').slice(-4000);
-                document.getElementById('err').classList.add('show');
-            } else if (data.type === 'retrying') {
-                document.getElementById('err').classList.remove('show');
-                document.getElementById('spin').style.display = '';
-                document.getElementById('title').textContent = 'Retrying backend start…';
-                document.getElementById('sub').textContent   = 'Spawning a fresh services/chatbot/run.py.';
+
+</div>
+<script>
+    const term     = document.getElementById('term');
+    const bar      = document.getElementById('bar');
+    const badge    = document.getElementById('badge');
+    const phase    = document.getElementById('phase');
+    const footInfo = document.getElementById('footInfo');
+    const dotGreen = document.getElementById('dotGreen');
+    const actions  = document.getElementById('actions');
+
+    let lineCount = 0;
+    let autoScroll = true;
+    let progressVal = 8;
+
+    // Smooth progress that never goes backwards.
+    function setProgress(pct) {
+        if (pct <= progressVal) return;
+        progressVal = pct;
+        bar.style.width = pct + '%';
+    }
+
+    function now() {
+        const d = new Date();
+        return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2);
+    }
+
+    function appendLine(text, cls) {
+        const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+        lines.forEach(raw => {
+            if (!raw && lineCount === 0) return; // skip leading blank
+            const el = document.createElement('div');
+            el.className = 'log-line ' + (cls || 'out');
+            const ts = document.createElement('span');
+            ts.className = 'ts';
+            ts.textContent = now();
+            el.appendChild(ts);
+            el.appendChild(document.createTextNode(raw));
+            term.appendChild(el);
+            lineCount++;
+        });
+        // Trim if too long.
+        while (term.children.length > 600) term.removeChild(term.firstChild);
+        if (autoScroll) term.scrollTop = term.scrollHeight;
+    }
+
+    // Guess classes / update phase from content.
+    function classifyLine(stream, text) {
+        const t = text.toLowerCase();
+        if (stream === 'err') {
+            if (/error|exception|traceback|failed|fatal/i.test(text)) return 'fail';
+            if (/warn(ing)?/i.test(text)) return 'err';
+            return 'err';
+        }
+        if (/running on http|listening on|started|ready|health ok/i.test(text)) return 'ok';
+        return 'out';
+    }
+
+    function updatePhaseFromLog(text) {
+        if (/loading model|loading config/i.test(text)) {
+            phase.textContent = 'Loading models…';
+            setProgress(55);
+        } else if (/flask|uvicorn|running on/i.test(text)) {
+            phase.textContent = 'Flask server starting…';
+            setProgress(75);
+        } else if (/ready|started|health ok/i.test(text)) {
+            phase.textContent = 'Backend ready — opening UI…';
+            setProgress(95);
+        }
+    }
+
+    // Keep scroll-lock: if user scrolled up, disable auto-scroll.
+    term.addEventListener('scroll', () => {
+        autoScroll = term.scrollTop + term.clientHeight >= term.scrollHeight - 10;
+    });
+
+    // ── message bus from main process ──────────────────────────────
+    window.addEventListener('message', (e) => {
+        const data = e.data || {};
+
+        if (data.type === 'log') {
+            const cls = classifyLine(data.stream, data.text || '');
+            appendLine(data.text || '', cls);
+            updatePhaseFromLog(data.text || '');
+            setProgress(Math.min(90, progressVal + 1.5));
+
+        } else if (data.type === 'error') {
+            bar.classList.add('error');
+            dotGreen.style.animation = 'none';
+            dotGreen.style.background = '#3a3f47';
+            badge.textContent = 'failed';
+            badge.classList.add('error');
+            phase.textContent = 'Backend failed to start';
+            phase.classList.add('err');
+            footInfo.textContent = 'Check the log above for details.';
+            appendLine('── ERROR ─────────────────────────────────', 'fail');
+            appendLine(data.message || 'Unknown error.', 'fail');
+            if (data.log) {
+                appendLine('── Recent log ────────────────────────────', 'sys');
+                appendLine(data.log.slice(-3000), 'err');
             }
-        });
-        document.getElementById('retryBtn').addEventListener('click', () => {
-            // The main process is watching the document title for this sentinel.
-            document.title = '__retry_backend__';
-        });
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            const text = document.getElementById('errMsg').textContent + '\n\n' + document.getElementById('errLog').textContent;
-            navigator.clipboard && navigator.clipboard.writeText(text);
-        });
-    </script>
+            actions.classList.add('show');
+
+        } else if (data.type === 'retrying') {
+            bar.classList.remove('error');
+            bar.classList.remove('done');
+            dotGreen.style.animation = '';
+            dotGreen.style.background = '';
+            badge.textContent = 'starting';
+            badge.classList.remove('error');
+            badge.classList.remove('ready');
+            phase.textContent = 'Retrying — spawning a fresh run.py…';
+            phase.classList.remove('err');
+            footInfo.textContent = 'Waiting for /health …';
+            actions.classList.remove('show');
+            progressVal = 4;
+            bar.style.width = '4%';
+            appendLine('── Retrying ──────────────────────────────', 'sys');
+        }
+    });
+
+    // ── global function called directly by main process ────────────
+    window.__appendLog = function(stream, text) {
+        const cls = classifyLine(stream, text);
+        appendLine(text, cls);
+        updatePhaseFromLog(text);
+        setProgress(Math.min(90, progressVal + 1.2));
+    };
+
+    // ── retry button ────────────────────────────────────────────────
+    document.getElementById('retryBtn').addEventListener('click', () => {
+        document.title = '__retry_backend__';
+    });
+
+    // ── copy log ─────────────────────────────────────────────────────
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        const text = Array.from(term.querySelectorAll('.log-line'))
+            .map(el => el.textContent).join('\n');
+        navigator.clipboard && navigator.clipboard.writeText(text);
+    });
+
+    // Initial sys line.
+    appendLine('AI-Assistant launcher starting…', 'sys');
+    appendLine('Python backend: venv-core/Scripts/python.exe', 'sys');
+</script>
 </body>
 </html>
