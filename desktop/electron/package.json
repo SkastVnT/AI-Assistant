@@ -9,8 +9,8 @@
         "start": "electron .",
         "prepare-payload": "node scripts/prepare-payload.js",
         "prepare-payload-lite": "node scripts/prepare-payload-lite.js",
-        "build:installer": "node scripts/prepare-payload.js && electron-builder --win nsis --x64 --publish never",
-        "build:installer-lite": "node scripts/prepare-payload-lite.js && electron-builder --win nsis --x64 --config electron-builder-lite.yml --publish never",
+        "build:installer": "node scripts/prepare-payload.js && electron-builder --win --x64 --publish never",
+        "build:installer-lite": "node scripts/prepare-payload-lite.js && electron-builder --win --x64 --config electron-builder-lite.yml --publish never",
         "build:dir": "node scripts/prepare-payload.js && electron-builder --win --dir --x64 --publish never",
         "build:dir-lite": "node scripts/prepare-payload-lite.js && electron-builder --win --dir --x64 --config electron-builder-lite.yml --publish never",
         "build:local": "electron-builder --win dir --x64 --config electron-builder-local.yml --publish never"

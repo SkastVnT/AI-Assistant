@@ -77,10 +77,12 @@ async function waitForReady() {
 
 function pickPython() {
     // Prefer venv-core if it exists, else fall back to whatever 'python' is on PATH.
-    if (process.platform === 'win32') {
-        return path.join(REPO_ROOT, 'venv-core', 'Scripts', 'python.exe');
-    }
-    return path.join(REPO_ROOT, 'venv-core', 'bin', 'python');
+    const fs = require('fs');
+    const candidate = process.platform === 'win32'
+        ? path.join(REPO_ROOT, 'venv-core', 'Scripts', 'python.exe')
+        : path.join(REPO_ROOT, 'venv-core', 'bin', 'python');
+    if (fs.existsSync(candidate)) return candidate;
+    return process.platform === 'win32' ? 'python' : 'python3';
 }
 
 function startBackend({ onLog } = {}) {
