@@ -3819,10 +3819,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.getAdvancedModelParams = () => {
             const v = loadAdv();
             return {
-                temperature:     v.temperature,
-                temperatureDeep: v.temperatureDeep,
-                maxTokensDeep:   v.maxTokensDeep,
-                topP:            v.topP, // null means "don't send"
+                temperature:      v.temperature,
+                temperature_deep: v.temperatureDeep,
+                max_tokens_deep:  v.maxTokensDeep,
+                top_p:            v.topP, // null means "don't send"
             };
         };
     })();

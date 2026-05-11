@@ -5832,6 +5832,13 @@ except ImportError as e:
     logger.warning(f"Could not register jobs blueprint: {e}")
 
 try:
+    from routes.video import video_bp
+    app.register_blueprint(video_bp)
+    logger.info("Registered video blueprint (/api/video/*)")
+except ImportError as e:
+    logger.warning(f"Could not register video blueprint: {e}")
+
+try:
     from core.user_auth import init_admin_users
     _seed_db = get_db()
     if _seed_db is not None:

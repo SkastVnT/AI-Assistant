@@ -459,7 +459,10 @@ def chat_stream():
                         f"📋 DỮ LIỆU THỰC TẾ TỪ WEB (sử dụng thông tin này để trả lời chính xác):\n"
                         f"{search_results}\n"
                         f"---\n"
-                        f"Hãy trả lời dựa trên dữ liệu web ở trên. Nếu dữ liệu có ngày/giờ cụ thể, hãy trích dẫn."
+                        f"YÊU CẦU BẮT BUỘC khi trả lời:\n"
+                        f"1. Dẫn thông tin từ dữ liệu web trên.\n"
+                        f"2. Ghi rõ link nguồn (🔗 URL) ngay sau thông tin liên quan HOẶC gom lại trong mục **Nguồn:** ở cuối — KHÔNG chỉ nhắc tên site.\n"
+                        f"3. Nếu dữ liệu có ngày/giờ cụ thể, hãy trích dẫn chính xác."
                     )
                     logger.info(f"[Stream] Auto web search triggered for: {data.get('message', '')[:60]}")
             except Exception as e:

@@ -652,34 +652,6 @@ try {
                                 <div class="tools-dropdown" id="toolsMenuDropdown">
                                     <div class="tools-dropdown__header">Tools</div>
 
-                                    <!-- Search -->
-                                    <div class="tools-category">
-                                        <div class="tools-category__label"><i data-lucide="search" class="lucide lucide-sm"></i> Search</div>
-                                        <div class="tools-list">
-                                            <button class="tools-list__item" id="googleSearchBtn" title="Web Search — auto cascade Google → Bing → Baidu">
-                                                <i data-lucide="search" class="lucide"></i><span>Web Search</span>
-                                            </button>
-                                            <button class="tools-list__item" id="serpapiImagesBtn" title="Image Search (Google Images)">
-                                                <i data-lucide="image" class="lucide"></i><span>Image Search</span>
-                                            </button>
-                                            <button class="tools-list__item" id="last30daysBtn" title="Social Media Research (Reddit, X, YouTube, HN…)">
-                                                <i data-lucide="bar-chart-3" class="lucide"></i><span>Social Research</span>
-                                            </button>
-                                            <div class="tools-list__more" hidden data-more="search">
-                                                <button class="tools-list__item" id="githubBtn" title="GitHub repository search">
-                                                    <i data-lucide="github" class="lucide"></i><span>GitHub</span>
-                                                </button>
-                                                <button class="tools-list__item is-proxy" type="button" data-proxy="googleSearchBtn" title="Bing falls back inside Web Search cascade">
-                                                    <i data-lucide="globe" class="lucide"></i><span>Bing</span><span class="tools-list__item-sub">via Web</span>
-                                                </button>
-                                                <button class="tools-list__item is-proxy" type="button" data-proxy="googleSearchBtn" title="Baidu falls back inside Web Search cascade">
-                                                    <i data-lucide="globe-2" class="lucide"></i><span>Baidu</span><span class="tools-list__item-sub">via Web</span>
-                                                </button>
-                                            </div>
-                                            <button class="tools-list__more-toggle" type="button" data-target="search">More…</button>
-                                        </div>
-                                    </div>
-
                                     <!-- Image -->
                                     <div class="tools-category">
                                         <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
@@ -690,21 +662,9 @@ try {
                                             <button class="tools-list__item" id="reverseImageBtn" title="Reverse Image — Google Lens + SauceNAO">
                                                 <i data-lucide="scan-search" class="lucide"></i><span>Reverse Image</span>
                                             </button>
-                                            <div class="tools-list__more" hidden data-more="image">
-                                                <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
-                                                    <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
-                                                </button>
-                                                <button class="tools-list__item is-proxy" type="button" data-proxy="reverseImageBtn" title="Google Lens runs inside Reverse Image">
-                                                    <i data-lucide="aperture" class="lucide"></i><span>Google Lens</span><span class="tools-list__item-sub">via Reverse</span>
-                                                </button>
-                                                <button class="tools-list__item is-proxy" type="button" data-proxy="reverseImageBtn" title="SauceNAO runs inside Reverse Image">
-                                                    <i data-lucide="image-down" class="lucide"></i><span>SauceNAO</span><span class="tools-list__item-sub">via Reverse</span>
-                                                </button>
-                                                <button class="tools-list__item is-proxy" type="button" data-proxy="characterPickerBtn" title="Character Select (SAA)">
-                                                    <i data-lucide="user-search" class="lucide"></i><span>Character Select (SAA)</span>
-                                                </button>
-                                            </div>
-                                            <button class="tools-list__more-toggle" type="button" data-target="image">More…</button>
+                                            <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
+                                                <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -725,6 +685,10 @@ try {
 
                                     <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
                                     <div class="tools-dropdown__actions" hidden aria-hidden="true">
+                                        <button class="tools-list__item" id="googleSearchBtn" tabindex="-1"></button>
+                                        <button class="tools-list__item" id="serpapiImagesBtn" tabindex="-1"></button>
+                                        <button class="tools-list__item" id="last30daysBtn" tabindex="-1"></button>
+                                        <button class="tools-list__item" id="githubBtn" tabindex="-1"></button>
                                         <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files" tabindex="-1">
                                             <span class="tools-dropdown__item-icon"><i data-lucide="paperclip" class="lucide"></i></span>
                                             <div><div class="tools-dropdown__item-text">Upload Files</div></div>
@@ -739,9 +703,6 @@ try {
 
                             <!-- Inline quick tools — visible shortcuts (Phase 2: Web, Image Gen, Deep Research, Upload) -->
                             <div class="input-area__quick-tools" id="quickTools">
-                                <button class="quick-tool" type="button" data-target="googleSearchBtn" title="Web Search" aria-label="Web Search">
-                                    <i data-lucide="search" class="lucide"></i>
-                                </button>
                                 <button class="quick-tool" type="button" data-target="imageGenToolBtn" title="Image Gen" aria-label="Image Gen">
                                     <i data-lucide="sparkles" class="lucide"></i>
                                 </button>
@@ -2046,7 +2007,20 @@ try {
     // ════════════════════════════════════════════════════════════
     // TOOLS MENU
     // ════════════════════════════════════════════════════════════
-    let activeTools = new Set();
+    // ── Persistent tool state ────────────────────────────────────
+    // Default: google-search is ON. User can toggle from the "+ Tools" menu.
+    const ACTIVE_TOOLS_KEY = 'activeTools';
+    function loadActiveTools() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(ACTIVE_TOOLS_KEY));
+            if (Array.isArray(saved)) return new Set(saved);
+        } catch (_) {}
+        return new Set(['google-search']); // first-run default
+    }
+    function saveActiveTools() {
+        localStorage.setItem(ACTIVE_TOOLS_KEY, JSON.stringify([...activeTools]));
+    }
+    let activeTools = loadActiveTools();
 
     // Map tool name → button element ID (shared by setupToolItemClicks + removeTool)
     // NOTE: 'reverse-image' is a virtual UI slug that toggles BOTH
@@ -2080,6 +2054,14 @@ try {
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         setupToolItemClicks();
+        // Sync button active classes with restored tool state
+        activeTools.forEach(tool => {
+            const btnId = toolBtnMap[tool];
+            if (btnId) {
+                const el = document.getElementById(btnId);
+                if (el) el.classList.add('active');
+            }
+        });
         updateActiveToolsDisplay();
     }
 
@@ -2118,6 +2100,7 @@ try {
             activeTools.add(name);
             btn.classList.add('active');
         }
+        saveActiveTools();
         updateActiveToolsDisplay();
     }
 
@@ -2138,7 +2121,10 @@ try {
             'serpapi-images': 'Images', 'reverse-image': 'Reverse Image',
             'last30days-research': 'Social',
         };
+        // Tools that run silently in the background — don't show a badge
+        const hiddenTools = new Set(['google-search', 'serpapi-images', 'last30days-research', 'github']);
         activeTools.forEach(tool => {
+            if (hiddenTools.has(tool)) return;
             const badge = document.createElement('span');
             badge.className = 'active-tool-badge';
             badge.innerHTML = `${icons[tool] || '🔧'} ${labels[tool] || tool} <button onclick="removeTool('${tool}')">&times;</button>`;
@@ -2154,6 +2140,7 @@ try {
             const btn = document.getElementById(btnId);
             if (btn) btn.classList.remove('active');
         }
+        saveActiveTools();
         updateActiveToolsDisplay();
     };
     // Expand virtual tools (e.g. 'reverse-image' → ['serpapi-reverse-image','saucenao'])

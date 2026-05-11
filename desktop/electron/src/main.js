@@ -23,6 +23,7 @@ const {
     ipcMain, globalShortcut, shell, Notification
 } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { startBackend, REPO_ROOT } = require('./backend-process');
 const { startComfyUI, stopComfyUI } = require('./comfyui-process');
 
@@ -44,6 +45,23 @@ let comfyuiStatus = 'stopped'; // 'stopped' | 'starting' | 'running' | 'failed'
 let recentLog = '';
 let activeJobs = 0;
 let isQuitting = false;
+
+// ── Persistent settings ──────────────────────────────────────────
+let settings = { quitOnClose: false };
+function loadSettings() {
+    try {
+        const data = fs.readFileSync(path.join(app.getPath('userData'), 'ai-assistant-settings.json'), 'utf8');
+        settings = Object.assign({ quitOnClose: false }, JSON.parse(data));
+    } catch (_) {}
+}
+function saveSettings() {
+    try {
+        fs.writeFileSync(
+            path.join(app.getPath('userData'), 'ai-assistant-settings.json'),
+            JSON.stringify(settings, null, 2)
+        );
+    } catch (_) {}
+}
 
 function rememberLog(stream, text) {
     recentLog += '[' + stream + '] ' + text;
@@ -138,12 +156,16 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, 'loading.html'));
 
     // Closing the window minimises to tray instead of quitting.
+    // When 'quitOnClose' preference is set, it exits completely instead.
     mainWindow.on('close', (e) => {
         if (!isQuitting) {
-            e.preventDefault();
-            mainWindow.hide();
-            refreshTray();
-            return false;
+            if (settings.quitOnClose) {
+                isQuitting = true; // let the close proceed → triggers before-quit
+            } else {
+                e.preventDefault();
+                mainWindow.hide();
+                refreshTray();
+            }
         }
     });
     mainWindow.on('closed', () => { mainWindow = null; });
@@ -198,6 +220,16 @@ function buildTrayMenu() {
             }
         },
         { type: 'separator' },
+        {
+            label: 'Quit on close',
+            type: 'checkbox',
+            checked: settings.quitOnClose,
+            click: (item) => {
+                settings.quitOnClose = item.checked;
+                saveSettings();
+                refreshTray();
+            }
+        },
         { label: 'Quit', click: () => { isQuitting = true; app.quit(); } }
     ]);
 }
@@ -358,6 +390,7 @@ function registerIpc() {
 app.on('second-instance', () => { showWindow(); });
 
 app.whenReady().then(() => {
+    loadSettings();
     Menu.setApplicationMenu(null); // frameless: no app menu
     registerIpc();
     createWindow();
