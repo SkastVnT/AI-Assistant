@@ -55,7 +55,7 @@ werkzeug>=3.0.0
 eventlet>=0.33.0
 fastapi>=0.94.0
 uvicorn>=0.20.0
-python-multipart>=0.0.6
+python-multipart>=0.0.27
 gradio>=3.0.0
 watchdog>=2.0.0
 
@@ -72,18 +72,18 @@ safetensors>=0.4.0
 huggingface-hub>=0.21.4
 peft>=0.4.0
 datasets>=2.14.0
-protobuf>=3.20.0,<=6.33.4
+protobuf<=6.33.5,>=6.33.5
 omegaconf>=2.3.0
 sentence-transformers>=2.2.2
-diffusers>=0.21.0
+diffusers>=0.38.0
 open-clip-torch>=2.20.0
 timm>=0.9.0
 
 # ============================================================================
 # DATABASE & CACHING
 # ============================================================================
-pymongo>=4.6.0
-dnspython>=2.4.0
+pymongo>=4.6.3
+dnspython>=2.6.1
 redis>=5.0.0
 clickhouse-connect>=0.7.7
 
@@ -107,7 +107,7 @@ pydub>=0.25.1
 # ============================================================================
 # IMAGE & DOCUMENT PROCESSING
 # ============================================================================
-Pillow>=10.3.0
+Pillow>=12.2.0
 opencv-python<=4.13.0.90  # Required by paddleocr 2.7.3 (max version constraint)
 paddleocr==2.7.3
 paddlepaddle==2.6.2
@@ -146,7 +146,7 @@ rich>=13.7.0
 pyyaml>=6.0.0
 jsonschema>=4.17.0
 jsonmerge>=1.9.0
-requests>=2.31.0
+requests>=2.33.0
 aiofiles>=23.0.0
 GitPython>=3.1.0
 filelock>=3.12.0

@@ -1,7 +1,7 @@
 # Chunk 3: Database & Caching
 # MongoDB, Redis, ClickHouse connections
 
-pymongo>=4.6.0
+pymongo>=4.17.0
 dnspython>=2.4.0
 redis>=5.0.0
 clickhouse-connect>=0.7.7
