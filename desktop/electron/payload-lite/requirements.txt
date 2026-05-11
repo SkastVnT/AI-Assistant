@@ -65,7 +65,7 @@ watchdog>=2.0.0
 openai>=1.0.0
 pydantic>=2.0.0,<3.0.0
 google-genai>=1.56.0
-transformers>=4.41,<5.1
+transformers>=5.8.0,<5.9
 accelerate>=0.27.0
 sentencepiece>=0.2.0
 safetensors>=0.4.0
@@ -174,7 +174,7 @@ starlette>=0.27.0
 # ============================================================================
 # DEVELOPMENT & TESTING
 # ============================================================================
-pytest>=7.4.0
+pytest>=9.0.3
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0
 black>=23.0.0
