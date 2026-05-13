@@ -28,16 +28,16 @@ window.__CHAT_ASSET_URLS = {
 <script src="{{ url_for('static', filename='js/style-presets.js') }}?v=20260513a"></script>
 <script src="{{ url_for('static', filename='js/welcome-suggestions.js') }}?v=20260513a"></script>
 {% include 'partials/chat/_firebase_logging.html' %}
-<!-- Lucide Icons: loaded here (after all modules) so it never blocks initial paint -->
-<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" onload="(function(){if(window.lucide)lucide.createIcons();console.log('[Lucide] Icons initialized');})()"></script>
-<!-- Initialize Lucide Icons -->
-<script>
-    // Helper: swap a lucide icon inside an element
-    window.swapLucideIcon = function(element, iconName) {
-        if (!element) return;
-        element.innerHTML = '<i data-lucide="' + iconName + '" class="lucide"></i>';
-        if (window.lucide) lucide.createIcons({nodes: [element]});
-    };
-</script>
+<!-- Lucide Icons: loaded here (after all modules) so it never blocks initial paint -->
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" onload="(function(){if(window.lucide)lucide.createIcons();console.log('[Lucide] Icons initialized');})()"></script>
+<!-- Initialize Lucide Icons -->
+<script>
+    // Helper: swap a lucide icon inside an element
+    window.swapLucideIcon = function(element, iconName) {
+        if (!element) return;
+        element.innerHTML = '<i data-lucide="' + iconName + '" class="lucide"></i>';
+        if (window.lucide) lucide.createIcons({nodes: [element]});
+    };
+</script>
 <script src="{{ url_for('static', filename='js/thinking-panel.js') }}?v=20260513a"></script>
 <script src="{{ url_for('static', filename='js/quick-tools-glue.js') }}?v=20260513a"></script>

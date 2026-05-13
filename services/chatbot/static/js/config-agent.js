@@ -4,16 +4,20 @@
         enabled: false, systemPrompt: '', injectionPrompt: '', contextPrompt: '',
         temperature: 0.7, topP: 0.9, tokenLimit: 4096, thinkingBudget: 'off'
     };
-
     function loadAgentConfig() {
         const storedAgentConfig = localStorage.getItem('agentConfig');
-        if (!storedAgentConfig) return {...defaultAgentConfig};
+        if (!storedAgentConfig) return { ...defaultAgentConfig };
 
         try {
-            return JSON.parse(storedAgentConfig) || {...defaultAgentConfig};
+            const parsedAgentConfig = JSON.parse(storedAgentConfig);
+            if (parsedAgentConfig && typeof parsedAgentConfig === 'object') {
+                return { ...defaultAgentConfig, ...parsedAgentConfig };
+            }
         } catch (error) {
-            return {...defaultAgentConfig};
+            console.warn('[ConfigAgent] Invalid localStorage agentConfig JSON; reset to defaults.', error);
+            localStorage.removeItem('agentConfig');
         }
+        return { ...defaultAgentConfig };
     }
 
     let agentConfig = loadAgentConfig();
