@@ -5,7 +5,6 @@ on:
     branches: [master, "feat/adv_RAG"]
     paths:
       - "rag/**"
-      - ".github/workflows/rag-eval.yml"
 
 jobs:
   eval:
