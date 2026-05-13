@@ -1,0 +1,72 @@
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {{ firebase_config | safe }};
+
+    // Guard: skip init if required fields are missing (avoids crashing when Firebase isn't configured)
+    if (!firebaseConfig || !firebaseConfig.projectId || !firebaseConfig.apiKey) {
+        console.warn('[Firebase] Config incomplete — analytics/logging disabled.');
+        window.logChatToFirebase = async () => null;
+        window.logImageToFirebase = async () => null;
+    } else {
+        try {
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+            const db = getFirestore(app);
+            window.firebaseDb = db;
+
+            let firebaseUserId = localStorage.getItem('firebase-user-id');
+            if (!firebaseUserId) {
+                firebaseUserId = 'web_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('firebase-user-id', firebaseUserId);
+            }
+            window.firebaseUserId = firebaseUserId;
+
+            window.logChatToFirebase = async function(userMessage, model, assistantResponse, imageUrls = []) {
+                try {
+                    const docRef = await addDoc(collection(db, 'conversations'), {
+                        userId: firebaseUserId, platform: 'web', model, userMessage, assistantResponse, imageUrls,
+                        timestamp: serverTimestamp(), userAgent: navigator.userAgent.substring(0, 200)
+                    });
+                    return docRef.id;
+                } catch (e) { return null; }
+            };
+
+            window.logImageToFirebase = async function(prompt, negativePrompt, imageUrl, cloudUrl = null) {
+                try {
+                    const docRef = await addDoc(collection(db, 'generated_images'), {
+                        userId: firebaseUserId, platform: 'web', type: 'image_generation',
+                        prompt, negativePrompt: negativePrompt || '', imageUrl, cloudUrl: cloudUrl,
+                        timestamp: serverTimestamp()
+                    });
+                    return docRef.id;
+                } catch (e) { return null; }
+            };
+
+            window.saveUserProfile = async function(profileData = {}) {
+                try {
+                    await setDoc(doc(db, 'users', firebaseUserId), {
+                        ...profileData, lastActive: serverTimestamp(), platform: 'web'
+                    }, { merge: true });
+                } catch (e) {}
+            };
+
+            (async () => {
+                try {
+                    await addDoc(collection(db, 'page_views'), {
+                        userId: firebaseUserId, page: '/chatbot', platform: 'web',
+                        timestamp: serverTimestamp(), referrer: document.referrer || 'direct'
+                    });
+                    await window.saveUserProfile({});
+                } catch (e) {}
+            })();
+        } catch (e) {
+            console.warn('[Firebase] Init failed:', e.message);
+            window.logChatToFirebase = async () => null;
+            window.logImageToFirebase = async () => null;
+        }
+    } // end else (firebase configured)
+</script>

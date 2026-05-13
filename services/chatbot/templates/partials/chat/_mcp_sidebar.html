@@ -1,0 +1,70 @@
+    <!-- MCP Sidebar (Right) -->
+    <div class="mcp-panel" id="mcpSidebar">
+        <div style="padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="mcpEnabledCheck" style="width: 16px; height: 16px; accent-color: var(--accent);">
+                    <label for="mcpEnabledCheck" style="font-weight: 600; font-size: 14px;" data-lang-key="mcp.enable">🔗 MCP Context</label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="mcpStatus" style="font-size: 12px; color: var(--text-tertiary);"><span data-lang-key="mcp.status.disabled">⚪ Off</span></span>
+                    <button id="mcpCloseBtn" style="background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 16px;">✕</button>
+                </div>
+            </div>
+
+            <div class="mcp-source-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="btn btn--sm btn--secondary active" id="mcpTabFolder" data-source="folder" disabled>📁 Folder</button>
+                <button class="btn btn--sm btn--ghost" id="mcpTabUrl" data-source="url" disabled>🌐 URL</button>
+                <button class="btn btn--sm btn--ghost" id="mcpTabUpload" data-source="upload" disabled>📤 Upload</button>
+            </div>
+
+            <div id="mcpFolderSource">
+                <button class="btn btn--secondary" id="mcpSelectFolderBtn" style="width: 100%;" disabled>📁 Select Folder</button>
+                <input type="file" id="mcpFolderInput" webkitdirectory directory multiple class="hidden">
+                <div id="mcpFolderList" class="hidden" style="margin-top: 12px;"></div>
+            </div>
+
+            <div id="mcpUrlSource" class="hidden">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="mcpUrlInput" placeholder="https://example.com/..." class="form-input" style="flex: 1;" disabled>
+                    <button class="btn btn--secondary btn--sm" id="mcpFetchUrlBtn" disabled>🔍 Fetch</button>
+                </div>
+                <div id="mcpUrlList" style="margin-top: 12px;"></div>
+            </div>
+
+            <div id="mcpUploadSource" class="hidden">
+                <button class="btn btn--secondary" id="mcpUploadBtn" style="width: 100%;" disabled>📤 Upload Files</button>
+                <input type="file" id="mcpFileUpload" multiple accept="image/*,.pdf,.txt,.md,.py,.js,.json" class="hidden">
+                <div id="mcpUploadList" style="margin-top: 12px;"></div>
+            </div>
+        </div>
+
+        <div id="mcpFileBrowser" style="flex: 1; overflow-y: auto; padding: 0 16px;">
+            <div style="margin-bottom: 12px;">
+                <input type="text" id="mcpFileSearch" placeholder="🔍 Search files..." class="form-input" disabled>
+            </div>
+            <div id="mcpFileList">
+                <div style="text-align: center; padding: 40px 0; color: var(--text-tertiary);">
+                    <p style="font-size: 24px;">📂</p>
+                    <p style="font-size: 13px; font-weight: 600; color: var(--accent);">No context loaded</p>
+                    <p style="font-size: 11px;">Enable MCP and select a source</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="mcpSelectedFiles" class="hidden" style="padding: 12px 16px; border-top: 1px solid var(--border-secondary);">
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+                📌 Selected Context
+                <span class="badge badge--accent" id="selectedFileCount">0</span>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <button class="btn btn--sm btn--secondary" id="mcpOcrBtn" title="OCR selected files" style="flex: 1;">
+                    🔎 OCR qua MCP
+                </button>
+                <button class="btn btn--sm btn--ghost" id="mcpWarmCacheBtn" title="Warm memory cache" style="flex: 1;">
+                    🔥 Warm Cache
+                </button>
+            </div>
+            <div id="selectedFileList"></div>
+        </div>
+    </div>

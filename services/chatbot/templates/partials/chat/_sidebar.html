@@ -1,0 +1,94 @@
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay hidden" id="sidebarOverlay"></div>
+
+    <!-- ═══ Sidebar ═══ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar__header">
+            <button class="sidebar__new-chat" id="newChatBtn" title="New chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span data-lang-key="sidebar.newChat">New chat</span>
+            </button>
+        </div>
+
+        <div class="sidebar__chats-header">
+            <span class="sidebar__chats-label">Cuộc trò chuyện</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button class="sidebar__select-btn" id="chatSelectBtn" data-action="storage:select-mode" title="Chọn để xóa">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                        <rect x="3" y="5" width="16" height="14" rx="2"/>
+                        <path d="M7 12l3 3 7-7"/>
+                    </svg>
+                </button>
+                <button class="sidebar__refresh-btn" id="chatRefreshBtn" title="Làm mới danh sách">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 16H3v5"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Select mode toolbar (hidden by default) -->
+        <div class="sidebar__select-toolbar" id="chatSelectToolbar" style="display:none;">
+            <label class="sidebar__select-all-label">
+                <input type="checkbox" id="chatSelectAll" class="sidebar__select-checkbox">
+                <span>Chọn tất cả</span>
+            </label>
+            <div style="display:flex;gap:4px;">
+                <button class="sidebar__select-action-btn sidebar__select-delete-btn" id="chatDeleteSelectedBtn" data-action="storage:delete-selected" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                        <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    </svg>
+                    <span id="chatDeleteSelectedCount">Xóa</span>
+                </button>
+                <button class="sidebar__select-action-btn" data-action="storage:select-mode" title="Hủy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar__chats" id="chatList">
+        </div>
+        <div class="sidebar__footer">
+            <button class="sidebar__footer-btn" id="galleryBtn" title="Image Gallery">
+                <i data-lucide="image" class="lucide"></i> <span>Image Gallery</span>
+            </button>
+            <button class="sidebar__footer-btn" id="memoryBtn" title="AI Memory" data-lang-key="controls.memory" style="display:none;">
+                <i data-lucide="brain" class="lucide"></i> <span>AI Memory</span>
+            </button>
+            <div id="storageInfo" class="sidebar__storage"></div>
+
+            <!-- Quota + Video unlock bar — hidden by default. Inline script
+                 below shows it only if /api/features says quota or payment
+                 gating is enabled. Single-user mode keeps it hidden. -->
+            <div id="quotaSection" class="sidebar__quota" style="display:none;">
+                <!-- Image quota bar -->
+                <div id="imageQuotaWrap">
+                    <div class="sidebar__quota-row">
+                        <span class="sidebar__quota-label">
+                            <i data-lucide="image"></i> Ảnh đã tạo
+                        </span>
+                        <span id="quotaText" class="sidebar__quota-value">0/5</span>
+                    </div>
+                    <div class="sidebar__quota-track">
+                        <div id="quotaBar" class="sidebar__quota-fill"></div>
+                    </div>
+                </div>
+                <!-- Video unlock button -->
+                <button id="videoUnlockBtn" onclick="openVideoUnlockModal()">
+                    <i data-lucide="lock"></i>
+                    <span>Mở khóa tính năng Video</span>
+                </button>
+                <div id="videoUnlockedMsg" style="display:none;">
+                    ✓ Video đã được mở khóa
+                </div>
+            </div>
+    </aside>
+
