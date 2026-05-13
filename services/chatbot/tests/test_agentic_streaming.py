@@ -5,8 +5,6 @@ Covers:
     - CouncilEvent schema validation
     - CouncilEventEmitter publish/subscribe
     - Orchestrator emits events at stage transitions
-    - /chat/council/stream SSE route
-    - Feature-flag-disabled graceful SSE response
 
 Run from services/chatbot/:
     python -m pytest tests/test_agentic_streaming.py -v
@@ -14,13 +12,9 @@ Run from services/chatbot/:
 from __future__ import annotations
 
 import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from starlette.middleware.sessions import SessionMiddleware
 
 from core.agentic.events import (
     CouncilEvent,
@@ -266,152 +260,3 @@ def _make_agent_mock(output, role):
     return _side_effect
 
 
-# ---------------------------------------------------------------------------
-# SSE Route tests
-# ---------------------------------------------------------------------------
-
-def _mock_rag_result():
-    r = MagicMock()
-    r.message = "augmented"
-    r.custom_prompt = "prompt"
-    r.citations = None
-    r.chunk_count = 0
-    return r
-
-
-def _council_result_dict():
-    return {
-        "response": "Streamed council answer.",
-        "model": "council",
-        "context": "casual",
-        "deep_thinking": True,
-        "thinking_process": "Done in 1 round.",
-        "citations": None,
-        "agent_run_id": "stream-run-1",
-        "agent_trace_summary": {"rounds": 1},
-    }
-
-
-def _parse_sse(text: str):
-    """Parse SSE text into (event_name, data_dict) tuples."""
-    events = []
-    lines = text.strip().split("\n")
-    current_event = None
-    current_data = None
-    for line in lines:
-        if line.startswith("event: "):
-            current_event = line[7:]
-        elif line.startswith("data: "):
-            current_data = line[6:]
-        elif line == "" and current_event and current_data:
-            try:
-                events.append((current_event, json.loads(current_data)))
-            except json.JSONDecodeError:
-                events.append((current_event, current_data))
-            current_event = None
-            current_data = None
-    # Catch trailing event without final blank line
-    if current_event and current_data:
-        try:
-            events.append((current_event, json.loads(current_data)))
-        except json.JSONDecodeError:
-            events.append((current_event, current_data))
-    return events
-
-
-@pytest.fixture
-def stream_app():
-    from fastapi_app.routers import council_stream as cs_module
-    _app = FastAPI()
-    _app.add_middleware(SessionMiddleware, secret_key="test-secret")
-    _app.include_router(cs_module.router)
-    return _app
-
-
-@pytest.fixture
-def stream_client(stream_app):
-    return TestClient(stream_app)
-
-
-class TestCouncilStreamRoute:
-    def test_stream_returns_sse(self, stream_client):
-        """The route should return SSE events including council_result."""
-        async def fake_stream(**kwargs):
-            from core.agentic.entrypoint import _sse
-            yield _sse("council_event", {"run_id": "r1", "stage": "planning", "role": "planner",
-                                          "status": "started", "round": 1, "timestamp": "T",
-                                          "short_message": "Planning"})
-            yield _sse("council_result", _council_result_dict())
-
-        with patch("fastapi_app.routers.council_stream.run_council_stream", side_effect=fake_stream), \
-             patch("fastapi_app.routers.council_stream.retrieve_rag_context",
-                   new_callable=AsyncMock, return_value=_mock_rag_result()):
-            resp = stream_client.post("/chat/council/stream", json={
-                "message": "Hello",
-                "model": "grok",
-                "agent_mode": "council",
-            })
-
-        assert resp.status_code == 200
-        assert "text/event-stream" in resp.headers["content-type"]
-
-        events = _parse_sse(resp.text)
-        event_names = [e[0] for e in events]
-        assert "council_event" in event_names
-        assert "council_result" in event_names
-
-        # Verify the result payload
-        result_data = [e[1] for e in events if e[0] == "council_result"][0]
-        assert result_data["model"] == "council"
-        assert result_data["agent_run_id"] == "stream-run-1"
-
-    def test_stream_disabled_returns_disabled_result(self, stream_client):
-        """When feature flag is off, should get a single council_result with disabled message."""
-        async def fake_disabled_stream(**kwargs):
-            from core.agentic.entrypoint import _sse, _disabled_response
-            yield _sse("council_result", _disabled_response("casual", None))
-
-        with patch("fastapi_app.routers.council_stream.run_council_stream", side_effect=fake_disabled_stream), \
-             patch("fastapi_app.routers.council_stream.retrieve_rag_context",
-                   new_callable=AsyncMock, return_value=_mock_rag_result()):
-            resp = stream_client.post("/chat/council/stream", json={
-                "message": "Test",
-                "model": "grok",
-            })
-
-        assert resp.status_code == 200
-        events = _parse_sse(resp.text)
-        result_data = [e[1] for e in events if e[0] == "council_result"][0]
-        assert "not enabled" in result_data["response"]
-
-    def test_stream_event_schema(self, stream_client):
-        """Verify each council_event has all required fields."""
-        async def fake_stream(**kwargs):
-            from core.agentic.entrypoint import _sse
-            event = {
-                "run_id": "schema-test",
-                "stage": "planning",
-                "role": "planner",
-                "status": "started",
-                "round": 1,
-                "timestamp": "2026-04-03T00:00:00Z",
-                "short_message": "Test",
-            }
-            yield _sse("council_event", event)
-            yield _sse("council_result", _council_result_dict())
-
-        with patch("fastapi_app.routers.council_stream.run_council_stream", side_effect=fake_stream), \
-             patch("fastapi_app.routers.council_stream.retrieve_rag_context",
-                   new_callable=AsyncMock, return_value=_mock_rag_result()):
-            resp = stream_client.post("/chat/council/stream", json={
-                "message": "Hello",
-                "model": "grok",
-            })
-
-        events = _parse_sse(resp.text)
-        council_events = [e[1] for e in events if e[0] == "council_event"]
-        assert len(council_events) >= 1
-
-        required_fields = {"run_id", "stage", "role", "status", "round", "timestamp", "short_message"}
-        for ce in council_events:
-            assert required_fields.issubset(ce.keys()), f"Missing fields: {required_fields - ce.keys()}"

@@ -134,7 +134,7 @@ class TestImageGenerationIntegration:
         
         response = client.post('/api/img2img',
                               json={
-                                  'init_image': 'base64_input_image',
+                                  'image': 'base64_input_image',
                                   'prompt': 'Make it colorful',
                                   'denoising_strength': 0.7
                               },
