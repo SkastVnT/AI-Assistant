@@ -1,0 +1,191 @@
+/* ═══════════════════════════════════════════════════════════════
+   AI ChatBot Assistant — Modern Professional UI
+   Inspired by ChatGPT / Gemini / Grok
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Lucide Icons ──────────────────────────────────────────── */
+.lucide {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.lucide-lg {
+  width: 22px;
+  height: 22px;
+}
+.lucide-xl {
+  width: 28px;
+  height: 28px;
+}
+.lucide-sm {
+  width: 14px;
+  height: 14px;
+}
+/* Icon wrapper in topbar buttons */
+.topbar__btn .lucide,
+.sidebar__footer-btn .lucide {
+  pointer-events: none;
+  width: 18px;
+  height: 18px;
+}
+/* Force inline icons inside any topbar control (incl. wrapper spans like
+   #thinkingModeIcon) to a sane size so raw <svg width="24"...> from
+   lucide.createIcons() can't blow out the layout. */
+.topbar__btn svg,
+.topbar__btn .topbar__btn-icon svg,
+.topbar__btn span > svg,
+.topbar__more-item svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
+}
+/* Sidebar / quota / user / modal — clamp raw lucide SVGs that ship with
+   width="24" height="24" baked in. Inline style="width:Xpx" still wins via
+   :not() guard, so per-icon overrides (e.g. 11px storage chip) are preserved. */
+.sidebar__footer-btn svg:not([style*="width"]),
+.sidebar__footer svg.lucide:not([style*="width"]),
+.sidebar__quota svg:not([style*="width"]),
+.sidebar__user svg:not([style*="width"]),
+.sidebar__user-trigger svg:not([style*="width"]),
+#userDropdown svg:not([style*="width"]),
+#qrPayModal svg:not([style*="width"]),
+#changePwModal svg:not([style*="width"]),
+#editProfileModal svg:not([style*="width"]),
+.storage-display svg:not([style*="width"]) {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.sidebar__user-chevron:not([style*="width"]) {
+  width: 14px !important;
+  height: 14px !important;
+}
+/* Tools dropdown icon */
+.tools-dropdown__item-icon .lucide {
+  width: 16px;
+  height: 16px;
+}
+/* Model dropdown icon */
+.model-dropdown__item-icon .lucide {
+  width: 20px;
+  height: 20px;
+}
+/* Welcome icon */
+.welcome__icon .lucide {
+  width: 56px;
+  height: 56px;
+  stroke-width: 1.5;
+}
+/* Inline icon in text labels */
+.icon-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root {
+  /* Dark theme (default) */
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #171717;
+  --bg-tertiary: #212121;
+  --bg-hover: #2a2a2a;
+  --bg-active: #343434;
+  --bg-message-user: #2f2f2f;
+  --bg-message-ai: transparent;
+  --bg-input: #2f2f2f;
+  --bg-sidebar: #171717;
+  --bg-modal: #1e1e1e;
+
+  --border-primary: #3a3a3a;
+  --border-secondary: #2a2a2a;
+  --border-focus: #7c6cf0;
+
+  --text-primary: #ececec;
+  --text-secondary: #b4b4b4;
+  --text-tertiary: #8e8e8e;
+  --text-placeholder: #6b6b6b;
+  --text-inverse: #0d0d0d;
+
+  --accent: #7c6cf0;
+  --accent-hover: #9488f4;
+  --accent-text: #9088f5; /* accessible text variant — ≥4.5:1 on dark bg */
+  --accent-soft: rgba(124,108,240,0.12);
+  --accent-gradient: linear-gradient(135deg, #7c6cf0 0%, #ab7df6 100%);
+  --success: #2ecc71;
+  --warning: #f1c40f;
+  --error: #e74c3c;
+  --info: #3498db;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+  --shadow-glow: 0 0 20px rgba(124,108,240,0.15);
+
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 0px;
+  --header-height: 0px;
+  --input-height: auto;
+  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  --transition-slow: 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Light theme */
+body.light-mode {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f8;
+  --bg-tertiary: #efefef;
+  --bg-hover: #e8e8e8;
+  --bg-active: #dedede;
+  --bg-message-user: #f0f0f0;
+  --bg-message-ai: transparent;
+  --bg-input: #f0f0f0;
+  --bg-sidebar: #f9f9f9;
+  --bg-modal: #ffffff;
+
+  --border-primary: #e0e0e0;
+  --border-secondary: #eaeaea;
+  --border-focus: #7c6cf0;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --text-tertiary: #8a8a8a;
+  --text-placeholder: #aaa;
+  --text-inverse: #fff;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+}
+
+/* Eye Care mode */
+body.eye-care-mode {
+  --bg-primary: #faf4e8;
+  --bg-secondary: #f2e8d5;
+  --bg-tertiary: #e8dcc8;
+  --bg-hover: #dfd2bc;
+  --bg-message-user: #ece3d2;
+  --bg-input: #ece3d2;
+  --bg-sidebar: #f2e8d5;
+  --text-primary: #3d3222;
+  --text-secondary: #6b5d4a;
+  --text-tertiary: #9a8b74;
+  --border-primary: #d4c6ab;
+  --accent: #9b7d4d;
+}

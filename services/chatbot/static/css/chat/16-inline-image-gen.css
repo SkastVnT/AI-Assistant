@@ -1,0 +1,488 @@
+
+/* ── Image Loading Inline ──────────────────────────────────── */
+.image-gen-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  min-height: 200px;
+  justify-content: center;
+  animation: shimmer 2s infinite linear;
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.image-gen-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-primary);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.image-gen-loading .loading-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.image-gen-result img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.image-gen-result img:hover {
+  transform: scale(1.02);
+}
+
+/* ── igv2 chat image with overlay buttons ─────────────────────────────────── */
+.igv2-chat-image {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.igv2-chat-image img {
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.igv2-chat-image:hover img {
+  filter: brightness(0.88);
+}
+.igv2-img-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+.igv2-chat-image:hover .igv2-img-overlay {
+  opacity: 1;
+}
+.igv2-img-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.1s;
+  backdrop-filter: blur(4px);
+}
+.igv2-img-btn:hover:not(:disabled) {
+  background: rgba(99,122,255,0.85);
+  transform: scale(1.1);
+}
+.igv2-img-btn:disabled {
+  cursor: default;
+}
+.igv2-chat-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.igv2-info-popup {
+  position: absolute;
+  top: 8px;
+  left: 48px;
+  background: var(--bg-secondary, #1e1e2e);
+  color: var(--text-primary, #e0e0e0);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 280px;
+  z-index: 20;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* ── igv2 streaming status (tool call UX) ─────────────────────────────── */
+.igv2-stream-status {
+  background: var(--bg-secondary, #1a1a2e);
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 280px;
+  max-width: 480px;
+}
+.igv2-stream-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #2d2d44);
+}
+.igv2-stream-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.igv2-stream-icon.spinning {
+  display: inline-block;
+  animation: igv2-spin 1.5s linear infinite;
+}
+@keyframes igv2-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.igv2-stream-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #e0e0e0);
+  letter-spacing: 0.3px;
+}
+.igv2-stream-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.igv2-stream-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.2s, opacity 0.3s;
+  animation: igv2-step-in 0.25s ease-out;
+}
+@keyframes igv2-step-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.igv2-step-icon {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  font-size: 13px;
+}
+.igv2-step-text {
+  color: var(--text-secondary, #b0b0c8);
+  word-break: break-word;
+}
+.igv2-stream-step.active {
+  background: rgba(99, 122, 255, 0.08);
+}
+.igv2-stream-step.active .igv2-step-text {
+  color: var(--accent, #7c8aff);
+}
+.igv2-stream-step.done .igv2-step-text {
+  color: var(--text-secondary, #b0b0c8);
+  opacity: 0.85;
+}
+.igv2-stream-step.fail {
+  background: rgba(255, 80, 80, 0.08);
+}
+.igv2-stream-step.fail .igv2-step-text {
+  color: #ff6b6b;
+  font-size: 11.5px;
+}
+.igv2-stream-step.snippet {
+  padding: 2px 6px 2px 26px;
+  margin-top: -3px;
+}
+.igv2-stream-step.snippet .igv2-step-icon {
+  font-size: 11px;
+  opacity: 0.6;
+}
+.igv2-stream-step.snippet .igv2-step-text {
+  font-size: 11px;
+  opacity: 0.65;
+  font-style: italic;
+  color: var(--text-secondary, #b0b0c8);
+}
+
+/* ── igv2 provider choice dialog ──────────────────────────────────────── */
+.igv2-provider-choice {
+  background: var(--bg-secondary, #1a1a2e);
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 280px;
+  max-width: 420px;
+  animation: igv2-step-in 0.3s ease-out;
+}
+.igv2-choice-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #2d2d44);
+}
+.igv2-choice-icon {
+  font-size: 18px;
+}
+.igv2-choice-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #e0e0e0);
+  flex: 1;
+}
+.igv2-choice-timer {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #7c8aff);
+  background: rgba(99, 122, 255, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 32px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.igv2-choice-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.igv2-choice-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary, #e0e0e0);
+}
+.igv2-choice-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.igv2-choice-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.igv2-choice-local:hover:not(:disabled) {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+}
+.igv2-choice-api:hover:not(:disabled) {
+  border-color: #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+}
+.igv2-choice-cancel:hover:not(:disabled) {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
+.igv2-choice-btn.selected {
+  border-width: 2px;
+}
+.igv2-choice-local.selected {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.15);
+}
+.igv2-choice-api.selected {
+  border-color: #2196f3;
+  background: rgba(33, 150, 243, 0.15);
+}
+.igv2-choice-cancel.selected {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.15);
+}
+.igv2-choice-btn.dimmed {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.igv2-choice-btn:disabled {
+  cursor: default;
+}
+.igv2-choice-btn-icon {
+  font-size: 22px;
+}
+.igv2-choice-btn-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.igv2-choice-btn-desc {
+  font-size: 10.5px;
+  color: var(--text-secondary, #b0b0c8);
+  opacity: 0.8;
+}
+.igv2-choice-progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.igv2-choice-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent, #7c8aff), #a78bfa);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+/* ── igv2 choice options (steps, size) ───────────────────────────────── */
+.igv2-choice-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #2d2d44);
+}
+.igv2-choice-option-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.igv2-choice-option-group.igv2-choice-option-full {
+  flex-direction: column;
+  align-items: stretch;
+}
+.igv2-choice-option-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #b0b0c8);
+  min-width: 72px;
+  white-space: nowrap;
+}
+.igv2-choice-option-full .igv2-choice-option-label {
+  min-width: unset;
+  margin-bottom: 2px;
+}
+.igv2-choice-textarea {
+  width: 100%;
+  background: var(--bg-primary, #111122);
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-primary, #e0e0e0);
+  resize: vertical;
+  min-height: 36px;
+  max-height: 100px;
+  font-family: inherit;
+  line-height: 1.4;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.igv2-choice-textarea:focus {
+  outline: none;
+  border-color: var(--accent, #7c8aff);
+  box-shadow: 0 0 0 2px rgba(124, 138, 255, 0.15);
+}
+.igv2-choice-textarea:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.igv2-choice-textarea::placeholder {
+  color: var(--text-tertiary, #6a6a8a);
+  font-size: 11px;
+}
+.igv2-choice-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.igv2-choice-chip {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-primary, #e0e0e0);
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.3;
+}
+.igv2-choice-chip:hover:not(:disabled) {
+  border-color: var(--accent, #7c8aff);
+  background: rgba(124, 138, 255, 0.1);
+}
+.igv2-choice-chip.selected {
+  border-color: var(--accent, #7c8aff);
+  background: rgba(124, 138, 255, 0.18);
+  color: var(--accent, #7c8aff);
+  box-shadow: 0 0 6px rgba(124, 138, 255, 0.2);
+}
+.igv2-choice-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* ─── Post-gen quick-edit panel ────────────────────────────── */
+.igv2-postgen-wrap {
+  margin-top: -4px;
+}
+.igv2-postgen-panel {
+  border: 1px solid var(--border-color, #2d2d44);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-secondary, #1a1a2e);
+}
+.igv2-postgen-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #b0b0c8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.igv2-postgen-toggle:hover {
+  background: rgba(124, 138, 255, 0.06);
+}
+.igv2-postgen-toggle-icon {
+  font-size: 14px;
+}
+.igv2-postgen-arrow {
+  margin-left: auto;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+.igv2-postgen-body {
+  padding: 6px 14px 14px;
+  border-top: 1px solid var(--border-color, #2d2d44);
+}
+.igv2-postgen-regen-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #7c8aff 0%, #6366f1 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.igv2-postgen-regen-btn:hover {
+  opacity: 0.9;
+}
+.igv2-postgen-regen-btn:active {
+  transform: scale(0.98);
+}
