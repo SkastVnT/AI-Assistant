@@ -1,12 +1,15 @@
 """
-Tests for RAG prompt helpers and grounded context utilities.
+Unit tests for src.rag prompt helpers.
 
 Covers:
-    - build_grounded_rag_context formatting
-    - RAG_GROUNDED_SYSTEM_INSTRUCTION content
+    - build_grounded_rag_context block formatting and citation structure
+    - RAG_GROUNDED_SYSTEM_INSTRUCTION / get_grounded_system_instruction content
     - Legacy build_rag_context compatibility
 
-Note: tests that depended on the removed fastapi_app package have been dropped.
+Note: the integration and SSE-streaming tests that depended on the removed
+fastapi_app package (RAG-grounded chat endpoint, streaming rag_context events,
+retrieve_rag_context helper via fastapi_app.rag_helpers) were dropped when
+fastapi_app was removed in May 2026.
 
 Run from services/chatbot/:
     python -m pytest tests/test_rag_chat_integration.py -v
