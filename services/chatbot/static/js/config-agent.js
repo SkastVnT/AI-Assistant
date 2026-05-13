@@ -4,7 +4,19 @@
         enabled: false, systemPrompt: '', injectionPrompt: '', contextPrompt: '',
         temperature: 0.7, topP: 0.9, tokenLimit: 4096, thinkingBudget: 'off'
     };
-    let agentConfig = JSON.parse(localStorage.getItem('agentConfig')) || {...defaultAgentConfig};
+
+    function loadAgentConfig() {
+        const storedAgentConfig = localStorage.getItem('agentConfig');
+        if (!storedAgentConfig) return {...defaultAgentConfig};
+
+        try {
+            return JSON.parse(storedAgentConfig) || {...defaultAgentConfig};
+        } catch (error) {
+            return {...defaultAgentConfig};
+        }
+    }
+
+    let agentConfig = loadAgentConfig();
     window.getAgentConfig = () => (!agentConfig || !agentConfig.enabled) ? null : agentConfig;
     window.agentConfig = agentConfig;
 
