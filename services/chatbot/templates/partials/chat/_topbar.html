@@ -1,0 +1,248 @@
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar__left">
+                <!-- Sidebar toggle -->
+                <button class="topbar__toggle" id="sidebarToggleBtn" title="Toggle sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 3v18"/>
+                    </svg>
+                </button>
+
+                <!-- Model Selector -->
+                <div class="topbar__model-selector" id="modelSelectorContainer">
+                    <button class="topbar__model-btn" id="modelSelectorBtn">
+                        <span id="modelSelectorLabel">Grok-3 Mini</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                    </button>
+
+                    <div class="model-dropdown" id="modelDropdown">
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Premium</div>
+                            <div class="model-dropdown__item active" data-model="grok">
+                                <span class="model-dropdown__item-icon">🤖</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Grok-3 Mini</div>
+                                    <div class="model-dropdown__item-desc">xAI — 131K context</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Default</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="laguna">
+                                <span class="model-dropdown__item-icon">🛠️</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Laguna XS.2</div>
+                                    <div class="model-dropdown__item-desc">Poolside via OpenRouter — Coding</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="deepseek-reasoner">
+                                <span class="model-dropdown__item-icon">🧪</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">DeepSeek R1</div>
+                                    <div class="model-dropdown__item-desc">Reasoning model — 64K</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Pro</span>
+                            </div>
+                        </div>
+
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Standard</div>
+                            <div class="model-dropdown__item" data-model="openai">
+                                <span class="model-dropdown__item-icon">🧠</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">GPT-4o-mini</div>
+                                    <div class="model-dropdown__item-desc">OpenAI — 128K context</div>
+                                </div>
+                            </div>
+                            <div class="model-dropdown__item" data-model="deepseek">
+                                <span class="model-dropdown__item-icon">🔍</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">DeepSeek Chat</div>
+                                    <div class="model-dropdown__item-desc">DeepSeek — 64K context</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Free</div>
+                            <div class="model-dropdown__item" data-model="gemini">
+                                <span class="model-dropdown__item-icon">💎</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Gemini 2.5 Flash</div>
+                                    <div class="model-dropdown__item-desc">Google — 1M context</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="step-flash">
+                                <span class="model-dropdown__item-icon">⚡</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Step-3.5 Flash</div>
+                                    <div class="model-dropdown__item-desc">StepFun via OpenRouter — 128K</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="r1-free">
+                                <span class="model-dropdown__item-icon">🧠</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">DeepSeek R1</div>
+                                    <div class="model-dropdown__item-desc">DeepSeek via OpenRouter — Reasoning</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="hermes3">
+                                <span class="model-dropdown__item-icon">🔮</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Hermes 3 405B</div>
+                                    <div class="model-dropdown__item-desc">Nous via OpenRouter — 405B Instruct</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                            <div class="model-dropdown__item" data-model="lyria">
+                                <span class="model-dropdown__item-icon">👁️</span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Lyria 3 Pro</div>
+                                    <div class="model-dropdown__item-desc">Google via OpenRouter — Vision</div>
+                                </div>
+                                <span class="model-dropdown__item-badge free">Free</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden select for backward compatibility -->
+                    <select id="modelSelect" class="hidden">
+                        <option value="grok" selected>Grok-3 Mini</option>
+                        <option value="deepseek-reasoner">DeepSeek R1</option>
+                        <option value="openai">GPT-4o-mini</option>
+                        <option value="deepseek">DeepSeek Chat</option>
+                        <option value="gemini">Gemini 2.5 Flash</option>
+                        <option value="step-flash">Step-3.5 Flash</option>
+                        <option value="gemma4">Gemma 4 31B</option>
+                        <option value="laguna">Laguna XS.2</option>
+                        <option value="r1-free">DeepSeek R1 (Free)</option>
+                        <option value="hermes3">Hermes 3 405B</option>
+                        <option value="ling26">Ling-2.6-1T (Free / Temporary)</option>
+                        <option value="lyria">Lyria 3 Pro</option>
+                        <option value="bloomvn">BloomVN-8B</option>
+                        <option value="qwen">Qwen Turbo</option>
+                        <option value="stepfun">StepFun Direct</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="topbar__center">
+                <!-- GitHub branding -->
+                <a href="https://github.com/SkastVnT" target="_blank" class="topbar__brand" title="GitHub — SKAST">
+                    <i data-lucide="github" class="lucide brand-icon"></i>
+                    <span class="brand-name">SKAST</span>
+                </a>
+
+                <!-- Thinking mode indicator -->
+                <div id="thinkingModeContainer" class="topbar__group">
+                    <button class="topbar__btn topbar__btn--labelled" id="thinkingModeBtn" title="Thinking mode">
+                        <span id="thinkingModeIcon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg></span>
+                        <span id="thinkingModeLabel">Instant</span>
+                    </button>
+                    <div id="thinkingModeDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 260px; top: calc(100% + 4px);">
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Thinking Mode</div>
+                            <div class="thinking-mode-option model-dropdown__item active" data-mode="instant" data-icon="zap" data-label="Instant">
+                                <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">Instant</div>
+                                    <div class="model-dropdown__item-desc">Trả lời tức thời</div>
+                                </div>
+                            </div>
+                            <div class="thinking-mode-option model-dropdown__item" data-mode="multi-thinking" data-icon="layers" data-label="4-Agents">
+                                <span class="model-dropdown__item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" class="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">4-Agents</div>
+                                    <div class="model-dropdown__item-desc">4 agents tham gia trả lời</div>
+                                </div>
+                                <span class="model-dropdown__item-badge pro">Pro</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="thinkingModeValue" value="instant">
+                </div>
+
+                <!-- Skill selector -->
+                <div id="skillSelectorContainer" class="topbar__group" style="position:relative;">
+                    <button class="topbar__btn topbar__btn--labelled" id="skillSelectorBtn" title="Skill">
+                        <span id="skillSelectorIcon"><i data-lucide="book-open" class="lucide"></i></span>
+                        <span id="skillSelectorLabel">Skill</span>
+                    </button>
+                    <div id="skillSelectorDropdown" class="model-dropdown hidden" style="right: 0; left: auto; min-width: 280px; top: calc(100% + 4px);">
+                        <div class="model-dropdown__group">
+                            <div class="model-dropdown__group-label">Skills</div>
+                            <div class="skill-option model-dropdown__item active" id="skillNoneOption" data-skill-id="">
+                                <span class="model-dropdown__item-icon"><i data-lucide="circle-off" class="lucide"></i></span>
+                                <div class="model-dropdown__item-info">
+                                    <div class="model-dropdown__item-name">None</div>
+                                    <div class="model-dropdown__item-desc">No skill — default behavior</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="skillListContainer"></div>
+                    </div>
+                    <input type="hidden" id="activeSkillId" value="">
+                </div>
+            </div>
+
+            <div class="topbar__right">
+                <!-- Primary actions -->
+                <!-- <button class="topbar__btn" id="splitViewBtn" title="Split view"><i data-lucide="columns-2" class="lucide"></i></button> -->
+
+                <!-- Tools dropdown (gathers AI Image / Anime / Character / Queue / Video) -->
+                <div class="topbar__more topbar__tools" style="position:relative;">
+                    <button class="topbar__btn topbar__btn--labelled" id="topbarToolsBtn" title="Creative tools" aria-haspopup="true" aria-expanded="false">
+                        <i data-lucide="wand-2" class="lucide"></i>
+                        <span>Tools</span>
+                    </button>
+                    <div class="topbar__more-dropdown topbar__tools-dropdown hidden" id="topbarToolsDropdown" role="menu">
+                        <button class="topbar__more-item topbar__more-item--accent" id="imageGenV2Btn" role="menuitem">
+                            <i data-lucide="sparkles" class="lucide"></i>
+                            <span>AI Image (Multi-provider)</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--info" id="animePipelineBtn" role="menuitem">
+                            <i data-lucide="layers" class="lucide"></i>
+                            <span>Layered Anime Pipeline</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--success" id="characterPickerBtn" role="menuitem">
+                            <i data-lucide="user-search" class="lucide"></i>
+                            <span>Chọn nhân vật</span>
+                        </button>
+                        <button class="topbar__more-item" id="jobQueueBtn" role="menuitem">
+                            <i data-lucide="list-ordered" class="lucide"></i>
+                            <span>Hàng đợi tác vụ ảnh</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--warning" id="videoGenBtn" role="menuitem">
+                            <i data-lucide="video" class="lucide"></i>
+                            <span>Video Sora2</span>
+                        </button>
+                        <button class="topbar__more-item topbar__more-item--accent" id="nanoBananaBtn" role="menuitem">
+                            <i data-lucide="banana" class="lucide"></i>
+                            <span>Nano Banana (Gemini)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <span class="topbar__sep" aria-hidden="true"></span>
+                <button class="topbar__btn" id="rightSidebarToggleBtn" title="Status panel"><i data-lucide="panel-right" class="lucide"></i></button>
+                <button class="topbar__btn" id="mcpToggleBtn" title="MCP Context"><i data-lucide="message-square-code" class="lucide"></i></button>
+                <button class="topbar__btn" id="darkModeBtn" title="Toggle theme (Dark / Eye Comfort)"><i data-lucide="sun-dim" class="lucide" id="darkModeIcon"></i></button>
+
+                <!-- More menu -->
+                <div class="topbar__more" style="position:relative;">
+                    <button class="topbar__btn" id="moreMenuBtn" title="More options"><i data-lucide="ellipsis-vertical" class="lucide"></i></button>
+                    <div class="topbar__more-dropdown hidden" id="moreMenuDropdown">
+                        <button class="topbar__more-item" id="downloadBtn" data-lang-key="controls.download"><i data-lucide="download" class="lucide"></i> <span>Export Chat</span></button>
+                        <button class="topbar__more-item" id="imageGenBtn"><i data-lucide="palette" class="lucide"></i> <span>Image Gen (ComfyUI)</span></button>
+                        <button class="topbar__more-item" id="localImageGenBtn"><i data-lucide="image-plus" class="lucide"></i> <span>Local Image Gen (SAA)</span></button>
+                        <button class="topbar__more-item" id="manualProfileBtn"><i data-lucide="user-pen" class="lucide"></i> <span>Manual Character Profile</span></button>
+
+                    </div>
+                </div>
+            </div>
+        </header>

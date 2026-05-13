@@ -1,0 +1,234 @@
+<!-- ═══ Nano Banana Modal (Gemini 2.5 Flash Image) ═══ -->
+<div class="modal-overlay" id="nanoBananaModal">
+    <div class="modal-panel">
+        <div class="nb-header">
+            <div class="nb-icon">
+                <i data-lucide="banana"></i>
+            </div>
+            <div class="nb-titles">
+                <h2>Nano Banana</h2>
+                <p>Google Gemini · Tạo & chỉnh sửa ảnh chất lượng 2K</p>
+            </div>
+            <span id="nbStatus" class="nb-status-pill">Đang kiểm tra…</span>
+            <button class="modal-panel__close" onclick="window.nanoBanana?.closeModal()" aria-label="Đóng">&times;</button>
+        </div>
+
+        <div class="nb-body">
+            <!-- Prompt -->
+            <div class="nb-section">
+                <div class="nb-label">
+                    <i data-lucide="message-square-text" style="width:13px;height:13px;"></i>
+                    Prompt
+                    <span class="nb-hint">tự động lấy từ ô chat khi mở</span>
+                </div>
+                <textarea id="nbPrompt" rows="5"
+                          placeholder="Mô tả ảnh muốn tạo… hỗ trợ tiếng Việt + tiếng Anh."></textarea>
+            </div>
+
+            <!-- Reference image dropzone -->
+            <div class="nb-section">
+                <div class="nb-label">
+                    <i data-lucide="images" style="width:13px;height:13px;"></i>
+                    Ảnh tham chiếu
+                    <span class="nb-hint">tối đa <span id="nbMaxRefs">6</span> ảnh · mỗi ảnh ≤ 10 MB</span>
+                </div>
+                <div id="nbDropzone">
+                    <i data-lucide="image-plus"></i>
+                    <div>Kéo &amp; thả ảnh, hoặc <strong>bấm để chọn</strong></div>
+                    <input type="file" id="nbFileInput" accept="image/png,image/jpeg,image/webp" multiple hidden>
+                </div>
+                <div id="nbThumbs"></div>
+            </div>
+
+            <!-- Settings -->
+            <div class="nb-section">
+                <div class="nb-label">
+                    <i data-lucide="sliders-horizontal" style="width:13px;height:13px;"></i>
+                    Cấu hình
+                </div>
+                <div class="nb-grid">
+                    <div class="nb-field">
+                        <label for="nbModel">Model</label>
+                        <select id="nbModel"><!-- runtime --></select>
+                    </div>
+                    <div class="nb-field">
+                        <label for="nbCount">Số ảnh</label>
+                        <select id="nbCount">
+                            <option value="1">1 ảnh</option>
+                            <option value="2">2 ảnh</option>
+                            <option value="3">3 ảnh</option>
+                            <option value="4" selected>4 ảnh</option>
+                        </select>
+                    </div>
+                    <div class="nb-field">
+                        <label for="nbAspect">Tỉ lệ</label>
+                        <select id="nbAspect">
+                            <option value="1:1">1:1 vuông</option>
+                            <option value="9:16" selected>9:16 dọc (manga)</option>
+                            <option value="16:9">16:9 ngang</option>
+                            <option value="3:4">3:4 dọc</option>
+                            <option value="4:3">4:3 ngang</option>
+                            <option value="2:3">2:3 dọc</option>
+                            <option value="3:2">3:2 ngang</option>
+                        </select>
+                    </div>
+                    <div class="nb-field">
+                        <label for="nbSize">Chất lượng</label>
+                        <select id="nbSize">
+                            <option value="1K">1K</option>
+                            <option value="2K" selected>2K (mặc định)</option>
+                            <option value="4K">4K</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action bar -->
+            <div class="nb-actions">
+                <button id="nbGenerateBtn" onclick="window.nanoBanana?.generate()" disabled>
+                    <i data-lucide="sparkles"></i>
+                    <span>Tạo ảnh</span>
+                </button>
+                <button class="nb-link-btn" onclick="window.nanoBanana?.useChatPrompt()" title="Lấy lại prompt từ ô chat">
+                    <i data-lucide="arrow-down-to-line"></i>
+                    <span>Đồng bộ với chat</span>
+                </button>
+                <div id="nbProgress"></div>
+            </div>
+
+            <!-- Results -->
+            <div id="nbResults"></div>
+            <div id="nbError" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Image Preview (Discord‑style) ═══ -->
+<div class="image-preview-overlay" id="imagePreviewModal">
+    <div class="image-preview-controls" style="position: fixed; top: 16px; right: 16px; display: flex; gap: 4px; z-index: 310; align-items: center;">
+        <button class="btn btn--secondary btn--sm" onclick="downloadPreviewImage()" title="Download"><i data-lucide="download" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(-0.2)" title="Zoom out"><i data-lucide="zoom-out" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="zoomPreviewImage(0.2)" title="Zoom in"><i data-lucide="zoom-in" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="resetPreviewZoom()" title="Reset zoom"><i data-lucide="rotate-ccw" class="lucide" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn--secondary btn--sm" onclick="closeImagePreview()" title="Close"><i data-lucide="x" class="lucide" style="width:16px;height:16px;"></i></button>
+    </div>
+    <img id="imagePreviewContent" src="" alt="Preview" style="max-width: 90%; max-height: 90%;">
+    <div id="imagePreviewInfo" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; z-index: 310;"></div>
+</div>
+
+<!-- ═══ Edit History Modal ═══ -->
+<div class="modal-overlay" id="historyModal">
+    <div class="modal-panel" style="max-width: 700px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title" data-lang-key="history.title"><i data-lucide="history" class="lucide"></i> Edit History</h2>
+            <button class="modal-panel__close" onclick="closeHistoryModal()">&times;</button>
+        </div>
+        <div class="modal-panel__body">
+            <div id="historyContent" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Gallery Modal ═══ -->
+<div class="modal-overlay" id="galleryModal">
+    <div class="modal-panel">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title"><i data-lucide="images" class="lucide"></i> <span>Image Gallery</span></h2>
+            <div class="modal-panel__header-actions">
+                <button class="modal-panel__icon-btn" onclick="refreshGallery()" title="Refresh"><i data-lucide="refresh-cw" class="lucide"></i></button>
+                <button class="modal-panel__close" onclick="closeGallery()" title="Close">&times;</button>
+            </div>
+        </div>
+        <div id="galleryStats"><i data-lucide="loader" class="lucide" style="width:14px;height:14px;"></i> Loading…</div>
+        <div id="galleryGrid" class="gallery-grid"></div>
+    </div>
+</div>
+
+<!-- ═══ Gallery Image Info Modal ═══ -->
+<div class="modal-overlay" id="galleryInfoModal">
+    <div class="modal-panel gallery-info-modal">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title">ℹ️ Image Information</h2>
+            <button class="modal-panel__close" onclick="closeGalleryInfo()">&times;</button>
+        </div>
+        <div class="modal-panel__body gallery-info-modal__body" id="galleryInfoBody">
+            Loading...
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Config Agent Modal ═══ -->
+<div class="modal-overlay" id="configAgentModal">
+    <div class="modal-panel" style="max-width: 640px;">
+        <div class="modal-panel__header">
+            <h2 class="modal-panel__title"><i data-lucide="settings-2" class="lucide"></i> Config Agent</h2>
+            <button class="modal-panel__close" onclick="closeConfigAgentModal()">&times;</button>
+        </div>
+        <div class="modal-panel__body">
+            <!-- Enable toggle -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); margin-bottom: 20px;">
+                <div>
+                    <div style="font-weight: 600; font-size: 14px;">🔥 Enable Config Agent</div>
+                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">Use custom config instead of defaults</div>
+                </div>
+                <label style="position: relative; display: inline-flex; cursor: pointer;">
+                    <input type="checkbox" id="configAgentEnabled" onchange="toggleConfigAgent()" style="width: 44px; height: 24px; accent-color: var(--accent);">
+                </label>
+            </div>
+
+            <div id="configAgentFields" style="opacity: 0.5; pointer-events: none; transition: all 0.2s;">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">🧠 System Prompt</label>
+                    <textarea id="configSystemPrompt" class="form-input" rows="3" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="You are an expert..."></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">💉 Injection Prompt</label>
+                    <textarea id="configInjectionPrompt" class="form-input" rows="2" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="Always respond in..."></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">📚 Context Prompt</label>
+                    <textarea id="configContextPrompt" class="form-input" rows="2" style="resize: vertical; font-family: var(--font-mono); font-size: 13px;" placeholder="Project uses Python..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label class="form-label">🌡️ Temperature <span id="tempValue" style="color: var(--accent);">0.7</span></label>
+                        <input type="range" id="configTemperature" min="0" max="2" step="0.1" value="0.7" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('tempValue').textContent = this.value">
+                    </div>
+                    <div>
+                        <label class="form-label">🎯 Top-P <span id="topPValue" style="color: var(--accent);">0.9</span></label>
+                        <input type="range" id="configTopP" min="0.1" max="1" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('topPValue').textContent = this.value">
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">📝 Token Limit <span id="tokenLimitValue" style="color: var(--accent);">4096</span></label>
+                    <input type="range" id="configTokenLimit" min="500" max="65535" step="500" value="4096" style="width: 100%; accent-color: var(--accent);" oninput="document.getElementById('tokenLimitValue').textContent = this.value">
+                </div>
+                <div style="margin-bottom: 16px; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); border: 1px solid rgba(124,108,240,0.2);">
+                    <label class="form-label">🧪 Thinking Budget</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
+                            <input type="radio" name="thinkingBudget" value="off" checked class="sr-only">
+                            <span style="font-size: 20px;">⚡</span>
+                            <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">Off</span>
+                        </label>
+                        <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
+                            <input type="radio" name="thinkingBudget" value="on" class="sr-only">
+                            <span style="font-size: 20px;">🔮</span>
+                            <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">On</span>
+                        </label>
+                        <label style="display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-tertiary); cursor: pointer; border: 2px solid transparent; transition: all 0.2s; text-align: center;">
+                            <input type="radio" name="thinkingBudget" value="advanced" class="sr-only">
+                            <span style="font-size: 20px;">🚀</span>
+                            <span style="font-size: 13px; font-weight: 500; margin-top: 4px;">Advanced</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-panel__footer">
+            <button onclick="resetConfigAgent()" class="btn btn--ghost">🔄 Reset</button>
+            <button onclick="saveConfigAgent()" class="btn btn--primary">💾 Save Config</button>
+        </div>
+    </div>
+</div>
+

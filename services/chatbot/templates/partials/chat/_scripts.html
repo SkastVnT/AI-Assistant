@@ -1,0 +1,43 @@
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/debug-overlay.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/feature-flags.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/stream-guard.js') }}?v=20260507a"></script>
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}?v=20260509a"></script>
+<script src="{{ url_for('static', filename='js/mcp.js') }}?v=20260417"></script>
+<script src="{{ url_for('static', filename='js/modules/character-picker.js') }}?v=20260509a"></script>
+<script src="{{ url_for('static', filename='js/modules/character-chip.js') }}?v=20260505a"></script>
+<script src="{{ url_for('static', filename='js/modules/job-queue-panel.js') }}?v=20260422"></script>
+<script src="{{ url_for('static', filename='js/modules/local-image-gen.js') }}?v=20260423"></script>
+<script src="{{ url_for('static', filename='js/modules/reasoning-image-gen.js') }}?v=20260504c"></script>
+<script src="{{ url_for('static', filename='js/modules/composer-chips.js') }}?v=20260505a"></script>
+<script src="{{ url_for('static', filename='js/modules/right-sidebar.js') }}?v=20260505a"></script>
+<script src="{{ url_for('static', filename='js/modules/nano-banana.js') }}?v=20260506e"></script>
+<script type="module" src="{{ url_for('static', filename='js/modules/tag-autocomplete.js') }}?v=20260423"></script>
+<script type="module" src="{{ url_for('static', filename='js/modules/global-image-viewer.js') }}?v=20260429"></script>
+<script src="{{ url_for('static', filename='js/topbar-tools.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/model-selector.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/thinking-mode-selector.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/config-agent.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/tool-state.js') }}?v=20260513a"></script>
+<script>
+window.__CHAT_ASSET_URLS = {
+    skillManager: "{{ url_for('static', filename='js/modules/skill-manager.js') }}"
+};
+</script>
+<script src="{{ url_for('static', filename='js/skill-selector.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/style-presets.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/welcome-suggestions.js') }}?v=20260513a"></script>
+{% include 'partials/chat/_firebase_logging.html' %}
+<!-- Lucide Icons: loaded here (after all modules) so it never blocks initial paint -->
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" onload="(function(){if(window.lucide)lucide.createIcons();console.log('[Lucide] Icons initialized');})()"></script>
+<!-- Initialize Lucide Icons -->
+<script>
+    // Helper: swap a lucide icon inside an element
+    window.swapLucideIcon = function(element, iconName) {
+        if (!element) return;
+        element.innerHTML = '<i data-lucide="' + iconName + '" class="lucide"></i>';
+        if (window.lucide) lucide.createIcons({nodes: [element]});
+    };
+</script>
+<script src="{{ url_for('static', filename='js/thinking-panel.js') }}?v=20260513a"></script>
+<script src="{{ url_for('static', filename='js/quick-tools-glue.js') }}?v=20260513a"></script>

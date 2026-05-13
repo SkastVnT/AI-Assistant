@@ -1,0 +1,189 @@
+        <!-- Input Area -->
+        <div class="input-area">
+            <!-- Advanced Model Settings Panel (hidden by default) -->
+            <div class="adv-settings" id="advSettingsPanel" aria-hidden="true">
+                <div class="adv-settings__header">
+                    <span class="adv-settings__title">Advanced Model Settings</span>
+                    <button class="adv-settings__reset" id="advSettingsReset" title="Reset to defaults">↺ Reset</button>
+                </div>
+                <div class="adv-settings__grid">
+                    <!-- Temperature -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advTemperature">
+                            Temperature
+                            <span class="adv-settings__value" id="advTemperatureVal">0.7</span>
+                        </label>
+                        <input type="range" id="advTemperature" class="adv-settings__slider"
+                            min="0" max="2" step="0.05" value="0.7">
+                        <div class="adv-settings__sub">Creativity (non-deep mode)</div>
+                    </div>
+                    <!-- Temperature Deep -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advTemperatureDeep">
+                            Temperature Deep
+                            <span class="adv-settings__value" id="advTemperatureDeepVal">0.5</span>
+                        </label>
+                        <input type="range" id="advTemperatureDeep" class="adv-settings__slider"
+                            min="0" max="2" step="0.05" value="0.5">
+                        <div class="adv-settings__sub">Creativity (deep-thinking mode)</div>
+                    </div>
+                    <!-- Max Tokens Deep -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advMaxTokensDeep">
+                            Max Tokens (Deep)
+                            <span class="adv-settings__value" id="advMaxTokensDeepVal">4096</span>
+                        </label>
+                        <input type="range" id="advMaxTokensDeep" class="adv-settings__slider"
+                            min="256" max="32768" step="256" value="4096">
+                        <div class="adv-settings__sub">Max output tokens in deep-thinking mode</div>
+                    </div>
+                    <!-- Top-P -->
+                    <div class="adv-settings__field">
+                        <label class="adv-settings__label" for="advTopP">
+                            Top-P
+                            <span class="adv-settings__value" id="advTopPVal">default</span>
+                        </label>
+                        <input type="range" id="advTopP" class="adv-settings__slider"
+                            min="0" max="1" step="0.01" value="1">
+                        <div class="adv-settings__sub">Nucleus sampling (1.0 = disabled)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="input-area__wrapper">
+                <!-- Composer chip strip: skill badge + active tools + character chip -->
+                <div class="composer-chips" id="composerChips">
+                    <!-- Active skill badge -->
+                    <div class="active-skill-badge" id="activeSkillBadge" style="display: none;"></div>
+                    <!-- Active tools display -->
+                    <div class="active-tools" id="activeToolsDisplay"></div>
+                    <!-- Active character chip (rendered by composer-chips.js) -->
+                    <div class="active-character-chip" id="activeCharacterChip" style="display: none;"></div>
+                </div>
+
+                <div class="input-area__container">
+                    <!-- File attachments -->
+                    <div class="input-area__files" id="fileList"></div>
+
+                    <div class="input-area__row">
+                        <!-- Tools area -->
+                        <div class="input-area__tools">
+                            <!-- Plus / Tools button -->
+                            <div style="position: relative;">
+                                <button class="input-area__tool-btn" id="toolsMenuBtn" title="Tools">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
+                                <!-- Tools dropdown — Phase 2: 4 groups, all tools preserved, "More" collapsibles for rare items -->
+                                <div class="tools-dropdown" id="toolsMenuDropdown">
+                                    <div class="tools-dropdown__header">Tools</div>
+
+                                    <!-- Image -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="image" class="lucide lucide-sm"></i> Image</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="imageGenToolBtn" title="Image Gen (multi-provider)">
+                                                <i data-lucide="sparkles" class="lucide"></i><span>Image Gen</span>
+                                            </button>
+                                            <button class="tools-list__item" id="reverseImageBtn" title="Reverse Image — Google Lens + SauceNAO">
+                                                <i data-lucide="scan-search" class="lucide"></i><span>Reverse Image</span>
+                                            </button>
+                                            <button class="tools-list__item" id="img2imgToolBtn" title="Img2Img + DeepDanbooru">
+                                                <i data-lucide="scan-eye" class="lucide"></i><span>Img2Img</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reasoning -->
+                                    <div class="tools-category">
+                                        <div class="tools-category__label"><i data-lucide="brain" class="lucide lucide-sm"></i> Reasoning</div>
+                                        <div class="tools-list">
+                                            <button class="tools-list__item" id="deepResearchToolBtn" title="Deep Research — 4-Agent Council">
+                                                <i data-lucide="telescope" class="lucide"></i><span>Deep Research</span>
+                                            </button>
+                                            <button class="tools-list__item" id="configAgentBtn" title="Config Agent">
+                                                <i data-lucide="settings" class="lucide"></i><span>Config Agent</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="tools-dropdown__divider"></div>
+
+                                    <!-- Hidden originals — kept so existing main.js bindings keep working without surfacing duplicate buttons -->
+                                    <div class="tools-dropdown__actions" hidden aria-hidden="true">
+                                        <button class="tools-list__item" id="googleSearchBtn" tabindex="-1"></button>
+                                        <button class="tools-list__item" id="serpapiImagesBtn" tabindex="-1"></button>
+                                        <button class="tools-list__item" id="last30daysBtn" tabindex="-1"></button>
+                                        <button class="tools-list__item" id="githubBtn" tabindex="-1"></button>
+                                        <button class="tools-dropdown__item" id="uploadFilesBtn" title="Upload files" tabindex="-1">
+                                            <span class="tools-dropdown__item-icon"><i data-lucide="paperclip" class="lucide"></i></span>
+                                            <div><div class="tools-dropdown__item-text">Upload Files</div></div>
+                                        </button>
+                                        <button class="tools-dropdown__item" id="branchConversationBtn" title="Branch" tabindex="-1">
+                                            <span class="tools-dropdown__item-icon"><i data-lucide="git-branch" class="lucide"></i></span>
+                                            <div><div class="tools-dropdown__item-text">Branch conversation</div></div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Inline quick tools — visible shortcuts (Phase 2: Web, Image Gen, Deep Research, Upload) -->
+                            <div class="input-area__quick-tools" id="quickTools">
+                                <button class="quick-tool" type="button" data-target="imageGenToolBtn" title="Image Gen" aria-label="Image Gen">
+                                    <i data-lucide="sparkles" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="deepResearchToolBtn" title="Deep Research" aria-label="Deep Research">
+                                    <i data-lucide="telescope" class="lucide"></i>
+                                </button>
+                                <button class="quick-tool" type="button" data-target="uploadFilesBtn" title="Upload Files" aria-label="Upload Files">
+                                    <i data-lucide="paperclip" class="lucide"></i>
+                                </button>
+                            </div>
+
+                            <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.json,.py,.js,.html,.css,.xlsx,.csv,.md,.ts,.tsx,.jsx,.xml,.yaml,.yml,.log,.sql,.sh,.bat,image/*,audio/*,video/*" multiple class="hidden">
+
+                            <!-- Advanced Settings toggle -->
+                            <button class="input-area__tool-btn adv-settings__toggle" id="advSettingsBtn"
+                                title="Advanced model settings" aria-expanded="false" aria-controls="advSettingsPanel">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- File staging area -->
+                        <div id="fileStagingArea" class="file-staging" style="display:none;"></div>
+
+                        <!-- Input length hint (shown when text approaches auto-convert threshold) -->
+                        <div id="messageInputLengthHint" class="message-input-hint" style="display:none;"></div>
+
+                        <!-- Textarea -->
+                        <textarea
+                            id="messageInput"
+                            placeholder="Message AI Assistant..."
+                            data-lang-key="input.placeholder"
+                            rows="1"
+                            class="input-area__textarea"
+                        ></textarea>
+
+                        <!-- Send / Stop -->
+                        <button class="input-area__send" id="sendBtn" title="Send" data-lang-key="input.send">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Context is now unified — hidden select for backward compatibility -->
+                    <div class="context-selector" style="display:none;">
+                        <select id="contextSelect">
+                            <option value="casual" selected>💬 Universal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-area__footer">
+                    AI Assistant can make mistakes. Verify important information.
+                </div>
+            </div>
+        </div>

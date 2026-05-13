@@ -1,0 +1,352 @@
+
+/* ── Utility ───────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+.hidden { display: none !important; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.mt-2 { margin-top: 8px; }
+.mb-2 { margin-bottom: 8px; }
+.text-sm { font-size: 13px; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Transitions for smooth feel ───────────────────────────── */
+.fade-enter { opacity: 0; }
+.fade-enter-active { opacity: 1; transition: opacity 0.2s ease; }
+.fade-exit { opacity: 1; }
+.fade-exit-active { opacity: 0; transition: opacity 0.2s ease; }
+
+/* Stop generation button text */
+.stop-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+/* Spinner for loading */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-primary);
+  border-top-color: var(--accent);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Version badge & navigation (Grok-style smooth) ─────── */
+.message-version-badge {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.message-version-badge:hover {
+  color: var(--accent);
+}
+
+.version-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-tertiary));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-primary));
+  border-radius: 20px;
+  padding: 2px 4px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.version-navigation:hover {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--border-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.version-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  font-size: 9px;
+  cursor: pointer;
+  color: var(--accent);
+  transition: all .18s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.version-nav-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  transform: scale(1.12);
+}
+
+.version-nav-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.version-nav-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.version-counter {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 28px;
+  text-align: center;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+  user-select: none;
+}
+
+/* Smooth content swap animation for version navigation */
+.message-text {
+  display: block;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  will-change: opacity, transform;
+}
+
+/* ── User message inline formatting ── */
+.message.user .user-line { display: inline; }
+.message.user .user-list {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+  line-height: 1.7;
+}
+.message.user .user-list li { margin-bottom: 1px; }
+.message.user .user-code-block {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border, #444);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 12.5px;
+  overflow-x: auto;
+  margin: 6px 0;
+  white-space: pre;
+}
+.message.user .user-inline-code {
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 12.5px;
+}
+.message.user .user-arrow {
+  color: var(--accent, #7c6cf0);
+  font-weight: 600;
+}
+
+/* ── Rich Agent dropdown in edit-chat-tool ──────────────── */
+.edit-chat-tool__agent-field {
+  position: relative;
+}
+
+.edit-chat-tool__agent-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.edit-chat-tool__agent-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-primary));
+}
+
+.edit-chat-tool__agent-btn:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.edit-agent-icon {
+  display: flex;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.edit-agent-icon .lucide {
+  width: 16px;
+  height: 16px;
+}
+
+.edit-agent-label {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+.edit-agent-chevron {
+  width: 14px;
+  height: 14px;
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: transform .2s ease;
+}
+
+.edit-agent-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 240px;
+  z-index: 160;
+  border-radius: 12px;
+}
+
+.edit-agent-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.edit-agent-dropdown .model-dropdown__item {
+  border-radius: 8px;
+  margin: 2px 6px;
+  padding: 8px 10px;
+}
+
+.edit-agent-dropdown .model-dropdown__item:hover {
+  background: var(--bg-hover);
+}
+
+.edit-agent-dropdown .model-dropdown__item.active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.edit-agent-dropdown .model-dropdown__item-icon .lucide {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 768px) {
+  .edit-agent-dropdown {
+    min-width: unset;
+  }
+}
+
+/* Copy table btn */
+.copy-table-btn {
+  display: inline-block;
+  padding: 4px 10px;
+  margin: 4px 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.copy-table-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* Notification toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  box-shadow: var(--shadow-lg);
+  z-index: 500;
+  animation: toastIn 0.3s ease-out;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Keep old class compatibility ──────────────────────────── */
+/* These map old class names to new vars so JS modules work */
+.message-content { display: block; }
+.message-text { display: block; word-wrap: break-word; overflow-wrap: break-word; will-change: opacity, transform; }
+.message-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.message-timestamp {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.message-buttons {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.message:hover .message-buttons { opacity: 1; }
+
+/* ── Topbar Brand (GitHub SKAST) ───────────────────────────── */
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  transition: all var(--transition);
+}
+.topbar__brand:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.topbar__brand .brand-icon {
+  width: 20px;
+  height: 20px;
+}
+.topbar__brand .brand-name {
+  font-family: var(--font-sans);
+}

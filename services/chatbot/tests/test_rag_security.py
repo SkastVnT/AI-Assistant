@@ -255,6 +255,8 @@ class TestRagHelpersGuardrails:
     @pytest.mark.asyncio
     async def test_flagged_chunk_content_has_marker(self, _fake_hit, _malicious_hit):
         """Flagged chunks get the [⚠ FLAGGED] prefix in the context."""
+        from src.rag.service.orchestrator import RAGOrchestrator
+
         with (
             patch("src.rag.RAG_ENABLED", True),
             patch(
@@ -263,15 +265,14 @@ class TestRagHelpersGuardrails:
                 return_value=[_fake_hit, _malicious_hit],
             ),
         ):
-            from fastapi_app.rag_helpers import retrieve_rag_context
-
-            result = await retrieve_rag_context(
+            orch = RAGOrchestrator()
+            result = await orch.retrieve_for_chat(
                 message="test query",
                 custom_prompt="",
                 language="en",
                 tenant_id="t1",
-                rag_collection_ids=["default"],
-                rag_top_k=5,
+                collection_ids=["default"],
+                top_k=5,
             )
 
         assert result.chunk_count == 2
@@ -280,6 +281,8 @@ class TestRagHelpersGuardrails:
     @pytest.mark.asyncio
     async def test_blocked_chunk_excluded(self, _fake_hit, _malicious_hit):
         """With block_on_injection=True, malicious chunks are dropped."""
+        from src.rag.service.orchestrator import RAGOrchestrator
+
         block_policy = RAGPolicies(block_on_injection=True)
 
         with (
@@ -294,15 +297,14 @@ class TestRagHelpersGuardrails:
                 return_value=block_policy,
             ),
         ):
-            from fastapi_app.rag_helpers import retrieve_rag_context
-
-            result = await retrieve_rag_context(
+            orch = RAGOrchestrator()
+            result = await orch.retrieve_for_chat(
                 message="test query",
                 custom_prompt="",
                 language="en",
                 tenant_id="t1",
-                rag_collection_ids=["default"],
-                rag_top_k=5,
+                collection_ids=["default"],
+                top_k=5,
             )
 
         # Only 1 chunk should survive (the clean one)
@@ -312,6 +314,8 @@ class TestRagHelpersGuardrails:
     @pytest.mark.asyncio
     async def test_context_capped_at_max_chars(self, _fake_hit):
         """Context block is capped at max_context_chars."""
+        from src.rag.service.orchestrator import RAGOrchestrator
+
         tiny_policy = RAGPolicies(max_context_chars=10)
 
         # Create a hit with long content
@@ -336,14 +340,13 @@ class TestRagHelpersGuardrails:
                 return_value=tiny_policy,
             ),
         ):
-            from fastapi_app.rag_helpers import retrieve_rag_context
-
-            result = await retrieve_rag_context(
+            orch = RAGOrchestrator()
+            result = await orch.retrieve_for_chat(
                 message="q",
                 custom_prompt="",
                 language="en",
                 tenant_id="t1",
-                rag_collection_ids=["default"],
+                collection_ids=["default"],
             )
 
         # The single big chunk exceeds 10 chars, should be excluded
@@ -352,6 +355,8 @@ class TestRagHelpersGuardrails:
     @pytest.mark.asyncio
     async def test_top_k_and_query_capped(self, _fake_hit):
         """top_k and query length are capped by policies."""
+        from src.rag.service.orchestrator import RAGOrchestrator
+
         small_policy = RAGPolicies(max_top_k=2, max_query_chars=3)
 
         with (
@@ -366,15 +371,14 @@ class TestRagHelpersGuardrails:
                 return_value=small_policy,
             ),
         ):
-            from fastapi_app.rag_helpers import retrieve_rag_context
-
-            await retrieve_rag_context(
+            orch = RAGOrchestrator()
+            await orch.retrieve_for_chat(
                 message="a long query string",
                 custom_prompt="",
                 language="en",
                 tenant_id="t1",
-                rag_collection_ids=["default"],
-                rag_top_k=50,
+                collection_ids=["default"],
+                top_k=50,
             )
 
         # Verify capped values were passed to the service

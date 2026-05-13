@@ -1,0 +1,194 @@
+
+/* ─── Inline Table Preview (user message) ────────────────────────────────── */
+.inline-table-preview {
+  margin-top: 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  background: var(--bg-secondary, #1a1a2e);
+}
+
+.inline-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary, #12122a);
+  border-bottom: 1px solid var(--border-secondary, #2a2a4a);
+  font-size: 12px;
+}
+
+.inline-table-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.inline-table-stats {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.inline-table-wrap {
+  overflow-x: auto;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.inline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+.inline-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.inline-table th {
+  padding: 6px 10px;
+  background: var(--bg-tertiary, #12122a);
+  color: var(--accent, #7c5cff);
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid var(--accent, #7c5cff);
+  white-space: nowrap;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.inline-table td {
+  padding: 5px 10px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-secondary, rgba(255,255,255,0.05));
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inline-table tbody tr:hover {
+  background: var(--bg-hover, rgba(124,92,255,0.06));
+}
+
+.inline-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-tertiary, #12122a);
+}
+
+.inline-table-truncated {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.inline-table-view-btn {
+  background: var(--accent, #7c5cff);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.inline-table-view-btn:hover {
+  opacity: 0.85;
+}
+
+/* ─── Enhanced Markdown Tables (AI output) ───────────────────────────────── */
+.enhanced-table-container {
+  margin: 12px 0;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  background: var(--bg-secondary, #1a1a2e);
+}
+
+.enhanced-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary, #12122a);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.enhanced-table-info {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  flex: 1;
+}
+
+.enhanced-table-btn {
+  background: none;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-secondary);
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.enhanced-table-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent, #7c5cff);
+  border-color: var(--accent, #7c5cff);
+}
+
+.enhanced-table-scroll {
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Style the actual table inside enhanced container */
+table.enhanced-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 0;
+  border: none;
+}
+
+table.enhanced-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+table.enhanced-table th {
+  padding: 8px 12px;
+  background: var(--bg-tertiary, #12122a);
+  color: var(--accent, #7c5cff);
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid var(--accent, #7c5cff);
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+table.enhanced-table td {
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-secondary, rgba(255,255,255,0.05));
+}
+
+table.enhanced-table tbody tr:hover {
+  background: var(--bg-hover, rgba(124,92,255,0.06));
+}

@@ -1,0 +1,53 @@
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/app-icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/app-icon.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/app-icon.png') }}">
+
+    <!-- PWA / browser chrome -->
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="application-name" content="AI Assistant">
+    <meta name="apple-mobile-web-app-title" content="AI Assistant">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Open Graph (share preview) -->
+    <meta property="og:title" content="AI Assistant">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="{{ url_for('static', filename='icons/app-icon.png') }}">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+
+    <!-- Markdown / Code highlight -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+
+    <!-- DOMPurify — sanitize HTML to prevent XSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous" defer></script>
+
+    <!-- PDF export (non-critical: deferred until user action) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260513css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image-gen-v2.css') }}?v=20260505b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anime-pipeline.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/character-picker.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/local-image-gen.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nano-banana.css') }}?v=20260506a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tools-tidy.css') }}?v=20260507a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-polish.css') }}?v=20260601a">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/titlebar.css') }}?v=20260508a">
+
+    <!-- Lucide Icons: loaded at end of body to avoid blocking initial paint -->
+    <!-- (script tag moved to just before </body>) -->

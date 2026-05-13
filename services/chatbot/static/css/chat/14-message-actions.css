@@ -1,0 +1,310 @@
+
+/* ── iOS Bubble Message Actions ────────────────────────────── */
+.message-actions {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  padding: 3px 4px;
+  width: fit-content;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.message:hover .message-actions { opacity: 1; }
+.message-actions:has(.message-action-btn:hover) { opacity: 1; }
+
+.message-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+  position: relative;
+}
+.message-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+.message-action-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+.message-action-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.message-action-btn .lucide {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.message-action-btn.more-btn {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.message-action-btn.more-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.message-action-btn.edit-btn {
+  background: rgba(124, 108, 240, 0.08);
+  border: 1px solid rgba(124, 108, 240, 0.22);
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
+}
+
+.message-action-btn.edit-btn:hover {
+  background: rgba(124, 108, 240, 0.16);
+  border-color: rgba(124, 108, 240, 0.34);
+  box-shadow: 0 6px 16px rgba(124, 108, 240, 0.25);
+}
+
+/* More actions popup (iOS sheet-like) */
+.message-more-popup {
+  position: fixed;
+  background: var(--bg-tertiary);
+  border: 1px solid color-mix(in srgb, var(--border-primary) 72%, transparent);
+  border-radius: 14px;
+  padding: 8px;
+  min-width: 210px;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.38), 0 6px 16px rgba(0,0,0,0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 140;
+  animation: popUp 0.16s ease-out;
+}
+@keyframes popUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.message-more-popup button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+.message-more-popup button:hover {
+  background: var(--bg-hover);
+  transform: translateX(1px);
+}
+
+.message-more-popup .option-item span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+}
+
+/* Fork option highlight */
+.message-more-popup .option-item[data-action="fork"] {
+  color: var(--accent, #007bff);
+}
+
+/* ── Response Stats Badge ── */
+.response-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary, #888);
+  letter-spacing: 0.01em;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  cursor: default;
+}
+.message:hover .response-stats { opacity: 1; }
+
+/* Token circle gauge */
+.token-gauge {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: help;
+}
+.token-gauge svg { display: block; }
+.message:hover .token-gauge svg circle:last-child {
+  filter: brightness(1.2);
+}
+
+/* ── Select & Reply Popup ── */
+.select-reply-popup {
+  position: absolute;
+  display: none;
+  align-items: center;
+  z-index: 1000;
+  transform: translateX(-50%);
+  animation: fadeInUp 0.15s ease-out;
+}
+.select-reply-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary, rgba(255,255,255,0.15));
+  background: var(--bg-secondary, #1e1e2e);
+  color: var(--accent, #7c6cf0);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: all 0.15s ease;
+}
+.select-reply-btn:hover {
+  background: var(--accent, #7c6cf0);
+  color: #fff;
+}
+
+/* ── Quote Preview (above input) ── */
+.quote-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 14px;
+  margin: 0 0 4px;
+  background: rgba(124, 108, 240, 0.08);
+  border-radius: 10px;
+  animation: fadeInUp 0.2s ease-out;
+}
+.quote-preview__bar {
+  width: 3px;
+  min-height: 20px;
+  align-self: stretch;
+  background: var(--accent, #7c6cf0);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.quote-preview__text {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--text-secondary, #aaa);
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.quote-preview__close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary, #666);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.quote-preview__close:hover { color: var(--text-primary, #fff); }
+
+/* ── Follow-up Suggestions ── */
+.follow-up-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 60px 8px;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--border-primary, rgba(255,255,255,0.12));
+  border-radius: 20px;
+  background: var(--bg-tertiary, rgba(255,255,255,0.04));
+  color: var(--text-secondary, #aaa);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-chip__icon {
+  font-size: 15px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.suggestion-chip:hover .suggestion-chip__icon { opacity: 1; }
+
+.suggestion-chip:hover {
+  background: var(--bg-hover, rgba(255,255,255,0.08));
+  border-color: var(--accent, #7c6cf0);
+  color: var(--text-primary, #fff);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.suggestion-chip--think {
+  border-color: rgba(124, 108, 240, 0.35);
+  background: rgba(124, 108, 240, 0.08);
+  color: var(--accent, #7c6cf0);
+  font-weight: 600;
+}
+
+.suggestion-chip--think:hover {
+  background: rgba(124, 108, 240, 0.18);
+  border-color: rgba(124, 108, 240, 0.5);
+  color: var(--accent, #7c6cf0);
+  box-shadow: 0 4px 16px rgba(124, 108, 240, 0.25);
+}
+
+.suggestion-chip--think .lucide {
+  width: 14px;
+  height: 14px;
+}
+
+.suggestion-chip--loading {
+  pointer-events: none;
+  cursor: default;
+  opacity: 0.45;
+  min-width: 120px;
+  background: linear-gradient(90deg,
+    var(--bg-tertiary, rgba(255,255,255,0.04)) 25%,
+    rgba(255,255,255,0.08) 50%,
+    var(--bg-tertiary, rgba(255,255,255,0.04)) 75%);
+  background-size: 200% 100%;
+  animation: suggestion-shimmer 1.4s infinite;
+}
+
+@keyframes suggestion-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

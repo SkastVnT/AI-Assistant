@@ -1,0 +1,324 @@
+
+/* ── Tools Dropdown ────────────────────────────────────────── */
+.tools-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 280px;
+  max-width: 340px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.97);
+  transform-origin: bottom left;
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 220ms;
+  will-change: transform, opacity;
+}
+
+.tools-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+}
+
+.tools-dropdown__header {
+  padding: 10px 14px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+
+/* ── Compact Grid Layout ── */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.tools-grid--3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* ── Tool Categories ── */
+.tools-category {
+  padding: 0 4px;
+}
+
+.tools-category + .tools-category {
+  border-top: 1px solid var(--border-secondary);
+}
+
+.tools-category__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+
+.tools-grid__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms ease;
+  font-family: var(--font-sans);
+  position: relative;
+}
+.tools-grid__item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.tools-grid__item:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+.tools-grid__item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.tools-grid__item.active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: tool-dot-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tool-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.85); }
+}
+
+.tools-grid__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+.tools-grid__icon .lucide {
+  width: 18px;
+  height: 18px;
+}
+
+.tools-grid__label {
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tools-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background var(--transition);
+  color: var(--text-primary);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+}
+
+.tools-dropdown__item:hover {
+  background: var(--bg-hover);
+}
+
+.tools-dropdown__item-icon {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+}
+
+.tools-dropdown__item-text {
+  font-size: 14px;
+}
+
+.tools-dropdown__item-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.tools-dropdown__divider {
+  height: 1px;
+  background: var(--border-secondary);
+  margin: 4px 12px;
+}
+
+/* Active tools badges */
+.active-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 0;
+}
+
+.active-tools:empty { display: none; }
+
+.active-tool-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.active-tool-badge button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+
+.active-tool-badge button:hover { opacity: 1; }
+
+/* ── Tool Status Bar (shown during generation) ────────────── */
+.tool-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tool-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  animation: toolStatusPulse 2s ease-in-out infinite;
+}
+
+@keyframes toolStatusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Active skill badge (input area) ──────────────────────── */
+.active-skill-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.08);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.active-skill-badge:empty { display: none; }
+
+.skill-badge__clear {
+  background: none;
+  border: none;
+  color: var(--warning, #f59e0b);
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+  margin-left: 2px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.skill-badge__clear:hover { opacity: 1; }
+
+/* Auto-routed skill badge variant */
+.active-skill-badge.auto-routed {
+  color: var(--info, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border-bottom-color: rgba(99, 102, 241, 0.15);
+}
+
+.active-skill-badge.auto-routed .skill-badge__clear {
+  color: var(--info, #6366f1);
+}
+
+/* ── Skill selector (topbar) ──────────────────────────────── */
+#skillSelectorBtn.skill-active {
+  color: var(--warning, #f59e0b);
+}
+
+#skillSelectorBtn.skill-active #skillSelectorLabel {
+  color: var(--warning, #f59e0b);
+}
+
+/* ── Context / Mode selector ───────────────────────────────── */
+.context-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 16px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.context-selector select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.context-selector select:hover { background: var(--bg-hover); }
