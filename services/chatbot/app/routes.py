@@ -44,11 +44,13 @@ def register_blueprints(app) -> None:
         ("routes.jobs", "jobs_bp", {}),
         ("routes.image_gen", "image_gen_bp", {}),
     ]
+    import importlib
+    import logging
+    _log = logging.getLogger(__name__)
     for module_name, bp_name, kwargs in _optional:
         try:
-            import importlib
             mod = importlib.import_module(module_name)
             bp = getattr(mod, bp_name)
             app.register_blueprint(bp, **kwargs)
-        except Exception:  # noqa: BLE001
-            pass
+        except (ImportError, AttributeError) as exc:
+            _log.debug("Optional blueprint %s skipped: %s", module_name, exc)
