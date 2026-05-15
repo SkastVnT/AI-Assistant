@@ -53,7 +53,7 @@ description: "Define and enforce response-shape contracts for every tool functio
 |------|-----|
 | `ComfyUI/`, `image_pipeline/` | Image services — separate response contracts |
 | `services/stable-diffusion/`, `services/edit-image/` | Image services |
-| `fastapi_app/` response shapes | Parallel implementation — sync separately if needed |
+| Flask route response shapes | Preserve the monolith contract consumed by the UI |
 | `services/chatbot/core/chatbot.py` model dispatch | Provider routing, not response contracts |
 
 ---

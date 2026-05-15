@@ -1,6 +1,6 @@
 ---
 name: thinking-mode-routing
-description: "Reason about chatbot thinking modes and route requests to the correct mode. Use when: adding or changing a thinking mode, modifying mode selection UI, changing how mode affects backend routing or tool dispatch, debugging broken thinking/reasoning display, reviewing SSE event flow for thinking modes, or checking Flask/FastAPI parity for mode handling."
+description: "Reason about chatbot thinking modes and route requests to the correct mode. Use when adding or changing a thinking mode, modifying mode selection UI, changing how mode affects backend routing or tool dispatch, debugging broken thinking/reasoning display, or reviewing SSE event flow for thinking modes."
 ---
 
 # Thinking-Mode Routing
@@ -13,7 +13,7 @@ description: "Reason about chatbot thinking modes and route requests to the corr
 - Modifying SSE event types or payload shapes for thinking events.
 - Debugging broken reasoning display (steps not showing, mode mismatch).
 - Editing the agentic pipeline (Planner → Researcher → Critic → Synthesizer).
-- Reviewing whether a change to chatbot or streaming code breaks mode parity between Flask and FastAPI.
+- Reviewing whether a change to chatbot or streaming code preserves the Flask SSE contract.
 
 ## Mode registry
 
@@ -124,24 +124,15 @@ description: "Reason about chatbot thinking modes and route requests to the corr
 - `RunStatus` enum: `planning`, `researching`, `critiquing`, `synthesizing`, `completed`
 - `CouncilResult`: `final_answer`, `total_rounds`, `reasoning_time`
 
-## Flask vs FastAPI parity
+## Flask SSE contract
 
-Both paths handle `thinking_mode` identically:
-
-| Aspect | Flask (`routes/stream.py`) | FastAPI (`fastapi_app/routers/stream.py`) |
-|---|---|---|
-| Extract mode | `data.get('thinking_mode', 'auto')` | `request.thinking_mode or 'auto'` |
-| Map to flags | Same `if/elif` logic | Same |
-| SSE events | Identical event names and payloads | Identical |
-| Multi-thinking | Same `reasoning_service` call | Same |
-
-Any mode change must be applied to **both** files.
+`routes/stream.py` is the canonical thinking-mode entry point. Preserve the existing SSE event names and payload shapes when changing mode behavior.
 
 ## File touch map
 
 | Action | Files to touch |
 |---|---|
-| Add a new mode | `routes/stream.py`, `fastapi_app/routers/stream.py`, `templates/index.html` (dropdown option), `static/js/modules/api-service.js` (if new default logic), `static/js/main.js` (if new rendering), `README.md` (thinking modes table) |
+| Add a new mode | `routes/stream.py`, `templates/index.html` (dropdown option), `static/js/modules/api-service.js` (if new default logic), `static/js/main.js` (if new rendering), `README.md` (thinking modes table) |
 | Rename a mode | Same as "add" plus grep all references in `AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/chatbot-core.instructions.md` |
 | Change mode behavior | `routes/stream.py` (branching), `core/thinking_generator.py` (if step generation changes), `core/chatbot.py` (if `deep_thinking` semantics change) |
 | Change agentic pipeline | `core/agentic/orchestrator.py`, `core/agentic/agents/*.py`, `core/agentic/contracts.py` |
@@ -152,7 +143,6 @@ Any mode change must be applied to **both** files.
 - `core/thinking_generator.py` — thinking step logic and ThinkTagParser
 - `core/agentic/**` — multi-thinking pipeline
 - `routes/stream.py` — thinking-mode branching and SSE events
-- `fastapi_app/routers/stream.py` — FastAPI equivalent
 - `templates/index.html` — mode dropdown
 - `static/js/main.js` — thinking display callbacks
 - `static/js/modules/api-service.js` — mode wiring in request body
@@ -175,7 +165,7 @@ After any thinking-mode change, check:
 - [ ] **is_multi_thinking flag**: `stream.py` line 492 — should the new mode trigger 4-agent council?
 - [ ] **SSE events emitted**: correct combination of `thinking_start` / `thinking` / `thinking_end` / `chunk` / `complete` for the new mode.
 - [ ] **Fallback path**: if multi-thinking fails, verify standard streaming still works.
-- [ ] **Flask/FastAPI parity**: both routes handle the new mode identically.
+- [ ] **Flask SSE contract**: `/chat/stream` handles the mode and keeps event payloads stable.
 - [ ] **UI rendering**: `main.js` callbacks handle any new event data fields.
 - [ ] **complete event payload**: `_build_complete_event_payload` includes `thinking_mode` in the result.
 
@@ -187,7 +177,7 @@ After using this skill, report:
 - **Tool impact**: whether tool dispatch is affected (usually no).
 - **UI impact**: whether mode selector, thinking display, or response rendering changed.
 - **Files touched**: list with brief reason.
-- **Parity**: confirm Flask and FastAPI paths are both updated (or explain why only one needed change).
+- **Runtime contract**: confirm the Flask path is updated and no parallel route was introduced.
 - **Verification steps**: how to confirm the change works.
 
 ## Mandatory checklist
@@ -205,7 +195,7 @@ After using this skill, report:
 - [ ] `deep_thinking` and `use_thinking` flags are correct for every mode.
 - [ ] SSE event sequence is correct for the changed mode (see event contract table).
 - [ ] Multi-thinking fallback still works if the agent pipeline fails.
-- [ ] Flask and FastAPI routes both reflect the change.
+- [ ] Flask route reflects the change and SSE payloads are unchanged unless explicitly intended.
 - [ ] `_build_complete_event_payload` includes the correct `thinking_mode`.
 - [ ] UI callbacks in `main.js` handle any new data fields.
 - [ ] `pytest tests/test_stream_complete_contract.py tests/test_agentic_agents.py -v` passes.

@@ -46,7 +46,7 @@ For chatbot bugs, common hypothesis categories:
 - SSE event missing required field (`stream_contract.py`)
 - Env key missing / wrong profile
 - Tool response shape mismatch
-- Flask/FastAPI path divergence
+- Flask route and UI contract divergence
 
 ## Phase 4 — Instrument
 
@@ -90,4 +90,4 @@ Required before declaring done:
 | Response shape wrong | `core/tools.py`, `tool-response-contract` skill |
 | Env key missing at runtime | `core/config.py`, `services/shared_env.py` |
 | Blueprint 404 | `chatbot_main.py` blueprint registration |
-| FastAPI path broken | `fastapi_app/routers/` |
+| Flask route path broken | `services/chatbot/routes/` |

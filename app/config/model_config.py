@@ -6,9 +6,23 @@ Centralized configuration for all AI services
 import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from services.shared_env import load_shared_env
+    from services.chatbot.core.secret_key import resolve_flask_secret_key
+except ModuleNotFoundError:
+    from pathlib import Path
+    import sys
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
+    from services.chatbot.core.secret_key import resolve_flask_secret_key
+
+load_shared_env(__file__)
 
 
 @dataclass
@@ -35,7 +49,7 @@ class HubConfig:
     
     # Flask Configuration
     DEBUG = os.getenv("DEBUG", "True") == "True"
-    SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
+    SECRET_KEY = resolve_flask_secret_key()
     HOST = os.getenv("HUB_HOST", "0.0.0.0")
     PORT = int(os.getenv("HUB_PORT", "3000"))
     

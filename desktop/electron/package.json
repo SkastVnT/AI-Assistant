@@ -13,7 +13,8 @@
         "build:installer-lite": "node scripts/prepare-payload-lite.js && electron-builder --win --x64 --config electron-builder-lite.yml --publish never",
         "build:dir": "node scripts/prepare-payload.js && electron-builder --win --dir --x64 --publish never",
         "build:dir-lite": "node scripts/prepare-payload-lite.js && electron-builder --win --dir --x64 --config electron-builder-lite.yml --publish never",
-        "build:local": "electron-builder --win dir --x64 --config electron-builder-local.yml --publish never"
+        "build:local": "electron-builder --win dir --x64 --config electron-builder-local.yml --publish never",
+        "test:payload": "node tests/payload-filter.test.js"
     },
     "license": "MIT",
     "dependencies": {

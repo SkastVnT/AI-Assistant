@@ -255,6 +255,7 @@ HUGGINGFACE_API_KEY=
 # ── Database ──
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB_NAME=ai_assistant_v2
+MONGODB_TLS_ALLOW_INVALID_CERTIFICATES=false
 
 # ── Image generation ──
 FAL_API_KEY=
@@ -286,6 +287,8 @@ REASONING_PIPELINE=false
 # ── Runtime ──
 AUTO_START_IMAGE_SERVICES=true
 FLASK_PORT=5000
+FLASK_SECRET_KEY=              # required outside env=dev and TESTING=true
+# In env=dev the app generates an ephemeral secret; TESTING=true uses a fixed test-only value.
 env=dev                    # → .env_dev / .env_prod
 ```
 

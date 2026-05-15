@@ -19,7 +19,7 @@ files:
   - "!**/*.map"
   - "!**/*.md"
 
-# Lite payload: source code + .env + bootstrap scripts. No model weights.
+# Lite payload: source code + .env.example + bootstrap scripts. No model weights.
 extraResources:
   - from: "payload-lite"
     to: "app-payload"

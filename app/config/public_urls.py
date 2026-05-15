@@ -7,9 +7,20 @@ import os
 import json
 from pathlib import Path
 from typing import Dict, Optional
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
+
+load_shared_env(__file__)
 
 # Project root directory
 PROJECT_ROOT = Path(__file__).parent.parent

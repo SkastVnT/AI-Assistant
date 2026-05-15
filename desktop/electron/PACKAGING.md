@@ -90,7 +90,8 @@ powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1
 What happens:
 1. `npm install` (idempotent)
 2. `prepare-payload.js` rsync-copies `services/`, `ComfyUI/`, `LORA/`,
-   `app/config/.env`, etc. into `payload/` (skipping `__pycache__`, venvs, logs).
+   `app/config/.env.example`, etc. into `payload/` (skipping real `.env` files,
+   keys, certs, `__pycache__`, venvs, logs).
 3. `electron-builder --win nsis` produces:
    `<repo-root>\private\install\AI-Assistant-Setup-<version>.exe`
 
@@ -163,7 +164,7 @@ ComfyUI output (per `installer.nsh` `customUnInstall` macro).
 
 Bundled (see `prepare-payload.js`):
 - `services/` (chatbot + MCP + stable-diffusion + edit-image)
-- `app/config/` (**includes `.env`** — internal use only; do NOT publish installer publicly)
+- `app/config/` (includes `.env.example`; real `.env` files are excluded)
 - `app/src/`, `app/scripts/`, `app/requirements/`
 - `ComfyUI/` (minus `output/`, `temp/`, `user/`)
 - `image_pipeline/`, `configs/`, `rag/`
@@ -187,14 +188,14 @@ To change the bundle list, edit `COPY_ITEMS` / `EXCLUDE_*` in
 ## LITE installer (no models, no bundled Python)
 
 A second build target produces a tiny installer (a few hundred MB instead of
-~50 GB). It ships **only** source code + `app/config/.env` + bootstrap scripts.
+~50 GB). It ships **only** source code + `app/config/.env.example` + bootstrap scripts.
 On first install it:
 
 1. Detects/installs **Python 3.11**, **Node.js LTS**, and **Git** per-user
    (no admin needed) via `winget` first, then direct download fallback.
 2. Creates `venv-core` and `venv-image` ONLINE from PyPI (+ PyTorch CU128
    index for the image venv).
-3. Patches `app/config/.env` with install-location keys.
+3. Creates `app/config/.env` from `.env.example` if missing, then patches install-location keys.
 
 ### Build it
 

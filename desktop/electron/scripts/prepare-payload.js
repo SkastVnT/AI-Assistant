@@ -6,14 +6,15 @@
  * What goes in:
  *   - services/, app/config|src|scripts|requirements/, ComfyUI/, image_pipeline/,
  *     configs/, rag/, storage/ (curated), LORA/ (filtered), root requirements*.txt
- *   - app/config/.env  (private; bundled per user request, internal use only)
+ *   - app/config/.env.example  (real .env files are provisioned on install)
  *   - python311/  (portable Python runtime; user provides per PACKAGING.md)
  *   - wheels/core/ + wheels/image/  (offline pip cache; user pre-downloads)
  *   - scripts/setup_venvs.py  (postinstall venv bootstrap)
  *
  * What is excluded:
  *   - venv-core/, venv-image/  (will be rebuilt on the target machine)
- *   - __pycache__, .git*, *.pyc, *.log, node_modules/
+ *   - __pycache__, .git*, *.pyc, *.log, node_modules/, real .env files,
+ *     keys/certs/credential-like files
  *   - ComfyUI/output|temp|user, app/logs|local_data|uploads, logs/, tmp/
  *   - private/, character_select_stand_alone_app-main/ (sidecars, opt-in later)
  *
@@ -97,17 +98,32 @@ const EXCLUDE_SUBSTR = [
     '/.github/',
 ];
 
-const EXCLUDE_EXT = new Set(['.pyc', '.pyo', '.pyd-test', '.log']);
+const EXCLUDE_EXT = new Set([
+    '.pyc', '.pyo', '.pyd-test', '.log',
+    '.key', '.pem', '.p12', '.pfx', '.crt', '.cer',
+]);
 const EXCLUDE_NAMES = new Set([
     '.gitignore', '.gitattributes', '.gitkeep', '.dockerignore',
     'log_copilot.txt', '.DS_Store', 'Thumbs.db'
 ]);
 const EXCLUDE_NAME_SUFFIX = ['.zip']; // LORA/*.zip etc.
+const SECRET_NAME_PARTS = [
+    'credential', 'credentials', 'id_rsa', 'private_key', 'secret', 'token'
+];
+
+function isRealEnvFile(base) {
+    const lower = base.toLowerCase();
+    if (lower === '.env.example') return false;
+    return lower === '.env' || lower.startsWith('.env_') || lower.startsWith('.env.');
+}
 
 function shouldSkip(srcPath) {
     const rel = '/' + path.relative(REPO_ROOT, srcPath).replace(/\\/g, '/') + '/';
     for (const sub of EXCLUDE_SUBSTR) if (rel.includes(sub)) return true;
     const base = path.basename(srcPath);
+    const lowerBase = base.toLowerCase();
+    if (isRealEnvFile(base)) return true;
+    if (SECRET_NAME_PARTS.some((part) => lowerBase.includes(part))) return true;
     if (EXCLUDE_NAMES.has(base)) return true;
     if (EXCLUDE_EXT.has(path.extname(base).toLowerCase())) return true;
     for (const suf of EXCLUDE_NAME_SUFFIX) if (base.toLowerCase().endsWith(suf)) return true;
@@ -201,7 +217,11 @@ async function main() {
     console.log('\n[prepare-payload] DONE. Payload size: ' + humanSize(sz));
 }
 
-main().catch((err) => {
-    console.error('[prepare-payload] FAILED: ' + (err && err.stack ? err.stack : err));
-    process.exit(1);
-});
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('[prepare-payload] FAILED: ' + (err && err.stack ? err.stack : err));
+        process.exit(1);
+    });
+}
+
+module.exports = { shouldSkip, isRealEnvFile };

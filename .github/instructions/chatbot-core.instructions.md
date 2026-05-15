@@ -17,7 +17,7 @@ You are working inside the core chatbot layer. The image pipeline, Stable Diffus
 | File | Responsibility |
 |---|---|
 | `services/chatbot/chatbot_main.py` | Flask legacy monolith entry point |
-| `services/chatbot/run.py` | Dispatcher — selects Flask legacy / Flask modular / FastAPI |
+| `services/chatbot/run.py` | Dispatcher for the Flask monolith |
 
 ### Core modules — `services/chatbot/core/`
 
@@ -74,9 +74,8 @@ You are working inside the core chatbot layer. The image pipeline, Stable Diffus
 | `services/chatbot/src/handlers/` | Multimodal handler, advanced image gen handler |
 | `services/chatbot/src/utils/` | Utility modules (imgbb, SD client, MCP integration, etc.) |
 | `services/chatbot/src/rag/` | RAG subsystem (ingest, embeddings, retrieval, service) |
-| `services/chatbot/fastapi_app/` | FastAPI path — only active when `USE_FASTAPI=true` |
-| `services/chatbot/app/` | Nested Flask modular app (`USE_NEW_STRUCTURE=true`): middleware, routes, controllers |
-| `services/chatbot/templates/` | `index.html` (chat UI), `admin.html`, `login.html` |
+| `services/chatbot/app/` | Legacy modular Flask helpers that may still be imported by the monolith |
+| `services/chatbot/templates/` | `index.html` (chat UI) |
 | `services/chatbot/static/js/modules/` | JS modules: api-service, chat-manager, message-renderer, image-gen-v2, video-gen, etc. |
 | `services/shared_env.py` | Shared env loader — do not duplicate its logic |
 | `services/mcp-server/server.py` | FastMCP server (stdio) |
@@ -142,11 +141,10 @@ Logic lives in `core/thinking_generator.py`. Do not inline thinking mode branchi
 
 Fallback order is intentional. If SerpAPI is unavailable, the CSE fallback must still work independently.
 
-## Flask vs FastAPI paths
+## Flask-only runtime path
 
-- Flask SSE path: `routes/stream.py` is **primary**. Always keep it working.
-- FastAPI path: `fastapi_app/` is **optional** (activated by `USE_FASTAPI=true`). Treat it as a parallel implementation.
-- Do not extract shared logic that makes either path depend on the other's internals.
+- Flask SSE path: `routes/stream.py` is **canonical**. Always keep it working.
+- The parallel API implementation was removed in May 2026. Do not add compatibility shims or reintroduce a second runtime path.
 
 ## Verification checklist after chatbot changes
 
@@ -191,5 +189,5 @@ Fallback order is intentional. If SerpAPI is unavailable, the CSE fallback must 
 - Do not import from `services/stable-diffusion/` or `services/edit-image/`.
 - Do not add a `load_dotenv` call that could override values already loaded by `shared_env.py`.
 - Do not hardcode `localhost`, port numbers, or file paths; read from env or derive from `Path(__file__)`.
-- Do not merge Flask and FastAPI initialization code.
+- Do not add compatibility shims or a second runtime path.
 - Do not modify `AGENTS.md` or `.github/copilot-instructions.md` as part of a feature task — those are meta files.

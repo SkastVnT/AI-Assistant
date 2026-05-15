@@ -198,7 +198,7 @@ storage/character_db/       Local character registry JSON (editable seed data)
 - `services/chatbot/config/` — MongoDB setup, model presets, feature flags. Legacy but actively imported by `chatbot_main.py`.
 
 **Structural warning — nested `app/` inside chatbot:**
-`services/chatbot/app/` is a modular Flask app with its own middleware, routes, controllers, and services layer. It is used in `USE_NEW_STRUCTURE=true` mode. Do not confuse it with the root `app/` directory.
+`services/chatbot/app/` contains legacy modular Flask helpers (middleware and service-layer code) that may still be imported by the monolith. It is not a startup mode. Do not confuse it with the root `app/` directory.
 
 ### Do not touch for chatbot-only tasks
 
@@ -253,7 +253,7 @@ Skills live in `.github/skills/{name}/SKILL.md`. **Read the matching skill file 
 
 | Task involves… | Read `.github/skills/{name}/SKILL.md` |
 |---|---|
-| Route, blueprint, SSE, Flask/FastAPI | `core-chatbot-routing-audit` |
+| Route, blueprint, SSE, Flask monolith | `core-chatbot-routing-audit` |
 | Env vars, `.env` loading, secrets | `shared-env-contract` |
 | Startup failure, port drift, health | `service-health-check-audit` |
 | Search tool, fallback, auto-trigger | `search-tool-cascade` |
@@ -332,7 +332,7 @@ After making or proposing a change, summarize using:
 | Video gen provider | OpenAI Sora 2 (requires OPENAI_API_KEY) |
 | MCP transport | stdio (FastMCP) |
 | Flask streaming | SSE via `routes/stream.py` |
-| FastAPI mode | Opt-in via `USE_FASTAPI=true` |
+| FastAPI mode | Removed in May 2026; Flask monolith only |
 | Hermes sidecar | HTTP at `HERMES_API_URL` (default 8080) — opt-in via `HERMES_ENABLED=true` |
 | SAA sidecar | Electron app at port 51028 — opt-in via `CHARACTER_SELECT_ENABLED=true` |
 | SAA data path | `character_select_stand_alone_app-main/data/` — read-only by `saa_character_db.py` |

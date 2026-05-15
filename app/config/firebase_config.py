@@ -10,10 +10,20 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+try:
+    from services.shared_env import load_shared_env
+except ModuleNotFoundError:
+    import sys
+
+    for _parent in Path(__file__).resolve().parents:
+        if (_parent / "services" / "shared_env.py").exists():
+            if str(_parent) not in sys.path:
+                sys.path.insert(0, str(_parent))
+            break
+    from services.shared_env import load_shared_env
+
+load_shared_env(__file__)
 
 logger = logging.getLogger(__name__)
 
