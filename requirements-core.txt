@@ -128,8 +128,8 @@ numpy==1.26.4
 omegaconf==2.3.0
 onnxruntime==1.24.3
 openai==2.29.0
-opencv-contrib-python==4.6.0.66
-opencv-python==4.6.0.66
+opencv-contrib-python==4.8.1.78
+opencv-python==4.11.0.86
 opencv-python-headless==4.11.0.86
 openpyxl==3.1.5
 opt-einsum==3.3.0
@@ -142,7 +142,7 @@ pandas==3.0.1
 pdf2docx==0.5.8
 pdfminer.six==20251230
 pdfplumber==0.11.9
-pillow==12.1.1
+pillow==12.2.0
 platformdirs==4.9.4
 pooch==1.9.0
 premailer==3.10.0
@@ -178,7 +178,7 @@ python-dateutil==2.9.0.post0
 python-docx==1.2.0
 python-dotenv==1.2.2
 python-engineio==4.13.1
-python-multipart==0.0.22
+python-multipart==0.0.27
 python-socketio==5.16.1
 pytorch-lightning==2.6.1
 pytorch-metric-learning==2.9.0

@@ -1,8 +1,8 @@
 # Chunk 6: Image Processing & Diffusion
 # Stable Diffusion, upscaling, image manipulation
 
-Pillow>=10.3.0
-opencv-python<=4.13.0.90
+Pillow>=12.2.0
+opencv-python>=4.8.1.78,<=4.13.0.90
 scikit-image>=0.19.3
 einops>=0.4.0
 lpips>=0.1.4
@@ -17,6 +17,6 @@ pytorch_lightning>=2.0.0
 torchdiffeq>=0.2.3
 torchsde>=0.2.5
 clean-fid>=0.1.35
-diffusers>=0.21.0
+diffusers>=0.38.0
 open-clip-torch>=2.20.0
 timm>=0.9.0

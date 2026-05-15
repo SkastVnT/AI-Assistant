@@ -12,7 +12,7 @@ python-dotenv==1.2.2
 # ============= FASTAPI (async mode) =============
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
-python-multipart>=0.0.9  # Required for UploadFile
+python-multipart>=0.0.27  # Required for UploadFile; >=0.0.27 fixes DoS/ArbitraryFileWrite CVEs
 pydantic>=2.0.0
 werkzeug>=3.0.0
 
@@ -36,7 +36,7 @@ openai>=2.29.0  # Videos API (Sora 2) requires >=2.29
 google-genai>=1.56.0
 
 # ============= IMAGE PROCESSING =============
-Pillow>=10.0.0
+Pillow>=12.2.0  # >=12.2.0 fixes integer overflow (CVE-2026-42311) and PDF parser DoS CVEs
 requests>=2.33.1
 
 # ============= PHASE 2: ADVANCED FEATURES =============
@@ -50,12 +50,12 @@ scikit-learn>=1.3.0
 # ============= LOCAL MODEL SUPPORT =============
 # PyTorch (CUDA 11.8) - Install from https://pytorch.org/get-started/locally/
 numpy<3.0.0  # Required for PyTorch compatibility
-torch>=2.0.0
-torchaudio>=2.0.0
-transformers>=4.37.0
+torch>=2.6.0  # >=2.6.0 fixes heap overflow, use-after-free, and torch.load RCE CVEs
+torchaudio>=2.6.0  # Keep aligned with torch version
+transformers>=4.48.0  # >=4.48.0 fixes deserialization CVEs
 accelerate>=1.13.0
 sentencepiece>=0.1.99
-protobuf>=3.20.0
+protobuf>=6.33.5  # >=6.33.5 fixes multiple DoS and JSON recursion depth bypass CVEs
 
 # Quantization (for efficient local models - Windows requires Visual C++)
 bitsandbytes>=0.41.0; sys_platform != 'win32'

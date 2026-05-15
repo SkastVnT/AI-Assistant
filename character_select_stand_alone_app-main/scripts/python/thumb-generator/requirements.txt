@@ -1,4 +1,4 @@
 streamlit
-pillow
+pillow>=12.2.0
 websocket-client
 requests

@@ -2,7 +2,7 @@
 # Testing, linting, logging, Model Context Protocol
 
 # Gradio UI
-gradio>=3.0.0
+gradio>=6.7.0
 
 # Git
 GitPython>=3.1.0
