@@ -14,11 +14,12 @@ from core.config import SYSTEM_PROMPTS
 def create_app(config_name: str = 'default') -> Flask:
     """Return the canonical Flask monolith app.
 
-    `config_name` is retained for legacy imports; runtime mode selection no
-    longer uses the nested app factory.
+    Delegates to ``app_factory.create_app`` which is the canonical entry point.
+    ``config_name`` is retained for legacy callers; runtime mode selection no
+    longer uses config names.
     """
-    from chatbot_main import app as monolith_app
-    return monolith_app
+    from app_factory import create_app as _factory_create_app
+    return _factory_create_app()
 
 
 # Backward-compatible module-level app for legacy tests/imports.

@@ -204,6 +204,8 @@ Frontend (`static/js/modules/chat-manager.js`): `_syncUrl()` dùng `history.push
 git clone https://github.com/SkastVnT/AI-Assistant.git
 cd AI-Assistant
 
+# Python 3.11.9 required (see .python-version)
+
 # Core (chatbot + MCP)
 python -m venv venv-core
 venv-core\Scripts\activate                          # Windows
@@ -218,6 +220,13 @@ pip install -r app/requirements/profile_image_ai_services.txt
 cp app/config/.env.example app/config/.env
 # Sửa app/config/.env, set ít nhất 1 LLM key (OpenRouter cho fallback đa dạng)
 ```
+
+Xác nhận local gate xanh trước khi commit:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/verify-local.ps1
+```
+
+Dev guide đầy đủ: [docs/onboarding-dev.md](docs/onboarding-dev.md)
 
 Loader: `services/shared_env.py` → `load_shared_env(__file__)` → tìm `app/config/.env_{env}` rồi fallback `app/config/.env`. Mỗi service gọi **một lần** khi khởi động.
 

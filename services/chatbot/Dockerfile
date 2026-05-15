@@ -1,5 +1,5 @@
 # ChatBot Service Dockerfile
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 LABEL maintainer="AI Assistant Team"
 LABEL description="ChatBot Service with Multi-Model AI Support"
@@ -22,17 +22,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY app/requirements/profile_core_services.txt requirements-core.txt
 
-# Install Python dependencies (CPU-only PyTorch)
-RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies (core profile only — no torch, no image stack)
+RUN pip install --no-cache-dir -r requirements-core.txt
 
 # Copy application code
-COPY . .
+COPY services/chatbot/ .
 
 # Create necessary directories
 RUN mkdir -p Storage/Image_Gen data/memory logs
+
+# Run as non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
 EXPOSE 5000
