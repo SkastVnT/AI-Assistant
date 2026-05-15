@@ -2,6 +2,7 @@
 PyTest Configuration for ChatBot Service
 """
 import pytest
+import os
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ import src  # noqa: E402
 @pytest.fixture
 def app():
     """Create application instance for testing"""
+    os.environ.setdefault("TESTING", "true")
     from app import app as flask_app
     flask_app.config['TESTING'] = True
     flask_app.config['DEBUG'] = False

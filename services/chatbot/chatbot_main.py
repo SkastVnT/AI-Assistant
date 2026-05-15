@@ -42,6 +42,8 @@ except ModuleNotFoundError:
             break
     from services.shared_env import load_shared_env
 from flask import Flask, send_from_directory, send_file, session, render_template, request, jsonify, redirect
+from core.secret_key import resolve_flask_secret_key
+from core.url_safety import UnsafeUrlError, assert_safe_external_url
 
 # Load environment variables
 load_shared_env(__file__)
@@ -145,9 +147,7 @@ except ImportError as e:
 
 # Create Flask app
 app = Flask(__name__)
-# Use persistent secret key from environment or generate a fixed one
-# This ensures sessions persist across server restarts
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'skylight-ai-assistant-secret-key-2025-persistent')
+app.secret_key = resolve_flask_secret_key(logger=logger)
 # Always reload templates from disk so edits apply without restarting
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
@@ -175,7 +175,7 @@ def set_security_headers(response):
     # CSP: allow self + CDN sources used by the UI
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "script-src 'self' 'unsafe-inline' "
             "https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
             "https://www.gstatic.com https://apis.google.com; "
         "style-src 'self' 'unsafe-inline' "
@@ -5218,7 +5218,7 @@ def mcp_status():
 def mcp_fetch_url():
     """Fetch and extract content from URL with advanced anti-bot bypass"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         url = data.get('url', '').strip()
         
         if not url:
@@ -5231,12 +5231,28 @@ def mcp_fetch_url():
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
         
-        import requests
         from bs4 import BeautifulSoup
         import mimetypes
         import random
         import time
-        from urllib.parse import urlparse
+        from urllib.parse import urljoin, urlparse
+
+        assert_safe_external_url(url)
+
+        def safe_get(client, target_url, **kwargs):
+            """GET with manual redirect validation before every hop."""
+            current_url = target_url
+            for _ in range(5):
+                assert_safe_external_url(current_url)
+                response = client.get(current_url, allow_redirects=False, **kwargs)
+                if response.is_redirect or response.status_code in (301, 302, 303, 307, 308):
+                    location = response.headers.get('Location')
+                    if not location:
+                        return response
+                    current_url = urljoin(current_url, location)
+                    continue
+                return response
+            raise UnsafeUrlError("too many redirects")
         
         # Multiple User-Agent rotation for anti-bot bypass
         user_agents = [
@@ -5283,13 +5299,13 @@ def mcp_fetch_url():
                     time.sleep(1 + attempt)  # Backoff delay
                     headers['User-Agent'] = random.choice(user_agents)
                 
-                response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+                response = safe_get(session, url, headers=headers, timeout=30)
                 
                 # Check for Cloudflare or bot protection pages
                 if response.status_code == 403:
                     # Try with different referer
                     headers['Referer'] = url
-                    response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+                    response = safe_get(session, url, headers=headers, timeout=30)
                 
                 if response.status_code == 403:
                     # Try without some headers that might trigger protection
@@ -5298,7 +5314,7 @@ def mcp_fetch_url():
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                         'Accept-Language': 'en-US,en;q=0.5',
                     }
-                    response = session.get(url, headers=simple_headers, timeout=30, allow_redirects=True)
+                    response = safe_get(session, url, headers=simple_headers, timeout=30)
                 
                 if response.status_code == 403:
                     # Try with cloudscraper for Cloudflare bypass
@@ -5308,7 +5324,7 @@ def mcp_fetch_url():
                             browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
                             delay=5
                         )
-                        response = scraper.get(url, timeout=30)
+                        response = safe_get(scraper, url, timeout=30)
                         logger.info(f"[MCP] Cloudscraper used for {domain}")
                     except Exception as cs_error:
                         logger.warning(f"[MCP] Cloudscraper failed: {cs_error}")
@@ -5403,6 +5419,12 @@ def mcp_fetch_url():
             'content_type': content_type
         })
         
+    except UnsafeUrlError as e:
+        logger.warning(f"[MCP] Unsafe fetch URL rejected: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Unsafe URL rejected: {e}'
+        }), 400
     except requests.exceptions.Timeout:
         return jsonify({
             'success': False,

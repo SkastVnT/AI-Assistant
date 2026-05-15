@@ -26,7 +26,7 @@ We need a true multi-agent council where:
 |---|---|
 | Additive (no existing file deleted) | Zero risk to current `/chat`, `/chat/stream`, `/chat/upload` |
 | No new framework (no LangGraph, Celery) | Keep the dependency graph lightweight |
-| Plain Python + FastAPI + Pydantic v2 | Matches the stack already in use |
+| Plain Python + Flask + Pydantic v2 | Matches the active stack already in use |
 | Optional Redis adapter (future) | Enables inter-process state sharing later |
 | Existing `thinking_mode=multi-thinking` unchanged | Backward compatibility for current UI |
 | Future xAI native multi-agent hook | `AgentMode.xai_native` placeholder reserved |
@@ -53,11 +53,8 @@ services/chatbot/
 │           ├── researcher.py  #   ResearcherAgent
 │           ├── critic.py      #   CriticAgent
 │           └── synthesizer.py #   SynthesizerAgent
-├── fastapi_app/
-│   ├── models.py              # ← will add AgentMode + CouncilConfig (Phase 3)
-│   └── routers/
-│       ├── chat.py            # ← will add council branch (Phase 5)
-│       └── stream.py          # ← will add council SSE branch (Phase 4)
+├── routes/
+│   └── stream.py              # Flask SSE integration point
 └── app/services/
     └── reasoning_service.py   # ← untouched; still serves thinking_mode=multi-thinking
 ```
@@ -99,7 +96,7 @@ services/chatbot/
 | `core/agentic/agents/researcher.py` | `ResearcherAgent` — evidence gathering + LLM synthesis |
 | `core/agentic/agents/critic.py` | `CriticAgent` — quality evaluation + retry targeting |
 | `core/agentic/agents/synthesizer.py` | `SynthesizerAgent` — final answer composition |
-| `fastapi_app/routers/council_stream.py` | SSE route `POST /chat/council/stream` |
+| `routes/stream.py` | SSE route `POST /chat/stream` |
 | `docs/architecture/agentic-v1.md` | This document |
 | `docs/architecture/agentic-api.md` | API reference |
 | `docs/architecture/agentic-trace.md` | Trace and observability guide |
@@ -114,29 +111,15 @@ services/chatbot/
 | `tests/test_agentic_evidence.py` | 38 | Evidence gathering, budget enforcement |
 | `tests/test_agentic_orchestrator.py` | 23 | Orchestrator state machine, all exit paths |
 | `tests/test_agentic_critic_loop.py` | 24 | Critic loop, selective retry, circuit breaker |
-| `tests/test_agentic_router.py` | 10 | FastAPI router integration |
-| `tests/test_agentic_streaming.py` | 15 | SSE events, emitter, streaming route |
 | `tests/test_agentic_entrypoint.py` | 20 | Entry point, config builders, feature flag |
 
-**Total: 25 source files, 9 test files (~217 tests). Zero existing files deleted.**
+**Note:** The previous parallel API integration tests were removed with the retired API path in May 2026.
 
 ---
 
-## 4. Import paths to update in later phases
+## 4. Import paths for the Flask monolith
 
-When wiring the council into the FastAPI layer (Phase 3+), these imports will be added:
-
-```python
-# In fastapi_app/models.py (Phase 3)
-from core.agentic.contracts import AgentMode
-from core.agentic.config import CouncilConfig
-
-# In fastapi_app/routers/stream.py (Phase 4)
-from core.agentic import CouncilOrchestrator, CouncilConfig, PreContext
-
-# In fastapi_app/routers/chat.py (Phase 5)
-from core.agentic import CouncilOrchestrator, CouncilConfig, PreContext, CouncilResult
-```
+When wiring council behavior, keep imports inside `routes/stream.py` and shared `core/agentic/*` modules. Do not reintroduce a parallel API package.
 
 ---
 

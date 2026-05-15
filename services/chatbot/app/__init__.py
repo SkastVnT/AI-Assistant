@@ -1,43 +1,28 @@
 ﻿"""
 AI-Assistant Chatbot Application Package
 
-This package contains the restructured chatbot service with:
-- Modular architecture (routes, controllers, services, models)
-- Clean separation of concerns
-- Dependency injection ready
-- Testable components
+This package contains legacy modular helpers. The active runtime is the
+Flask monolith in `chatbot_main.py`.
 """
 
 from flask import Flask
-from typing import Optional
 import os
 
 from core.config import SYSTEM_PROMPTS
 
 
 def create_app(config_name: str = 'default') -> Flask:
+    """Return the canonical Flask monolith app.
+
+    `config_name` is retained for legacy imports; runtime mode selection no
+    longer uses the nested app factory.
     """
-    Flask Application Factory
-    
-    Creates and configures the Flask application with:
-    - Configuration loading
-    - Blueprint registration
-    - Extension initialization
-    - Error handlers
-    
-    Args:
-        config_name: Configuration environment ('development', 'production', 'testing')
-    
-    Returns:
-        Configured Flask application instance
-    """
-    from .main import create_application
-    return create_application(config_name)
+    from chatbot_main import app as monolith_app
+    return monolith_app
 
 
 # Backward-compatible module-level app for legacy tests/imports.
-# Use a lazy proxy so the app isn't created at import time
-# (which would happen before env vars are loaded in run.py).
+# Use a lazy proxy so the monolith isn't created at package import time.
 _app = None
 
 def _get_app():

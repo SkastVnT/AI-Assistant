@@ -8,12 +8,14 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 
+from core.secret_key import resolve_flask_secret_key
+
 
 class BaseConfig:
     """Base configuration shared by all environments"""
     
     # Flask
-    SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
+    SECRET_KEY = resolve_flask_secret_key()
     
     # Database
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/ai_assistant')
@@ -22,7 +24,7 @@ class BaseConfig:
     MONGODB_X509_ENABLED = os.getenv('MONGODB_X509_ENABLED', 'false').lower() == 'true'
     MONGODB_X509_URI = os.getenv('MONGODB_X509_URI', '')
     MONGODB_X509_CERT_PATH = os.getenv('MONGODB_X509_CERT_PATH', '')
-    MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'true').lower() == 'true'
+    MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'false').lower() == 'true'
     
     # Redis Cache
     REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')

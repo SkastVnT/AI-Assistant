@@ -30,7 +30,7 @@ MONGODB_URI = os.getenv(
 MONGODB_X509_ENABLED = os.getenv('MONGODB_X509_ENABLED', 'false').lower() == 'true'
 MONGODB_X509_URI = os.getenv('MONGODB_X509_URI', '').strip()
 MONGODB_X509_CERT_PATH = os.getenv('MONGODB_X509_CERT_PATH', '').strip()
-MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'true').lower() == 'true'
+MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'false').lower() == 'true'
 
 # Database name
 DATABASE_NAME = os.getenv('MONGODB_DB_NAME', 'chatbot_db')

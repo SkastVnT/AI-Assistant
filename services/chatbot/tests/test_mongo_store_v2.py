@@ -43,9 +43,10 @@ def _reset_mongo_store():
 def fake_db(monkeypatch):
     from core import mongo_store
     db = MagicMock(name="fake_db")
-    monkeypatch.setattr(mongo_store, "_INITIALIZED", True)
-    monkeypatch.setattr(mongo_store, "_DB", db)
-    monkeypatch.setattr(mongo_store, "_INDEXES_ENSURED", True)
+    # mongo_store uses a _state object (not bare module-level vars)
+    monkeypatch.setattr(mongo_store._state, "initialized", True)
+    monkeypatch.setattr(mongo_store._state, "db", db)
+    monkeypatch.setattr(mongo_store._state, "indexes_ensured", True)
     return db
 
 

@@ -97,7 +97,8 @@ class TestHermesChat:
         from core.hermes_adapter import hermes_chat
         result = hermes_chat("hello")
         assert result["success"] is False
-        assert "500" in result["error"]
+        # Adapter returns a generic message; status code appears in the log not the error field
+        assert "unavailable" in result["error"].lower()
 
     def test_non_json_response(self, _enable_hermes, monkeypatch):
         mock_resp = MagicMock()

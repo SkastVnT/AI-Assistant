@@ -22,10 +22,8 @@ Path 2 — Standalone API (Flask):
     → routes/last30days.py → run_last30days_research()
     → JSON { success, result, metadata, error }
 
-Path 3 — Standalone API (FastAPI):
-  Client → POST /api/tools/last30days { topic, depth?, days?, sources? }
-    → fastapi_app/routers/last30days.py → run_last30days_research()
-    → JSON { success, result, metadata, error }
+Path 3 — Standalone API:
+  Removed with the retired parallel API path in May 2026. Use the Flask route above.
 ```
 
 **Subprocess boundary**: last30days runs in a separate Python process because it requires Python 3.12+ and optional Node.js (for X/Twitter via vendored Bird client). This avoids dependency conflicts with `venv-core`.
@@ -39,7 +37,6 @@ Path 3 — Standalone API (FastAPI):
 | `vendor/last30days/repo/` | Cloned engine (git-ignored) |
 | `core/last30days_tool.py` | Subprocess wrapper — `run_last30days_research()` |
 | `routes/last30days.py` | Flask blueprint — `POST /api/tools/last30days` |
-| `fastapi_app/routers/last30days.py` | FastAPI router — `POST /api/tools/last30days` |
 | `core/config.py` | `LAST30DAYS_*` env vars |
 | `core/skills/builtins/social_research.yaml` | Skill definition with trigger keywords |
 | `routes/stream.py` | Tool dispatch case (`last30days-research`) |
@@ -156,10 +153,9 @@ To fully remove:
 3. Remove `social_research.yaml` from `core/skills/builtins/`
 4. Remove dispatch block from `routes/stream.py` (the `last30days-research` block + `/last30days` command detection)
 5. Remove `routes/last30days.py` (Flask blueprint)
-6. Remove `fastapi_app/routers/last30days.py` (FastAPI router)
-7. Remove blueprint registration from `chatbot_main.py` and `fastapi_app/__init__.py`
-8. Remove tool button from `templates/index.html` and JS binding
-9. Remove `LAST30DAYS_*` vars from `core/config.py`
+6. Remove blueprint registration from `chatbot_main.py`
+7. Remove tool button from `templates/index.html` and JS binding
+8. Remove `LAST30DAYS_*` vars from `core/config.py`
 
 ## Risks
 
@@ -169,5 +165,5 @@ To fully remove:
 | Missing Python 3.12+ | Clear error message; feature flag gates execution |
 | Missing Node.js (X/Twitter) | Graceful skip; other sources still work |
 | SSE blocking | Research completes before streaming; acceptable for sync flow |
-| Bad request to API endpoint | Pydantic validation (FastAPI) / manual validation (Flask); 400 response |
+| Bad request to API endpoint | Flask request validation; 400 response |
 | Upstream subprocess error | Captured with non-zero exit code; returned as 422 with error detail |

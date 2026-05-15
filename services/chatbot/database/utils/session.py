@@ -55,7 +55,10 @@ class DatabaseSession:
                 minPoolSize=5,
                 retryWrites=True,
                 tls=True,
-                tlsAllowInvalidCertificates=True
+                tlsAllowInvalidCertificates=os.getenv(
+                    'MONGODB_TLS_ALLOW_INVALID_CERTIFICATES',
+                    'false',
+                ).lower() == 'true'
             )
             
             # Test connection

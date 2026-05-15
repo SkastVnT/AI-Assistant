@@ -24,6 +24,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.agentic
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core.agentic.contracts import (

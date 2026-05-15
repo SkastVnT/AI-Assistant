@@ -13,6 +13,69 @@ from functools import wraps
 # Create logger
 logger = logging.getLogger(__name__)
 
+SENSITIVE_KEY_PARTS = (
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "session",
+    "token",
+    "api_key",
+    "apikey",
+    "access_key",
+    "private_key",
+)
+REDACTED = "[REDACTED]"
+
+
+def _is_sensitive_key(key) -> bool:
+    normalized = str(key).lower().replace("-", "_")
+    return any(part in normalized for part in SENSITIVE_KEY_PARTS)
+
+
+def redact_for_log(value):
+    """Recursively redact sensitive values before serializing log payloads."""
+    if isinstance(value, dict):
+        return {
+            key: REDACTED if _is_sensitive_key(key) else redact_for_log(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_for_log(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_for_log(item) for item in value)
+    return value
+
+
+def _body_summary_for_log(path: str, body):
+    """Return metadata-only summaries for high-risk chat bodies."""
+    if path not in {"/chat", "/chat/stream"} or not isinstance(body, dict):
+        return redact_for_log(body)
+
+    message = body.get("message")
+    images = body.get("images")
+    tools = body.get("tools")
+    history = body.get("history")
+    return {
+        "keys": sorted(str(key) for key in body.keys()),
+        "message_length": len(message) if isinstance(message, str) else 0,
+        "model": body.get("model"),
+        "context": body.get("context"),
+        "thinking_mode": body.get("thinking_mode") or body.get("mode"),
+        "tools_count": len(tools) if isinstance(tools, list) else 0,
+        "images_count": len(images) if isinstance(images, list) else 0,
+        "history_count": len(history) if isinstance(history, list) else 0,
+    }
+
+
+def _truncate_for_log(value, limit: int) -> str:
+    payload = json.dumps(redact_for_log(value), default=str)
+    if len(payload) > limit:
+        return payload[:limit] + f"... ({len(payload)} chars total)"
+    return payload
+
+
 # Create detailed log handler
 def setup_http_logging(app):
     """
@@ -46,19 +109,17 @@ def setup_http_logging(app):
                 
                 # Add query params if GET
                 if request.args:
-                    log_msg += f" | Params: {dict(request.args)}"
+                    log_msg += f" | Params: {redact_for_log(dict(request.args))}"
                 
                 # Add body if POST/PUT/PATCH (truncate if too large)
                 if method in ['POST', 'PUT', 'PATCH']:
                     try:
                         if request.is_json:
                             body = request.get_json(silent=True)
-                            # Log body (truncate large payloads like base64 images)
-                            body_str = json.dumps(body, default=str)
-                            if len(body_str) > 500:
-                                body_repr = body_str[:500] + f"... ({len(body_str)} chars total)"
-                            else:
-                                body_repr = body_str
+                            body_repr = _truncate_for_log(
+                                _body_summary_for_log(path, body),
+                                500,
+                            )
                             log_msg += f" | Body: {body_repr}"
                         else:
                             content_type = request.content_type or 'unknown'
@@ -121,11 +182,7 @@ def setup_http_logging(app):
                 try:
                     if response.is_json:
                         body = response.get_json(silent=True)
-                        body_str = json.dumps(body, default=str)
-                        if len(body_str) > 300:
-                            body_repr = body_str[:300] + "..."
-                        else:
-                            body_repr = body_str
+                        body_repr = _truncate_for_log(body, 300)
                         logger.debug(f"   Response Body: {body_repr}")
                 except Exception:
                     pass
