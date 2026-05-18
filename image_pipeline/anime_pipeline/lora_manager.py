@@ -369,47 +369,104 @@ def _download_lora(candidate: LoRACandidate, danbooru_tag: str) -> Optional[Path
     logger.info("[LoRAMgr] Downloading %s from CivitAI (~%.1f MB)...",
                 candidate.filename, candidate.size_bytes / 1_000_000)
 
-    try:
-        with httpx.stream(
-            "GET",
-            candidate.download_url,
-            headers=headers,
-            follow_redirects=True,
-            timeout=120,
-        ) as resp:
-            resp.raise_for_status()
-            with dest.open("wb") as f:
-                for chunk in resp.iter_bytes(chunk_size=65536):
-                    f.write(chunk)
-
-        size_mb = dest.stat().st_size / 1_000_000
-        logger.info("[LoRAMgr] Downloaded: %s (%.1f MB)", dest, size_mb)
+    # Retry on transient network failures (timeouts, connection errors, 5xx).
+    # CivitAI is known to flake under load; without retry a single hiccup
+    # aborts the entire character pipeline. 3 attempts with exponential
+    # backoff 1s/2s/4s ≈ 7s worst-case added latency.
+    _MAX_ATTEMPTS = 3
+    last_exc: Optional[Exception] = None
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
-            file_path_rel = str(dest.relative_to(_WORKSPACE_ROOT)).replace("\\", "/")
-        except ValueError:
-            file_path_rel = str(dest)
-        _append_download_manifest({
-            "event": "download",
-            "character_tag": danbooru_tag,
-            "filename": candidate.filename,
-            "file_path": file_path_rel,
-            "size_mb": round(size_mb, 2),
-            "civitai_model_id": candidate.model_id,
-            "civitai_version_id": candidate.version_id,
-            "candidate_name": candidate.name,
-            "base_model": candidate.base_model,
-            "trigger_words": candidate.trigger_words,
-            "download_count": candidate.download_count,
-            "source": "civitai",
-            "source_url": candidate.download_url,
-        })
-        return dest
-
-    except Exception as e:
-        logger.error("[LoRAMgr] Download failed for %s: %s", candidate.filename, e)
-        if dest.exists():
-            dest.unlink(missing_ok=True)
+            with httpx.stream(
+                "GET",
+                candidate.download_url,
+                headers=headers,
+                follow_redirects=True,
+                timeout=120,
+            ) as resp:
+                resp.raise_for_status()
+                with dest.open("wb") as f:
+                    for chunk in resp.iter_bytes(chunk_size=65536):
+                        f.write(chunk)
+            break  # success — exit retry loop
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError) as e:
+            last_exc = e
+            if attempt < _MAX_ATTEMPTS:
+                wait = 2 ** (attempt - 1)
+                logger.warning("[LoRAMgr] Download attempt %d/%d failed (%s); retrying in %ds",
+                               attempt, _MAX_ATTEMPTS, e, wait)
+                # Clean partial file before retry
+                if dest.exists():
+                    try:
+                        dest.unlink()
+                    except OSError:
+                        pass
+                time.sleep(wait)
+            else:
+                logger.error("[LoRAMgr] Download failed after %d attempts: %s", _MAX_ATTEMPTS, e)
+                if dest.exists():
+                    try:
+                        dest.unlink()
+                    except OSError:
+                        pass
+                return None
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            # Retry only on server errors (5xx) and rate limits (429)
+            if status >= 500 or status == 429:
+                last_exc = e
+                if attempt < _MAX_ATTEMPTS:
+                    wait = 2 ** (attempt - 1)
+                    logger.warning("[LoRAMgr] HTTP %d on attempt %d/%d; retrying in %ds",
+                                   status, attempt, _MAX_ATTEMPTS, wait)
+                    if dest.exists():
+                        try:
+                            dest.unlink()
+                        except OSError:
+                            pass
+                    time.sleep(wait)
+                    continue
+            logger.error("[LoRAMgr] Download failed with HTTP %d: %s", status, e)
+            if dest.exists():
+                try:
+                    dest.unlink()
+                except OSError:
+                    pass
+            return None
+        except Exception as e:
+            # Unexpected error — don't retry, surface and bail.
+            logger.error("[LoRAMgr] Unexpected download error for %s: %s", candidate.filename, e)
+            if dest.exists():
+                dest.unlink(missing_ok=True)
+            return None
+    else:
+        # for-loop exhausted without break — defensive (all retry paths return).
+        logger.error("[LoRAMgr] Download retry loop exhausted (last: %s)", last_exc)
         return None
+
+    # ── Success path ───────────────────────────────────────────────────
+    size_mb = dest.stat().st_size / 1_000_000
+    logger.info("[LoRAMgr] Downloaded: %s (%.1f MB)", dest, size_mb)
+    try:
+        file_path_rel = str(dest.relative_to(_WORKSPACE_ROOT)).replace("\\", "/")
+    except ValueError:
+        file_path_rel = str(dest)
+    _append_download_manifest({
+        "event": "download",
+        "character_tag": danbooru_tag,
+        "filename": candidate.filename,
+        "file_path": file_path_rel,
+        "size_mb": round(size_mb, 2),
+        "civitai_model_id": candidate.model_id,
+        "civitai_version_id": candidate.version_id,
+        "candidate_name": candidate.name,
+        "base_model": candidate.base_model,
+        "trigger_words": candidate.trigger_words,
+        "download_count": candidate.download_count,
+        "source": "civitai",
+        "source_url": candidate.download_url,
+    })
+    return dest
 
 
 # ════════════════════════════════════════════════════════════════════════
