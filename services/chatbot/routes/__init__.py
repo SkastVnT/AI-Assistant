@@ -15,6 +15,7 @@ uses the first matching handler.  The inline routes were registered first
 (module load) so they win.  This will be resolved when the inline MCP routes
 are moved into the blueprint (P2 roadmap item).
 """
+import logging
 import sys
 from pathlib import Path
 from flask import Blueprint
@@ -23,6 +24,8 @@ from flask import Blueprint
 CHATBOT_DIR = Path(__file__).parent.parent.resolve()
 if str(CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(CHATBOT_DIR))
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Canonical list of all blueprints registered in chatbot_main.py
@@ -100,6 +103,18 @@ def register_blueprints(app):
                 app.register_blueprint(bp, url_prefix=prefix)
             else:
                 app.register_blueprint(bp)
-        except (ImportError, AttributeError):
-            pass
+        except ImportError as exc:
+            logger.warning(
+                "Optional blueprint '%s' from '%s' not registered due to import error: %s",
+                var_name,
+                module_path,
+                exc,
+            )
+        except AttributeError as exc:
+            logger.warning(
+                "Optional blueprint '%s' not found in module '%s': %s",
+                var_name,
+                module_path,
+                exc,
+            )
 
