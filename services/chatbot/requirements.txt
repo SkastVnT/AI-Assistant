@@ -65,7 +65,7 @@ bitsandbytes>=0.41.0; sys_platform != 'win32'
 tqdm>=4.67.3
 
 # JSON handling
-jsonschema>=4.17.0
+jsonschema>=4.26.0
 
 # Safe loading
 pyyaml>=6.0.3
