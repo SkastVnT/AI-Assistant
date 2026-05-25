@@ -36,22 +36,17 @@ LOCAL_DATA_DIR = BASE_DIR / "local_data"
 RESOURCES_DIR = BASE_DIR / "resources"
 LOGS_DIR = RESOURCES_DIR / "logs"
 
-try:
-    from tools.guard import (
-        SAFE_TEXT_EXTENSIONS,
-        is_blocked_workspace_path,
-        validate_text_file,
-        validate_workspace_path,
-        workspace_relative,
-    )
-except ImportError:
-    from .tools.guard import (  # type: ignore
-        SAFE_TEXT_EXTENSIONS,
-        is_blocked_workspace_path,
-        validate_text_file,
-        validate_workspace_path,
-        workspace_relative,
-    )
+import importlib.util as _ilu
+
+_guard_path = Path(__file__).parent / "tools" / "guard.py"
+_guard_spec = _ilu.spec_from_file_location("mcp_tools_guard", _guard_path)
+_guard_mod = _ilu.module_from_spec(_guard_spec)
+_guard_spec.loader.exec_module(_guard_mod)  # type: ignore[union-attr]
+SAFE_TEXT_EXTENSIONS = _guard_mod.SAFE_TEXT_EXTENSIONS
+is_blocked_workspace_path = _guard_mod.is_blocked_workspace_path
+validate_text_file = _guard_mod.validate_text_file
+validate_workspace_path = _guard_mod.validate_workspace_path
+workspace_relative = _guard_mod.workspace_relative
 
 # Module-level safe math evaluator setup
 _MATH_ALLOWED = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}

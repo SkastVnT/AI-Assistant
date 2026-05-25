@@ -66,7 +66,6 @@ def register_blueprints(app):
     from routes.memory import memory_bp
     from routes.images import images_bp
     from routes.mcp import mcp_bp
-    from routes.stream import stream_bp
     from routes.skills import skills_bp
 
     app.register_blueprint(stream_bp)

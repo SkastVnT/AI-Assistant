@@ -143,5 +143,7 @@ class Settings:
         return Path(os.getenv("COMFYUI_OUTPUT_DIR", str(default)))
 
 
-# Module-level singleton — lazily populated so tests can set env vars first.
+# Module-level singleton — instantiated eagerly at import time.  Env vars must
+# be set before this module is imported.  Tests that need different values
+# should set env vars before import, or instantiate Settings() directly.
 settings = Settings()

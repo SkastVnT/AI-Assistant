@@ -12,7 +12,7 @@
 ```bash
 docker compose up -d                        # MongoDB + ChatBot
 docker compose logs -f chatbot              # tail logs
-curl http://localhost:5000/health           # verify
+curl http://localhost:5000/api/v1/health    # verify
 ```
 
 ### Optional profiles
@@ -69,7 +69,7 @@ chown -R 1000:1000 ./storage ./logs
 
 | Service | URL |
 |---|---|
-| ChatBot | `GET http://localhost:5000/health` |
+| ChatBot | `GET http://localhost:5000/api/v1/health` |
 | MongoDB | `mongosh --eval "db.adminCommand('ping')"` |
 
 Compose readiness:
