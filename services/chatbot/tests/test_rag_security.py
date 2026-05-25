@@ -227,6 +227,7 @@ class TestBlockedContentExamples:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.rag
 class TestRagHelpersGuardrails:
     """Ensure retrieve_rag_context applies sanitisation."""
 
@@ -392,6 +393,7 @@ class TestRagHelpersGuardrails:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.rag
 class TestIngestPolicies:
     """Policy enforcement in IngestService.ingest()."""
 
@@ -456,6 +458,7 @@ class TestIngestPolicies:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.rag
 class TestRetrievalPolicies:
     """Policy enforcement in RetrievalService.retrieve()."""
 
