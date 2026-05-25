@@ -43,7 +43,6 @@ def _reset_mongo_store():
 def fake_db(monkeypatch):
     from core import mongo_store
     db = MagicMock(name="fake_db")
-    # mongo_store uses a _state object (not bare module-level vars)
     monkeypatch.setattr(mongo_store._state, "initialized", True)
     monkeypatch.setattr(mongo_store._state, "db", db)
     monkeypatch.setattr(mongo_store._state, "indexes_ensured", True)
@@ -249,6 +248,13 @@ class TestDisabledNewFunctions:
         monkeypatch.delenv("MONGODB_URI", raising=False)
         monkeypatch.delenv("MONGODB_DB", raising=False)
         monkeypatch.delenv("MONGODB_DB_NAME", raising=False)
+        # Remove the MONGODB_ENABLED kill-switch so the store checks for the
+        # URI (which is also absent) and sets disabled_reason correctly.
+        monkeypatch.delenv("MONGODB_ENABLED", raising=False)
+        from core import mongo_store
+        mongo_store._reset_for_tests()
+        yield
+        mongo_store._reset_for_tests()
 
     def test_save_conversation_noop(self):
         from core import mongo_store
