@@ -42,6 +42,8 @@ except ModuleNotFoundError:
             break
     from services.shared_env import load_shared_env
 from flask import Flask, send_from_directory, send_file, session, render_template, request, jsonify, redirect
+from core.secret_key import resolve_flask_secret_key
+from core.url_safety import UnsafeUrlError, assert_safe_external_url
 
 # Load environment variables
 load_shared_env(__file__)
@@ -145,9 +147,7 @@ except ImportError as e:
 
 # Create Flask app
 app = Flask(__name__)
-# Use persistent secret key from environment or generate a fixed one
-# This ensures sessions persist across server restarts
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'skylight-ai-assistant-secret-key-2025-persistent')
+app.secret_key = resolve_flask_secret_key(logger=logger)
 # Always reload templates from disk so edits apply without restarting
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
@@ -175,7 +175,7 @@ def set_security_headers(response):
     # CSP: allow self + CDN sources used by the UI
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "script-src 'self' 'unsafe-inline' "
             "https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
             "https://www.gstatic.com https://apis.google.com; "
         "style-src 'self' 'unsafe-inline' "
@@ -5218,7 +5218,7 @@ def mcp_status():
 def mcp_fetch_url():
     """Fetch and extract content from URL with advanced anti-bot bypass"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         url = data.get('url', '').strip()
         
         if not url:
@@ -5231,12 +5231,62 @@ def mcp_fetch_url():
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
         
-        import requests
         from bs4 import BeautifulSoup
         import mimetypes
         import random
         import time
-        from urllib.parse import urlparse
+        from urllib.parse import urljoin, urlparse, urlunparse
+
+        # Pre-parse the allowed hosts list once (from env, not user input).
+        _allowed_hosts_env = os.getenv("MCP_FETCH_ALLOWED_HOSTS", "")
+        _allowed_hosts = [h.strip().lower() for h in _allowed_hosts_env.split(",") if h.strip()]
+
+        def _check_url_allowed(raw_url: str) -> str:
+            """Validate *raw_url* and return a clean, reconstructed URL string.
+
+            Raises UnsafeUrlError if the URL fails any check.  The returned
+            string is built from parsed (validated) components so that static
+            analysis tools can verify the URL is not passed through verbatim.
+            """
+            _p = urlparse(raw_url)
+            _scheme = (_p.scheme or "").lower()
+            _host = (_p.hostname or "").lower()
+            _netloc = _p.netloc  # may include port
+
+            # Scheme must be http or https — explicit constant comparison.
+            if _scheme not in ("http", "https"):
+                raise UnsafeUrlError(f"scheme {_scheme!r} not allowed")
+            if not _host:
+                raise UnsafeUrlError("missing host")
+            # Host must appear in the env-configured allowlist.
+            if not _allowed_hosts:
+                raise UnsafeUrlError("MCP_FETCH_ALLOWED_HOSTS not configured")
+            if not any(_host == a or _host.endswith("." + a) for a in _allowed_hosts):
+                raise UnsafeUrlError(f"host {_host!r} not in allowed list")
+            # SSRF blocker: reject private/loopback/link-local IPs.
+            assert_safe_external_url(raw_url)
+            # Reconstruct URL from validated components — strip fragment and
+            # any embedded credentials; scheme and netloc are now confirmed safe.
+            return urlunparse((_scheme, _netloc, _p.path or "/", "", _p.query, ""))
+
+        # Validate the initial user-supplied URL.
+        clean_url = _check_url_allowed(url)
+
+        def safe_get(client, target_url, **kwargs):
+            """GET with per-hop URL validation and manual redirect following."""
+            current_url = target_url
+            for _ in range(5):
+                # Each hop: re-validate and reconstruct a clean URL.
+                current_url = _check_url_allowed(current_url)
+                response = client.get(current_url, allow_redirects=False, **kwargs)
+                if response.is_redirect or response.status_code in (301, 302, 303, 307, 308):
+                    location = response.headers.get("Location")
+                    if not location:
+                        return response
+                    current_url = urljoin(current_url, location)
+                    continue
+                return response
+            raise UnsafeUrlError("too many redirects")
         
         # Multiple User-Agent rotation for anti-bot bypass
         user_agents = [
@@ -5247,7 +5297,7 @@ def mcp_fetch_url():
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         ]
         
-        parsed_url = urlparse(url)
+        parsed_url = urlparse(clean_url)
         domain = parsed_url.netloc
         
         # Advanced headers to bypass bot detection
@@ -5283,13 +5333,13 @@ def mcp_fetch_url():
                     time.sleep(1 + attempt)  # Backoff delay
                     headers['User-Agent'] = random.choice(user_agents)
                 
-                response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+                response = safe_get(session, clean_url, headers=headers, timeout=30)
                 
                 # Check for Cloudflare or bot protection pages
                 if response.status_code == 403:
                     # Try with different referer
-                    headers['Referer'] = url
-                    response = session.get(url, headers=headers, timeout=30, allow_redirects=True)
+                    headers['Referer'] = clean_url
+                    response = safe_get(session, clean_url, headers=headers, timeout=30)
                 
                 if response.status_code == 403:
                     # Try without some headers that might trigger protection
@@ -5298,7 +5348,7 @@ def mcp_fetch_url():
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                         'Accept-Language': 'en-US,en;q=0.5',
                     }
-                    response = session.get(url, headers=simple_headers, timeout=30, allow_redirects=True)
+                    response = safe_get(session, clean_url, headers=simple_headers, timeout=30)
                 
                 if response.status_code == 403:
                     # Try with cloudscraper for Cloudflare bypass
@@ -5308,7 +5358,7 @@ def mcp_fetch_url():
                             browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
                             delay=5
                         )
-                        response = scraper.get(url, timeout=30)
+                        response = safe_get(scraper, clean_url, timeout=30)
                         logger.info(f"[MCP] Cloudscraper used for {domain}")
                     except Exception as cs_error:
                         logger.warning(f"[MCP] Cloudscraper failed: {cs_error}")
@@ -5330,7 +5380,7 @@ def mcp_fetch_url():
         
         content_type = response.headers.get('Content-Type', '').lower()
         extracted_content = ""
-        content_title = url
+        content_title = clean_url
         
         # Check if it's an image
         if any(img_type in content_type for img_type in ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']):
@@ -5340,10 +5390,10 @@ def mcp_fetch_url():
                 import base64
                 image_b64 = base64.b64encode(response.content).decode('utf-8')
                 extracted_content = ocr_client.extract_text_from_image(image_b64)
-                content_title = f"Image: {url.split('/')[-1]}"
+                content_title = f"Image: {clean_url.split('/')[-1]}"
             except Exception as ocr_error:
                 logger.warning(f"OCR failed for image URL: {ocr_error}")
-                extracted_content = f"[Image content from: {url}]"
+                extracted_content = f"[Image content from: {clean_url}]"
         
         # Check if it's a PDF
         elif 'application/pdf' in content_type:
@@ -5352,10 +5402,10 @@ def mcp_fetch_url():
                 import base64
                 pdf_b64 = base64.b64encode(response.content).decode('utf-8')
                 extracted_content = ocr_client.extract_text_from_pdf(pdf_b64)
-                content_title = f"PDF: {url.split('/')[-1]}"
+                content_title = f"PDF: {clean_url.split('/')[-1]}"
             except Exception as pdf_error:
                 logger.warning(f"PDF extraction failed: {pdf_error}")
-                extracted_content = f"[PDF content from: {url}]"
+                extracted_content = f"[PDF content from: {clean_url}]"
         
         # HTML content
         elif 'text/html' in content_type:
@@ -5390,19 +5440,25 @@ def mcp_fetch_url():
         # Plain text or JSON
         elif 'text/' in content_type or 'application/json' in content_type:
             extracted_content = response.text[:10000]
-            content_title = f"Text: {url.split('/')[-1]}"
+            content_title = f"Text: {clean_url.split('/')[-1]}"
         
         else:
-            extracted_content = f"[Binary content from: {url}]"
+            extracted_content = f"[Binary content from: {clean_url}]"
         
         return jsonify({
             'success': True,
-            'url': url,
+            'url': clean_url,
             'title': content_title,
             'content': extracted_content,
             'content_type': content_type
         })
         
+    except UnsafeUrlError as e:
+        logger.warning(f"[MCP] Unsafe fetch URL rejected: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Unsafe URL rejected'
+        }), 400
     except requests.exceptions.Timeout:
         return jsonify({
             'success': False,

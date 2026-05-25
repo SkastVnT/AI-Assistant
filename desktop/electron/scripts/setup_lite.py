@@ -93,8 +93,16 @@ def build_venv_online(venv_dir: Path, requirements: Path, fh, *, with_cuda_torch
 def patch_env_file(payload_root: Path, fh) -> None:
     env_path = payload_root / "app" / "config" / ".env"
     if not env_path.exists():
-        log("no app/config/.env — skipping path patch", fh)
-        return
+        example_path = env_path.with_name(".env.example")
+        if example_path.exists():
+            env_path.write_text(
+                example_path.read_text(encoding="utf-8", errors="replace"),
+                encoding="utf-8",
+            )
+            log("created app/config/.env from .env.example", fh)
+        else:
+            log("no app/config/.env or .env.example present - skipping path patch", fh)
+            return
 
     marker = "# === INSTALL-LOCATION (set by setup_lite.py) ==="
     end_marker = "# === END INSTALL-LOCATION ==="

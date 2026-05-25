@@ -8,6 +8,10 @@ import textwrap
 
 import pytest
 
+# RAG ingest tests require pgvector (transitive via src.rag.db); skip if not installed
+pytest.importorskip("pgvector", reason="pgvector not installed — skip RAG ingest tests")
+pytestmark = pytest.mark.rag
+
 
 # ── Parser tests ───────────────────────────────────────────────────────────
 

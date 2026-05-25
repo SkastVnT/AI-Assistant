@@ -14,6 +14,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# RAG retrieval tests require pgvector; skip the whole file if not installed
+pytest.importorskip("pgvector", reason="pgvector not installed — skip RAG retrieval tests")
+pytestmark = pytest.mark.rag
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

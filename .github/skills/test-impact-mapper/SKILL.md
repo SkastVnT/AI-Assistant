@@ -45,8 +45,6 @@ Use this table to find the minimum test set for a changed file.
 | `core/db_helpers.py` | `test_integration`, `test_performance`, `test_repositories` | Database access layer |
 | `core/error_handler.py` | `test_app` | Error middleware |
 | `core/agentic/**` | `test_agentic_*` (all 9 files) | Multi-agent orchestration |
-| `fastapi_app/**` | `test_rag_router`, `test_rag_chat_integration`, `test_rag_e2e`, `test_endpoint_orchestrator_integration` | FastAPI-only path |
-| `fastapi_app/routers/skills.py` | `test_skills_api` | FastAPI skill endpoints |
 | `src/rag/**` | `test_ingest`, `test_retrieval`, `test_rag_*` | RAG pipeline |
 | `src/audio_transcription.py` | Manual only | No dedicated test |
 | `src/ocr_integration.py` | Manual only | No dedicated test |
@@ -75,7 +73,7 @@ Use this table to find the minimum test set for a changed file.
 - **Integration tests are needed** when the change crosses module boundaries (e.g., route → chatbot → tool → config).
 - **Manual verification is needed** when the map says "Manual only" or when the change affects MCP, audio, OCR, or live API integrations.
 - **Full suite (`pytest tests/ -v`)** is warranted when: `conftest.py` changes, `core/config.py` changes, `extensions.py` changes, or more than 3 modules are affected.
-- **RAG tests** are separate and only needed when `src/rag/**` or `fastapi_app/routers/rag.py` changes.
+- **RAG tests** are separate and only needed when `src/rag/**` changes.
 
 ## CI workflow awareness
 

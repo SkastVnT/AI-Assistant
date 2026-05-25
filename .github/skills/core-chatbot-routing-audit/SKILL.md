@@ -1,6 +1,6 @@
 ---
 name: core-chatbot-routing-audit
-description: "Audit and safely edit the core chatbot request path — route registration, blueprint wiring, provider routing, tool dispatch, SSE streaming, UI-to-backend wiring, and Flask vs FastAPI parity. Use when: adding or changing a chat route, modifying provider selection, wiring a new tool into the UI, debugging broken streaming, reviewing blueprint registration, or checking Flask/FastAPI endpoint parity."
+description: "Audit and safely edit the core chatbot request path: route registration, blueprint wiring, provider routing, tool dispatch, SSE streaming, and UI-to-backend wiring. Use when adding or changing a chat route, modifying provider selection, wiring a new tool into the UI, debugging broken streaming, or reviewing blueprint registration."
 ---
 
 # Core Chatbot Routing Audit
@@ -11,14 +11,14 @@ description: "Audit and safely edit the core chatbot request path — route regi
 - Changing provider routing or model selection logic.
 - Wiring a new tool (search, image, MCP) into the chat pipeline.
 - Debugging broken SSE streaming or missing UI controls.
-- Checking whether a Flask route has a FastAPI equivalent (or vice versa).
+- Confirming changes stay on the Flask monolith path.
 - Reviewing blueprint registration order or URL prefix conflicts.
 - Verifying that a frontend JS call still matches its backend endpoint.
 
 ## Mandatory first step
 
 **Trace the real request path before editing anything.** Identify:
-1. Which entry point handles the request (Flask blueprint or FastAPI router).
+1. Which Flask blueprint handles the request.
 2. Which core module processes it (chatbot.py, tools.py, thinking_generator.py).
 3. Which UI element triggers it (template HTML, static JS module).
 4. What response shape the frontend expects (JSON, SSE events, redirect).
@@ -32,8 +32,7 @@ description: "Audit and safely edit the core chatbot request path — route regi
 | File | Role |
 |---|---|
 | `services/chatbot/chatbot_main.py` | Flask monolith — registers blueprints, starts app |
-| `services/chatbot/run.py` | Dispatcher — selects Flask legacy / Flask modular / FastAPI |
-| `services/chatbot/fastapi_app/__init__.py` | FastAPI app factory — `create_app()`, includes routers |
+| `services/chatbot/run.py` | Dispatcher for the Flask monolith |
 
 ### Flask blueprints — `services/chatbot/routes/`
 
@@ -55,19 +54,9 @@ description: "Audit and safely edit the core chatbot request path — route regi
 | `routes/skills.py` | `skills_bp` | `/api/skills/*` — skill list, get, activate, deactivate |
 | `routes/async_routes.py` | `async_bp` | `/chat/async` — async SSE streaming |
 
-### FastAPI routers — `services/chatbot/fastapi_app/routers/`
+### Retired parallel API path
 
-| File | Key routes |
-|---|---|
-| `routers/chat.py` | `POST /chat` — main chat handler, council mode, xAI native |
-| `routers/stream.py` | `POST /chat/stream` — SSE streaming |
-| `routers/conversations.py` | Conversation CRUD |
-| `routers/memory.py` | Memory endpoints |
-| `routers/images.py` | Image storage |
-| `routers/video.py` | Sora 2 video generation |
-| `routers/rag.py` | RAG search |
-| `routers/council_stream.py` | Multi-agent council streaming |
-| `routers/xai_native_stream.py` | xAI native research streaming |
+The parallel API package was removed in May 2026. Do not add compatibility shims or reintroduce a second runtime path while editing routes.
 
 ### Core logic — `services/chatbot/core/`
 
@@ -159,12 +148,12 @@ When detected → auto-injects `google_search_tool()` results into context.
 
 | JS call site | Method | URL | Backend handler |
 |---|---|---|---|
-| `api-service.js` | POST | `/chat` | `routes/main.py` or `routers/chat.py` |
-| `api-service.js` | POST | `/chat/stream` | `routes/stream.py` or `routers/stream.py` |
+| `api-service.js` | POST | `/chat` | `routes/main.py` |
+| `api-service.js` | POST | `/chat/stream` | `routes/stream.py` |
 | `api-service.js` | GET | `/chat/stream/models` | `routes/stream.py` |
 | `main.js` | POST | `/api/generate-title` | `routes/main.py` |
 | `main.js` | POST | `/api/extract-file-text` | `routes/main.py` |
-| `main.js` | POST | `/api/video/generate` | `routes/main.py` or `routers/video.py` |
+| `main.js` | POST | `/api/video/generate` | `routes/main.py` |
 | `image-gen-v2.js` | POST | `/api/image-gen/generate` | `routes/image_gen.py` |
 | `image-gen-v2.js` | GET | `/api/image-gen/gallery` | `routes/image_gen.py` |
 | `image-gen-v2.js` | GET | `/api/image-gen/providers` | `routes/image_gen.py` |
@@ -183,7 +172,7 @@ When detected → auto-injects `google_search_tool()` results into context.
 4. **Tool ID mismatch** — UI sends tool IDs from `index.html`; backend matches by string. A rename on either side silently disables the tool.
 5. **Auto-search keyword lists** — adding/removing patterns in `routes/stream.py` changes when web search fires.
 6. **Provider method signature** — changing params in `chat_with_grok()` etc. can break the dispatch in `ChatbotAgent.chat()`.
-7. **Flask/FastAPI drift** — a route added to Flask but not FastAPI (or vice versa) creates mode-dependent behavior.
+7. **Runtime drift** — adding a second route path or compatibility shim creates mode-dependent behavior.
 8. **Static file caching** — browser-cached JS may call old endpoints after a rename.
 
 ---
@@ -192,7 +181,6 @@ When detected → auto-injects `google_search_tool()` results into context.
 
 - `services/chatbot/core/` — chatbot logic, tools, config, streaming, thinking.
 - `services/chatbot/routes/` — Flask blueprints.
-- `services/chatbot/fastapi_app/routers/` — FastAPI equivalents.
 - `services/chatbot/templates/` — Chat UI HTML.
 - `services/chatbot/static/js/` — Frontend JS modules.
 - `services/chatbot/src/` — STT, OCR, video gen, RAG helpers.
@@ -216,7 +204,7 @@ When using this skill, structure your response with:
 1. **Route impact** — Which endpoints changed? New, modified, or removed?
 2. **UI impact** — Does any JS call site need updating? Will the response shape change?
 3. **Provider impact** — Does this affect model routing or tool dispatch?
-4. **Flask/FastAPI parity** — If you changed a Flask route, does the FastAPI equivalent need the same change?
+4. **Runtime contract** — Did the change stay on the Flask monolith path and preserve response shapes?
 5. **Verification steps** — How to confirm the change works.
 
 ---
@@ -225,7 +213,7 @@ When using this skill, structure your response with:
 
 Before making changes:
 
-- [ ] Identified the exact entry point (Flask blueprint or FastAPI router).
+- [ ] Identified the exact Flask blueprint entry point.
 - [ ] Traced the request path from UI → route → core → response.
 - [ ] Checked if the endpoint is called from `api-service.js`, `main.js`, `mcp.js`, `image-gen-v2.js`, or `index.html`.
 - [ ] Confirmed the current SSE event names and response shapes used by the frontend.
@@ -239,7 +227,7 @@ After making changes:
 - [ ] `/chat/stream` still returns valid SSE events with correct event names.
 - [ ] All JS fetch calls in `static/js/` and `templates/` still match backend route paths.
 - [ ] Tool IDs in `index.html` still match what `core/tools.py` and `routes/stream.py` expect.
-- [ ] If a Flask route changed, the FastAPI equivalent was reviewed (update or document the gap).
+- [ ] No compatibility shim or second runtime path was introduced.
 - [ ] If a new route was added, blueprint registration in `chatbot_main.py` is confirmed.
 - [ ] If a response shape changed, `api-service.js` event parsing was updated.
 - [ ] No image-pipeline or ComfyUI files were modified for a chatbot-only change.

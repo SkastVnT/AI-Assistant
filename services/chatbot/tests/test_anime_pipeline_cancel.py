@@ -21,6 +21,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+pytestmark = pytest.mark.image
+
 _CHATBOT_DIR = Path(__file__).resolve().parents[1]
 if str(_CHATBOT_DIR) not in sys.path:
     sys.path.insert(0, str(_CHATBOT_DIR))

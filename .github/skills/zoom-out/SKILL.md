@@ -71,5 +71,5 @@ If you can't complete that sentence, zoom out further before touching code.
 | `core/stream_contract.py` | `complete` event payload shape — frontend depends on exact field names |
 | `core/tools.py` | Auto-trigger keywords and fallback order — changing keywords affects routing |
 | `chatbot_main.py` | Blueprint registration order — later blueprints can shadow earlier ones |
-| `fastapi_app/` | Parallel to Flask — changes here do NOT affect Flask mode and vice versa |
+| `routes/` | Flask monolith route layer — primary request/response surface |
 | `services/shared_env.py` | Loaded once per process — side effects at import time can cause hard-to-debug failures |

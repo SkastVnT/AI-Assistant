@@ -23,7 +23,7 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}  # Override MONGO_ROOT_PASSWORD in .env for non-dev environments
       MONGO_INITDB_DATABASE: ai_assistant
     volumes:
       - mongodb_data:/data/db
@@ -38,8 +38,8 @@ services:
   # ─── ChatBot (primary service) ─────────────────────────────────────
   chatbot:
     build:
-      context: ./services/chatbot
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/chatbot/Dockerfile
     container_name: ai-assistant-chatbot
     restart: unless-stopped
     ports:
@@ -51,12 +51,11 @@ services:
       MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/ai_assistant?authSource=admin
       MONGODB_DB_NAME: ai_assistant
       FLASK_PORT: "5000"
-      # Optional: set USE_FASTAPI=true or USE_NEW_STRUCTURE=true
     depends_on:
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health', timeout=5)"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/api/v1/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3

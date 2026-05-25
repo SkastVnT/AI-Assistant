@@ -22,10 +22,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
     
-    - name: Set up Python 3.10
+    - name: Set up Python 3.11
       uses: actions/setup-python@v6
       with:
-        python-version: '3.10'
+        python-version: '3.11'
         cache: 'pip'
         
     - name: Install security tools
@@ -37,27 +37,21 @@ jobs:
       run: |
         bandit -r services/ app/src/ \
           --exclude '**/tests/**,**/__pycache__/**' \
-          --severity-level medium \
+          --severity-level high \
           --confidence-level medium \
-          -f json -o bandit-report.json || true
+          -f json -o bandit-report.json
         bandit -r services/ app/src/ \
           --exclude '**/tests/**,**/__pycache__/**' \
-          -f txt || true
-      continue-on-error: true
+          --severity-level high \
+          -f txt
         
-    - name: Run pip-audit (active services only)
+    - name: Run pip-audit (core services)
       run: |
-        for req in \
-          services/chatbot/requirements.txt \
-          services/stable-diffusion/requirements.txt \
-          services/edit-image/requirements.txt \
-          services/mcp-server/requirements.txt; do
-          if [ -f "$req" ]; then
-            echo "=== Auditing $req ==="
-            pip-audit -r "$req" --desc || true
-          fi
-        done
-      continue-on-error: true
+        pip-audit -r app/requirements/profile_core_services.txt --desc
+        if [ -f services/mcp-server/requirements.txt ]; then
+          echo "=== Auditing MCP server ==="
+          pip-audit -r services/mcp-server/requirements.txt --desc
+        fi
         
     - name: Upload security reports
       uses: actions/upload-artifact@v4

@@ -6,6 +6,8 @@ import json
 import time
 from unittest.mock import Mock, patch, MagicMock
 
+pytestmark = pytest.mark.integration
+
 class TestChatAPIIntegration:
     """Integration tests for chat API"""
     

@@ -18,7 +18,7 @@ files:
   - "!**/*.map"
   - "!**/*.md"
 
-# Heavy payload (Python, ComfyUI, models, .env, services) lives outside asar
+# Heavy payload (Python, ComfyUI, models, services, .env.example) lives outside asar
 # so it is writable, debuggable, and survives auto-update file-diff.
 # `prepare-payload.js` populates `payload/` before electron-builder runs.
 extraResources:

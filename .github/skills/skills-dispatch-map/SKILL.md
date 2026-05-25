@@ -21,7 +21,7 @@ All skills below target the **core chatbot and tools stack** — `services/chatb
 
 | # | Skill | One-line scope |
 |---|-------|---------------|
-| 1 | **core-chatbot-routing-audit** | Route registration, blueprint wiring, provider routing, tool dispatch, SSE streaming, Flask/FastAPI parity |
+| 1 | **core-chatbot-routing-audit** | Route registration, blueprint wiring, provider routing, tool dispatch, SSE streaming, Flask monolith contract |
 | 2 | **shared-env-contract** | Env variable loading, `.env` file hierarchy, hardcoded secrets/ports, cross-service config |
 | 3 | **service-health-check-audit** | Startup failures, port drift, health endpoints, Docker/CI startup assumptions |
 | 4 | **search-tool-cascade** | Search tool functions, fallback order, auto-trigger keywords, reverse image flows |
@@ -47,7 +47,7 @@ All skills below target the **core chatbot and tools stack** — `services/chatb
 | Add a new chat route | core-chatbot-routing-audit | chat-ui-sync, tool-response-contract |
 | Change SSE event payload | core-chatbot-routing-audit | tool-response-contract, chat-ui-sync |
 | Fix broken streaming | core-chatbot-routing-audit | observability-log-hygiene |
-| Check Flask/FastAPI parity | core-chatbot-routing-audit | — |
+| Check Flask route contract | core-chatbot-routing-audit | — |
 | Wire a new tool button in UI | core-chatbot-routing-audit | chat-ui-sync, search-tool-cascade (if search tool) |
 
 ### Providers / Models

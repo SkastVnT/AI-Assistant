@@ -9,6 +9,7 @@ Provides utilities for optimizing database queries:
 """
 
 import logging
+import os
 import time
 from typing import Dict, Any, List, Optional, Callable, TypeVar
 from functools import wraps
@@ -343,11 +344,13 @@ class ConnectionPool:
                 'retryWrites': True,
                 'retryReads': True,
                 'tls': True,
-                'tlsAllowInvalidCertificates': True,
+                'tlsAllowInvalidCertificates': os.getenv(
+                    'MONGODB_TLS_ALLOW_INVALID_CERTIFICATES',
+                    'false',
+                ).lower() == 'true',
             }
             default_options.update(kwargs)
             
-            import os
             uri = uri or os.environ.get('MONGODB_URI', 'mongodb://localhost:27017')
             
             cls._client = MongoClient(uri, **default_options)

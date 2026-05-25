@@ -7,6 +7,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 from dataclasses import dataclass, field
 
+pytestmark = pytest.mark.image
+
 
 # ════════════════════════════════════════════════════════════════════════
 # Service-layer tests

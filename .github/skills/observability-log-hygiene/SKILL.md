@@ -69,7 +69,7 @@ Every log statement should belong to one of these categories. Use the correspond
 Logged once during service boot. Tells you what loaded, what's missing, what's degraded.
 
 **What to log:**
-- Service version / mode (Flask legacy, Flask modular, FastAPI)
+- Service version / mode (Flask monolith)
 - Loaded env file path
 - Database connection status (MongoDB enabled/disabled)
 - Optional module availability (MCP client, HTTP logging, etc.)
@@ -301,7 +301,7 @@ When reviewing or adding logging, check these signal paths:
 
 | Signal | Where | Current State |
 |--------|-------|---------------|
-| Service mode (Flask/FastAPI) | `run.py`, `chatbot_main.py` | ✅ Logged |
+| Service mode (Flask monolith) | `run.py`, `chatbot_main.py` | ✅ Logged |
 | Env file loaded | `shared_env.py` | ✅ Logged |
 | MongoDB connected | `extensions.py` | ✅ Logged |
 | Missing API keys | `extensions.py`, `config.py` | ✅ Logged (key names only) |

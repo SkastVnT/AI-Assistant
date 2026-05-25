@@ -23,6 +23,10 @@ except ModuleNotFoundError:
     from services.shared_env import load_shared_env
 
 load_shared_env(__file__)
+# Note: load_shared_env re-reads the env file each time it is called, but
+# does NOT override variables that are already set in the environment.  This
+# call ensures that scripts importing mongodb_config directly (without going
+# through chatbot_main) still receive env vars from app/config/.env.
 # MongoDB Atlas URI
 MONGODB_URI = os.getenv(
     'MONGODB_URI'
@@ -30,7 +34,7 @@ MONGODB_URI = os.getenv(
 MONGODB_X509_ENABLED = os.getenv('MONGODB_X509_ENABLED', 'false').lower() == 'true'
 MONGODB_X509_URI = os.getenv('MONGODB_X509_URI', '').strip()
 MONGODB_X509_CERT_PATH = os.getenv('MONGODB_X509_CERT_PATH', '').strip()
-MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'true').lower() == 'true'
+MONGODB_TLS_ALLOW_INVALID_CERTIFICATES = os.getenv('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', 'false').lower() == 'true'
 
 # Database name
 DATABASE_NAME = os.getenv('MONGODB_DB_NAME', 'chatbot_db')

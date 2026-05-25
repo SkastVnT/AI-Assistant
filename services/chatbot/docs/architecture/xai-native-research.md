@@ -122,9 +122,9 @@ core/agentic/xai_native/
 ├── contracts.py      # XaiNativeConfig, XaiNativeResult, XaiUsage, etc.
 └── entrypoint.py     # run_xai_native(), run_xai_native_stream()
 
-fastapi_app/routers/
-├── chat.py           # Updated: grok_native_research branch
-└── xai_native_stream.py  # SSE streaming endpoint
+routes/
+├── stream.py         # Flask SSE integration point
+└── main.py           # Flask chat integration point
 ```
 
 ---

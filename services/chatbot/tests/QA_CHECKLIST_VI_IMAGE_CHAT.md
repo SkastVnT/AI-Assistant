@@ -3,7 +3,7 @@
 
 ## Pre-conditions
 - [ ] Chatbot is running (`python run.py`)
-- [ ] `.env` has `USE_FASTAPI=true`
+- [ ] Flask monolith is running on port 5000
 - [ ] `.env` has `IMAGE_FIRST_MODE=1`
 - [ ] `.env` has at least one remote API key (`FAL_API_KEY` or `TOGETHER_API_KEY`)
 - [ ] Browser open at `http://localhost:5000`

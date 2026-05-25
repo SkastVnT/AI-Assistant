@@ -17,6 +17,8 @@ import pytest
 
 import httpx
 
+pytestmark = pytest.mark.image
+
 # ── Ensure project root is importable ─────────────────────────────────
 _root = Path(__file__).resolve().parents[3]  # AI-Assistant/
 sys.path.insert(0, str(_root))
@@ -6454,11 +6456,15 @@ class TestResolveVRAMProfile:
 
     def test_auto_defaults_to_normalvram(self):
         import os
+        from image_pipeline.anime_pipeline import config as vram_config
         from image_pipeline.anime_pipeline.config import resolve_vram_profile
-        # Clear env to avoid interference
+        # Clear env to avoid interference; mock GPU detection to return None so the
+        # test exercises the nvidia-smi-unavailable fallback (normalvram) regardless
+        # of the actual hardware present on the machine.
         old = os.environ.pop("ANIME_PIPELINE_VRAM_PROFILE", None)
         try:
-            cfg = resolve_vram_profile("auto")
+            with patch.object(vram_config, "_detect_gpu_vram_gb", return_value=None):
+                cfg = resolve_vram_profile("auto")
             assert cfg.max_resolution == 1216
         finally:
             if old is not None:

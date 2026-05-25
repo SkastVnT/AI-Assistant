@@ -52,3 +52,6 @@ ultralytics>=8.0.0
 # Debug-only extras (install on demand, do not add to the profile):
 #   - pip install matplotlib   # plot detection masks / critique overlays
 #   - pip install ipython      # interactive pipeline inspection
+#
+# Test-only extras (not required at runtime, needed for pytest):
+#   - pip install pytest-asyncio  # run async def tests in core/agentic/

@@ -200,7 +200,7 @@ Workflows set specific env vars. Code that reads env at import time must have sa
 - All API keys (`OPENAI_API_KEY`, `GOOGLE_API_KEY`, `SERPAPI_API_KEY`, etc.)
 - `MONGODB_URI`
 - `REDIS_URL`
-- `USE_NEW_STRUCTURE`, `USE_FASTAPI`
+- Removed startup flags or route compatibility shims
 - Service-local keys in `services/chatbot/.env`
 
 **Rule:** If you add a new env var that is read at import time, give it a default value or guard it with `os.getenv("VAR", default)`. Otherwise CI will crash with `KeyError` or `None` propagation.

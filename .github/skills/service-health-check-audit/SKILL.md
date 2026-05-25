@@ -45,11 +45,9 @@ Do **not** use this skill for ComfyUI, Stable Diffusion, or image pipeline issue
 
 | Env flag | Mode | Entry | Port env var |
 |---|---|---|---|
-| *(none)* | Flask legacy monolith | `chatbot_main.py` | `CHATBOT_PORT` (default 5000) |
-| `USE_NEW_STRUCTURE=true` | Flask modular factory | `run.py` → `app/__init__.py` | `FLASK_PORT` (default 5000) |
-| `USE_FASTAPI=true` | FastAPI + uvicorn | `run.py` → `fastapi_app/` | `FLASK_PORT` (default 5000) |
+| *(none)* | Flask monolith | `run.py` or `chatbot_main.py` | `FLASK_PORT` / `CHATBOT_PORT` (default 5000) |
 
-Note: legacy mode reads `CHATBOT_PORT`, while the other two modes read `FLASK_PORT`. Both default to 5000.
+Note: `run.py` is the canonical dispatcher and starts the Flask monolith only.
 
 ---
 
@@ -79,9 +77,9 @@ Check                                   How
 Python version                          python --version (expect 3.10+)
 Active venv                             which python / where python
 Correct venv for service                venv-core for chatbot/MCP, venv-image for SD/edit
-Required packages installed             pip list | grep flask (or fastapi, mcp, etc.)
+Required packages installed             pip list | grep flask (or mcp, etc.)
 Shared env file exists                  ls app/config/.env or .env_dev
-Startup env vars set                    echo $USE_FASTAPI, echo $CHATBOT_PORT
+Startup env vars set                    echo $FLASK_PORT, echo $CHATBOT_PORT
 ```
 
 ### Step 2 — Verify the entry point
@@ -98,11 +96,8 @@ Core config imports cleanly             cd services/chatbot && python -c "from c
 ### Step 3 — Attempt a controlled start
 
 ```
-# Local (Flask legacy)
+# Local (Flask monolith)
 cd services/chatbot && python chatbot_main.py
-
-# Local (FastAPI)
-cd services/chatbot && USE_FASTAPI=true python run.py
 
 # Docker
 docker-compose -f app/config/docker-compose.yml up chatbot
@@ -289,7 +284,7 @@ After every health check or startup debug session, report:
 
 Before applying a fix to a startup or health issue:
 
-- [ ] Confirmed which startup mode is being used (legacy / modular / FastAPI).
+- [ ] Confirmed the Flask monolith startup path is being used.
 - [ ] Confirmed which venv is active (`venv-core` for chatbot/MCP).
 - [ ] Confirmed the shared env file loads successfully.
 - [ ] Checked whether the issue reproduces in Docker, local scripts, or both.

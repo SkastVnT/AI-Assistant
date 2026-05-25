@@ -204,6 +204,8 @@ Frontend (`static/js/modules/chat-manager.js`): `_syncUrl()` dùng `history.push
 git clone https://github.com/SkastVnT/AI-Assistant.git
 cd AI-Assistant
 
+# Python 3.11.9 required (see .python-version)
+
 # Core (chatbot + MCP)
 python -m venv venv-core
 venv-core\Scripts\activate                          # Windows
@@ -218,6 +220,13 @@ pip install -r app/requirements/profile_image_ai_services.txt
 cp app/config/.env.example app/config/.env
 # Sửa app/config/.env, set ít nhất 1 LLM key (OpenRouter cho fallback đa dạng)
 ```
+
+Xác nhận local gate xanh trước khi commit:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/verify-local.ps1
+```
+
+Dev guide đầy đủ: [docs/onboarding-dev.md](docs/onboarding-dev.md)
 
 Loader: `services/shared_env.py` → `load_shared_env(__file__)` → tìm `app/config/.env_{env}` rồi fallback `app/config/.env`. Mỗi service gọi **một lần** khi khởi động.
 
@@ -255,6 +264,7 @@ HUGGINGFACE_API_KEY=
 # ── Database ──
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB_NAME=ai_assistant_v2
+MONGODB_TLS_ALLOW_INVALID_CERTIFICATES=false
 
 # ── Image generation ──
 FAL_API_KEY=
@@ -286,6 +296,8 @@ REASONING_PIPELINE=false
 # ── Runtime ──
 AUTO_START_IMAGE_SERVICES=true
 FLASK_PORT=5000
+FLASK_SECRET_KEY=              # required outside env=dev and TESTING=true
+# In env=dev the app generates an ephemeral secret; TESTING=true uses a fixed test-only value.
 env=dev                    # → .env_dev / .env_prod
 ```
 

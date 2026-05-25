@@ -36,6 +36,20 @@ LOCAL_DATA_DIR = BASE_DIR / "local_data"
 RESOURCES_DIR = BASE_DIR / "resources"
 LOGS_DIR = RESOURCES_DIR / "logs"
 
+import importlib.util as _ilu
+
+_guard_path = Path(__file__).parent / "tools" / "guard.py"
+_guard_spec = _ilu.spec_from_file_location("mcp_tools_guard", _guard_path)
+if _guard_spec is None or _guard_spec.loader is None:
+    raise ImportError(f"Cannot load guard module from {_guard_path}")
+_guard_mod = _ilu.module_from_spec(_guard_spec)
+_guard_spec.loader.exec_module(_guard_mod)
+SAFE_TEXT_EXTENSIONS = _guard_mod.SAFE_TEXT_EXTENSIONS
+is_blocked_workspace_path = _guard_mod.is_blocked_workspace_path
+validate_text_file = _guard_mod.validate_text_file
+validate_workspace_path = _guard_mod.validate_workspace_path
+workspace_relative = _guard_mod.workspace_relative
+
 # Module-level safe math evaluator setup
 _MATH_ALLOWED = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
 _MATH_ALLOWED.update({"abs": abs, "round": round, "min": min, "max": max, "sum": sum, "pow": pow})
@@ -94,7 +108,7 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
     """
     results = []
     extensions = {
-        "all": ["*"],
+        "all": sorted(SAFE_TEXT_EXTENSIONS),
         "py": [".py"],
         "md": [".md"],
         "json": [".json"],
@@ -102,21 +116,30 @@ def search_files(query: str, file_type: str = "all", max_results: int = 10) -> D
     }
     
     exts = extensions.get(file_type, ["*"])
-    
+    max_results = max(1, min(int(max_results), 50))
+
     for root, dirs, files in os.walk(BASE_DIR):
-        # Skip venv, __pycache__, node_modules
-        dirs[:] = [d for d in dirs if d not in ['.venv', 'venv', '__pycache__', 'node_modules', '.git']]
+        root_path = Path(root)
+        if is_blocked_workspace_path(root_path):
+            dirs[:] = []
+            continue
+
+        dirs[:] = [
+            d for d in dirs
+            if not is_blocked_workspace_path(root_path / d)
+        ]
         
         for file in files:
             if any(ext == "*" or file.endswith(ext) for ext in exts):
                 if query.lower() in file.lower():
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, BASE_DIR)
+                    full_path = root_path / file
+                    if is_blocked_workspace_path(full_path):
+                        continue
+                    rel_path = workspace_relative(full_path)
                     results.append({
                         "filename": file,
                         "path": rel_path,
-                        "full_path": full_path,
-                        "size": os.path.getsize(full_path)
+                        "size": full_path.stat().st_size
                     })
                     
                     if len(results) >= max_results:
@@ -146,13 +169,8 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
         Dict chá»©a ná»™i dung file
     """
     try:
-        full_path = BASE_DIR / file_path
-        
-        if not full_path.exists():
-            return {"error": f"File khÃ´ng tá»“n táº¡i: {file_path}"}
-        
-        if not full_path.is_file():
-            return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  file: {file_path}"}
+        full_path = validate_text_file(file_path)
+        max_lines = max(1, min(int(max_lines), 500))
         
         # Äá»c file
         with open(full_path, 'r', encoding='utf-8') as f:
@@ -162,7 +180,7 @@ def read_file_content(file_path: str, max_lines: int = 100) -> Dict[str, Any]:
         content_lines = lines[:max_lines]
         
         return {
-            "file_path": file_path,
+            "file_path": workspace_relative(full_path),
             "total_lines": total_lines,
             "lines_read": len(content_lines),
             "truncated": total_lines > max_lines,
@@ -186,10 +204,7 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
         Dict chá»©a danh sÃ¡ch files vÃ  folders
     """
     try:
-        full_path = BASE_DIR / dir_path
-        
-        if not full_path.exists():
-            return {"error": f"ThÆ° má»¥c khÃ´ng tá»“n táº¡i: {dir_path}"}
+        full_path = validate_workspace_path(dir_path)
         
         if not full_path.is_dir():
             return {"error": f"ÄÆ°á»ng dáº«n khÃ´ng pháº£i lÃ  thÆ° má»¥c: {dir_path}"}
@@ -202,6 +217,8 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
                 continue
             
             item_path = full_path / item
+            if is_blocked_workspace_path(item_path):
+                continue
             item_info = {
                 "name": item,
                 "size": os.path.getsize(item_path) if item_path.is_file() else None,
@@ -214,7 +231,7 @@ def list_directory(dir_path: str = ".", include_hidden: bool = False) -> Dict[st
                 folders.append(item_info)
         
         return {
-            "directory": dir_path,
+            "directory": workspace_relative(full_path),
             "total_items": len(files) + len(folders),
             "folders": sorted(folders, key=lambda x: x["name"]),
             "files": sorted(files, key=lambda x: x["name"])

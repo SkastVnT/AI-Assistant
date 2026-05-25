@@ -19,7 +19,7 @@ description: "Keep the chat UI synchronized with backend routes, tool selectors,
 
 - Pure CSS/visual changes that touch no JS logic and no backend routes.
 - Image pipeline or ComfyUI UI (those services have separate frontends).
-- FastAPI path changes (parallel implementation — sync separately if needed).
+- Flask route changes that affect UI request/response shapes.
 
 ---
 
@@ -110,7 +110,7 @@ User action → event listener (main.js) → API call (api-service.js) → Flask
 |------|-----|
 | `ComfyUI/`, `image_pipeline/` | Separate UI stack |
 | `services/stable-diffusion/`, `services/edit-image/` | Image services |
-| `services/chatbot/fastapi_app/` | Parallel implementation — sync separately |
+| `services/chatbot/routes/` | Flask route handlers — keep UI call sites aligned |
 | `templates/admin.html`, `templates/login.html` | Admin/auth UI, not part of chat flow |
 
 ---

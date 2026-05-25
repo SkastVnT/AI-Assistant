@@ -46,7 +46,7 @@ def init_mongodb(app: Flask) -> None:
         x509_enabled = str(app.config.get('MONGODB_X509_ENABLED', False)).lower() == 'true'
         x509_uri = str(app.config.get('MONGODB_X509_URI', '') or '').strip()
         x509_cert_path = str(app.config.get('MONGODB_X509_CERT_PATH', '') or '').strip()
-        tls_allow_invalid = str(app.config.get('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', True)).lower() == 'true'
+        tls_allow_invalid = str(app.config.get('MONGODB_TLS_ALLOW_INVALID_CERTIFICATES', False)).lower() == 'true'
 
         if x509_enabled and x509_uri:
             uri = x509_uri

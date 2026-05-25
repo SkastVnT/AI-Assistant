@@ -103,16 +103,15 @@ Process start
 | `env` | Environment name | `dev` |
 | `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017` |
 | `MONGODB_DB_NAME` | Database name | `chatbot_db` |
+| `MONGODB_TLS_ALLOW_INVALID_CERTIFICATES` | Allow invalid MongoDB TLS certificates | `false` |
 | `REDIS_URL` | Redis cache URL | — |
 | `SD_API_URL` | Stable Diffusion WebUI | `http://127.0.0.1:7861` |
-| `FLASK_SECRET_KEY` | Flask session secret | fallback hardcoded (dev only) |
+| `FLASK_SECRET_KEY` | Flask session secret | required outside dev/test |
 
 ### Startup flags
 
 | Variable | Effect | Default |
 |---|---|---|
-| `USE_FASTAPI` | Launch FastAPI instead of Flask | `false` |
-| `USE_NEW_STRUCTURE` | Launch Flask modular app factory | `false` |
 | `TESTING` | CI test mode (disables DB) | `False` |
 | `MONGODB_ENABLED` | Enable MongoDB | `True` (disabled in CI) |
 

@@ -139,6 +139,30 @@ def is_mongo_enabled() -> bool:
     return _state.db is not None
 
 
+def health_check() -> dict:
+    """Return a health-check dict suitable for a /health route.
+
+    Never raises. Example return values::
+
+        {"ok": True,  "latency_ms": 4.2, "db": "ai_assistant_v2"}
+        {"ok": False, "reason": "connect/ping failed: ...", "db": None}
+        {"ok": False, "reason": "MONGODB_URI not set",     "db": None}
+    """
+    import time
+
+    _init()
+    if _state.db is None:
+        return {"ok": False, "reason": _state.disabled_reason or "not initialized", "db": None}
+
+    try:
+        start = time.monotonic()
+        _state.client.admin.command("ping")
+        elapsed = round((time.monotonic() - start) * 1000, 2)
+        return {"ok": True, "latency_ms": elapsed, "db": _state.db.name}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "reason": str(exc), "db": None}
+
+
 def get_mongo_db() -> Any:
     """Return the active database handle, or ``None`` when disabled."""
     _init()

@@ -24,6 +24,8 @@ AI có thể gọi các công cụ sau:
 5. **search_logs** - Tìm kiếm logs từ các services
 6. **calculate** - Thực hiện phép tính toán
 
+File tools are guarded by `tools/guard.py`: traversal and symlink escapes are blocked, sensitive names such as `.env`/tokens/credentials are blocked, generated/vendor/private directories are skipped, reads are limited to known text files up to 512 KiB and 500 lines, and `search_files` returns workspace-relative `path` values only.
+
 ### 📦 Resources (Tài nguyên)
 AI có thể truy cập các tài nguyên:
 

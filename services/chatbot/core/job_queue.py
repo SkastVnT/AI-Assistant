@@ -19,7 +19,7 @@ import os
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, fields, asdict
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -70,6 +70,7 @@ class JobQueue:
         self._jobs: OrderedDict[str, JobRecord] = OrderedDict()
         self._history_limit = history_limit
         self._mongo_collection = self._try_init_mongo()
+        self._restore_from_db()
 
     @classmethod
     def get_instance(cls) -> "JobQueue":
@@ -230,6 +231,62 @@ class JobQueue:
         except Exception as exc:
             logger.warning("job_queue: mongo disabled (%s)", exc)
             return None
+
+    def _restore_from_db(self) -> None:
+        """Rehydrate recent jobs from Mongo on startup.
+
+        Without this, restarting the chatbot process loses every in-flight
+        and recently-completed job from the UI history panel even though
+        the records survive in Mongo. We pull the last N days (env
+        ``JOB_QUEUE_RESTORE_DAYS``, default 7) up to ``history_limit``.
+        Non-terminal jobs (queued/running) are forced to ``failed`` so
+        the UI does not show stale spinners for processes that died.
+        """
+        if self._mongo_collection is None:
+            return
+        try:
+            days = int(os.getenv("JOB_QUEUE_RESTORE_DAYS", "7"))
+        except ValueError:
+            days = 7
+        cutoff = time.time() - max(1, days) * 86400.0
+        try:
+            cursor = (
+                self._mongo_collection.find({"created_at": {"$gte": cutoff}})
+                .sort("created_at", 1)
+                .limit(self._history_limit)
+            )
+            docs = list(cursor)
+        except Exception as exc:
+            logger.warning("job_queue: mongo restore failed: %s", exc)
+            return
+
+        valid_fields = {f.name for f in fields(JobRecord)}
+        restored = 0
+        recovered = 0
+        with self._lock:
+            for doc in docs:
+                payload = {k: v for k, v in doc.items() if k in valid_fields}
+                if "job_id" not in payload:
+                    continue
+                try:
+                    rec = JobRecord(**payload)
+                except TypeError as exc:
+                    logger.debug("job_queue: skip malformed doc %s: %s", payload.get("job_id"), exc)
+                    continue
+                # Jobs that were running when the process died can never
+                # complete — surface as failed so the UI clears spinners.
+                if rec.state in ("queued", "running"):
+                    rec.state = "failed"
+                    if rec.completed_at is None:
+                        rec.completed_at = time.time()
+                    if not rec.error:
+                        rec.error = "process restarted before completion"
+                    recovered += 1
+                self._jobs[rec.job_id] = rec
+                restored += 1
+        if restored:
+            logger.info("job_queue: restored %d job(s) from mongo (%d recovered to failed)",
+                        restored, recovered)
 
     # --- internal ------------------------------------------------------
 

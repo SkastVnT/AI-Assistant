@@ -41,6 +41,7 @@ def _make_hit(chunk_id="c1", document_id="d1", title="Doc", content="Text", scor
 # build_grounded_rag_context unit tests
 # ---------------------------------------------------------------------------
 
+@pytest.mark.rag
 class TestBuildGroundedRagContext:
     def test_empty_hits(self):
         from src.rag.prompts import build_grounded_rag_context

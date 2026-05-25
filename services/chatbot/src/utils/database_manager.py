@@ -69,7 +69,10 @@ class DatabaseManager:
                 retryWrites=True,  # Retry failed writes
                 retryReads=True,  # Retry failed reads
                 tls=True,  # Enable TLS for MongoDB Atlas
-                tlsAllowInvalidCertificates=True,  # Allow self-signed certs in dev
+                tlsAllowInvalidCertificates=os.getenv(
+                    'MONGODB_TLS_ALLOW_INVALID_CERTIFICATES',
+                    'false',
+                ).lower() == 'true',
             )
             
             # Test connection with timeout

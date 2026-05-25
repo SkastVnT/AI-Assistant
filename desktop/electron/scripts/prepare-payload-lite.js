@@ -11,7 +11,7 @@
  *     image_pipeline/, configs/, rag/)
  *   - storage/character_db, storage/metadata, storage/prompts (small JSON/YAML)
  *   - Root requirements*.txt
- *   - app/config/.env  (private, internal use only)
+ *   - app/config/.env.example  (real .env files are provisioned on install)
  *   - bootstrap_prereqs.ps1 + setup_lite.py
  *
  * Excluded (vs prepare-payload.js):
@@ -23,6 +23,7 @@
  *   - wheels/                    (online pip install)
  *   - Any file matching model extensions (.safetensors, .ckpt, .pt, .pth,
  *     .gguf, .onnx, .tflite, *.bin > 10MB)
+ *   - Real .env files, keys/certs/credential-like files
  *
  * Run:
  *   node scripts/prepare-payload-lite.js
@@ -105,19 +106,32 @@ const EXCLUDE_EXT = new Set([
     '.pyc', '.pyo', '.pyd-test', '.log',
     '.safetensors', '.ckpt', '.pt', '.pth', '.gguf', '.onnx', '.tflite',
     '.zip', '.7z', '.tar', '.gz', '.rar',
+    '.key', '.pem', '.p12', '.pfx', '.crt', '.cer',
 ]);
 const EXCLUDE_NAMES = new Set([
     '.gitignore', '.gitattributes', '.gitkeep', '.dockerignore',
     'log_copilot.txt', '.DS_Store', 'Thumbs.db'
 ]);
+const SECRET_NAME_PARTS = [
+    'credential', 'credentials', 'id_rsa', 'private_key', 'service-account'
+];
 
 // Extra guard: any *.bin file larger than this is treated as a weight blob.
 const LARGE_BIN_THRESHOLD = 10 * 1024 * 1024; // 10 MB
+
+function isRealEnvFile(base) {
+    const lower = base.toLowerCase();
+    if (lower === '.env.example') return false;
+    return lower === '.env' || lower.startsWith('.env_') || lower.startsWith('.env.');
+}
 
 function shouldSkip(srcPath) {
     const rel = '/' + path.relative(REPO_ROOT, srcPath).replace(/\\/g, '/') + '/';
     for (const sub of EXCLUDE_SUBSTR) if (rel.includes(sub)) return true;
     const base = path.basename(srcPath);
+    const lowerBase = base.toLowerCase();
+    if (isRealEnvFile(base)) return true;
+    if (SECRET_NAME_PARTS.some((part) => lowerBase.includes(part))) return true;
     if (EXCLUDE_NAMES.has(base)) return true;
     const ext = path.extname(base).toLowerCase();
     if (EXCLUDE_EXT.has(ext)) return true;
@@ -200,4 +214,8 @@ async function main() {
     console.log('[prepare-payload-lite] done.');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (require.main === module) {
+    main().catch((e) => { console.error(e); process.exit(1); });
+}
+
+module.exports = { shouldSkip, isRealEnvFile };
