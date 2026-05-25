@@ -107,8 +107,13 @@ const EXCLUDE_NAMES = new Set([
     'log_copilot.txt', '.DS_Store', 'Thumbs.db'
 ]);
 const EXCLUDE_NAME_SUFFIX = ['.zip']; // LORA/*.zip etc.
+// Substring patterns applied to lowercase basename.  Keep these narrow:
+// cert/key extensions are already covered by EXCLUDE_EXT, so this list should
+// only catch real credential filenames (e.g. service-account keys, RSA keys).
+// Avoid generic words like "secret" or "token" — they match source files such
+// as core/secret_key.py and tokenizer assets used by ComfyUI models.
 const SECRET_NAME_PARTS = [
-    'credential', 'credentials', 'id_rsa', 'private_key', 'secret', 'token'
+    'credential', 'credentials', 'id_rsa', 'private_key', 'service-account'
 ];
 
 function isRealEnvFile(base) {

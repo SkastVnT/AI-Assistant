@@ -113,7 +113,7 @@ const EXCLUDE_NAMES = new Set([
     'log_copilot.txt', '.DS_Store', 'Thumbs.db'
 ]);
 const SECRET_NAME_PARTS = [
-    'credential', 'credentials', 'id_rsa', 'private_key', 'secret', 'token'
+    'credential', 'credentials', 'id_rsa', 'private_key', 'service-account'
 ];
 
 // Extra guard: any *.bin file larger than this is treated as a weight blob.

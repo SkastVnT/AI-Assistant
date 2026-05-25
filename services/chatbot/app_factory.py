@@ -30,10 +30,11 @@ def create_app(config: dict[str, Any] | None = None) -> "Flask":  # noqa: F821
     Parameters
     ----------
     config:
-        Optional dict of Flask config overrides applied after the app is
-        created.  In tests, pass ``{"TESTING": True, "MONGODB_ENABLED": False}``
-        or set those as env vars before calling (conftest.py sets them via
-        ``os.environ.setdefault``).
+        Optional dict of Flask config overrides applied **before** the app is
+        imported and **after** it is created.  Pass
+        ``{"TESTING": True, "MONGODB_ENABLED": False}`` to initialize the app
+        in test mode.  Values are set unconditionally via ``os.environ[k]``
+        so they override any pre-existing shell/CI environment variables.
 
     Returns
     -------
@@ -41,10 +42,12 @@ def create_app(config: dict[str, Any] | None = None) -> "Flask":  # noqa: F821
         The fully-wired monolith app with all blueprints registered.
     """
     # TESTING / MONGODB_ENABLED must be set before chatbot_main is imported
-    # because it reads them at module scope.
+    # because it reads them at module scope.  Use direct assignment so that
+    # the caller's values override any pre-existing env vars (e.g. from CI or
+    # shell), not os.environ.setdefault which silently ignores existing values.
     if config:
         for k, v in config.items():
-            os.environ.setdefault(k, str(v))
+            os.environ[k] = str(v)
 
     from chatbot_main import app as _app  # type: ignore[import]
 
