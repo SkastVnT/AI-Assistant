@@ -153,7 +153,7 @@ jobs:
       if: hashFiles(format('services/{0}/Dockerfile', matrix.service)) != ''
       uses: docker/build-push-action@v5
       with:
-        context: ./services/${{ matrix.service }}
+       context: .
         file: ./services/${{ matrix.service }}/Dockerfile
         push: false
         tags: |
