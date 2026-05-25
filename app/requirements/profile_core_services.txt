@@ -42,6 +42,10 @@ Pillow>=10.3.0
 # torch, torchvision, and opencv-python. If you do not need the detection
 # pass, this line can be commented out to keep the core venv lean.
 ultralytics>=8.0.0
+# Pin safe opencv versions to avoid CVE-2023-4863 (libwebp vuln in <4.8.1.78)
+# pulled in transitively by ultralytics.
+opencv-python>=4.8.1.78
+opencv-contrib-python>=4.8.1.78
 
 # Notes on what is intentionally NOT in this profile:
 #   - diffusers, kornia, lpips, open-clip-torch, timm, basicsr, gfpgan,
