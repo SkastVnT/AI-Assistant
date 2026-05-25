@@ -5423,7 +5423,7 @@ def mcp_fetch_url():
         logger.warning(f"[MCP] Unsafe fetch URL rejected: {e}")
         return jsonify({
             'success': False,
-            'error': f'Unsafe URL rejected: {e}'
+            'error': 'Unsafe URL rejected'
         }), 400
     except requests.exceptions.Timeout:
         return jsonify({
