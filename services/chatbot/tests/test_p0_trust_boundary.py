@@ -133,6 +133,8 @@ def test_mcp_read_blocks_sensitive_file(monkeypatch):
 
 def test_mcp_fetch_url_blocks_loopback(monkeypatch):
     monkeypatch.setenv("TESTING", "true")
+    # Allow 127.0.0.1 through the host allowlist so the SSRF check can fire.
+    monkeypatch.setenv("MCP_FETCH_ALLOWED_HOSTS", "127.0.0.1")
     import chatbot_main
 
     response = chatbot_main.app.test_client().post(
@@ -197,6 +199,9 @@ def test_url_safety_blocks_non_http_schemes():
 
 def test_mcp_fetch_url_blocks_unsafe_redirect(monkeypatch):
     monkeypatch.setenv("TESTING", "true")
+    # Allow example.com through the host allowlist so the redirect SSRF check
+    # fires when the response redirects to a loopback address.
+    monkeypatch.setenv("MCP_FETCH_ALLOWED_HOSTS", "example.com")
 
     import core.url_safety as url_safety
 
