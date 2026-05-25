@@ -139,12 +139,33 @@ def _load_wai() -> None:
         _thumbs = thumbs
 
 
+def _min_match_score() -> float:
+    """Read SAA_MIN_MATCH_SCORE env var; reject sub-threshold matches.
+
+    Substring matches can score as low as 0.1 on long queries against a short
+    character key (e.g. "miko" inside a 30-char prompt) and confuse the LLM
+    with irrelevant characters. Default 0.5 filters obvious noise while
+    keeping legitimate partial matches like "yae miko" → "yae miko (genshin
+    impact)". Set to 0 to disable filtering, 1.0 to require exact match only.
+    """
+    import os
+    raw = os.getenv("SAA_MIN_MATCH_SCORE", "").strip()
+    if not raw:
+        return 0.5
+    try:
+        v = float(raw)
+        return max(0.0, min(1.0, v))
+    except ValueError:
+        return 0.5
+
+
 def lookup_character(query: str) -> Optional[WaiCharacterMatch]:
     """Resolve ``query`` against the 5149-char WAI verified database.
 
     Tries an exact-key match first, then substring, then longest-alias match.
-    Returns ``None`` when nothing plausible is found. Guaranteed to never
-    raise and to be fast enough (<5 ms for typical prompts) to call on every
+    Returns ``None`` when nothing plausible is found OR the best match scores
+    below ``SAA_MIN_MATCH_SCORE`` (default 0.5). Guaranteed to never raise
+    and to be fast enough (<5 ms for typical prompts) to call on every
     character-research request.
     """
     if not query:
@@ -155,7 +176,7 @@ def lookup_character(query: str) -> Optional[WaiCharacterMatch]:
     if not key:
         return None
 
-    # 1) exact
+    # 1) exact — always returns (score=1.0 always passes threshold)
     hit = _wai_index.get(key)
     if hit:
         return _to_match(hit, score=1.0)
@@ -169,8 +190,13 @@ def lookup_character(query: str) -> Optional[WaiCharacterMatch]:
         candidates.sort(key=lambda x: -x[0])
         best_len, best = candidates[0]
         # Score shrinks as the overlap shrinks.
-        score = min(1.0, best_len / max(len(key), best_len))
-        return _to_match(best, score=score * 0.9)
+        score = min(1.0, best_len / max(len(key), best_len)) * 0.9
+        threshold = _min_match_score()
+        if score < threshold:
+            logger.debug("[SAA-DB] reject low-confidence match for '%s' (score=%.2f < %.2f)",
+                         query, score, threshold)
+            return None
+        return _to_match(best, score=score)
 
     return None
 

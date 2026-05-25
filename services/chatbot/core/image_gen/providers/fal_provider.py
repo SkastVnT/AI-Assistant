@@ -5,11 +5,28 @@ Supports FLUX.2, FLUX.1-Kontext, Seedream, Nano-Banana, and more.
 
 from __future__ import annotations
 
+import os
 import time
 import base64
 import logging
 import httpx
 from typing import Optional
+
+# Default fal.ai client timeout (seconds). Override with FAL_TIMEOUT env var.
+# Large models (FLUX.2-pro, Recraft-v4) occasionally take 150-180s end-to-end
+# behind the queue; the prior hardcoded 120s was clipping legitimate jobs.
+_FAL_TIMEOUT_DEFAULT = 240.0
+
+
+def _fal_timeout() -> float:
+    raw = os.getenv("FAL_TIMEOUT", "").strip()
+    if not raw:
+        return _FAL_TIMEOUT_DEFAULT
+    try:
+        v = float(raw)
+        return v if v > 0 else _FAL_TIMEOUT_DEFAULT
+    except ValueError:
+        return _FAL_TIMEOUT_DEFAULT
 
 from .base import (
     BaseImageProvider, ImageRequest, ImageResult,
@@ -70,7 +87,7 @@ class FalProvider(BaseImageProvider):
                 "Authorization": f"Key {api_key}",
                 "Content-Type": "application/json",
             },
-            timeout=120.0,
+            timeout=_fal_timeout(),
         )
 
     @property
