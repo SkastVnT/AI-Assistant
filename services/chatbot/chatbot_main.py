@@ -5237,12 +5237,31 @@ def mcp_fetch_url():
         import time
         from urllib.parse import urljoin, urlparse
 
+        def is_allowed_mcp_host(raw_url):
+            parsed = urlparse(raw_url)
+            host = (parsed.hostname or "").lower()
+            if not host:
+                return False
+            allowed_hosts_env = os.getenv("MCP_FETCH_ALLOWED_HOSTS", "")
+            allowed_hosts = [h.strip().lower() for h in allowed_hosts_env.split(",") if h.strip()]
+            if not allowed_hosts:
+                return False
+            return any(host == allowed or host.endswith("." + allowed) for allowed in allowed_hosts)
+
+        if not is_allowed_mcp_host(url):
+            return jsonify({
+                'success': False,
+                'error': 'URL host is not allowed'
+            }), 400
+
         assert_safe_external_url(url)
 
         def safe_get(client, target_url, **kwargs):
             """GET with manual redirect validation before every hop."""
             current_url = target_url
             for _ in range(5):
+                if not is_allowed_mcp_host(current_url):
+                    raise UnsafeUrlError("URL host is not allowed")
                 assert_safe_external_url(current_url)
                 response = client.get(current_url, allow_redirects=False, **kwargs)
                 if response.is_redirect or response.status_code in (301, 302, 303, 307, 308):
