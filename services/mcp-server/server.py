@@ -40,8 +40,10 @@ import importlib.util as _ilu
 
 _guard_path = Path(__file__).parent / "tools" / "guard.py"
 _guard_spec = _ilu.spec_from_file_location("mcp_tools_guard", _guard_path)
+if _guard_spec is None or _guard_spec.loader is None:
+    raise ImportError(f"Cannot load guard module from {_guard_path}")
 _guard_mod = _ilu.module_from_spec(_guard_spec)
-_guard_spec.loader.exec_module(_guard_mod)  # type: ignore[union-attr]
+_guard_spec.loader.exec_module(_guard_mod)
 SAFE_TEXT_EXTENSIONS = _guard_mod.SAFE_TEXT_EXTENSIONS
 is_blocked_workspace_path = _guard_mod.is_blocked_workspace_path
 validate_text_file = _guard_mod.validate_text_file
